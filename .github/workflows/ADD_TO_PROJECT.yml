@@ -12,11 +12,55 @@ on:
       - labeled
 
 jobs:
-  Exec:
-    name: Add issue to project
+  add-by-label:
+    name: Add issue to project if label
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mapping:
+          - label: idp
+            project-url: https://github.com/orgs/camunda/projects/133/views/1
+          - label: agentic-ai
+            project-url: https://github.com/orgs/camunda/projects/155/views/1
+
+    steps:
+      - name: Get labels
+        id: get-labels
+        run: |
+          echo "::set-output name=labels::$(jq -r '.issue? // .pull_request? | .labels[].name' <"$GITHUB_EVENT_PATH")"
+        env:
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+
+      - name: Add to project if “${{ matrix.mapping.label }}” present
+        if: contains(steps.get-labels.outputs.labels, matrix.mapping.label)
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: ${{ matrix.mapping.project-url }}
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+
+      # Mark that at least one label matched
+      - name: Flag “matched”
+        if: contains(steps.get-labels.outputs.labels, matrix.mapping.label)
+        run: echo "::set-output name=matched::true"
+        id: flag
+
+  add-default:
+    name: Add issue to project if no label
+    runs-on: ubuntu-latest
+    if: needs.add-by-label.outputs['flag.matched'] != 'true'
     steps:
       - uses: actions/add-to-project@v1.0.2
         with:
           project-url: https://github.com/orgs/camunda/projects/23/views/1
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+
+  add-quality-board:
+    name: Add issue to quality board project if its a bug
+    runs-on: ubuntu-latest
+    if: (contains(github.event.label.name, 'bug') || contains(github.event.issue.labels.*.name, 'bug') || contains(github.event.issue.type.*.name, 'bug')) &&  github.event_name != 'pull_request'
+    steps:
+      - uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/camunda/projects/187/views/1
           github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}

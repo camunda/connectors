@@ -4,9 +4,9 @@
 
   <parent>
     <groupId>io.camunda.connector</groupId>
-    <artifactId>connectors-bundle-parent</artifactId>
-    <relativePath>../../pom.xml</relativePath>
+    <artifactId>connector-runtime-parent</artifactId>
     <version>8.8.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
   </parent>
 
   <name>connector-runtime-core</name>
@@ -15,7 +15,7 @@
   <packaging>jar</packaging>
 
   <properties>
-    <system-stubs.version>2.1.7</system-stubs.version>
+    <system-stubs.version>2.1.8</system-stubs.version>
   </properties>
 
   <dependencies>
@@ -30,22 +30,19 @@
       <artifactId>connector-document</artifactId>
     </dependency>
 
-    <!-- Jackson dependencies defined as provided in the Connector SDK Core -->
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-document</artifactId>
     </dependency>
+
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>jackson-datatype-feel</artifactId>
     </dependency>
+
     <dependency>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <artifactId>jackson-datatype-jsr310</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <artifactId>jackson-datatype-jdk8</artifactId>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-feel-wrapper</artifactId>
     </dependency>
 
     <dependency>
@@ -67,6 +64,18 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-collections4</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-object-mapper</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-validation</artifactId>
+      <scope>test</scope>
     </dependency>
 
     <dependency>

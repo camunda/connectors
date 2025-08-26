@@ -20,36 +20,35 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
-import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
-import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
-import io.camunda.connector.document.annotation.jackson.JacksonModuleDocumentDeserializer;
-import io.camunda.document.Document;
-import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.operation.DocumentOperationExecutor;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
+import io.camunda.connector.intrinsic.IntrinsicFunctionExecutor;
+import io.camunda.document.DocumentFactoryImpl;
+import io.camunda.document.store.CamundaDocumentStore;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class DocumentDeserializationTest {
 
-  @Mock private DocumentFactory factory;
-  @Mock private DocumentOperationExecutor operationExecutor;
+  private final CamundaDocumentStore documentStoreMock = mock(CamundaDocumentStore.class);
+  private final DocumentFactory factory = new DocumentFactoryImpl(documentStoreMock);
+  private final IntrinsicFunctionExecutor operationExecutor = mock(IntrinsicFunctionExecutor.class);
 
   private ObjectMapper objectMapper;
 
@@ -63,7 +62,7 @@ public class DocumentDeserializationTest {
 
   @Test
   void targetTypeDocument() {
-    var ref = createDocumentMock("Hello World", null);
+    var ref = createDocumentMock("Hello World", null, documentStoreMock);
     var payload = Map.of("document", ref);
     var result = objectMapper.convertValue(payload, TargetTypeDocument.class);
     assertEquals(ref, result.document.reference());
@@ -72,7 +71,7 @@ public class DocumentDeserializationTest {
   @Test
   void targetTypeByteArray() {
     var contentString = "Hello World";
-    var ref = createDocumentMock(contentString, null);
+    var ref = createDocumentMock(contentString, null, documentStoreMock);
     var payload = Map.of("document", ref);
     var result = objectMapper.convertValue(payload, TargetTypeByteArray.class);
     assertEquals(contentString, new String(result.document));
@@ -81,7 +80,7 @@ public class DocumentDeserializationTest {
   @Test
   void targetTypeInputStream() throws IOException {
     var contentString = "Hello World";
-    var ref = createDocumentMock(contentString, null);
+    var ref = createDocumentMock(contentString, null, documentStoreMock);
     var payload = Map.of("document", ref);
     var result = objectMapper.convertValue(payload, TargetTypeInputStream.class);
     assertEquals(contentString, new String(result.document.readAllBytes()));
@@ -89,7 +88,7 @@ public class DocumentDeserializationTest {
 
   @Test
   void targetTypeObject() {
-    var ref = createDocumentMock("Hello World", null);
+    var ref = createDocumentMock("Hello World", null, documentStoreMock);
     var payload = Map.of("document", ref);
     var result = objectMapper.convertValue(payload, TargetTypeObject.class);
     assertInstanceOf(Document.class, result.document);
@@ -99,7 +98,7 @@ public class DocumentDeserializationTest {
   @Test
   @SuppressWarnings("unchecked")
   void targetTypeObject_NestedObject() {
-    var ref = createDocumentMock("Hello World", null);
+    var ref = createDocumentMock("Hello World", null, documentStoreMock);
     var payload = Map.of("document", Map.of("document", ref));
     var result = objectMapper.convertValue(payload, TargetTypeObject.class);
     assertInstanceOf(Map.class, result.document);
@@ -111,7 +110,7 @@ public class DocumentDeserializationTest {
   @Test
   @SuppressWarnings("unchecked")
   void targetTypeObject_Array() {
-    var ref = createDocumentMock("Hello World", null);
+    var ref = createDocumentMock("Hello World", null, documentStoreMock);
     var payload = Map.of("document", List.of(ref));
     var result = objectMapper.convertValue(payload, TargetTypeObject.class);
     Assertions.assertInstanceOf(List.class, result.document);
@@ -120,18 +119,32 @@ public class DocumentDeserializationTest {
     assertEquals(ref, ((Document) list.get(0)).reference());
   }
 
-  private DocumentReferenceModel createDocumentMock(
-      String content, CamundaDocumentMetadataModel metadata) {
+  @Test
+  void targetTypeString() {
+    var contentString = "Hello World";
+    var ref = createDocumentMock(contentString, null, documentStoreMock);
+    var payload = Map.of("document", ref);
+    var result = objectMapper.convertValue(payload, TargetTypeString.class);
+    assertEquals(Base64.getEncoder().encodeToString(contentString.getBytes()), result.document);
+  }
+
+  static DocumentReferenceModel createDocumentMock(
+      String content,
+      CamundaDocumentMetadataModel metadata,
+      CamundaDocumentStore documentStoreMock) {
+    return createDocumentMock(content.getBytes(), metadata, documentStoreMock);
+  }
+
+  static DocumentReferenceModel createDocumentMock(
+      byte[] content,
+      CamundaDocumentMetadataModel metadata,
+      CamundaDocumentStore documentStoreMock) {
     var ref =
         new CamundaDocumentReferenceModel(
-            "default", UUID.randomUUID().toString(), "hash", metadata, Optional.empty());
-    Document document = mock(Document.class);
-    lenient().when(document.asByteArray()).thenReturn(content.getBytes());
-    lenient().when(document.reference()).thenReturn(ref);
+            "default", UUID.randomUUID().toString(), "hash", metadata);
     lenient()
-        .when(document.asInputStream())
-        .thenReturn(new ByteArrayInputStream(content.getBytes()));
-    when((factory.resolve(ref))).thenReturn(document);
+        .when((documentStoreMock.getDocumentContent(ref)))
+        .thenReturn(new ByteArrayInputStream(content));
     return ref;
   }
 
@@ -142,4 +155,6 @@ public class DocumentDeserializationTest {
   public record TargetTypeInputStream(InputStream document) {}
 
   public record TargetTypeObject(Object document) {}
+
+  public record TargetTypeString(String document) {}
 }

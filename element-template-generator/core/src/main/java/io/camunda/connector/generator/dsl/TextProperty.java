@@ -59,6 +59,7 @@ public final class TextProperty extends Property {
 
     private TextPropertyBuilder() {}
 
+    @Override
     public TextProperty build() {
       if (feel == null) {
         feel = FeelMode.optional;

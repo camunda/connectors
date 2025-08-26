@@ -8,6 +8,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>connector-runtime-bundle-saas</artifactId>
+  <name>Connector Runtime Bundle Saas</name>
   <packaging>jar</packaging>
 
   <dependencies>
@@ -45,6 +46,11 @@
     </dependency>
 
     <!-- Testing -->
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-test</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>

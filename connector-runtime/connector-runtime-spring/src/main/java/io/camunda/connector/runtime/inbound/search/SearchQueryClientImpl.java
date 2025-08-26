@@ -17,65 +17,67 @@
 package io.camunda.connector.runtime.inbound.search;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.search.enums.ElementInstanceState;
 import io.camunda.client.api.search.response.*;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.ByteArrayInputStream;
-import java.util.List;
 
 public class SearchQueryClientImpl implements SearchQueryClient {
-
-  private static final int PAGE_SIZE = 50;
+  private final int limit;
 
   private final CamundaClient camundaClient;
 
-  public SearchQueryClientImpl(CamundaClient camundaClient) {
+  public SearchQueryClientImpl(CamundaClient camundaClient, int limit) {
     this.camundaClient = camundaClient;
+    if (limit <= 0) {
+      throw new IllegalArgumentException("Page limit must be greater than zero");
+    }
+    this.limit = limit;
   }
 
   @Override
-  public SearchQueryResponse<ProcessDefinition> queryProcessDefinitions(
-      List<Object> paginationIndex) {
+  public SearchResponse<ProcessDefinition> queryProcessDefinitions(String paginationIndex) {
     final var query =
-        camundaClient.newProcessDefinitionQuery().sort(s -> s.processDefinitionKey().desc());
+        camundaClient.newProcessDefinitionSearchRequest().filter(f -> f.isLatestVersion(true));
     if (paginationIndex != null) {
-      query.page(p -> p.limit(PAGE_SIZE).searchAfter(paginationIndex));
+      query.page(p -> p.limit(limit).after(paginationIndex));
     } else {
-      query.page(p -> p.limit(PAGE_SIZE));
+      query.page(p -> p.limit(limit));
     }
     return query.send().join();
   }
 
   @Override
-  public SearchQueryResponse<FlowNodeInstance> queryActiveFlowNodes(
-      long processDefinitionKey, String elementId, List<Object> paginationIndex) {
+  public SearchResponse<ElementInstance> queryActiveFlowNodes(
+      long processDefinitionKey, String elementId, String paginationIndex) {
     final var query =
         camundaClient
-            .newFlownodeInstanceQuery()
+            .newElementInstanceSearchRequest()
             .filter(
                 i ->
                     i.processDefinitionKey(processDefinitionKey)
-                        .flowNodeId(elementId)
-                        .state(FlowNodeInstanceState.ACTIVE));
+                        .elementId(elementId)
+                        .state(ElementInstanceState.ACTIVE));
     if (paginationIndex != null) {
-      query.page(p -> p.limit(PAGE_SIZE).searchAfter(paginationIndex));
+      query.page(p -> p.limit(limit).after(paginationIndex));
     } else {
-      query.page(p -> p.limit(PAGE_SIZE));
+      query.page(p -> p.limit(limit));
     }
     return query.send().join();
   }
 
   @Override
-  public SearchQueryResponse<Variable> queryVariables(
-      long processInstanceKey, List<Object> variablePaginationIndex) {
+  public SearchResponse<Variable> queryVariables(
+      long processInstanceKey, String variablePaginationIndex) {
     final var query =
         camundaClient
-            .newVariableQuery()
+            .newVariableSearchRequest()
             .filter(v -> v.processInstanceKey(processInstanceKey).scopeKey(processInstanceKey));
     if (variablePaginationIndex != null) {
-      query.page(p -> p.limit(PAGE_SIZE).searchAfter(variablePaginationIndex));
+      query.page(p -> p.limit(limit).after(variablePaginationIndex));
     } else {
-      query.page(p -> p.limit(PAGE_SIZE));
+      query.page(p -> p.limit(limit));
     }
     return query.send().join();
   }

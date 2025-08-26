@@ -8,6 +8,8 @@ package io.camunda.connector.email.client.jakarta.outbound;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.client.EmailActionExecutor;
@@ -17,8 +19,6 @@ import io.camunda.connector.email.outbound.model.EmailRequest;
 import io.camunda.connector.email.outbound.protocols.Protocol;
 import io.camunda.connector.email.outbound.protocols.actions.*;
 import io.camunda.connector.email.response.*;
-import io.camunda.document.Document;
-import io.camunda.document.store.DocumentCreationRequest;
 import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
 import jakarta.mail.*;
@@ -264,7 +264,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       Optional<InternetAddress[]> cc = createParsedInternetAddresses(smtpSendEmail.cc());
       Optional<InternetAddress[]> bcc = createParsedInternetAddresses(smtpSendEmail.bcc());
       Optional<Map<String, String>> headers = Optional.ofNullable(smtpSendEmail.headers());
-      Message message = new MimeMessage(session);
+      MimeMessage message = new MimeMessage(session);
       message.setFrom(new InternetAddress(smtpSendEmail.from()));
       if (to.isPresent()) message.setRecipients(Message.RecipientType.TO, to.get());
       if (cc.isPresent()) message.setRecipients(Message.RecipientType.CC, cc.get());
@@ -280,7 +280,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
         this.jakartaUtils.connectTransport(transport, authentication);
         transport.sendMessage(message, message.getAllRecipients());
       }
-      return new SendEmailResponse(smtpSendEmail.subject(), true);
+      return new SendEmailResponse(smtpSendEmail.subject(), true, message.getMessageID());
     } catch (MessagingException e) {
       throw new RuntimeException(e);
     }

@@ -6,14 +6,12 @@
  */
 package io.camunda.connector.slack.outbound.model;
 
-import static io.camunda.connector.slack.outbound.mapper.BlocksMapper.mapBlocks;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.chat.ChatPostMessageRequest;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
-import com.slack.api.model.File;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
@@ -24,8 +22,8 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyT
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.slack.outbound.SlackResponse;
 import io.camunda.connector.slack.outbound.caller.FileUploader;
+import io.camunda.connector.slack.outbound.mapper.BlockBuilder;
 import io.camunda.connector.slack.outbound.utils.DataLookupService;
-import io.camunda.document.Document;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
@@ -67,7 +65,7 @@ public record ChatPostMessageData(
                 @TemplateProperty.PropertyCondition(
                     property = "method",
                     equals = "chat.postMessage"))
-        String messageType,
+        MessageType messageType,
     @TemplateProperty(
             label = "Message",
             id = "data.text",
@@ -89,7 +87,6 @@ public record ChatPostMessageData(
             id = "data.blockContent",
             group = "message",
             feel = FeelMode.required,
-            optional = false,
             binding = @PropertyBinding(name = "data.blockContent"),
             constraints = @PropertyConstraints(notEmpty = true),
             condition =
@@ -116,31 +113,24 @@ public record ChatPostMessageData(
     if (!isContentSupplied()) {
       throw new ConnectorException("Text or block content required to post a message");
     }
-
     String filteredChannel = this.channel;
     if (channel.startsWith("@")) {
       filteredChannel = DataLookupService.getUserIdByUserName(channel.substring(1), methodsClient);
     } else if (DataLookupService.isEmail(channel)) {
       filteredChannel = DataLookupService.getUserIdByEmail(channel, methodsClient);
     }
-
     var requestBuilder = ChatPostMessageRequest.builder().channel(filteredChannel);
-
     if (StringUtils.isNotBlank(thread)) {
       requestBuilder.threadTs(thread);
     }
-
-    if (this.documents != null && !this.documents.isEmpty()) {
-      var fileUploader = new FileUploader(methodsClient);
-      List<File> files = fileUploader.uploadDocuments(documents);
-      requestBuilder.blocks(mapBlocks(files, text, blockContent));
-    } else {
-      requestBuilder.blocks(mapBlocks(text, blockContent));
-    }
-
-    var request = requestBuilder.build();
-
-    ChatPostMessageResponse chatPostMessageResponse = methodsClient.chatPostMessage(request);
+    requestBuilder.blocks(
+        BlockBuilder.create(new FileUploader(methodsClient))
+            .documents(documents)
+            .text(text)
+            .blockContent(blockContent)
+            .getLayoutBlocks());
+    ChatPostMessageResponse chatPostMessageResponse =
+        methodsClient.chatPostMessage(requestBuilder.build());
     if (chatPostMessageResponse.isOk()) {
       return new ChatPostMessageSlackResponse(chatPostMessageResponse);
     } else {

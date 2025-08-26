@@ -1,0 +1,143 @@
+{
+  "toolDefinitions": [
+    {
+      "name": "GetDateAndTime",
+      "description": "Returns the current date and time including the timezone.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "SuperfluxProduct",
+      "description": "Calculates the superflux product (a very complicated method only this tool can do) given two input numbers",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": "number",
+            "description": "The first number to be superflux calculated."
+          },
+          "b": {
+            "type": "number",
+            "description": "The second number to be superflux calculated."
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ]
+      }
+    },
+    {
+      "name": "Search_The_Web",
+      "description": "Do a web search to find the needed information.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "searchQuery": {
+            "type": "string",
+            "description": "The search query to use"
+          }
+        },
+        "required": [
+          "searchQuery"
+        ]
+      }
+    },
+    {
+      "name": "A_Complex_Tool",
+      "description": "A very complex tool",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "aSimpleValue": {
+            "type": "string",
+            "description": "A simple value"
+          },
+          "anEnumValue": {
+            "type": "string",
+            "description": "An enum value",
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ]
+          },
+          "anArrayValue": {
+            "type": "array",
+            "description": "An array value",
+            "items": {
+              "type": "string",
+              "enum": [
+                "foo",
+                "bar",
+                "baz"
+              ]
+            }
+          },
+          "urlPath": {
+            "type": "string",
+            "description": "The URL path to use"
+          },
+          "firstValue": {
+            "type": "string"
+          },
+          "secondValue": {
+            "type": "integer",
+            "description": "The second value"
+          },
+          "thirdValue": {
+            "type": "string",
+            "description": "The third value to add"
+          },
+          "fourthValue": {
+            "type": "array",
+            "description": "The fourth value to add",
+            "items": {
+              "type": "string",
+              "enum": [
+                "foo",
+                "bar",
+                "baz"
+              ]
+            }
+          }
+        },
+        "required": [
+          "aSimpleValue",
+          "anEnumValue",
+          "anArrayValue",
+          "urlPath",
+          "firstValue",
+          "secondValue",
+          "thirdValue"
+        ]
+      }
+    },
+    {
+      "name": "Download_A_File",
+      "description": "Download a file from the provided URL",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The URL to download the file from"
+          }
+        },
+        "required": ["url"]
+      }
+    },
+    {
+      "name": "An_Event",
+      "description": "An event!",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    }
+  ]
+}

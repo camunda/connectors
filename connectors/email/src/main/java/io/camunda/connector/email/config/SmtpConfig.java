@@ -30,6 +30,7 @@ public record SmtpConfig(
             tooltip =
                 "Enter the port number for connecting to the SMTP server. Typically, port 587 is used for secure connections with STARTTLS, port 465 for secure connections using SSL/TLS, and port 25 for non-secure connections.",
             defaultValue = "587",
+            defaultValueType = TemplateProperty.DefaultValueType.Number,
             feel = Property.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpConfig.smtpPort"))
         @Valid

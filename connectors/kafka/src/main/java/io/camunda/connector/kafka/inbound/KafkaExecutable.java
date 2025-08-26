@@ -8,10 +8,11 @@ package io.camunda.connector.kafka.inbound;
 
 import dev.failsafe.RetryPolicy;
 import io.camunda.connector.api.annotation.InboundConnector;
-import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.ActivityLogTag;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -25,10 +26,11 @@ import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "Kafka Consumer", type = "io.camunda:connector-kafka-inbound:1")
 @ElementTemplate(
-    id = "io.camunda.connectors.webhook",
+    engineVersion = "^8.3",
+    id = "io.camunda.connectors.kafka",
     name = "Kafka Event Connector",
     icon = "icon.svg",
-    version = 6,
+    version = 7,
     inputDataClass = KafkaConnectorProperties.class,
     description = "Consume Kafka messages",
     documentationRef =
@@ -36,7 +38,7 @@ import org.slf4j.LoggerFactory;
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "kafka", label = "Kafka"),
-      @ElementTemplate.PropertyGroup(id = "message", label = "Message deserialization"),
+      @ElementTemplate.PropertyGroup(id = "schema", label = "Schema")
     },
     elementTypes = {
       @ElementTemplate.ConnectorElementType(
@@ -82,11 +84,16 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
   @Override
   public void activate(InboundConnectorContext context) {
     try {
-      LOG.info("Subscription activation requested by the Connector runtime");
       context.log(
-          Activity.level(Severity.INFO)
-              .tag("Subscription activation")
-              .message("Subscription activation requested by the Connector runtime"));
+          activity ->
+              activity
+                  .withSeverity(Severity.INFO)
+                  .withTag(ActivityLogTag.CONSUMER)
+                  .withMessage(
+                      "Subscription activation for process "
+                          + context.getDefinition().elements().stream()
+                              .map(ProcessElement::bpmnProcessId)
+                              .toList()));
 
       KafkaConnectorProperties elementProps =
           context.bindProperties(KafkaConnectorProperties.class);
@@ -94,16 +101,19 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
           new KafkaConnectorConsumer(consumerCreatorFunction, context, elementProps, retryPolicy);
       this.kafkaConnectorConsumer.startConsumer();
       context.log(
-          Activity.level(Severity.INFO)
-              .tag("Subscription activation")
-              .message("Subscription activated successfully"));
+          activity ->
+              activity
+                  .withSeverity(Severity.INFO)
+                  .withTag(ActivityLogTag.CONSUMER)
+                  .withMessage("Subscription activated successfully"));
     } catch (Exception ex) {
       context.log(
-          Activity.level(Severity.ERROR)
-              .tag("Subscription activation")
-              .messageWithException("Subscription activation failed: " + ex.getMessage(), ex));
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withTag(ActivityLogTag.CONSUMER)
+                  .withMessage("Subscription activation failed: " + ex.getMessage()));
       context.reportHealth(Health.down(ex));
-      LOG.warn("Subscription activation failed: ", ex);
       throw ex;
     }
   }

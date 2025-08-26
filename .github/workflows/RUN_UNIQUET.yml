@@ -1,36 +1,30 @@
 name: Run uniquet and push
 on:
   workflow_dispatch:
-    inputs:
-      branch_name:
-        description: 'The branch name to run the workflow on'
-        required: true
-        default: 'main'
 
 jobs:
   run-uniquet-and-push:
     runs-on: ubuntu-latest
     steps:
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.branch_name }}
 
       - name: install-uniquet
         run: |
-          mvn install -pl element-template-generator/uniquet -am
+          mvn install -pl uniquet -am
 
       - name: run-uniquet
         run: |
-          BRANCH_NAME=${{ github.event.inputs.branch_name }}
-          ./element-template-generator/uniquet/target/appassembler/bin/uniquet --destination ./connector-templates.json --branch $BRANCH_NAME
+          ./uniquet/target/appassembler/bin/uniquet --output-file ./connector-templates.json
 
       - name: Create pull request to main branch
         uses: peter-evans/create-pull-request@v7

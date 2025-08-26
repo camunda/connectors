@@ -19,12 +19,13 @@ package io.camunda.connector.runtime.app;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = {ElasticsearchRestClientAutoConfiguration.class})
 @ImportAutoConfiguration({
   io.camunda.connector.runtime.InboundConnectorsAutoConfiguration.class,
   io.camunda.connector.runtime.OutboundConnectorsAutoConfiguration.class,
-  io.camunda.connector.runtime.WebhookConnectorAutoConfiguration.class
+  io.camunda.connector.runtime.WebhookConnectorAutoConfiguration.class,
 })
 public class TestConnectorRuntimeApplication {
 

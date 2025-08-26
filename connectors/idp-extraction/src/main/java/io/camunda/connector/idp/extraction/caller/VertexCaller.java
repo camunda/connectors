@@ -16,11 +16,13 @@ import com.google.cloud.vertexai.generativeai.PartMaker;
 import com.google.cloud.vertexai.generativeai.ResponseHandler;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.LlmModel;
-import io.camunda.connector.idp.extraction.model.providers.VertexProvider;
+import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
+import io.camunda.connector.idp.extraction.model.providers.gcp.VertexRequestConfiguration;
 import io.camunda.connector.idp.extraction.supplier.VertexAISupplier;
 import io.camunda.connector.idp.extraction.utils.GcsUtil;
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,21 +31,33 @@ public class VertexCaller {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(VertexCaller.class);
 
-  public String generateContent(ExtractionRequestData input, VertexProvider baseRequest)
+  public String generateContent(ExtractionRequestData input, GcpProvider baseRequest)
       throws Exception {
+    var configuration = (VertexRequestConfiguration) baseRequest.getConfiguration();
     LlmModel llmModel = LlmModel.fromId(input.converseData().modelId());
     String fileUri;
-    final String fileName =
-        input.document().metadata().getFileName() == null
-            ? "temporaryDocument"
-            : input.document().metadata().getFileName();
+    final String fileName;
+    String extension = ".pdf";
+    // Attempt to extract extension from content type
+    if (input.document().metadata().getContentType() != null) {
+      String contentType = input.document().metadata().getContentType();
+      extension =
+          switch (contentType) {
+            case "image/png" -> ".png";
+            case "image/jpeg" -> ".jpg";
+            case "text/plain" -> ".txt";
+            default -> extension;
+          };
+    }
+    fileName = UUID.randomUUID() + extension;
+
     try {
       fileUri =
           GcsUtil.uploadNewFileFromDocument(
               input.document(),
               fileName,
-              baseRequest.getConfiguration().bucketName(),
-              baseRequest.getConfiguration().projectId(),
+              configuration.getBucketName(),
+              configuration.getProjectId(),
               baseRequest.getAuthentication());
       LOGGER.debug("File uploaded to GCS with URI: {}", fileUri);
     } catch (IOException e) {
@@ -58,7 +72,12 @@ public class VertexCaller {
       var content =
           ContentMaker.fromMultiModalData(
               llmModel.getMessage(input.taxonomyItems()),
-              PartMaker.fromMimeTypeAndData(input.document().metadata().getContentType(), fileUri));
+              // TODO: we need to always expose the content type and not assume its a PDF
+              PartMaker.fromMimeTypeAndData(
+                  input.document().metadata().getContentType() != null
+                      ? input.document().metadata().getContentType()
+                      : "application/pdf",
+                  fileUri));
       GenerateContentResponse response = model.generateContent(content);
       String output = ResponseHandler.getText(response);
       LOGGER.debug("Gemini generate content response: {}", output);
@@ -68,9 +87,9 @@ public class VertexCaller {
           () -> {
             try {
               GcsUtil.deleteObjectFromBucket(
-                  baseRequest.getConfiguration().bucketName(),
+                  configuration.getBucketName(),
                   fileName,
-                  baseRequest.getConfiguration().projectId(),
+                  configuration.getProjectId(),
                   baseRequest.getAuthentication());
               LOGGER.debug("File deleted from GCS");
             } catch (Exception e) {

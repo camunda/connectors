@@ -2,7 +2,10 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Camunda Operate Outbound connector",
   "id": "io.camunda.connectors.CamundaOperate.v1",
-  "version": 4,
+  "version": 5,
+  "engines": {
+    "camunda": "^8.3"
+  },
   "description": "Fetch data from Camunda Operate API",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/operate/",
   "category": {
@@ -507,6 +510,30 @@
         "type": "zeebe:taskHeader",
         "key": "errorExpression"
       }
+    },
+    {
+      "id": "version",
+      "label": "Version",
+      "description": "Version of the element template",
+      "value": "5",
+      "group": "connector",
+      "binding": {
+        "key": "elementTemplateVersion",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "id",
+      "label": "ID",
+      "description": "ID of the element template",
+      "value": "io.camunda.connectors.CamundaOperate.v1",
+      "group": "connector",
+      "binding": {
+        "key": "elementTemplateId",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Hidden"
     }
   ],
   "icon": {

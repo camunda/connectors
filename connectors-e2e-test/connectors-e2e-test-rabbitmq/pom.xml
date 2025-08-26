@@ -10,6 +10,7 @@
   </parent>
 
   <description>Tests</description>
+  <name>Connectors E2e Test Rabbitmq</name>
   <artifactId>connectors-e2e-test-rabbitmq</artifactId>
   <packaging>jar</packaging>
 
@@ -46,5 +47,12 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+    <groupId>org.testcontainers</groupId>
+    <artifactId>rabbitmq</artifactId>
+    <version>${version.testcontainers}</version>
+    <scope>test</scope>
+  </dependency>
   </dependencies>
 </project>

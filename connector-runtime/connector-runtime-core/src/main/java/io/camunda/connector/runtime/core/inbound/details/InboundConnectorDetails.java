@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.inbound.details;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,10 @@ public sealed interface InboundConnectorDetails {
   String type();
 
   String deduplicationId();
+
+  default ExecutableId id() {
+    return ExecutableId.fromDeduplicationId(deduplicationId());
+  }
 
   String tenantId();
 

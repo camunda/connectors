@@ -17,8 +17,10 @@
 package io.camunda.document.store;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.document.reference.CamundaDocumentReferenceImpl;
-import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentLinkParameters;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.document.CamundaDocumentReferenceImpl;
 import java.io.InputStream;
 
 public class CamundaDocumentStoreImpl implements CamundaDocumentStore {
@@ -52,8 +54,9 @@ public class CamundaDocumentStoreImpl implements CamundaDocumentStore {
   @Override
   public InputStream getDocumentContent(CamundaDocumentReference reference) {
     return camundaClient
-        .newDocumentContentGetRequest(reference)
-        .storeId(reference.storeId())
+        .newDocumentContentGetRequest(reference.getDocumentId())
+        .contentHash(reference.getContentHash())
+        .storeId(reference.getStoreId())
         .send()
         .join();
   }
@@ -61,9 +64,24 @@ public class CamundaDocumentStoreImpl implements CamundaDocumentStore {
   @Override
   public void deleteDocument(CamundaDocumentReference reference) {
     camundaClient
-        .newDeleteDocumentCommand(reference.documentId())
-        .storeId(reference.storeId())
+        .newDeleteDocumentCommand(reference.getDocumentId())
+        .storeId(reference.getStoreId())
         .send()
         .join();
+  }
+
+  @Override
+  public String generateLink(
+      CamundaDocumentReference reference, DocumentLinkParameters parameters) {
+    final var command =
+        camundaClient
+            .newCreateDocumentLinkCommand(reference.getDocumentId())
+            .contentHash(reference.getContentHash())
+            .storeId(reference.getStoreId());
+
+    if (parameters.timeToLive() != null) {
+      command.timeToLive(parameters.timeToLive());
+    }
+    return command.send().join().getUrl();
   }
 }

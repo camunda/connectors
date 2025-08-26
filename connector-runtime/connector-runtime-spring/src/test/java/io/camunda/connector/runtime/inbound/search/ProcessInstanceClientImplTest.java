@@ -22,14 +22,14 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.search.response.FlowNodeInstance;
-import io.camunda.client.api.search.response.SearchQueryResponse;
+import io.camunda.client.api.search.response.ElementInstance;
+import io.camunda.client.api.search.response.SearchResponse;
 import io.camunda.client.api.search.response.Variable;
-import io.camunda.client.impl.search.response.FlowNodeInstanceImpl;
-import io.camunda.client.impl.search.response.SearchQueryResponseImpl;
+import io.camunda.client.impl.search.response.ElementInstanceImpl;
+import io.camunda.client.impl.search.response.SearchResponseImpl;
 import io.camunda.client.impl.search.response.SearchResponsePageImpl;
 import io.camunda.client.impl.search.response.VariableImpl;
-import io.camunda.client.protocol.rest.FlowNodeInstanceResult;
+import io.camunda.client.protocol.rest.ElementInstanceResult;
 import io.camunda.client.protocol.rest.VariableResult;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
 import java.util.Arrays;
@@ -61,52 +61,50 @@ class ProcessInstanceClientImplTest {
     // Given
     Long processDefinitionKey = 123L;
     String elementId = "task1";
-    FlowNodeInstance flownodeInstance1 =
+    ElementInstance flownodeInstance1 =
         createFlownodeInstance("456", "123456", "187", "flowNodeName1", "tenantId1");
-    FlowNodeInstance flownodeInstance2 =
+    ElementInstance flownodeInstance2 =
         createFlownodeInstance("789", "234567", "203", "flowNodeName2", "tenantId2");
 
-    SearchQueryResponse<FlowNodeInstance> flownodeInstanceSearchResult =
+    SearchResponse<ElementInstance> flownodeInstanceSearchResult =
         createSearchResult(flownodeInstance1, flownodeInstance2);
-    SearchQueryResponse<FlowNodeInstance> flownodeInstanceEmptySearchResult =
-        createEmptySearchResult();
+    SearchResponse<ElementInstance> flownodeInstanceEmptySearchResult = createEmptySearchResult();
 
     when(searchQueryClient.queryActiveFlowNodes(anyLong(), any(), any()))
         .thenReturn(flownodeInstanceSearchResult)
         .thenReturn(flownodeInstanceEmptySearchResult);
 
     // When
-    List<FlowNodeInstance> result =
+    List<ElementInstance> result =
         processInstanceClient.fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
             processDefinitionKey, elementId);
 
     // Then
     assertThat(result.size()).isEqualTo(2);
-    FlowNodeInstance actualFlowNodeInstance1 = result.getFirst();
-    assertThat(actualFlowNodeInstance1.getFlowNodeId())
-        .isEqualTo(flownodeInstance1.getFlowNodeId());
+    ElementInstance actualFlowNodeInstance1 = result.getFirst();
+    assertThat(actualFlowNodeInstance1.getElementId()).isEqualTo(flownodeInstance1.getElementId());
     assertThat(actualFlowNodeInstance1.getProcessDefinitionKey())
         .isEqualTo(flownodeInstance1.getProcessDefinitionKey());
-    assertThat(actualFlowNodeInstance1.getFlowNodeInstanceKey())
-        .isEqualTo(flownodeInstance1.getFlowNodeInstanceKey());
+    assertThat(actualFlowNodeInstance1.getElementInstanceKey())
+        .isEqualTo(flownodeInstance1.getElementInstanceKey());
     assertThat(actualFlowNodeInstance1.getProcessInstanceKey())
         .isEqualTo(flownodeInstance1.getProcessInstanceKey());
     assertThat(actualFlowNodeInstance1.getTenantId()).isEqualTo(flownodeInstance1.getTenantId());
   }
 
-  private FlowNodeInstance createFlownodeInstance(
+  private ElementInstance createFlownodeInstance(
       final String key,
       final String processInstanceKey,
       final String definitionKey,
       final String flowNodeId,
       final String tenantId) {
-    final var item = new FlowNodeInstanceResult();
-    item.setFlowNodeInstanceKey(key);
+    final var item = new ElementInstanceResult();
+    item.setElementInstanceKey(key);
     item.setProcessInstanceKey(processInstanceKey);
     item.setProcessDefinitionKey(definitionKey);
-    item.setFlowNodeId(flowNodeId);
+    item.setElementId(flowNodeId);
     item.setTenantId(tenantId);
-    return new FlowNodeInstanceImpl(item);
+    return new ElementInstanceImpl(item);
   }
 
   @Test
@@ -120,8 +118,8 @@ class ProcessInstanceClientImplTest {
     Variable variable1 = createVariable("12345", "var1", "value1");
     Variable variable2 = createVariable("67890", "var2", "value2");
 
-    SearchQueryResponse<Variable> variableSearchResult = createSearchResult(variable1, variable2);
-    SearchQueryResponse<Variable> variableEmptySearchResult = createEmptySearchResult();
+    SearchResponse<Variable> variableSearchResult = createSearchResult(variable1, variable2);
+    SearchResponse<Variable> variableEmptySearchResult = createEmptySearchResult();
 
     when(searchQueryClient.queryVariables(anyLong(), any()))
         .thenReturn(variableSearchResult)
@@ -148,13 +146,13 @@ class ProcessInstanceClientImplTest {
   }
 
   @SafeVarargs
-  private <T> SearchQueryResponse<T> createSearchResult(T... items) {
-    final var page = new SearchResponsePageImpl(items.length, null, null);
-    return new SearchQueryResponseImpl<>(Arrays.asList(items), page);
+  private <T> SearchResponse<T> createSearchResult(T... items) {
+    final var page = new SearchResponsePageImpl((long) items.length, null, null);
+    return new SearchResponseImpl<>(Arrays.asList(items), page);
   }
 
-  private <T> SearchQueryResponse<T> createEmptySearchResult() {
-    final var page = new SearchResponsePageImpl(0, null, null);
-    return new SearchQueryResponseImpl<>(Collections.emptyList(), page);
+  private <T> SearchResponse<T> createEmptySearchResult() {
+    final var page = new SearchResponsePageImpl(0L, null, null);
+    return new SearchResponseImpl<>(Collections.emptyList(), page);
   }
 }

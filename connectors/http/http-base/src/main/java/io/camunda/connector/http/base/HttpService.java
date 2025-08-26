@@ -1,52 +1,25 @@
 /*
  * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
- * under one or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information regarding copyright
- * ownership. Camunda licenses this file to you under the Apache License,
- * Version 2.0; you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
  */
 package io.camunda.connector.http.base;
 
-import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.http.base.blocklist.DefaultHttpBlocklistManager;
-import io.camunda.connector.http.base.blocklist.HttpBlockListManager;
-import io.camunda.connector.http.base.client.HttpClient;
-import io.camunda.connector.http.base.client.apache.CustomApacheHttpClient;
-import io.camunda.connector.http.base.client.apache.ProxyHandler;
-import io.camunda.connector.http.base.cloudfunction.CloudFunctionService;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
-import io.camunda.document.factory.DocumentFactory;
-import javax.annotation.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.camunda.connector.http.base.model.auth.AuthenticationMapper;
+import io.camunda.connector.http.client.HttpClientService;
+import io.camunda.connector.http.client.model.HttpClientRequest;
+import io.camunda.connector.http.client.model.HttpClientResult;
 
 public class HttpService {
-  private static final Logger LOGGER = LoggerFactory.getLogger(HttpService.class);
 
-  private final CloudFunctionService cloudFunctionService;
-
-  private final HttpClient httpClient = CustomApacheHttpClient.getDefault();
-
-  private final HttpBlockListManager httpBlocklistManager = new DefaultHttpBlocklistManager();
-
-  private final ProxyHandler proxyHandler = new ProxyHandler();
+  private final HttpClientService httpClientService;
 
   public HttpService() {
-    this(new CloudFunctionService());
-  }
-
-  public HttpService(CloudFunctionService cloudFunctionService) {
-    this.cloudFunctionService = cloudFunctionService;
+    httpClientService = new HttpClientService();
   }
 
   public HttpCommonResult executeConnectorRequest(HttpCommonRequest request) {
@@ -54,38 +27,31 @@ public class HttpService {
   }
 
   public HttpCommonResult executeConnectorRequest(
-      HttpCommonRequest request, @Nullable DocumentFactory documentFactory) {
-    // Will throw ConnectorInputException if URL is blocked
-    httpBlocklistManager.validateUrlAgainstBlocklist(request.getUrl());
-    ExecutionEnvironment executionEnvironment =
-        ExecutionEnvironment.from(
-            cloudFunctionService.isCloudFunctionEnabled(),
-            cloudFunctionService.isRunningInCloudFunction(),
-            documentFactory);
-
-    if (executionEnvironment instanceof ExecutionEnvironment.SaaSCluster) {
-      // Wrap the request in a proxy request
-      request = cloudFunctionService.toCloudFunctionRequest(request);
-    }
-    return executeRequest(request, executionEnvironment);
+      final HttpCommonRequest request, final OutboundConnectorContext context) {
+    HttpClientRequest httpClientRequest = mapToHttpClientRequest(request);
+    HttpClientResult result = httpClientService.executeConnectorRequest(httpClientRequest, context);
+    return mapToHttpCommonResult(result);
   }
 
-  private HttpCommonResult executeRequest(
-      HttpCommonRequest request, @Nullable ExecutionEnvironment executionEnvironment) {
-    try {
-      HttpCommonResult jsonResult = httpClient.execute(request, proxyHandler, executionEnvironment);
-      LOGGER.debug("Connector returned result: {}", jsonResult);
-      return jsonResult;
-    } catch (ConnectorException e) {
-      LOGGER.debug("Failed to execute request {}", request, e);
-      if (executionEnvironment instanceof ExecutionEnvironment.SaaSCluster) {
-        throw cloudFunctionService.parseCloudFunctionError(e);
-      }
-      throw e;
-    } catch (final Exception e) {
-      LOGGER.debug("Failed to execute request {}", request, e);
-      throw new ConnectorException(
-          "Failed to execute request: " + request + ". An error occurred: " + e.getMessage(), e);
-    }
+  public HttpClientRequest mapToHttpClientRequest(HttpCommonRequest request) {
+    HttpClientRequest httpClientRequest = new HttpClientRequest();
+    httpClientRequest.setMethod(
+        io.camunda.connector.http.client.model.HttpMethod.valueOf(request.getMethod().name()));
+    httpClientRequest.setUrl(request.getUrl());
+    httpClientRequest.setHeaders(request.getHeaders().orElse(null));
+    httpClientRequest.setQueryParameters(request.getQueryParameters());
+    httpClientRequest.setBody(request.getBody());
+    httpClientRequest.setAuthentication(AuthenticationMapper.map(request.getAuthentication()));
+    httpClientRequest.setStoreResponse(request.isStoreResponse());
+    httpClientRequest.setConnectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds());
+    httpClientRequest.setReadTimeoutInSeconds(request.getReadTimeoutInSeconds());
+    httpClientRequest.setSkipEncoding(request.getSkipEncoding());
+    httpClientRequest.setIgnoreNullValues(request.isIgnoreNullValues());
+    return httpClientRequest;
+  }
+
+  public HttpCommonResult mapToHttpCommonResult(HttpClientResult result) {
+    return new HttpCommonResult(
+        result.status(), result.headers(), result.body(), result.reason(), result.document());
   }
 }

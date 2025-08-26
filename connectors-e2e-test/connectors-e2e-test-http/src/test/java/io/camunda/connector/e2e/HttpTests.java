@@ -35,11 +35,11 @@ import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
-import io.camunda.connector.http.base.authentication.OAuthConstants;
 import io.camunda.connector.http.base.model.auth.ApiKeyAuthentication;
 import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
+import io.camunda.connector.http.client.authentication.OAuthConstants;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
@@ -60,8 +60,8 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 @SpringBootTest(
@@ -83,11 +83,11 @@ public class HttpTests {
   @TempDir File tempDir;
   @Autowired CamundaClient camundaClient;
 
-  @MockBean ProcessDefinitionSearch processDefinitionSearch;
+  @MockitoBean ProcessDefinitionSearch processDefinitionSearch;
 
   @Autowired ProcessStateStore stateStore;
 
-  @MockBean SearchQueryClient searchQueryClient;
+  @MockitoBean SearchQueryClient searchQueryClient;
 
   @LocalServerPort int serverPort;
 

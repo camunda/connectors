@@ -1,0 +1,83 @@
+{
+  "toolDefinitions": [
+    {
+      "name": "GetDateAndTime",
+      "description": "Returns the current date and time including the timezone.",
+      "inputSchema": {
+        "properties": {},
+        "type": "object",
+        "required": []
+      }
+    },
+    {
+      "name": "SuperfluxProduct",
+      "description": "Calculates the superflux product (a very complicated method only this tool can do) given two input numbers",
+      "inputSchema": {
+        "properties": {
+          "a": {
+            "type": "number",
+            "description": "The first number to be superflux calculated."
+          },
+          "b": {
+            "type": "number",
+            "description": "The second number to be superflux calculated."
+          }
+        },
+        "type": "object",
+        "required": [
+          "a",
+          "b"
+        ]
+      }
+    },
+    {
+      "name": "Search_The_Web",
+      "description": "Do a web search to find the needed information.",
+      "inputSchema": {
+        "properties": {
+          "searchQuery": {
+            "type": "string",
+            "description": "The search query to use"
+          }
+        },
+        "type": "object",
+        "required": [
+          "searchQuery"
+        ]
+      }
+    },
+    {
+      "name": "Download_A_File",
+      "description": "Download a file from the provided URL",
+      "inputSchema": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The URL to download the file from"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ]
+      }
+    }
+  ],
+  "gatewayToolDefinitions": [
+    {
+      "type": "mcpClient",
+      "name": "A_MCP_Client",
+      "description": "A MCP Client"
+    },
+    {
+      "type": "mcpClient",
+      "name": "A_Remote_MCP_Client",
+      "description": "A Remote MCP Client"
+    },
+    {
+      "type": "mcpClient",
+      "name": "Filesystem_MCP_Flow",
+      "description": "Filesystem MCP Flow"
+    }
+  ]
+}

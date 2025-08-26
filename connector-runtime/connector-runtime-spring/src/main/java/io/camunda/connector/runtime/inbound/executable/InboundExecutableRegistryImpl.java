@@ -19,10 +19,12 @@ package io.camunda.connector.runtime.inbound.executable;
 import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.Health.Error;
-import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.Deactivated;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Activated;
@@ -40,17 +42,23 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class InboundExecutableRegistryImpl implements InboundExecutableRegistry {
 
   private static final Logger LOG = LoggerFactory.getLogger(InboundExecutableRegistryImpl.class);
-  final Map<UUID, RegisteredExecutable> executables = new ConcurrentHashMap<>();
+  final Map<ExecutableId, RegisteredExecutable> executables = new ConcurrentHashMap<>();
   private final BlockingQueue<InboundExecutableEvent> eventQueue;
   private final ExecutorService executorService;
   private final BatchExecutableProcessor batchExecutableProcessor;
-  private final Map<ProcessElement, UUID> executablesByElement = new ConcurrentHashMap<>();
+  private final Map<ProcessElementWithRuntimeData, ExecutableId> executablesByElement =
+      new ConcurrentHashMap<>();
   private final Map<String, List<String>> deduplicationScopesByType;
   private final Map<String, String> connectorsNamesByType;
 
+  private final ActivityLogRegistry activityLogRegistry;
+
   public InboundExecutableRegistryImpl(
-      InboundConnectorFactory connectorFactory, BatchExecutableProcessor batchExecutableProcessor) {
+      InboundConnectorFactory connectorFactory,
+      BatchExecutableProcessor batchExecutableProcessor,
+      ActivityLogRegistry activityLogRegistry) {
     this.batchExecutableProcessor = batchExecutableProcessor;
+    this.activityLogRegistry = activityLogRegistry;
     this.executorService = Executors.newSingleThreadExecutor();
     eventQueue = new LinkedBlockingQueue<>();
     connectorsNamesByType =
@@ -95,17 +103,17 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   }
 
   private void handleCancelled(InboundExecutableEvent.Cancelled cancelled) {
-    RegisteredExecutable executable = this.executables.get(cancelled.uuid());
+    RegisteredExecutable executable = this.executables.get(cancelled.id());
     if (executable instanceof Activated activated) {
       Cancelled cancelledExecutable =
           this.batchExecutableProcessor.cancelExecutable(activated, cancelled.throwable());
-      this.executables.replace(cancelled.uuid(), cancelledExecutable);
+      this.executables.replace(cancelled.id(), cancelledExecutable);
       if (cancelled.throwable() instanceof ConnectorRetryException retryException) {
         this.batchExecutableProcessor
             .restartFromContext(cancelledExecutable, retryException)
             .thenAccept(
                 registeredExecutable ->
-                    this.executables.replace(cancelled.uuid(), registeredExecutable))
+                    this.executables.replace(cancelled.id(), registeredExecutable))
             .exceptionally(
                 throwable -> {
                   LOG.error("The inbound connector could not be restarted", throwable);
@@ -134,9 +142,9 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
 
     synchronized (processId.intern()) {
       try {
-        Map<UUID, InboundConnectorDetails> groupedConnectors =
+        Map<ExecutableId, InboundConnectorDetails> groupedConnectors =
             groupElements(elements).stream()
-                .collect(Collectors.toMap(connector -> UUID.randomUUID(), connector -> connector));
+                .collect(Collectors.toMap(InboundConnectorDetails::id, connector -> connector));
 
         groupedConnectors.forEach(
             (id, connectorDetails) ->
@@ -155,7 +163,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   }
 
   public void createCancellation(InboundExecutableEvent.Cancelled cancelEvent) {
-    RegisteredExecutable executable = this.executables.get(cancelEvent.uuid());
+    RegisteredExecutable executable = this.executables.get(cancelEvent.id());
     if (executable instanceof Activated) {
       this.publishEvent(cancelEvent);
     } else throw new IllegalStateException();
@@ -227,7 +235,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   }
 
   private boolean matchesQuery(RegisteredExecutable executable, ActiveExecutableQuery query) {
-    List<ProcessElement> elements =
+    List<ProcessElementWithRuntimeData> elements =
         switch (executable) {
           case Activated activated ->
               activated.context().connectorElements().stream()
@@ -268,11 +276,13 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                     && elementIdMatches(element.elementId(), query));
   }
 
-  private boolean processIdMatches(ProcessElement element, ActiveExecutableQuery query) {
+  private boolean processIdMatches(
+      ProcessElementWithRuntimeData element, ActiveExecutableQuery query) {
     return query.bpmnProcessId() == null || query.bpmnProcessId().equals(element.bpmnProcessId());
   }
 
-  private boolean tenantIdMatches(ProcessElement element, ActiveExecutableQuery query) {
+  private boolean tenantIdMatches(
+      ProcessElementWithRuntimeData element, ActiveExecutableQuery query) {
     return query.tenantId() == null || query.tenantId().equals(element.tenantId());
   }
 
@@ -284,7 +294,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     return query.elementId() == null || query.elementId().equals(elementId);
   }
 
-  private ActiveExecutableResponse mapToResponse(UUID id, RegisteredExecutable connector) {
+  private ActiveExecutableResponse mapToResponse(ExecutableId id, RegisteredExecutable connector) {
 
     return switch (connector) {
       case Activated activated ->
@@ -293,7 +303,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
               activated.executable().getClass(),
               activated.context().connectorElements(),
               activated.context().getHealth(),
-              activated.context().getLogs(),
+              activityLogRegistry.getLogs(id),
               activated.context().getActivationTimestamp());
       case FailedToActivate failed ->
           new ActiveExecutableResponse(
@@ -330,7 +340,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
               cancelled.executable().getClass(),
               cancelled.context().connectorElements(),
               Health.down(cancelled.exceptionThrown()),
-              cancelled.context().getLogs(),
+              activityLogRegistry.getLogs(id),
               null);
     };
   }

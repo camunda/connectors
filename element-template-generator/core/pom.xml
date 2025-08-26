@@ -4,8 +4,8 @@
 
   <parent>
     <groupId>io.camunda.connector</groupId>
-    <artifactId>connector-parent</artifactId>
-    <relativePath>../../parent/pom.xml</relativePath>
+    <artifactId>element-template-generator-parent</artifactId>
+    <relativePath>../pom.xml</relativePath>
     <version>8.8.0-SNAPSHOT</version>
   </parent>
 
@@ -18,6 +18,10 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-object-mapper</artifactId>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -39,13 +43,13 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
-      <version>3.17.0</version>
+      <version>3.18.0</version>
     </dependency>
     <!-- Docs template engine -->
     <dependency>
       <groupId>io.pebbletemplates</groupId>
       <artifactId>pebble</artifactId>
-      <version>3.2.3</version>
+      <version>3.2.4</version>
     </dependency>
     <!-- Markdown generator -->
     <dependency>

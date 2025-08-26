@@ -27,23 +27,22 @@ import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 public abstract class BaseRabbitMqTest {
   protected static final String ELEMENT_ID = "elementId";
   protected static final String OUTBOUND_ELEMENT_TEMPLATE_PATH =
       "../../connectors/rabbitmq/element-templates/rabbitmq-outbound-connector.json";
   protected static final String INTERMEDIATE_CATCH_EVENT_BPMN = "intermediate-catch-event.bpmn";
+  public static final String RABBITMQ_TEST_IMAGE = "rabbitmq:4.1.1-management-alpine";
+
   @TempDir File tempDir;
 
   @Autowired CamundaClient camundaClient;
 
-  @MockBean ProcessDefinitionSearch processDefinitionSearch;
+  @MockitoBean ProcessDefinitionSearch processDefinitionSearch;
 
-  @Autowired SearchQueryClient searchQueryClient;
-
-  @LocalServerPort int serverPort;
+  @MockitoBean SearchQueryClient searchQueryClient;
 
   @BeforeEach
   void beforeEach() {

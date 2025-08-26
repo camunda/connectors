@@ -13,10 +13,10 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.document.CamundaDocument;
-import io.camunda.document.Document;
-import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.store.CamundaDocumentStore;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

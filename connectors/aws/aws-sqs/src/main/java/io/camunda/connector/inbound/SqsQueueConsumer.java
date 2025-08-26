@@ -10,15 +10,11 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
-import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
-import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
-import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
 import java.util.List;
 import java.util.Optional;
@@ -62,18 +58,27 @@ public class SqsQueueConsumer implements Runnable {
         List<Message> messages = receiveMessageResult.getMessages();
         for (Message message : messages) {
           context.log(
-              Activity.level(Severity.INFO)
-                  .tag("Message")
-                  .message("Received SQS Message with ID " + message.getMessageId()));
-          var result = context.correlateWithResult(MessageMapper.toSqsInboundMessage(message));
+              activity ->
+                  activity
+                      .withSeverity(Severity.INFO)
+                      .withTag(ActivityLogTag.MESSAGE)
+                      .withMessage("Received SQS Message with ID " + message.getMessageId()));
+          var result =
+              context.correlate(
+                  CorrelationRequest.builder()
+                      .variables(MessageMapper.toSqsInboundMessage(message))
+                      .messageId(message.getMessageId())
+                      .build());
           handleCorrelationResult(message, result);
         }
       } catch (Exception e) {
         LOGGER.debug("NACK - unhandled exception", e);
         context.log(
-            Activity.level(Severity.WARNING)
-                .tag("Message")
-                .message("NACK - failed to correlate event : " + e.getMessage()));
+            activity ->
+                activity
+                    .withSeverity(Severity.WARNING)
+                    .withTag(ActivityLogTag.MESSAGE)
+                    .withMessage("NACK - failed to correlate event : " + e.getMessage()));
       }
     } while (queueConsumerActive.get());
     LOGGER.info("Stopping SQS consumer for queue {}", properties.getQueue().url());
@@ -88,7 +93,12 @@ public class SqsQueueConsumer implements Runnable {
       }
 
       case Failure failure -> {
-        context.log(Activity.level(Severity.WARNING).tag("Message").message(failure.message()));
+        context.log(
+            activity ->
+                activity
+                    .withSeverity(Severity.WARNING)
+                    .withTag(ActivityLogTag.MESSAGE)
+                    .withMessage(failure.message()));
         switch (failure.handlingStrategy()) {
           case ForwardErrorToUpstream ignored1 -> {
             LOGGER.debug("NACK (requeue) - message not correlated");

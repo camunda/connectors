@@ -33,6 +33,7 @@
       <groupId>org.testcontainers</groupId>
       <artifactId>rabbitmq</artifactId>
       <version>${version.testcontainers}</version>
+      <scope>test</scope>
     </dependency>
 
     <!-- This dependency will be removed after camunda/zeebe#9859 is resolved. -->
@@ -91,6 +92,7 @@
               </features>
             </connector>
           </connectors>
+          <versionHistoryEnabled>true</versionHistoryEnabled>
         </configuration>
       </plugin>
     </plugins>

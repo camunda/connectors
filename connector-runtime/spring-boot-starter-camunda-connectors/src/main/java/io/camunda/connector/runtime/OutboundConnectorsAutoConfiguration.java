@@ -18,10 +18,11 @@ package io.camunda.connector.runtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.impl.CamundaObjectMapper;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.document.annotation.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
@@ -29,7 +30,6 @@ import io.camunda.connector.runtime.secret.ConsoleSecretProvider;
 import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
 import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
 import io.camunda.connector.runtime.secret.console.JwtCredential;
-import io.camunda.document.factory.DocumentFactory;
 import io.camunda.spring.client.properties.CamundaClientProperties;
 import io.camunda.spring.client.properties.CamundaClientProperties.ClientMode;
 import java.net.URL;
@@ -64,6 +64,9 @@ public class OutboundConnectorsAutoConfiguration {
 
   @Value("${camunda.connector.secretprovider.environment.prefix:}")
   String environmentSecretProviderPrefix;
+
+  @Value("${camunda.connector.secretprovider.environment.tenantaware:false}")
+  boolean environmentSecretProviderTenantAware;
 
   @Value(
       "${camunda.connector.secretprovider.console.endpoint:https://cluster-api.cloud.camunda.io/secrets}")
@@ -105,7 +108,8 @@ public class OutboundConnectorsAutoConfiguration {
       havingValue = "true",
       matchIfMissing = true)
   public EnvironmentSecretProvider defaultSecretProvider(Environment environment) {
-    return new EnvironmentSecretProvider(environment, environmentSecretProviderPrefix);
+    return new EnvironmentSecretProvider(
+        environment, environmentSecretProviderPrefix, environmentSecretProviderTenantAware);
   }
 
   @Bean
@@ -132,9 +136,9 @@ public class OutboundConnectorsAutoConfiguration {
     var authProperties = clientProperties.getAuth();
     URL issuerUrl;
     try {
-      issuerUrl = authProperties.getIssuer().toURL();
+      issuerUrl = authProperties.getTokenUrl().toURL();
     } catch (Exception e) {
-      throw new RuntimeException("Invalid issuer URL: " + authProperties.getIssuer(), e);
+      throw new RuntimeException("Invalid token URL: " + authProperties.getTokenUrl(), e);
     }
 
     var jwtCredential =

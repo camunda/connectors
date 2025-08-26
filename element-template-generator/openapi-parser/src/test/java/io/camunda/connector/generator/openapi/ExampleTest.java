@@ -69,6 +69,26 @@ public class ExampleTest {
   }
 
   @Test
+  void generateFromRawJsonContentWithoutType() throws IOException {
+    // given
+    try (var openApiJsonContent =
+        new FileInputStream("src/test/resources/example-without-type.json")) {
+      String openApiCollectionsJsonContent =
+          mapper.readValue(openApiJsonContent, JsonNode.class).toString();
+      var source = new OpenApiGenerationSource(List.of(openApiCollectionsJsonContent));
+      var generator = new OpenApiOutboundTemplateGenerator();
+
+      // when
+      var templates = generator.generate(source);
+
+      // then
+      System.out.println(mapper.writeValueAsString(templates));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Test
   void generateFromRawYamlContent() {
     // given
     try (var openApiYamlContent = new FileInputStream("src/test/resources/example.yaml")) {

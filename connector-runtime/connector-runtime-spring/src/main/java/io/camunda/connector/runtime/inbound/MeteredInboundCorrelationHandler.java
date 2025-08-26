@@ -16,56 +16,53 @@
  */
 package io.camunda.connector.runtime.inbound;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
-import io.camunda.connector.runtime.core.inbound.ProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
-import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
-import io.camunda.spring.client.metrics.MetricsRecorder;
+import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import java.time.Duration;
 import java.util.List;
 
 public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler {
 
-  private final MetricsRecorder metricsRecorder;
+  private final ConnectorsInboundMetrics connectorsInboundMetrics;
 
   public MeteredInboundCorrelationHandler(
       CamundaClient camundaClient,
       FeelEngineWrapper feelEngine,
-      MetricsRecorder metricsRecorder,
-      ProcessElementContextFactory contextFactory,
-      Duration messageTtl) {
-    super(camundaClient, feelEngine, contextFactory, messageTtl);
-    this.metricsRecorder = metricsRecorder;
+      ObjectMapper objectMapper,
+      Duration messageTtl,
+      ConnectorsInboundMetrics connectorsInboundMetrics) {
+    super(camundaClient, feelEngine, objectMapper, messageTtl);
+    this.connectorsInboundMetrics = connectorsInboundMetrics;
   }
 
   @Override
   public boolean isActivationConditionMet(InboundConnectorElement def, Object context) {
     boolean isConditionMet = super.isActivationConditionMet(def, context);
     if (!isConditionMet) {
-      metricsRecorder.increase(
-          Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_ACTIVATION_CONDITION_FAILED, def.type());
+      this.connectorsInboundMetrics.increaseActivationConditionFailure(def);
     }
     return isConditionMet;
   }
 
   @Override
-  public CorrelationResult correlate(List<InboundConnectorElement> elementList, Object variables) {
+  public CorrelationResult correlate(
+      List<InboundConnectorElement> elementList, CorrelationRequest correlationRequest) {
     if (elementList.isEmpty()) {
       throw new IllegalArgumentException("No elements to correlate, potential API misuse");
     }
-    var type = elementList.getFirst().type();
-    metricsRecorder.increase(Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_TRIGGERED, type);
-
+    this.connectorsInboundMetrics.increaseTrigger(elementList.getFirst());
     try {
-      var result = super.correlate(elementList, variables);
-      metricsRecorder.increase(Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_CORRELATED, type);
+      var result = super.correlate(elementList, correlationRequest);
+      this.connectorsInboundMetrics.increaseCorrelationSuccess(elementList.getFirst());
       return result;
     } catch (Exception e) {
-      metricsRecorder.increase(
-          Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_CORRELATION_FAILED, type);
+      this.connectorsInboundMetrics.increaseCorrelationFailure(elementList.getFirst());
       throw e;
     }
   }

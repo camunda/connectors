@@ -16,6 +16,9 @@
  */
 package io.camunda.connector.api.secret;
 
+import java.util.List;
+import java.util.Objects;
+
 /**
  * Provider of secrets for an environment. This class will be instantiated from an environment
  * runtime according to the <a
@@ -29,5 +32,22 @@ public interface SecretProvider {
    * @return the secret's value for the given name, if it exists. Otherwise, <code>null</code> is
    *     returned.
    */
-  String getSecret(String name);
+  @Deprecated
+  default String getSecret(String name) {
+    return getSecret(name, null);
+  }
+
+  /**
+   * @param name - the secret's name to find a value for
+   * @param context - the secret context for which a value should be provided
+   * @return the secret's value for the given name, if it exists. Otherwise, <code>null</code> is
+   *     returned.
+   */
+  default String getSecret(String name, SecretContext context) {
+    return getSecret(name);
+  }
+
+  default List<String> fetchAll(List<String> keys, SecretContext context) {
+    return keys.stream().map(key -> getSecret(key, context)).filter(Objects::nonNull).toList();
+  }
 }

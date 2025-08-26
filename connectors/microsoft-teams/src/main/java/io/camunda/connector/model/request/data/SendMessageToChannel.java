@@ -6,10 +6,13 @@
  */
 package io.camunda.connector.model.request.data;
 
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.model.MSTeamsMethodTypes;
 import jakarta.validation.constraints.NotBlank;
+import java.util.List;
 
 @TemplateSubType(label = "Send message to channel", id = MSTeamsMethodTypes.SEND_MESSAGE_TO_CHANNEL)
 public record SendMessageToChannel(
@@ -47,5 +50,12 @@ public record SendMessageToChannel(
             },
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             description = "The type of the content. Possible values are text and html")
-        String bodyType)
+        String bodyType,
+    @TemplateProperty(
+            label = "documents",
+            group = "data",
+            id = "sendMessageToChannel.documents",
+            feel = Property.FeelMode.required,
+            optional = true)
+        List<Document> documents)
     implements ChannelData {}

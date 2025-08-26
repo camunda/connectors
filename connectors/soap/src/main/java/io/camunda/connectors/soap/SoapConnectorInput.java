@@ -55,6 +55,7 @@ public record SoapConnectorInput(
     @TemplateProperty(
             group = "timeout",
             defaultValue = "20",
+            defaultValueType = TemplateProperty.DefaultValueType.Number,
             optional = true,
             description =
                 "Sets timeout in seconds to establish a connection or 0 for an infinite timeout")

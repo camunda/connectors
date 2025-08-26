@@ -6,8 +6,8 @@
   "metadata" : {
     "keywords" : [ ]
   },
-  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-gemini/",
-  "version" : 1,
+  "documentationRef" : "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/google-gemini/",
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -16,12 +16,18 @@
   "elementType" : {
     "value" : "bpmn:ServiceTask"
   },
+  "engines" : {
+    "camunda" : "^8.7"
+  },
   "groups" : [ {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
     "id" : "input",
     "label" : "Configure input"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -242,6 +248,7 @@
     "description" : "Customize grounding by Vertex AI Search.",
     "optional" : false,
     "value" : false,
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.grounding",
@@ -278,6 +285,7 @@
     "description" : "You can adjust the likelihood of receiving a model response that could contain harmful content. Content is blocked based on the probability that it's harmful.<a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/learn/responsible-ai?hl=en#safety_filters_and_attributes\" Learn more.</a>",
     "optional" : false,
     "value" : false,
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.safetySettings",
@@ -428,13 +436,14 @@
         "message" : "value must be in the range from 0 to 2 in increments of 0.1"
       }
     },
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.temperature",
       "type" : "zeebe:input"
     },
     "tooltip" : "Temperature controls the randomness in token selection.\nA lower temperature is good when you expect a true or correct response. \nA temperature of 0 means the highest probability token is usually selected.\nA higher temperature can lead to diverse or unexpected results. Some models have a higher temperature max to encourage more random responses.",
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "input.maxOutputTokens",
     "label" : "Output token limit from 1 to 8192",
@@ -446,13 +455,14 @@
         "message" : "value must be in the range from 1 to 8192 in increments of 1"
       }
     },
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.maxOutputTokens",
       "type" : "zeebe:input"
     },
     "tooltip" : "Output token limit determines the maximum amount of text output from one prompt. A token is approximately four characters.",
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "input.seed",
     "label" : "Seed",
@@ -464,13 +474,14 @@
         "message" : "value must be whole numbers that range from -2,147,483,647 to 2,147,483,647"
       }
     },
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.seed",
       "type" : "zeebe:input"
     },
     "tooltip" : "Setting a seed value is useful when you make repeated requests and want the same model response.\nDeterministic outcome isn’t guaranteed. Changing the model or other settings can cause variations in the response even when you use the same seed value.",
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "input.topK",
     "label" : "Top-K",
@@ -482,6 +493,7 @@
         "message" : "value must be an integer between 1 and 40"
       }
     },
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.topK",
@@ -493,7 +505,7 @@
       "type" : "simple"
     },
     "tooltip" : "Top-K specifies the number of candidate tokens when the model is selecting an output token. Use a lower value for less random responses and a higher value for more random responses.",
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "input.topP",
     "label" : "Top-P",
@@ -505,13 +517,14 @@
         "message" : "value must be in the range from 0 to 1 in increments of 0.1"
       }
     },
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.topP",
       "type" : "zeebe:input"
     },
     "tooltip" : "Top-p changes how the model selects tokens for output. Tokens are selected from most probable to least until the sum of their probabilities equals the top-p value. For example, if tokens A, B, and C have a probability of .3, .2, and .1 and the top-p value is .5, then the model will select either A or B as the next token (using temperature). For the least variable results, set top-P to 0.",
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "input.functionCalls",
     "label" : "Function call description",
@@ -524,6 +537,28 @@
       "type" : "zeebe:input"
     },
     "type" : "String"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "2",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.GoogleGemini.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21.0.6_7-jre
+FROM eclipse-temurin:21.0.8_9-jre
 
 VOLUME /tmp
 
@@ -14,10 +14,15 @@ COPY target/*-with-dependencies.jar /opt/app/
 # It can also be downloaded from Maven Central instead
 # ADD https://s01.oss.sonatype.org/content/repositories/releases/io/camunda/connector/connector-runtime-application/${VERSION}/connector-runtime-application-${VERSION}-with-dependencies.jar /opt/app/runtime.jar
 
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Create an unprivileged user / group and switch to that user
 RUN groupadd --gid 1001 camunda && useradd --no-create-home --gid 1001 --uid 1001 camunda
 USER 1001:1001
 
 # Use entry point to allow downstream images to add JVM arguments using CMD
-ENV ZEEBE_CLIENT_CONFIG_PATH=/tmp/connectors
+ENV CAMUNDA_CLIENT_AUTH_CREDENTIALS_CACHE_PATH=/tmp/connectors
 ENTRYPOINT ["/start.sh"]

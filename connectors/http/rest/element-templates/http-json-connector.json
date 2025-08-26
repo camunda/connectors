@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
-  "version" : 10,
+  "version" : 11,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,6 +15,9 @@
   "appliesTo" : [ "bpmn:Task" ],
   "elementType" : {
     "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.3"
   },
   "groups" : [ {
     "id" : "authentication",
@@ -28,6 +31,9 @@
   }, {
     "id" : "payload",
     "label" : "Payload"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -396,6 +402,7 @@
     "description" : "Store the response as a document in the document store",
     "optional" : false,
     "value" : false,
+    "feel" : "static",
     "group" : "endpoint",
     "binding" : {
       "name" : "storeResponse",
@@ -414,22 +421,11 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "groupSetCookieHeaders",
-    "label" : "Group set-cookie headers to a list",
-    "description" : "Group incoming headers with same name into a List to support <a href=\"https://datatracker.ietf.org/doc/html/rfc6265\">multiple Set-Cookie headers</a>.",
-    "optional" : true,
-    "group" : "endpoint",
-    "binding" : {
-      "name" : "groupSetCookieHeaders",
-      "type" : "zeebe:input"
-    },
-    "type" : "Hidden"
-  }, {
     "id" : "connectionTimeoutInSeconds",
     "label" : "Connection timeout in seconds",
     "description" : "Defines the connection timeout in seconds, or 0 for an infinite timeout",
     "optional" : false,
-    "value" : "20",
+    "value" : 20,
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
@@ -437,19 +433,19 @@
         "message" : "Must be a number"
       }
     },
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "timeout",
     "binding" : {
       "name" : "connectionTimeoutInSeconds",
       "type" : "zeebe:input"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "readTimeoutInSeconds",
     "label" : "Read timeout in seconds",
     "description" : "Timeout in seconds to read data from an established connection or 0 for an infinite timeout",
     "optional" : false,
-    "value" : "20",
+    "value" : 20,
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
@@ -457,13 +453,13 @@
         "message" : "Must be a number"
       }
     },
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "timeout",
     "binding" : {
       "name" : "readTimeoutInSeconds",
       "type" : "zeebe:input"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "body",
     "label" : "Request body",
@@ -481,6 +477,41 @@
       "type" : "simple"
     },
     "type" : "Text"
+  }, {
+    "id" : "ignoreNullValues",
+    "label" : "Ignore null values",
+    "optional" : false,
+    "value" : false,
+    "feel" : "static",
+    "group" : "payload",
+    "binding" : {
+      "name" : "ignoreNullValues",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "Null values will not be sent",
+    "type" : "Boolean"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "11",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.HttpJson.v2",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

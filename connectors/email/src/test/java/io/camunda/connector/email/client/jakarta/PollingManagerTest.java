@@ -9,6 +9,8 @@ package io.camunda.connector.email.client.jakarta;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import io.camunda.connector.api.inbound.ActivationCheckResult;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
@@ -69,6 +71,10 @@ class PollingManagerTest {
             .createTestMessage();
 
     when(connectorContext.bindProperties(any())).thenReturn(emailInboundConnectorProperties);
+    when(connectorContext.canActivate(any()))
+        .thenReturn(new ActivationCheckResult.Success.CanActivate(null));
+    when(connectorContext.correlate(any()))
+        .thenReturn(new CorrelationResult.Success.ProcessInstanceCreated(null, null, null));
     when(emailInboundConnectorProperties.authentication()).thenReturn(authentication);
     when(emailInboundConnectorProperties.data()).thenReturn(emailListenerConfig);
     when(jakartaUtils.createSession(any())).thenReturn(session);
@@ -84,6 +90,6 @@ class PollingManagerTest {
     when(jakartaUtils.createBodylessEmail(any())).thenCallRealMethod();
     pollingManager.poll();
 
-    verify(connectorContext, times(1)).correlateWithResult(argThat(Objects::nonNull));
+    verify(connectorContext, times(1)).correlate(argThat(Objects::nonNull));
   }
 }

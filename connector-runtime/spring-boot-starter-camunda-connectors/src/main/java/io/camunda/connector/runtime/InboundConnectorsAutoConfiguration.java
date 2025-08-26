@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime;
 
 import io.camunda.connector.runtime.inbound.InboundConnectorRuntimeConfiguration;
+import io.camunda.connector.runtime.instances.InstanceForwardingConfiguration;
 import io.camunda.spring.client.configuration.CamundaAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -31,6 +32,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
     name = "enabled",
     havingValue = "true",
     matchIfMissing = true)
-@Import(InboundConnectorRuntimeConfiguration.class)
+@Import({InboundConnectorRuntimeConfiguration.class, InstanceForwardingConfiguration.class})
 @EnableScheduling
 public class InboundConnectorsAutoConfiguration {}

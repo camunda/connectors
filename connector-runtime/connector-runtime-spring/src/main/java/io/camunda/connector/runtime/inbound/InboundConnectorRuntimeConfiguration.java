@@ -18,15 +18,15 @@ package io.camunda.connector.runtime.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorFactory;
-import io.camunda.connector.runtime.core.inbound.DefaultProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
-import io.camunda.connector.runtime.core.inbound.ProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.controller.InboundConnectorRestController;
@@ -43,14 +43,16 @@ import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.connector.runtime.inbound.state.TenantAwareProcessStateStoreImpl;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
-import io.camunda.document.factory.DocumentFactory;
-import io.camunda.spring.client.metrics.MetricsRecorder;
+import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.env.Environment;
 
 @Configuration
 @Import({
@@ -64,28 +66,23 @@ public class InboundConnectorRuntimeConfiguration {
   @Value("${camunda.connector.inbound.message.ttl:PT1H}")
   private Duration messageTtl;
 
-  @Bean
-  public static InboundConnectorBeanDefinitionProcessor inboundConnectorBeanDefinitionProcessor() {
-    return new InboundConnectorBeanDefinitionProcessor();
-  }
+  @Value("${camunda.connector.inbound.log.size:100}")
+  private int activityLogSize;
 
   @Bean
-  public ProcessElementContextFactory processElementContextFactory(
-      ObjectMapper objectMapper,
-      @Autowired(required = false) ValidationProvider validationProvider,
-      SecretProviderAggregator secretProviderAggregator) {
-    return new DefaultProcessElementContextFactory(
-        secretProviderAggregator, validationProvider, objectMapper);
+  public static InboundConnectorBeanDefinitionProcessor inboundConnectorBeanDefinitionProcessor(
+      Environment environment) {
+    return new InboundConnectorBeanDefinitionProcessor(environment);
   }
 
   @Bean
   public InboundCorrelationHandler inboundCorrelationHandler(
       final CamundaClient camundaClient,
       final FeelEngineWrapper feelEngine,
-      final MetricsRecorder metricsRecorder,
-      final ProcessElementContextFactory elementContextFactory) {
+      final ObjectMapper objectMapper,
+      final ConnectorsInboundMetrics connectorsInboundMetrics) {
     return new MeteredInboundCorrelationHandler(
-        camundaClient, feelEngine, metricsRecorder, elementContextFactory, messageTtl);
+        camundaClient, feelEngine, objectMapper, messageTtl, connectorsInboundMetrics);
   }
 
   @Bean
@@ -111,25 +108,45 @@ public class InboundConnectorRuntimeConfiguration {
   }
 
   @Bean
+  public ActivityLogRegistry activityLogRegistry() {
+    return new ActivityLogRegistry(activityLogSize);
+  }
+
+  @Bean
   public BatchExecutableProcessor batchExecutableProcessor(
       InboundConnectorFactory connectorFactory,
       InboundConnectorContextFactory connectorContextFactory,
-      MetricsRecorder metricsRecorder,
-      @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
+      ConnectorsInboundMetrics connectorsInboundMetrics,
+      @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry,
+      ActivityLogRegistry activityLogRegistry) {
     return new BatchExecutableProcessor(
-        connectorFactory, connectorContextFactory, metricsRecorder, webhookConnectorRegistry);
+        connectorFactory,
+        connectorContextFactory,
+        connectorsInboundMetrics,
+        webhookConnectorRegistry,
+        activityLogRegistry);
   }
 
   @Bean
+  public ConnectorsInboundMetrics connectorsInboundMetrics(MeterRegistry meterRegistry) {
+    return new ConnectorsInboundMetrics(meterRegistry);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public InboundExecutableRegistry inboundExecutableRegistry(
       InboundConnectorFactory inboundConnectorFactory,
-      BatchExecutableProcessor batchExecutableProcessor) {
-    return new InboundExecutableRegistryImpl(inboundConnectorFactory, batchExecutableProcessor);
+      BatchExecutableProcessor batchExecutableProcessor,
+      ActivityLogRegistry activityLogRegistry) {
+    return new InboundExecutableRegistryImpl(
+        inboundConnectorFactory, batchExecutableProcessor, activityLogRegistry);
   }
 
   @Bean
-  SearchQueryClient searchQueryClient(CamundaClient camundaClient) {
-    return new SearchQueryClientImpl(camundaClient);
+  SearchQueryClient searchQueryClient(
+      CamundaClient camundaClient,
+      @Value("${camunda.connector.process-definition-search.page-size:200}") int limit) {
+    return new SearchQueryClientImpl(camundaClient, limit);
   }
 
   @Bean

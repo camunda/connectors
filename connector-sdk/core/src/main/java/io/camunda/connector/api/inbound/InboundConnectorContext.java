@@ -16,8 +16,9 @@
  */
 package io.camunda.connector.api.inbound;
 
-import io.camunda.document.factory.DocumentFactory;
+import io.camunda.connector.api.document.DocumentFactory;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * The context object provided to an inbound connector function. The context allows to fetch
@@ -55,7 +56,31 @@ public interface InboundConnectorContext extends DocumentFactory {
    * @see CorrelationResult
    * @see CorrelationFailureHandlingStrategy
    */
+  @Deprecated
   CorrelationResult correlateWithResult(Object variables);
+
+  /**
+   * Correlates the inbound event to the matching process definition using the provided correlation
+   * request and returns the result.
+   *
+   * <p>Correlation may not succeed due to Connector configuration (e.g. if activation condition
+   * specified by user is not met). In this case, the response will contain the corresponding error
+   * code.
+   *
+   * <p>This method does not throw any exceptions. If correlation fails, the error is returned as a
+   * part of the response. The connector implementation should handle the error according to the
+   * {@link CorrelationFailureHandlingStrategy} provided in the response. If the strategy is {@link
+   * CorrelationFailureHandlingStrategy.ForwardErrorToUpstream}, the error should be forwarded to
+   * the upstream system. If the strategy is {@link CorrelationFailureHandlingStrategy.Ignore}, the
+   * error should be ignored.
+   *
+   * @param correlationRequest - an object containing the inbound connector variables and message ID
+   * @return correlation result that should be interpreted by the Connector implementation
+   * @see CorrelationResult
+   * @see CorrelationFailureHandlingStrategy
+   * @see CorrelationRequest
+   */
+  CorrelationResult correlate(CorrelationRequest correlationRequest);
 
   /**
    * /** Signals to the Connector runtime that inbound Connector execution was interrupted. As a
@@ -122,6 +147,32 @@ public interface InboundConnectorContext extends DocumentFactory {
    *
    * <p>This method can be called as often as needed and the internal state of the inbound Connector
    * implementation requires it.
+   *
+   * @see InboundConnectorContext#log(Consumer)
+   *     <p>Note: this method also performs logging of the activity using SLF4J. It will not trigger
+   *     application ERROR logs no matter what severity is supplied. ERROR activities will be mapped
+   *     to SLF4J WARNING logs, while INFO and DEBUG will be mapped to SLF4J INFO and DEBUG logs
+   *     respectively.
    */
   void log(Activity activity);
+
+  default void log(ActivityBuilder activityBuilder) {
+    log(activityBuilder.build());
+  }
+
+  /**
+   * Consumer-style variant of the {@link #log(Activity)} method. This allows for more flexible
+   * construction of the activity log entry using an {@link ActivityBuilder} that is passed to the
+   * consumer by the runtime.
+   *
+   * <p>This method can be called as often as needed and the internal state of the inbound Connector
+   * implementation requires it.
+   *
+   * @see InboundConnectorContext#log(Activity)
+   *     <p>Note: this method also performs logging of the activity using SLF4J. It will not trigger
+   *     application ERROR logs no matter what severity is supplied. ERROR activities will be mapped
+   *     to SLF4J WARNING logs, while INFO and DEBUG will be mapped to SLF4J INFO and DEBUG logs
+   *     respectively.
+   */
+  void log(Consumer<ActivityBuilder> activityBuilderConsumer);
 }

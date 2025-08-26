@@ -19,15 +19,15 @@ package io.camunda.connector.runtime.core.inbound;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.EvictingQueue;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
-import io.camunda.document.factory.DocumentFactory;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +47,7 @@ class DefaultInboundConnectorContextFactoryTest {
   @Mock private ValidInboundConnectorDetails newConnector;
   @Mock private DocumentFactory documentFactory;
   private DefaultInboundConnectorContextFactory factory;
+  private final ActivityLogRegistry activityLogRegistry = new ActivityLogRegistry();
 
   @BeforeEach
   void setUp() {
@@ -67,7 +68,7 @@ class DefaultInboundConnectorContextFactoryTest {
             newConnector,
             cancellationCallback,
             ExecutableWithInboundContext.class,
-            EvictingQueue.create(10));
+            activityLogRegistry);
 
     assertThat(result).isExactlyInstanceOf(InboundConnectorContextImpl.class);
   }
@@ -79,7 +80,7 @@ class DefaultInboundConnectorContextFactoryTest {
             newConnector,
             cancellationCallback,
             ExecutableWithEmptyParameterizedType.class,
-            EvictingQueue.create(10));
+            activityLogRegistry);
 
     assertThat(result).isExactlyInstanceOf(InboundConnectorContextImpl.class);
   }
@@ -92,7 +93,7 @@ class DefaultInboundConnectorContextFactoryTest {
             newConnector,
             cancellationCallback,
             ExecutableWithIntermediate.class,
-            EvictingQueue.create(10));
+            activityLogRegistry);
 
     assertThat(result).isExactlyInstanceOf(InboundIntermediateConnectorContextImpl.class);
   }

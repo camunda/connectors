@@ -20,7 +20,20 @@
         <module>google-drive</module>
         <module>google-sheets</module>
         <module>google-gemini</module>
+        <module>google-gcs</module>
     </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>libraries-bom</artifactId>
+                <version>26.66.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <properties>
         <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH

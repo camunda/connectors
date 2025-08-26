@@ -36,7 +36,7 @@ import java.lang.annotation.Target;
  * apply custom labels, descriptions, conditions, or even override the property type.
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.FIELD, ElementType.RECORD_COMPONENT})
+@Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.RECORD_COMPONENT})
 public @interface TemplateProperty {
   public static boolean OPTIONAL_DEFAULT = false;
 
@@ -119,6 +119,7 @@ public @interface TemplateProperty {
 
   enum PropertyType {
     Boolean,
+    Number,
     Dropdown,
     Hidden,
     String,
@@ -128,7 +129,8 @@ public @interface TemplateProperty {
 
   enum DefaultValueType {
     String,
-    Boolean
+    Boolean,
+    Number
   }
 
   @interface PropertyBinding {

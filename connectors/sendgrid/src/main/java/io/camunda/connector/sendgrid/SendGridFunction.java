@@ -15,11 +15,11 @@ import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Attachments;
 import com.sendgrid.helpers.mail.objects.Personalization;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.sendgrid.model.SendGridRequest;
-import io.camunda.document.Document;
 import java.io.IOException;
 import java.util.List;
 import org.slf4j.Logger;
@@ -30,11 +30,12 @@ import org.slf4j.LoggerFactory;
     inputVariables = {"apiKey", "from", "to", "template", "content", "attachments"},
     type = "io.camunda:sendgrid:1")
 @ElementTemplate(
+    engineVersion = "^8.3",
     id = "io.camunda.connectors.SendGrid.v2",
     name = "SendGrid Outbound Connector",
     description = "Send an email via SendGrid",
     inputDataClass = SendGridRequest.class,
-    version = 4,
+    version = 5,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "sender", label = "Sender"),

@@ -98,7 +98,6 @@ public record GeminiRequestData(
                 "Grounding connects model output to verifiable sources of information. "
                     + "This is useful in situations where accuracy and reliability are important."
                     + "<a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview?hl=en\" Learn more about grounding </a>",
-            feel = Property.FeelMode.disabled,
             defaultValue = "false")
         boolean grounding,
     @TemplateProperty(
@@ -129,7 +128,6 @@ public record GeminiRequestData(
                 "You can adjust the likelihood of receiving a model response that could contain harmful content."
                     + " Content is blocked based on the probability that it's harmful."
                     + "<a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/learn/responsible-ai?hl=en#safety_filters_and_attributes\" Learn more.</a>",
-            feel = Property.FeelMode.disabled,
             defaultValue = "false")
         boolean safetySettings,
     @TemplateProperty(
@@ -254,7 +252,6 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Temperature",
             group = "input",
-            feel = Property.FeelMode.disabled,
             optional = true,
             tooltip =
                 "Temperature controls the randomness in token selection.\n"
@@ -272,7 +269,6 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Output token limit from 1 to 8192",
             group = "input",
-            feel = Property.FeelMode.disabled,
             tooltip =
                 "Output token limit determines the maximum amount of text output from one prompt. "
                     + "A token is approximately four characters.",
@@ -289,7 +285,6 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Seed",
             group = "input",
-            feel = Property.FeelMode.disabled,
             optional = true,
             tooltip =
                 "Setting a seed value is useful when you make repeated requests and want the same model response.\n"
@@ -306,7 +301,6 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Top-K",
             group = "input",
-            feel = Property.FeelMode.disabled,
             optional = true,
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -325,7 +319,6 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Top-P",
             group = "input",
-            feel = Property.FeelMode.disabled,
             optional = true,
             tooltip =
                 "Top-p changes how the model selects tokens for output."

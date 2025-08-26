@@ -18,15 +18,17 @@ package io.camunda.connector.runtime.core.outbound;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.ActivatedJob;
-import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.testutil.classexample.TestClass;
+import io.camunda.connector.runtime.core.testutil.classexample.TestClassString;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -59,6 +61,89 @@ class JobHandlerContextTest {
   }
 
   @Test
+  void bindVariables_failedSecretAreBounded() {
+    String json = "{ \"integer\": \"{{secrets.FOO}}\"";
+    when(activatedJob.getVariables()).thenReturn(json);
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("secret");
+    Exception thrown =
+        assertThrows(
+            ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+    assertThat(thrown.getMessage())
+        .isEqualTo("Json object contains an invalid field: integer. It Must be `Integer`");
+  }
+
+  @Test
+  void bindVariables_successSecretAreBounded() {
+    String json = "{ \"integer\": {{secrets.FOO}} }";
+    when(activatedJob.getVariables()).thenReturn(json);
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("1");
+    assertThat(jobHandlerContext.bindVariables(TestClass.class).integer).isEqualTo(1);
+  }
+
+  @Test
+  void bindVariables_successJsonSecretAreEscaped() {
+    String json = "{ \"value\": \"{{secrets.FOO}}\" }";
+    when(activatedJob.getVariables()).thenReturn(json);
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("{\"key\": \"secret\"}");
+    assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
+        .isEqualTo("{\"key\": \"secret\"}");
+  }
+
+  @Test
+  void bindVariables_successJsonSecretAreEscapedAndCarriageReturnEscaped() {
+    String json = "{ \"value\": \"{{secrets.FOO}}\" }";
+    when(activatedJob.getVariables()).thenReturn(json);
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("{\"key\": \n\"secret\"}");
+    assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
+        .isEqualTo("{\"key\": \n\"secret\"}");
+  }
+
+  @Test
+  void bindVariables_successJsonSecretAreEscapedAndNullByteRemoved() {
+    String json = "{ \"value\": \"{{secrets.FOO}}\" }";
+    when(activatedJob.getVariables()).thenReturn(json);
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("{\"key\": \"sec\0ret\"}");
+    assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
+        .isEqualTo("{\"key\": \"sec\0ret\"}");
+  }
+
+  @Test
+  void bindVariables_secretIsNotAvailable() {
+    String json = "{ \"integer\": {{secrets.FOO2}} }";
+    when(activatedJob.getVariables()).thenReturn(json);
+    when(secretProvider.getSecret(eq("FOO2"), any())).thenReturn(null);
+    assertThrows(
+        ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+  }
+
+  @Test
+  void bindVariables_successStringSecretAreEscapedAndCarriageReturnEscaped() {
+    String json = "{ \"value\": \"{{secrets.FOO}}\" }";
+    when(activatedJob.getVariables()).thenReturn(json);
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("Hello \n World");
+    assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
+        .isEqualTo("Hello \n World");
+  }
+
+  @Test
+  void bindVariables_successStringSecretAreEscapedAndQuoteEscaped() {
+    String json = "{ \"value\": \"{{secrets.FOO}}\" }";
+    when(activatedJob.getVariables()).thenReturn(json);
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("Hello \" World");
+    assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
+        .isEqualTo("Hello \" World");
+  }
+
+  @Test
+  void bindVariables_successStringSecretAreEscapedAndNullByteEscaped() {
+    String json = "{ \"value\": \"{{secrets.FOO}}\" }";
+    when(activatedJob.getVariables()).thenReturn(json);
+    when(secretProvider.getSecret(eq("FOO"), any())).thenReturn("Hello \0 World");
+    assertThat(jobHandlerContext.bindVariables(TestClassString.class).value)
+        .isEqualTo("Hello \0 World");
+  }
+
+  @Test
   void bindVariables_nullValue() {
     String json = "{ \"integer\": null}";
     when(activatedJob.getVariables()).thenReturn(json);
@@ -71,7 +156,7 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     Exception thrown =
         assertThrows(
-            ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+            ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
 
     assertThat(thrown.getMessage())
         .isEqualTo("Json object contains an invalid field: integer. It Must be `Integer`");
@@ -83,7 +168,7 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     Exception thrown =
         assertThrows(
-            ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+            ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
 
     assertThat(thrown.getMessage()).isEqualTo("Json object contains an invalid field: invalid");
   }
@@ -94,7 +179,7 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     Exception thrown =
         assertThrows(
-            ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+            ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
 
     assertThat(thrown.getMessage()).isEqualTo("This is not a JSON object");
   }
@@ -105,7 +190,7 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     Exception thrown =
         assertThrows(
-            ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+            ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
 
     assertThat(thrown.getMessage())
         .isEqualTo("Json object contains an invalid field: integer. It Must be `Integer`");
@@ -117,7 +202,7 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     Exception thrown =
         assertThrows(
-            ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+            ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
 
     assertThat(thrown.getMessage()).isEqualTo("No content to map due to end-of-input");
   }
@@ -128,7 +213,7 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     Exception thrown =
         assertThrows(
-            ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+            ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
 
     assertThat(thrown.getMessage())
         .isEqualTo(
@@ -141,7 +226,7 @@ class JobHandlerContextTest {
     when(activatedJob.getVariables()).thenReturn(json);
     Exception thrown =
         assertThrows(
-            ConnectorException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
+            ConnectorInputException.class, () -> jobHandlerContext.bindVariables(TestClass.class));
 
     assertThat(thrown.getMessage())
         .isEqualTo(

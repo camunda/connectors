@@ -91,13 +91,11 @@ camunda-platform:
         value: ${ZEEBE_CLIENT_SECRET}
       - name: CAMUNDA_CLIENT_AUTH_AUDIENCE
         value: ${ZEEBE_TOKEN_AUDIENCE}
-      - name: CAMUNDA_CLIENT_AUTH_ISSUER
-        value: ${ZEEBE_AUTHORIZATION_SERVER_URL}
       - name: CAMUNDA_CONNECTOR_POLLING_ENABLED
         value: "false"
-      - name: CAMUNDA_CLIENT_ZEEBE_REST-ADDRESS
+      - name: CAMUNDA_CLIENT_REST-ADDRESS
         value: http://zeebe-cluster-gateway:9600
-      - name: CAMUNDA_CLIENT_ZEEBE_GRPC-ADDRESS
+      - name: CAMUNDA_CLIENT_GRPC-ADDRESS
         value: http://zeebe-cluster-gateway:26500
     resources:
       limits:

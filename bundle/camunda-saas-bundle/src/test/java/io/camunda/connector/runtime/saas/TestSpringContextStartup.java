@@ -17,8 +17,12 @@
 package io.camunda.connector.runtime.saas;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest(
     classes = {SaaSConnectorRuntimeApplication.class},
@@ -26,10 +30,16 @@ import org.springframework.test.context.ActiveProfiles;
       "camunda.saas.secrets.projectId=42",
       "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
       "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/",
-      "camunda.connector.secretprovider.discovery.enabled=false"
+      "camunda.connector.secretprovider.discovery.enabled=false",
+      "camunda.client.auth.token-url=https://weblogin.cloud.dev.ultrawombat.com/token",
+      "camunda.client.auth.audience=connectors.dev.ultrawombat.com",
     })
 @ActiveProfiles("test")
+@ExtendWith(MockitoExtension.class)
 public class TestSpringContextStartup {
+
+  @MockitoBean(answers = Answers.RETURNS_MOCKS)
+  public SaaSSecretConfiguration saaSSecretConfiguration;
 
   @Test
   public void contextLoaded() {

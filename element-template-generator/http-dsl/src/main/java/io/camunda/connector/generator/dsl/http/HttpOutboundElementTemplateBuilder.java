@@ -140,7 +140,7 @@ public class HttpOutboundElementTemplateBuilder {
                 PropertyUtil.parametersPropertyGroup(operations),
                 PropertyUtil.requestBodyPropertyGroup(operations),
                 PropertyUtil.urlPropertyGroup(),
-                PropertyGroup.OUTPUT_GROUP_OUTBOUND,
+                PropertyGroup.OUTPUT_GROUP_OUTBOUND.apply(null, null),
                 PropertyGroup.ERROR_GROUP,
                 PropertyGroup.RETRIES_GROUP))
         .build();

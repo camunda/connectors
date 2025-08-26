@@ -57,6 +57,7 @@ public final class HiddenProperty extends Property {
 
     private HiddenPropertyBuilder() {}
 
+    @Override
     public HiddenProperty build() {
       if (value != null && !(value instanceof String)) {
         throw new IllegalStateException("Value of a hidden property must be a string");

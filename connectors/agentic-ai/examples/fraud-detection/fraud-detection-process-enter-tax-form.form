@@ -1,0 +1,192 @@
+{
+  "components": [
+    {
+      "text": "### Tax Return Submission Form",
+      "type": "text",
+      "id": "Heading_0",
+      "layout": {
+        "row": "row_0",
+        "columns": null
+      }
+    },
+    {
+      "text": "##### Personal Information",
+      "type": "text",
+      "id": "Subheading_1",
+      "layout": {
+        "row": "row_1",
+        "columns": null
+      }
+    },
+    {
+      "label": "Full Name",
+      "type": "textfield",
+      "id": "Textfield_2",
+      "validate": {
+        "minLength": 5,
+        "maxLength": 50,
+        "required": true
+      },
+      "key": "taxSubmission.fullName",
+      "description": "Enter your full name",
+      "layout": {
+        "row": "row_2",
+        "columns": null
+      },
+      "properties": {}
+    },
+    {
+      "subtype": "date",
+      "type": "datetime",
+      "id": "Date_4",
+      "dateLabel": "Date of Birth",
+      "validate": {
+        "required": true
+      },
+      "key": "taxSubmission.dob",
+      "description": "Select your date of birth",
+      "layout": {
+        "row": "row_2",
+        "columns": null
+      }
+    },
+    {
+      "label": "Email Address",
+      "type": "textfield",
+      "layout": {
+        "row": "row_2",
+        "columns": null
+      },
+      "id": "Field_13hu2ve",
+      "key": "taxSubmission.emailAddress",
+      "validate": {
+        "required": true,
+        "validationType": "email"
+      }
+    },
+    {
+      "text": "##### Financial Information",
+      "type": "text",
+      "id": "Subheading_5",
+      "layout": {
+        "row": "row_3",
+        "columns": null
+      }
+    },
+    {
+      "label": "Total Income",
+      "type": "number",
+      "id": "Number_6",
+      "decimalDigits": 2,
+      "defaultValue": 0,
+      "appearance": {
+        "prefixAdorner": "€"
+      },
+      "validate": {
+        "min": 0,
+        "max": 9999999,
+        "step": 1000.5,
+        "required": true
+      },
+      "key": "taxSubmission.totalIncome",
+      "description": "Enter your total income",
+      "layout": {
+        "row": "row_4",
+        "columns": null
+      }
+    },
+    {
+      "label": "Total Expenses",
+      "type": "number",
+      "id": "Number_7",
+      "decimalDigits": 2,
+      "defaultValue": 0,
+      "appearance": {
+        "prefixAdorner": "€"
+      },
+      "validate": {
+        "min": 0,
+        "max": 9999999,
+        "step": 1000.5,
+        "required": true
+      },
+      "key": "taxSubmission.totalExpenses",
+      "description": "Enter your total expenses",
+      "layout": {
+        "row": "row_4",
+        "columns": null
+      }
+    },
+    {
+      "text": "##### Deductions",
+      "type": "text",
+      "id": "Subheading_8",
+      "layout": {
+        "row": "row_5",
+        "columns": null
+      }
+    },
+    {
+      "label": "Large Purchases ",
+      "values": [
+        {
+          "label": "Car",
+          "value": "car"
+        },
+        {
+          "label": "House",
+          "value": "house"
+        },
+        {
+          "label": "Stocks",
+          "value": "stocks"
+        },
+        {
+          "label": "Holiday",
+          "value": "holiday"
+        },
+        {
+          "label": "Boat",
+          "value": "boat"
+        }
+      ],
+      "type": "taglist",
+      "layout": {
+        "row": "row_6",
+        "columns": null
+      },
+      "id": "Field_04tpvca",
+      "key": "taxSubmission.largePurchases",
+      "description": "Please add any large purchases you've made this year",
+      "validate": {
+        "required": false
+      }
+    },
+    {
+      "label": "Charitable Donations",
+      "type": "textarea",
+      "id": "Textarea_10",
+      "validate": {
+        "minLength": 0,
+        "maxLength": 500,
+        "required": true
+      },
+      "key": "taxSubmission.charitableDonations",
+      "description": "Enter any charitable donations",
+      "layout": {
+        "row": "row_6",
+        "columns": null
+      }
+    }
+  ],
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.8.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.34.0"
+  },
+  "schemaVersion": 18,
+  "id": "fraud-detection-process-enter-tax-form",
+  "generated": true,
+  "type": "default"
+}

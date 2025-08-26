@@ -13,7 +13,7 @@
   <artifactId>connector-sdk-parent</artifactId>
   <packaging>pom</packaging>
 
-  <name>connector-sdk-parent</name>
+  <name>Connector SDK Parent</name>
   <description>Parent POM for Connector SDK modules</description>
 
   <modules>

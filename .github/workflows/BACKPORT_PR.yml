@@ -30,7 +30,7 @@ jobs:
     steps:
       - name: Import Secrets
         id: vault-secrets
-        uses: hashicorp/vault-action@v3.3.0
+        uses: hashicorp/vault-action@v3.4.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -41,11 +41,11 @@ jobs:
             secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
       - name: Generate a GitHub token for connectors
         id: app-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v2
         with:
           app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
           private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # PR created by GitHub Action bot will not trigger CI checks
           token: ${{ steps.app-token.outputs.token }}

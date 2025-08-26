@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.regex.Pattern;
 import org.apache.commons.io.IOUtils;
 
 public class ElementTemplate {
@@ -46,6 +47,42 @@ public class ElementTemplate {
           documentContext.put("$..properties[?(@.id=='" + propertyId + "')]", "value", value);
     } catch (com.jayway.jsonpath.PathNotFoundException e) {
       throw new RuntimeException("Property path not found for property ID: " + propertyId, e);
+    }
+    return this;
+  }
+
+  public ElementTemplate withoutPropertyValue(String propertyId) {
+    try {
+      withoutPropertyValueAtPath("$..properties[?(@.id=='" + propertyId + "')]");
+    } catch (com.jayway.jsonpath.PathNotFoundException e) {
+      throw new RuntimeException(
+          "Property path not found for property ID: %s".formatted(propertyId), e);
+    }
+    return this;
+  }
+
+  public ElementTemplate withoutPropertyValueStartingWith(String propertyIdPrefix) {
+    try {
+      withoutPropertyValueAtPath(
+          "$..properties[?(@.id =~ /^" + Pattern.quote(propertyIdPrefix) + ".*/)]");
+    } catch (com.jayway.jsonpath.PathNotFoundException e) {
+      throw new RuntimeException(
+          "Property path not found for property ID prefix: %s".formatted(propertyIdPrefix), e);
+    }
+    return this;
+  }
+
+  private void withoutPropertyValueAtPath(String jsonPath) {
+    documentContext =
+        documentContext.delete("%s.value".formatted(jsonPath)).put(jsonPath, "optional", true);
+  }
+
+  public ElementTemplate withoutProperty(String propertyId) {
+    try {
+      documentContext = documentContext.delete("$..properties[?(@.id=='" + propertyId + "')]");
+    } catch (com.jayway.jsonpath.PathNotFoundException e) {
+      throw new RuntimeException(
+          "Property path not found for property ID: %s".formatted(propertyId), e);
     }
     return this;
   }

@@ -25,6 +25,8 @@ public class ConnectorConfig {
 
   private boolean generateHybridTemplates = false;
 
+  private boolean writeMetaInfFileGeneration = true;
+
   private List<FileNameById> files = List.of();
 
   private Map<String, Boolean> features = Map.of();
@@ -78,6 +80,14 @@ public class ConnectorConfig {
 
   public void setConnectorClass(String connectorClass) {
     this.connectorClass = connectorClass;
+  }
+
+  public boolean isWriteMetaInfFileGeneration() {
+    return writeMetaInfFileGeneration;
+  }
+
+  public void setWriteMetaInfFileGeneration(boolean writeMetaInfFileGeneration) {
+    this.writeMetaInfFileGeneration = writeMetaInfFileGeneration;
   }
 
   public boolean isGenerateHybridTemplates() {

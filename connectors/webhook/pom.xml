@@ -82,6 +82,7 @@
       <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
+        <version>${project.version}</version>
         <configuration>
           <connectors>
             <connector>
@@ -107,9 +108,11 @@
               <generateHybridTemplates>true</generateHybridTemplates>
               <features>
                 <ACKNOWLEDGEMENT_STRATEGY_SELECTION>true</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
+                <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>
               </features>
             </connector>
           </connectors>
+          <versionHistoryEnabled>true</versionHistoryEnabled>
         </configuration>
       </plugin>
     </plugins>

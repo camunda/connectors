@@ -30,4 +30,10 @@ public record OperationParseResult(
     boolean supported,
     String description,
     @JsonInclude(Include.NON_EMPTY) String info,
-    @JsonIgnore HttpOperationBuilder builder) {}
+    @JsonIgnore HttpOperationBuilder builder) {
+  public OperationParseResult {
+    if (id == null) {
+      id = method.name() + "_" + path;
+    }
+  }
+}

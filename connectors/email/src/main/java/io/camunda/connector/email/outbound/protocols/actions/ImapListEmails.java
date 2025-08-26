@@ -18,10 +18,10 @@ public record ImapListEmails(
             label = "Maximum number of emails to be read",
             group = "listEmailsImap",
             id = "imapMaxToBeRead",
+            defaultValueType = TemplateProperty.DefaultValueType.Number,
             defaultValue = "100",
             tooltip =
                 "Enter the maximum number of emails to be read from the specified folder. This limits the number of emails fetched to avoid performance issues with large mailboxes. The default value is set to 100.",
-            feel = Property.FeelMode.disabled,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.maxToBeRead"))
         @Valid
         @NotNull

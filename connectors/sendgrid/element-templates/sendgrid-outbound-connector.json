@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sendgrid/",
-  "version" : 4,
+  "version" : 5,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,6 +15,9 @@
   "appliesTo" : [ "bpmn:Task" ],
   "elementType" : {
     "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.3"
   },
   "groups" : [ {
     "id" : "authentication",
@@ -28,6 +31,9 @@
   }, {
     "id" : "content",
     "label" : "Compose email"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -240,6 +246,28 @@
       "type" : "zeebe:input"
     },
     "type" : "String"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "5",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.SendGrid.v2",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

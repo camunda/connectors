@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.email.config;
 
+import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
@@ -27,6 +28,7 @@ public record ImapConfig(
             label = "IMAP Port",
             group = "protocol",
             id = "data.imapPort",
+            defaultValueType = TemplateProperty.DefaultValueType.Number,
             tooltip =
                 "Enter the port number for connecting to the IMAP server. Common ports are 993 for secure connections using SSL/TLS, or 143 for non-secure connections.",
             defaultValue = "993",
@@ -34,6 +36,7 @@ public record ImapConfig(
             binding = @TemplateProperty.PropertyBinding(name = "data.imapConfig.imapPort"))
         @Valid
         @NotNull
+        @FEEL
         Integer imapPort,
     @TemplateProperty(
             label = "Encryption protocol",

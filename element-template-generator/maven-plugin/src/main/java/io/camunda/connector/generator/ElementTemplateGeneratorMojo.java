@@ -18,8 +18,12 @@ package io.camunda.connector.generator;
 
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.generator.ConnectorConfig.FileNameById;
 import io.camunda.connector.generator.api.DocsGenerator;
 import io.camunda.connector.generator.api.DocsGeneratorConfiguration;
@@ -29,18 +33,22 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.GenerationFeatu
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.java.ClassBasedDocsGenerator;
 import io.camunda.connector.generator.java.ClassBasedTemplateGenerator;
+import io.camunda.connector.generator.java.util.VersionedElementTemplate;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoFailureException;
@@ -56,6 +64,16 @@ import org.apache.maven.project.MavenProject;
     requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class ElementTemplateGeneratorMojo extends AbstractMojo {
 
+  private static final ObjectMapper objectMapper =
+      new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+  private static final ObjectWriter objectWriter =
+      new ObjectMapper()
+          .writer(
+              new DefaultPrettyPrinter()
+                  .withObjectIndenter(new DefaultIndenter().withLinefeed("\n")));
+  private static final String COMPILED_CLASSES_DIR = "target" + File.separator + "classes";
+  private static final String HYBRID_TEMPLATES_DIR = "hybrid";
+
   @Parameter(defaultValue = "${project}", readonly = true, required = true)
   private MavenProject project;
 
@@ -68,14 +86,21 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
   @Parameter(property = "outputDirectory", defaultValue = "${project.basedir}/element-templates")
   private String outputDirectory;
 
-  private static final ObjectWriter objectWriter =
-      new ObjectMapper()
-          .writer(
-              new DefaultPrettyPrinter()
-                  .withObjectIndenter(new DefaultIndenter().withLinefeed("\n")));
+  @Parameter(
+      property = "versionedDirectory",
+      defaultValue = "${project.basedir}/element-templates/versioned")
+  private String versionedDirectory;
 
-  private static final String COMPILED_CLASSES_DIR = "target" + File.separator + "classes";
-  private static final String HYBRID_TEMPLATES_DIR = "hybrid";
+  @Parameter(property = "versionHistoryEnabled", defaultValue = "false")
+  private Boolean versionHistoryEnabled;
+
+  private static VersionedElementTemplate getBasicElementTemplate(File file) {
+    try {
+      return objectMapper.readValue(file, VersionedElementTemplate.class);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   @Override
   public void execute() throws MojoFailureException {
@@ -136,7 +161,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
           generateDocs(connector, classLoader);
         }
       }
-
+      writeMetaInfFiles();
     } catch (ClassNotFoundException e) {
       throw new MojoFailureException("Failed to find connector class: " + e.getMessage(), e);
     } catch (TypeNotPresentException e) {
@@ -147,6 +172,65 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     } catch (Exception e) {
       throw new MojoFailureException("Failed to generate element templates: " + e.getMessage(), e);
     }
+  }
+
+  private void writeMetaInfFiles() throws MojoFailureException {
+    try {
+      List<ConnectorConfig> filteredConnectors =
+          Arrays.stream(connectors).filter(ConnectorConfig::isWriteMetaInfFileGeneration).toList();
+      if (filteredConnectors.isEmpty()) {
+        return;
+      }
+      Path path = Paths.get(getResourcesDirectory().toURI()).resolve("META-INF/services");
+      Files.createDirectories(path);
+
+      Map<Class<?>, String> connectorFileMap =
+          Map.of(
+              InboundConnectorExecutable.class,
+              "io.camunda.connector.api.inbound.InboundConnectorExecutable",
+              OutboundConnectorFunction.class,
+              "io.camunda.connector.api.outbound.OutboundConnectorFunction",
+              OutboundConnectorProvider.class,
+              "io.camunda.connector.api.outbound.OutboundConnectorProvider");
+
+      ClassLoader projectClassLoader = getProjectClassLoader();
+      for (ConnectorConfig connector : filteredConnectors) {
+        Class<?> connectorClass =
+            Class.forName(connector.getConnectorClass(), false, projectClassLoader);
+
+        String fileName =
+            connectorFileMap.entrySet().stream()
+                .filter(entry -> entry.getKey().isAssignableFrom(connectorClass))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElseThrow(
+                    () ->
+                        new IllegalArgumentException(
+                            "Connector class must be either 'InboundConnectorExecutable' or 'OutboundConnectorFunction': "
+                                + connector.getConnectorClass()));
+        Path filePath = path.resolve(fileName);
+        if (!Files.exists(filePath)) {
+          Files.writeString(
+              filePath,
+              connector.getConnectorClass(),
+              StandardOpenOption.CREATE,
+              StandardOpenOption.TRUNCATE_EXISTING);
+        }
+      }
+    } catch (IOException | ClassNotFoundException | URISyntaxException e) {
+      throw new MojoFailureException(
+          "Failed to create META-INF.service files: " + e.getMessage(), e);
+    }
+  }
+
+  private ClassLoader getProjectClassLoader() throws MalformedURLException {
+    List<URL> urls = new ArrayList<>();
+    for (Object obj : project.getArtifacts()) {
+      Artifact artifact = (Artifact) obj;
+      urls.add(artifact.getFile().toURI().toURL());
+    }
+    return new URLClassLoader(
+        urls.toArray(new URL[0]), Thread.currentThread().getContextClassLoader());
   }
 
   private void generateDocs(ConnectorConfig connectorConfig, ClassLoader classLoader)
@@ -199,7 +283,6 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     var generator = new ClassBasedTemplateGenerator(classLoader);
     var templates = generator.generate(clazz, generatorConfig);
     writeElementTemplates(templates, false, config.getFiles());
-
     if (config.isGenerateHybridTemplates()) {
       var hybridGeneratorConfig =
           new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null, null, features);
@@ -210,10 +293,67 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
 
   private void writeElementTemplates(
       List<ElementTemplate> templates, boolean hybrid, List<FileNameById> fileNames) {
+    List<VersionedElementTemplate> versionedElementTemplates = retrieveBasicElementTemplates();
     for (var template : templates) {
       var fileName = determineFileName(template, fileNames, hybrid);
+      if (versionHistoryEnabled && !hybrid)
+        manageElementTemplatesVersioning(template, versionedElementTemplates, fileName);
       writeElementTemplate(template, hybrid, fileName);
     }
+  }
+
+  private void manageElementTemplatesVersioning(
+      ElementTemplate template,
+      List<VersionedElementTemplate> versionedElementTemplates,
+      String fileName) {
+    VersionedElementTemplate latestVersionedElementTemplate =
+        new VersionedElementTemplate(template.id(), template.version());
+    if (versionedElementTemplates.stream().noneMatch(latestVersionedElementTemplate::equals)) {
+      copyLatestBasicElementTemplate(fileName);
+    }
+  }
+
+  private void copyLatestBasicElementTemplate(String fileName) {
+    File latestBasicElementTemplateFile = new File(this.outputDirectory, fileName);
+    if (!latestBasicElementTemplateFile.exists()) {
+      return;
+    }
+    try {
+      VersionedElementTemplate latestVersionedElementTemplate =
+          objectMapper.readValue(latestBasicElementTemplateFile, VersionedElementTemplate.class);
+
+      if (Files.notExists(Path.of(this.versionedDirectory))) {
+        Files.createDirectories(Path.of(this.versionedDirectory));
+      }
+      Files.copy(
+          latestBasicElementTemplateFile.toPath(),
+          Path.of(
+              this.versionedDirectory
+                  + File.separator
+                  + fileName.replaceFirst(".json", "")
+                  + "-"
+                  + latestVersionedElementTemplate.version()
+                  + ".json"));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private List<VersionedElementTemplate> retrieveBasicElementTemplates() {
+    File latestTemplatesFolder = new File(this.outputDirectory);
+    File versionedFolder = new File(this.versionedDirectory);
+    Optional<File[]> listClassicFiles =
+        Optional.ofNullable(
+            latestTemplatesFolder.listFiles((dir, name) -> name.toLowerCase().endsWith(".json")));
+    Optional<File[]> listVersionedFiles =
+        Optional.ofNullable(
+            versionedFolder.listFiles((dir, name) -> name.toLowerCase().endsWith(".json")));
+    return Stream.concat(
+            Arrays.stream(listClassicFiles.orElse(new File[0])),
+            Arrays.stream(listVersionedFiles.orElse(new File[0])))
+        .filter(File::isFile)
+        .map(ElementTemplateGeneratorMojo::getBasicElementTemplate)
+        .toList();
   }
 
   private String determineFileName(

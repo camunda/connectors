@@ -13,11 +13,12 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @ElementTemplate(
+    engineVersion = "^8.3",
     id = "io.camunda.connectors.Slack.v1",
     name = "Slack Outbound Connector",
     description = "Create a channel or send a message to a channel or user",
     inputDataClass = SlackRequest.class,
-    version = 6,
+    version = 7,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "method", label = "Method"),

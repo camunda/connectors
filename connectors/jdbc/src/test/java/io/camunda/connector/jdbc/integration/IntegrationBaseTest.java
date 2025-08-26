@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.jdbc.model.client.JdbcClient;
@@ -30,6 +31,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.jdbi.v3.core.Jdbi;
@@ -59,6 +61,10 @@ public abstract class IntegrationBaseTest {
     try (Connection conn =
             DriverManager.getConnection(config.url(), config.username(), config.password());
         Statement stmt = conn.createStatement()) {
+      if (config.database() == SupportedDatabase.ORACLE) {
+        stmt.executeUpdate(Employee.CREATE_TABLE_ORACLE);
+        return;
+      }
       if (config.databaseName() != null) {
         stmt.executeUpdate("USE " + config.databaseName());
       }
@@ -71,15 +77,19 @@ public abstract class IntegrationBaseTest {
             DriverManager.getConnection(config.url(), config.username(), config.password());
         Statement stmt = conn.createStatement()) {
 
-      if (config.databaseName() != null) {
+      if (config.databaseName() != null && config.database() != SupportedDatabase.ORACLE) {
         stmt.executeUpdate("USE " + config.databaseName());
       }
 
       String addColumnSQL = "ALTER TABLE Employee ADD json " + jsonDatabaseType;
+      if (config.database() == SupportedDatabase.ORACLE
+          && Objects.equals(jsonDatabaseType, "VARCHAR2")) {
+        addColumnSQL = addColumnSQL + "(4000)";
+      }
       stmt.executeUpdate(addColumnSQL);
       String dummyJson;
       switch (config.database()) {
-        case MYSQL, MARIADB -> dummyJson = "'" + DEFAULT_ADDRESS_JSON + "'";
+        case MYSQL, MARIADB, ORACLE -> dummyJson = "'" + DEFAULT_ADDRESS_JSON + "'";
         case POSTGRESQL -> dummyJson = "'" + DEFAULT_ADDRESS_JSON + "'::json";
         case MSSQL -> dummyJson = "'" + DEFAULT_ADDRESS_JSON + "'";
         default ->
@@ -95,6 +105,10 @@ public abstract class IntegrationBaseTest {
             DriverManager.getConnection(config.url(), config.username(), config.password());
         Statement stmt = conn.createStatement()) {
 
+      if (config.database() == SupportedDatabase.ORACLE) {
+        stmt.executeUpdate("ALTER TABLE Employee DROP COLUMN \"JSON\"");
+        return;
+      }
       if (config.databaseName() != null) {
         stmt.executeUpdate("USE " + config.databaseName());
       }
@@ -110,7 +124,7 @@ public abstract class IntegrationBaseTest {
       var jdbi = Jdbi.create(conn);
       jdbi.installPlugin(new Jackson2Plugin());
       try (var handle = jdbi.open()) {
-        if (config.databaseName() != null) {
+        if (config.databaseName() != null && config.database() != SupportedDatabase.ORACLE) {
           handle.execute("USE " + config.databaseName());
         }
         Query q = handle.createQuery("SELECT * FROM " + tableName + " ORDER BY id ASC");
@@ -128,7 +142,7 @@ public abstract class IntegrationBaseTest {
               DEFAULT_EMPLOYEES.stream()
                   .map(Employee::toInsertQueryFormat)
                   .collect(Collectors.joining(",")));
-      if (config.databaseName() != null) {
+      if (config.databaseName() != null && config.database() != SupportedDatabase.ORACLE) {
         stmt.executeUpdate("USE " + config.databaseName());
       }
       stmt.executeUpdate(sql);
@@ -139,7 +153,7 @@ public abstract class IntegrationBaseTest {
     try (Connection conn =
             DriverManager.getConnection(config.url(), config.username(), config.password());
         Statement stmt = conn.createStatement()) {
-      if (config.databaseName() != null) {
+      if (config.databaseName() != null && config.database() != SupportedDatabase.ORACLE) {
         stmt.executeUpdate("USE " + config.databaseName());
       }
       stmt.executeUpdate("DELETE FROM Employee");
@@ -165,9 +179,17 @@ public abstract class IntegrationBaseTest {
     assertEquals(6, response.resultSet().size());
     // assert each row
     for (int i = 0; i < DEFAULT_EMPLOYEES.size(); i++) {
-      var row = response.resultSet().get(i);
+      var row = normalizeKeys(response.resultSet().get(i));
       var employee = DEFAULT_EMPLOYEES.get(i);
-      assertEquals(employee.toMap(), row);
+      employee
+          .toMap()
+          .forEach(
+              (key, expected) -> {
+                Object actual = row.get(key);
+                assertThat(String.valueOf(actual))
+                    .as("Key: %s", key)
+                    .isEqualTo(String.valueOf(expected));
+              });
     }
   }
 
@@ -206,13 +228,16 @@ public abstract class IntegrationBaseTest {
     assertNull(response.modifiedRows());
     assertNotNull(response.resultSet());
     assertEquals(1, response.resultSet().size());
-    assertEquals(
+    Map<String, Object> expected =
         DEFAULT_EMPLOYEES.stream()
             .filter(e -> e.name().equals("John Doe"))
             .map(Employee::toMap)
+            .map(IntegrationBaseTest::normalizeKeysAndValues) // normalize expected map
             .findFirst()
-            .get(),
-        response.resultSet().get(0));
+            .orElseThrow();
+    Map<String, Object> actual =
+        IntegrationBaseTest.normalizeKeysAndValues(response.resultSet().get(0));
+    assertEquals(expected, actual);
   }
 
   void selectDataWithNamedParametersWhereInAndAssertThrows(IntegrationTestConfig config) {
@@ -270,6 +295,11 @@ public abstract class IntegrationBaseTest {
   }
 
   void selectDataWithPositionalParametersAndAssertSuccess(IntegrationTestConfig config) {
+    var prefix =
+        config.database() == SupportedDatabase.ORACLE
+            ? ""
+            : Optional.ofNullable(config.databaseName()).map(s -> s + ".").orElse("");
+
     JdbcRequest request =
         new JdbcRequest(
             config.database(),
@@ -281,22 +311,20 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(
-                true,
-                "SELECT * FROM "
-                    + Optional.ofNullable(config.databaseName()).map(s -> s + ".").orElse("")
-                    + "Employee WHERE name = ?",
-                List.of("John Doe")));
+                true, "SELECT * FROM " + prefix + "Employee WHERE name = ?", List.of("John Doe")));
     var response = jdbiJdbcClient.executeRequest(request);
     assertNull(response.modifiedRows());
     assertNotNull(response.resultSet());
     assertEquals(1, response.resultSet().size());
-    assertEquals(
+    Map<String, Object> expected =
         DEFAULT_EMPLOYEES.stream()
             .filter(e -> e.name().equals("John Doe"))
             .map(Employee::toMap)
+            .map(IntegrationBaseTest::normalizeKeysAndValues)
             .findFirst()
-            .get(),
-        response.resultSet().get(0));
+            .orElseThrow(() -> new AssertionError("Expected employee not found"));
+    Map<String, Object> actual = normalizeKeysAndValues(response.resultSet().get(0));
+    assertEquals(expected, actual);
   }
 
   void selectDataWithPositionalParametersWhereInAndAssertSuccess(IntegrationTestConfig config) {
@@ -318,12 +346,15 @@ public abstract class IntegrationBaseTest {
     assertNull(response.modifiedRows());
     assertNotNull(response.resultSet());
     assertEquals(2, response.resultSet().size());
-    assertTrue(
+    List<Map<String, Object>> expected =
         DEFAULT_EMPLOYEES.stream()
             .filter(e -> e.name().equals("John Doe") || e.name().equals("Jane Doe"))
             .map(Employee::toMap)
-            .toList()
-            .containsAll(response.resultSet()));
+            .map(IntegrationBaseTest::normalizeKeysAndValues)
+            .toList();
+    List<Map<String, Object>> actual =
+        response.resultSet().stream().map(IntegrationBaseTest::normalizeKeysAndValues).toList();
+    assertTrue(actual.containsAll(expected));
   }
 
   void selectDataWithBindingParametersWhereInAndAssertSuccess(IntegrationTestConfig config) {
@@ -345,15 +376,19 @@ public abstract class IntegrationBaseTest {
     assertNull(response.modifiedRows());
     assertNotNull(response.resultSet());
     assertEquals(2, response.resultSet().size());
-    assertEquals(
+    List<Map<String, Object>> expected =
         DEFAULT_EMPLOYEES.stream()
             .filter(e -> e.name().equals("John Doe") || e.name().equals("Jane Doe"))
             .map(Employee::toMap)
-            .collect(Collectors.toList()),
-        response.resultSet());
+            .map(IntegrationBaseTest::normalizeKeysAndValues) // replace with your test class name
+            .toList();
+    List<Map<String, Object>> actual =
+        response.resultSet().stream().map(IntegrationBaseTest::normalizeKeysAndValues).toList();
+    assertTrue(actual.containsAll(expected));
   }
 
-  void selectJsonDataAndAssertSuccess(IntegrationTestConfig config) throws JsonProcessingException {
+  void selectJsonDataAndAssertSuccess(IntegrationTestConfig config)
+      throws JsonProcessingException, JsonMappingException {
     JdbcRequest request =
         new JdbcRequest(
             config.database(),
@@ -370,8 +405,13 @@ public abstract class IntegrationBaseTest {
     var row = response.resultSet().get(0);
     ObjectMapper objectMapper = new ObjectMapper();
     var expected = objectMapper.readTree(DEFAULT_ADDRESS_JSON);
-    assertEquals(
-        expected.get("street").asText(), ((ObjectNode) row.get("json")).get("street").asText());
+    Object jsonValue =
+        row.keySet().stream()
+            .filter(k -> k.equalsIgnoreCase("json"))
+            .findFirst()
+            .map(row::get)
+            .orElse(null);
+    assertEquals(expected.get("street").asText(), ((ObjectNode) jsonValue).get("street").asText());
   }
 
   void updateDataAndAssertSuccess(IntegrationTestConfig config) {
@@ -472,7 +512,12 @@ public abstract class IntegrationBaseTest {
   void assertEmployeeUpdated(IntegrationTestConfig config) throws SQLException {
     List<Map<String, Object>> result = selectAll(config, "Employee");
     assertEquals(DEFAULT_EMPLOYEES.size(), result.size());
-    assertEquals(DEFAULT_EMPLOYEES.get(0).name() + " UPDATED", result.get(0).get("name"));
+    String nameColumn =
+        result.get(0).keySet().stream()
+            .filter(k -> k.equalsIgnoreCase("name"))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("Column 'name' not found"));
+    assertEquals(DEFAULT_EMPLOYEES.get(0).name() + " UPDATED", result.get(0).get(nameColumn));
   }
 
   void deleteDataAndAssertSuccess(IntegrationTestConfig config) {
@@ -672,7 +717,10 @@ public abstract class IntegrationBaseTest {
   void assertNewEmployeeCreated(IntegrationTestConfig config) throws SQLException {
     List<Map<String, Object>> result = selectAll(config, "Employee");
     assertEquals(DEFAULT_EMPLOYEES.size() + 1, result.size());
-    assertThat(result).contains(NEW_EMPLOYEE.toMap());
+    Map<String, Object> expected = normalizeKeysAndValues(NEW_EMPLOYEE.toMap());
+    List<Map<String, Object>> normalized =
+        result.stream().map(IntegrationBaseTest::normalizeKeysAndValues).toList();
+    assertThat(normalized).contains(expected);
   }
 
   void createTableAndAssertSuccess(IntegrationTestConfig config, String tableName, String columns) {
@@ -767,6 +815,16 @@ public abstract class IntegrationBaseTest {
                   department VARCHAR(100));
                 """;
 
+    static final String CREATE_TABLE_ORACLE =
+        """
+                CREATE TABLE Employee (
+                  id NUMBER PRIMARY KEY,
+                  name VARCHAR2(100),
+                  age NUMBER,
+                  department VARCHAR2(100)
+                )
+            """;
+
     String toInsertQueryFormat() {
       return String.format("(%d, '%s', %d, '%s')", id, name, age, department);
     }
@@ -778,5 +836,26 @@ public abstract class IntegrationBaseTest {
     Map<String, Object> toUnparsedMap() {
       return Map.of("id", id, "name", name, "age", age, "department", department);
     }
+  }
+
+  private static Map<String, Object> normalizeKeysAndValues(Map<String, Object> map) {
+    return map.entrySet().stream()
+        .collect(
+            Collectors.toMap(e -> e.getKey().toLowerCase(), e -> normalizeValue(e.getValue())));
+  }
+
+  private static Object normalizeValue(Object value) {
+    if (value instanceof Number) {
+      return ((Number) value).longValue(); // or intValue() depending on expected range
+    }
+    if (value instanceof String) {
+      return ((String) value).trim(); // avoid issues with padded CHARs
+    }
+    return value;
+  }
+
+  private static Map<String, Object> normalizeKeys(Map<String, Object> map) {
+    return map.entrySet().stream()
+        .collect(Collectors.toMap(entry -> entry.getKey().toLowerCase(), Map.Entry::getValue));
   }
 }

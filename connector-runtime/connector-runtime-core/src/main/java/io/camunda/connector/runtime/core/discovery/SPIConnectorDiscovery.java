@@ -18,24 +18,23 @@ package io.camunda.connector.runtime.core.discovery;
 
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.runtime.core.ConnectorUtil;
+import io.camunda.connector.api.outbound.OutboundConnectorProvider;
+import io.camunda.connector.runtime.core.ConnectorConfigurationUtil;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
-import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import java.util.List;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /** Static functionality for SPI (auto) discovery */
 public class SPIConnectorDiscovery {
 
-  public static List<OutboundConnectorConfiguration> discoverOutbound() {
-    return ServiceLoader.load(OutboundConnectorFunction.class).stream()
-        .map(
-            functionProvider -> {
-              Class<? extends OutboundConnectorFunction> cls = functionProvider.type();
-              return ConnectorUtil.getRequiredOutboundConnectorConfiguration(cls);
-            })
-        .collect(Collectors.toList());
+  public static Stream<ServiceLoader.Provider<OutboundConnectorFunction>> loadConnectorFunctions() {
+    return ServiceLoader.load(OutboundConnectorFunction.class).stream();
+  }
+
+  public static Stream<ServiceLoader.Provider<OutboundConnectorProvider>> loadConnectorProviders() {
+    return ServiceLoader.load(OutboundConnectorProvider.class).stream();
   }
 
   public static List<InboundConnectorConfiguration> discoverInbound() {
@@ -43,7 +42,7 @@ public class SPIConnectorDiscovery {
         .map(
             functionProvider -> {
               Class<? extends InboundConnectorExecutable> cls = functionProvider.type();
-              return ConnectorUtil.getRequiredInboundConnectorConfiguration(cls);
+              return ConnectorConfigurationUtil.getInboundConnectorConfiguration(cls);
             })
         .collect(Collectors.toList());
   }

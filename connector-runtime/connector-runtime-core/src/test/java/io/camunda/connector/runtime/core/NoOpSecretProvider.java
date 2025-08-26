@@ -16,12 +16,13 @@
  */
 package io.camunda.connector.runtime.core;
 
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 
 public class NoOpSecretProvider implements SecretProvider {
 
   @Override
-  public String getSecret(String value) {
+  public String getSecret(String value, SecretContext context) {
     return null;
   }
 }

@@ -16,10 +16,12 @@
  */
 package io.camunda.connector.runtime.inbound.search;
 
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.search.response.FlowNodeInstance;
-import io.camunda.client.api.search.response.SearchQueryResponse;
+import io.camunda.client.api.search.response.ElementInstance;
+import io.camunda.client.api.search.response.SearchResponse;
 import io.camunda.client.api.search.response.Variable;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
 import java.util.ArrayList;
@@ -54,21 +56,21 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
    *     node instances from.
    * @param elementId The identifier of the specific flow node element within the process
    *     definition.
-   * @return A list of active {@link FlowNodeInstance} objects.
+   * @return A list of active {@link io.camunda.client.api.search.response.ElementInstance} objects.
    * @throws RuntimeException If an error occurs during the fetch operation.
    */
-  public List<FlowNodeInstance> fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
+  public List<ElementInstance> fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
       final Long processDefinitionKey, final String elementId) {
     fetchActiveProcessLock.lock();
     try {
-      List<Object> processPaginationIndex = null;
-      SearchQueryResponse<FlowNodeInstance> searchResult;
-      List<FlowNodeInstance> result = new ArrayList<>();
+      String processPaginationIndex = null;
+      SearchResponse<ElementInstance> searchResult;
+      List<ElementInstance> result = new ArrayList<>();
       do {
         searchResult =
             searchQueryClient.queryActiveFlowNodes(
                 processDefinitionKey, elementId, processPaginationIndex);
-        processPaginationIndex = searchResult.page().lastSortValues();
+        processPaginationIndex = searchResult.page().endCursor();
         if (searchResult.items() != null) {
           result.addAll(searchResult.items());
         }
@@ -92,13 +94,13 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
   public Map<String, Object> fetchVariablesByProcessInstanceKey(final Long processInstanceKey) {
     fetchVariablesLock.lock();
     try {
-      List<Object> variablePaginationIndex = null;
-      SearchQueryResponse<Variable> searchResult;
+      String variablePaginationIndex = null;
+      SearchResponse<Variable> searchResult;
       Map<String, Object> processVariables = new HashMap<>();
       do {
         searchResult =
             searchQueryClient.queryVariables(processInstanceKey, variablePaginationIndex);
-        List<Object> newPaginationIdx = searchResult.page().lastSortValues();
+        String newPaginationIdx = searchResult.page().endCursor();
         if (searchResult.items() != null) {
           processVariables.putAll(
               searchResult.items().stream()
@@ -106,7 +108,7 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
                       Collectors.toMap(
                           Variable::getName, variable -> unwrapValue(variable.getValue()))));
         }
-        if (!CollectionUtils.isEmpty(newPaginationIdx)) {
+        if (isNotBlank(newPaginationIdx)) {
           variablePaginationIndex = newPaginationIdx;
         }
 

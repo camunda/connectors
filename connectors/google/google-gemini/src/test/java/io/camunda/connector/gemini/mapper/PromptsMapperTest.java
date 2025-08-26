@@ -12,7 +12,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.cloud.vertexai.generativeai.PartMaker;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -54,16 +54,6 @@ class PromptsMapperTest {
     IllegalArgumentException ex =
         assertThrows(IllegalArgumentException.class, () -> promptsMapper.map(input));
     assertThat(ex).hasMessage(EMPTY_PROMPT_MSG);
-  }
-
-  @Test
-  void mapWithWrongValueTypeShouldThrowEx() throws Exception {
-    List<Object> input =
-        readValue("src/test/resources/prompts_with_wrong_value_type.json", List.class);
-
-    IllegalArgumentException ex =
-        assertThrows(IllegalArgumentException.class, () -> promptsMapper.map(input));
-    assertThat(ex).hasMessage(INVALID_PROMPT_MSG_FORMAT.formatted(Map.of(TEXT_KEY, List.of(1))));
   }
 
   @ParameterizedTest

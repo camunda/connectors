@@ -8,7 +8,6 @@ package io.camunda.connector.http.graphql;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -16,6 +15,7 @@ import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import io.camunda.connector.http.graphql.utils.GraphQLRequestMapper;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,11 +24,12 @@ import org.slf4j.LoggerFactory;
     inputVariables = {"graphql", "authentication"},
     type = "io.camunda:connector-graphql:1")
 @ElementTemplate(
+    engineVersion = "^8.3",
     id = "io.camunda.connectors.GraphQL.v1",
     name = "GraphQL Outbound Connector",
     description = "Execute GraphQL query",
     inputDataClass = GraphQLRequest.class,
-    version = 7,
+    version = 8,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "endpoint", label = "HTTP Endpoint"),

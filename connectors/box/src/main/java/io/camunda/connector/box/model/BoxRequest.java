@@ -8,11 +8,11 @@ package io.camunda.connector.box.model;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
-import io.camunda.document.Document;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -161,6 +161,7 @@ public record BoxRequest(
             String folderPath,
         @TemplateProperty(
                 defaultValue = "true",
+                defaultValueType = TemplateProperty.DefaultValueType.Boolean,
                 group = "operation",
                 label = "Recursive",
                 description = "Deletes all items contained by the folder")
@@ -236,12 +237,14 @@ public record BoxRequest(
             SortDirection sortDirection,
         @TemplateProperty(
                 id = "searchOffset",
+                defaultValueType = TemplateProperty.DefaultValueType.Number,
                 defaultValue = "0",
                 description = "Offset for search results",
                 group = "operation")
             Long offset,
         @TemplateProperty(
                 id = "searchLimit",
+                defaultValueType = TemplateProperty.DefaultValueType.Number,
                 defaultValue = "30",
                 description = "Limit",
                 group = "operation")

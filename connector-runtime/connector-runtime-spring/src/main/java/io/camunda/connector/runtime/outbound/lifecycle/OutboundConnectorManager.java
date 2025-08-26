@@ -19,17 +19,19 @@ package io.camunda.connector.runtime.outbound.lifecycle;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.worker.JobHandler;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.outbound.jobhandling.SpringConnectorJobHandler;
-import io.camunda.document.factory.DocumentFactory;
+import io.camunda.spring.client.annotation.processor.CamundaClientLifecycleAware;
 import io.camunda.spring.client.annotation.value.JobWorkerValue;
 import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.spring.client.jobhandling.JobWorkerManager;
-import io.camunda.spring.client.metrics.MetricsRecorder;
+import io.camunda.spring.client.metrics.DefaultNoopMetricsRecorder;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Set;
@@ -37,7 +39,7 @@ import java.util.TreeSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class OutboundConnectorManager {
+public class OutboundConnectorManager implements CamundaClientLifecycleAware {
 
   private static final Logger LOG = LoggerFactory.getLogger(OutboundConnectorManager.class);
   private final JobWorkerManager jobWorkerManager;
@@ -46,8 +48,8 @@ public class OutboundConnectorManager {
   private final SecretProviderAggregator secretProviderAggregator;
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
-  private final MetricsRecorder metricsRecorder;
   private final DocumentFactory documentFactory;
+  private final ConnectorsOutboundMetrics outboundMetrics;
 
   public OutboundConnectorManager(
       JobWorkerManager jobWorkerManager,
@@ -57,7 +59,7 @@ public class OutboundConnectorManager {
       ValidationProvider validationProvider,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
-      MetricsRecorder metricsRecorder) {
+      ConnectorsOutboundMetrics outboundMetrics) {
     this.jobWorkerManager = jobWorkerManager;
     this.connectorFactory = connectorFactory;
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
@@ -65,21 +67,22 @@ public class OutboundConnectorManager {
     this.validationProvider = validationProvider;
     this.documentFactory = documentFactory;
     this.objectMapper = objectMapper;
-    this.metricsRecorder = metricsRecorder;
+    this.outboundMetrics = outboundMetrics;
   }
 
-  public void start(final CamundaClient client) {
+  @Override
+  public void onStart(final CamundaClient client) {
     // Currently, existing Spring beans have a higher priority
     // One result is that you will not disable Spring Bean Connectors by providing environment
     // variables for a specific connector
     Set<OutboundConnectorConfiguration> outboundConnectors =
         new TreeSet<>(new OutboundConnectorConfigurationComparator());
-
     outboundConnectors.addAll(connectorFactory.getConfigurations());
     outboundConnectors.forEach(connector -> openWorkerForOutboundConnector(client, connector));
   }
 
-  public void stop() {
+  @Override
+  public void onStop(CamundaClient client) {
     jobWorkerManager.closeAllOpenWorkers();
   }
 
@@ -89,24 +92,27 @@ public class OutboundConnectorManager {
     zeebeWorkerValue.setName(connector.name());
     zeebeWorkerValue.setType(connector.type());
     zeebeWorkerValue.setFetchVariables(Arrays.asList(connector.inputVariables()));
+
     if (connector.timeout() != null) {
       zeebeWorkerValue.setTimeout(Duration.ofMillis(connector.timeout()));
     }
-    zeebeWorkerValue.setAutoComplete(true);
+
+    // The runtime will handle the completion of the job
+    zeebeWorkerValue.setAutoComplete(false);
 
     OutboundConnectorFunction connectorFunction = connectorFactory.getInstance(connector.type());
     LOG.trace("Opening worker for connector {}", connector.name());
 
     JobHandler connectorJobHandler =
         new SpringConnectorJobHandler(
-            metricsRecorder,
+            outboundMetrics,
             commandExceptionHandlingStrategy,
             secretProviderAggregator,
             validationProvider,
             documentFactory,
             objectMapper,
             connectorFunction,
-            connector);
+            new DefaultNoopMetricsRecorder());
 
     jobWorkerManager.openWorker(client, zeebeWorkerValue, connectorJobHandler);
   }

@@ -16,16 +16,16 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
-import static io.camunda.connector.runtime.core.ConnectorHelper.instantiateConnector;
-
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.runtime.core.ConnectorConfigurationUtil;
+import io.camunda.connector.runtime.core.common.AbstractConnectorFactory;
+import io.camunda.connector.runtime.core.config.ConnectorDirection;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.discovery.DisabledConnectorEnvVarsConfig;
 import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDiscovery;
 import io.camunda.connector.runtime.core.discovery.SPIConnectorDiscovery;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,34 +37,39 @@ import org.slf4j.LoggerFactory;
  * each time. Therefore, this factory actually creates a new object every time a Connector instance
  * is requested.
  */
-public class DefaultInboundConnectorFactory implements InboundConnectorFactory {
+public class DefaultInboundConnectorFactory
+    extends AbstractConnectorFactory<
+        InboundConnectorExecutable<InboundConnectorContext>, InboundConnectorConfiguration>
+    implements InboundConnectorFactory {
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultInboundConnectorFactory.class);
 
-  private List<InboundConnectorConfiguration> configurations;
-
   public DefaultInboundConnectorFactory() {
-    loadConnectorConfigurations();
-    if (configurations.size() > 0) {
-      LOG.debug("Registered inbound connectors: " + configurations);
+    List<InboundConnectorConfiguration> input;
+    if (DisabledConnectorEnvVarsConfig.isDiscoveryDisabled(ConnectorDirection.INBOUND)) {
+      return;
+    }
+    if (EnvVarsConnectorDiscovery.isInboundConfigured()) {
+      input = EnvVarsConnectorDiscovery.discoverInbound();
+    } else {
+      input = SPIConnectorDiscovery.discoverInbound();
+    }
+    initializeConfigurations(input);
+    var config = getConfigurations();
+    if (!config.isEmpty()) {
+      LOG.debug("Registered inbound connectors: {}", config);
     } else {
       LOG.warn("No inbound connectors discovered");
     }
   }
 
   @Override
-  public List<InboundConnectorConfiguration> getConfigurations() {
-    return configurations;
-  }
-
-  @Override
   public InboundConnectorExecutable<InboundConnectorContext> getInstance(String type) {
-    InboundConnectorConfiguration configuration =
-        configurations.stream()
-            .filter(config -> config.type().equals(type))
-            .findFirst()
+    var configuration =
+        this.getActiveConfiguration(type)
             .orElseThrow(
-                () -> new NoSuchElementException("Connector " + type + " is not registered"));
+                () -> new RuntimeException("Inbound connector \"" + type + "\" is not registered"));
+
     return createInstance(configuration);
   }
 
@@ -75,34 +80,12 @@ public class DefaultInboundConnectorFactory implements InboundConnectorFactory {
           configuration.customInstanceSupplier().get();
     } else {
       return (InboundConnectorExecutable<InboundConnectorContext>)
-          instantiateConnector(configuration.connectorClass());
+          ConnectorConfigurationUtil.instantiateConnector(configuration.connectorClass());
     }
   }
 
   @Override
   public void registerConfiguration(InboundConnectorConfiguration configuration) {
-    Optional<InboundConnectorConfiguration> oldConfig =
-        configurations.stream()
-            .filter(config -> config.type().equals(configuration.type()))
-            .findAny();
-
-    if (oldConfig.isPresent()) {
-      LOG.info("Connector " + oldConfig + " is overridden, new configuration" + configuration);
-      configurations.remove(oldConfig.get());
-    }
-    configurations.add(configuration);
-  }
-
-  @Override
-  public void resetConfigurations() {
-    loadConnectorConfigurations();
-  }
-
-  protected void loadConnectorConfigurations() {
-    if (EnvVarsConnectorDiscovery.isInboundConfigured()) {
-      configurations = EnvVarsConnectorDiscovery.discoverInbound();
-    } else {
-      configurations = SPIConnectorDiscovery.discoverInbound();
-    }
+    super.registerConfiguration(configuration);
   }
 }

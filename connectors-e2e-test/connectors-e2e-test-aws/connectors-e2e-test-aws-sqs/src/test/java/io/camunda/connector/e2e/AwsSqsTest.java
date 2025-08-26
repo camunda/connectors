@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
+import io.camunda.connector.test.SlowTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.io.File;
 import java.util.List;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+@SlowTest
 public class AwsSqsTest extends BaseAwsTest {
   private static final String ELEMENT_TEMPLATE_PATH =
       "../../../connectors/aws/aws-sqs/element-templates/aws-sqs-outbound-connector.json";

@@ -27,6 +27,7 @@ public record Pop3Config(
             label = "POP3 Port",
             group = "protocol",
             id = "data.pop3Port",
+            defaultValueType = TemplateProperty.DefaultValueType.Number,
             tooltip =
                 "Enter the port number for connecting to the POP3 server. The standard port is 995 for secure connections with SSL/TLS, or 110 for non-secure connections.",
             defaultValue = "995",

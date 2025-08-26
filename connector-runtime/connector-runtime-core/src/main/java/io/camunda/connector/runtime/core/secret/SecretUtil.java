@@ -16,12 +16,19 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
+import com.fasterxml.jackson.core.io.JsonStringEncoder;
+import io.camunda.connector.api.secret.SecretContext;
+import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 /** Utility class to replace secrets in strings. */
 public class SecretUtil {
+
+  private static final JsonStringEncoder encoder = JsonStringEncoder.getInstance();
 
   private static final Pattern SECRET_PATTERN_SECRETS =
       Pattern.compile("secrets\\.(?<secret>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
@@ -29,48 +36,49 @@ public class SecretUtil {
   private static final Pattern SECRET_PATTERN_PARENTHESES =
       Pattern.compile("\\{\\{\\s*secrets\\.(?<secret>\\S+?\\s*)}}");
 
-  public static String replaceSecrets(String input, Function<String, String> secretReplacer) {
+  public static String replaceSecrets(
+      String input, SecretContext context, SecretReplacer secretReplacer) {
     if (input == null) {
       throw new IllegalStateException("input cant be null.");
     }
-    input = replaceSecretsWithParentheses(input, secretReplacer);
-    input = replaceSecretsWithoutParentheses(input, secretReplacer);
+    input = replaceSecretsWithParentheses(input, context, secretReplacer);
+    input = replaceSecretsWithoutParentheses(input, context, secretReplacer);
     return input;
   }
 
   private static String replaceSecretsWithParentheses(
-      String input, Function<String, String> secretReplacer) {
+      String input, SecretContext context, SecretReplacer secretReplacer) {
     var secretVariableNameWithParenthesesMatcher = SECRET_PATTERN_PARENTHESES.matcher(input);
     while (secretVariableNameWithParenthesesMatcher.find()) {
       input =
           replaceTokens(
               input,
               SECRET_PATTERN_PARENTHESES,
-              matcher -> resolveSecretValue(secretReplacer, matcher));
+              matcher -> resolveSecretValue(context, secretReplacer, matcher));
     }
     return input;
   }
 
   private static String replaceSecretsWithoutParentheses(
-      String input, Function<String, String> secretReplacer) {
+      String input, SecretContext context, SecretReplacer secretReplacer) {
     var secretVariableNameWithParenthesesMatcher = SECRET_PATTERN_SECRETS.matcher(input);
     while (secretVariableNameWithParenthesesMatcher.find()) {
       input =
           replaceTokens(
               input,
               SECRET_PATTERN_SECRETS,
-              matcher -> resolveSecretValue(secretReplacer, matcher));
+              matcher -> resolveSecretValue(context, secretReplacer, matcher));
     }
     return input;
   }
 
   private static String resolveSecretValue(
-      Function<String, String> secretReplacer, Matcher matcher) {
+      SecretContext context, SecretReplacer secretReplacer, Matcher matcher) {
     var secretName = matcher.group("secret").trim();
     if (!secretName.isBlank()) {
-      var result = secretReplacer.apply(secretName);
+      var result = secretReplacer.replaceSecrets(secretName, context);
       if (result != null) {
-        return result;
+        return new String(encoder.quoteAsString(result));
       } else {
         return matcher.group();
       }
@@ -92,5 +100,16 @@ public class SecretUtil {
       output.append(original, lastIndex, original.length());
     }
     return output.toString();
+  }
+
+  public static List<String> retrieveSecretKeysInInput(String input) {
+    return Objects.isNull(input)
+        ? List.of()
+        : Stream.of(SECRET_PATTERN_PARENTHESES, SECRET_PATTERN_SECRETS)
+            .map(pattern -> pattern.matcher(input))
+            .flatMap(Matcher::results)
+            .map(matchResult -> matchResult.group("secret"))
+            .distinct()
+            .toList();
   }
 }

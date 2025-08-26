@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/guides/",
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -16,12 +16,27 @@
   "elementType" : {
     "value" : "bpmn:ServiceTask"
   },
+  "engines" : {
+    "camunda" : "^8.7"
+  },
   "groups" : [ {
     "id" : "taskDefinitionType",
     "label" : "Task definition type"
   }, {
     "id" : "input",
     "label" : "Input message data"
+  }, {
+    "id" : "provider",
+    "label" : "Provider selection"
+  }, {
+    "id" : "authentication",
+    "label" : "Provider authentication"
+  }, {
+    "id" : "configuration",
+    "label" : "Provider configuration"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -57,17 +72,65 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "input.taxonomyItems",
-    "label" : "Taxonomy Items",
-    "description" : "Array of taxonomy items",
+    "id" : "input.extractionType",
+    "label" : "Extraction Type",
+    "description" : "Specify extraction type (structured or unstructured)",
     "optional" : false,
-    "value" : "= input.taxonomyItems",
+    "value" : "= input.extractionType",
     "constraints" : {
       "notEmpty" : true
     },
     "group" : "input",
     "binding" : {
+      "name" : "input.extractionType",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "input.taxonomyItems",
+    "label" : "Taxonomy Items",
+    "description" : "Array of taxonomy items",
+    "optional" : false,
+    "value" : "= input.taxonomyItems",
+    "group" : "input",
+    "binding" : {
       "name" : "input.taxonomyItems",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "input.includedFields",
+    "label" : "Included Fields",
+    "description" : "List of fields that should be returned from the extraction",
+    "optional" : false,
+    "value" : "= input.includedFields",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.includedFields",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "input.renameMappings",
+    "label" : "Rename mappings",
+    "description" : "List of keys that should be renamed and not be given the default name",
+    "optional" : false,
+    "value" : "= input.renameMappings",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.renameMappings",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "input.delimiter",
+    "label" : "delimiter",
+    "description" : "The delimiter used for the variable name of the extracted field",
+    "optional" : false,
+    "value" : "= input.delimiter",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.delimiter",
       "type" : "zeebe:input"
     },
     "type" : "Hidden"
@@ -77,13 +140,627 @@
     "description" : "Specify the parameters for AWS Bedrock",
     "optional" : false,
     "value" : "= input.converseData",
-    "constraints" : {
-      "notEmpty" : true
-    },
     "group" : "input",
     "binding" : {
       "name" : "input.converseData",
       "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "baseRequest.type",
+    "label" : "Hyperscaler providers",
+    "group" : "provider",
+    "binding" : {
+      "name" : "baseRequest.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Amazon Web Services Provider",
+      "value" : "aws"
+    }, {
+      "name" : "Azure Provider",
+      "value" : "azure"
+    }, {
+      "name" : "GCP Provider",
+      "value" : "gcp"
+    } ]
+  }, {
+    "id" : "baseRequest.authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
+    "value" : "credentials",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "baseRequest.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "baseRequest.type",
+      "equals" : "aws",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
+      "value" : "defaultCredentialsChain"
+    }, {
+      "name" : "Credentials",
+      "value" : "credentials"
+    } ]
+  }, {
+    "id" : "baseRequest.authentication.accessKey",
+    "label" : "Access key",
+    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "baseRequest.authentication.accessKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "baseRequest.authentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "aws",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "baseRequest.authentication.secretKey",
+    "label" : "Secret key",
+    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "baseRequest.authentication.secretKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "baseRequest.authentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "aws",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "baseRequest.authentication.authType",
+    "label" : "Type",
+    "optional" : false,
+    "value" : "refresh",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "authentication",
+    "binding" : {
+      "name" : "baseRequest.authentication.authType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "baseRequest.type",
+      "equals" : "gcp",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Bearer token",
+      "value" : "bearer"
+    }, {
+      "name" : "Refresh token",
+      "value" : "refresh"
+    }, {
+      "name" : "Service account",
+      "value" : "service_account"
+    } ]
+  }, {
+    "id" : "baseRequest.authentication.bearerToken",
+    "label" : "Bearer token",
+    "description" : "Enter a valid Google API Bearer token",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "baseRequest.authentication.bearerToken",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "baseRequest.authentication.authType",
+        "equals" : "bearer",
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "gcp",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "baseRequest.authentication.oauthClientId",
+    "label" : "Client ID",
+    "description" : "Enter Google API Client ID",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "baseRequest.authentication.oauthClientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "baseRequest.authentication.authType",
+        "equals" : "refresh",
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "gcp",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "baseRequest.authentication.oauthClientSecret",
+    "label" : "Client secret",
+    "description" : "Enter Google API client Secret",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "baseRequest.authentication.oauthClientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "baseRequest.authentication.authType",
+        "equals" : "refresh",
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "gcp",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "baseRequest.authentication.oauthRefreshToken",
+    "label" : "Refresh token",
+    "description" : "Enter a valid Google API refresh token",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "baseRequest.authentication.oauthRefreshToken",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "baseRequest.authentication.authType",
+        "equals" : "refresh",
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "gcp",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "baseRequest.authentication.serviceAccountJson",
+    "label" : "Service account json",
+    "description" : "Enter a the contents of your service account json file",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "baseRequest.authentication.serviceAccountJson",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "baseRequest.authentication.authType",
+        "equals" : "service_account",
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "gcp",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "baseRequest.s3BucketName",
+    "label" : "AWS S3 Bucket name",
+    "description" : "Specify the name of the AWS S3 bucket where document will be stored temporarily during Textract analysis",
+    "optional" : false,
+    "value" : "idp-extraction-connector",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.s3BucketName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "baseRequest.type",
+      "equals" : "aws",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "baseRequest.extractionEngineType",
+    "label" : "Extraction engine type",
+    "description" : "Specify extraction engine to be used",
+    "optional" : false,
+    "value" : "AWS_TEXTRACT",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.extractionEngineType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "baseRequest.type",
+      "equals" : "aws",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Aws Textract",
+      "value" : "AWS_TEXTRACT"
+    }, {
+      "name" : "Apache Pdfbox",
+      "value" : "APACHE_PDFBOX"
+    } ]
+  }, {
+    "id" : "baseRequest.configuration.region",
+    "label" : "Region",
+    "description" : "Specify the AWS region",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.configuration.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "baseRequest.type",
+      "equals" : "aws",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "baseRequest.configuration.endpoint",
+    "label" : "Endpoint",
+    "description" : "Specify endpoint if need to use custom endpoint",
+    "optional" : true,
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.configuration.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "baseRequest.type",
+      "equals" : "aws",
+      "type" : "simple"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "baseRequest.documentIntelligenceConfiguration.endpoint",
+    "label" : "Azure Document Intelligence Endpoint",
+    "description" : "Specify the endpoint of the Azure Document Intelligence",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.documentIntelligenceConfiguration.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "baseRequest.type",
+      "equals" : "azure",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "baseRequest.documentIntelligenceConfiguration.apiKey",
+    "label" : "Azure Document Intelligence API Key",
+    "description" : "Specify the API key of the Azure Document Intelligence",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.documentIntelligenceConfiguration.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "baseRequest.type",
+      "equals" : "azure",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "baseRequest.aiFoundryConfig.usingOpenAI",
+    "label" : "Model type",
+    "description" : "Specify if the Azure AI Foundry is using OpenAI",
+    "optional" : false,
+    "value" : "false",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.aiFoundryConfig.usingOpenAI",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "baseRequest.type",
+      "equals" : "azure",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Base Azure Foundry model",
+      "value" : "false"
+    }, {
+      "name" : "Azure OpenAI model",
+      "value" : "true"
+    } ]
+  }, {
+    "id" : "baseRequest.aiFoundryConfig.endpoint",
+    "label" : "Azure AI Foundry Endpoint",
+    "description" : "Specify the endpoint of the Azure AI Foundry",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.aiFoundryConfig.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "baseRequest.type",
+      "equals" : "azure",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "baseRequest.aiFoundryConfig.apiKey",
+    "label" : "Azure AI Foundry API Key",
+    "description" : "Specify the API key of the Azure AI Foundry",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.aiFoundryConfig.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "baseRequest.type",
+      "equals" : "azure",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "baseRequest.configuration.type",
+    "label" : "Request configuration",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.configuration.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "baseRequest.type",
+      "equals" : "gcp",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Configuration for VertexAI",
+      "value" : "vertex"
+    }, {
+      "name" : "Configuration for DocumentAI",
+      "value" : "documentAi"
+    } ]
+  }, {
+    "id" : "baseRequest.configuration.gcpRegion",
+    "label" : "Region",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.configuration.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "baseRequest.configuration.type",
+        "equals" : "vertex",
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "gcp",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "baseRequest.configuration.vertexProjectId",
+    "label" : "Project ID",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.configuration.projectId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "baseRequest.configuration.type",
+        "equals" : "vertex",
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "gcp",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "baseRequest.configuration.bucketName",
+    "label" : "Bucket name",
+    "description" : "The Google Cloud Storage bucket where the document will be temporarily stored",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.configuration.bucketName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "baseRequest.configuration.type",
+        "equals" : "vertex",
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "gcp",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "baseRequest.configuration.documentAiRegion",
+    "label" : "Region",
+    "description" : "Can be 'eu' or 'us'",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.configuration.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "baseRequest.configuration.type",
+        "equals" : "documentAi",
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "gcp",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "baseRequest.configuration.projectId",
+    "label" : "Project ID",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.configuration.projectId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "baseRequest.configuration.type",
+        "equals" : "documentAi",
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "gcp",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "baseRequest.configuration.processorId",
+    "label" : "Processor ID",
+    "description" : "The id of the processor used to parse the document",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.configuration.processorId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "baseRequest.configuration.type",
+        "equals" : "documentAi",
+        "type" : "simple"
+      }, {
+        "property" : "baseRequest.type",
+        "equals" : "gcp",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "2",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connector.IdpExtractionOutBoundTemplate.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
     },
     "type" : "Hidden"
   }, {

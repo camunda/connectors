@@ -18,7 +18,7 @@ package io.camunda.connector.runtime.inbound.importer;
 
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
-import io.camunda.spring.client.metrics.MetricsRecorder;
+import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -34,7 +34,7 @@ public class ProcessDefinitionImportConfiguration {
   public ProcessDefinitionImporter processDefinitionImporter(
       ProcessStateStore stateStore,
       ProcessDefinitionSearch search,
-      MetricsRecorder metricsRecorder) {
-    return new ProcessDefinitionImporter(stateStore, search, metricsRecorder);
+      ConnectorsInboundMetrics connectorsInboundMetrics) {
+    return new ProcessDefinitionImporter(stateStore, search, connectorsInboundMetrics);
   }
 }

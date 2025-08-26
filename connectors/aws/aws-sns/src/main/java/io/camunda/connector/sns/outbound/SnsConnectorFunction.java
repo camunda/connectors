@@ -30,12 +30,13 @@ import java.util.Optional;
     inputVariables = {"authentication", "configuration", "topic"},
     type = "io.camunda:aws-sns:1")
 @ElementTemplate(
+    engineVersion = "^8.3",
     id = "io.camunda.connectors.AWSSNS.v1",
     name = "Amazon SNS Outbound connector",
     description = "Send messages to Amazon SNS.",
     metadata = @ElementTemplate.Metadata(keywords = {"send message", "publish message"}),
     inputDataClass = SnsConnectorRequest.class,
-    version = 7,
+    version = 8,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Topic properties"),

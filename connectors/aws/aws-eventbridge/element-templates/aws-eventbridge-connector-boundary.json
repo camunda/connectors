@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Amazon EventBridge Boundary Event Connector",
   "id": "io.camunda.connectors.AWSEventBridge.boundary.v1",
-  "version": 2,
+  "version": 3,
   "description": "Receive events from AWS EventBridge",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=inbound",
   "category": {
@@ -15,6 +15,9 @@
   "elementType": {
     "value": "bpmn:BoundaryEvent",
     "eventDefinition": "bpmn:MessageEventDefinition"
+  },
+  "engines": {
+    "camunda": "^8.4"
   },
   "groups": [
     {

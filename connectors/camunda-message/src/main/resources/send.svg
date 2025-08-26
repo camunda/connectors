@@ -1,0 +1,13 @@
+<svg
+   xmlns="http://www.w3.org/2000/svg"
+   width="2000"
+   height="2000"
+   viewBox="0 0 2000 2000"
+   preserveAspectRatio="xMidYMid">
+  <path
+     style="color:#000000"
+     d="m 0,284 2000,0 -1000,554 z"/>
+  <path
+     style="color:#000000"
+     d="m 0,452 1000,548 1000,-548 0,1096 -2000,0 z"/>
+</svg>

@@ -6,8 +6,8 @@
   "metadata" : {
     "keywords" : [ ]
   },
-  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/box/",
-  "version" : 1,
+  "documentationRef" : "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/box/",
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,6 +15,9 @@
   "appliesTo" : [ "bpmn:Task" ],
   "elementType" : {
     "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.7"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
@@ -25,6 +28,9 @@
   }, {
     "id" : "operation",
     "label" : "Operation"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -324,8 +330,8 @@
     "label" : "Recursive",
     "description" : "Deletes all items contained by the folder",
     "optional" : false,
-    "value" : "true",
-    "feel" : "optional",
+    "value" : true,
+    "feel" : "static",
     "group" : "operation",
     "binding" : {
       "name" : "operation.recursive",
@@ -336,7 +342,7 @@
       "equals" : "deleteFolder",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Boolean"
   }, {
     "id" : "operation.uploadFileName",
     "label" : "File name",
@@ -538,8 +544,8 @@
     "label" : "Search offset",
     "description" : "Offset for search results",
     "optional" : false,
-    "value" : "0",
-    "feel" : "optional",
+    "value" : 0,
+    "feel" : "static",
     "group" : "operation",
     "binding" : {
       "name" : "operation.offset",
@@ -550,14 +556,14 @@
       "equals" : "search",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "operation.searchLimit",
     "label" : "Search limit",
     "description" : "Limit",
     "optional" : false,
-    "value" : "30",
-    "feel" : "optional",
+    "value" : 30,
+    "feel" : "static",
     "group" : "operation",
     "binding" : {
       "name" : "operation.limit",
@@ -568,7 +574,29 @@
       "equals" : "search",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "2",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.box",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

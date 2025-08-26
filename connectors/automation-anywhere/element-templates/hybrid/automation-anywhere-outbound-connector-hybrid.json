@@ -7,7 +7,7 @@
     "keywords" : [ "add work item to queue", "get work item from queue", "get work item result from queue by ID" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/",
-  "version" : 2,
+  "version" : 3,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,6 +15,9 @@
   "appliesTo" : [ "bpmn:Task" ],
   "elementType" : {
     "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.4"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
@@ -34,6 +37,9 @@
   }, {
     "id" : "timeout",
     "label" : "Timeout"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -292,7 +298,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "operation.workItemId",
@@ -303,20 +309,42 @@
       "equals" : "listWorkItemsInQueue",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "configuration.connectionTimeoutInSeconds",
     "label" : "Connection timeout in seconds",
     "description" : "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
     "optional" : true,
-    "value" : "20",
-    "feel" : "optional",
+    "value" : 20,
+    "feel" : "static",
     "group" : "timeout",
     "binding" : {
       "name" : "configuration.connectionTimeoutInSeconds",
       "type" : "zeebe:input"
     },
-    "type" : "String"
+    "type" : "Number"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "3",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.AutomationAnywhere",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

@@ -37,6 +37,7 @@ import java.util.Set;
   "category",
   "appliesTo",
   "elementType",
+  "engines",
   "groups",
   "properties"
 })
@@ -46,6 +47,7 @@ public record ElementTemplate(
     String name,
     int version,
     String documentationRef,
+    Engines engines,
     String description,
     Metadata metadata,
     Set<String> appliesTo,

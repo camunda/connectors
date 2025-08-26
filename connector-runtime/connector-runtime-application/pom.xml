@@ -5,12 +5,13 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>io.camunda.connector</groupId>
-    <artifactId>connectors-bundle-parent</artifactId>
+    <artifactId>connector-runtime-parent</artifactId>
     <version>8.8.0-SNAPSHOT</version>
-    <relativePath>../../pom.xml</relativePath>
+    <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>connector-runtime-application</artifactId>
+  <name>Connector Runtime Application</name>
 
   <dependencies>
     <dependency>

@@ -1,0 +1,478 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "AWS Textract Outbound Connector",
+  "id": "io.camunda.connectors.AWSTEXTRACT.v1",
+  "description": "Automatically extract printed text, handwriting, layout elements, and data from any document",
+  "documentationRef": "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/amazon-textract/",
+  "version": 1,
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "configuration",
+      "label": "Configuration"
+    },
+    {
+      "id": "input",
+      "label": "Configure input"
+    },
+    {
+      "id": "output",
+      "label": "Output mapping"
+    },
+    {
+      "id": "error",
+      "label": "Error handling"
+    },
+    {
+      "id": "retries",
+      "label": "Retries"
+    }
+  ],
+  "properties": [
+    {
+      "value": "io.camunda:aws-textract:1",
+      "binding": {
+        "property": "type",
+        "type": "zeebe:taskDefinition"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "authentication.type",
+      "label": "Authentication",
+      "description": "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
+      "value": "credentials",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.type",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Default Credentials Chain (Hybrid/Self-Managed only)",
+          "value": "defaultCredentialsChain"
+        },
+        {
+          "name": "Credentials",
+          "value": "credentials"
+        }
+      ]
+    },
+    {
+      "id": "authentication.accessKey",
+      "label": "Access key",
+      "description": "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.accessKey",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.type",
+        "equals": "credentials",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "authentication.secretKey",
+      "label": "Secret key",
+      "description": "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.secretKey",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.type",
+        "equals": "credentials",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "configuration.region",
+      "label": "Region",
+      "description": "Specify the AWS region",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "configuration",
+      "binding": {
+        "name": "configuration.region",
+        "type": "zeebe:input"
+      },
+      "type": "String"
+    },
+    {
+      "id": "configuration.endpoint",
+      "label": "Endpoint",
+      "description": "Specify endpoint if need to use custom endpoint",
+      "optional": true,
+      "group": "configuration",
+      "binding": {
+        "name": "configuration.endpoint",
+        "type": "zeebe:input"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "input.executionType",
+      "label": "Execution type",
+      "description": "Endpoint inference type",
+      "optional": false,
+      "value": "ASYNC",
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "input",
+      "binding": {
+        "name": "input.executionType",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Asynchronous",
+          "value": "ASYNC"
+        },
+        {
+          "name": "Real-time",
+          "value": "SYNC"
+        },
+        {
+          "name": "Polling",
+          "value": "POLLING"
+        }
+      ]
+    },
+    {
+      "id": "input.documentS3Bucket",
+      "label": "Document bucket",
+      "description": "S3 bucket that contains document that needs to be processed",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "input",
+      "binding": {
+        "name": "input.documentS3Bucket",
+        "type": "zeebe:input"
+      },
+      "type": "String"
+    },
+    {
+      "id": "input.documentName",
+      "label": "Document path",
+      "description": "S3 document path to be processed",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "input",
+      "binding": {
+        "name": "input.documentName",
+        "type": "zeebe:input"
+      },
+      "type": "String"
+    },
+    {
+      "id": "input.documentVersion",
+      "label": "Document version",
+      "description": "S3 document version to be processed",
+      "optional": true,
+      "feel": "optional",
+      "group": "input",
+      "binding": {
+        "name": "input.documentVersion",
+        "type": "zeebe:input"
+      },
+      "type": "String"
+    },
+    {
+      "id": "input.analyzeTables",
+      "label": "Analyze tables",
+      "optional": false,
+      "feel": "static",
+      "value": true,
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "input",
+      "binding": {
+        "name": "input.analyzeTables",
+        "type": "zeebe:input"
+      },
+      "type": "Boolean"
+    },
+    {
+      "id": "input.analyzeForms",
+      "label": "Analyze form",
+      "feel": "static",
+      "optional": false,
+      "value": true,
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "input",
+      "binding": {
+        "name": "input.analyzeForms",
+        "type": "zeebe:input"
+      },
+      "type": "Boolean"
+    },
+    {
+      "id": "input.analyzeSignatures",
+      "label": "Analyze signatures",
+      "feel": "static",
+      "optional": false,
+      "value": true,
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "input",
+      "binding": {
+        "name": "input.analyzeSignatures",
+        "type": "zeebe:input"
+      },
+      "type": "Boolean"
+    },
+    {
+      "id": "input.analyzeLayout",
+      "label": "Analyze layout",
+      "feel": "static",
+      "optional": false,
+      "value": true,
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "input",
+      "binding": {
+        "name": "input.analyzeLayout",
+        "type": "zeebe:input"
+      },
+      "type": "Boolean"
+    },
+    {
+      "id": "input.clientRequestToken",
+      "label": "Client request token",
+      "description": "The idempotent token that you use to identify the start request",
+      "optional": true,
+      "feel": "optional",
+      "group": "input",
+      "binding": {
+        "name": "input.clientRequestToken",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "input.executionType",
+        "equals": "ASYNC",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "input.jobTag",
+      "label": "Job tag",
+      "description": "An identifier that you specify that's included in the completion notification published to the Amazon SNS topic",
+      "optional": true,
+      "feel": "optional",
+      "group": "input",
+      "binding": {
+        "name": "input.jobTag",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "input.executionType",
+        "equals": "ASYNC",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "input.kmsKeyId",
+      "label": "KMS key ID",
+      "description": "The KMS key used to encrypt the inference results",
+      "optional": true,
+      "feel": "optional",
+      "group": "input",
+      "binding": {
+        "name": "input.kmsKeyId",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "input.executionType",
+        "equals": "ASYNC",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "input.notificationChannelRoleArn",
+      "label": "Notification channel role ARN",
+      "description": "The Amazon SNS topic role ARN that you want Amazon Textract to publish the completion status of the operation to",
+      "optional": true,
+      "feel": "optional",
+      "group": "input",
+      "binding": {
+        "name": "input.notificationChannelRoleArn",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "input.executionType",
+        "equals": "ASYNC",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "input.notificationChannelSnsTopicArn",
+      "label": "Notification channel SNS topic ARN",
+      "description": "The Amazon SNS topic ARN that you want Amazon Textract to publish the completion status of the operation to",
+      "optional": true,
+      "feel": "optional",
+      "group": "input",
+      "binding": {
+        "name": "input.notificationChannelSnsTopicArn",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "input.executionType",
+        "equals": "ASYNC",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "input.outputConfigS3Bucket",
+      "label": "Output S3 bucket",
+      "description": "The name of the bucket your output will go to",
+      "optional": true,
+      "feel": "optional",
+      "group": "input",
+      "binding": {
+        "name": "input.outputConfigS3Bucket",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "input.executionType",
+        "equals": "ASYNC",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "input.outputConfigS3Prefix",
+      "label": "Output S3 prefix",
+      "description": "The prefix of the object key that the output will be saved to",
+      "optional": true,
+      "feel": "optional",
+      "group": "input",
+      "binding": {
+        "name": "input.outputConfigS3Prefix",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "input.executionType",
+        "equals": "ASYNC",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "resultVariable",
+      "label": "Result variable",
+      "description": "Name of variable to store the response in",
+      "group": "output",
+      "binding": {
+        "key": "resultVariable",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "String"
+    },
+    {
+      "id": "resultExpression",
+      "label": "Result expression",
+      "description": "Expression to map the response into process variables",
+      "feel": "required",
+      "group": "output",
+      "binding": {
+        "key": "resultExpression",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Text"
+    },
+    {
+      "id": "errorExpression",
+      "label": "Error expression",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+      "feel": "required",
+      "group": "error",
+      "binding": {
+        "key": "errorExpression",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Text"
+    },
+    {
+      "id": "retryCount",
+      "label": "Retries",
+      "description": "Number of retries",
+      "value": "3",
+      "feel": "optional",
+      "group": "retries",
+      "binding": {
+        "property": "retries",
+        "type": "zeebe:taskDefinition"
+      },
+      "type": "String"
+    },
+    {
+      "id": "retryBackoff",
+      "label": "Retry backoff",
+      "description": "ISO-8601 duration to wait between retries",
+      "value": "PT0S",
+      "feel": "optional",
+      "group": "retries",
+      "binding": {
+        "key": "retryBackoff",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "String"
+    }
+  ],
+  "icon": {
+    "contents": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iODBweCIgaGVpZ2h0PSI4MHB4IiB2aWV3Qm94PSIwIDAgODAgODAiIHZlcnNpb249IjEuMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8dGl0bGU+SWNvbi1BcmNoaXRlY3R1cmUvNjQvQXJjaF9BbWF6b24tVGV4dHJhY3RfNjQ8L3RpdGxlPgogICAgPGcgaWQ9Ikljb24tQXJjaGl0ZWN0dXJlLzY0L0FyY2hfQW1hem9uLVRleHRyYWN0XzY0IiBzdHJva2U9Im5vbmUiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj4KICAgICAgICA8ZyBpZD0iSWNvbi1BcmNoaXRlY3R1cmUtQkcvNjQvTWFjaGluZS1MZWFybmluZyIgZmlsbD0iIzk5NjlmNyI+CiAgICAgICAgICAgIDxyZWN0IGlkPSJSZWN0YW5nbGUiIHg9IjAiIHk9IjAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCI+PC9yZWN0PgogICAgICAgIDwvZz4KICAgICAgICA8cGF0aCBkPSJNMjIuMDYyNDEwMiw1MCBDMjQuMzc2Mzg5NSw1My42MDMgMjguNDEwMzUzNSw1NiAzMy4wMDAzMTI1LDU2IEM0MC4xNjcyNDg1LDU2IDQ1Ljk5OTE5NjQsNTAuMTY4IDQ1Ljk5OTE5NjQsNDMgQzQ1Ljk5OTE5NjQsMzUuODMyIDQwLjE2NzI0ODUsMzAgMzMuMDAwMzEyNSwzMCBDMjcuNjAzMzYwNywzMCAyMi45NjY0MDIxLDMzLjMwNyAyMS4wMDI0MTk2LDM4IEwyMy4yMTQzOTk5LDM4IEMyNS4wMzkzODM2LDM0LjQ0NCAyOC43MzYzNTA2LDMyIDMzLjAwMDMxMjUsMzIgQzM5LjA2NTI1ODMsMzIgNDMuOTk5MjE0MywzNi45MzUgNDMuOTk5MjE0Myw0MyBDNDMuOTk5MjE0Myw0OS4wNjUgMzkuMDY1MjU4Myw1NCAzMy4wMDAzMTI1LDU0IEMyOS41OTEzNDI5LDU0IDI2LjU0MTM3MDIsNTIuNDQxIDI0LjUyMTM4ODIsNTAgTDIyLjA2MjQxMDIsNTAgWiBNMzcuMDAwMjc2OCw0NSBMMzcuMDAwMjc2OCw0MyBMNDEuOTk5MjMyMSw0MyBDNDEuOTk5MjMyMSwzOC4wMzggMzcuOTYyMjY4MiwzNCAzMy4wMDAzMTI1LDM0IEMyOC4wMzczNTY4LDM0IDIzLjk5OTM5MjksMzguMDM4IDIzLjk5OTM5MjksNDMgTDI4Ljk5OTM0ODIsNDMgTDI4Ljk5OTM0ODIsNDUgTDI0LjIzMTM5MDgsNDUgQzI1LjE0NDM4MjYsNDkuMDAyIDI4LjcyNTM1MDcsNTIgMzMuMDAwMzEyNSw1MiBDMzUuMTM2MjkzNCw1MiAzNy4wOTkyNzU5LDUxLjI0OSAzOC42NDQyNjIxLDUwIEwzNC4wMDAzMDM2LDUwIEwzNC4wMDAzMDM2LDQ4IEw0MC40NzgyNDU3LDQ4IEM0MS4wODEyNDAzLDQ3LjEwMiA0MS41MjAyMzY0LDQ2LjA4NyA0MS43NjgyMzQyLDQ1IEwzNy4wMDAyNzY4LDQ1IFogTTIxLjAwMjQxOTYsNDggTDIzLjIxNDM5OTksNDggQzIyLjQ0MzQwNjgsNDYuNDk4IDIyLjAwMDQxMDcsNDQuODAxIDIyLjAwMDQxMDcsNDMgQzIyLjAwMDQxMDcsNDEuOTU5IDIyLjE1NTQwOTMsNDAuOTU1IDIyLjQyNjQwNjksNDAgTDIwLjM2MzQyNTMsNDAgQzIwLjEzNDQyNzQsNDAuOTY1IDE5Ljk5OTQyODYsNDEuOTY2IDE5Ljk5OTQyODYsNDMgQzE5Ljk5OTQyODYsNDQuNzcxIDIwLjM1ODQyNTQsNDYuNDYgMjEuMDAyNDE5Niw0OCBMMjEuMDAyNDE5Niw0OCBaIE0xOS43NDM0MzA5LDUwIEwxNy4wMDA0NTU0LDUwIEwxNy4wMDA0NTU0LDQ4IEwxOC44NzQ0Mzg2LDQ4IEMxOC41MzQ0NDE3LDQ3LjA0IDE4LjI4OTQ0MzgsNDYuMDM4IDE4LjE0OTQ0NTEsNDUgTDE1LjQxNDQ2OTUsNDUgTDE2LjcwNzQ1OCw0Ni4yOTMgTDE1LjI5MjQ3MDYsNDcuNzA3IEwxMi4yOTI0OTc0LDQ0LjcwNyBDMTEuOTAyNTAwOSw0NC4zMTYgMTEuOTAyNTAwOSw0My42ODQgMTIuMjkyNDk3NCw0My4yOTMgTDE1LjI5MjQ3MDYsNDAuMjkzIEwxNi43MDc0NTgsNDEuNzA3IEwxNS40MTQ0Njk1LDQzIEwxOC4wMDA0NDY0LDQzIEMxOC4wMDA0NDY0LDQxLjk3MyAxOC4xMDQ0NDU1LDQwLjk3IDE4LjMwMjQ0MzcsNDAgTDE3LjAwMDQ1NTQsNDAgTDE3LjAwMDQ1NTQsMzggTDE4Ljg3NDQzODYsMzggQzIwLjk0MDQyMDIsMzIuMTg0IDI2LjQ4MzM3MDcsMjggMzMuMDAwMzEyNSwyOCBDMzcuNDI3MjczLDI4IDQxLjQwMDIzNzUsMjkuOTM5IDQ0LjE0ODIxMywzMyBMNTkuMDAwMDgwNCwzMyBMNTkuMDAwMDgwNCwzNSBMNDUuNjY2MTk5NCwzNSBDNDcuMTM1MTg2MywzNy4zMTggNDcuOTk5MTc4Niw0MC4wNTggNDcuOTk5MTc4Niw0MyBMNTkuMDAwMDgwNCw0MyBMNTkuMDAwMDgwNCw0NSBMNDcuODUwMTc5OSw0NSBDNDYuODY4MTg4Nyw1Mi4zMjcgNDAuNTkxMjQ0Nyw1OCAzMy4wMDAzMTI1LDU4IEMyNy4yNTYzNjM4LDU4IDIyLjI2MjQwODQsNTQuNzUyIDE5Ljc0MzQzMDksNTAgTDE5Ljc0MzQzMDksNTAgWiBNMzcuMDAwMjc2OCwzOSBDMzcuMDAwMjc2OCwzOC40NDggMzYuNTUyMjgwOCwzOCAzNi4wMDAyODU3LDM4IEwyOS45OTkzNDgyLDM4IEMyOS40NDczNDQyLDM4IDI4Ljk5OTM0ODIsMzguNDQ4IDI4Ljk5OTM0ODIsMzkgTDI4Ljk5OTM0ODIsNDEgTDMxLjAwMDMzMDQsNDEgTDMxLjAwMDMzMDQsNDAgTDMyLjAwMDMyMTQsNDAgTDMyLjAwMDMyMTQsNDMgTDMxLjAwMDMzMDQsNDMgTDMxLjAwMDMzMDQsNDUgTDM1LjAwMDI5NDYsNDUgTDM1LjAwMDI5NDYsNDMgTDM0LjAwMDMwMzYsNDMgTDM0LjAwMDMwMzYsNDAgTDM1LjAwMDI5NDYsNDAgTDM1LjAwMDI5NDYsNDEgTDM3LjAwMDI3NjgsNDEgTDM3LjAwMDI3NjgsMzkgWiBNNDkuMDAwMTY5Niw0MCBMNTkuMDAwMDgwNCw0MCBMNTkuMDAwMDgwNCwzOCBMNDkuMDAwMTY5NiwzOCBMNDkuMDAwMTY5Niw0MCBaIE00OS4wMDAxNjk2LDUwIEw1OS4wMDAwODA0LDUwIEw1OS4wMDAwODA0LDQ4IEw0OS4wMDAxNjk2LDQ4IEw0OS4wMDAxNjk2LDUwIFogTTU3LjAwMDA5ODIsMjcgTDYwLjU4NTA2NjIsMjcgTDU3LjAwMDA5ODIsMjMuNDE0IEw1Ny4wMDAwOTgyLDI3IFogTTYzLjcwNzAzODMsMjcuMjkzIEM2My44OTQwMzY3LDI3LjQ4IDY0LjAwMDAzNTcsMjcuNzM1IDY0LjAwMDAzNTcsMjggTDY0LjAwMDAzNTcsNjMgQzY0LjAwMDAzNTcsNjMuNTUyIDYzLjU1MjAzOTcsNjQgNjMuMDAwMDQ0Niw2NCBMMzIuMDAwMzMwNCw2NCBDMzEuNDQ3MzI2NCw2NCAzMS4wMDAzMzA0LDYzLjU1MiAzMS4wMDAzMzA0LDYzIEwzMS4wMDAzMzA0LDU5IEwzMy4wMDAzMTI1LDU5IEwzMy4wMDAzMTI1LDYyIEw2Mi4wMDAwNTM2LDYyIEw2Mi4wMDAwNTM2LDI5IEw1Ni4wMDAxMDcxLDI5IEM1NS40NDcxMTIxLDI5IDU1LjAwMDExNjEsMjguNTUyIDU1LjAwMDExNjEsMjggTDU1LjAwMDExNjEsMjIgTDMzLjAwMDMxMjUsMjIgTDMzLjAwMDMxMjUsMjcgTDMxLjAwMDMzMDQsMjcgTDMxLjAwMDMzMDQsMjEgQzMxLjAwMDMzMDQsMjAuNDQ4IDMxLjQ0NzMyNjQsMjAgMzIuMDAwMzMwNCwyMCBMNTYuMDAwMTA3MSwyMCBDNTYuMjY1MTA0OCwyMCA1Ni41MTkxMDI1LDIwLjEwNSA1Ni43MDcxMDA4LDIwLjI5MyBMNjMuNzA3MDM4MywyNy4yOTMgWiBNNjgsMjQuMTY2IEw2OCw2MSBDNjgsNjEuNTUyIDY3LjU1MjAwNCw2MiA2Ny4wMDAwMDg5LDYyIEw2NS4wMDAwMjY4LDYyIEw2NS4wMDAwMjY4LDYwIEw2Ni4wMDAwMTc5LDYwIEw2Ni4wMDAwMTc5LDI0LjYxMiBMNTguNjE3MDgzOCwxOCBMMzYuMDAwMjg1NywxOCBMMzYuMDAwMjg1NywxOSBMMzQuMDAwMzAzNiwxOSBMMzQuMDAwMzAzNiwxNyBDMzQuMDAwMzAzNiwxNi40NDggMzQuNDQ3Mjk5NiwxNiAzNS4wMDAzMDM2LDE2IEw1OS4wMDAwODA0LDE2IEM1OS4yNDYwNzgyLDE2IDU5LjQ4MzA3NiwxNi4wOTEgNTkuNjY2MDc0NCwxNi4yNTUgTDY3LjY2NjAwMywyMy40MiBDNjcuODc4MDAxMSwyMy42MSA2OCwyMy44ODEgNjgsMjQuMTY2IEw2OCwyNC4xNjYgWiIgaWQ9IkFtYXpvbi1UZXh0cmFjdF9JY29uXzY0X1NxdWlkIiBmaWxsPSIjRkZGRkZGIj48L3BhdGg+CiAgICA8L2c+Cjwvc3ZnPg=="
+  },
+  "engines": {
+    "camunda": "^8.6"
+  }
+}

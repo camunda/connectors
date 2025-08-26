@@ -17,6 +17,7 @@ import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
+import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.InvalidInput;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ZeebeClientStatus;
@@ -26,6 +27,7 @@ import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult.RabbitM
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder.TestInboundConnectorContext;
 import java.io.IOException;
 import java.util.Map;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -41,6 +43,157 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
   @BeforeEach
   void init() {
     mockChannel = mock(Channel.class);
+  }
+
+  @Test
+  void consumer_shouldNackAndRequeue_UnexpectedError() throws IOException {
+    // Given that correlation throws random exception
+    var mockContext = mock(InboundConnectorContext.class);
+    doReturn(new ZeebeClientStatus("BAD STATUS", "Meh, Zeebe is broken"))
+        .when(mockContext)
+        .correlate(any(CorrelationRequest.class));
+    var consumer = new RabbitMqConsumer(mockChannel, mockContext);
+
+    ArgumentCaptor<CorrelationRequest> captor = ArgumentCaptor.forClass(CorrelationRequest.class);
+
+    Envelope envelope = new Envelope(1, false, "exchange", "routingKey");
+    BasicProperties properties = new BasicProperties.Builder().build();
+    String body = "plaintext";
+
+    // When
+    consumer.handleDelivery("consumerTag", envelope, properties, body.getBytes());
+
+    // Then
+    verify(mockContext, times(1)).correlate(captor.capture());
+
+    RabbitMqInboundResult rabbitMqInboundResult =
+        (RabbitMqInboundResult) captor.getValue().getVariables();
+    RabbitMqInboundMessage message = rabbitMqInboundResult.message();
+
+    assertThat(message.body()).isInstanceOf(String.class);
+    assertThat(message.body()).isEqualTo(body);
+
+    assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
+    assertThat(message.consumerTag()).isEqualTo("consumerTag");
+
+    verify(mockChannel, times(1)).basicReject(1, true);
+  }
+
+  @Test
+  void consumer_shouldNackAndNoRequeue_InvalidInput() throws IOException {
+    // Given that correlation error is wrapped into ConnectorInputException
+    var mockContext = mock(InboundConnectorContext.class);
+    doReturn(new InvalidInput("Invalid input", new RuntimeException("It's just totally wrong")))
+        .when(mockContext)
+        .correlate(any(CorrelationRequest.class));
+
+    var consumer = new RabbitMqConsumer(mockChannel, mockContext);
+
+    ArgumentCaptor<CorrelationRequest> captor = ArgumentCaptor.forClass(CorrelationRequest.class);
+
+    Envelope envelope = new Envelope(1, false, "exchange", "routingKey");
+    BasicProperties properties = new BasicProperties.Builder().build();
+    String body = "plaintext";
+
+    // When
+    consumer.handleDelivery("consumerTag", envelope, properties, body.getBytes());
+
+    // Then
+    verify(mockContext, times(1)).correlate(captor.capture());
+    RabbitMqInboundResult rabbitMqInboundResult =
+        (RabbitMqInboundResult) captor.getValue().getVariables();
+    RabbitMqInboundMessage message = rabbitMqInboundResult.message();
+
+    assertThat(message.body()).isInstanceOf(String.class);
+    assertThat(message.body()).isEqualTo(body);
+
+    assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
+    assertThat(message.consumerTag()).isEqualTo("consumerTag");
+
+    verify(mockChannel, times(1)).basicReject(1, false);
+  }
+
+  @Test
+  void consumer_shouldAck_ignoredError() throws IOException {
+    // Given that correlation error is ignored
+    var mockContext = mock(InboundConnectorContext.class);
+    var consumer = new RabbitMqConsumer(mockChannel, mockContext);
+
+    Envelope envelope = new Envelope(1, false, "exchange", "routingKey");
+    BasicProperties properties = new BasicProperties.Builder().build();
+    String body = "plaintext";
+
+    doReturn(new ActivationConditionNotMet(true))
+        .when(mockContext)
+        .correlate(any(CorrelationRequest.class));
+
+    // When
+    consumer.handleDelivery("consumerTag", envelope, properties, body.getBytes());
+
+    // Then
+    verify(mockContext, times(1)).correlate(any(CorrelationRequest.class));
+    verify(mockChannel, times(1)).basicAck(1, false);
+  }
+
+  @Test
+  void consumer_shouldHandleCancel() {
+    // Given
+    String consumerTag = "consumerTag";
+    var spyContext = mock(InboundConnectorContext.class);
+    var consumer = new RabbitMqConsumer(mockChannel, spyContext);
+
+    // When
+    consumer.handleCancel(consumerTag);
+
+    // Then
+    verify(spyContext, times(1)).cancel(null);
+  }
+
+  @Test
+  void consumer_shouldNotHandleShutdown() {
+    // Given
+    String consumerTag = "consumerTag";
+    ShutdownSignalException cause = new ShutdownSignalException(true, false, null, null);
+    var spyContext = mock(InboundConnectorContext.class);
+    var consumer = new RabbitMqConsumer(mockChannel, spyContext);
+
+    // When
+    consumer.handleShutdownSignal(consumerTag, cause);
+
+    // Then
+    verify(spyContext, times(0)).cancel(cause);
+    verify(spyContext, times(1)).log(any(Consumer.class));
+  }
+
+  @Test
+  void consumer_shouldBeAbleToParseSpecialCharsInJsonString() throws IOException {
+    // Given JSON payload
+    Envelope envelope = new Envelope(1, false, "exchange", "routingKey");
+    BasicProperties properties = new BasicProperties.Builder().build();
+    String jsonBody =
+        """
+        {"key":"value with \\"quotes\\" special chars: \\" \\n \\t \\r"}
+        """;
+    var context = getContextBuilderWithSecrets().build();
+
+    // When
+    RabbitMqConsumer consumer = new RabbitMqConsumer(mockChannel, context);
+    consumer.handleDelivery("consumerTag", envelope, properties, jsonBody.getBytes());
+
+    // Then
+    var correlatedEvents = context.getCorrelations();
+    assertThat(correlatedEvents).hasSize(1);
+    assertThat(correlatedEvents.get(0)).isInstanceOf(RabbitMqInboundResult.class);
+    RabbitMqInboundMessage message = ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
+
+    assertThat(message.body()).isInstanceOf(Map.class);
+    Map<String, Object> body = (Map<String, Object>) message.body();
+    assertThat(body).containsEntry("key", "value with \"quotes\" special chars: \" \n \t \r");
+
+    assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
+    assertThat(message.consumerTag()).isEqualTo("consumerTag");
+
+    verify(mockChannel, times(1)).basicAck(1, false);
   }
 
   @Nested
@@ -188,151 +341,5 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
 
       verify(mockChannel, times(1)).basicAck(1, false);
     }
-  }
-
-  @Test
-  void consumer_shouldNackAndRequeue_UnexpectedError() throws IOException {
-    // Given that correlation throws random exception
-    var mockContext = mock(InboundConnectorContext.class);
-    doReturn(new ZeebeClientStatus("BAD STATUS", "Meh, Zeebe is broken"))
-        .when(mockContext)
-        .correlateWithResult(any());
-    var consumer = new RabbitMqConsumer(mockChannel, mockContext);
-
-    ArgumentCaptor<RabbitMqInboundResult> captor =
-        ArgumentCaptor.forClass(RabbitMqInboundResult.class);
-
-    Envelope envelope = new Envelope(1, false, "exchange", "routingKey");
-    BasicProperties properties = new BasicProperties.Builder().build();
-    String body = "plaintext";
-
-    // When
-    consumer.handleDelivery("consumerTag", envelope, properties, body.getBytes());
-
-    // Then
-    verify(mockContext, times(1)).correlateWithResult(captor.capture());
-    RabbitMqInboundMessage message = captor.getValue().message();
-
-    assertThat(message.body()).isInstanceOf(String.class);
-    assertThat(message.body()).isEqualTo(body);
-
-    assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
-    assertThat(message.consumerTag()).isEqualTo("consumerTag");
-
-    verify(mockChannel, times(1)).basicReject(1, true);
-  }
-
-  @Test
-  void consumer_shouldNackAndNoRequeue_InvalidInput() throws IOException {
-    // Given that correlation error is wrapped into ConnectorInputException
-    var mockContext = mock(InboundConnectorContext.class);
-    doReturn(new InvalidInput("Invalid input", new RuntimeException("It's just totally wrong")))
-        .when(mockContext)
-        .correlateWithResult(any());
-
-    var consumer = new RabbitMqConsumer(mockChannel, mockContext);
-
-    ArgumentCaptor<RabbitMqInboundResult> captor =
-        ArgumentCaptor.forClass(RabbitMqInboundResult.class);
-
-    Envelope envelope = new Envelope(1, false, "exchange", "routingKey");
-    BasicProperties properties = new BasicProperties.Builder().build();
-    String body = "plaintext";
-
-    // When
-    consumer.handleDelivery("consumerTag", envelope, properties, body.getBytes());
-
-    // Then
-    verify(mockContext, times(1)).correlateWithResult(captor.capture());
-    RabbitMqInboundMessage message = captor.getValue().message();
-
-    assertThat(message.body()).isInstanceOf(String.class);
-    assertThat(message.body()).isEqualTo(body);
-
-    assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
-    assertThat(message.consumerTag()).isEqualTo("consumerTag");
-
-    verify(mockChannel, times(1)).basicReject(1, false);
-  }
-
-  @Test
-  void consumer_shouldAck_ignoredError() throws IOException {
-    // Given that correlation error is ignored
-    var mockContext = mock(InboundConnectorContext.class);
-    var consumer = new RabbitMqConsumer(mockChannel, mockContext);
-
-    Envelope envelope = new Envelope(1, false, "exchange", "routingKey");
-    BasicProperties properties = new BasicProperties.Builder().build();
-    String body = "plaintext";
-
-    doReturn(new ActivationConditionNotMet(true)).when(mockContext).correlateWithResult(any());
-
-    // When
-    consumer.handleDelivery("consumerTag", envelope, properties, body.getBytes());
-
-    // Then
-    verify(mockContext, times(1)).correlateWithResult(any());
-    verify(mockChannel, times(1)).basicAck(1, false);
-  }
-
-  @Test
-  void consumer_shouldHandleCancel() {
-    // Given
-    String consumerTag = "consumerTag";
-    var spyContext = mock(InboundConnectorContext.class);
-    var consumer = new RabbitMqConsumer(mockChannel, spyContext);
-
-    // When
-    consumer.handleCancel(consumerTag);
-
-    // Then
-    verify(spyContext, times(1)).cancel(null);
-  }
-
-  @Test
-  void consumer_shouldNotHandleShutdown() {
-    // Given
-    String consumerTag = "consumerTag";
-    ShutdownSignalException cause = new ShutdownSignalException(true, false, null, null);
-    var spyContext = mock(InboundConnectorContext.class);
-    var consumer = new RabbitMqConsumer(mockChannel, spyContext);
-
-    // When
-    consumer.handleShutdownSignal(consumerTag, cause);
-
-    // Then
-    verify(spyContext, times(0)).cancel(cause);
-    verify(spyContext, times(1)).log(any());
-  }
-
-  @Test
-  void consumer_shouldBeAbleToParseSpecialCharsInJsonString() throws IOException {
-    // Given JSON payload
-    Envelope envelope = new Envelope(1, false, "exchange", "routingKey");
-    BasicProperties properties = new BasicProperties.Builder().build();
-    String jsonBody =
-        """
-        {"key":"value with \\"quotes\\" special chars: \\" \\n \\t \\r"}
-        """;
-    var context = getContextBuilderWithSecrets().build();
-
-    // When
-    RabbitMqConsumer consumer = new RabbitMqConsumer(mockChannel, context);
-    consumer.handleDelivery("consumerTag", envelope, properties, jsonBody.getBytes());
-
-    // Then
-    var correlatedEvents = context.getCorrelations();
-    assertThat(correlatedEvents).hasSize(1);
-    assertThat(correlatedEvents.get(0)).isInstanceOf(RabbitMqInboundResult.class);
-    RabbitMqInboundMessage message = ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
-
-    assertThat(message.body()).isInstanceOf(Map.class);
-    Map<String, Object> body = (Map<String, Object>) message.body();
-    assertThat(body).containsEntry("key", "value with \"quotes\" special chars: \" \n \t \r");
-
-    assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
-    assertThat(message.consumerTag()).isEqualTo("consumerTag");
-
-    verify(mockChannel, times(1)).basicAck(1, false);
   }
 }

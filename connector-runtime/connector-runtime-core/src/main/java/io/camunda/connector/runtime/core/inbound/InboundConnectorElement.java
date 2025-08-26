@@ -17,7 +17,6 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.Keywords.DeduplicationMode;
 import io.camunda.connector.runtime.core.error.InvalidInboundConnectorDefinitionException;
@@ -34,7 +33,7 @@ import org.slf4j.LoggerFactory;
 public record InboundConnectorElement(
     @JsonIgnore Map<String, String> rawProperties,
     ProcessCorrelationPoint correlationPoint,
-    ProcessElement element) {
+    ProcessElementWithRuntimeData element) {
 
   private static final Logger LOG = LoggerFactory.getLogger(InboundConnectorElement.class);
 
@@ -83,11 +82,13 @@ public record InboundConnectorElement(
     } else if (DeduplicationMode.MANUAL.name().equals(deduplicationMode)) {
       // manual mode, expect deduplicationId property
       LOG.debug("Using deduplicationMode=MANUAL, expecting deduplicationId property");
-      return Optional.ofNullable(rawProperties.get(Keywords.DEDUPLICATION_ID_KEYWORD))
-          .orElseThrow(
-              () ->
-                  new InvalidInboundConnectorDefinitionException(
-                      "Missing deduplicationId property, expected a value due to deduplicationMode=MANUAL"));
+      return tenantIdAndBpmnProcessId()
+          + "-"
+          + Optional.ofNullable(rawProperties.get(Keywords.DEDUPLICATION_ID_KEYWORD))
+              .orElseThrow(
+                  () ->
+                      new InvalidInboundConnectorDefinitionException(
+                          "Missing deduplicationId property, expected a value due to deduplicationMode=MANUAL"));
     } else {
       throw new InvalidInboundConnectorDefinitionException(
           "Invalid deduplicationMode property, expected AUTO or MANUAL, but was "
@@ -110,7 +111,11 @@ public record InboundConnectorElement(
       throw new InvalidInboundConnectorDefinitionException(
           "Missing deduplication properties, expected at least one property to compute deduplicationId");
     }
-    return tenantId() + "-" + element.bpmnProcessId() + "-" + Objects.hash(propsToHash);
+    return tenantIdAndBpmnProcessId() + "-" + Objects.hash(propsToHash);
+  }
+
+  private String tenantIdAndBpmnProcessId() {
+    return tenantId() + "-" + element.processDefinitionKey();
   }
 
   public Map<String, String> connectorLevelProperties() {

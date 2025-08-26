@@ -16,7 +16,7 @@ import com.slack.api.methods.response.files.FilesCompleteUploadExternalResponse;
 import com.slack.api.methods.response.files.FilesGetUploadURLExternalResponse;
 import com.slack.api.model.File;
 import com.slack.api.util.http.SlackHttpClient;
-import io.camunda.document.Document;
+import io.camunda.connector.api.document.Document;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
@@ -128,11 +128,11 @@ public class FileUploader {
     return files == null || files.isEmpty() ? null : files.getFirst();
   }
 
-  public void setMethodsClient(MethodsClient methodsClient) {
-    this.methodsClient = methodsClient;
-  }
-
   public MethodsClient getMethodsClient() {
     return methodsClient;
+  }
+
+  public void setMethodsClient(MethodsClient methodsClient) {
+    this.methodsClient = methodsClient;
   }
 }

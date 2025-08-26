@@ -27,6 +27,7 @@ import java.util.function.BiFunction;
     inputVariables = {"authentication", "configuration", "input"},
     type = "io.camunda:aws-sagemaker:1")
 @ElementTemplate(
+    engineVersion = "^8.6",
     id = "io.camunda.connectors.AWSSAGEMAKER.v1",
     name = "AWS SageMaker Outbound Connector",
     description = "Run inferences using AWS SageMaker.",
@@ -38,7 +39,7 @@ import java.util.function.BiFunction;
               "perform real-time inference"
             }),
     inputDataClass = SageMakerRequest.class,
-    version = 1,
+    version = 2,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),

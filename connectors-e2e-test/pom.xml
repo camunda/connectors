@@ -10,9 +10,13 @@
     </parent>
 
     <description>Parent POM for Connectors e2e tests</description>
-    <name>connectors-e2e-test-parent</name>
+    <name>Connectors E2E Tests Parent</name>
     <artifactId>connectors-e2e-test-parent</artifactId>
     <packaging>pom</packaging>
+
+    <properties>
+        <skip.central.release>true</skip.central.release>
+    </properties>
 
     <modules>
         <module>connectors-e2e-test-base</module>
@@ -24,6 +28,9 @@
         <module>connectors-e2e-test-soap</module>
         <module>connectors-e2e-test-rabbitmq</module>
       <module>connectors-e2e-test-servicenow</module>
+        <module>connectors-e2e-test-message</module>
+        <module>connectors-e2e-test-agentic-ai</module>
+        <module>connectors-e2e-email</module>
     </modules>
 
 </project>

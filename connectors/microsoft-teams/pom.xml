@@ -32,6 +32,12 @@
       <groupId>com.azure</groupId>
       <artifactId>azure-identity</artifactId>
       <scope>compile</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-resolver-dns-native-macos</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>
@@ -63,7 +69,8 @@
             </files>
             <generateHybridTemplates>true</generateHybridTemplates>
           </connector>
-        </connectors>
+                            </connectors>
+                    <versionHistoryEnabled>true</versionHistoryEnabled>
       </configuration>
       </plugin>
     </plugins>

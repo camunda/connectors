@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.api.outbound;
 
-import io.camunda.document.factory.DocumentFactory;
+import io.camunda.connector.api.document.DocumentFactory;
 
 /**
  * The context object provided to a connector function. The context allows to fetch information

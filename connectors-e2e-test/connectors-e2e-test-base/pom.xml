@@ -10,6 +10,7 @@
     </parent>
 
     <description>Connectors Test Base project</description>
+    <name>Connectors E2e Test Base</name>
     <artifactId>connectors-e2e-test-base</artifactId>
     <packaging>jar</packaging>
 
@@ -18,7 +19,7 @@
         <dependency>
             <groupId>org.xmlunit</groupId>
             <artifactId>xmlunit-core</artifactId>
-            <version>2.10.0</version>
+            <version>2.10.3</version>
         </dependency>
         <dependency>
             <groupId>com.jayway.jsonpath</groupId>

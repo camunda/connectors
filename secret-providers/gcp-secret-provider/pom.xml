@@ -8,13 +8,13 @@
     <version>8.8.0-SNAPSHOT</version>
   </parent>
 
-  <name>connector-gcp-secret-provider</name>
+  <name>GCP Secret Provider</name>
   <description>Camunda GCP Secret Provider Module</description>
   <artifactId>connector-gcp-secret-provider</artifactId>
   <packaging>jar</packaging>
 
   <properties>
-    <version.google-libraries-bom>26.56.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.66.0</version.google-libraries-bom>
   </properties>
 
   <dependencyManagement>

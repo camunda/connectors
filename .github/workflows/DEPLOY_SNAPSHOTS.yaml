@@ -18,11 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     concurrency: deploy-snapshots
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Import Secrets
         id: secrets # important to refer to it in later steps
-        uses: hashicorp/vault-action@v3.3.0
+        uses: hashicorp/vault-action@v3.4.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -44,7 +44,7 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Setup Java Build
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'

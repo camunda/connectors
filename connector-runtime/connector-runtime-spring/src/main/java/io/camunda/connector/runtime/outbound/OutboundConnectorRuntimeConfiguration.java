@@ -18,31 +18,40 @@ package io.camunda.connector.runtime.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
-import io.camunda.connector.runtime.core.outbound.OutboundConnectorDiscovery;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
-import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorAnnotationProcessor;
+import io.camunda.connector.runtime.core.validation.ValidationUtil;
+import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
-import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.document.DocumentFactoryImpl;
 import io.camunda.document.store.CamundaDocumentStore;
 import io.camunda.document.store.CamundaDocumentStoreImpl;
 import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.spring.client.jobhandling.JobWorkerManager;
-import io.camunda.spring.client.metrics.MetricsRecorder;
-import org.springframework.beans.factory.annotation.Autowired;
+import io.micrometer.core.instrument.MeterRegistry;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 
 @Configuration
 public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
-  public OutboundConnectorFactory outboundConnectorFactory() {
+  public DefaultOutboundConnectorFactory outboundConnectorConfigurationRegistry(
+      ObjectMapper mapper,
+      ValidationProvider validationProvider,
+      Environment environment,
+      List<OutboundConnectorFunction> functions,
+      List<OutboundConnectorProvider> providers) {
+
     return new DefaultOutboundConnectorFactory(
-        OutboundConnectorDiscovery.loadConnectorConfigurations());
+        mapper, validationProvider, functions, providers, environment::getProperty);
   }
 
   @Bean
@@ -56,15 +65,20 @@ public class OutboundConnectorRuntimeConfiguration {
   }
 
   @Bean
+  ValidationProvider validationProvider() {
+    return ValidationUtil.discoverDefaultValidationProviderImplementation();
+  }
+
+  @Bean
   public OutboundConnectorManager outboundConnectorManager(
       JobWorkerManager jobWorkerManager,
       OutboundConnectorFactory connectorFactory,
       CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
       SecretProviderAggregator secretProviderAggregator,
-      @Autowired(required = false) ValidationProvider validationProvider,
+      ValidationProvider validationProvider,
+      ConnectorsOutboundMetrics outboundMetrics,
       DocumentFactory documentFactory,
-      ObjectMapper objectMapper,
-      MetricsRecorder metricsRecorder) {
+      ObjectMapper objectMapper) {
     return new OutboundConnectorManager(
         jobWorkerManager,
         connectorFactory,
@@ -73,12 +87,11 @@ public class OutboundConnectorRuntimeConfiguration {
         validationProvider,
         documentFactory,
         objectMapper,
-        metricsRecorder);
+        outboundMetrics);
   }
 
   @Bean
-  public OutboundConnectorAnnotationProcessor annotationProcessor(
-      OutboundConnectorManager manager, OutboundConnectorFactory factory) {
-    return new OutboundConnectorAnnotationProcessor(manager, factory);
+  public ConnectorsOutboundMetrics connectorsOutboundMetrics(MeterRegistry meterRegistry) {
+    return new ConnectorsOutboundMetrics(meterRegistry);
   }
 }

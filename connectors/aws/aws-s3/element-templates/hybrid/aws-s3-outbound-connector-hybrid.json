@@ -6,8 +6,8 @@
   "metadata" : {
     "keywords" : [ ]
   },
-  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-s3/",
-  "version" : 1,
+  "documentationRef" : "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/amazon-s3/",
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,6 +15,9 @@
   "appliesTo" : [ "bpmn:Task" ],
   "elementType" : {
     "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.7"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
@@ -37,6 +40,9 @@
   }, {
     "id" : "downloadObject",
     "label" : "Download an object"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -302,7 +308,7 @@
     "label" : "Create document",
     "optional" : false,
     "value" : true,
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "downloadObject",
     "binding" : {
       "name" : "action.asFile",
@@ -315,6 +321,28 @@
     },
     "tooltip" : "If set to true, a document reference will be created. If set to false, the content will be extracted and provided inside the response.",
     "type" : "Boolean"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "2",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.aws.s3.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

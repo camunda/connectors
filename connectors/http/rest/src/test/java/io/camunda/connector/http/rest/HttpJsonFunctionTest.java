@@ -16,21 +16,25 @@
  */
 package io.camunda.connector.http.rest;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.any;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.github.tomakehurst.wiremock.admin.model.ServeEventQuery;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.secret.SecretContext;
+import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
+import java.util.List;
+import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -85,7 +89,7 @@ public class HttpJsonFunctionTest extends BaseTest {
         OutboundConnectorContextBuilder.create()
             .variables(input)
             .validation(new DefaultValidationProvider())
-            .secrets(name -> "foo")
+            .secrets(new StaticSecretProvider("foo"))
             .build();
 
     // when
@@ -117,9 +121,62 @@ public class HttpJsonFunctionTest extends BaseTest {
     assertThat(asJsonObject.get("unknown").isNull()).isTrue();
   }
 
+  @Test
+  void execute_shouldSendNullFieldWhenRequestContainsNullField() throws JsonProcessingException {
+    // given request, and response body with null field value
+    final var request =
+        "{ \"method\": \"put\", \"url\": \"http://localhost:8086/http-endpoint\",\"authentication\": { \"type\": \"noAuth\" }, \"body\" : { \"test\": 2, \"second\" : null}, \"ignoreNullValues\" : false }";
+
+    UUID uuid = UUID.randomUUID();
+    stubFor(
+        put(urlPathEqualTo("/http-endpoint")).willReturn(aResponse().withStatus(200)).withId(uuid));
+
+    final var context = OutboundConnectorContextBuilder.create().variables(request).build();
+    functionUnderTest.execute(context);
+
+    List<ServeEvent> allServeEvents = getAllServeEvents(ServeEventQuery.forStubMapping(uuid));
+    assertThat(allServeEvents).hasSize(1);
+    String body = allServeEvents.getFirst().getRequest().getBodyAsString();
+    JsonNode jsonBody = objectMapper.readValue(body, JsonNode.class);
+    assertThat(jsonBody.has("test")).isTrue();
+    assertThat(jsonBody.has("second")).isTrue();
+  }
+
+  @Test
+  void execute_shouldNotSendNullFieldWhenRequestContainsNullField() throws JsonProcessingException {
+    // given request, and response body with null field value
+    final var request =
+        "{ \"method\": \"put\", \"url\": \"http://localhost:8086/http-endpoint\",\"authentication\": { \"type\": \"noAuth\" }, \"body\" : { \"test\": 2, \"second\" : null}, \"ignoreNullValues\" : true }";
+
+    UUID uuid = UUID.randomUUID();
+    stubFor(
+        put(urlPathEqualTo("/http-endpoint")).willReturn(aResponse().withStatus(200)).withId(uuid));
+
+    final var context = OutboundConnectorContextBuilder.create().variables(request).build();
+    functionUnderTest.execute(context);
+
+    List<ServeEvent> allServeEvents = getAllServeEvents(ServeEventQuery.forStubMapping(uuid));
+    assertThat(allServeEvents).hasSize(1);
+    String body = allServeEvents.getFirst().getRequest().getBodyAsString();
+    JsonNode jsonBody = objectMapper.readValue(body, JsonNode.class);
+    assertThat(jsonBody.has("test")).isTrue();
+    assertThat(jsonBody.has("second")).isFalse();
+  }
+
   private HttpCommonResult arrange(String input) throws Exception {
     final var context =
-        OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
+        OutboundConnectorContextBuilder.create()
+            .variables(input)
+            .secrets(new StaticSecretProvider("foo"))
+            .build();
     return (HttpCommonResult) functionUnderTest.execute(context);
+  }
+
+  private record StaticSecretProvider(String secret) implements SecretProvider {
+
+    @Override
+    public String getSecret(String name, SecretContext context) {
+      return secret;
+    }
   }
 }

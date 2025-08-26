@@ -5,6 +5,8 @@
   <artifactId>connector-runtime-bundle-parent</artifactId>
   <packaging>pom</packaging>
 
+  <name>Connectors Bundle Parent</name>
+
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
@@ -46,7 +48,17 @@
       </dependency>
       <dependency>
         <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-csv</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
         <artifactId>connector-google-drive</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-google-gcs</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -87,6 +99,11 @@
       <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-http-json</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-message</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -172,6 +189,21 @@
       <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-google-gemini</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-agentic-ai</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-azure-blobstorage</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-embeddings-vector-database</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

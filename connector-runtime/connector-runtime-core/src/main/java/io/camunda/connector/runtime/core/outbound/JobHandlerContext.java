@@ -22,16 +22,17 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.*;
 import io.camunda.client.api.response.ActivatedJob;
-import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
-import io.camunda.document.Document;
-import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.reference.DocumentReference;
-import io.camunda.document.store.DocumentCreationRequest;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,7 +75,9 @@ public class JobHandlerContext extends AbstractConnectorContext
 
   private String getJsonReplacedWithSecrets() {
     if (jsonWithSecrets == null) {
-      jsonWithSecrets = getSecretHandler().replaceSecrets(job.getVariables());
+      jsonWithSecrets =
+          getSecretHandler()
+              .replaceSecrets(job.getVariables(), new SecretContext(job.getTenantId()));
     }
     return jsonWithSecrets;
   }
@@ -84,7 +87,7 @@ public class JobHandlerContext extends AbstractConnectorContext
     try {
       return objectMapper.readValue(jsonWithSecrets, cls);
     } catch (JsonParseException e) {
-      throw new ConnectorException("JSON_PARSE_ERROR", "This is not a JSON object");
+      throw new ConnectorInputException("This is not a JSON object", e);
     } catch (InvalidFormatException
         | InvalidNullException
         | InvalidTypeIdException
@@ -103,12 +106,9 @@ public class JobHandlerContext extends AbstractConnectorContext
                               .concat("`"))
               .orElse("Unexpected Error, Further investigation is needed");
 
-      throw new ConnectorException("JSON_FORMAT_ERROR", errorMessage);
-    } catch (MismatchedInputException e) {
-      throw new ConnectorException("JSON_MISMATCH_ERROR", e.getOriginalMessage());
+      throw new ConnectorInputException(errorMessage, e);
     } catch (JsonProcessingException e) {
-      throw new ConnectorException(
-          "JSON_PROCESSING_ERROR", "Exception: " + e.getClass().getSimpleName() + " was raised", e);
+      throw new ConnectorInputException(e.getOriginalMessage(), e);
     }
   }
 

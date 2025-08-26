@@ -18,7 +18,8 @@ package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.search.response.FlowNodeInstance;
+import io.camunda.client.api.search.response.ElementInstance;
+import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.jackson.FeelContextAwareObjectReader;
@@ -30,7 +31,7 @@ import java.util.function.Supplier;
 public final class DefaultProcessInstanceContext implements ProcessInstanceContext {
 
   private final InboundIntermediateConnectorContextImpl context;
-  private final FlowNodeInstance flowNodeInstance;
+  private final ElementInstance elementInstance;
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
   private final Supplier<Map<String, Object>> operatePropertiesSupplier;
@@ -40,13 +41,13 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
 
   public DefaultProcessInstanceContext(
       final InboundIntermediateConnectorContextImpl context,
-      final FlowNodeInstance flowNodeInstance,
+      final ElementInstance elementInstance,
       final ValidationProvider validationProvider,
       final InboundCorrelationHandler correlationHandler,
       final ObjectMapper objectMapper,
       final Supplier<Map<String, Object>> operateVariables) {
     this.context = context;
-    this.flowNodeInstance = flowNodeInstance;
+    this.elementInstance = elementInstance;
     this.validationProvider =
         validationProvider == null
             ? ValidationUtil.discoverDefaultValidationProviderImplementation()
@@ -60,7 +61,7 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
 
   @Override
   public Long getKey() {
-    return flowNodeInstance.getProcessInstanceKey();
+    return elementInstance.getProcessInstanceKey();
   }
 
   @Override
@@ -79,12 +80,14 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
 
   @Override
   public void correlate(final Object variables) {
-    String messageId = flowNodeInstance.getFlowNodeId() + flowNodeInstance.getFlowNodeInstanceKey();
-    correlationHandler.correlate(context.connectorElements(), variables, messageId);
+    String messageId = elementInstance.getElementId() + elementInstance.getElementInstanceKey();
+    correlationHandler.correlate(
+        context.connectorElements(),
+        CorrelationRequest.builder().variables(variables).messageId(messageId).build());
   }
 
   @Override
   public String toString() {
-    return "DefaultProcessInstanceContext{" + "flowNodeInstance=" + flowNodeInstance + "}";
+    return "DefaultProcessInstanceContext{" + "flowNodeInstance=" + elementInstance + "}";
   }
 }

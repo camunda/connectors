@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.testutil.response;
 
 import io.camunda.client.api.response.ProcessInstanceEvent;
+import java.util.Set;
 
 public class ProcessInstanceEventDummy implements ProcessInstanceEvent {
   public long getProcessDefinitionKey() {
@@ -38,5 +39,10 @@ public class ProcessInstanceEventDummy implements ProcessInstanceEvent {
   @Override
   public String getTenantId() {
     return null;
+  }
+
+  @Override
+  public Set<String> getTags() {
+    return Set.of();
   }
 }

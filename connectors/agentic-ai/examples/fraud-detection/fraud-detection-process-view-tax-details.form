@@ -1,0 +1,91 @@
+{
+  "components": [
+    {
+      "text": "### Tax Return  Check Form",
+      "type": "text",
+      "id": "Heading_0",
+      "layout": {
+        "row": "row_0",
+        "columns": null
+      }
+    },
+    {
+      "label": "Tax Submission",
+      "type": "textarea",
+      "layout": {
+        "row": "Row_18j8vk9",
+        "columns": null
+      },
+      "id": "Field_0waor45",
+      "key": "taxSubmission",
+      "description": "The initial tax submission.",
+      "readonly": true
+    },
+    {
+      "label": "Suspicious Parts",
+      "type": "textarea",
+      "layout": {
+        "row": "Row_0tjz84s",
+        "columns": null
+      },
+      "id": "Field_1dw6scf",
+      "key": "suspiciousParts",
+      "description": "Parts of the submission the agent think are suspicious.",
+      "readonly": true
+    },
+    {
+      "label": "Agent Tendency",
+      "type": "textarea",
+      "layout": {
+        "row": "Row_0wlpd3v",
+        "columns": null
+      },
+      "id": "Field_0qv58sy",
+      "key": "tendency",
+      "readonly": true
+    },
+    {
+      "type": "separator",
+      "layout": {
+        "row": "Row_13f9qkr",
+        "columns": null
+      },
+      "id": "Field_1t9te94"
+    },
+    {
+      "label": "Fraud",
+      "type": "checkbox",
+      "layout": {
+        "row": "Row_0ghpm8o",
+        "columns": null
+      },
+      "id": "Field_0obtm2e",
+      "key": "fraudDetected",
+      "description": "👆Tick the fraud box"
+    },
+    {
+      "label": "Reason for Decision",
+      "type": "textarea",
+      "layout": {
+        "row": "Row_0wsk0xa",
+        "columns": null
+      },
+      "id": "Field_1p3319m",
+      "key": "expertAnalysis",
+      "validate": {
+        "required": true,
+        "minLength": 10
+      }
+    }
+  ],
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.8.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.34.0"
+  },
+  "schemaVersion": 18,
+  "id": "fraud-detection-process-view-tax-details",
+  "generated": true,
+  "type": "default"
+}

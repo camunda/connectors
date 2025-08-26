@@ -13,17 +13,17 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-import com.google.api.client.http.AbstractInputStreamContent;
+import com.google.api.client.http.ByteArrayContent;
 import com.google.api.services.docs.v1.model.BatchUpdateDocumentResponse;
 import com.google.api.services.docs.v1.model.Request;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
-import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.gdrive.mapper.DocumentMapper;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.MimeTypeUrl;
 import io.camunda.connector.gdrive.model.request.*;
-import io.camunda.document.Document;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
@@ -177,10 +177,13 @@ class GoogleDriveServiceTest extends BaseTest {
         new Resource(Type.UPLOAD, null, null, null, null, null, new UploadData(document));
 
     Drive drive = mock(Drive.class, Mockito.RETURNS_DEEP_STUBS);
-
+    Drive.Files files = mock(Drive.Files.class);
+    when(drive.files()).thenReturn(files);
+    Drive.Files.Create create = Mockito.mock(Drive.Files.Create.class);
+    when(files.create(any(File.class), any(ByteArrayContent.class))).thenReturn(create);
     when(googleDriveClient.getDriveService()).thenReturn(drive);
-    when(drive.files().create(any(File.class), any(AbstractInputStreamContent.class)).execute())
-        .thenThrow(IOException.class);
+    when(create.setSupportsAllDrives(true)).thenReturn(create);
+    when(create.execute()).thenThrow(IOException.class);
 
     RuntimeException ex =
         assertThrows(RuntimeException.class, () -> service.execute(googleDriveClient, resource));
@@ -193,9 +196,11 @@ class GoogleDriveServiceTest extends BaseTest {
 
     Drive drive = mock(Drive.class, Mockito.RETURNS_DEEP_STUBS);
     Drive.Files.Get getFile = mock(Drive.Files.Get.class);
+    Drive.Files files = mock(Drive.Files.class);
     when(googleDriveClient.getDriveService()).thenReturn(drive);
-    when(drive.files().get(anyString())).thenReturn(getFile);
-
+    when(drive.files()).thenReturn(files);
+    when(files.get(anyString())).thenReturn(getFile);
+    when(getFile.setSupportsAllDrives(true)).thenReturn(getFile);
     when(getFile.execute()).thenReturn(new File());
 
     // when(getFile.executeAndDownloadTo(any())).
@@ -214,10 +219,13 @@ class GoogleDriveServiceTest extends BaseTest {
         new Resource(Type.UPLOAD, null, null, null, null, null, new UploadData(document));
 
     Drive drive = mock(Drive.class, Mockito.RETURNS_DEEP_STUBS);
-
+    Drive.Files files = mock(Drive.Files.class);
+    when(drive.files()).thenReturn(files);
+    Drive.Files.Create create = Mockito.mock(Drive.Files.Create.class);
     when(googleDriveClient.getDriveService()).thenReturn(drive);
-    when(drive.files().create(any(File.class), any(AbstractInputStreamContent.class)).execute())
-        .thenReturn(new File().setId("1"));
+    when(files.create(any(File.class), any(ByteArrayContent.class))).thenReturn(create);
+    when(create.setSupportsAllDrives(true)).thenReturn(create);
+    when(create.execute()).thenReturn(new File().setId("1"));
 
     var result = service.execute(googleDriveClient, resource);
     assertThat(result).isInstanceOf(GoogleDriveResult.class);

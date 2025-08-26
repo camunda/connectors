@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/soap/",
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,6 +15,9 @@
   "appliesTo" : [ "bpmn:Task" ],
   "elementType" : {
     "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.5"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
@@ -31,6 +34,9 @@
   }, {
     "id" : "timeout",
     "label" : "Timeout"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -77,77 +83,14 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "WSS signature",
+      "value" : "signature"
+    }, {
       "name" : "None",
       "value" : "none"
     }, {
       "name" : "WSS username token",
       "value" : "usernameToken"
-    }, {
-      "name" : "WSS signature",
-      "value" : "signature"
-    } ]
-  }, {
-    "id" : "authentication.username",
-    "label" : "Username",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.username",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.authentication",
-      "equals" : "usernameToken",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "authentication.password",
-    "label" : "Password",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.password",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.authentication",
-      "equals" : "usernameToken",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "authentication.encoded",
-    "label" : "Encoded",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.encoded",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.authentication",
-      "equals" : "usernameToken",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Yes",
-      "value" : "Yes"
-    }, {
-      "name" : "No",
-      "value" : "No"
     } ]
   }, {
     "id" : "authentication.certificate.certificateType",
@@ -397,7 +340,7 @@
     "label" : "Timestamp timeout in seconds",
     "description" : "If set, adds a timestamp header with the given timeout",
     "optional" : true,
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.timestamp",
@@ -408,7 +351,7 @@
       "equals" : "signature",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "authentication.encryptionParts",
     "label" : "Signature parts",
@@ -426,6 +369,69 @@
       "type" : "simple"
     },
     "type" : "String"
+  }, {
+    "id" : "authentication.username",
+    "label" : "Username",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.username",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.authentication",
+      "equals" : "usernameToken",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.password",
+    "label" : "Password",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.password",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.authentication",
+      "equals" : "usernameToken",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.encoded",
+    "label" : "Encoded",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.encoded",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.authentication",
+      "equals" : "usernameToken",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Yes",
+      "value" : "Yes"
+    }, {
+      "name" : "No",
+      "value" : "No"
+    } ]
   }, {
     "id" : "soapVersion.version",
     "label" : "SOAP version",
@@ -619,14 +625,36 @@
     "label" : "Connection timeout in seconds",
     "description" : "Sets timeout in seconds to establish a connection or 0 for an infinite timeout",
     "optional" : true,
-    "value" : "20",
-    "feel" : "optional",
+    "value" : 20,
+    "feel" : "static",
     "group" : "timeout",
     "binding" : {
       "name" : "connectionTimeoutInSeconds",
       "type" : "zeebe:input"
     },
-    "type" : "String"
+    "type" : "Number"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "2",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda:soap",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

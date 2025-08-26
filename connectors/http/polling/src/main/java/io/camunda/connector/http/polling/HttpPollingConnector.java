@@ -9,16 +9,43 @@ package io.camunda.connector.http.polling;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
+import io.camunda.connector.generator.dsl.BpmnType;
+import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.http.base.HttpService;
+import io.camunda.connector.http.polling.model.PollingIntervalInput;
 import io.camunda.connector.http.polling.service.SharedExecutorService;
 import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+@ElementTemplate(
+    engineVersion = "^8.3",
+    id = "io.camunda:http-polling:1",
+    name = "Polling Connector",
+    icon = "icon.svg",
+    version = 3,
+    inputDataClass = PollingIntervalInput.class,
+    description = "Polls endpoint at regular intervals",
+    documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/polling/",
+    propertyGroups = {
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
+      @ElementTemplate.PropertyGroup(id = "endpoint", label = "HTTP Polling configuration"),
+      @ElementTemplate.PropertyGroup(id = "payload", label = "Payload"),
+      @ElementTemplate.PropertyGroup(id = "timeout", label = "Connect timeout")
+    },
+    elementTypes = {
+      @ElementTemplate.ConnectorElementType(
+          appliesTo = {BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT},
+          elementType = BpmnType.INTERMEDIATE_CATCH_EVENT,
+          templateIdOverride = "io.camunda.connectors.http.Polling",
+          templateNameOverride = "HTTP Polling Intermediate Catch Event Connector"),
+      @ElementTemplate.ConnectorElementType(
+          appliesTo = BpmnType.BOUNDARY_EVENT,
+          elementType = BpmnType.BOUNDARY_EVENT,
+          templateIdOverride = "io.camunda.connectors.http.Polling.Boundary",
+          templateNameOverride = "HTTP Polling Boundary Catch Event Connector")
+    })
 @InboundConnector(name = "HTTP_POLLING", type = "io.camunda:http-polling:1")
 public class HttpPollingConnector
     implements InboundConnectorExecutable<InboundIntermediateConnectorContext> {
-  private static final Logger LOGGER = LoggerFactory.getLogger(HttpPollingConnector.class);
 
   private final HttpService httpService;
   private final SharedExecutorService executorService;
@@ -44,7 +71,6 @@ public class HttpPollingConnector
 
   @Override
   public void deactivate() {
-    LOGGER.debug("Deactivating the HttpPolling connector");
     processInstancesFetcherTask.stop();
   }
 }

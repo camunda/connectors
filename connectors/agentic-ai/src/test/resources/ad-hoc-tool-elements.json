@@ -1,0 +1,88 @@
+[
+  {
+    "elementId": "GetDateAndTime",
+    "elementName": "Get Date and Time",
+    "documentation": "Returns the current date and time including the timezone."
+  },
+  {
+    "elementId": "A_Complex_Tool",
+    "elementName": "A complex tool",
+    "documentation": "A very complex tool",
+    "parameters": [
+      {
+        "name": "aSimpleValue",
+        "description": "A simple value"
+      },
+      {
+        "name": "anEnumValue",
+        "description": "An enum value",
+        "type": "string",
+        "schema": {
+          "enum": [
+            "A",
+            "B",
+            "C"
+          ]
+        }
+      },
+      {
+        "name": "anArrayValue",
+        "description": "An array value",
+        "type": "array",
+        "schema": {
+          "items": {
+            "type": "string",
+            "enum": [
+              "foo",
+              "bar",
+              "baz"
+            ]
+          }
+        }
+      },
+      {
+        "name": "urlPath",
+        "description": "The URL path to use",
+        "type": "string"
+      },
+      {
+        "name": "firstValue"
+      },
+      {
+        "name": "secondValue",
+        "description": "The second value",
+        "type": "integer"
+      },
+      {
+        "name": "thirdValue",
+        "description": "The third value to add"
+      },
+      {
+        "name": "fourthValue",
+        "description": "The fourth value to add",
+        "type": "array",
+        "schema": {
+          "items": {
+            "type": "string",
+            "enum": [
+              "foo",
+              "bar",
+              "baz"
+            ]
+          }
+        }
+      },
+      {
+        "name": "outputValue",
+        "description": "An output value"
+      }
+    ]
+  },
+  {
+    "elementId": "A_MCP_Client",
+    "elementName": "A MCP Client",
+    "properties": {
+      "io.camunda.agenticai.gateway.type": "mcpClient"
+    }
+  }
+]

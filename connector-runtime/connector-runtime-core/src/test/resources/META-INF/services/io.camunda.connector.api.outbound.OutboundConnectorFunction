@@ -1,1 +1,1 @@
-io.camunda.connector.runtime.core.outbound.AnnotatedFunction
+io.camunda.connector.runtime.core.outbound.SpiRegisteredFunction

@@ -36,14 +36,16 @@ import org.apache.kafka.clients.producer.RecordMetadata;
     },
     type = "io.camunda:connector-kafka:1")
 @ElementTemplate(
+    engineVersion = "^8.3",
     id = "io.camunda.connectors.KAFKA.v1",
     name = "Kafka Outbound Connector",
     description = "Produce Kafka message",
     inputDataClass = KafkaConnectorRequest.class,
-    version = 5,
+    version = 6,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "kafka", label = "Kafka"),
+      @ElementTemplate.PropertyGroup(id = "schema", label = "Schema"),
       @ElementTemplate.PropertyGroup(id = "message", label = "Message")
     },
     documentationRef =

@@ -32,6 +32,7 @@ import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.ElementTemplate.ElementTypeWrapper;
+import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
@@ -44,6 +45,8 @@ import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
+import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnector;
+import io.camunda.connector.generator.java.example.outbound.SingleOperationAnnotatedConnector;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -133,12 +136,38 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
+    void resultVariablePropertyWithValue() {
+      var template =
+          generator
+              .generate(MyConnectorFunction.MinimallyAnnotatedWithResultVariable.class)
+              .getFirst();
+      var property = getPropertyByLabel("Result variable", template);
+      assertThat(property.getType()).isEqualTo("String");
+      assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
+      assertThat(property.getFeel()).isNull();
+      assertThat(property.getValue()).isEqualTo("myResultVariable");
+    }
+
+    @Test
     void resultExpressionProperty() {
       var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyByLabel("Result expression", template);
       assertThat(property.getType()).isEqualTo("Text");
       assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
       assertThat(property.getFeel()).isEqualTo(FeelMode.required);
+    }
+
+    @Test
+    void resultExpressionPropertyWithValue() {
+      var template =
+          generator
+              .generate(MyConnectorFunction.MinimallyAnnotatedWithResultExpression.class)
+              .getFirst();
+      var property = getPropertyByLabel("Result expression", template);
+      assertThat(property.getType()).isEqualTo("Text");
+      assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
+      assertThat(property.getFeel()).isEqualTo(FeelMode.required);
+      assertThat(property.getValue()).isEqualTo("={ myResponse: response }");
     }
 
     @Test
@@ -562,6 +591,36 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       var dependsOnFalse = getPropertyById("dependsOnBooleanPropertyFalse", template);
       assertThat(dependsOnFalse.getCondition()).isEqualTo(new Equals("booleanProperty", false));
     }
+
+    @Test
+    void supportsExtensionProperties() {
+      var template =
+          generator
+              .generate(MyConnectorFunction.MinimallyAnnotatedWithExtensionProperties.class)
+              .getFirst();
+
+      assertThat(template.properties())
+          .filteredOn(
+              p ->
+                  p.getBinding().type().equals("zeebe:property")
+                      && ((PropertyBinding.ZeebeProperty) p.getBinding())
+                          .name()
+                          .startsWith("myExtensionProperty"))
+          .hasSize(2)
+          .satisfiesExactlyInAnyOrder(
+              p -> {
+                assertThat(p).isInstanceOf(HiddenProperty.class);
+                assertThat(p.getBinding())
+                    .isEqualTo(new PropertyBinding.ZeebeProperty("myExtensionProperty1"));
+                assertThat(p.getValue()).isEqualTo("value1");
+              },
+              p -> {
+                assertThat(p).isInstanceOf(HiddenProperty.class);
+                assertThat(p.getBinding())
+                    .isEqualTo(new PropertyBinding.ZeebeProperty("myExtensionProperty2"));
+                assertThat(p.getValue()).isEqualTo("value2");
+              });
+    }
   }
 
   @Nested
@@ -717,7 +776,8 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               Map.entry("group2", "Group 2"),
               Map.entry("output", "Output mapping"),
               Map.entry("error", "Error handling"),
-              Map.entry("retries", "Retries")),
+              Map.entry("retries", "Retries"),
+              Map.entry("connector", "Connector")),
           template,
           false);
     }
@@ -729,6 +789,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           List.of(
               Map.entry("group2", "Group Two"),
               Map.entry("group1", "Group One"),
+              Map.entry("connector", "Connector"),
               Map.entry("output", "Output mapping"),
               Map.entry("error", "Error handling"),
               Map.entry("retries", "Retries")),
@@ -765,6 +826,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               Map.entry("customGroup", "Custom group"),
               Map.entry("group2", "Group 2"),
               Map.entry("group1", "Group 1"),
+              Map.entry("connector", "Connector"),
               Map.entry("output", "Output mapping"),
               Map.entry("error", "Error handling"),
               Map.entry("retries", "Retries")),
@@ -926,6 +988,62 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       var icon = template.icon();
 
       assertThat(icon.contents()).isEqualTo(expectedIconString);
+    }
+  }
+
+  @Nested
+  class OperationAnnotated {
+
+    @Test
+    void operationAnnotated() {
+      var template = generator.generate(OperationAnnotatedConnector.class).getFirst();
+      assertThat(template.id()).isNotNull();
+      assertThat(template.id()).isEqualTo(OperationAnnotatedConnector.ID);
+      assertThat(template.name()).isEqualTo(OperationAnnotatedConnector.NAME);
+
+      DropdownProperty operationProperty =
+          (DropdownProperty) getPropertyById("operation", template);
+      assertThat(operationProperty.getChoices()).isNotNull();
+      assertThat(operationProperty.getValue()).isEqualTo("operation-1");
+      assertThat(operationProperty.getChoices())
+          .containsExactlyInAnyOrder(
+              new DropdownChoice("Operation 1", "operation-1"),
+              new DropdownChoice("Operation 2", "operation-2"),
+              new DropdownChoice("Operation 3", "operation-3"));
+
+      var propOp1P1 = getPropertyById("operation-1:p1", template);
+      assertThat(propOp1P1.getCondition()).isNotNull();
+
+      // Verify that the referenced operation property is properly prefixed
+      var propOp1P2 = getPropertyById("operation-1:param2", template);
+      assertThat(propOp1P2.getCondition()).isInstanceOf(AllMatch.class);
+      assertThat(((AllMatch) propOp1P2.getCondition()).allMatch())
+          .containsExactlyInAnyOrder(
+              new Equals("operation-1:p1", "myValue"), new Equals("operation", "operation-1"));
+
+      var propOp3P1 = getPropertyById("operation-3:p1", template);
+      assertThat(propOp3P1).isNotNull();
+      var propOp3P2 = getPropertyById("operation-3:param2", template);
+      assertThat(propOp3P2).isNotNull();
+
+      StringProperty propOp3Header =
+          (StringProperty) getPropertyById("operation-3:myHeader", template);
+      assertThat(propOp3Header.getBinding()).isInstanceOf(PropertyBinding.ZeebeTaskHeader.class);
+      assertThat(((ZeebeTaskHeader) propOp3Header.getBinding()).key()).isEqualTo("test-header");
+      assertThat(propOp3Header.getLabel()).isEqualTo("My Header");
+      assertThat(propOp3Header.getFeel()).isEqualTo(FeelMode.optional);
+      assertThat(propOp3Header.getValue()).isEqualTo("my-default-value");
+    }
+
+    @Test
+    void singleOperationAnnotated() {
+      var template = generator.generate(SingleOperationAnnotatedConnector.class).getFirst();
+      assertThat(template.id()).isNotNull();
+      assertThat(template.id()).isEqualTo(SingleOperationAnnotatedConnector.ID);
+      assertThat(template.name()).isEqualTo(SingleOperationAnnotatedConnector.NAME);
+
+      HiddenProperty operationProperty = (HiddenProperty) getPropertyById("operation", template);
+      assertThat(operationProperty.getValue()).isEqualTo("operation-1");
     }
   }
 }

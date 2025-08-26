@@ -88,8 +88,13 @@ except in compliance with the proprietary license.</license.inlineheader>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
+              <features>
+                <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>
+                <ACKNOWLEDGEMENT_STRATEGY_SELECTION>true</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
+              </features>
             </connector>
           </connectors>
+          <versionHistoryEnabled>true</versionHistoryEnabled>
           <includeDependencies>
             <includeDependency>io.camunda.connector:connector-aws-base</includeDependency>
           </includeDependencies>

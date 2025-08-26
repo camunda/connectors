@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1gx9y68" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.34.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+  <bpmn:process id="Agentic_AI_Connectors" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_0yrziwn</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:adHocSubProcess id="Agent_Tools" name="Agent Tools">
+      <bpmn:extensionElements>
+        <zeebe:adHoc />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0yrziwn</bpmn:incoming>
+      <bpmn:outgoing>Flow_1e5yz0x</bpmn:outgoing>
+      <bpmn:manualTask id="Handle_Complex_Tool_Error" name="Handle complex tool error">
+        <bpmn:incoming>Flow_1p7oy92</bpmn:incoming>
+      </bpmn:manualTask>
+      <bpmn:scriptTask id="A_Complex_Tool" name="A complex tool">
+        <bpmn:documentation>A very complex tool</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:script expression="=1 + 1" resultVariable="toolCallResult" />
+        </bpmn:extensionElements>
+      </bpmn:scriptTask>
+      <bpmn:boundaryEvent id="Complex_Tool_Error" attachedToRef="A_Complex_Tool">
+        <bpmn:documentation>Handles errors from complex tool</bpmn:documentation>
+        <bpmn:outgoing>Flow_1p7oy92</bpmn:outgoing>
+        <bpmn:errorEventDefinition id="ErrorEventDefinition_1c6dxc2" />
+      </bpmn:boundaryEvent>
+      <bpmn:sequenceFlow id="Flow_1p7oy92" sourceRef="Complex_Tool_Error" targetRef="Handle_Complex_Tool_Error" />
+      <bpmn:scriptTask id="Tool_A" name="Tool A">
+        <bpmn:documentation>The A tool</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:script expression="=now()" resultVariable="toolCallResult" />
+          <zeebe:ioMapping>
+            <zeebe:input source="=fromAi(toolCall.inputParameter, &#34;An input parameter&#34;)" target="inputParameter" />
+            <zeebe:output source="=fromAi(toolCall.outputParameter, &#34;An output parameter&#34;)" target="outputParameter" />
+          </zeebe:ioMapping>
+        </bpmn:extensionElements>
+        <bpmn:outgoing>Flow_095717l</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:scriptTask id="Tool_B" name="Tool B">
+        <bpmn:documentation>The B tool</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:script expression="=1 * 1" resultVariable="someThingElse" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_095717l</bpmn:incoming>
+      </bpmn:scriptTask>
+      <bpmn:sequenceFlow id="Flow_095717l" sourceRef="Tool_A" targetRef="Tool_B" />
+      <bpmn:scriptTask id="Simple_Tool" name="Simple Tool">
+        <bpmn:documentation>A simple tool</bpmn:documentation>
+        <bpmn:extensionElements>
+          <zeebe:script expression="=now()" resultVariable="toolCallResult" />
+        </bpmn:extensionElements>
+      </bpmn:scriptTask>
+      <bpmn:task id="Event_Follow_Up_Task" name="Event follow-up task">
+        <bpmn:incoming>Flow_0v33lmt</bpmn:incoming>
+      </bpmn:task>
+      <bpmn:intermediateThrowEvent id="An_Event" name="An event!">
+        <bpmn:extensionElements />
+        <bpmn:outgoing>Flow_0v33lmt</bpmn:outgoing>
+      </bpmn:intermediateThrowEvent>
+      <bpmn:sequenceFlow id="Flow_0v33lmt" sourceRef="An_Event" targetRef="Event_Follow_Up_Task" />
+    </bpmn:adHocSubProcess>
+    <bpmn:sequenceFlow id="Flow_0yrziwn" sourceRef="StartEvent_1" targetRef="Agent_Tools" />
+    <bpmn:endEvent id="Event_0w61ti7">
+      <bpmn:incoming>Flow_1e5yz0x</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1e5yz0x" sourceRef="Agent_Tools" targetRef="Event_0w61ti7" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Agentic_AI_Connectors">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="172" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_005wn4n_di" bpmnElement="Agent_Tools" isExpanded="true">
+        <dc:Bounds x="290" y="80" width="350" height="580" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1xv565y_di" bpmnElement="Handle_Complex_Tool_Error">
+        <dc:Bounds x="470" y="530" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0wd2ku5_di" bpmnElement="A_Complex_Tool">
+        <dc:Bounds x="340" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1kglsdx_di" bpmnElement="Tool_A">
+        <dc:Bounds x="340" y="230" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_02cecmv_di" bpmnElement="Tool_B">
+        <dc:Bounds x="480" y="230" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1sbkoqq_di" bpmnElement="Simple_Tool">
+        <dc:Bounds x="340" y="130" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_17rjl26_di" bpmnElement="Event_Follow_Up_Task">
+        <dc:Bounds x="480" y="330" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_02hr6cv_di" bpmnElement="An_Event">
+        <dc:Bounds x="372" y="352" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="368" y="395" width="47" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1p1n58n_di" bpmnElement="Complex_Tool_Error">
+        <dc:Bounds x="392" y="512" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1p7oy92_di" bpmnElement="Flow_1p7oy92">
+        <di:waypoint x="410" y="548" />
+        <di:waypoint x="410" y="570" />
+        <di:waypoint x="470" y="570" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_095717l_di" bpmnElement="Flow_095717l">
+        <di:waypoint x="440" y="270" />
+        <di:waypoint x="480" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0v33lmt_di" bpmnElement="Flow_0v33lmt">
+        <di:waypoint x="408" y="370" />
+        <di:waypoint x="480" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Event_0w61ti7_di" bpmnElement="Event_0w61ti7">
+        <dc:Bounds x="722" y="172" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0yrziwn_di" bpmnElement="Flow_0yrziwn">
+        <di:waypoint x="188" y="190" />
+        <di:waypoint x="290" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1e5yz0x_di" bpmnElement="Flow_1e5yz0x">
+        <di:waypoint x="640" y="190" />
+        <di:waypoint x="722" y="190" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

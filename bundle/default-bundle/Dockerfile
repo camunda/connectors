@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21.0.6_7-jre
+FROM eclipse-temurin:21.0.8_9-jre
 
 VOLUME /tmp
 
@@ -8,6 +8,11 @@ RUN mkdir /opt/app && mkdir /opt/custom
 
 COPY target/*-with-dependencies.jar /opt/app/
 
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Using the start script from the base connector runtime image
 COPY start.sh /start.sh
 RUN chmod +x start.sh
@@ -16,5 +21,5 @@ RUN chmod +x start.sh
 RUN groupadd --gid 1001 camunda && useradd --no-create-home --gid 1001 --uid 1001 camunda
 USER 1001:1001
 
-ENV ZEEBE_CLIENT_CONFIG_PATH=/tmp/connectors
+ENV CAMUNDA_CLIENT_AUTH_CREDENTIALS_CACHE_PATH=/tmp/connectors
 ENTRYPOINT ["/start.sh"]

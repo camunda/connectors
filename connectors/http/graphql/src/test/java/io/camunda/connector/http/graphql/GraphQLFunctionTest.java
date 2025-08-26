@@ -17,10 +17,12 @@ import static org.assertj.core.api.Assertions.catchException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.api.secret.SecretContext;
+import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import io.camunda.connector.http.graphql.utils.GraphQLRequestMapper;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
@@ -76,7 +78,7 @@ public class GraphQLFunctionTest extends BaseTest {
         OutboundConnectorContextBuilder.create()
             .variables(input)
             .validation(new DefaultValidationProvider())
-            .secrets(name -> "foo")
+            .secrets(new StaticSecretProvider("foo"))
             .build();
 
     // when
@@ -93,7 +95,10 @@ public class GraphQLFunctionTest extends BaseTest {
   void execute_shouldSetConnectTime(final String input) throws Exception {
     // given - minimal required entity
     final var context =
-        OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
+        OutboundConnectorContextBuilder.create()
+            .variables(input)
+            .secrets(new StaticSecretProvider("foo"))
+            .build();
     final var expectedTimeInSeconds =
         objectMapper
             .readValue(
@@ -111,7 +116,18 @@ public class GraphQLFunctionTest extends BaseTest {
 
   private HttpCommonResult arrange(String input) throws Exception {
     final var context =
-        OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
+        OutboundConnectorContextBuilder.create()
+            .variables(input)
+            .secrets(new StaticSecretProvider("foo"))
+            .build();
     return (HttpCommonResult) functionUnderTest.execute(context);
+  }
+
+  private record StaticSecretProvider(String secret) implements SecretProvider {
+
+    @Override
+    public String getSecret(String name, SecretContext context) {
+      return secret;
+    }
   }
 }

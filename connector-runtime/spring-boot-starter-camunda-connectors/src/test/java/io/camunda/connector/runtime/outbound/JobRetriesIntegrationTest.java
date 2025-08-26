@@ -30,6 +30,7 @@ import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.outbound.JobRetriesIntegrationTest.CustomConfiguration;
+import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.util.Arrays;
@@ -52,6 +53,7 @@ import org.springframework.context.annotation.Primary;
       "camunda.connector.polling.enabled=false"
     })
 @CamundaSpringProcessTest
+@SlowTest
 @ExtendWith(MockitoExtension.class)
 public class JobRetriesIntegrationTest {
 
@@ -63,6 +65,7 @@ public class JobRetriesIntegrationTest {
 
   @BeforeEach
   void init() {
+    System.out.println("System property 'quickly': " + System.getProperty("quickly"));
     ((CountingConnectorFunction) factory.getInstance(testConnectorType)).resetCounter();
   }
 
@@ -225,15 +228,12 @@ public class JobRetriesIntegrationTest {
           .thenReturn(
               Arrays.asList(
                   new OutboundConnectorConfiguration(
-                      testConnectorType,
-                      new String[0],
-                      testConnectorType,
-                      OutboundConnectorFunction.class),
+                      testConnectorType, new String[0], testConnectorType, () -> function),
                   new OutboundConnectorConfiguration(
                       testRetryConnectorType,
                       new String[0],
                       testRetryConnectorType,
-                      OutboundConnectorFunction.class)));
+                      () -> retryFunction)));
       when(mock.getInstance(testConnectorType)).thenReturn(function);
       when(mock.getInstance(testRetryConnectorType)).thenReturn(retryFunction);
       return mock;

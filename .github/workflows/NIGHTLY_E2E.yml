@@ -1,0 +1,99 @@
+name: Nightly E2E test run
+
+on:
+  workflow_dispatch:
+  schedule: # Run nightly
+    - cron: "0 3 * * *"  # Runs daily at 03:00 UTC
+
+jobs:
+
+  get-branches:
+    runs-on: ubuntu-latest
+    outputs:
+      branches: ${{ steps.set-matrix.outputs.branches }}
+    steps:
+      - name: Fetch release branches
+        id: set-matrix
+        run: |
+          # Get all release/* branches
+          git ls-remote --heads https://github.com/${{ github.repository }}.git | \
+          awk '{print $2}' | sed 's|refs/heads/||' | grep '^release/' > releases.txt || true
+          all_branches=$( (echo "main"; cat releases.txt) | grep -v '^$' | jq -R -s -c 'split("\n")[:-1]' )
+          echo "branches=$all_branches" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  run-tests:
+    name: (${{ matrix.branch }}) Nightly E2E test run
+    needs: get-branches
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: ${{ fromJson(needs.get-branches.outputs.branches) }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ matrix.branch }}
+
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false # we rely on step outputs, no need for environment variables
+          secrets: |
+            secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_LDAP_USER;
+            secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_LDAP_PASSWORD;
+
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
+
+      - name: 'Create settings.xml'
+        uses: s4u/maven-settings-action@v3.1.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.CI_LDAP_USER }}",
+               "password": "${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}"
+             }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install element templates CLI
+        run: npm install --global element-templates-cli
+
+      - name: Build Connectors
+        run: mvn --batch-mode clean test -PcheckFormat
+
+      - name: Send Slack notification on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          method: chat.postMessage
+          payload: |
+            {
+              "channel": ${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }},
+              "text": ":alarm: Nightly E2E test run failed on branch `${{ matrix.branch}}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }

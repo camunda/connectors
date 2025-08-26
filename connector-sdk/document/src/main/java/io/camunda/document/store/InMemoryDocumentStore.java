@@ -16,9 +16,12 @@
  */
 package io.camunda.document.store;
 
-import io.camunda.client.api.response.DocumentMetadata;
-import io.camunda.document.reference.CamundaDocumentReferenceImpl;
-import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentLinkParameters;
+import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.document.CamundaDocumentReferenceImpl;
+import io.camunda.document.DocumentMetadataImpl;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
@@ -46,42 +49,14 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
         request.documentId() != null ? request.documentId() : UUID.randomUUID().toString();
 
     final DocumentMetadata metadata =
-        new DocumentMetadata() {
-          @Override
-          public String getContentType() {
-            return request.contentType();
-          }
-
-          @Override
-          public OffsetDateTime getExpiresAt() {
-            return null;
-          }
-
-          @Override
-          public Long getSize() {
-            return (long) documents.get(id).length;
-          }
-
-          @Override
-          public String getFileName() {
-            return request.fileName();
-          }
-
-          @Override
-          public String getProcessDefinitionId() {
-            return request.processDefinitionId();
-          }
-
-          @Override
-          public Long getProcessInstanceKey() {
-            return request.processInstanceKey();
-          }
-
-          @Override
-          public Map<String, Object> getCustomProperties() {
-            return request.customProperties();
-          }
-        };
+        new DocumentMetadataImpl(
+            request.contentType(),
+            request.timeToLive() != null ? OffsetDateTime.now().plus(request.timeToLive()) : null,
+            null, // size is unknown until content is read, we ignore it in this implementation
+            request.fileName(),
+            request.processDefinitionId(),
+            request.processInstanceKey(),
+            request.customProperties());
 
     final byte[] content;
     try (InputStream contentStream = request.content()) {
@@ -97,15 +72,15 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
   public InputStream getDocumentContent(CamundaDocumentReference reference) {
     logWarning();
     if (reference.getContentHash() == null || reference.getContentHash().isEmpty()) {
-      throw new RuntimeException("Content hash is missing: " + reference.documentId());
+      throw new RuntimeException("Content hash is missing: " + reference.getDocumentId());
     }
     var hash = reference.getContentHash();
-    var content = documents.get(reference.documentId());
+    var content = documents.get(reference.getDocumentId());
     if (content == null) {
-      throw new RuntimeException("Document not found: " + reference.documentId());
+      throw new RuntimeException("Document not found: " + reference.getDocumentId());
     }
     if (!hash.equals(String.valueOf(content.length))) {
-      throw new RuntimeException("Content hash mismatch: " + reference.documentId());
+      throw new RuntimeException("Content hash mismatch: " + reference.getDocumentId());
     }
     return new ByteArrayInputStream(content);
   }
@@ -113,7 +88,14 @@ public class InMemoryDocumentStore implements CamundaDocumentStore {
   @Override
   public void deleteDocument(CamundaDocumentReference reference) {
     logWarning();
-    documents.remove(reference.documentId());
+    documents.remove(reference.getDocumentId());
+  }
+
+  @Override
+  public String generateLink(
+      CamundaDocumentReference reference, DocumentLinkParameters parameters) {
+    logWarning();
+    throw new UnsupportedOperationException("Not implemented");
   }
 
   public void clear() {

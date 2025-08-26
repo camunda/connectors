@@ -14,6 +14,7 @@ import com.google.api.services.docs.v1.model.Request;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.common.reflect.TypeToken;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.gdrive.mapper.DocumentMapper;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.MimeTypeUrl;
@@ -21,7 +22,6 @@ import io.camunda.connector.gdrive.model.request.Resource;
 import io.camunda.connector.gdrive.model.request.Template;
 import io.camunda.connector.gdrive.model.request.Type;
 import io.camunda.connector.gdrive.model.request.Variables;
-import io.camunda.document.Document;
 import io.camunda.google.supplier.GsonComponentSupplier;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -147,7 +147,8 @@ public class GoogleDriveService {
           new ByteArrayContent(document.metadata().getContentType(), document.asByteArray());
 
       Drive drive = client.getDriveService();
-      Drive.Files.Create createRequest = drive.files().create(fileMetaData, content);
+      Drive.Files.Create createRequest =
+          drive.files().create(fileMetaData, content).setSupportsAllDrives(true);
 
       if (document.metadata().getSize() > MAX_DIRECT_UPLOAD_FILE_SIZE_BYTES) {
         createRequest.getMediaHttpUploader().setProgressListener(new LoggerProgressListener());
@@ -166,7 +167,7 @@ public class GoogleDriveService {
     Drive drive = client.getDriveService();
     try {
       String fileId = resource.downloadData().fileId();
-      File fileMetaData = drive.files().get(fileId).execute();
+      File fileMetaData = drive.files().get(fileId).setSupportsAllDrives(true).execute();
       try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
         drive.files().get(fileId).executeMediaAndDownloadTo(outputStream);
         return documentMapper.mapToDocument(outputStream.toByteArray(), fileMetaData);

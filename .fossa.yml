@@ -1,0 +1,71 @@
+version: 3
+
+project:
+  id: camunda/connectors
+  labels:
+  - camunda8
+  - connectors
+  policy: Camunda8 Distribution
+  url: https://github.com/camunda/connectors
+
+paths:
+  exclude:
+  - element-template-generator/uniquet/src/test
+
+maven:
+  scope-exclude:
+  - import
+  - provided
+  - system
+  - test
+
+targets:
+  exclude:
+  - type: maven
+    path: parent/
+    target: io.camunda.connector:connectors-e2e-test-automation-anywhere
+  - type: maven
+    path: parent/
+    target: io.camunda.connector:connectors-e2e-test-aws-base
+  - type: maven
+    path: parent/
+    target: io.camunda.connector:connectors-e2e-test-aws-dynamodb
+  - type: maven
+    path: parent/
+    target: io.camunda.connector:connectors-e2e-test-aws-event-bridge
+  - type: maven
+    path: parent/
+    target: io.camunda.connector:connectors-e2e-test-aws-lambda
+  - type: maven
+    path: parent/
+    target: io.camunda.connector:connectors-e2e-test-aws-parent
+  - type: maven
+    path: parent/
+    target: io.camunda.connector:connectors-e2e-test-aws-sns
+  - type: maven
+    path: parent/
+    target: io.camunda.connector:connectors-e2e-test-aws-sqs
+  - type: maven
+    path: parent/
+    target: io.camunda.connector:connectors-e2e-test-base
+  - type: maven
+    path: parent/
+    target: io.camunda.connector:connectors-e2e-test-easy-post
+  - type: maven
+    path: parent/
+    target: io.camunda.connector:connectors-e2e-test-http
+  - type: maven
+    path: parent/
+    target: io.camunda.connector:connectors-e2e-test-kafka
+  - type: maven
+    path: parent/
+    target: io.camunda.connector:connectors-e2e-test-kafka
+  - type: maven
+    path: parent/
+    target: io.camunda.connector:connectors-e2e-test-parent
+  - type: maven
+    path: parent/
+    target: io.camunda.connector:connectors-e2e-test-rabbitmq
+  - type: maven
+    path: parent/
+    target: io.camunda.connector:connectors-e2e-test-soap

@@ -4,8 +4,8 @@
 
   <parent>
     <groupId>io.camunda.connector</groupId>
-    <artifactId>connector-parent</artifactId>
-    <relativePath>../../parent/pom.xml</relativePath>
+    <artifactId>element-template-generator-parent</artifactId>
+    <relativePath>../pom.xml</relativePath>
     <version>8.8.0-SNAPSHOT</version>
   </parent>
 

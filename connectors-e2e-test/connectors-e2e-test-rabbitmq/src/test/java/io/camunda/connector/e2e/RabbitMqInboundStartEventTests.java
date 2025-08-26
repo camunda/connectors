@@ -23,12 +23,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
+import io.camunda.connector.test.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -56,6 +57,7 @@ import org.testcontainers.utility.DockerImageName;
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
+@SlowTest
 @ExtendWith(MockitoExtension.class)
 public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
 
@@ -71,8 +73,7 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
 
   @BeforeAll
   public static void setup() throws IOException, TimeoutException {
-    rabbitMQContainer =
-        new RabbitMQContainer(DockerImageName.parse("rabbitmq:3.7.25-management-alpine"));
+    rabbitMQContainer = new RabbitMQContainer(DockerImageName.parse(RABBITMQ_TEST_IMAGE));
     rabbitMQContainer.start();
     PORT = String.valueOf(rabbitMQContainer.getAmqpPort());
     factory = new ConnectionFactory();

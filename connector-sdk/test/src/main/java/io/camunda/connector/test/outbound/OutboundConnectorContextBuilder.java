@@ -19,19 +19,21 @@ package io.camunda.connector.test.outbound;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.document.annotation.jackson.JacksonModuleDocumentDeserializer;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.test.ConnectorContextTestUtil;
-import io.camunda.document.Document;
-import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.factory.DocumentFactoryImpl;
-import io.camunda.document.reference.DocumentReference;
-import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.connector.test.MapSecretProvider;
+import io.camunda.document.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,8 +43,9 @@ public class OutboundConnectorContextBuilder {
 
   protected final Map<String, String> secrets = new HashMap<>();
   protected final Map<String, String> headers = new HashMap<>();
-  protected SecretProvider secretProvider = secrets::get;
-  protected ValidationProvider validationProvider;
+  protected SecretProvider secretProvider = new MapSecretProvider(secrets);
+  protected ValidationProvider validationProvider =
+      ValidationUtil.discoverDefaultValidationProviderImplementation();
   protected Map<String, Object> variables;
   protected DocumentFactory documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
@@ -198,7 +201,7 @@ public class OutboundConnectorContextBuilder {
       super(secretProvider, validationProvider);
       try {
         var asString = objectMapper.writeValueAsString(variables);
-        variablesWithSecrets = getSecretHandler().replaceSecrets(asString);
+        variablesWithSecrets = getSecretHandler().replaceSecrets(asString, null);
       } catch (JsonProcessingException e) {
         throw new RuntimeException(e);
       }

@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
 import io.camunda.connector.api.annotation.InboundConnector;
-import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
@@ -19,11 +18,11 @@ import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProcessingResult;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProperties;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProperties.SlackConnectorPropertiesWrapper;
@@ -38,21 +37,17 @@ import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "Slack Inbound", type = "io.camunda:slack-webhook:1")
 @ElementTemplate(
+    engineVersion = "^8.3",
     id = "io.camunda.connectors.inbound.Slack.v1",
     name = "Slack Webhook Boundary Event Connector",
     icon = "icon.svg",
-    version = 5,
+    version = 7,
     inputDataClass = SlackConnectorPropertiesWrapper.class,
     description = "Receive events from Slack",
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=inbound",
     propertyGroups = {@PropertyGroup(id = "endpoint", label = "Webhook configuration")},
     elementTypes = {
-      @ConnectorElementType(
-          appliesTo = BpmnType.START_EVENT,
-          elementType = BpmnType.START_EVENT,
-          templateIdOverride = "io.camunda.connectors.inbound.Slack.StartEvent.v1",
-          templateNameOverride = "Slack Webhook Start Event Connector"),
       @ConnectorElementType(
           appliesTo = BpmnType.START_EVENT,
           elementType = BpmnType.MESSAGE_START_EVENT,
@@ -76,6 +71,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
   protected static final String HEADER_SLACK_SIGNATURE = "x-slack-signature";
 
   protected static final String FORM_VALUE_COMMAND = "command";
+  protected static final String FORM_VALUE_PAYLOAD = "payload";
   protected static final String COMMAND_RESPONSE_TYPE_KEY = "response_type";
   protected static final String COMMAND_RESPONSE_TYPE_DEFAULT_VALUE = "ephemeral";
   protected static final String COMMAND_RESPONSE_TEXT_KEY = "text";
@@ -95,14 +91,16 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
 
   @Override
   public WebhookResult triggerWebhook(WebhookProcessingPayload webhookProcessingPayload) {
-    LOGGER.trace(
+    LOGGER.debug(
         "Triggered Slack webhook with method: {} and URL: {}",
         webhookProcessingPayload.method(),
         webhookProcessingPayload.requestURL());
     context.log(
-        Activity.level(Severity.INFO)
-            .tag(webhookProcessingPayload.method())
-            .message("URL: " + webhookProcessingPayload.requestURL()));
+        activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag(webhookProcessingPayload.method())
+                .withMessage("URL: " + webhookProcessingPayload.requestURL()));
     verifySlackRequestAuthentic(webhookProcessingPayload);
 
     Map bodyAsMap =
@@ -114,6 +112,26 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
           new MappedHttpRequest(
               bodyAsMap, Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()), null),
           bodyAsMap,
+          new WebhookHttpResponse(defaultCommandResponse(), null, 200, List.of()));
+    }
+
+    // Interactive message detected
+    if (bodyAsMap.size() == 1 && bodyAsMap.containsKey(FORM_VALUE_PAYLOAD)) {
+      // Payload is a JSON string, so we need to parse it
+      try {
+        bodyAsMap = objectMapper.readValue((String) bodyAsMap.get(FORM_VALUE_PAYLOAD), Map.class);
+      } catch (Exception e) {
+        context.log(
+            activity ->
+                activity
+                    .withSeverity(Severity.ERROR)
+                    .withTag("JSON Parsing")
+                    .withMessage("Failed to parse 'payload' as JSON: " + e.getMessage()));
+      }
+      return new SlackWebhookProcessingResult(
+          new MappedHttpRequest(
+              bodyAsMap, Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()), null),
+          null,
           new WebhookHttpResponse(defaultCommandResponse(), null, 200, List.of()));
     }
 
@@ -165,10 +183,13 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
         return objectMapper.readValue(rawBody, Map.class);
       } catch (IOException e) {
         context.log(
-            Activity.level(Severity.ERROR)
-                .tag("JSON Parsing")
-                .message(
-                    "Failed to parse JSON from raw body due to an IOException: " + e.getMessage()));
+            activity ->
+                activity
+                    .withSeverity(Severity.ERROR)
+                    .withTag("JSON Parsing")
+                    .withMessage(
+                        "Failed to parse JSON from raw body due to an IOException: "
+                            + e.getMessage()));
         throw new RuntimeException(e);
       }
     }
@@ -183,9 +204,11 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
             webhookProcessingPayload.headers().get(HEADER_SLACK_SIGNATURE),
             ZonedDateTime.now().toInstant().toEpochMilli())) {
       context.log(
-          Activity.level(Severity.ERROR)
-              .tag(webhookProcessingPayload.method())
-              .message("HMAC signature did not match"));
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withTag(webhookProcessingPayload.method())
+                  .withMessage("HMAC signature did not match"));
       throw new RuntimeException("HMAC signature did not match");
     }
   }

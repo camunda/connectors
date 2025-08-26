@@ -1,0 +1,95 @@
+name: Check Licenses
+
+on:
+  push:
+    branches:
+    - main
+    - release/*
+    tags:
+    - '*'
+  pull_request:
+    types:
+    - opened
+    - synchronize
+
+jobs:
+  analyze:
+    name: Analyze dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v5
+    # Import FOSSA_API_KEY and other secrets from Vault
+    - name: Import secrets
+      id: secrets
+      uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+      with:
+        url: ${{ secrets.VAULT_ADDR }}
+        method: approle
+        roleId: ${{ secrets.VAULT_ROLE_ID }}
+        secretId: ${{ secrets.VAULT_SECRET_ID }}
+        secrets: |
+          secret/data/products/connectors/ci/common ARTIFACTORY_PSW | NEXUS_PASSWORD;
+          secret/data/products/connectors/ci/common ARTIFACTORY_USR | NEXUS_USER;
+          secret/data/products/connectors/ci/common FOSSA_API_KEY;
+    - name: Restore Maven cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+    - name: Setup Java
+      uses: actions/setup-java@v5
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+    - name: Update Maven settings.xml
+      uses: s4u/maven-settings-action@v3.1.0
+      with:
+        githubServer: false
+        servers: |
+          [{
+              "id": "camunda-nexus",
+              "username": "${{ steps.secrets.outputs.NEXUS_USER }}",
+              "password": "${{ steps.secrets.outputs.NEXUS_PASSWORD }}"
+          }]
+        mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+    - name: Setup fossa-cli
+      uses: camunda/infra-global-github-actions/fossa/setup@9507b67b2a264d81282349f3f31315ff4ff63f79
+    - name: Get context info
+      id: info
+      uses: camunda/infra-global-github-actions/fossa/info@9507b67b2a264d81282349f3f31315ff4ff63f79
+    - name: Adjust pom.xml files for FOSSA
+      run: |
+        # The parent/pom.xml must be the actual root, otherwise, FOSSA won't detect the hierarchy correctly
+        yq -i \
+          '.project.modules.module += "./.."' \
+          parent/pom.xml
+        # Remove parent from the list of modules of ./pom.xml
+        yq -i \
+          'del(.project.modules.module[] | select(. == "parent"))' \
+          pom.xml
+    - name: Analyze project
+      uses: camunda/infra-global-github-actions/fossa/analyze@9507b67b2a264d81282349f3f31315ff4ff63f79
+      with:
+        api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
+        branch: ${{  steps.info.outputs.head-ref }}
+        revision-id: ${{ steps.info.outputs.head-revision }}
+    # PR-only: Check for newly introduced license issues
+    # This step only fails if the PR introduces new license violations.
+    # It does not fail for pre-existing issues already present in the base branch.
+    - name: Check Pull Request for new License Issues
+      if: steps.info.outputs.is-pull-request == 'true'
+      uses: camunda/infra-global-github-actions/fossa/pr-check@9507b67b2a264d81282349f3f31315ff4ff63f79
+      with:
+        api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
+        base-ref: ${{ steps.info.outputs.base-ref }}
+        # Use the most recent base commit with a FOSSA scan for comparison.
+        # If none is found, fall back to the original base commit — this will cause the check to fail.
+        base-revision: >-
+          ${{
+            steps.info.outputs.base-revision-most-recent-with-scanning-results || 
+            steps.info.outputs.base-revision
+          }}
+        revision: ${{ steps.info.outputs.head-revision }}

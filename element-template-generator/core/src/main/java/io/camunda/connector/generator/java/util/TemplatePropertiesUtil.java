@@ -16,27 +16,18 @@
  */
 package io.camunda.connector.generator.java.util;
 
-import static io.camunda.connector.generator.java.util.ReflectionUtil.getAllFields;
+import static io.camunda.connector.api.reflection.ReflectionUtil.getAllFields;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.camunda.connector.generator.dsl.BooleanProperty;
-import io.camunda.connector.generator.dsl.DropdownProperty;
+import io.camunda.connector.generator.dsl.*;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
-import io.camunda.connector.generator.dsl.HiddenProperty;
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
-import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
-import io.camunda.connector.generator.dsl.PropertyBuilder;
-import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyCondition.OneOf;
-import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
-import io.camunda.connector.generator.dsl.StringProperty;
-import io.camunda.connector.generator.dsl.TextProperty;
 import io.camunda.connector.generator.java.annotation.*;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.processor.FieldProcessor;
@@ -79,6 +70,12 @@ public class TemplatePropertiesUtil {
    */
   public static List<PropertyBuilder> extractTemplatePropertiesFromType(
       Class<?> type, TemplateGenerationContext context) {
+
+    if (type == Void.class) {
+      // If the type is Void, return an empty list
+      return Collections.emptyList();
+    }
+
     if (type.isSealed()) {
       return handleSealedType(type, context);
     }
@@ -192,7 +189,7 @@ public class TemplatePropertiesUtil {
     }
 
     PropertyBuilder propertyBuilder =
-        createPropertyBuilder(field, annotation)
+        createPropertyBuilder(field, annotation, context)
             .id(name)
             .label(label)
             .tooltip(tooltip)
@@ -276,16 +273,33 @@ public class TemplatePropertiesUtil {
         .toList();
   }
 
-  private static PropertyBuilder createPropertyBuilder(Field field, TemplateProperty annotation) {
+  public static boolean isNumberClass(Class<?> clazz) {
+    if (clazz == null) {
+      return false;
+    }
+    if (clazz.isPrimitive()) {
+      return clazz == int.class
+          || clazz == long.class
+          || clazz == double.class
+          || clazz == float.class
+          || clazz == short.class;
+    }
+    return Number.class.isAssignableFrom(clazz);
+  }
+
+  private static PropertyBuilder createPropertyBuilder(
+      Field field, TemplateProperty annotation, TemplateGenerationContext context) {
     PropertyType type;
     List<DropdownModel> dropdownChoices = new ArrayList<>();
 
-    if (field.getType() == Boolean.class) {
+    if (field.getType() == Boolean.class || field.getType() == boolean.class) {
       type = PropertyType.Boolean;
     } else if (field.getType().isEnum()) {
       type = PropertyType.Dropdown;
       Class<?> enumType = field.getType();
       dropdownChoices = createDropdownModelList(enumType);
+    } else if (isNumberClass(field.getType()) && isOutbound(context)) { // TODO: To be removed
+      type = PropertyType.Number;
     } else {
       type = PropertyType.String;
     }
@@ -314,6 +328,7 @@ public class TemplatePropertiesUtil {
     var builder =
         switch (type) {
           case Boolean -> BooleanProperty.builder();
+          case Number -> NumberProperty.builder();
           case Dropdown ->
               DropdownProperty.builder().choices(dropdownChoiceList).feel(FeelMode.disabled);
           case Hidden -> HiddenProperty.builder();
@@ -328,6 +343,13 @@ public class TemplatePropertiesUtil {
       builder.feel(FeelMode.required);
     }
     return builder;
+  }
+
+  public static boolean isOutbound(TemplateGenerationContext context) {
+    return switch (context) {
+      case TemplateGenerationContext.Inbound unused -> false;
+      case Outbound unused -> true;
+    };
   }
 
   private static List<PropertyBuilder> handleSealedType(

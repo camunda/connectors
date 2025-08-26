@@ -7,7 +7,7 @@
     "keywords" : [ "create table", "delete table", "update table", "describe table", "scan table", "add item", "delete item", "get item", "update item" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/",
-  "version" : 7,
+  "version" : 8,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,6 +15,9 @@
   "appliesTo" : [ "bpmn:Task" ],
   "elementType" : {
     "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.6"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
@@ -31,6 +34,9 @@
   }, {
     "id" : "input",
     "label" : "Input"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -415,7 +421,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.readCapacityUnits",
@@ -432,7 +438,7 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "input.writeCapacityUnits",
     "label" : "Write capacity units",
@@ -441,7 +447,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "static",
     "group" : "input",
     "binding" : {
       "name" : "input.writeCapacityUnits",
@@ -458,7 +464,7 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "input.billingModeStr",
     "label" : "Billing mode",
@@ -960,6 +966,28 @@
       "name" : "DELETE",
       "value" : "delete"
     } ]
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "8",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.AWSDynamoDB.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

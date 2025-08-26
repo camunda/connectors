@@ -17,16 +17,15 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.EvictingQueue;
-import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogWriter;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
-import io.camunda.document.factory.DocumentFactory;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.function.Consumer;
@@ -59,7 +58,7 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
       final ValidInboundConnectorDetails connectorDetails,
       final Consumer<Throwable> cancellationCallback,
       final Class<T> executableClass,
-      final EvictingQueue<Activity> queue) {
+      final ActivityLogWriter logWriter) {
 
     InboundConnectorReportingContext inboundContext =
         new InboundConnectorContextImpl(
@@ -70,7 +69,7 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
             correlationHandler,
             cancellationCallback,
             objectMapper,
-            queue);
+            logWriter);
 
     if (isIntermediateContext(executableClass)) {
       inboundContext =

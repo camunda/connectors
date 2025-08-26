@@ -24,6 +24,7 @@ import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
 import io.camunda.connector.aws.ObjectMapperSupplier;
+import io.camunda.connector.test.SlowTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.io.File;
 import java.io.IOException;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+@SlowTest
 public class AwsLambdaTest extends BaseAwsTest {
 
   private static final String ELEMENT_TEMPLATE_PATH =

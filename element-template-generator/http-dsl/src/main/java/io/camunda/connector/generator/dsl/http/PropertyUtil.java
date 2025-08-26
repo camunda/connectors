@@ -22,6 +22,7 @@ import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
@@ -33,10 +34,10 @@ import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
 import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class PropertyUtil {
@@ -57,7 +58,18 @@ public class PropertyUtil {
     }
     var choices =
         availableTypes.stream()
-            .map(type -> new DropdownProperty.DropdownChoice(type.label(), type.id()))
+            .map(
+                type -> {
+                  String label = type.label();
+                  if (type instanceof HttpAuthentication.ApiKey apiKey && !apiKey.key().isEmpty()) {
+                    label += " (" + apiKey.key() + ")";
+                  }
+                  if (type instanceof HttpAuthentication.BasicAuth basicAuth
+                      && !basicAuth.key.isEmpty()) {
+                    label += " (" + basicAuth.key + ")";
+                  }
+                  return new DropdownProperty.DropdownChoice(label, type.id());
+                })
             .toList();
 
     return DropdownProperty.builder()
@@ -66,7 +78,7 @@ public class PropertyUtil {
         .group("authentication")
         .label("Authentication")
         .optional(false)
-        .binding(new ZeebeInput("authentication.type"))
+        .binding(new ZeebeProperty("authentication.dropdown"))
         .value(choices.getFirst().value());
   }
 
@@ -153,7 +165,6 @@ public class PropertyUtil {
 
     List<Property> properties = new ArrayList<>();
     if (authentications.size() > 1) {
-
       var discriminator =
           authDiscriminatorPropertyPrefab(authentications)
               .condition(
@@ -211,10 +222,11 @@ public class PropertyUtil {
       }
       for (var authentication : operation.authenticationOverride()) {
         var authProperties =
-            HttpAuthentication.getPropertyPrefabs(authentication).stream()
+            HttpAuthentication.getPropertyPrefabs(authentication).stream() // size1 = 4
                 .map(
                     builder -> {
-                      builder.id(operation.id() + "_" + builder.getId()); // shade property ids
+                      String id = operation.id() + "_" + builder.getId();
+                      builder.id(id); // shade property ids
                       if (addedDiscriminator) {
                         builder.condition(
                             new AllMatch(
@@ -227,7 +239,7 @@ public class PropertyUtil {
                       return builder.build();
                     })
                 .toList();
-        properties.addAll(authProperties);
+        properties.addAll(authProperties); // here the duplicated are generated
       }
     }
 
@@ -242,8 +254,8 @@ public class PropertyUtil {
     List<Property> properties = new ArrayList<>();
 
     for (var operation : operations) {
-      Set<String> headerProperties = new HashSet<>();
-      Set<String> queryProperties = new HashSet<>();
+      Map<String, String> headerProperties = new HashMap<>();
+      Map<String, String> queryProperties = new HashMap<>();
       List<Property> transformedProperties = new ArrayList<>();
 
       for (var property : operation.properties()) {
@@ -258,9 +270,9 @@ public class PropertyUtil {
         }
 
         if (property.target() == Target.HEADER) {
-          headerProperties.add(binding.name());
+          headerProperties.put(property.id(), binding.name());
         } else if (property.target() == Target.QUERY) {
-          queryProperties.add(binding.name());
+          queryProperties.put(property.id(), binding.name());
         }
         transformedProperties.add(transformed);
       }
@@ -308,7 +320,7 @@ public class PropertyUtil {
     return PropertyGroup.builder()
         .id("parameters")
         .label("Parameters")
-        .properties(properties)
+        .properties(properties) // size 8
         .build();
   }
 
@@ -317,6 +329,7 @@ public class PropertyUtil {
     PropertyBuilder builder =
         switch (property.type()) {
           case STRING -> StringProperty.builder().value(property.example()).feel(FeelMode.optional);
+          case HIDDEN -> HiddenProperty.builder().value(property.example()).feel(FeelMode.disabled);
           case ENUM ->
               DropdownProperty.builder()
                   .choices(
@@ -378,6 +391,7 @@ public class PropertyUtil {
                 .group("requestBody")
                 .value(
                     Optional.ofNullable(operation.bodyFeelExpression())
+                        .map(item -> item)
                         .map(HttpFeelBuilder::build)
                         .orElse(""))
                 .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()))
@@ -406,13 +420,13 @@ public class PropertyUtil {
     return PropertyGroup.builder().id("url").label("URL").properties(urlProperty).build();
   }
 
-  private static String buildContextExpression(Set<String> properties) {
+  private static String buildContextExpression(Map<String, String> properties) {
     StringBuilder sb = new StringBuilder();
     sb.append("={");
-    var it = properties.iterator();
+    var it = properties.entrySet().iterator();
     while (it.hasNext()) {
-      var prop = it.next();
-      sb.append(prop).append(": ").append(prop);
+      var entry = it.next();
+      sb.append(entry.getKey()).append(": ").append(entry.getValue());
       if (it.hasNext()) {
         sb.append(", ");
       }

@@ -1,0 +1,362 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Hybrid CSV Connector",
+  "id" : "io.camunda.connectors.csv-hybrid",
+  "metadata" : {
+    "keywords" : [ ]
+  },
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.8"
+  },
+  "groups" : [ {
+    "id" : "taskDefinitionType",
+    "label" : "Task definition type"
+  }, {
+    "id" : "operation",
+    "label" : "Operation"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "id" : "taskDefinitionType",
+    "value" : "io.camunda:csv-connector",
+    "group" : "taskDefinitionType",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation",
+    "label" : "Operation",
+    "description" : "The operation to execute",
+    "value" : "readCsv",
+    "group" : "operation",
+    "binding" : {
+      "key" : "operation",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Read CSV",
+      "value" : "readCsv"
+    }, {
+      "name" : "Write CSV",
+      "value" : "writeCsv"
+    } ]
+  }, {
+    "id" : "readCsv:data",
+    "label" : "Data",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "readCsv",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "CSV as a document or text",
+    "type" : "String"
+  }, {
+    "id" : "readCsv:format.delimiter",
+    "label" : "Delimiter",
+    "optional" : false,
+    "value" : ",",
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "format.delimiter",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "readCsv",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "CSV column delimiter",
+    "type" : "String"
+  }, {
+    "id" : "readCsv:format.skipHeaderRecord",
+    "label" : "Skip Header Record",
+    "optional" : false,
+    "value" : true,
+    "feel" : "static",
+    "group" : "operation",
+    "binding" : {
+      "name" : "format.skipHeaderRecord",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "readCsv",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Skips the first row to be not included in the final records.",
+    "type" : "Boolean"
+  }, {
+    "id" : "readCsv:format.headers",
+    "label" : "Headers",
+    "optional" : false,
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "format.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "readCsv",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Mapping of the columns if not included in the CSV itself in the first row.",
+    "type" : "String"
+  }, {
+    "id" : "readCsv:rowType",
+    "label" : "Row Type",
+    "optional" : false,
+    "value" : "Object",
+    "group" : "operation",
+    "binding" : {
+      "name" : "rowType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "readCsv",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Type of the row in the CSV file, either Object or Array",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Object",
+      "value" : "Object"
+    }, {
+      "name" : "Array",
+      "value" : "Array"
+    } ]
+  }, {
+    "id" : "readCsv:recordMapper",
+    "label" : "Record mapping",
+    "description" : "",
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "key" : "recordMapper",
+      "type" : "zeebe:taskHeader"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "readCsv",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "<a href=\"https://docs.camunda.io/docs/components/modeler/feel/what-is-feel/\">FEEL</a> function that allows to map each <code>record</code>. Returning <code>null</code> will exclude a record from the final results.",
+    "type" : "String"
+  }, {
+    "id" : "writeCsv:data",
+    "label" : "Data",
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "writeCsv",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "writeCsv:createDocument",
+    "label" : "Create document",
+    "group" : "operation",
+    "binding" : {
+      "name" : "createDocument",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "writeCsv",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Boolean"
+  }, {
+    "id" : "writeCsv:format.delimiter",
+    "label" : "Delimiter",
+    "optional" : false,
+    "value" : ",",
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "format.delimiter",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "writeCsv",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "CSV column delimiter",
+    "type" : "String"
+  }, {
+    "id" : "writeCsv:format.skipHeaderRecord",
+    "label" : "Skip Header Record",
+    "optional" : false,
+    "value" : true,
+    "feel" : "static",
+    "group" : "operation",
+    "binding" : {
+      "name" : "format.skipHeaderRecord",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "writeCsv",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Skips the first row to be not included in the final records.",
+    "type" : "Boolean"
+  }, {
+    "id" : "writeCsv:format.headers",
+    "label" : "Headers",
+    "optional" : false,
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "format.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "writeCsv",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Mapping of the columns if not included in the CSV itself in the first row.",
+    "type" : "String"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.csv",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjEiIGhlaWdodD0iMjIiIHZpZXdCb3g9IjAgMCAyMSAyMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxwYXRoIGQ9Ik0wLjUgM0MwLjUgMS44OTU0MyAxLjM5NTQzIDEgMi41IDFIMTguNUMxOS42MDQ2IDEgMjAuNSAxLjg5NTQzIDIwLjUgM1YxOUMyMC41IDIwLjEwNDYgMTkuNjA0NiAyMSAxOC41IDIxSDIuNUMxLjM5NTQzIDIxIDAuNSAyMC4xMDQ2IDAuNSAxOVYzWiIgZmlsbD0iI0ZGQjdDOCIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTE2LjA0NzkgMTQuMjY0NEMxNS44Mzg5IDE0LjI2NDQgMTUuNjY4MyAxNC4yMjAzIDE1LjUzNjIgMTQuMTMyM0MxNS40MDk3IDE0LjA0NDMgMTUuMzAyNCAxMy45MDQgMTUuMjE0NCAxMy43MTE0TDEzLjIxNzEgOS4zMDQyNEMxMy4xMjkxIDkuMTExNjcgMTMuMTAxNiA4LjkzODM1IDEzLjEzNDYgOC43ODQzQzEzLjE2NzYgOC42MzAyNCAxMy4yNDQ2IDguNTExOTQgMTMuMzY1NyA4LjQyOTQxQzEzLjQ4NjcgOC4zNDEzOCAxMy42MzggOC4yOTczNiAxMy44MTk2IDguMjk3MzZDMTQuMDQ1MiA4LjI5NzM2IDE0LjIxMyA4LjM0Njg4IDE0LjMyMyA4LjQ0NTkyQzE0LjQzODYgOC41NDQ5NiAxNC41Mzc2IDguNjkwNzYgMTQuNjIwMiA4Ljg4MzMzTDE2LjMwMzggMTIuNzc4OEgxNS44NDE2TDE3LjUyNTIgOC44NzUwOEMxNy42MDc4IDguNjgyNTEgMTcuNzA2OCA4LjUzOTQ1IDE3LjgyMjQgOC40NDU5MkMxNy45Mzc5IDguMzQ2ODggMTguMTAwMiA4LjI5NzM2IDE4LjMwOTMgOC4yOTczNkMxOC40Nzk5IDguMjk3MzYgMTguNjIyOSA4LjM0MTM4IDE4LjczODUgOC40Mjk0MUMxOC44NTQgOC41MTE5NCAxOC45MjU1IDguNjMwMjQgMTguOTUzIDguNzg0M0MxOC45ODYgOC45MzgzNSAxOC45NTg1IDkuMTExNjcgMTguODcwNSA5LjMwNDI0TDE2Ljg2NSAxMy43MTE0QzE2Ljc4MjUgMTMuOTA0IDE2LjY3NzkgMTQuMDQ0MyAxNi41NTE0IDE0LjEzMjNDMTYuNDI0OCAxNC4yMjAzIDE2LjI1NyAxNC4yNjQ0IDE2LjA0NzkgMTQuMjY0NFoiIGZpbGw9ImJsYWNrIi8+CiAgICA8cGF0aCBkPSJNMTAuMjI3MiAxNC4yODA4QzEwLjAwNzEgMTQuMjgwOCA5Ljc3NjA0IDE0LjI2NDMgOS41MzM5NSAxNC4yMzEyQzkuMjk3MzYgMTQuMjAzNyA5LjA3MTc4IDE0LjE1OTcgOC44NTcyIDE0LjA5OTJDOC42NDI2MiAxNC4wMzg3IDguNDUwMDQgMTMuOTY3MSA4LjI3OTQ4IDEzLjg4NDZDOC4xMzA5MiAxMy44MTMxIDguMDI2MzggMTMuNzE5NiA3Ljk2NTg2IDEzLjYwNEM3LjkwNTM0IDEzLjQ4MyA3Ljg4MzMzIDEzLjM1NjQgNy44OTk4NCAxMy4yMjQ0QzcuOTE2MzQgMTMuMDkyMyA3Ljk2MzExIDEyLjk3NjggOC4wNDAxNCAxMi44Nzc3QzguMTE3MTcgMTIuNzczMiA4LjIxODk2IDEyLjcwNDQgOC4zNDU1IDEyLjY3MTRDOC40NzIwNSAxMi42MzI5IDguNjE1MTEgMTIuNjQ5NCA4Ljc3NDY3IDEyLjcyMDlDOC45ODM3NCAxMi44MiA5LjIyMDMzIDEyLjg5NyA5LjQ4NDQzIDEyLjk1MkM5Ljc0ODUzIDEzLjAwNyA5Ljk5NjEyIDEzLjAzNDUgMTAuMjI3MiAxMy4wMzQ1QzEwLjU5MDMgMTMuMDM0NSAxMC44NDM0IDEyLjk4NzggMTAuOTg2NSAxMi44OTQyQzExLjEzNTEgMTIuNzk1MiAxMS4yMDkzIDEyLjY3NDIgMTEuMjA5MyAxMi41MzExQzExLjIwOTMgMTIuNDA0NiAxMS4xNTcxIDEyLjMwMjggMTEuMDUyNSAxMi4yMjU3QzEwLjk1MzUgMTIuMTQ4NyAxMC43NzQ3IDEyLjA4MjcgMTAuNTE2MSAxMi4wMjc3TDkuNTUwNDYgMTEuODIxM0M5LjAyMjI2IDExLjcxMTMgOC42Mjg4NiAxMS41MTg3IDguMzcwMjYgMTEuMjQzNkM4LjExMTY3IDEwLjk2ODUgNy45ODIzNyAxMC42MTM2IDcuOTgyMzcgMTAuMTc5QzcuOTgyMzcgOS44OTI4NyA4LjA0MDE0IDkuNjM0MjcgOC4xNTU2OCA5LjQwMzE4QzguMjc2NzMgOS4xNjY1OSA4LjQ0NDU0IDguOTY1NzcgOC42NTkxMiA4LjgwMDcxQzguODc5MiA4LjYzNTY0IDkuMTM3OCA4LjUwOTEgOS40MzQ5MSA4LjQyMTA2QzkuNzM3NTMgOC4zMjc1MyAxMC4wNzMyIDguMjgwNzYgMTAuNDQxOCA4LjI4MDc2QzEwLjcyNzkgOC4yODA3NiAxMS4wMTY4IDguMzEzNzcgMTEuMzA4NCA4LjM3OThDMTEuNjA1NSA4LjQ0MDMyIDExLjg2MTMgOC41MzM4NiAxMi4wNzU5IDguNjYwNEMxMi4yMDI1IDguNzI2NDMgMTIuMjkzMiA4LjgxNzIxIDEyLjM0ODMgOC45MzI3NkMxMi40MDMzIDkuMDQ4MyAxMi40MjUzIDkuMTY5MzQgMTIuNDE0MyA5LjI5NTg5QzEyLjQwMzMgOS40MTY5NCAxMi4zNTkzIDkuNTI0MjMgMTIuMjgyMiA5LjYxNzc2QzEyLjIxMDcgOS43MTEzIDEyLjExMTcgOS43NzQ1NyAxMS45ODUxIDkuODA3NThDMTEuODY0MSA5LjgzNTA5IDExLjcxODMgOS44MTMwOSAxMS41NDc3IDkuNzQxNTZDMTEuMzg4MSA5LjY3MDAzIDExLjIwNjYgOS42MTc3NiAxMS4wMDMgOS41ODQ3NUMxMC44MDQ5IDkuNTQ2MjQgMTAuNjEyNCA5LjUyNjk4IDEwLjQyNTMgOS41MjY5OEMxMC4yMjE3IDkuNTI2OTggMTAuMDQ4NCA5LjU1MTc0IDkuOTA1MzQgOS42MDEyNkM5Ljc2MjI5IDkuNjQ1MjcgOS42NTIyNCA5LjcxMTMgOS41NzUyMiA5Ljc5OTMzQzkuNTAzNjkgOS44ODczNiA5LjQ2NzkzIDkuOTg5MTUgOS40Njc5MyAxMC4xMDQ3QzkuNDY3OTMgMTAuMjIwMiA5LjUxNDY5IDEwLjMxOTMgOS42MDgyMyAxMC40MDE4QzkuNzA3MjYgMTAuNDc4OCA5Ljg4NjA4IDEwLjU0NDkgMTAuMTQ0NyAxMC41OTk5TDExLjEwMiAxMC44MDYyQzExLjYzNTcgMTAuOTIxOCAxMi4wMzQ2IDExLjExMTYgMTIuMjk4NyAxMS4zNzU3QzEyLjU2MjggMTEuNjM5OCAxMi42OTQ5IDExLjk4MzcgMTIuNjk0OSAxMi40MDczQzEyLjY5NDkgMTIuNjkzNCAxMi42MzcxIDEyLjk1MiAxMi41MjE2IDEzLjE4MzFDMTIuNDA2IDEzLjQxNDIgMTIuMjQxIDEzLjYxMjMgMTIuMDI2NCAxMy43NzczQzExLjgxMTggMTMuOTM2OSAxMS41NTMyIDE0LjA2MDcgMTEuMjUwNiAxNC4xNDg3QzEwLjk0OCAxNC4yMzY3IDEwLjYwNjkgMTQuMjgwOCAxMC4yMjcyIDE0LjI4MDhaIiBmaWxsPSJibGFjayIvPgogICAgPHBhdGggZD0iTTUuMjg3ODMgMTQuMjgwOEM0LjY0NDA5IDE0LjI4MDggNC4wOTExMyAxNC4xNTcgMy42Mjg5NiAxMy45MDk0QzMuMTY2NzggMTMuNjYxOCAyLjgxMTkgMTMuMzEyNCAyLjU2NDMxIDEyLjg2MTJDMi4zMjIyMiAxMi40MTAxIDIuMjAxMTcgMTEuODgxOSAyLjIwMTE3IDExLjI3NjZDMi4yMDExNyAxMC44MjU1IDIuMjY5OTUgMTAuNDE1NiAyLjQwNzUgMTAuMDQ2OUMyLjU1MDU1IDkuNjc4MjkgMi43NTQxMyA5LjM2MTkyIDMuMDE4MjMgOS4wOTc4MkMzLjI4NzgzIDguODMzNzIgMy42MTI0NSA4LjYzMjg5IDMuOTkyMDkgOC40OTUzNEM0LjM3NzI0IDguMzUyMjkgNC44MDkxNSA4LjI4MDc2IDUuMjg3ODMgOC4yODA3NkM1LjU0MDkyIDguMjgwNzYgNS44MDIyNyA4LjMxMTAyIDYuMDcxODcgOC4zNzE1NUM2LjM0Njk4IDguNDI2NTcgNi41ODkwNyA4LjUxMTg1IDYuNzk4MTUgOC42MjczOUM2Ljk1MjIgOC43MDk5MiA3LjA1OTQ5IDguODE0NDYgNy4xMjAwMiA4Ljk0MTAxQzcuMTgwNTQgOS4wNjc1NiA3LjE5OTggOS4xOTY4NiA3LjE3Nzc5IDkuMzI4OUM3LjE2MTI4IDkuNDYwOTUgNy4xMTQ1MSA5LjU3OTI1IDcuMDM3NDkgOS42ODM3OUM2Ljk2MDQ2IDkuNzg4MzMgNi44NjE0MiA5Ljg1OTg1IDYuNzQwMzcgOS44OTgzN0M2LjYxOTMzIDkuOTMxMzggNi40ODcyOCA5LjkxMjEyIDYuMzQ0MjMgOS44NDA2QzYuMTc5MTYgOS43NjM1NyA2LjAxNDEgOS43MDU4IDUuODQ5MDQgOS42NjcyOEM1LjY4OTQ4IDkuNjIzMjcgNS41MjE2NyA5LjYwMTI2IDUuMzQ1NiA5LjYwMTI2QzUuMDA0NDcgOS42MDEyNiA0LjcxODM3IDkuNjY3MjggNC40ODcyOCA5Ljc5OTMzQzQuMjYxNjkgOS45MjU4OCA0LjA5MTEzIDEwLjExMjkgMy45NzU1OSAxMC4zNjA1QzMuODYwMDQgMTAuNjA4MSAzLjgwMjI3IDEwLjkxMzUgMy44MDIyNyAxMS4yNzY2QzMuODAyMjcgMTEuNjM5OCAzLjg2MDA0IDExLjk0NzkgMy45NzU1OSAxMi4yMDFDNC4wOTExMyAxMi40NDg2IDQuMjYxNjkgMTIuNjM4NCA0LjQ4NzI4IDEyLjc3MDRDNC43MTgzNyAxMi44OTcgNS4wMDQ0NyAxMi45NjAzIDUuMzQ1NiAxMi45NjAzQzUuNDg4NjUgMTIuOTYwMyA1LjY0MjcxIDEyLjk0MzggNS44MDc3NyAxMi45MTA3QzUuOTcyODQgMTIuODcyMiA2LjEzNTE1IDEyLjgxNDUgNi4yOTQ3MSAxMi43Mzc0QzYuNDU5NzcgMTIuNjY1OSA2LjYwNTU3IDEyLjY0NjYgNi43MzIxMiAxMi42Nzk3QzYuODY0MTcgMTIuNzEyNyA2Ljk2ODcxIDEyLjc3ODcgNy4wNDU3NCAxMi44Nzc3QzcuMTI4MjcgMTIuOTc2OCA3LjE4MDU0IDEzLjA5MjMgNy4yMDI1NSAxMy4yMjQ0QzcuMjI0NTYgMTMuMzUwOSA3LjIwNTMgMTMuNDc3NSA3LjE0NDc4IDEzLjYwNEM3LjA4OTc2IDEzLjczMDYgNi45OTA3MiAxMy44MzIzIDYuODQ3NjYgMTMuOTA5NEM2LjY1NTA5IDE0LjAyNDkgNi40MTU3NSAxNC4xMTU3IDYuMTI5NjUgMTQuMTgxN0M1Ljg0OTA0IDE0LjI0NzcgNS41Njg0MyAxNC4yODA4IDUuMjg3ODMgMTQuMjgwOFoiIGZpbGw9ImJsYWNrIi8+Cjwvc3ZnPgo="
+  }
+}

@@ -43,6 +43,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       type = "my-connector-type",
       inputVariables = {})
   @ElementTemplate(
+      engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
       elementTypes = {
         @ConnectorElementType(appliesTo = BpmnType.SERVICE_TASK, elementType = BpmnType.SCRIPT_TASK)
@@ -69,6 +70,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       type = "my-connector-type",
       inputVariables = {})
   @ElementTemplate(
+      engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
       inputDataClass = MyConnectorInput.class)
@@ -79,6 +81,46 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       type = "my-connector-type",
       inputVariables = {})
   @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
+      inputDataClass = MyConnectorInput.class,
+      defaultResultVariable = "myResultVariable")
+  public static class MinimallyAnnotatedWithResultVariable extends MyConnectorFunction {}
+
+  @OutboundConnector(
+      name = "my-connector",
+      type = "my-connector-type",
+      inputVariables = {})
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
+      inputDataClass = MyConnectorInput.class,
+      defaultResultExpression = "={ myResponse: response }")
+  public static class MinimallyAnnotatedWithResultExpression extends MyConnectorFunction {}
+
+  @OutboundConnector(
+      name = "my-connector",
+      type = "my-connector-type",
+      inputVariables = {})
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
+      inputDataClass = MyConnectorInput.class,
+      extensionProperties = {
+        @ElementTemplate.ExtensionProperty(name = "myExtensionProperty1", value = "value1"),
+        @ElementTemplate.ExtensionProperty(name = "myExtensionProperty2", value = "value2"),
+      })
+  public static class MinimallyAnnotatedWithExtensionProperties extends MyConnectorFunction {}
+
+  @OutboundConnector(
+      name = "my-connector",
+      type = "my-connector-type",
+      inputVariables = {})
+  @ElementTemplate(
+      engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
       inputDataClass = MyConnectorInput.class,
@@ -90,6 +132,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       type = "my-connector-type",
       inputVariables = {})
   @ElementTemplate(
+      engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
       inputDataClass = MyConnectorInput.class,
@@ -101,6 +144,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       type = "my-connector-type",
       inputVariables = {})
   @ElementTemplate(
+      engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
       inputDataClass = DuplicatePropertyConnectorInput.class,
@@ -112,6 +156,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       type = "my-connector-type",
       inputVariables = {})
   @ElementTemplate(
+      engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
       name = MyConnectorFunction.NAME,
       inputDataClass = MyConnectorInput.class,

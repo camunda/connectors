@@ -1,0 +1,1 @@
+RAG stands for Retrieval-Augmented Generation, an AI framework that combines information retrieval with large language models (LLMs). RAG helps LLMs produce more accurate, relevant, and up-to-date responses.

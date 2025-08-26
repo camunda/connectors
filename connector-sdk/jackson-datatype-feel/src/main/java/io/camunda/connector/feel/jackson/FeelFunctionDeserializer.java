@@ -71,10 +71,13 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
 
   @Override
   public JsonDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property) {
-    if (property.getType().containedTypeCount() == 2) {
-      var outputType = property.getType().containedType(1);
-      return new FeelFunctionDeserializer<>(outputType, feelEngineWrapper);
+    if (property != null) {
+      if (property.getType().containedTypeCount() == 2) {
+        var outputType = property.getType().containedType(1);
+        return new FeelFunctionDeserializer<>(outputType, feelEngineWrapper);
+      }
     }
+
     return new FeelFunctionDeserializer<>(TypeFactory.unknownType(), feelEngineWrapper);
   }
 

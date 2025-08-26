@@ -28,12 +28,13 @@ import java.util.Optional;
     inputVariables = {"authentication", "configuration", "awsFunction"},
     type = "io.camunda:aws-lambda:1")
 @ElementTemplate(
+    engineVersion = "^8.3",
     id = "io.camunda.connectors.AWSLAMBDA.v2",
     name = "AWS Lambda Outbound Connector",
     description = "Invoke AWS Lambda functions.",
     metadata = @ElementTemplate.Metadata(keywords = {"invoke function", "run function"}),
     inputDataClass = AwsLambdaRequest.class,
-    version = 5,
+    version = 6,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),

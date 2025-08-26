@@ -11,28 +11,33 @@
   </parent>
 
   <artifactId>connectors-parent</artifactId>
+  <name>OOTB Connector Parent</name>
   <packaging>pom</packaging>
 
-  <name>connectors-parent</name>
   <description>Parent POM for Connectors implementations</description>
   <inceptionYear>2022</inceptionYear>
 
   <modules>
+    <module>agentic-ai</module>
     <module>automation-anywhere</module>
     <module>aws</module>
     <module>box</module>
+    <module>csv</module>
     <module>email</module>
     <module>google</module>
     <module>http</module>
     <module>jdbc</module>
     <module>kafka</module>
+    <module>microsoft/azure-blobstorage</module>
     <module>microsoft-teams</module>
+    <module>camunda-message</module>
     <module>rabbitmq</module>
     <module>sendgrid</module>
     <module>slack</module>
     <module>soap</module>
     <module>webhook</module>
     <module>idp-extraction</module>
+    <module>embeddings-vector-database</module>
   </modules>
 
   <properties>
@@ -43,11 +48,19 @@ except in compliance with the proprietary license.</license.inlineheader>
   </properties>
 
   <dependencies>
-    <!-- Fix CVE-2024-7254 -->
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-object-mapper</artifactId>
+    </dependency>
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java-util</artifactId>
-      <version>4.30.0</version>
+      <version>4.32.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+      <version>4.32.0</version>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -119,6 +132,18 @@ except in compliance with the proprietary license.</license.inlineheader>
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>libraries-bom</artifactId>
+        <version>${version.google-libraries-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
 
   <build>

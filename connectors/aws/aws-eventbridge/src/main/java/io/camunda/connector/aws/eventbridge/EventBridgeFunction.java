@@ -28,6 +28,7 @@ import java.util.Optional;
     inputVariables = {"authentication", "configuration", "input"},
     type = "io.camunda:aws-eventbridge:1")
 @ElementTemplate(
+    engineVersion = "^8.3",
     id = "io.camunda.connectors.AWSEventBridge.v1",
     name = "Amazon EventBridge Outbound Connector",
     description = "Send events to AWS EventBridge",
@@ -35,7 +36,7 @@ import java.util.Optional;
         @ElementTemplate.Metadata(
             keywords = {"emit event", "publish event", "send event", "trigger event"}),
     inputDataClass = AwsEventBridgeRequest.class,
-    version = 5,
+    version = 6,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Queue properties"),

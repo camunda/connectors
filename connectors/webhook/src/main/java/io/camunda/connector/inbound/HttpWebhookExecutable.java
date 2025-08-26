@@ -10,10 +10,8 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.di
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 
 import io.camunda.connector.api.annotation.InboundConnector;
-import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
@@ -51,10 +49,11 @@ import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "Webhook", type = "io.camunda:webhook:1")
 @ElementTemplate(
+    engineVersion = "^8.3",
     id = "io.camunda.connectors.webhook",
     name = "Webhook Connector",
     icon = "icon.svg",
-    version = 11,
+    version = 13,
     inputDataClass = WebhookConnectorPropertiesWrapper.class,
     description = "Configure webhook to receive callbacks",
     documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
@@ -65,11 +64,6 @@ import org.slf4j.LoggerFactory;
       @PropertyGroup(id = "webhookResponse", label = "Webhook response")
     },
     elementTypes = {
-      @ConnectorElementType(
-          appliesTo = BpmnType.START_EVENT,
-          elementType = BpmnType.START_EVENT,
-          templateIdOverride = "io.camunda.connectors.webhook.WebhookConnector.v1",
-          templateNameOverride = "Webhook Start Event Connector"),
       @ConnectorElementType(
           appliesTo = BpmnType.START_EVENT,
           elementType = BpmnType.MESSAGE_START_EVENT,
@@ -90,6 +84,8 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpWebhookExecutable.class);
 
+  private static final String ERROR_ACTIVITY_LOG_TAG = "Error";
+
   private WebhookConnectorProperties props;
   private WebhookAuthorizationHandler<?> authChecker;
   private InboundConnectorContext context;
@@ -108,11 +104,6 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   @Override
   public WebhookResult triggerWebhook(WebhookProcessingPayload payload) {
     LOGGER.trace("Triggered webhook with context {} and payload {}", props.context(), payload);
-
-    this.context.log(
-        Activity.level(Severity.INFO)
-            .tag(payload.method())
-            .message("Url: " + payload.requestURL()));
 
     validateHttpMethod(payload);
     verifySignature(payload);

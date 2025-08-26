@@ -11,6 +11,7 @@
     </parent>
 
     <artifactId>connectors-e2e-test-aws-event-bridge</artifactId>
+    <name>Connectors E2e Test Aws Event Bridge</name>
 
     <dependencies>
         <dependency>

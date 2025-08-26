@@ -3,8 +3,11 @@
   "name": "Microsoft Office 365 Mail Connector",
   "id": "io.camunda.connectors.MSFT.O365.Mail.v1",
   "description": "Work with Office 365 Mail via your BPMN process",
-  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail/",
-  "version": 1,
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail/",
+  "version": 3,
+  "engines": {
+    "camunda": "^8.4"
+  },
   "category": {
     "id": "connectors",
     "name": "Connectors"
@@ -601,6 +604,28 @@
       "type": "Text"
     },
     {
+      "id": "users.user.sendMail_attachments",
+      "label": "Attachments",
+      "description": "Attachments. Must be an array of document objects or an empty array",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "value": "=[]",
+      "feel": "required",
+      "group": "requestBody",
+      "binding": {
+        "name": "sendMail_attachments",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "users.user.sendMail",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
       "id": "users.user.sendMail_to_recipients",
       "label": "To recipients",
       "description": "Target recipients. Must be an array of emails",
@@ -717,7 +742,7 @@
     },
     {
       "id": "users.user.sendMail_body",
-      "value": "={\"message\":{\"subject\":sendMail_subject,\"body\":{\"contentType\":sendMail_body_content_type,\"content\":sendMail_body_content},\"toRecipients\": for currentEmail in sendMail_to_recipients return {\"emailAddress\":{\"address\":currentEmail}},\"ccRecipients\": if sendMail_cc_recipients != null then for currentEmailCC in sendMail_cc_recipients return {\"emailAddress\":{\"address\":currentEmailCC}} else null},\"saveToSentItems\":\"false\"}",
+      "value": "={\"message\":{\"subject\":sendMail_subject,\"body\":{\"contentType\":sendMail_body_content_type,\"content\":sendMail_body_content},\"toRecipients\": for currentEmail in sendMail_to_recipients return {\"emailAddress\":{\"address\":currentEmail}},\"ccRecipients\": if sendMail_cc_recipients != null then for currentEmailCC in sendMail_cc_recipients return {\"emailAddress\":{\"address\":currentEmailCC}} else null,\"attachments\": if sendMail_attachments != null then for document in sendMail_attachments return {\"@odata.type\":\"#microsoft.graph.fileAttachment\",\"name\":document.metadata.fileName,\"contentType\":document.metadata.contentType,\"contentBytes\":{\"camunda.function.type\":\"base64\",\"params\":[document]}} else null},\"saveToSentItems\":\"false\"}",
       "group": "requestBody",
       "binding": {
         "name": "body",
@@ -800,6 +825,30 @@
         "type": "zeebe:taskHeader"
       },
       "type": "String"
+    },
+    {
+      "id": "version",
+      "label": "Version",
+      "description": "Version of the element template",
+      "value": "3",
+      "group": "connector",
+      "binding": {
+        "key": "elementTemplateVersion",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "id",
+      "label": "ID",
+      "description": "ID of the element template",
+      "value": "io.camunda.connectors.MSFT.O365.Mail.v1",
+      "group": "connector",
+      "binding": {
+        "key": "elementTemplateId",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Hidden"
     }
   ],
   "icon": {

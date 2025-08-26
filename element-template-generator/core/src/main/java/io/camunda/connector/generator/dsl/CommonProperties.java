@@ -24,25 +24,66 @@ import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyCondition.IsActive;
 import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 
 public class CommonProperties {
 
   public static PropertyBuilder resultExpression() {
-    return TextProperty.builder()
-        .id("resultExpression")
-        .group("output")
-        .label("Result expression")
-        .description("Expression to map the response into process variables")
-        .feel(FeelMode.required);
+    return resultExpression(null);
+  }
+
+  public static PropertyBuilder resultExpression(String value) {
+    final var builder =
+        TextProperty.builder()
+            .id("resultExpression")
+            .group("output")
+            .label("Result expression")
+            .description("Expression to map the response into process variables")
+            .feel(FeelMode.required);
+
+    if (StringUtils.isNotBlank(value)) {
+      builder.value(value);
+    }
+
+    return builder;
   }
 
   public static PropertyBuilder resultVariable() {
-    return StringProperty.builder()
-        .id("resultVariable")
-        .group("output")
-        .label("Result variable")
-        .description("Name of variable to store the response in")
-        .feel(FeelMode.disabled);
+    return resultVariable(null);
+  }
+
+  public static PropertyBuilder resultVariable(String value) {
+    final var builder =
+        StringProperty.builder()
+            .id("resultVariable")
+            .group("output")
+            .label("Result variable")
+            .description("Name of variable to store the response in")
+            .feel(FeelMode.disabled);
+
+    if (StringUtils.isNotBlank(value)) {
+      builder.value(value);
+    }
+
+    return builder;
+  }
+
+  public static PropertyBuilder version(Integer version) {
+    return HiddenProperty.builder()
+        .id("version")
+        .group("connector")
+        .label("Version")
+        .value(String.valueOf(version))
+        .description("Version of the element template");
+  }
+
+  public static PropertyBuilder id(String id) {
+    return HiddenProperty.builder()
+        .id("id")
+        .group("connector")
+        .label("ID")
+        .value(id)
+        .description("ID of the element template");
   }
 
   public static PropertyBuilder errorExpression() {

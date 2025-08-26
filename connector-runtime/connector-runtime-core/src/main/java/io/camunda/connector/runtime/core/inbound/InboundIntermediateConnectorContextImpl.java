@@ -17,23 +17,23 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.search.response.FlowNodeInstance;
+import io.camunda.client.api.search.response.ElementInstance;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
-import io.camunda.document.Document;
-import io.camunda.document.reference.DocumentReference;
-import io.camunda.document.store.DocumentCreationRequest;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
  * Implementation of {@link InboundIntermediateConnectorContext} that extends {@link
- * InboundConnectorContext} and enables runtime updates of context properties from Operate.
+ * InboundConnectorContext} and enables runtime updates of context properties from Camunda.
  */
 public class InboundIntermediateConnectorContextImpl
     implements InboundIntermediateConnectorContext, InboundConnectorReportingContext {
@@ -77,18 +77,29 @@ public class InboundIntermediateConnectorContextImpl
         .collect(Collectors.toList());
   }
 
-  private ProcessInstanceContext createProcessInstanceContext(FlowNodeInstance node) {
+  private ProcessInstanceContext createProcessInstanceContext(ElementInstance elementInstance) {
     Supplier<Map<String, Object>> variableSupplier =
         () ->
-            processInstanceClient.fetchVariablesByProcessInstanceKey(node.getProcessInstanceKey());
+            processInstanceClient.fetchVariablesByProcessInstanceKey(
+                elementInstance.getProcessInstanceKey());
 
     return new DefaultProcessInstanceContext(
-        this, node, validationProvider, correlationHandler, objectMapper, variableSupplier);
+        this,
+        elementInstance,
+        validationProvider,
+        correlationHandler,
+        objectMapper,
+        variableSupplier);
   }
 
   @Override
   public CorrelationResult correlateWithResult(Object variables) {
-    return inboundContext.correlateWithResult(variables);
+    return inboundContext.correlate(CorrelationRequest.builder().variables(variables).build());
+  }
+
+  @Override
+  public CorrelationResult correlate(CorrelationRequest correlationRequest) {
+    return inboundContext.correlate(correlationRequest);
   }
 
   @Override
@@ -132,8 +143,8 @@ public class InboundIntermediateConnectorContextImpl
   }
 
   @Override
-  public Queue<Activity> getLogs() {
-    return inboundContext.getLogs();
+  public void log(Consumer<ActivityBuilder> activityBuilderConsumer) {
+    inboundContext.log(activityBuilderConsumer);
   }
 
   @Override

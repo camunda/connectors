@@ -1,0 +1,89 @@
+[
+  {
+    "role": "system",
+    "content": [
+      {
+        "type": "text",
+        "text": "You are a helpful assistant. Be nice."
+      }
+    ]
+  },
+  {
+    "role": "user",
+    "name": "user1",
+    "content": [
+      {
+        "type": "text",
+        "text": "What is the weather in Munich?"
+      },
+      {
+        "type": "text",
+        "text": "Is it typical for this time of the year?"
+      }
+    ]
+  },
+  {
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "To give an answer, I need to first look up the weather in Munich. Considering available tools, I should call the getWeather tool. In addition I will call the getDateTime tool to know the current date and time."
+      }
+    ],
+    "toolCalls": [
+      {
+        "id": "abcdef",
+        "name": "getWeather",
+        "arguments": {
+          "location": "MUC"
+        }
+      },
+      {
+        "id": "fedcba",
+        "name": "getDateTime",
+        "arguments": {}
+      }
+    ]
+  },
+  {
+    "role": "tool_call_result",
+    "results": [
+      {
+        "id": "abcdef",
+        "name": "getWeather",
+        "content": "Sunny, 22°C"
+      },
+      {
+        "id": "fedcba",
+        "name": "getDateTime",
+        "content": {
+          "time": "15:56:50",
+          "date": "2025-04-14",
+          "iso": "2025-04-14T15:56:50"
+        }
+      }
+    ]
+  },
+  {
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "The weather in Munich is sunny with a temperature of 22°C. This is typical for April."
+      }
+    ],
+    "metadata": {
+      "some": "value"
+    }
+  },
+  {
+    "role": "user",
+    "name": "user1",
+    "content": [
+      {
+        "type": "text",
+        "text": "Thank you!"
+      }
+    ]
+  }
+]

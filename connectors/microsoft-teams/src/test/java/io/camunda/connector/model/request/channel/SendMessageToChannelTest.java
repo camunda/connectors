@@ -52,7 +52,11 @@ class SendMessageToChannelTest extends BaseTest {
 
     sendMessageToChannel =
         new SendMessageToChannel(
-            ActualValue.Channel.GROUP_ID, ActualValue.Channel.CHANNEL_ID, "channel content", null);
+            ActualValue.Channel.GROUP_ID,
+            ActualValue.Channel.CHANNEL_ID,
+            "channel content",
+            null,
+            null);
 
     when(graphServiceClient.teams()).thenReturn(teamsRequestBuilder);
     when(teamsRequestBuilder.byTeamId(ActualValue.Channel.GROUP_ID))
@@ -88,7 +92,11 @@ class SendMessageToChannelTest extends BaseTest {
     // Given
     sendMessageToChannel =
         new SendMessageToChannel(
-            ActualValue.Channel.GROUP_ID, ActualValue.Channel.CHANNEL_ID, "channel content", input);
+            ActualValue.Channel.GROUP_ID,
+            ActualValue.Channel.CHANNEL_ID,
+            "channel content",
+            input,
+            null);
     // When
     operationFactory.getService(sendMessageToChannel).invoke(graphServiceClient);
     // Then

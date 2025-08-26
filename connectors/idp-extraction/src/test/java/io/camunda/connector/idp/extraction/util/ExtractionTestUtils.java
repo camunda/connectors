@@ -8,26 +8,47 @@ package io.camunda.connector.idp.extraction.util;
 
 import static org.apache.hc.core5.http.ContentType.APPLICATION_PDF;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.idp.extraction.model.ConverseData;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
+import io.camunda.connector.idp.extraction.model.ExtractionType;
 import io.camunda.connector.idp.extraction.model.TaxonomyItem;
-import io.camunda.document.Document;
-import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.factory.DocumentFactoryImpl;
-import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
+import io.camunda.document.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 public class ExtractionTestUtils {
 
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
   public static final String ACTUAL_ACCESS_KEY = "DDDCCCBBBBAAAA";
   public static final String ACTUAL_SECRET_KEY = "AAAABBBBCCCDDD";
-  public static final String TEXTRACT_EXTRACTION_INPUT_JSON =
+  public static final String AWS_BASE_REQUEST =
       """
-      {
-        "input": {
+        {
+          "configuration": {
+            "region": "us-east-1"
+          },
+          "authentication": {
+            "type": "credentials",
+            "accessKey": "{{secrets.ACCESS_KEY}}",
+            "secretKey": "{{secrets.SECRET_KEY}}"
+          },
+          "s3BucketName": "test-aws-s3-bucket-name",
+          "extractionEngineType": "AWS_TEXTRACT"
+        }
+        """;
+  public static final String AWS_INPUT =
+      """
+        {
           "extractionEngineType": "AWS_TEXTRACT",
           "document": {
             "camunda.document.type": "camunda",
@@ -48,29 +69,41 @@ public class ExtractionTestUtils {
               "prompt": "who provided the goods or services"
             }
           ]
-        },
-        "baseRequest": {
-          "configuration": {
-            "region": "us-east-1"
-          },
-          "authentication": {
-            "type": "defaultCredentialsChain",
-            "accessKey": "{{secrets.ACCESS_KEY}}",
-            "secretKey": "{{secrets.SECRET_KEY}}"
-          },
-          "s3BucketName": "test-aws-s3-bucket-name",
-          "extractionEngineType": "AWS_TEXTRACT"
         }
+        """;
+  public static final String TEXTRACT_EXTRACTION_INPUT_JSON =
+      """
+      {
+        "input": %s,
+        "baseRequest": %s
       }
-      """;
+      """
+          .formatted(AWS_INPUT, AWS_BASE_REQUEST);
 
   public static final ExtractionRequestData TEXTRACT_EXTRACTION_REQUEST_DATA =
       new ExtractionRequestData(
           loadTestFile(),
+          ExtractionType.UNSTRUCTURED,
           List.of(
               new TaxonomyItem("sum", "the total amount that was paid for this invoice"),
               new TaxonomyItem("supplier", "who provided the goods or services")),
+          List.of(),
+          Map.of(),
+          null,
           new ConverseData("anthropic.claude-3-5-sonnet-20240620-v1:0", 512, 0.5f, 0.9f));
+
+  /**
+   * Creates an AwsProvider instance from the default AWS_BASE_REQUEST JSON.
+   *
+   * @return configured AwsProvider instance
+   */
+  public static AwsProvider createDefaultAwsProvider() {
+    try {
+      return OBJECT_MAPPER.readValue(AWS_BASE_REQUEST, AwsProvider.class);
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to parse AWS provider JSON", e);
+    }
+  }
 
   private static Document loadTestFile() {
     DocumentFactory documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);

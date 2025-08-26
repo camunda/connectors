@@ -7,13 +7,13 @@
 package io.camunda.connector.aws.s3;
 
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.s3.core.S3Executor;
 import io.camunda.connector.aws.s3.model.request.S3Request;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
-import io.camunda.document.Document;
-import io.camunda.document.store.DocumentCreationRequest;
 import java.util.function.Function;
 
 @OutboundConnector(
@@ -21,11 +21,12 @@ import java.util.function.Function;
     inputVariables = {"authentication", "configuration", "actionDiscriminator", "action"},
     type = "io.camunda:aws-s3:1")
 @ElementTemplate(
+    engineVersion = "^8.7",
     id = "io.camunda.connectors.aws.s3.v1",
     name = "AWS S3 Outbound Connector",
     description = "Execute S3 requests",
     inputDataClass = S3Request.class,
-    version = 1,
+    version = 2,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),
@@ -35,7 +36,7 @@ import java.util.function.Function;
       @ElementTemplate.PropertyGroup(id = "downloadObject", label = "Download an object"),
     },
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-s3/",
+        "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/amazon-s3/",
     icon = "icon.svg")
 public class S3ConnectorFunction implements OutboundConnectorFunction {
 

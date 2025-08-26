@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.generator.openapi.util;
 
+import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.generator.dsl.http.HttpFeelBuilder;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
@@ -28,13 +30,14 @@ import io.swagger.v3.oas.models.parameters.RequestBody;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class BodyUtil {
 
   // ordered by priority if endpoint allows multiple
   private static final List<String> SUPPORTED_BODY_MEDIA_TYPES =
-      List.of("application/json", "text/plain");
+      List.of("application/json", "text/plain", "multipart/form-data");
 
   public static BodyParseResult parseBody(
       RequestBody requestBody, Components components, OpenApiGenerationSource.Options options) {
@@ -60,10 +63,14 @@ public class BodyUtil {
     if (schema == null) {
       throw new IllegalArgumentException(
           "Request body must have a schema of one of the following media types: "
-              + SUPPORTED_BODY_MEDIA_TYPES);
+              + SUPPORTED_BODY_MEDIA_TYPES
+              + " but is "
+              + requestBody.getContent().keySet());
     }
 
-    if (options.rawBody() || isComplexSchema(schema, components)) {
+    if (options.rawBody()
+        || isComplexSchema(schema, components)
+        || propertiesContainInvalidFeelNaming(schema)) {
       return new Raw(buildRawBodyExample(schema, components));
     }
 
@@ -72,6 +79,24 @@ public class BodyUtil {
     } catch (Exception e) {
       return new Raw(buildRawBodyExample(schema, components));
     }
+  }
+
+  private static boolean propertiesContainInvalidFeelNaming(Schema<?> schema) {
+    if (schema.getProperties() == null) {
+      return false;
+    }
+    FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
+    return schema.getProperties().keySet().stream()
+        .anyMatch(
+            property -> {
+              try {
+                Map<String, String> mockPropertyContext = Map.of(property, "mock");
+                String result = feelEngineWrapper.evaluate(property, mockPropertyContext);
+                return result == null;
+              } catch (FeelEngineWrapperException e) {
+                return true;
+              }
+            });
   }
 
   private static Detailed buildDetailedBody(Schema<?> schema, Components components) {
@@ -135,13 +160,13 @@ public class BodyUtil {
   // this includes objects with nested objects, arrays, or a combination of both
   private static boolean isComplexSchema(Schema<?> schema, Components components) {
     schema = ParameterUtil.getSchemaOrFromComponents(schema, components);
-    if (schema == null) {
+    if (schema == null || schema.getType() == null) {
       return false;
     }
     if (schema.getType().equals("array")) {
       return isComplexSchema(schema.getItems(), components);
     }
-    if (schema.getType().equals("object")) {
+    if (schema.getType().equals("object") && schema.getProperties() != null) {
       return schema.getProperties().values().stream()
           .map(s -> ParameterUtil.getSchemaOrFromComponents(s, components))
           .anyMatch(s -> "object".equals(s.getType()) || "array".equals(s.getType()));

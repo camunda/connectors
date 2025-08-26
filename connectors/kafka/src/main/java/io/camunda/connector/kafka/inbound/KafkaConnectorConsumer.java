@@ -23,15 +23,11 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import dev.failsafe.Failsafe;
 import dev.failsafe.RetryPolicy;
 import dev.failsafe.function.CheckedSupplier;
-import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
-import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
-import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.kafka.model.schema.AvroInlineSchemaStrategy;
 import java.time.Duration;
 import java.util.HashMap;
@@ -123,11 +119,12 @@ public class KafkaConnectorConsumer {
 
       return consumer;
     } catch (Exception ex) {
-      LOG.error("Failed to initialize connector", ex);
       context.log(
-          Activity.level(Severity.ERROR)
-              .tag("Subscription")
-              .messageWithException("Failed to initialize connector: " + ex.getMessage(), ex));
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withTag(ActivityLogTag.CONSUMER)
+                  .withMessage("Failed to initialize connector: " + ex.getMessage()));
       context.reportHealth(Health.down(ex));
       throw ex;
     }
@@ -160,12 +157,17 @@ public class KafkaConnectorConsumer {
   private void handleMessage(ConsumerRecord<Object, Object> record) {
     LOG.trace("Kafka message received: key = {}, value = {}", record.key(), record.value());
     context.log(
-        Activity.level(Severity.INFO)
-            .tag("Message")
-            .message("Received message with key : " + record.key()));
+        activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.MESSAGE)
+                .withMessage("Received message with key : " + record.key()));
     var reader = avroObjectReader != null ? avroObjectReader : objectMapper.reader();
     var mappedMessage = convertConsumerRecordToKafkaInboundMessage(record, reader);
-    var result = context.correlateWithResult(mappedMessage);
+    String messageId = record.topic() + "-" + record.partition() + "-" + record.offset();
+    var result =
+        context.correlate(
+            CorrelationRequest.builder().variables(mappedMessage).messageId(messageId).build());
     handleCorrelationResult(result);
   }
 
@@ -175,13 +177,19 @@ public class KafkaConnectorConsumer {
       case Failure failure -> {
         switch (failure.handlingStrategy()) {
           case ForwardErrorToUpstream ignored -> {
-            LOG.debug("Message not correlated, reason: {}. Offset will not be committed", failure);
             throw new RuntimeException(
-                "Message cannot be processed: " + failure.getClass().getSimpleName());
+                "Message cannot be processed: "
+                    + failure.message()
+                    + ". Offset will not be committed.");
           }
           case Ignore ignored ->
-              LOG.debug(
-                  "Message not correlated, but the error is ignored. Offset will be committed");
+              context.log(
+                  activity ->
+                      activity
+                          .withSeverity(Severity.INFO)
+                          .withTag(ActivityLogTag.MESSAGE)
+                          .withMessage(
+                              "Message not correlated, but the error is ignored. Offset will be committed"));
         }
       }
     }
@@ -219,9 +227,11 @@ public class KafkaConnectorConsumer {
   private void reportDown(Throwable error) {
     var newStatus = Health.down(error);
     context.log(
-        Activity.level(Severity.ERROR)
-            .tag("Kafka Consumer")
-            .messageWithException("Kafka Consumer status changed to DOWN: " + newStatus, error));
+        activity ->
+            activity
+                .withSeverity(Severity.ERROR)
+                .withTag(ActivityLogTag.CONSUMER)
+                .withMessage("Kafka Consumer status changed to DOWN: " + newStatus));
     if (!newStatus.equals(consumerStatus)) {
       consumerStatus = newStatus;
       context.reportHealth(Health.down(error));

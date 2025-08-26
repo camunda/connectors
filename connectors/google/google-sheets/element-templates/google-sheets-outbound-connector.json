@@ -7,7 +7,7 @@
     "keywords" : [ "create spreadsheet", "add values to spreadsheet", "create row", "create column", "create worksheet", "delete worksheet", "get row", "get spreadsheet details", "get worksheet data" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/",
-  "version" : 4,
+  "version" : 5,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,6 +15,9 @@
   "appliesTo" : [ "bpmn:Task" ],
   "elementType" : {
     "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.3"
   },
   "groups" : [ {
     "id" : "authentication",
@@ -25,6 +28,9 @@
   }, {
     "id" : "operationDetails",
     "label" : "Operation details"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -340,7 +346,7 @@
       "equals" : "createEmptyColumnOrRow",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "dimension",
     "label" : "Dimension",
@@ -383,7 +389,7 @@
       "equals" : "createEmptyColumnOrRow",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "endIndex",
     "label" : "End index",
@@ -400,7 +406,7 @@
       "equals" : "createEmptyColumnOrRow",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "createRow.spreadsheetId",
     "label" : "Spreadsheet ID",
@@ -464,7 +470,7 @@
       "equals" : "createRow",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "values",
     "label" : "Enter values",
@@ -541,7 +547,7 @@
       "equals" : "createWorksheet",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "deleteColumn.spreadsheetId",
     "label" : "Spreadsheet ID",
@@ -581,7 +587,7 @@
       "equals" : "deleteColumn",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "columnIndexType",
     "label" : "Index format",
@@ -631,7 +637,7 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "columnLetterIndex",
     "label" : "Column letter index",
@@ -694,7 +700,7 @@
       "equals" : "deleteWorksheet",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "getRowByIndex.spreadsheetId",
     "label" : "Spreadsheet ID",
@@ -751,7 +757,7 @@
       "equals" : "getRowByIndex",
       "type" : "simple"
     },
-    "type" : "String"
+    "type" : "Number"
   }, {
     "id" : "spreadsheetsDetails.spreadsheetId",
     "label" : "Spreadsheet ID",
@@ -812,6 +818,28 @@
       "type" : "simple"
     },
     "type" : "String"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "5",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.GoogleSheets.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

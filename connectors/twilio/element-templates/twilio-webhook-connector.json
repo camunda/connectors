@@ -2,7 +2,10 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Twilio Start Event Connector",
   "id": "io.camunda.connectors.TwilioWebhook.v1",
-  "version": 2,
+  "version": 3,
+  "engines": {
+    "camunda": "^8.3"
+  },
   "description": "Receive incoming message with Twilio service",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/twilio/?twilio=inbound",
   "category": {
@@ -12,6 +15,9 @@
   "appliesTo": [
     "bpmn:StartEvent"
   ],
+  "deprecated": {
+    "message": "Migrate to Twilio Message Start Event Connector"
+  },
   "elementType": {
     "value": "bpmn:StartEvent"
   },

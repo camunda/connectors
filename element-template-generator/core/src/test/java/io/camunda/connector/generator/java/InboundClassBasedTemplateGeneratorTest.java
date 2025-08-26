@@ -28,6 +28,7 @@ import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.ElementTemplate;
+import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.MessageProperty;
@@ -52,7 +53,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void connectorTypeProperty() {
-      var templates = generator.generate(MyConnectorExecutable.class);
+      var templates = generator.generate(MyConnectorExecutable.MinimallyAnnotated.class);
       for (var template : templates) {
         var property =
             template.properties().stream()
@@ -66,7 +67,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void resultVariableProperty() {
-      var templates = generator.generate(MyConnectorExecutable.class);
+      var templates = generator.generate(MyConnectorExecutable.MinimallyAnnotated.class);
       for (var template : templates) {
         var property = getPropertyByLabel("Result variable", template);
         assertThat(property.getType()).isEqualTo("String");
@@ -76,8 +77,21 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
+    void resultVariablePropertyWithValue() {
+      var templates =
+          generator.generate(MyConnectorExecutable.MinimallyAnnotatedWithResultVariable.class);
+      for (var template : templates) {
+        var property = getPropertyByLabel("Result variable", template);
+        assertThat(property.getType()).isEqualTo("String");
+        assertThat(property.getBinding().type()).isEqualTo("zeebe:property");
+        assertThat(property.getFeel()).isNull();
+        assertThat(property.getValue()).isEqualTo("myResultVariable");
+      }
+    }
+
+    @Test
     void resultExpressionProperty() {
-      var templates = generator.generate(MyConnectorExecutable.class);
+      var templates = generator.generate(MyConnectorExecutable.MinimallyAnnotated.class);
       for (var template : templates) {
         var property = getPropertyByLabel("Result expression", template);
         assertThat(property.getType()).isEqualTo("Text");
@@ -87,8 +101,21 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
+    void resultExpressionPropertyWithValue() {
+      var templates =
+          generator.generate(MyConnectorExecutable.MinimallyAnnotatedWithResultExpression.class);
+      for (var template : templates) {
+        var property = getPropertyByLabel("Result expression", template);
+        assertThat(property.getType()).isEqualTo("Text");
+        assertThat(property.getBinding().type()).isEqualTo("zeebe:property");
+        assertThat(property.getFeel()).isEqualTo(FeelMode.required);
+        assertThat(property.getValue()).isEqualTo("={ myResponse: request }");
+      }
+    }
+
+    @Test
     void activationConditionProperty() {
-      var templates = generator.generate(MyConnectorExecutable.class);
+      var templates = generator.generate(MyConnectorExecutable.MinimallyAnnotated.class);
       for (var template : templates) {
         var property = getPropertyByLabel("Activation condition", template);
         assertThat(property.getType()).isEqualTo("String");
@@ -120,7 +147,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
                   Set.of(BpmnType.BOUNDARY_EVENT), BpmnType.BOUNDARY_EVENT, null, null));
 
       // when
-      var templates = generator.generate(MyConnectorExecutable.class);
+      var templates = generator.generate(MyConnectorExecutable.MinimallyAnnotated.class);
 
       // then
       assertThat(templates).hasSize(expectedTypes.size());
@@ -147,7 +174,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
               ConnectorMode.NORMAL, null, null, null, Set.of(type), Map.of());
 
       // when
-      var templates = generator.generate(MyConnectorExecutable.class, config);
+      var templates = generator.generate(MyConnectorExecutable.MinimallyAnnotated.class, config);
 
       // then
       assertThat(templates).hasSize(1);
@@ -170,7 +197,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
               ConnectorMode.NORMAL, null, null, null, Set.of(type), Map.of());
 
       // when
-      var templates = generator.generate(MyConnectorExecutable.class, config);
+      var templates = generator.generate(MyConnectorExecutable.MinimallyAnnotated.class, config);
 
       // then
       assertThat(templates).hasSize(1);
@@ -195,7 +222,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
               ConnectorMode.NORMAL, null, null, null, Set.of(type1, type2), Map.of());
 
       // when
-      var templates = generator.generate(MyConnectorExecutable.class, config);
+      var templates = generator.generate(MyConnectorExecutable.MinimallyAnnotated.class, config);
 
       // then
       assertThat(templates).hasSize(2);
@@ -230,7 +257,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
               ConnectorMode.NORMAL, null, null, null, Set.of(type), Map.of());
 
       // when
-      var templates = generator.generate(MyConnectorExecutable.class, config);
+      var templates = generator.generate(MyConnectorExecutable.MinimallyAnnotated.class, config);
 
       // then
       assertThat(templates).hasSize(1);
@@ -282,7 +309,8 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
         new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null, Set.of(type), Map.of());
 
     // when
-    var template = generator.generate(MyConnectorExecutable.class, config).getFirst();
+    var template =
+        generator.generate(MyConnectorExecutable.MinimallyAnnotated.class, config).getFirst();
 
     var property = getPropertyByLabel("Prop 1", template);
 
@@ -308,7 +336,8 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
               ConnectorMode.NORMAL, null, null, null, Set.of(type), Map.of());
 
       // when
-      var template = generator.generate(MyConnectorExecutable.class, config).getFirst();
+      var template =
+          generator.generate(MyConnectorExecutable.MinimallyAnnotated.class, config).getFirst();
 
       // then
       assertThrows(Exception.class, () -> assertDeduplicationProperties(template));
@@ -330,7 +359,8 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
               Map.of(GenerationFeature.INBOUND_DEDUPLICATION, true));
 
       // when
-      var template = generator.generate(MyConnectorExecutable.class, config).getFirst();
+      var template =
+          generator.generate(MyConnectorExecutable.MinimallyAnnotated.class, config).getFirst();
 
       // then
       assertDeduplicationProperties(template);
@@ -352,7 +382,8 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
               Map.of(GenerationFeature.INBOUND_DEDUPLICATION, false));
 
       // when
-      var template = generator.generate(MyConnectorExecutable.class, config).getFirst();
+      var template =
+          generator.generate(MyConnectorExecutable.MinimallyAnnotated.class, config).getFirst();
 
       // then
       assertThrows(Exception.class, () -> assertDeduplicationProperties(template));
@@ -395,5 +426,31 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(deduplicationKeyProperty.getCondition())
           .isEqualTo(new Equals("deduplicationModeManualFlag", true));
     }
+  }
+
+  @Test
+  void supportsExtensionProperties() {
+    var template =
+        generator
+            .generate(MyConnectorExecutable.MinimallyAnnotatedWithExtensionProperties.class)
+            .getFirst();
+
+    assertThat(template.properties())
+        .filteredOn(
+            p ->
+                p.getBinding().type().equals("zeebe:property")
+                    && ((ZeebeProperty) p.getBinding()).name().startsWith("myExtensionProperty"))
+        .hasSize(2)
+        .satisfiesExactlyInAnyOrder(
+            p -> {
+              assertThat(p).isInstanceOf(HiddenProperty.class);
+              assertThat(p.getBinding()).isEqualTo(new ZeebeProperty("myExtensionProperty1"));
+              assertThat(p.getValue()).isEqualTo("value1");
+            },
+            p -> {
+              assertThat(p).isInstanceOf(HiddenProperty.class);
+              assertThat(p.getBinding()).isEqualTo(new ZeebeProperty("myExtensionProperty2"));
+              assertThat(p.getValue()).isEqualTo("value2");
+            });
   }
 }

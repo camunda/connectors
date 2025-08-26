@@ -2,7 +2,10 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Easy Post Outbound Connector",
   "id": "io.camunda.connectors.EasyPost.v1",
-  "version": 4,
+  "version": 5,
+  "engines": {
+    "camunda": "^8.3"
+  },
   "description": "Manage addresses, parcels, and shipments with Easy Post.",
   "metadata": {
     "keywords": [
@@ -51,9 +54,9 @@
     {
       "type": "Hidden",
       "value": "io.camunda:http-json:1",
-      "binding" : {
-        "property" : "type",
-        "type" : "zeebe:taskDefinition"
+      "binding": {
+        "property": "type",
+        "type": "zeebe:taskDefinition"
       }
     },
     {
@@ -988,6 +991,30 @@
         "type": "zeebe:taskHeader"
       },
       "type": "Text"
+    },
+    {
+      "id": "version",
+      "label": "Version",
+      "description": "Version of the element template",
+      "value": "5",
+      "group": "connector",
+      "binding": {
+        "key": "elementTemplateVersion",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "id",
+      "label": "ID",
+      "description": "ID of the element template",
+      "value": "io.camunda.connectors.EasyPost.v1",
+      "group": "connector",
+      "binding": {
+        "key": "elementTemplateId",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Hidden"
     },
     {
       "id": "retryBackoff",

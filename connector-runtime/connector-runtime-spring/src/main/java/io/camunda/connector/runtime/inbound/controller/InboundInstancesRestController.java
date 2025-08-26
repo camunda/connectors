@@ -16,13 +16,19 @@
  */
 package io.camunda.connector.runtime.inbound.controller;
 
-import io.camunda.connector.api.inbound.Activity;
-import io.camunda.connector.api.inbound.ProcessElement;
+import static io.camunda.connector.runtime.core.http.InstanceForwardingHttpClient.X_CAMUNDA_FORWARDED_FOR;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.runtime.inbound.controller.exception.DataNotFoundException;
 import io.camunda.connector.runtime.inbound.executable.*;
-import java.util.Collection;
+import io.camunda.connector.runtime.instances.InstanceAwareModel;
+import io.camunda.connector.runtime.instances.service.InboundInstancesService;
+import io.camunda.connector.runtime.instances.service.InstanceForwardingRouter;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -36,100 +42,84 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/inbound-instances")
 public class InboundInstancesRestController {
 
-  private final InboundExecutableRegistry executableRegistry;
+  private final InstanceForwardingRouter instanceForwardingRouter;
+  private final InboundInstancesService inboundInstancesService;
 
-  private final ConnectorDataMapper connectorDataMapper = new ConnectorDataMapper();
+  @Value("${camunda.connector.hostname:${HOSTNAME:localhost}}")
+  private String hostname;
 
-  public InboundInstancesRestController(InboundExecutableRegistry executableRegistry) {
-    this.executableRegistry = executableRegistry;
+  public InboundInstancesRestController(
+      @Autowired(required = false) InstanceForwardingRouter instanceForwardingRouter,
+      InboundInstancesService inboundInstancesService) {
+    this.instanceForwardingRouter = instanceForwardingRouter;
+    this.inboundInstancesService = inboundInstancesService;
   }
 
   @GetMapping()
-  public List<ConnectorInstances> getConnectorInstances() {
-    return getConnectorsInstances(null);
+  public List<ConnectorInstances> getConnectorInstances(
+      HttpServletRequest request,
+      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor) {
+    return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
+        request,
+        forwardedFor,
+        inboundInstancesService::findAllConnectorInstances,
+        new TypeReference<>() {});
   }
 
   @GetMapping("/{type}")
-  public ConnectorInstances getConnectorInstance(@PathVariable(name = "type") String type) {
-    var instances = getConnectorsInstances(type);
-    if (instances.isEmpty()) {
-      throw new DataNotFoundException(ConnectorInstances.class, type);
-    }
-    return instances.getFirst();
+  public ConnectorInstances getConnectorInstance(
+      HttpServletRequest request,
+      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
+      @PathVariable(name = "type") String type) {
+    return Optional.ofNullable(
+            instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
+                request,
+                forwardedFor,
+                () -> inboundInstancesService.findConnectorInstancesOfType(type),
+                new TypeReference<>() {}))
+        .orElseThrow(() -> new DataNotFoundException(ConnectorInstances.class, type));
   }
 
   @GetMapping("/{type}/executables/{executableId}")
   public ActiveInboundConnectorResponse getConnectorInstanceExecutable(
+      HttpServletRequest request,
+      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
       @PathVariable(name = "type") String type,
       @PathVariable(name = "executableId") String executableId) {
-    var instances = getConnectorsInstances(type);
-    if (instances.isEmpty()) {
-      throw new DataNotFoundException(ConnectorInstances.class, type);
-    }
-    var instance = instances.getFirst();
-    var executables =
-        instance.instances().stream()
-            .filter(
-                activeInboundConnectorResponse ->
-                    activeInboundConnectorResponse.executableId().toString().equals(executableId))
-            .toList();
-    if (executables.isEmpty()) {
-      throw new DataNotFoundException(ActiveInboundConnectorResponse.class, executableId);
-    }
-    return executables.getFirst();
+    return Optional.ofNullable(
+            instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
+                request,
+                forwardedFor,
+                () -> inboundInstancesService.findExecutable(type, executableId),
+                new TypeReference<>() {}))
+        .orElseThrow(
+            () -> new DataNotFoundException(ActiveInboundConnectorResponse.class, executableId));
+  }
+
+  @GetMapping("/{type}/executables/{executableId}/health")
+  public List<InstanceAwareModel.InstanceAwareHealth> getConnectorInstanceExecutableHealth(
+      HttpServletRequest request,
+      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
+      @PathVariable(name = "type") String type,
+      @PathVariable(name = "executableId") String executableId) {
+
+    return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
+        request,
+        forwardedFor,
+        () -> inboundInstancesService.findInstanceAwareHealth(type, executableId, hostname),
+        new TypeReference<>() {});
   }
 
   @GetMapping("/{type}/executables/{executableId}/logs")
-  public Collection<Activity> getConnectorInstanceExecutableLogs(
+  public List<InstanceAwareModel.InstanceAwareActivity> getConnectorInstanceExecutableLogs(
+      HttpServletRequest request,
+      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
       @PathVariable(name = "type") String type,
       @PathVariable(name = "executableId") String executableId) {
-    var executable = getConnectorInstanceExecutable(type, executableId);
-    var processIds =
-        executable.elements().stream().map(ProcessElement::bpmnProcessId).distinct().toList();
-    if (processIds.size() > 1) {
-      throw new RuntimeException(
-          "Multiple process ids found for the executable id: "
-              + executableId
-              + ". This is not supported yet.");
-    }
-    var processId = processIds.getFirst();
-    var result =
-        executableRegistry
-            .query(new ActiveExecutableQuery(processId, null, type, executable.tenantId()))
-            .stream()
-            .filter(
-                activeExecutableResponse ->
-                    activeExecutableResponse.executableId().toString().equals(executableId))
-            .findFirst();
-    if (result.isEmpty()) {
-      throw new DataNotFoundException(Activity.class, executableId);
-    }
-    return result.get().logs();
-  }
-
-  /**
-   * Be aware that this API is used by c4-connectors to get the active inbound connectors grouped by
-   * connector type. Changing the response format will break the c4-connectors, so make sure to
-   * update the c4-connectors as well.
-   *
-   * @param type the connectorId to filter by (also called 'connectorId')
-   */
-  private List<ConnectorInstances> getConnectorsInstances(String type) {
-    var activeInboundConnectors = getActiveInboundConnectors(type);
-    return activeInboundConnectors.stream()
-        .collect(Collectors.groupingBy(ActiveInboundConnectorResponse::type, Collectors.toList()))
-        .entrySet()
-        .stream()
-        .map(
-            e ->
-                new ConnectorInstances(
-                    e.getKey(), executableRegistry.getConnectorName(e.getKey()), e.getValue()))
-        .toList();
-  }
-
-  private List<ActiveInboundConnectorResponse> getActiveInboundConnectors(String type) {
-    return executableRegistry.query(new ActiveExecutableQuery(null, null, type, null)).stream()
-        .map(connectorDataMapper::createActiveInboundConnectorResponse)
-        .collect(Collectors.toList());
+    return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
+        request,
+        forwardedFor,
+        () -> inboundInstancesService.findInstanceAwareActivityLogs(type, executableId, hostname),
+        new TypeReference<>() {});
   }
 }

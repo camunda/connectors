@@ -13,11 +13,11 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Import Secrets
         id: secrets
-        uses: hashicorp/vault-action@v3.3.0
+        uses: hashicorp/vault-action@v3.4.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -36,7 +36,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -57,13 +57,13 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '16'
+          node-version: '22'
 
       - name: Install element templates CLI
         run: npm install --global element-templates-cli
 
       - name: Build Connectors
-        run: mvn --batch-mode clean test -PcheckFormat -Dsurefire.skipAfterFailureCount=1
+        run: mvn --batch-mode clean test -PcheckFormat -Dquickly
 
       - name: Lint Dockerfile - connector-runtime
         uses: hadolint/hadolint-action@v3.1.0
@@ -83,7 +83,7 @@ jobs:
       - name: Check element templates for forbidden links to /next/ documentation
         run: |
           chmod +x ./.github/workflows/scripts/collect_all_element_template_docs_links.sh
-          ./.github/workflows/scripts/collect_all_element_template_docs_links.sh
+          ./.github/workflows/scripts/collect_all_element_template_docs_links.sh --current-only
           if grep -q "/next/" connectors-element-template-links.txt; then
             echo "❌ Forbidden link to '/next/' documentation found!"
             exit 1

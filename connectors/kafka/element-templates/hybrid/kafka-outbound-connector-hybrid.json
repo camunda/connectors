@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound",
-  "version" : 5,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,6 +15,9 @@
   "appliesTo" : [ "bpmn:Task" ],
   "elementType" : {
     "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.3"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
@@ -26,8 +29,14 @@
     "id" : "kafka",
     "label" : "Kafka"
   }, {
+    "id" : "schema",
+    "label" : "Schema"
+  }, {
     "id" : "message",
     "label" : "Message"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -102,10 +111,22 @@
     },
     "type" : "String"
   }, {
+    "id" : "additionalProperties",
+    "label" : "Additional properties",
+    "description" : "Provide additional Kafka producer properties in JSON",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "kafka",
+    "binding" : {
+      "name" : "additionalProperties",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
     "id" : "schemaStrategy.type",
     "label" : "Schema strategy",
     "value" : "noSchema",
-    "group" : "kafka",
+    "group" : "schema",
     "binding" : {
       "name" : "schemaStrategy.type",
       "type" : "zeebe:input"
@@ -115,19 +136,59 @@
       "name" : "No schema",
       "value" : "noSchema"
     }, {
-      "name" : "Inline schema",
+      "name" : "Avro Inline schema",
       "value" : "inlineSchema"
     }, {
-      "name" : "Schema registry",
+      "name" : "Confluent Schema registry",
       "value" : "schemaRegistry"
     } ]
+  }, {
+    "id" : "schemaStrategy.avro.schema",
+    "label" : "Schema",
+    "description" : "Avro inline schema for the message value",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "schema",
+    "binding" : {
+      "name" : "schemaStrategy.schema",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "schemaStrategy.type",
+      "equals" : "inlineSchema",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "schemaStrategy.schema",
+    "label" : "Schema",
+    "description" : "Schema (JSON or AVRO) for the message value",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "schema",
+    "binding" : {
+      "name" : "schemaStrategy.schema",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "schemaStrategy.type",
+      "equals" : "schemaRegistry",
+      "type" : "simple"
+    },
+    "type" : "Text"
   }, {
     "id" : "schemaStrategy.schemaType",
     "label" : "Schema type",
     "description" : "Select the schema type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "value" : "avro",
-    "group" : "kafka",
+    "group" : "schema",
     "binding" : {
       "name" : "schemaStrategy.schemaType",
       "type" : "zeebe:input"
@@ -142,7 +203,7 @@
       "name" : "JSON",
       "value" : "json"
     }, {
-      "name" : "Avro (alpha)",
+      "name" : "Avro",
       "value" : "avro"
     } ]
   }, {
@@ -154,7 +215,7 @@
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "kafka",
+    "group" : "schema",
     "binding" : {
       "name" : "schemaStrategy.schemaRegistryUrl",
       "type" : "zeebe:input"
@@ -163,30 +224,6 @@
       "property" : "schemaStrategy.type",
       "equals" : "schemaRegistry",
       "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "headers",
-    "label" : "Headers",
-    "description" : "Provide Kafka producer headers in JSON",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "kafka",
-    "binding" : {
-      "name" : "headers",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
-  }, {
-    "id" : "additionalProperties",
-    "label" : "Additional properties",
-    "description" : "Provide additional Kafka producer properties in JSON",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "kafka",
-    "binding" : {
-      "name" : "additionalProperties",
-      "type" : "zeebe:input"
     },
     "type" : "String"
   }, {
@@ -217,45 +254,39 @@
     },
     "type" : "String"
   }, {
-    "id" : "schemaStrategy.avro.schema",
-    "label" : "Schema",
-    "description" : "Inline schema (Avro) for the message value",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
+    "id" : "headers",
+    "label" : "Headers",
+    "description" : "Provide Kafka producer headers in JSON",
+    "optional" : true,
     "feel" : "required",
     "group" : "message",
     "binding" : {
-      "name" : "schemaStrategy.schema",
+      "name" : "headers",
       "type" : "zeebe:input"
     },
-    "condition" : {
-      "property" : "schemaStrategy.type",
-      "equals" : "inlineSchema",
-      "type" : "simple"
-    },
-    "type" : "Text"
+    "type" : "String"
   }, {
-    "id" : "schemaStrategy.schema",
-    "label" : "Schema",
-    "description" : "Schema (JSON or AVRO) for the message value",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "message",
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "6",
+    "group" : "connector",
     "binding" : {
-      "name" : "schemaStrategy.schema",
-      "type" : "zeebe:input"
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
     },
-    "condition" : {
-      "property" : "schemaStrategy.type",
-      "equals" : "schemaRegistry",
-      "type" : "simple"
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.KAFKA.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
     },
-    "type" : "Text"
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

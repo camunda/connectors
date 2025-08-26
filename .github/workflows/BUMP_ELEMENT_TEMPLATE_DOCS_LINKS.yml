@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Collect connector template links
         run: |
@@ -24,7 +24,7 @@ jobs:
 
       - name: Import Secrets
         id: vault-secrets
-        uses: hashicorp/vault-action@v3.3.0
+        uses: hashicorp/vault-action@v3.4.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -36,7 +36,7 @@ jobs:
 
       - name: Generate a GitHub token for connectors
         id: app-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v2
         with:
           app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
           private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
@@ -44,7 +44,7 @@ jobs:
           repositories: camunda-docs
 
       - name: Checkout camunda-docs repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: camunda/camunda-docs
           token: ${{ steps.app-token.outputs.token }}

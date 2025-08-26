@@ -28,13 +28,13 @@ import com.slack.api.model.File;
 import com.slack.api.model.Message;
 import com.slack.api.model.User;
 import com.slack.api.util.http.SlackHttpClient;
-import io.camunda.client.api.response.DocumentMetadata;
-import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.document.annotation.jackson.DocumentReferenceModel;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.document.CamundaDocument;
-import io.camunda.document.Document;
-import io.camunda.document.reference.DocumentReference;
+import io.camunda.document.DocumentMetadataImpl;
 import io.camunda.document.store.CamundaDocumentStore;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -54,15 +54,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ChatPostMessageDataTest {
 
-  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-  private MethodsClient methodsClient;
-
-  @Mock private UsersLookupByEmailResponse lookupByEmailResponse;
-  @Mock private User user;
-  @Mock private ChatPostMessageResponse chatPostMessageResponse;
-
-  @Captor private ArgumentCaptor<ChatPostMessageRequest> chatPostMessageRequest;
-
   private static final String USERID = "testUserId";
   private static final JsonNode EMPTY_JSON;
 
@@ -74,12 +65,25 @@ class ChatPostMessageDataTest {
     }
   }
 
+  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+  private MethodsClient methodsClient;
+
+  @Mock private UsersLookupByEmailResponse lookupByEmailResponse;
+  @Mock private User user;
+  @Mock private ChatPostMessageResponse chatPostMessageResponse;
+  @Captor private ArgumentCaptor<ChatPostMessageRequest> chatPostMessageRequest;
+
   @Test
   void invoke_shouldThrowExceptionWhenUserWithoutEmail() throws SlackApiException, IOException {
     // Given
     ChatPostMessageData chatPostMessageData =
         new ChatPostMessageData(
-            "test@test.com", "thread_ts", "plainText", "Test text", EMPTY_JSON, List.of());
+            "test@test.com",
+            "thread_ts",
+            MessageType.plainText,
+            "Test text",
+            EMPTY_JSON,
+            List.of());
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class))).thenReturn(null);
     // When and then
     Throwable thrown = catchThrowable(() -> chatPostMessageData.invoke(methodsClient));
@@ -101,7 +105,7 @@ class ChatPostMessageDataTest {
   void invoke_shouldFindUserIdByEmail(String email) throws SlackApiException, IOException {
     // Given
     ChatPostMessageData chatPostMessageData =
-        new ChatPostMessageData(email, "thread_ts", "plainText", "test", null, List.of());
+        new ChatPostMessageData(email, "thread_ts", MessageType.plainText, "test", null, List.of());
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);
@@ -124,7 +128,12 @@ class ChatPostMessageDataTest {
     // Given
     ChatPostMessageData chatPostMessageData =
         new ChatPostMessageData(
-            "test@test.com", "thread_ts", "plainText", "test", null, List.of(prepareDocument()));
+            "test@test.com",
+            "thread_ts",
+            MessageType.plainText,
+            "test",
+            null,
+            List.of(prepareDocument()));
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);
@@ -212,7 +221,7 @@ class ChatPostMessageDataTest {
         new ChatPostMessageData(
             "test@test.com",
             "thread_ts",
-            "messageBlock",
+            MessageType.messageBlock,
             "test",
             objectMapper.readTree(blockContent),
             List.of());
@@ -253,7 +262,7 @@ class ChatPostMessageDataTest {
         new ChatPostMessageData(
             "test@test.com",
             "thread_ts",
-            "plainText",
+            MessageType.plainText,
             "test",
             objectMapper.readTree(blockContent),
             List.of());
@@ -268,7 +277,7 @@ class ChatPostMessageDataTest {
     // Then
 
     assertThat(thrown).hasMessageContaining("Block section must be an array");
-    assertThat(thrown).isInstanceOf(ConnectorException.class);
+    assertThat(thrown).isInstanceOf(ConnectorInputException.class);
   }
 
   private Document prepareDocument() {
@@ -280,8 +289,14 @@ class ChatPostMessageDataTest {
     when(documentStore.getDocumentContent(any())).thenReturn(byteInput);
 
     DocumentMetadata documentMetadata =
-        new DocumentReferenceModel.CamundaDocumentMetadataModel(
-            "txt", OffsetDateTime.now(), 3000L, "fileName", "processId", 2000L, Map.of());
+        new DocumentMetadataImpl(
+            "text/plain",
+            OffsetDateTime.now().plusDays(1),
+            3000L,
+            "fileName.txt",
+            "processId",
+            2000L,
+            Map.of());
 
     return new CamundaDocument(documentMetadata, documentReference, documentStore);
   }

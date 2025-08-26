@@ -47,13 +47,13 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
   public void update(ProcessImportResult processDefinitions) {
     var entries = processDefinitions.processDefinitionVersions().entrySet();
 
-    LOG.debug("Filtering only new process definitions...");
+    LOG.trace("Filtering only new process definitions...");
     var newlyDeployed =
         entries.stream()
             .filter(entry -> !processStates.containsKey(entry.getKey().bpmnProcessId()))
             .toList();
 
-    LOG.debug("Filtering only updated process definitions...");
+    LOG.trace("Filtering only updated process definitions...");
     var replacedWithDifferentVersion =
         entries.stream()
             .filter(
@@ -63,7 +63,7 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
                 })
             .toList();
 
-    LOG.debug("Filtering only old process definitions)");
+    LOG.trace("Filtering only deleted process definitions)");
     var deletedProcessIds =
         processStates.keySet().stream()
             .filter(
@@ -74,9 +74,9 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
 
     logResult(newlyDeployed, replacedWithDifferentVersion, deletedProcessIds);
 
-    newlyDeployed.forEach(this::newlyDeployed);
-    replacedWithDifferentVersion.forEach(this::replacedWithDifferentVersion);
     deletedProcessIds.forEach(this::deleted);
+    replacedWithDifferentVersion.forEach(this::replacedWithDifferentVersion);
+    newlyDeployed.forEach(this::newlyDeployed);
   }
 
   private void newlyDeployed(

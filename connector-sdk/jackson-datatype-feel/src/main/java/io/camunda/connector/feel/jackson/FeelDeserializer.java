@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import scala.compiletime.ops.string;
 
 /**
  * A Jackson deserializer for FEEL expressions. It can be used to deserialize a string that contains
@@ -64,6 +65,10 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
           && !textValue.trim().startsWith("[")) {
         // Support legacy list like formats like: a,b,c | 1,2,3
         return handleListLikeFormat(textValue);
+      } else if (outputType.isJavaLangObject()
+          && ((textValue.startsWith("\"") && textValue.endsWith("\""))
+              || (textValue.startsWith("'") && textValue.endsWith("'")))) {
+        return handleNormalJsonNode(node, jacksonCtx);
       } else {
         var jsonFactory = jacksonCtx.getParser().getCodec().getFactory();
         try (JsonParser jsonParser = jsonFactory.createParser(textValue)) {

@@ -19,21 +19,24 @@ package io.camunda.connector.test.inbound;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.document.annotation.jackson.JacksonModuleDocumentDeserializer;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
+import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.test.ConnectorContextTestUtil;
-import io.camunda.document.Document;
-import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.factory.DocumentFactoryImpl;
-import io.camunda.document.reference.DocumentReference;
-import io.camunda.document.store.DocumentCreationRequest;
+import io.camunda.connector.test.MapSecretProvider;
+import io.camunda.document.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,17 +44,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Consumer;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Test helper class for creating an {@link InboundConnectorContext} with a fluent API. */
 public class InboundConnectorContextBuilder {
 
+  private static final Logger LOG = LoggerFactory.getLogger(InboundConnectorContextBuilder.class);
+
   protected final Map<String, String> secrets = new HashMap<>();
-  protected SecretProvider secretProvider = secrets::get;
+  protected SecretProvider secretProvider = new MapSecretProvider(secrets);
   protected Map<String, Object> properties;
   protected InboundConnectorDefinition definition;
-  protected ValidationProvider validationProvider;
+  protected ValidationProvider validationProvider =
+      ValidationUtil.discoverDefaultValidationProviderImplementation();
   protected CorrelationResult result;
   protected DocumentFactory documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
@@ -214,8 +222,8 @@ public class InboundConnectorContextBuilder {
     private final List<Object> correlatedEvents = new ArrayList<>();
     private final String propertiesWithSecrets;
     private final CorrelationResult result;
-    private Health health = Health.unknown();
     private final Long activationTimestamp;
+    private Health health = Health.unknown();
 
     protected TestInboundConnectorContext(
         SecretProvider secretProvider,
@@ -226,7 +234,7 @@ public class InboundConnectorContextBuilder {
       this.activationTimestamp = System.currentTimeMillis();
       try {
         propertiesWithSecrets =
-            getSecretHandler().replaceSecrets(objectMapper.writeValueAsString(properties));
+            getSecretHandler().replaceSecrets(objectMapper.writeValueAsString(properties), null);
       } catch (JsonProcessingException e) {
         throw new RuntimeException(e);
       }
@@ -239,50 +247,26 @@ public class InboundConnectorContextBuilder {
     @Override
     public ActivationCheckResult canActivate(Object variables) {
       return new ActivationCheckResult.Success.CanActivate(
-          new ProcessElementContext() {
-
-            @Override
-            public ProcessElement getElement() {
-              return new ProcessElement("test", 0, 0, "test", "<default>");
-            }
-
-            @Override
-            public <T> T bindProperties(Class<T> cls) {
-              return TestInboundConnectorContext.this.bindProperties(cls);
-            }
-
-            @Override
-            public Map<String, Object> getProperties() {
-              return TestInboundConnectorContext.this.getProperties();
-            }
-          });
+          new ProcessElementWithRuntimeData("test", 0, 0, "test", "<default>"));
     }
 
     @Override
     public CorrelationResult correlateWithResult(Object variables) {
+      return getCorrelationResult(variables);
+    }
+
+    @Override
+    public CorrelationResult correlate(CorrelationRequest correlationRequest) {
+      return getCorrelationResult(correlationRequest.getVariables());
+    }
+
+    @NotNull
+    private CorrelationResult getCorrelationResult(Object variables) {
       correlate(variables);
       return Objects.requireNonNullElse(
           result,
           new Success.ProcessInstanceCreated(
-              new ProcessElementContext() {
-
-                @Override
-                public ProcessElement getElement() {
-                  return new ProcessElement("test", 0, 0, "test", "<default>");
-                }
-
-                @Override
-                public <T> T bindProperties(Class<T> cls) {
-                  return TestInboundConnectorContext.this.bindProperties(cls);
-                }
-
-                @Override
-                public Map<String, Object> getProperties() {
-                  return TestInboundConnectorContext.this.getProperties();
-                }
-              },
-              0L,
-              "test"));
+              new ProcessElementWithRuntimeData("test", 0, 0, "test", "<default>"), 0L, "test"));
     }
 
     @Override
@@ -337,11 +321,15 @@ public class InboundConnectorContextBuilder {
     }
 
     @Override
-    public void log(Activity activity) {}
+    public void log(Activity activity) {
+      LOG.info("Activity logged: {}", activity);
+    }
 
     @Override
-    public Queue<Activity> getLogs() {
-      return new ConcurrentLinkedQueue<>();
+    public void log(Consumer<ActivityBuilder> activityBuilderConsumer) {
+      ActivityBuilder activityBuilder = Activity.newBuilder();
+      activityBuilderConsumer.accept(activityBuilder);
+      log(activityBuilder.build());
     }
 
     @Override

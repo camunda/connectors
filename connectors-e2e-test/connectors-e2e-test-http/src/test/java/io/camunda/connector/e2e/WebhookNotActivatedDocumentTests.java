@@ -21,9 +21,9 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.util.StreamUtils.copyToByteArray;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.response.ProcessDefinition;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
@@ -31,8 +31,8 @@ import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
-import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.factory.DocumentFactoryImpl;
+import io.camunda.connector.test.SlowTest;
+import io.camunda.document.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.instance.Process;
@@ -68,11 +68,11 @@ import org.springframework.test.web.servlet.ResultActions;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true",
-      "camunda.connector.polling.enabled=true",
-      "operate.client.profile=simple"
+      "camunda.connector.polling.enabled=true"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
+@SlowTest
 @Import(WebhookNotActivatedDocumentTests.SpyTestConfig.class)
 @ExtendWith(MockitoExtension.class)
 @AutoConfigureMockMvc
@@ -91,9 +91,6 @@ public class WebhookNotActivatedDocumentTests {
   public static final String TEXT_FILE = "text.txt";
   public static final String PNG_FILE = "camunda1.png";
   @Autowired CamundaClient camundaClient;
-
-  ObjectMapper mapper = new ObjectMapper();
-
   @Autowired MockMvc mockMvc;
 
   @MockBean ProcessDefinitionSearch processDefinitionSearch;

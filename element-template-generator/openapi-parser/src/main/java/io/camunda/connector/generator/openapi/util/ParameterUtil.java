@@ -17,15 +17,13 @@
 package io.camunda.connector.generator.openapi.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /** Utility functions related to converting OpenAPI parameters to {@link HttpOperationProperty}s. */
 public class ParameterUtil {
@@ -34,7 +32,8 @@ public class ParameterUtil {
       Map.of(
           "path", HttpOperationProperty.Target.PATH,
           "query", HttpOperationProperty.Target.QUERY,
-          "header", HttpOperationProperty.Target.HEADER);
+          "header", HttpOperationProperty.Target.HEADER,
+          "headers", HttpOperationProperty.Target.HEADER);
 
   public static HttpOperationProperty transformToProperty(
       Parameter parameter, Components components) {
@@ -66,7 +65,17 @@ public class ParameterUtil {
     }
     var schema = getSchemaOrFromComponents(parameter.getSchema(), components);
 
-    if (schema.getEnum() != null) {
+    if (Objects.isNull(schema.getType())
+        || schema.getType().equals("string")
+        || schema.getType().equals("integer")
+        || schema.getType().equals("number")) {
+      return HttpOperationProperty.createStringProperty(
+          name,
+          targetMapping.get(parameter.getIn()),
+          parameter.getDescription(),
+          parameter.getRequired() != null && parameter.getRequired(),
+          example);
+    } else if (!Objects.isNull(schema.getEnum())) {
       return HttpOperationProperty.createEnumProperty(
           name,
           targetMapping.get(parameter.getIn()),
@@ -80,15 +89,6 @@ public class ParameterUtil {
           parameter.getDescription(),
           parameter.getRequired() != null && parameter.getRequired(),
           Arrays.asList("true", "false"));
-    } else if (schema.getType().equals("string")
-        || schema.getType().equals("integer")
-        || schema.getType().equals("number")) {
-      return HttpOperationProperty.createStringProperty(
-          name,
-          targetMapping.get(parameter.getIn()),
-          parameter.getDescription(),
-          parameter.getRequired() != null && parameter.getRequired(),
-          example);
     } else if (schema.getType().equals("object") || schema.getType().equals("array")) {
       return HttpOperationProperty.createFeelProperty(
           name,
@@ -143,12 +143,24 @@ public class ParameterUtil {
   }
 
   private static Object generateFakeDataFromSchema(Schema<?> schema, Components components) {
+    return generateFakeDataFromSchema(schema, components, new HashSet<>());
+  }
+
+  private static Object generateFakeDataFromSchema(
+      Schema<?> schema, Components components, HashSet<Schema<?>> visitedSchemas) {
     switch (schema.getType()) {
       case "string" -> {
         return "string";
       }
       case "object" -> {
         Map<String, Object> nested = new HashMap<>();
+
+        boolean shouldEarlyExitWhenCircleDetected = visitedSchemas.contains(schema);
+        if (shouldEarlyExitWhenCircleDetected) {
+          return nested;
+        }
+        visitedSchemas.add(schema);
+
         schema.getProperties().entrySet().stream()
             .map(
                 entry ->
@@ -157,7 +169,9 @@ public class ParameterUtil {
             .forEach(
                 entry ->
                     nested.put(
-                        entry.getKey(), generateFakeDataFromSchema(entry.getValue(), components)));
+                        entry.getKey(),
+                        generateFakeDataFromSchema(
+                            entry.getValue(), components, new HashSet<>(visitedSchemas))));
         return nested;
       }
       case "array" -> {

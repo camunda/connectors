@@ -20,19 +20,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.FinalCommandStep;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.outbound.ConnectorJobHandler;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
-import io.camunda.connector.runtime.metrics.ConnectorMetrics;
-import io.camunda.connector.runtime.metrics.ConnectorMetrics.Outbound;
-import io.camunda.document.factory.DocumentFactory;
+import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.spring.client.jobhandling.CommandWrapper;
-import io.camunda.spring.client.metrics.MetricsRecorder;
+import io.camunda.spring.client.metrics.DefaultNoopMetricsRecorder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,103 +45,91 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
   private static final int MAX_ZEEBE_COMMAND_RETRIES = 3;
 
   private final CommandExceptionHandlingStrategy commandExceptionHandlingStrategy;
-  private final MetricsRecorder metricsRecorder;
-  private final OutboundConnectorConfiguration connectorConfiguration;
+  private final ConnectorsOutboundMetrics connectorsOutboundMetrics;
+  private final DefaultNoopMetricsRecorder defaultNoopMetricsRecorder;
 
   public SpringConnectorJobHandler(
-      MetricsRecorder metricsRecorder,
+      ConnectorsOutboundMetrics outboundMetrics,
       CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
       SecretProviderAggregator secretProviderAggregator,
       ValidationProvider validationProvider,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper,
       OutboundConnectorFunction connectorFunction,
-      OutboundConnectorConfiguration connectorConfiguration) {
+      DefaultNoopMetricsRecorder defaultNoopMetricsRecorder) {
     super(
         connectorFunction,
         secretProviderAggregator,
         validationProvider,
         documentFactory,
         objectMapper);
-    this.metricsRecorder = metricsRecorder;
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
-    this.connectorConfiguration = connectorConfiguration;
+    this.connectorsOutboundMetrics = outboundMetrics;
+    this.defaultNoopMetricsRecorder = defaultNoopMetricsRecorder;
   }
 
   @Override
   public void handle(JobClient client, ActivatedJob job) {
-    metricsRecorder.executeWithTimer(
-        ConnectorMetrics.Outbound.METRIC_NAME_TIME,
-        job.getType(),
-        () -> {
-          metricsRecorder.increase(
-              Outbound.METRIC_NAME_INVOCATIONS,
-              Outbound.ACTION_ACTIVATED,
-              connectorConfiguration.type());
-          try {
-            super.handle(client, job);
-          } catch (Exception e) {
-            metricsRecorder.increase(
-                Outbound.METRIC_NAME_INVOCATIONS,
-                Outbound.ACTION_FAILED,
-                connectorConfiguration.type());
-            LOGGER.warn("Failed to handle job: {}", job);
-          }
-        });
+    connectorsOutboundMetrics.increaseInvocation(job);
+    connectorsOutboundMetrics.executeWithTimer(job, () -> this.executeJob(client, job));
+  }
+
+  private void executeJob(JobClient client, ActivatedJob job) {
+    try {
+      super.handle(client, job);
+    } catch (Exception e) {
+      connectorsOutboundMetrics.increaseFailure(job);
+      LOGGER.warn("Failed to handle job: {} of type: {}", job.getKey(), job.getType());
+    }
   }
 
   @Override
-  @SuppressWarnings({"unchecked", "rawtypes"})
+  @SuppressWarnings("rawtypes")
   protected void failJob(JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
     try {
-      metricsRecorder.increase(
-          Outbound.METRIC_NAME_INVOCATIONS, Outbound.ACTION_FAILED, connectorConfiguration.type());
+      connectorsOutboundMetrics.increaseFailure(job);
     } finally {
       FinalCommandStep commandStep = prepareFailJobCommand(client, job, result);
       new CommandWrapper(
               commandStep,
               job,
               commandExceptionHandlingStrategy,
-              metricsRecorder,
+              defaultNoopMetricsRecorder,
               MAX_ZEEBE_COMMAND_RETRIES)
           .executeAsync();
     }
   }
 
   @Override
+  @SuppressWarnings("rawtypes")
   protected void throwBpmnError(JobClient client, ActivatedJob job, BpmnError value) {
     try {
-      metricsRecorder.increase(
-          Outbound.METRIC_NAME_INVOCATIONS,
-          Outbound.ACTION_BPMN_ERROR,
-          connectorConfiguration.type());
+      connectorsOutboundMetrics.increaseBpmnError(job);
     } finally {
+      FinalCommandStep commandStep = prepareThrowBpmnErrorCommand(client, job, value);
       new CommandWrapper(
-              prepareThrowBpmnErrorCommand(client, job, value),
+              commandStep,
               job,
               commandExceptionHandlingStrategy,
-              metricsRecorder,
+              defaultNoopMetricsRecorder,
               MAX_ZEEBE_COMMAND_RETRIES)
           .executeAsync();
     }
   }
 
   @Override
-  @SuppressWarnings({"unchecked", "rawtypes"})
+  @SuppressWarnings("rawtypes")
   protected void completeJob(
       JobClient client, ActivatedJob job, ConnectorResult.SuccessResult result) {
     try {
-      metricsRecorder.increase(
-          Outbound.METRIC_NAME_INVOCATIONS,
-          Outbound.ACTION_COMPLETED,
-          connectorConfiguration.type());
+      connectorsOutboundMetrics.increaseCompletion(job);
     } finally {
       FinalCommandStep commandStep = prepareCompleteJobCommand(client, job, result);
       new CommandWrapper(
               commandStep,
               job,
               commandExceptionHandlingStrategy,
-              metricsRecorder,
+              defaultNoopMetricsRecorder,
               MAX_ZEEBE_COMMAND_RETRIES)
           .executeAsync();
     }

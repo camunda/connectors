@@ -16,9 +16,11 @@
  */
 package io.camunda.document;
 
-import io.camunda.client.api.response.DocumentMetadata;
-import io.camunda.document.reference.DocumentReference;
-import io.camunda.document.reference.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentLinkParameters;
+import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.document.store.CamundaDocumentStore;
 import java.io.InputStream;
 import java.util.Base64;
@@ -65,5 +67,10 @@ public class CamundaDocument implements Document {
   @Override
   public DocumentReference reference() {
     return reference;
+  }
+
+  @Override
+  public String generateLink(DocumentLinkParameters parameters) {
+    return documentStore.generateLink(reference, parameters);
   }
 }

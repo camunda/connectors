@@ -21,8 +21,7 @@ import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
-import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
-import io.camunda.spring.client.metrics.MetricsRecorder;
+import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -35,7 +34,7 @@ public class ProcessDefinitionImporter {
   private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionImporter.class);
   private final ProcessStateStore stateStore;
   private final ProcessDefinitionSearch search;
-  private final MetricsRecorder metricsRecorder;
+  private final ConnectorsInboundMetrics connectorsInboundMetrics;
 
   private boolean ready = true;
 
@@ -43,10 +42,10 @@ public class ProcessDefinitionImporter {
   public ProcessDefinitionImporter(
       ProcessStateStore stateStore,
       ProcessDefinitionSearch search,
-      @Autowired(required = false) MetricsRecorder metricsRecorder) {
+      ConnectorsInboundMetrics connectorsInboundMetrics) {
     this.stateStore = stateStore;
     this.search = search;
-    this.metricsRecorder = metricsRecorder;
+    this.connectorsInboundMetrics = connectorsInboundMetrics;
   }
 
   @Scheduled(fixedDelayString = "${camunda.connector.polling.interval:5000}")
@@ -65,7 +64,7 @@ public class ProcessDefinitionImporter {
     if (definitions.isEmpty()) {
       return;
     }
-    LOG.debug("Handle of the imported process definitions starts...");
+    LOG.trace("Handle of the imported process definitions starts...");
     try {
       meter(definitions.size());
       var result =
@@ -79,7 +78,7 @@ public class ProcessDefinitionImporter {
                           definition ->
                               new ProcessDefinitionVersion(
                                   definition.getProcessDefinitionKey(), definition.getVersion()))));
-      LOG.info("Updating the store with retrieved process definitions");
+      LOG.trace("Updating the store with retrieved process definitions");
       stateStore.update(result);
     } catch (Exception e) {
       LOG.error("Failed to handle imported definitions", e);
@@ -87,10 +86,7 @@ public class ProcessDefinitionImporter {
   }
 
   private void meter(int count) {
-    if (metricsRecorder != null) {
-      metricsRecorder.increase(
-          Inbound.METRIC_NAME_INBOUND_PROCESS_DEFINITIONS_CHECKED, null, null, count);
-    }
+    connectorsInboundMetrics.increaseProcessDefinitionsChecked(count);
   }
 
   public boolean isReady() {

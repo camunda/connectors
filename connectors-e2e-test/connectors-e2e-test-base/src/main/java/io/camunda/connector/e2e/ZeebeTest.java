@@ -16,15 +16,21 @@
  */
 package io.camunda.connector.e2e;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.DeploymentEvent;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
+import org.springframework.util.CollectionUtils;
 
 public class ZeebeTest {
 
@@ -40,6 +46,30 @@ public class ZeebeTest {
     return new ZeebeTest(camundaClient);
   }
 
+  public ZeebeTest awaitCompleteTopology() {
+    return awaitCompleteTopology(1, 1, 1, Duration.ofSeconds(10));
+  }
+
+  public ZeebeTest awaitCompleteTopology(
+      final int clusterSize,
+      final int partitionCount,
+      final int replicationFactor,
+      final Duration timeout) {
+    Awaitility.with()
+        .pollInSameThread()
+        .await()
+        .atMost(timeout)
+        .untilAsserted(
+            () -> {
+              final var topology = camundaClient.newTopologyRequest().send().join();
+              assertEquals(clusterSize, topology.getClusterSize());
+              assertEquals(clusterSize, topology.getBrokers().size());
+              assertEquals(partitionCount, topology.getPartitionsCount());
+              assertEquals(replicationFactor, topology.getReplicationFactor());
+            });
+    return this;
+  }
+
   public ZeebeTest deploy(BpmnModelInstance bpmnModelInstance) {
     var process =
         bpmnModelInstance.getModelElementsByType(Process.class).stream().findFirst().get();
@@ -53,15 +83,21 @@ public class ZeebeTest {
   }
 
   public ZeebeTest createInstance() {
+    return createInstance(Collections.emptyMap());
+  }
+
+  public ZeebeTest createInstance(Map<String, Object> variables) {
     Assertions.assertNotNull(deploymentEvent, "Process needs to be deployed first.");
     var bpmnProcessId = deploymentEvent.getProcesses().get(0).getBpmnProcessId();
-    processInstanceEvent =
-        camundaClient
-            .newCreateInstanceCommand()
-            .bpmnProcessId(bpmnProcessId)
-            .latestVersion()
-            .send()
-            .join();
+    var command =
+        camundaClient.newCreateInstanceCommand().bpmnProcessId(bpmnProcessId).latestVersion();
+
+    if (!CollectionUtils.isEmpty(variables)) {
+      command = command.variables(variables);
+    }
+
+    processInstanceEvent = command.send().join();
+
     return this;
   }
 
@@ -71,6 +107,15 @@ public class ZeebeTest {
         .await()
         .atMost(20, TimeUnit.SECONDS)
         .untilAsserted(() -> CamundaAssert.assertThat(processInstanceEvent).isCompleted());
+    return this;
+  }
+
+  public ZeebeTest waitForActiveIncidents() {
+    Awaitility.with()
+        .pollInSameThread()
+        .await()
+        .atMost(20, TimeUnit.SECONDS)
+        .untilAsserted(() -> CamundaAssert.assertThat(processInstanceEvent).hasActiveIncidents());
     return this;
   }
 

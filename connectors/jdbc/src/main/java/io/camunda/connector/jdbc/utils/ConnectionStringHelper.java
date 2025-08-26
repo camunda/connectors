@@ -15,7 +15,7 @@ public class ConnectionStringHelper {
   public static String buildConnectionString(
       SupportedDatabase database, DetailedConnection connection) {
     return switch (database) {
-      case MARIADB, MYSQL, POSTGRESQL -> buildCommonConnectionString(database, connection);
+      case MARIADB, MYSQL, POSTGRESQL, ORACLE -> buildCommonConnectionString(database, connection);
       case MSSQL -> buildMssqlConnectionString(database, connection);
       default -> throw new ConnectorException("Unsupported database: " + database);
     };

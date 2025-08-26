@@ -18,8 +18,8 @@ package io.camunda.connector.runtime.core.inbound.details;
 
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
-import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
+import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.InvalidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import java.util.HashSet;
@@ -62,7 +62,7 @@ public class InboundConnectorDetailsUtil {
   private static String extractTenantId(List<InboundConnectorElement> elements) {
     if (elements.stream()
             .map(InboundConnectorElement::element)
-            .map(ProcessElement::tenantId)
+            .map(ProcessElementWithRuntimeData::tenantId)
             .distinct()
             .count()
         > 1) {

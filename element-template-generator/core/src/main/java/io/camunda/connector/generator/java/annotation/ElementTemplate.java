@@ -37,9 +37,14 @@ public @interface ElementTemplate {
    * Reference to the connector input data class. Element template is generated based on the
    * properties of this class.
    */
-  Class<?> inputDataClass();
+  Class<?> inputDataClass() default Void.class;
 
   Class<?> outputDataClass() default Void.class;
+
+  /**
+   * List of optional extension properties to be added to the element template as hidden properties.
+   */
+  ExtensionProperty[] extensionProperties() default {};
 
   /**
    * Element template version. The version should be incremented every time the template is changed
@@ -59,6 +64,9 @@ public @interface ElementTemplate {
    * <p>If not specified, the button will not be displayed.
    */
   String documentationRef() default "";
+
+  /** Semantic version range */
+  String engineVersion() default "";
 
   /**
    * Element template description. Will be displayed along with the connector name in Camunda
@@ -95,6 +103,20 @@ public @interface ElementTemplate {
 
   ConnectorElementType[] elementTypes() default {};
 
+  /**
+   * Default result variable value.
+   *
+   * <p>If not specified, no default variable value will be set.
+   */
+  String defaultResultVariable() default "";
+
+  /**
+   * Default result expression value.
+   *
+   * <p>If not specified, no default expression value will be set.
+   */
+  String defaultResultExpression() default "";
+
   /** Metadata tags for the connector. Will be used in Camunda Modeler. */
   @interface Metadata {
 
@@ -110,6 +132,12 @@ public @interface ElementTemplate {
     String tooltip() default "";
 
     boolean openByDefault() default true;
+  }
+
+  @interface ExtensionProperty {
+    String name();
+
+    String value();
   }
 
   @interface ConnectorElementType {

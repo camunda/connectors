@@ -12,10 +12,8 @@ import com.amazonaws.services.sns.message.SnsNotification;
 import com.amazonaws.services.sns.message.SnsSubscriptionConfirmation;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.InboundConnector;
-import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
@@ -34,15 +32,14 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "AWS SNS Inbound", type = "io.camunda:aws-sns-webhook:1")
 @ElementTemplate(
+    engineVersion = "^8.3",
     id = "io.camunda.connectors.AWSSNS.inbound.v1",
     name = "SNS HTTPS Connector",
     icon = "icon.svg",
-    version = 4,
+    version = 6,
     inputDataClass = SnsWebhookConnectorPropertiesWrapper.class,
     description = "Receive messages from AWS SNS via HTTPS.",
     metadata = @ElementTemplate.Metadata(keywords = {"receive event", "receive message"}),
@@ -67,8 +64,6 @@ import org.slf4j.LoggerFactory;
           templateNameOverride = "SNS HTTPS Boundary Event Connector")
     })
 public class SnsWebhookExecutable implements WebhookConnectorExecutable {
-  private static final Logger LOGGER = LoggerFactory.getLogger(SnsWebhookExecutable.class);
-
   protected static final String TOPIC_ARN_HEADER = "x-amz-sns-topic-arn";
 
   private final ObjectMapper objectMapper;
@@ -90,15 +85,6 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
   @Override
   public WebhookResult triggerWebhook(WebhookProcessingPayload webhookProcessingPayload)
       throws Exception {
-    LOGGER.trace(
-        "Triggered webhook with context {} and payload {}",
-        props.context(),
-        webhookProcessingPayload);
-
-    context.log(
-        Activity.level(Severity.INFO)
-            .tag(webhookProcessingPayload.method())
-            .message("Url: " + webhookProcessingPayload.requestURL()));
 
     checkMessageAllowListed(webhookProcessingPayload);
     Map bodyAsMap = objectMapper.readValue(webhookProcessingPayload.rawBody(), Map.class);
@@ -112,11 +98,6 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
       return handleNotification(webhookProcessingPayload, bodyAsMap);
     } else {
       String errorMessage = "Operation not supported: " + msg.getClass().getName();
-      LOGGER.warn(errorMessage);
-      context.log(
-          Activity.level(Severity.ERROR)
-              .tag(webhookProcessingPayload.method())
-              .message("Url: " + webhookProcessingPayload.requestURL() + ". " + errorMessage));
       throw new IOException(errorMessage);
     }
   }

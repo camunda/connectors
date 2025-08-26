@@ -31,7 +31,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.</license.inlineheader>
 
-    <version.system-stubs>2.1.7</version.system-stubs>
+    <version.system-stubs>2.1.8</version.system-stubs>
   </properties>
 
   <dependencies>
@@ -81,6 +81,7 @@ limitations under the License.</license.inlineheader>
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
           </connectors>
+          <versionHistoryEnabled>true</versionHistoryEnabled>
           <includeDependencies>
             <includeDependency>io.camunda.connector:connector-http-base</includeDependency>
           </includeDependencies>

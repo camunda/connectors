@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
     inputVariables = {"authentication", "operation", "operationDetails"},
     type = "io.camunda:google-sheets:1")
 @ElementTemplate(
+    engineVersion = "^8.3",
     id = "io.camunda.connectors.GoogleSheets.v1",
     name = "Google Sheets Outbound Connector",
     description = "Manage spreadsheets with Google Sheets",
@@ -37,7 +38,7 @@ import org.slf4j.LoggerFactory;
               "get worksheet data"
             }),
     inputDataClass = GoogleSheetsRequest.class,
-    version = 4,
+    version = 5,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Select operation"),

@@ -9,12 +9,21 @@
   </parent>
 
   <artifactId>jackson-datatype-document</artifactId>
+  <name>Jackson Datatype Document</name>
   <description>Jackson module to handle Connector SDK file objects</description>
 
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
       <artifactId>connector-document</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>intrinsic-functions</artifactId>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>

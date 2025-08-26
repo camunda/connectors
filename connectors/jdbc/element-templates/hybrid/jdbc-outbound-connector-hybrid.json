@@ -7,7 +7,7 @@
     "keywords" : [ "relational", "database" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql",
-  "version" : 1,
+  "version" : 3,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -15,6 +15,9 @@
   "appliesTo" : [ "bpmn:Task" ],
   "elementType" : {
     "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.6"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
@@ -28,6 +31,9 @@
   }, {
     "id" : "query",
     "label" : "Query"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -50,6 +56,7 @@
   }, {
     "id" : "database",
     "label" : "Select a database",
+    "description" : "Select the database you want to connect to. If you choose Oracle, make sure the Oracle JDBC driver is included. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/sql/#database\">Learn how to set it up.</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -72,6 +79,9 @@
     }, {
       "name" : "PostgreSQL",
       "value" : "POSTGRESQL"
+    }, {
+      "name" : "Oracle",
+      "value" : "ORACLE"
     } ]
   }, {
     "id" : "connection.authType",
@@ -240,6 +250,7 @@
     "description" : "Check this box if the SQL statement return results, e.g. a SELECT or any statement with a RETURNING clause",
     "optional" : false,
     "value" : false,
+    "feel" : "static",
     "group" : "query",
     "binding" : {
       "name" : "data.returnResults",
@@ -273,6 +284,28 @@
       "type" : "zeebe:input"
     },
     "type" : "String"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "3",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.Jdbc.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

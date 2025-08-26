@@ -14,6 +14,7 @@ public record Configuration(
         String controlRoomUrl,
     @TemplateProperty(
             group = "timeout",
+            defaultValueType = TemplateProperty.DefaultValueType.Number,
             defaultValue = "20",
             optional = true,
             description =

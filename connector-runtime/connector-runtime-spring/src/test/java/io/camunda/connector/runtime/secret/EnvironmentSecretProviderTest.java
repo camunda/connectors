@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.secret;
 
 import static org.assertj.core.api.Assertions.*;
 
+import io.camunda.connector.api.secret.SecretContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;
 
@@ -27,8 +28,38 @@ public class EnvironmentSecretProviderTest {
   void shouldApplyPrefix() {
     MockEnvironment env = new MockEnvironment();
     env.setProperty("secrets.my-total-secret", "beebop");
-    EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, "secrets.");
-    String myTotalSecret = secretProvider.getSecret("my-total-secret");
+    EnvironmentSecretProvider secretProvider =
+        new EnvironmentSecretProvider(env, "secrets.", false);
+    String myTotalSecret = secretProvider.getSecret("my-total-secret", null);
+    assertThat(myTotalSecret).isEqualTo("beebop");
+  }
+
+  @Test
+  void shouldNotApplyPrefix() {
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty("my-total-secret", "beebop");
+    EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, null, false);
+    String myTotalSecret = secretProvider.getSecret("my-total-secret", null);
+    assertThat(myTotalSecret).isEqualTo("beebop");
+  }
+
+  @Test
+  void shouldApplyContext() {
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty("my-tenant_my-total-secret", "beebop");
+    EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, null, true);
+    String myTotalSecret =
+        secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant"));
+    assertThat(myTotalSecret).isEqualTo("beebop");
+  }
+
+  @Test
+  void shouldApplyPrefixAndContext() {
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty("secrets.my-tenant_my-total-secret", "beebop");
+    EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, "secrets.", true);
+    String myTotalSecret =
+        secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant"));
     assertThat(myTotalSecret).isEqualTo("beebop");
   }
 }

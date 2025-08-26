@@ -22,14 +22,18 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
+import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessagePublished;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.ProcessInstanceCreated;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
@@ -40,10 +44,10 @@ import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.api.inbound.webhook.WebhookTriggerResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
-import io.camunda.document.Document;
-import io.camunda.document.store.DocumentCreationRequest;
+import io.grpc.Status;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
@@ -94,6 +98,19 @@ public class InboundWebhookRestController {
     };
   }
 
+  private static io.camunda.connector.api.inbound.webhook.Part mapToCamundaPart(Part part) {
+    try {
+      return new io.camunda.connector.api.inbound.webhook.Part(
+          part.getName(),
+          part.getSubmittedFileName(),
+          part.getInputStream(),
+          part.getContentType());
+    } catch (IOException e) {
+      LOG.warn("Failed to process part: {}", part.getName(), e);
+      return null;
+    }
+  }
+
   @RequestMapping(
       method = {GET, POST, PUT, DELETE},
       path = "/inbound/{context}")
@@ -106,7 +123,7 @@ public class InboundWebhookRestController {
       throws IOException {
     LOG.trace("Received inbound hook on {}", context);
     return webhookConnectorRegistry
-        .getWebhookConnectorByContextPath(context)
+        .getActiveWebhook(context)
         .map(
             connector -> {
               WebhookProcessingPayload payload =
@@ -131,20 +148,37 @@ public class InboundWebhookRestController {
       // This is required for cases, when we need to get a message from an external source
       // but at the same time, not triggering correlation
       // Such use-case can be echoing webhook verification challenge
-      response = verify(connectorHook, payload);
+      response = verify(connectorHook, payload, connector.context());
       if (response == null) {
         // when verification was skipped
         // Step 2: trigger and correlate
+        connector
+            .context()
+            .log(
+                activity ->
+                    activity
+                        .withSeverity(Severity.INFO)
+                        .withTag(payload.method())
+                        .withMessage("URL: " + payload.requestURL()));
+
         var webhookResult = connectorHook.triggerWebhook(payload);
         // create documents if the connector is activable
         var documents = createDocuments(connector.context(), webhookResult, payload.parts());
         var ctxData = toWebhookTriggerResultContext(webhookResult, documents);
         // correlate
-        var correlationResult = connector.context().correlateWithResult(ctxData);
+        var correlationResult =
+            connector.context().correlate(CorrelationRequest.builder().variables(ctxData).build());
         response = buildResponse(webhookResult, documents, correlationResult);
       }
     } catch (Exception e) {
-      LOG.info("Webhook: {} failed with exception", connector.context().getDefinition(), e);
+      connector
+          .context()
+          .log(
+              activity ->
+                  activity
+                      .withSeverity(Severity.ERROR)
+                      .withTag(payload.method())
+                      .withMessage("Webhook processing failed"));
       response = buildErrorResponse(e);
     }
     return response;
@@ -170,11 +204,19 @@ public class InboundWebhookRestController {
   }
 
   protected ResponseEntity<?> verify(
-      WebhookConnectorExecutable connectorHook, WebhookProcessingPayload payload) {
+      WebhookConnectorExecutable connectorHook,
+      WebhookProcessingPayload payload,
+      InboundConnectorReportingContext context) {
     WebhookHttpResponse verificationResponse = connectorHook.verify(payload);
     ResponseEntity<?> response = null;
     if (verificationResponse != null) {
       response = toResponseEntity(verificationResponse);
+      context.log(
+          activity ->
+              activity
+                  .withSeverity(Severity.INFO)
+                  .withTag(payload.method())
+                  .withMessage("Successfully handled a verification request"));
     }
     return response;
   }
@@ -201,6 +243,24 @@ public class InboundWebhookRestController {
     ResponseEntity<?> response;
     if (failure instanceof CorrelationResult.Failure.Other) {
       response = ResponseEntity.internalServerError().build();
+    } else if (failure instanceof CorrelationResult.Failure.ZeebeClientStatus zeebeClientStatus) {
+      response =
+          switch (Status.Code.valueOf(zeebeClientStatus.status())) {
+            case CANCELLED -> ResponseEntity.status(499).body(failure);
+            case UNKNOWN, INTERNAL, DATA_LOSS -> ResponseEntity.status(500).body(failure);
+            case INVALID_ARGUMENT -> ResponseEntity.status(400).body(failure);
+            case DEADLINE_EXCEEDED -> ResponseEntity.status(504).body(failure);
+            case NOT_FOUND -> ResponseEntity.status(404).body(failure);
+            case ALREADY_EXISTS, ABORTED -> ResponseEntity.status(409).body(failure);
+            case PERMISSION_DENIED -> ResponseEntity.status(403).body(failure);
+            case RESOURCE_EXHAUSTED -> ResponseEntity.status(429).body(failure);
+            case FAILED_PRECONDITION -> ResponseEntity.status(412).body(failure);
+            case OUT_OF_RANGE -> ResponseEntity.status(416).body(failure);
+            case UNIMPLEMENTED -> ResponseEntity.status(501).body(failure);
+            case UNAVAILABLE -> ResponseEntity.status(503).body(failure);
+            case UNAUTHENTICATED -> ResponseEntity.status(401).body(failure);
+            default -> ResponseEntity.unprocessableEntity().body(failure);
+          };
     } else {
       response = ResponseEntity.unprocessableEntity().body(failure);
     }
@@ -270,19 +330,6 @@ public class InboundWebhookRestController {
     }
   }
 
-  private static io.camunda.connector.api.inbound.webhook.Part mapToCamundaPart(Part part) {
-    try {
-      return new io.camunda.connector.api.inbound.webhook.Part(
-          part.getName(),
-          part.getSubmittedFileName(),
-          part.getInputStream(),
-          part.getContentType());
-    } catch (IOException e) {
-      LOG.warn("Failed to process part: {}", part.getName(), e);
-      return null;
-    }
-  }
-
   // This will be used to correlate data returned from connector.
   // In other words, we pass this data to Zeebe.
   private WebhookTriggerResultContext toWebhookTriggerResultContext(
@@ -310,7 +357,7 @@ public class InboundWebhookRestController {
       CorrelationResult.Success correlationResult) {
     WebhookResultContext ctx = new WebhookResultContext(null, null, null);
     if (processedResult != null) {
-      Object correlation = null;
+      CorrelationResult.Success correlation = null;
       if (correlationResult instanceof ProcessInstanceCreated
           || correlationResult instanceof MessagePublished) {
         correlation = correlationResult;
@@ -322,7 +369,7 @@ public class InboundWebhookRestController {
                   Optional.ofNullable(processedResult.request().headers()).orElse(emptyMap()),
                   Optional.ofNullable(processedResult.request().params()).orElse(emptyMap())),
               Optional.ofNullable(processedResult.connectorData()).orElse(emptyMap()),
-              Optional.ofNullable(correlation).orElse(emptyMap()),
+              correlation,
               documents);
     }
     return ctx;
