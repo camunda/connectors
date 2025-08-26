@@ -26,6 +26,16 @@ public record ToolCallResult(
     implements ToolCallResultBuilder.With {
 
   public static final String PROPERTY_INTERRUPTED = "interrupted";
+  public static final String CONTENT_CANCELLED = "Tool execution was canceled.";
+
+  public static ToolCallResult forCancelledToolCall(String id, String name) {
+    return ToolCallResult.builder()
+        .id(id)
+        .name(name)
+        .content(CONTENT_CANCELLED)
+        .properties(Map.of(PROPERTY_INTERRUPTED, true))
+        .build();
+  }
 
   public static ToolCallResultBuilder builder() {
     return ToolCallResultBuilder.builder();

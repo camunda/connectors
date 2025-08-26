@@ -10,7 +10,6 @@ import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR
 import static io.camunda.connector.agenticai.model.message.MessageUtil.singleTextContent;
 import static io.camunda.connector.agenticai.model.message.content.ObjectContent.objectContent;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
-import static io.camunda.connector.agenticai.model.tool.ToolCallResult.PROPERTY_INTERRUPTED;
 import static io.camunda.connector.agenticai.util.PromptUtils.resolveParameterizedPrompt;
 
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
@@ -173,12 +172,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
               LOGGER.debug(
                   "Missing tool call result for ID: {}. Marking as canceled.", toolCall.id());
               orderedToolCallResults.add(
-                  ToolCallResult.builder()
-                      .id(toolCall.id())
-                      .name(toolCall.name())
-                      .content("Tool execution was canceled.")
-                      .properties(Map.of(PROPERTY_INTERRUPTED, true))
-                      .build());
+                  ToolCallResult.forCancelledToolCall(toolCall.id(), toolCall.name()));
             }
           }
         });

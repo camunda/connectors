@@ -11,19 +11,23 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALLS;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_CALL_RESULTS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.TOOL_DEFINITIONS;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assistantMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
+import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.toolCallResultMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static io.camunda.connector.agenticai.util.WireMockUtils.assertJobCompletionRequest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -32,7 +36,6 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.client.CamundaClient;
@@ -72,6 +75,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -259,6 +263,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(response.toolCalls()).isEmpty();
 
     verify(limitsValidator).validateConfiguredLimits(agentExecutionContext, INITIAL_AGENT_CONTEXT);
+    verify(agentExecutionContext, never()).setCancelRemainingInstances(anyBoolean());
 
     assertJobCompletionRequest(
         request -> {
@@ -338,6 +343,7 @@ class JobWorkerAgentRequestHandlerTest {
                 Map.of()));
 
     verify(limitsValidator).validateConfiguredLimits(agentExecutionContext, INITIAL_AGENT_CONTEXT);
+    verify(agentExecutionContext, never()).setCancelRemainingInstances(anyBoolean());
 
     assertJobCompletionRequest(
         request -> {
@@ -360,6 +366,85 @@ class JobWorkerAgentRequestHandlerTest {
                             tuple(
                                 "getDateTime",
                                 Map.of("toolCall", asMap(response.toolCalls().get(1)))));
+                  });
+        });
+  }
+
+  @Test
+  void orchestratesRequestExecutionWithInterruptedToolCall() {
+    List<ToolCallResult> toolCallResults = List.of(TOOL_CALL_RESULTS.get(0));
+    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
+    mockInterruptedToolCall(toolCallResults);
+
+    when(agentInitializer.initializeAgent(agentExecutionContext))
+        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
+
+    when(agentExecutionContext.cancelRemainingInstances()).thenReturn(true);
+
+    final var assistantMessage = AssistantMessage.builder().build();
+
+    final var expectedMessages =
+        List.of(
+            systemMessage(SYSTEM_PROMPT_CONFIGURATION.prompt()),
+            toolCallResultMessage(
+                toolCallResults.stream()
+                    .map(tc -> ToolCallResult.forCancelledToolCall(tc.id(), tc.name()))
+                    .toList()),
+            assistantMessage);
+
+    mockFrameworkExecution(assistantMessage);
+
+    final Function<ToolCall, ToolCall> toolCallTransformer =
+        toolCall -> toolCall.withId(toolCall.id() + "_transformed");
+
+    when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
+        .thenAnswer(
+            i -> {
+              List<ToolCall> toolCalls = i.getArgument(1);
+              return toolCalls.stream().map(toolCallTransformer).toList();
+            });
+
+    when(responseHandler.createResponse(
+            eq(agentExecutionContext), any(AgentContext.class), eq(assistantMessage), anyList()))
+        .thenAnswer(
+            i ->
+                AgentResponse.builder()
+                    .context(i.getArgument(1, AgentContext.class))
+                    .responseMessage(i.getArgument(2, AssistantMessage.class))
+                    .toolCalls(i.getArgument(3))
+                    .build());
+
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+
+    assertThat(runtimeMemoryCaptor.getValue().allMessages())
+        .containsExactlyElementsOf(expectedMessages);
+
+    assertThat(response.context().state()).isEqualTo(AgentState.READY);
+    assertThat(response.context().metrics()).isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+    assertThat(response.context().conversation())
+        .isNotNull()
+        .isInstanceOfSatisfying(
+            InProcessConversationContext.class,
+            c -> assertThat(c.messages()).containsExactlyElementsOf(expectedMessages));
+
+    assertThat(response.responseMessage()).isEqualTo(assistantMessage);
+    assertThat(response.responseText()).isNull();
+    assertThat(response.toolCalls()).isEmpty();
+
+    verify(limitsValidator).validateConfiguredLimits(agentExecutionContext, INITIAL_AGENT_CONTEXT);
+    verify(agentExecutionContext).setCancelRemainingInstances(true);
+
+    assertJobCompletionRequest(
+        request -> {
+          assertThat(request.getVariables()).containsOnlyKeys("agent");
+          assertThat(request.getResult())
+              .isNotNull()
+              .isInstanceOfSatisfying(
+                  JobResultAdHocSubProcess.class,
+                  adHoc -> {
+                    assertThat(adHoc.getIsCompletionConditionFulfilled()).isTrue();
+                    assertThat(adHoc.getIsCancelRemainingInstances()).isTrue();
+                    assertThat(adHoc.getActivateElements()).isEmpty();
                   });
         });
   }
@@ -472,11 +557,15 @@ class JobWorkerAgentRequestHandlerTest {
                     .build());
 
     requestHandler.handleRequest(agentExecutionContext);
-    await().until(() -> !WireMock.getAllServeEvents().isEmpty());
 
-    verify(conversationStore)
-        .compensateFailedJobCompletion(
-            eq(agentExecutionContext), any(AgentContext.class), any(Throwable.class));
+    // make sure the verification is actually executed after the completion request was made
+    await()
+        .atMost(5, TimeUnit.SECONDS)
+        .untilAsserted(
+            () ->
+                verify(conversationStore)
+                    .compensateFailedJobCompletion(
+                        eq(agentExecutionContext), any(AgentContext.class), any(Throwable.class)));
   }
 
   private Map<String, Object> asMap(final ToolCallProcessVariable toolCallProcessVariable) {
@@ -550,6 +639,27 @@ class JobWorkerAgentRequestHandlerTest {
             any(RuntimeMemory.class),
             eq(userPromptConfiguration),
             eq(toolCallResults));
+  }
+
+  private void mockInterruptedToolCall(List<ToolCallResult> toolCallResults) {
+    doAnswer(
+            i -> {
+              final var toolCallMessage =
+                  toolCallResultMessage(
+                      toolCallResults.stream()
+                          .map(tc -> ToolCallResult.forCancelledToolCall(tc.id(), tc.name()))
+                          .toList());
+              final var runtimeMemory = i.getArgument(2, RuntimeMemory.class);
+              runtimeMemory.addMessage(toolCallMessage);
+              return List.of(toolCallMessage);
+            })
+        .when(messagesHandler)
+        .addUserMessages(
+            eq(agentExecutionContext),
+            any(AgentContext.class),
+            any(RuntimeMemory.class),
+            any(UserPromptConfiguration.class),
+            anyList());
   }
 
   private void mockFrameworkExecution(AssistantMessage assistantMessage) {

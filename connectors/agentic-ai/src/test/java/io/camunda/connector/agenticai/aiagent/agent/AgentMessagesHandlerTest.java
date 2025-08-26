@@ -657,8 +657,9 @@ class AgentMessagesHandlerTest {
                                       ToolCallResult.builder()
                                           .id(TOOL_CALL_RESULTS.get(0).id())
                                           .name(TOOL_CALL_RESULTS.get(0).name())
-                                          .content("Tool execution was canceled.")
-                                          .properties(Map.of("interrupted", true))
+                                          .content(ToolCallResult.CONTENT_CANCELLED)
+                                          .properties(
+                                              Map.of(ToolCallResult.PROPERTY_INTERRUPTED, true))
                                           .build(),
                                       TOOL_CALL_RESULTS.get(1));
                               assertThat(toolCallResultMessage.metadata())
