@@ -69,13 +69,13 @@
     <dependency>
       <groupId>org.mariadb.jdbc</groupId>
       <artifactId>mariadb-java-client</artifactId>
-      <version>3.5.4</version>
+      <version>3.5.5</version>
     </dependency>
 
     <dependency>
       <groupId>com.mysql</groupId>
       <artifactId>mysql-connector-j</artifactId>
-      <version>9.3.0</version>
+      <version>9.4.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
