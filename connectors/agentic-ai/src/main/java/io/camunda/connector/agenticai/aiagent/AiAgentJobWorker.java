@@ -38,6 +38,7 @@ public class AiAgentJobWorker {
   public static final String AD_HOC_SUB_PROCESS_ELEMENT_VARIABLE = "adHocSubProcessElements";
   public static final String AGENT_CONTEXT_VARIABLE = "agentContext";
   public static final String AGENT_RESPONSE_VARIABLE = "agent";
+  public static final String TOOL_CALL_RESULT_VARIABLE = "toolCallResult";
   public static final String TOOL_CALL_RESULTS_VARIABLE = "toolCallResults";
   public static final String PROVIDER_VARIABLE = "provider";
   public static final String DATA_VARIABLE = "data";
