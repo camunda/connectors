@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverterImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverterImpl;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
@@ -37,8 +38,11 @@ import org.skyscreamer.jsonassert.JSONAssert;
 
 class ToolCallConverterTest {
 
+  private final ObjectMapper objectMapper = new ObjectMapper();
   private final ToolCallConverter toolCallConverter =
-      new ToolCallConverterImpl(new ObjectMapper(), new DocumentToContentConverterImpl());
+      new ToolCallConverterImpl(
+          objectMapper,
+          new ContentConverterImpl(objectMapper, new DocumentToContentConverterImpl()));
 
   @Test
   void convertsToolCallToToolExecutionRequest() throws JSONException {

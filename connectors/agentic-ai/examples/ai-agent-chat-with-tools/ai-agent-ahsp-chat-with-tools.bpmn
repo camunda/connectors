@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_18jxukq" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.37.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_18jxukq" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.38.1" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
   <bpmn:process id="ai-agent-ahsp-chat-with-tools" name="AI Agent AHSP Chat With Tools" isExecutable="true">
     <bpmn:startEvent id="StartEvent_1">
       <bpmn:extensionElements>
@@ -55,6 +55,7 @@
           <zeebe:input source="in-process" target="data.memory.storage.type" />
           <zeebe:input source="=20" target="data.memory.contextWindowSize" />
           <zeebe:input source="=20" target="data.limits.maxModelCalls" />
+          <zeebe:input source="WAIT_FOR_TOOL_CALL_RESULTS" target="data.events.behavior" />
           <zeebe:input source="text" target="data.response.format.type" />
           <zeebe:input source="=false" target="data.response.format.parseJson" />
           <zeebe:input source="=false" target="data.response.includeAssistantMessage" />
@@ -222,10 +223,28 @@
           </zeebe:taskHeaders>
         </bpmn:extensionElements>
       </bpmn:serviceTask>
+      <bpmn:subProcess id="Event_Sub_Process" triggeredByEvent="true">
+        <bpmn:scriptTask id="Handle_Message" name="Handle message">
+          <bpmn:extensionElements>
+            <zeebe:script expression="=&#34;Updated message from event: &#34; + messageFromEvent" resultVariable="toolCallResult" />
+          </bpmn:extensionElements>
+          <bpmn:incoming>Flow_0kd4go1</bpmn:incoming>
+        </bpmn:scriptTask>
+        <bpmn:sequenceFlow id="Flow_0kd4go1" sourceRef="On_Message" targetRef="Handle_Message" />
+        <bpmn:startEvent id="On_Message" isInterrupting="false">
+          <bpmn:outgoing>Flow_0kd4go1</bpmn:outgoing>
+          <bpmn:messageEventDefinition id="MessageEventDefinition_0l1ft5s" messageRef="Message_3mpc025" />
+        </bpmn:startEvent>
+      </bpmn:subProcess>
     </bpmn:adHocSubProcess>
     <bpmn:sequenceFlow id="Flow_16otfp1" sourceRef="Gateway_0z6ctwk" targetRef="AI_Agent" />
     <bpmn:sequenceFlow id="Flow_0m7etfk" sourceRef="AI_Agent" targetRef="User_Feedback" />
   </bpmn:process>
+  <bpmn:message id="Message_3mpc025" name="ai-agent-message">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=&#34;ai-agent-message&#34;" />
+    </bpmn:extensionElements>
+  </bpmn:message>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="ai-agent-ahsp-chat-with-tools">
       <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
@@ -248,7 +267,7 @@
         <dc:Bounds x="1052" y="192" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_03yngb7_di" bpmnElement="AI_Agent" isExpanded="true">
-        <dc:Bounds x="350" y="170" width="400" height="580" />
+        <dc:Bounds x="350" y="170" width="400" height="740" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1sbkoqq_di" bpmnElement="GetDateAndTime">
@@ -295,6 +314,20 @@
       <bpmndi:BPMNShape id="Activity_1knqabi_di" bpmnElement="Fetch_URL">
         <dc:Bounds x="620" y="210" width="100" height="80" />
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0ixs5a4_di" bpmnElement="Event_Sub_Process" isExpanded="true">
+        <dc:Bounds x="375" y="740" width="350" height="130" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0bsqv5x_di" bpmnElement="Handle_Message">
+        <dc:Bounds x="600" y="760" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_031hxyb_di" bpmnElement="On_Message">
+        <dc:Bounds x="402" y="782" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0kd4go1_di" bpmnElement="Flow_0kd4go1">
+        <di:waypoint x="438" y="800" />
+        <di:waypoint x="600" y="800" />
+      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0demz1g_di" bpmnElement="Flow_0demz1g">
         <di:waypoint x="480" y="580" />
         <di:waypoint x="525" y="580" />

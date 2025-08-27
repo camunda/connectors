@@ -14,9 +14,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentModule;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentSerializer;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverter;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.error.ConnectorException;
@@ -29,13 +27,11 @@ import org.apache.commons.lang3.StringUtils;
 public class ToolCallConverterImpl implements ToolCallConverter {
 
   private final ObjectMapper objectMapper;
-  private final ObjectMapper resultObjectMapper;
+  private final ContentConverter contentConverter;
 
-  public ToolCallConverterImpl(
-      ObjectMapper objectMapper, DocumentToContentConverter documentToContentConverter) {
+  public ToolCallConverterImpl(ObjectMapper objectMapper, ContentConverter contentConverter) {
     this.objectMapper = objectMapper;
-    this.resultObjectMapper =
-        objectMapper.copy().registerModule(new DocumentToContentModule(documentToContentConverter));
+    this.contentConverter = contentConverter;
   }
 
   @Override
@@ -83,7 +79,7 @@ public class ToolCallConverterImpl implements ToolCallConverter {
    * Converts the result of a tool call to a {@link ToolExecutionResultMessage}.
    *
    * <p>If the result is not a string, it will be serialized to a JSON string, using the {@link
-   * DocumentToContentSerializer} to serialize document contents.
+   * ContentConverter} to serialize document contents.
    */
   @Override
   public ToolExecutionResultMessage asToolExecutionResultMessage(ToolCallResult toolCallResult) {
@@ -94,12 +90,8 @@ public class ToolCallConverterImpl implements ToolCallConverter {
   }
 
   private String contentAsString(String toolName, Object result) {
-    if (result instanceof String stringResult) {
-      return stringResult;
-    }
-
     try {
-      return resultObjectMapper.writeValueAsString(result);
+      return contentConverter.convertToString(result);
     } catch (JsonProcessingException e) {
       throw new ConnectorException(
           "Failed to convert result of tool call '%s' to string: %s"
