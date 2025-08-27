@@ -16,20 +16,21 @@
  */
 package io.camunda.connector.test;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.extension.ConditionEvaluationResult;
 import org.junit.jupiter.api.extension.ExecutionCondition;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-import java.util.Arrays;
-import java.util.stream.Collectors;
-
 public class SystemIntegrationTestCondition implements ExecutionCondition {
-  private static final String EXTERNAL_SYSTEM_LIST = Arrays.stream(ExternalSystem.values())
-      .map(system -> system.id)
-      .collect(Collectors.joining(", "));
+  private static final String EXTERNAL_SYSTEM_LIST =
+      Arrays.stream(ExternalSystem.values())
+          .map(system -> system.id)
+          .collect(Collectors.joining(", "));
   private static final ConditionEvaluationResult DISABLED =
       ConditionEvaluationResult.disabled(
-          "Disabled because required environment variable is not set any of: " + EXTERNAL_SYSTEM_LIST);
+          "Disabled because required environment variable is not set any of: "
+              + EXTERNAL_SYSTEM_LIST);
 
   @Override
   public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
