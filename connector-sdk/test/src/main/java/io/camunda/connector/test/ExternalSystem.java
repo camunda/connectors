@@ -16,12 +16,5 @@ public enum ExternalSystem {
   ExternalSystem(String id) {
     this.id = id;
   }
-
-  public static ExternalSystem from(String id) {
-    return Arrays.stream(values())
-        .filter(s -> s.id.equalsIgnoreCase(id))
-        .findFirst()
-        .orElse(ServiceNow);
-  }
 }
 
