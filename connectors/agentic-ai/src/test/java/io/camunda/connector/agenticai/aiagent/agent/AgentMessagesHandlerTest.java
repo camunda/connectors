@@ -156,53 +156,6 @@ class AgentMessagesHandlerTest {
 
         assertThat(runtimeMemory.allMessages()).containsExactly(assistantMessage, addedUserMessage);
       }
-        assertThat(addedUserMessages).isEmpty();
-        assertThat(runtimeMemory.allMessages()).isEmpty();
-      }
-
-      @Test
-      void addsUserMessageTogetherWithEventMessages() {
-        final var addedMessages =
-            messagesHandler.addUserMessages(
-                executionContext,
-                AGENT_CONTEXT,
-                runtimeMemory,
-                new UserPromptConfiguration("Tell me a story", Map.of(), List.of()),
-                EVENT_TOOL_CALL_RESULTS);
-
-        assertThat(addedMessages)
-            .hasSize(3)
-            .asInstanceOf(InstanceOfAssertFactories.list(UserMessage.class))
-            .satisfiesExactly(
-                userMessage -> {
-                  assertThat(userMessage.content())
-                      .hasSize(1)
-                      .satisfiesExactly(
-                          c -> assertThat(c).isEqualTo(textContent("Tell me a story")));
-                  assertThat((ZonedDateTime) userMessage.metadata().get("timestamp"))
-                      .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
-                },
-                userMessage -> {
-                  assertThat(userMessage.content())
-                      .hasSize(1)
-                      .satisfiesExactly(c -> assertThat(c).isEqualTo(textContent("Event data")));
-                  assertThat((ZonedDateTime) userMessage.metadata().get("timestamp"))
-                      .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
-                },
-                userMessage -> {
-                  assertThat(userMessage.content())
-                      .hasSize(1)
-                      .satisfiesExactly(
-                          c ->
-                              assertThat(c)
-                                  .isEqualTo(objectContent(Map.of("another", "event data"))));
-                  assertThat((ZonedDateTime) userMessage.metadata().get("timestamp"))
-                      .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
-                });
-
-        assertThat(runtimeMemory.allMessages()).containsExactlyElementsOf(addedMessages);
-      }
-    }
 
       @Test
       void addsUserMessageWhenPreviousMessageWasUserMessage() {
@@ -302,6 +255,49 @@ class AgentMessagesHandlerTest {
 
         assertThat(addedUserMessages).isEmpty();
         assertThat(runtimeMemory.allMessages()).isEmpty();
+      }
+
+      @Test
+      void addsUserMessageTogetherWithEventMessages() {
+        final var addedMessages =
+            messagesHandler.addUserMessages(
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                new UserPromptConfiguration("Tell me a story", List.of()),
+                EVENT_TOOL_CALL_RESULTS);
+
+        assertThat(addedMessages)
+            .hasSize(3)
+            .asInstanceOf(InstanceOfAssertFactories.list(UserMessage.class))
+            .satisfiesExactly(
+                userMessage -> {
+                  assertThat(userMessage.content())
+                      .hasSize(1)
+                      .satisfiesExactly(
+                          c -> assertThat(c).isEqualTo(textContent("Tell me a story")));
+                  assertThat((ZonedDateTime) userMessage.metadata().get("timestamp"))
+                      .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
+                },
+                userMessage -> {
+                  assertThat(userMessage.content())
+                      .hasSize(1)
+                      .satisfiesExactly(c -> assertThat(c).isEqualTo(textContent("Event data")));
+                  assertThat((ZonedDateTime) userMessage.metadata().get("timestamp"))
+                      .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
+                },
+                userMessage -> {
+                  assertThat(userMessage.content())
+                      .hasSize(1)
+                      .satisfiesExactly(
+                          c ->
+                              assertThat(c)
+                                  .isEqualTo(objectContent(Map.of("another", "event data"))));
+                  assertThat((ZonedDateTime) userMessage.metadata().get("timestamp"))
+                      .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
+                });
+
+        assertThat(runtimeMemory.allMessages()).containsExactlyElementsOf(addedMessages);
       }
     }
 
