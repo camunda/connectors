@@ -4,6 +4,8 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.DeploymentEvent;
 import io.camunda.client.api.response.ProcessInstanceResult;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.test.SystemIntegrationTest;
+import io.camunda.connector.test.ExternalSystem;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import org.junit.jupiter.api.Assertions;
@@ -23,6 +25,7 @@ import java.util.function.Function;
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
+@SystemIntegrationTest(with = ExternalSystem.ServiceNow)
 public class ServiceNowTests {
   @Autowired
   private CamundaClient client;
