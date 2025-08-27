@@ -1022,11 +1022,11 @@
     "id" : "data.systemPrompt.prompt",
     "label" : "System prompt",
     "optional" : false,
-    "value" : "You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitly configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nWrap minimal, inspectable reasoning in *exactly* this XML template:\n\n<thinking>\n<context>…briefly state the customer’s need and current state…</context>\n<reflection>…list candidate tools, justify which you will call next and why…</reflection>\n</thinking>\n\nReveal **no** additional private reasoning outside these tags.\n",
+    "value" : "\"You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitly configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nWrap minimal, inspectable reasoning in *exactly* this XML template:\n\n<thinking>\n<context>…briefly state the customer’s need and current state…</context>\n<reflection>…list candidate tools, justify which you will call next and why…</reflection>\n</thinking>\n\nReveal **no** additional private reasoning outside these tags.\"",
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "systemPrompt",
     "binding" : {
       "name" : "data.systemPrompt.prompt",
@@ -1034,43 +1034,19 @@
     },
     "type" : "Text"
   }, {
-    "id" : "data.systemPrompt.parameters",
-    "label" : "System prompt parameters",
-    "description" : "Use <code>{{parameter}}</code> format in the prompt to insert values defined in this map.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "systemPrompt",
-    "binding" : {
-      "name" : "data.systemPrompt.parameters",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
-  }, {
     "id" : "data.userPrompt.prompt",
     "label" : "User prompt",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "userPrompt",
     "binding" : {
       "name" : "data.userPrompt.prompt",
       "type" : "zeebe:input"
     },
     "type" : "Text"
-  }, {
-    "id" : "data.userPrompt.parameters",
-    "label" : "User prompt parameters",
-    "description" : "Use <code>{{parameter}}</code> format in the prompt to insert values defined in this map.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "userPrompt",
-    "binding" : {
-      "name" : "data.userPrompt.parameters",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
   }, {
     "id" : "data.userPrompt.documents",
     "label" : "Documents",

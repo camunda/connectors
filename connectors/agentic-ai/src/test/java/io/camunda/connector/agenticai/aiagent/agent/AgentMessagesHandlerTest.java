@@ -24,7 +24,6 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversationContext;
@@ -85,42 +84,15 @@ class AgentMessagesHandlerTest {
   @Nested
   class SystemMessagesTest {
 
-    @ParameterizedTest
-    @NullAndEmptySource
-    void addsSystemMessageWithEmptyParameters(Map<String, Object> parameters) {
-      final var systemPrompt =
-          new SystemPromptConfiguration("You are a helpful assistant.", parameters);
+    @Test
+    void addsSystemMessage() {
+      final var systemPrompt = new SystemPromptConfiguration("You are a helpful assistant.");
       messagesHandler.addSystemMessage(
           executionContext, AgentContext.empty(), runtimeMemory, systemPrompt);
 
       assertThat(runtimeMemory.allMessages())
           .hasSize(1)
           .containsExactly(systemMessage("You are a helpful assistant."));
-    }
-
-    @Test
-    void addsSystemMessageWithParameters() {
-      final var systemPrompt =
-          new SystemPromptConfiguration(
-              "You are a helpful assistant named {{name}}.", Map.of("name", "Johnny"));
-      messagesHandler.addSystemMessage(
-          executionContext, AgentContext.empty(), runtimeMemory, systemPrompt);
-
-      assertThat(runtimeMemory.allMessages())
-          .hasSize(1)
-          .containsExactly(systemMessage("You are a helpful assistant named Johnny."));
-    }
-
-    @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = {" "})
-    void doesNotAddSystemMessageWhenPromptIsEmpty(String prompt) {
-      final var systemPrompt = new SystemPromptConfiguration(prompt, Map.of("name", "Johnny"));
-      messagesHandler.addSystemMessage(
-          executionContext, AgentContext.empty(), runtimeMemory, systemPrompt);
-
-      verifyNoInteractions(runtimeMemory);
-      assertThat(runtimeMemory.allMessages()).isEmpty();
     }
   }
 
@@ -133,8 +105,7 @@ class AgentMessagesHandlerTest {
     @BeforeEach
     void setUp() {
       documents = List.of(mock(Document.class), mock(Document.class));
-      userPromptWithDocuments =
-          new UserPromptConfiguration("Tell me a story", Collections.emptyMap(), documents);
+      userPromptWithDocuments = new UserPromptConfiguration("Tell me a story", documents);
     }
 
     @Test
@@ -202,7 +173,7 @@ class AgentMessagesHandlerTest {
                 executionContext,
                 AGENT_CONTEXT,
                 runtimeMemory,
-                new UserPromptConfiguration("Tell me a story", Map.of(), List.of()),
+                new UserPromptConfiguration("Tell me a story", List.of()),
                 TOOL_CALL_RESULTS);
 
         assertThat(addedMessages)
@@ -223,41 +194,13 @@ class AgentMessagesHandlerTest {
       }
 
       @Test
-      void addsUserPromptWithParameters() {
-        final var addedMessages =
-            messagesHandler.addUserMessages(
-                executionContext,
-                AGENT_CONTEXT,
-                runtimeMemory,
-                new UserPromptConfiguration(
-                    "Tell me a story about {{name}}", Map.of("name", "Johnny"), List.of()),
-                TOOL_CALL_RESULTS);
-
-        assertThat(addedMessages)
-            .hasSize(1)
-            .first(InstanceOfAssertFactories.type(UserMessage.class))
-            .satisfies(
-                userMessage -> {
-                  assertThat(userMessage.content())
-                      .hasSize(1)
-                      .first()
-                      .isEqualTo(textContent("Tell me a story about Johnny"));
-                  assertThat(userMessage.metadata()).containsOnlyKeys("timestamp");
-                  assertThat((ZonedDateTime) userMessage.metadata().get("timestamp"))
-                      .isCloseTo(ZonedDateTime.now(), within(1, ChronoUnit.SECONDS));
-                });
-
-        assertThat(runtimeMemory.allMessages()).containsExactlyElementsOf(addedMessages);
-      }
-
-      @Test
       void addsDocumentsToUserMessage() {
         final var addedMessages =
             messagesHandler.addUserMessages(
                 executionContext,
                 AGENT_CONTEXT,
                 runtimeMemory,
-                new UserPromptConfiguration(null, Map.of(), documents),
+                new UserPromptConfiguration(null, documents),
                 TOOL_CALL_RESULTS);
 
         assertThat(addedMessages)
@@ -282,7 +225,7 @@ class AgentMessagesHandlerTest {
                 executionContext,
                 AGENT_CONTEXT,
                 runtimeMemory,
-                new UserPromptConfiguration("Tell me a story", Map.of(), documents),
+                new UserPromptConfiguration("Tell me a story", documents),
                 TOOL_CALL_RESULTS);
 
         assertThat(addedMessages)
@@ -305,7 +248,7 @@ class AgentMessagesHandlerTest {
       @NullAndEmptySource
       @ValueSource(strings = {" "})
       void returnsNoMessageWhenNoUserMessageContentToAdd(String prompt) {
-        final var userPrompt = new UserPromptConfiguration(prompt, Map.of(), List.of());
+        final var userPrompt = new UserPromptConfiguration(prompt, List.of());
         final var addedUserMessages =
             messagesHandler.addUserMessages(
                 executionContext, AGENT_CONTEXT, runtimeMemory, userPrompt, List.of());
@@ -321,7 +264,7 @@ class AgentMessagesHandlerTest {
                 executionContext,
                 AGENT_CONTEXT,
                 runtimeMemory,
-                new UserPromptConfiguration("Tell me a story", Map.of(), List.of()),
+                new UserPromptConfiguration("Tell me a story", List.of()),
                 EVENT_TOOL_CALL_RESULTS);
 
         assertThat(addedMessages)
@@ -520,7 +463,6 @@ class AgentMessagesHandlerTest {
                 runtimeMemory,
                 userPromptWithDocuments,
                 toolCallResults);
-
         assertThat(addedMessages).isEmpty();
         assertThat(runtimeMemory.allMessages()).containsExactly(assistantMessage);
       }
