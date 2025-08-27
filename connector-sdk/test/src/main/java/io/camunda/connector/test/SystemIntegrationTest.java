@@ -27,7 +27,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @ExtendWith(SystemIntegrationTestCondition.class)
 public @interface SystemIntegrationTest {
-
   ExternalSystem with() default ExternalSystem.ServiceNow;
-
 }
