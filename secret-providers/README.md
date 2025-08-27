@@ -1,20 +1,8 @@
 # Camunda Connectors Secret Provider
 
-For AWS SaaS Clusters the AWS Secret Manager is used. For GCP SaaS Clusters the GCP Secret Manager is used.
-
 ## Configuration
 
-Secret Provider that delegates to the GCP Security Manager.
-
-Requires the following properties being set,e.g. via application.properties:
-
-* `camunda.client.cloud.clusterId`: Cluster ID of Camunda SaaS cluster
-* `camunda.saas.secrets.projectId`: GCP project ID to use
-
-Optionally the following property can be set:
-* `camunda.saas.secrets.prefix`: If not set defaults to `connector-secrets`
-
-or as environment variables all these variables need to be set:
+Pass your configuration as environment variables, by setting:
 
 ```bash
 CAMUNDA_CLUSTER_ID

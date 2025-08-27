@@ -17,8 +17,8 @@
 package io.camunda.connector.runtime.saas;
 
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.secret.provider.AwsSecretProvider;
-import io.camunda.connector.secret.provider.GcpSecretProvider;
+import io.camunda.connector.secret.providers.AwsSecretProvider;
+import io.camunda.connector.secret.providers.GcpSecretProvider;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
