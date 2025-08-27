@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.secret.provider;
+package io.camunda.connector.secret.providers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.google.api.client.util.Value;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -41,6 +40,7 @@ public abstract class AbstractSecretProvider implements SecretProvider {
 
   /** Secrets used as fallback if SecretProvider is loaded via SPI */
   public static final String SECRETS_PROJECT_ENV_NAME = "SECRETS_PROJECT_ID";
+
   public static final String SECRETS_PREFIX_ENV_NAME = "SECRETS_PREFIX";
   public static final String CLUSTER_ID_ENV_NAME = "CAMUNDA_CLUSTER_ID";
   public static final String SECRETS_CACHE_MILLIS_ENV_NAME =

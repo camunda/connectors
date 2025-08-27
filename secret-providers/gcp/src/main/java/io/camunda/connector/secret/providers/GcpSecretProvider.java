@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.secret.provider;
+package io.camunda.connector.secret.providers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.secretmanager.v1.AccessSecretVersionResponse;
@@ -38,6 +38,7 @@ public class GcpSecretProvider extends AbstractSecretProvider {
     super(mapper, clusterId, secretsProjectId, secretsNamePrefix);
   }
 
+  @Override
   protected String loadSecrets(
       String clusterId, String secretsProjectId, String secretsNamePrefix, Logger LOGGER) {
     Objects.requireNonNull(clusterId, "You need to specify the clusterId to load secrets for");
