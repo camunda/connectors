@@ -16,7 +16,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.env.Environment;
 
 import java.io.File;
-import java.util.function.Function;
 
 @SpringBootTest(
     classes = {TestConnectorRuntimeApplication.class},
@@ -40,61 +39,58 @@ public class ServiceNowTests {
       "../../connectors/servicenow/element-templates/servicenow-connector.json";
 
   /**
-   * Mutable pipeline context for passing function compositions
+   * Pipeline context with fluent mutation methods
    */
-  private static class PipelineContext {
+  private class PipelineContext {
     final String processId;
     final String serviceTaskName;
-    final File filledTemplate;
     BpmnModelInstance model;
     BpmnModelInstance updatedModel;
     DeploymentEvent deploymentEvent;
     ProcessInstanceResult processInstanceResult;
 
-    PipelineContext(String processId, String serviceTaskName, File filledTemplate) {
+    PipelineContext(String processId, String serviceTaskName) {
       this.processId = processId;
       this.serviceTaskName = serviceTaskName;
-      this.filledTemplate = filledTemplate;
+    }
+
+    PipelineContext createModel() {
+      this.model = Bpmn.createProcess(processId)
+          .executable()
+          .startEvent()
+          .serviceTask(serviceTaskName)
+          .endEvent()
+          .done();
+      return this;
+    }
+
+    PipelineContext updateModelWith(File with) {
+      this.updatedModel = new BpmnFile(model)
+          .writeToFile(new File(tempDir, java.util.UUID.randomUUID() + "-before.bpmn"))
+          .apply(with, serviceTaskName, new File(tempDir, java.util.UUID.randomUUID() + "-after.bpmn"));
+      return this;
+    }
+
+    PipelineContext deploy() {
+      this.deploymentEvent = client
+          .newDeployResourceCommand()
+          .addProcessModel(updatedModel, processId + ".bpmn")
+          .send()
+          .join();
+      return this;
+    }
+
+    PipelineContext execute() {
+      this.processInstanceResult = client
+          .newCreateInstanceCommand()
+          .bpmnProcessId(processId)
+          .latestVersion()
+          .withResult()
+          .send()
+          .join();
+      return this;
     }
   }
-
-  private final Function<PipelineContext, PipelineContext> getModel = context -> {
-    context.model = Bpmn.createProcess(context.processId)
-        .executable()
-        .startEvent()
-        .serviceTask(context.serviceTaskName)
-        .endEvent()
-        .done();
-    return context;
-  };
-
-  private final Function<PipelineContext, PipelineContext> updateModel = context -> {
-    context.updatedModel = new BpmnFile(context.model)
-        .writeToFile(new File(tempDir, java.util.UUID.randomUUID() + "-before.bpmn"))
-        .apply(context.filledTemplate, context.serviceTaskName, new File(tempDir, java.util.UUID.randomUUID() + "-after.bpmn"));
-    return context;
-  };
-
-  private final Function<PipelineContext, PipelineContext> deploy = context -> {
-    context.deploymentEvent = client
-        .newDeployResourceCommand()
-        .addProcessModel(context.updatedModel, context.processId + ".bpmn")
-        .send()
-        .join();
-    return context;
-  };
-
-  private final Function<PipelineContext, PipelineContext> execute = context -> {
-    context.processInstanceResult = client
-        .newCreateInstanceCommand()
-        .bpmnProcessId(context.processId)
-        .latestVersion()
-        .withResult()
-        .send()
-        .join();
-    return context;
-  };
-
 
   @Test
   void incident() {
@@ -114,11 +110,11 @@ public class ServiceNowTests {
         .property("resultExpression", "={" + resultVariable + ": response.body.result.sys_id}")
         .writeTo(new File(tempDir, "servicenow-connector-incident.json"));
 
-    PipelineContext pipeline = getModel
-        .andThen(updateModel)
-        .andThen(deploy)
-        .andThen(execute)
-        .apply(new PipelineContext(processId, serviceTaskName, filledTemplate));
+    PipelineContext pipeline = new PipelineContext(processId, serviceTaskName)
+        .createModel()
+        .updateModelWith(filledTemplate)
+        .deploy()
+        .execute();
 
     var variables = pipeline.processInstanceResult.getVariables();
     Assertions.assertNotNull(variables);
