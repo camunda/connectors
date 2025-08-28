@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.client.utils;
+package io.camunda.document;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
-import io.camunda.connector.http.client.TestDocumentFactory;
+import io.camunda.connector.http.client.utils.DocumentHelper;
 import io.camunda.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -29,8 +28,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 public class DocumentHelperTest {
 
@@ -50,13 +51,14 @@ public class DocumentHelperTest {
     ((Map<String, Object>) input.get("body")).put("content", null);
 
     // when
-    Object res = documentHelper.parseDocumentsInBody(input, mock(Function.class));
+    Object res = documentHelper.parseDocumentsInBody(input, Mockito.mock(Function.class));
 
     // then
-    assertThat(res).isInstanceOf(Map.class);
-    assertThat(((Map<?, ?>) res).get("body")).isInstanceOf(Map.class);
-    assertThat(((Map<?, ?>) ((Map<?, ?>) res).get("body")).containsKey("content")).isTrue();
-    assertThat(((Map<?, ?>) ((Map<?, ?>) res).get("body")).get("content")).isNull();
+    Assertions.assertThat(res).isInstanceOf(Map.class);
+    Assertions.assertThat(((Map<?, ?>) res).get("body")).isInstanceOf(Map.class);
+    Assertions.assertThat(((Map<?, ?>) ((Map<?, ?>) res).get("body")).containsKey("content"))
+        .isTrue();
+    Assertions.assertThat(((Map<?, ?>) ((Map<?, ?>) res).get("body")).get("content")).isNull();
   }
 
   @Test
@@ -66,12 +68,13 @@ public class DocumentHelperTest {
     Map<String, Object> input = Map.of("body", Map.of("content", "no document"));
 
     // when
-    Object res = documentHelper.parseDocumentsInBody(input, mock(Function.class));
+    Object res = documentHelper.parseDocumentsInBody(input, Mockito.mock(Function.class));
 
     // then
-    assertThat(res).isInstanceOf(Map.class);
-    assertThat(((Map<?, ?>) res).get("body")).isInstanceOf(Map.class);
-    assertThat(((Map<?, ?>) ((Map<?, ?>) res).get("body")).get("content")).isEqualTo("no document");
+    Assertions.assertThat(res).isInstanceOf(Map.class);
+    Assertions.assertThat(((Map<?, ?>) res).get("body")).isInstanceOf(Map.class);
+    Assertions.assertThat(((Map<?, ?>) ((Map<?, ?>) res).get("body")).get("content"))
+        .isEqualTo("no document");
   }
 
   @Test
@@ -92,10 +95,11 @@ public class DocumentHelperTest {
     Object res = documentHelper.parseDocumentsInBody(input, Document::asByteArray);
 
     // then
-    assertThat(res).isInstanceOf(Map.class);
-    assertThat(((Map<?, ?>) res).get("body")).isInstanceOf(Map.class);
-    assertThat(((Map<?, ?>) ((Map<?, ?>) res).get("body")).get("content")).isInstanceOf(List.class);
-    assertThat((List<byte[]>) ((Map<?, ?>) ((Map<?, ?>) res).get("body")).get("content"))
+    Assertions.assertThat(res).isInstanceOf(Map.class);
+    Assertions.assertThat(((Map<?, ?>) res).get("body")).isInstanceOf(Map.class);
+    Assertions.assertThat(((Map<?, ?>) ((Map<?, ?>) res).get("body")).get("content"))
+        .isInstanceOf(List.class);
+    Assertions.assertThat((List<byte[]>) ((Map<?, ?>) ((Map<?, ?>) res).get("body")).get("content"))
         .containsAll(
             Arrays.asList(
                 "transformed".getBytes(StandardCharsets.UTF_8),
@@ -120,8 +124,8 @@ public class DocumentHelperTest {
     Object res = documentHelper.parseDocumentsInBody(input, Document::asByteArray);
 
     // then
-    assertThat(res).isInstanceOf(List.class);
-    assertThat((List<byte[]>) res)
+    Assertions.assertThat(res).isInstanceOf(List.class);
+    Assertions.assertThat((List<byte[]>) res)
         .containsAll(
             Arrays.asList(
                 "transformed".getBytes(StandardCharsets.UTF_8),
@@ -134,14 +138,15 @@ public class DocumentHelperTest {
     // given
     DocumentHelper documentHelper = new DocumentHelper();
     Map<String, Object> input = Map.of("body", Map.of("content", "no document"));
-    Function<Document, Object> transformer = mock(Function.class);
+    Function<Document, Object> transformer = Mockito.mock(Function.class);
 
     // when
     Object res = documentHelper.parseDocumentsInBody(input, transformer);
 
     // then
-    assertThat(res).isInstanceOf(Map.class);
-    assertThat(((Map<?, ?>) res).get("body")).isInstanceOf(Map.class);
-    assertThat(((Map<?, ?>) ((Map<?, ?>) res).get("body")).get("content")).isEqualTo("no document");
+    Assertions.assertThat(res).isInstanceOf(Map.class);
+    Assertions.assertThat(((Map<?, ?>) res).get("body")).isInstanceOf(Map.class);
+    Assertions.assertThat(((Map<?, ?>) ((Map<?, ?>) res).get("body")).get("content"))
+        .isEqualTo("no document");
   }
 }
