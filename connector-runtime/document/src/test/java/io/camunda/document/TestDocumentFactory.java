@@ -14,15 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.client;
+package io.camunda.document;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference;
-import io.camunda.document.CamundaDocument;
-import io.camunda.document.DocumentFactoryImpl;
-import io.camunda.document.DocumentMetadataImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
 
 public class TestDocumentFactory implements DocumentFactory {

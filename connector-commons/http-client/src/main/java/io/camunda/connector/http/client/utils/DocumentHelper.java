@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.http.client.utils;
 
-import io.camunda.document.CamundaDocument;
+import io.camunda.connector.api.document.Document;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,7 +32,7 @@ public class DocumentHelper {
    * @param input the input map
    * @param transformer the transformer to apply to each document (e.g. convert to Base64 etc)
    */
-  public Object parseDocumentsInBody(Object input, Function<CamundaDocument, Object> transformer) {
+  public Object parseDocumentsInBody(Object input, Function<Document, Object> transformer) {
     return switch (input) {
       case Map<?, ?> map ->
           map.entrySet().stream()
@@ -48,7 +48,7 @@ public class DocumentHelper {
                       (a, b) -> b,
                       () -> new HashMap<>(map)));
       case Collection list -> list.stream().map(o -> parseDocumentsInBody(o, transformer)).toList();
-      case CamundaDocument doc -> transformer.apply(doc);
+      case Document doc -> transformer.apply(doc);
       case null -> null;
       default -> input;
     };
