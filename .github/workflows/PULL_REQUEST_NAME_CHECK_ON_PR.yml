@@ -14,7 +14,7 @@ jobs:
         run: echo "$PR_TITLE"
       - name: Check if pull request name follows conventional commit regex
         run: |
-          PR_REGEX='^(feat|fix|docs|style|refactor|perf|test|chore|build|other|ci)\(?.+\)?: .+$'
+          PR_REGEX='^(feat|fix|docs|style|refactor|perf|test|chore|build|other|ci)(\(.+\))?: .+$'
           if [[ "$PR_TITLE" =~ $PR_REGEX ]]; then
             echo "Pull request name follows the conventional commit format."
           else

@@ -17,7 +17,6 @@
   <modules>
     <module>connector-object-mapper</module>
     <module>http-client</module>
-    <module>intrinsic-functions</module>
   </modules>
 
 </project>
