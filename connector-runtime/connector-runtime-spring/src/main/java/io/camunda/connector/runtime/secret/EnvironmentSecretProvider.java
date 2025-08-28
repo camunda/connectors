@@ -39,8 +39,20 @@ public class EnvironmentSecretProvider implements SecretProvider {
   @PostConstruct
   public void init() {
     if (!StringUtils.hasText(prefix)) {
-      LOG.info(
-          "No prefix has been configured, all environment variables are available as connector secrets");
+      LOG.warn(
+          """
+                Connector secret environment variable prefix is not configured.
+                Currently, all environment variables will be exposed as connector secrets.
+                This is unsafe and will not be supported anymore in future releases.
+
+                Please configure a valid prefix using
+                `camunda.connector.secretprovider.environment.prefix`
+                or
+                `CAMUNDA_CONNECTOR_SECRETPROVIDER_ENVIRONMENT_PREFIX`.
+
+                If `camunda.connector.secretprovider.environment.enabled` is set to true,
+                a prefix must be configured to avoid breaking changes in the future.
+                """);
     } else {
       LOG.debug(
           "Prefix '{}' has been configured, only environment variables with this prefix are available as connector secrets",
@@ -50,6 +62,11 @@ public class EnvironmentSecretProvider implements SecretProvider {
 
   @Override
   public String getSecret(String name, SecretContext context) {
+    if (!StringUtils.hasText(prefix)) {
+      LOG.warn(
+          "Accessing connector secrets without a configured prefix. This behavior is deprecated and will not be supported in a future release. "
+              + "Please set `camunda.connector.secretprovider.environment.prefix`. or `CAMUNDA_CONNECTOR_SECRETPROVIDER_ENVIRONMENT_PREFIX`.");
+    }
     String secretName =
         tenantAware ? composeSecretNameTenantAware(name, context) : composeSecretName(name);
     LOG.debug("Getting secret value for name '{}'", secretName);
