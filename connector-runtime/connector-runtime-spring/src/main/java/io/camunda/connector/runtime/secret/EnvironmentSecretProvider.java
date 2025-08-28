@@ -64,7 +64,7 @@ public class EnvironmentSecretProvider implements SecretProvider {
   public String getSecret(String name, SecretContext context) {
     if (!StringUtils.hasText(prefix)) {
       LOG.warn(
-          "Accessing connector secrets without a configured prefix. This behavior is deprecated and will not be supported in a future release. "
+          "Accessing connector environment secrets without a configured prefix. This behavior is deprecated and will not be supported in a future release. "
               + "Please set `camunda.connector.secretprovider.environment.prefix`. or `CAMUNDA_CONNECTOR_SECRETPROVIDER_ENVIRONMENT_PREFIX`.");
     }
     String secretName =
