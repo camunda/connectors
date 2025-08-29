@@ -18,7 +18,7 @@ import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.http.base.HttpService;
-import io.camunda.connector.http.polling.model.PollingIntervalConfiguration;
+import io.camunda.connector.http.polling.model.PollingRequest;
 import io.camunda.connector.http.polling.service.SharedExecutorService;
 import java.time.Duration;
 import java.util.Collections;
@@ -50,16 +50,16 @@ public class ProcessInstancesFetcherTaskTest {
   @Captor private ArgumentCaptor<Runnable> runnableCaptor;
 
   private ProcessInstancesFetcherTask task;
-  private PollingIntervalConfiguration config;
+  private PollingRequest config;
 
   @BeforeEach
   public void setUp() {
-    config = new PollingIntervalConfiguration();
+    config = new PollingRequest();
     config.setProcessPollingInterval(Duration.ofMillis(1000));
     config.setHttpRequestInterval(Duration.ofMillis(1000));
     when(mockContext.getDefinition()).thenReturn(mockInboundConnectorDefinition);
     when(mockInboundConnectorDefinition.deduplicationId()).thenReturn("someDeduplicationId");
-    when(mockContext.bindProperties(PollingIntervalConfiguration.class)).thenReturn(config);
+    when(mockContext.bindProperties(PollingRequest.class)).thenReturn(config);
     when(mockExecutorService.getExecutorService()).thenReturn(mockScheduledExecutorService);
     task = new ProcessInstancesFetcherTask(mockContext, mockHttpService, mockExecutorService);
   }

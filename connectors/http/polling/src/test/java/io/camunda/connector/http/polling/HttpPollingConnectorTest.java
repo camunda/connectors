@@ -14,7 +14,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.http.base.HttpService;
-import io.camunda.connector.http.polling.model.PollingIntervalConfiguration;
+import io.camunda.connector.http.polling.model.PollingRequest;
 import io.camunda.connector.http.polling.service.SharedExecutorService;
 import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
 import java.util.concurrent.ScheduledExecutorService;
@@ -39,7 +39,7 @@ public class HttpPollingConnectorTest {
   @BeforeEach
   public void setUp() {
     httpPollingConnector = new HttpPollingConnector(httpService, executorService);
-    when(context.bindProperties(any())).thenReturn(new PollingIntervalConfiguration());
+    when(context.bindProperties(any())).thenReturn(new PollingRequest());
     when(executorService.getExecutorService()).thenReturn(mockScheduledExecutorService);
   }
 

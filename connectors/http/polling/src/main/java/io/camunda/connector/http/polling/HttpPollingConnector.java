@@ -12,24 +12,24 @@ import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.http.base.HttpService;
-import io.camunda.connector.http.polling.model.PollingIntervalInput;
+import io.camunda.connector.http.polling.model.PollingRequest;
 import io.camunda.connector.http.polling.service.SharedExecutorService;
 import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
 
 @ElementTemplate(
-    engineVersion = "^8.3",
+    engineVersion = "^8.8",
     id = "io.camunda:http-polling:1",
     name = "Polling Connector",
     icon = "icon.svg",
-    version = 3,
-    inputDataClass = PollingIntervalInput.class,
+    version = 4,
+    inputDataClass = PollingRequest.class,
     description = "Polls endpoint at regular intervals",
     documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/polling/",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "endpoint", label = "HTTP Polling configuration"),
-      @ElementTemplate.PropertyGroup(id = "payload", label = "Payload"),
-      @ElementTemplate.PropertyGroup(id = "timeout", label = "Connect timeout")
+      @ElementTemplate.PropertyGroup(id = "interval", label = "HTTP Polling Interval"),
+      @ElementTemplate.PropertyGroup(id = "timeout", label = "Connection timeout"),
     },
     elementTypes = {
       @ElementTemplate.ConnectorElementType(

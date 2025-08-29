@@ -7,6 +7,7 @@
 package io.camunda.connector.http.base;
 
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.http.base.model.HttpCommonInboundRequest;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.auth.AuthenticationMapper;
@@ -24,6 +25,17 @@ public class HttpService {
 
   public HttpCommonResult executeConnectorRequest(HttpCommonRequest request) {
     return executeConnectorRequest(request, null);
+  }
+
+  public HttpCommonResult executeConnectorRequest(HttpCommonInboundRequest request) {
+    return executeConnectorRequest(request, null);
+  }
+
+  public HttpCommonResult executeConnectorRequest(
+      final HttpCommonInboundRequest request, final OutboundConnectorContext context) {
+    HttpClientRequest httpClientRequest = mapToHttpClientRequest(request);
+    HttpClientResult result = httpClientService.executeConnectorRequest(httpClientRequest, context);
+    return mapToHttpCommonResult(result);
   }
 
   public HttpCommonResult executeConnectorRequest(
@@ -47,6 +59,21 @@ public class HttpService {
     httpClientRequest.setReadTimeoutInSeconds(request.getReadTimeoutInSeconds());
     httpClientRequest.setSkipEncoding(request.getSkipEncoding());
     httpClientRequest.setIgnoreNullValues(request.isIgnoreNullValues());
+    return httpClientRequest;
+  }
+
+  public HttpClientRequest mapToHttpClientRequest(HttpCommonInboundRequest request) {
+    HttpClientRequest httpClientRequest = new HttpClientRequest();
+    httpClientRequest.setMethod(
+        io.camunda.connector.http.client.model.HttpMethod.valueOf(request.getMethod().name()));
+    httpClientRequest.setUrl(request.getUrl());
+    httpClientRequest.setHeaders(request.getHeaders().orElse(null));
+    httpClientRequest.setQueryParameters(request.getQueryParameters());
+    httpClientRequest.setBody(request.getBody());
+    httpClientRequest.setAuthentication(AuthenticationMapper.map(request.getAuthentication()));
+    httpClientRequest.setConnectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds());
+    httpClientRequest.setReadTimeoutInSeconds(request.getReadTimeoutInSeconds());
+    httpClientRequest.setSkipEncoding(request.getSkipEncoding());
     return httpClientRequest;
   }
 
