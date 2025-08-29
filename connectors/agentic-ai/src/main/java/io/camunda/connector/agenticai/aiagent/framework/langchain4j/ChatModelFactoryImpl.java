@@ -210,8 +210,6 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     Optional.ofNullable(connection.authentication().organizationId())
         .ifPresent(builder::organizationId);
     Optional.ofNullable(connection.authentication().projectId()).ifPresent(builder::projectId);
-    Optional.ofNullable(connection.endpoint()).ifPresent(builder::baseUrl);
-    Optional.ofNullable(connection.headers()).ifPresent(builder::customHeaders);
 
     final var modelParameters = connection.model().parameters();
     if (modelParameters != null) {
