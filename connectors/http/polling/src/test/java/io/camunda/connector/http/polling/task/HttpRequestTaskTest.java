@@ -15,6 +15,7 @@ import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
+import io.camunda.connector.http.polling.model.PollingRequest;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,10 +44,9 @@ public class HttpRequestTaskTest {
   public void shouldExecuteAndCorrelateHttpRequestOnRun() throws Exception {
     // Given
     HttpRequestTask task =
-        new HttpRequestTask(mockHttpService, mockProcessInstanceContext, context);
-    when(mockProcessInstanceContext.bind(HttpCommonRequest.class))
-        .thenReturn(new HttpCommonRequest());
-    when(mockHttpService.executeConnectorRequest(any(HttpCommonRequest.class)))
+        new HttpRequestTask(
+            mockHttpService, mockProcessInstanceContext, context, new PollingRequest());
+    when(mockHttpService.executeConnectorRequest(any(PollingRequest.class)))
         .thenReturn(httpCommonResult);
 
     // When
@@ -60,9 +60,8 @@ public class HttpRequestTaskTest {
   public void shouldHandleExceptionWhileExecutingHttpRequest() throws Exception {
     // Given
     HttpRequestTask task =
-        new HttpRequestTask(mockHttpService, mockProcessInstanceContext, context);
-    when(mockProcessInstanceContext.bind(HttpCommonRequest.class))
-        .thenReturn(new HttpCommonRequest());
+        new HttpRequestTask(
+            mockHttpService, mockProcessInstanceContext, context, new PollingRequest());
     when(mockHttpService.executeConnectorRequest(any(HttpCommonRequest.class)))
         .thenThrow(new RuntimeException("test exception"));
 

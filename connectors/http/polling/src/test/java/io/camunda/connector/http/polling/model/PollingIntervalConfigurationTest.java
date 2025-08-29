@@ -35,6 +35,23 @@ public class PollingIntervalConfigurationTest {
   @Mock
   private ValidInboundConnectorDetails connectorData; // Initialize or mock the connector definition
 
+  private static Stream<Arguments> httpRequestIntervalTestCases() {
+    return Stream.of(
+        Arguments.of("PT3M", 180000L),
+        Arguments.of("P1D", 86400000L),
+        Arguments.of("PT1H30M10.5S", 5410500L),
+        Arguments.of(null, 50000));
+  }
+
+  private static Stream<Arguments> processPollingIntervalTestCases() {
+    return Stream.of(
+        Arguments.of("PT1M", 60000L),
+        Arguments.of("PT45S", 45000L),
+        Arguments.of("PT2H", 7200000L),
+        Arguments.of("P1DT12H", 129600000L),
+        Arguments.of(null, 5000));
+  }
+
   @BeforeEach
   public void setUp() {
     SecretProvider secretProvider =
@@ -56,8 +73,7 @@ public class PollingIntervalConfigurationTest {
   @MethodSource("httpRequestIntervalTestCases")
   public void testGetHttpRequestInterval(String value, long expected) {
     inboundConnectorContext.getProperties().put("httpRequestInterval", value);
-    PollingIntervalConfiguration intervals =
-        inboundConnectorContext.bindProperties(PollingIntervalConfiguration.class);
+    PollingRequest intervals = inboundConnectorContext.bindProperties(PollingRequest.class);
     long interval = intervals.getHttpRequestInterval().toMillis();
     assertThat(interval).isEqualTo(expected);
   }
@@ -66,27 +82,9 @@ public class PollingIntervalConfigurationTest {
   @MethodSource("processPollingIntervalTestCases")
   public void testGetProcessPollingInterval(String value, long expected) {
     inboundConnectorContext.getProperties().put("processPollingInterval", value);
-    PollingIntervalConfiguration intervals =
-        inboundConnectorContext.bindProperties(PollingIntervalConfiguration.class);
+    PollingRequest intervals = inboundConnectorContext.bindProperties(PollingRequest.class);
     long interval = intervals.getProcessPollingInterval().toMillis();
     assertThat(interval).isEqualTo(expected);
-  }
-
-  private static Stream<Arguments> httpRequestIntervalTestCases() {
-    return Stream.of(
-        Arguments.of("PT3M", 180000L),
-        Arguments.of("P1D", 86400000L),
-        Arguments.of("PT1H30M10.5S", 5410500L),
-        Arguments.of(null, 50000));
-  }
-
-  private static Stream<Arguments> processPollingIntervalTestCases() {
-    return Stream.of(
-        Arguments.of("PT1M", 60000L),
-        Arguments.of("PT45S", 45000L),
-        Arguments.of("PT2H", 7200000L),
-        Arguments.of("P1DT12H", 129600000L),
-        Arguments.of(null, 5000));
   }
 
   private static class MirrorSecretProvider implements SecretProvider {
