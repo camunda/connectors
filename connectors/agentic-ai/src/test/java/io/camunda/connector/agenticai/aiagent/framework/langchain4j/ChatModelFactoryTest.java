@@ -55,6 +55,9 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVerte
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel.GoogleVertexAiModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel.OpenAiCompatibleModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
@@ -710,6 +713,132 @@ class ChatModelFactoryTest {
 
     static Stream<OpenAiModelParameters> nullModelParameters() {
       return Stream.of(new OpenAiModelParameters(null, null, null));
+    }
+  }
+
+  @Nested
+  class OpenAiCompatibleChatModelFactoryTest {
+
+    private static final String API_KEY = "compatibleApiKey";
+    private static final String ENDPOINT = "https://compatible.local/v1";
+    private static final String MODEL = "some-compatible-model";
+
+    private static final OpenAiCompatibleModelParameters DEFAULT_MODEL_PARAMETERS =
+        new OpenAiCompatibleModelParameters(10, 1.0, 0.8, Map.of("my-param", "my-value"));
+
+    @Captor private ArgumentCaptor<OpenAiChatRequestParameters> modelParametersArgumentCaptor;
+
+    @Test
+    void createsOpenAiCompatibleChatModelWithApiKeyAndHeaders() {
+      final var providerConfig =
+          new OpenAiCompatibleProviderConfiguration(
+              new OpenAiCompatibleConnection(
+                  ENDPOINT,
+                  new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
+                  Map.of("my-header", "my-value"),
+                  new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
+                      MODEL, DEFAULT_MODEL_PARAMETERS)));
+
+      testOpenAiCompatibleChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder).modelName(MODEL);
+            verify(builder).baseUrl(ENDPOINT);
+            verify(builder).apiKey(API_KEY);
+            verify(builder).customHeaders(Map.of("my-header", "my-value"));
+
+            verify(builder).defaultRequestParameters(modelParametersArgumentCaptor.capture());
+
+            final var parameters = modelParametersArgumentCaptor.getValue();
+            assertThat(parameters).isNotNull();
+            assertThat(parameters.maxCompletionTokens())
+                .isEqualTo(DEFAULT_MODEL_PARAMETERS.maxCompletionTokens());
+            assertThat(parameters.temperature()).isEqualTo(DEFAULT_MODEL_PARAMETERS.temperature());
+            assertThat(parameters.topP()).isEqualTo(DEFAULT_MODEL_PARAMETERS.topP());
+            assertThat(parameters.customParameters())
+                .isEqualTo(DEFAULT_MODEL_PARAMETERS.customParameters());
+
+            // Ensure OpenAI-specific fields are not set
+            verify(builder, never()).organizationId(any());
+            verify(builder, never()).projectId(any());
+          });
+    }
+
+    @Test
+    void createsOpenAiCompatibleChatModelWithoutApiKey() {
+      final var providerConfig =
+          new OpenAiCompatibleProviderConfiguration(
+              new OpenAiCompatibleConnection(
+                  ENDPOINT,
+                  new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(null),
+                  null,
+                  new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
+                      MODEL, DEFAULT_MODEL_PARAMETERS)));
+
+      testOpenAiCompatibleChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder).modelName(MODEL);
+            verify(builder).baseUrl(ENDPOINT);
+            verify(builder, never()).apiKey(any());
+            verify(builder, never()).customHeaders(any());
+          });
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @MethodSource("nullModelParameters")
+    void createsOpenAiCompatibleChatModelWithNullModelParameters(
+        OpenAiCompatibleModelParameters modelParameters) {
+      final var providerConfig =
+          new OpenAiCompatibleProviderConfiguration(
+              new OpenAiCompatibleConnection(
+                  ENDPOINT,
+                  new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
+                  Map.of(),
+                  new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
+                      MODEL, modelParameters)));
+
+      testOpenAiCompatibleChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            if (modelParameters == null) {
+              verify(builder, never()).defaultRequestParameters(any());
+            } else {
+              verify(builder).defaultRequestParameters(modelParametersArgumentCaptor.capture());
+
+              final var parameters = modelParametersArgumentCaptor.getValue();
+              assertThat(parameters).isNotNull().isInstanceOf(OpenAiChatRequestParameters.class);
+
+              assertThat(parameters.maxCompletionTokens()).isNull();
+              assertThat(parameters.temperature()).isNull();
+              assertThat(parameters.topP()).isNull();
+              assertThat(parameters.customParameters()).isEmpty();
+            }
+          });
+    }
+
+    private void testOpenAiCompatibleChatModelBuilder(
+        OpenAiCompatibleProviderConfiguration providerConfig,
+        ThrowingConsumer<OpenAiChatModelBuilder> builderAssertions) {
+      final var chatModelBuilder = spy(OpenAiChatModel.builder());
+      final var chatModelResultCaptor = new ResultCaptor<OpenAiChatModel>();
+      doAnswer(chatModelResultCaptor).when(chatModelBuilder).build();
+
+      try (MockedStatic<OpenAiChatModel> chatModelMock =
+          mockStatic(OpenAiChatModel.class, Answers.CALLS_REAL_METHODS)) {
+        chatModelMock.when(OpenAiChatModel::builder).thenReturn(chatModelBuilder);
+
+        final var chatModel = chatModelFactory.createChatModel(providerConfig);
+        assertThat(chatModel).isNotNull().isInstanceOf(OpenAiChatModel.class);
+        assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
+
+        builderAssertions.accept(chatModelBuilder);
+      }
+    }
+
+    static Stream<OpenAiCompatibleModelParameters> nullModelParameters() {
+      return Stream.of(new OpenAiCompatibleModelParameters(null, null, null, null));
     }
   }
 
