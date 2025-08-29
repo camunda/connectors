@@ -14,41 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document;
+package io.camunda.connector.runtime.core.document.store;
 
-import io.camunda.client.api.response.DocumentReferenceResponse;
-import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import java.io.InputStream;
 
-public record CamundaDocumentReferenceImpl(
-    String storeId, String documentId, String contentHash, DocumentMetadata metadata)
-    implements CamundaDocumentReference {
+public interface CamundaDocumentStore {
 
-  public CamundaDocumentReferenceImpl(DocumentReferenceResponse response) {
-    this(
-        response.getStoreId(),
-        response.getDocumentId(),
-        response.getContentHash(),
-        new DocumentMetadataImpl(response.getMetadata()));
-  }
+  CamundaDocumentReference createDocument(DocumentCreationRequest request);
 
-  @Override
-  public String getDocumentId() {
-    return documentId;
-  }
+  InputStream getDocumentContent(CamundaDocumentReference reference);
 
-  @Override
-  public String getStoreId() {
-    return storeId;
-  }
+  void deleteDocument(CamundaDocumentReference reference);
 
-  @Override
-  public String getContentHash() {
-    return contentHash;
-  }
-
-  @Override
-  public DocumentMetadata getMetadata() {
-    return metadata;
-  }
+  String generateLink(CamundaDocumentReference reference, DocumentLinkParameters parameters);
 }

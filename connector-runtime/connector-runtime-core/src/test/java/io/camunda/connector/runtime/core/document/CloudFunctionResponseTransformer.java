@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document;
+package io.camunda.connector.runtime.core.document;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
