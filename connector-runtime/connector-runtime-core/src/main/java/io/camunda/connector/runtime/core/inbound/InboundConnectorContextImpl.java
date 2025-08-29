@@ -280,10 +280,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
         Activity.newBuilder()
             .withTag(ActivityLogTag.HEALTH)
             .withMessage(
-                String.format("Health status changed to %s, details: %s",
-                    health.getStatus(),
-                    health.getDetails()))
-            .andReportHealth(health).build();
+                String.format(
+                    "Health status changed to %s, details: %s",
+                    health.getStatus(), health.getDetails()))
+            .andReportHealth(health)
+            .build();
     // append the activity log to store the health status change history
     activityLogWriter.log(
         new ActivityLogEntry(
