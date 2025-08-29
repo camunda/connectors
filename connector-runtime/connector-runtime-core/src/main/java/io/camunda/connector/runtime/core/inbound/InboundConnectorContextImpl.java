@@ -270,14 +270,28 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void reportHealth(Health health) {
-    this.health = health;
-    var activityLog = Activity.newBuilder().andReportHealth(health).build();
+    if (health == null) {
+      throw new IllegalArgumentException("Health must not be null");
+    }
+    if (health.equals(this.health)) {
+      return;
+    }
+    var activityLog =
+        Activity.newBuilder()
+            .withTag(ActivityLogTag.HEALTH)
+            .withMessage(
+                String.format(
+                    "Health status changed to %s, details: %s",
+                    health.getStatus(), health.getDetails()))
+            .andReportHealth(health)
+            .build();
     // append the activity log to store the health status change history
     activityLogWriter.log(
         new ActivityLogEntry(
             ExecutableId.fromDeduplicationId(connectorDetails.deduplicationId()),
             ActivitySource.CONNECTOR,
             activityLog));
+    this.health = health;
   }
 
   @Override
