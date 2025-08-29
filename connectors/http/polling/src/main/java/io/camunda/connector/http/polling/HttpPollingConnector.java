@@ -43,7 +43,7 @@ import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
           templateIdOverride = "io.camunda.connectors.http.Polling.Boundary",
           templateNameOverride = "HTTP Polling Boundary Catch Event Connector")
     })
-@InboundConnector(name = "HTTP_POLLING", type = "io.camunda:http-polling:1")
+@InboundConnector(name = "HTTP Polling Connector", type = "io.camunda:http-polling:1")
 public class HttpPollingConnector
     implements InboundConnectorExecutable<InboundIntermediateConnectorContext> {
 
