@@ -14,9 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document.store;
+package io.camunda.connector.runtime.core.document.store;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.connector.api.document.CamundaDocumentStore;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;

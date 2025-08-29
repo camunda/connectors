@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document;
+package io.camunda.connector.test;
 
 import io.camunda.connector.api.document.DocumentMetadata;
 import java.time.OffsetDateTime;
 import java.util.Map;
-import java.util.Objects;
 
-public class DocumentMetadataImpl implements DocumentMetadata {
+public class TestDocumentMetadata implements DocumentMetadata {
 
   private final String contentType;
   private final OffsetDateTime expiresAt;
@@ -31,7 +30,7 @@ public class DocumentMetadataImpl implements DocumentMetadata {
   private final Long processInstanceKey;
   private final Map<String, Object> customProperties;
 
-  public DocumentMetadataImpl(io.camunda.client.api.response.DocumentMetadata apiResponse) {
+  public TestDocumentMetadata(TestDocumentMetadata apiResponse) {
     this.contentType = apiResponse.getContentType();
     this.expiresAt = apiResponse.getExpiresAt();
     this.size = apiResponse.getSize();
@@ -41,7 +40,7 @@ public class DocumentMetadataImpl implements DocumentMetadata {
     this.customProperties = apiResponse.getCustomProperties();
   }
 
-  public DocumentMetadataImpl(
+  public TestDocumentMetadata(
       String contentType,
       OffsetDateTime expiresAt,
       Long size,
@@ -91,55 +90,5 @@ public class DocumentMetadataImpl implements DocumentMetadata {
   @Override
   public Map<String, Object> getCustomProperties() {
     return customProperties;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    DocumentMetadataImpl that = (DocumentMetadataImpl) o;
-    return Objects.equals(contentType, that.contentType)
-        && Objects.equals(expiresAt, that.expiresAt)
-        && Objects.equals(size, that.size)
-        && Objects.equals(fileName, that.fileName)
-        && Objects.equals(processDefinitionId, that.processDefinitionId)
-        && Objects.equals(processInstanceKey, that.processInstanceKey)
-        && Objects.equals(customProperties, that.customProperties);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(
-        contentType,
-        expiresAt,
-        size,
-        fileName,
-        processDefinitionId,
-        processInstanceKey,
-        customProperties);
-  }
-
-  @Override
-  public String toString() {
-    return "DocumentMetadataImpl{"
-        + "contentType='"
-        + contentType
-        + '\''
-        + ", expiresAt="
-        + expiresAt
-        + ", size="
-        + size
-        + ", fileName='"
-        + fileName
-        + '\''
-        + ", processDefinitionId='"
-        + processDefinitionId
-        + '\''
-        + ", processInstanceKey="
-        + processInstanceKey
-        + ", customProperties="
-        + customProperties
-        + '}';
   }
 }

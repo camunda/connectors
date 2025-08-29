@@ -14,30 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.document;
+package io.camunda.connector.test;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
-import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.document.store.CamundaDocumentStore;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Base64;
 
-public class CamundaDocument implements Document {
+public class TestDocument implements Document {
 
+  private final byte[] content;
   private final DocumentMetadata metadata;
-  private final CamundaDocumentReference reference;
-  private final CamundaDocumentStore documentStore;
+  private final DocumentReference reference;
+  private final String documentId;
 
-  public CamundaDocument(
-      DocumentMetadata metadata,
-      CamundaDocumentReference reference,
-      CamundaDocumentStore documentStore) {
+  public TestDocument(
+      byte[] content, DocumentMetadata metadata, DocumentReference reference, String documentId) {
+    this.content = content;
     this.metadata = metadata;
     this.reference = reference;
-    this.documentStore = documentStore;
+    this.documentId = documentId;
   }
 
   @Override
@@ -47,21 +46,17 @@ public class CamundaDocument implements Document {
 
   @Override
   public String asBase64() {
-    return Base64.getEncoder().encodeToString(asByteArray());
+    return Base64.getEncoder().encodeToString(content);
   }
 
   @Override
   public InputStream asInputStream() {
-    return documentStore.getDocumentContent(reference);
+    return new ByteArrayInputStream(content);
   }
 
   @Override
   public byte[] asByteArray() {
-    try {
-      return documentStore.getDocumentContent(reference).readAllBytes();
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to read document content: " + e.getMessage(), e);
-    }
+    return content;
   }
 
   @Override
@@ -71,6 +66,6 @@ public class CamundaDocument implements Document {
 
   @Override
   public String generateLink(DocumentLinkParameters parameters) {
-    return documentStore.generateLink(reference, parameters);
+    return "https://test/" + documentId;
   }
 }
