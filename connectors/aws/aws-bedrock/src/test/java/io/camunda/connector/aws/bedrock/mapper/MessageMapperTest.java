@@ -8,18 +8,14 @@ package io.camunda.connector.aws.bedrock.mapper;
 
 import static io.camunda.connector.aws.bedrock.BaseTest.readData;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.aws.bedrock.model.BedrockContent;
 import io.camunda.connector.aws.bedrock.model.BedrockMessage;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
-import io.camunda.document.CamundaDocument;
-import io.camunda.document.store.CamundaDocumentStore;
-import java.io.ByteArrayInputStream;
+import io.camunda.connector.test.TestDocument;
 import java.io.IOException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -97,12 +93,8 @@ class MessageMapperTest {
 
   private Document prepareDocument(String path) throws IOException {
     var documentReference = mock(DocumentReference.CamundaDocumentReference.class);
-    var documentStore = mock(CamundaDocumentStore.class);
-
-    var byteInput = new ByteArrayInputStream(new byte[0]);
-    when(documentStore.getDocumentContent(any())).thenReturn(byteInput);
 
     var docMetadata = readData(path, DocumentReferenceModel.CamundaDocumentMetadataModel.class);
-    return new CamundaDocument(docMetadata, documentReference, documentStore);
+    return new TestDocument(new byte[0], docMetadata, documentReference, "id");
   }
 }
