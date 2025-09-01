@@ -18,11 +18,14 @@ package io.camunda.connector.uniquet.core;
 
 import static io.camunda.connector.uniquet.core.FileHelper.getBaseName;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.uniquet.dto.Connector;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -33,9 +36,20 @@ public class ConnectorsFinder {
   private static final String ELEMENT_TEMPLATES = "element-templates";
   private static final String VERSIONED = "versioned";
   private final List<Connector> connectors;
+  private static final ObjectMapper objectMapper = new ObjectMapper();
+  private List<String> IGNORED_TEMPLATE_IDS = new ArrayList<>();
 
   public ConnectorsFinder(Path connectorPath) {
+    this(connectorPath, null);
+  }
+
+  public ConnectorsFinder(Path connectorPath, String ignorePath) {
     try (Stream<Path> files = Files.walk(connectorPath)) {
+      if (ignorePath != null) {
+        File ignoreFile = Path.of(ignorePath).toFile();
+        IGNORED_TEMPLATE_IDS = objectMapper.readValue(ignoreFile, List.class);
+      }
+
       this.connectors =
           files
               .map(path -> new File(path.toUri()))
@@ -49,8 +63,8 @@ public class ConnectorsFinder {
     }
   }
 
-  public static ConnectorsFinder create(Path connectorPath) {
-    return new ConnectorsFinder(connectorPath);
+  public static ConnectorsFinder create(Path connectorPath, String ignorePath) {
+    return new ConnectorsFinder(connectorPath, ignorePath);
   }
 
   private File getElementTemplateDirectory(File file) {
@@ -69,10 +83,12 @@ public class ConnectorsFinder {
             versionedDirectory ->
                 Arrays.stream(files)
                     .filter(File::isFile)
+                    .filter(this::isIgnoredTemplate)
                     .map(currentFile -> this.mapToConnector(currentFile, versionedDirectory)))
         .orElse(
             Arrays.stream(files)
                 .filter(File::isFile)
+                .filter(this::isIgnoredTemplate)
                 .map(currentFile -> new Connector(currentFile, List.of())));
   }
 
@@ -94,5 +110,16 @@ public class ConnectorsFinder {
 
   public List<Connector> getAllConnectors() {
     return connectors;
+  }
+
+  private boolean isIgnoredTemplate(File file) {
+    try {
+      JsonNode root = objectMapper.readTree(file);
+      JsonNode idNode = root.get("id");
+      var a = idNode != null && IGNORED_TEMPLATE_IDS.contains(idNode.asText());
+      return !a;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

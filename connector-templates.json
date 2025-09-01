@@ -1,2498 +1,2510 @@
 {
   "camunda.connectors.rpa" : [ {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rpa/element-templates/rpa-connector.json",
-    "engine" : {
-      "camunda" : "^8.7"
-    }
-  } ],
-  "io.camunda.connector.IdpExtractionOutBoundTemplate.v1" : [ {
-    "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/idp-extraction/element-templates/idp-extraction-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rpa/element-templates/rpa-connector.json",
     "engine" : {
       "camunda" : "^8.7"
     }
   } ],
   "io.camunda.connectors.AWSCOMPREHEND.v1" : [ {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-comprehend/element-templates/aws-comprehend-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-comprehend/element-templates/aws-comprehend-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.7"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-comprehend/element-templates/versioned/aws-comprehend-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-comprehend/element-templates/versioned/aws-comprehend-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.7"
     }
   } ],
   "io.camunda.connectors.AWSDynamoDB.v1" : [ {
     "version" : 8,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-dynamodb/element-templates/aws-dynamodb-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-dynamodb/element-templates/aws-dynamodb-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-dynamodb/element-templates/versioned/aws-dynamodb-outbound-connector-7.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-dynamodb/element-templates/versioned/aws-dynamodb-outbound-connector-7.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-dynamodb/element-templates/versioned/aws-dynamodb-outbound-connector-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-dynamodb/element-templates/versioned/aws-dynamodb-outbound-connector-6.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-dynamodb/element-templates/versioned/aws-dynamodb-outbound-connector-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-dynamodb/element-templates/versioned/aws-dynamodb-outbound-connector-5.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-dynamodb/element-templates/versioned/aws-dynamodb-outbound-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-dynamodb/element-templates/versioned/aws-dynamodb-outbound-connector-4.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-dynamodb/element-templates/versioned/aws-dynamodb-outbound-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-dynamodb/element-templates/versioned/aws-dynamodb-outbound-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-dynamodb/element-templates/versioned/aws-dynamodb-outbound-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-dynamodb/element-templates/versioned/aws-dynamodb-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.AWSEventBridge.MessageStart.v1" : [ {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-eventbridge/element-templates/aws-eventbridge-connector-message-start.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-eventbridge/element-templates/aws-eventbridge-connector-message-start.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-connector-message-start-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-connector-message-start-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.AWSEventBridge.boundary.v1" : [ {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-eventbridge/element-templates/aws-eventbridge-connector-boundary.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-eventbridge/element-templates/aws-eventbridge-connector-boundary.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-connector-boundary-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-connector-boundary-2.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-connector-boundary-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-connector-boundary-1.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   } ],
   "io.camunda.connectors.AWSEventBridge.intermediate.v1" : [ {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-eventbridge/element-templates/aws-eventbridge-connector-intermediate.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-eventbridge/element-templates/aws-eventbridge-connector-intermediate.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-connector-intermediate-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-connector-intermediate-3.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-connector-intermediate-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-connector-intermediate-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-connector-intermediate-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-connector-intermediate-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.AWSEventBridge.startEvent.v1" : [ {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-eventbridge/element-templates/aws-eventbridge-connector-start-event.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-eventbridge/element-templates/aws-eventbridge-connector-start-event.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-connector-start-event-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-connector-start-event-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-connector-start-event-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-connector-start-event-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.AWSEventBridge.v1" : [ {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-eventbridge/element-templates/aws-eventbridge-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-eventbridge/element-templates/aws-eventbridge-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-outbound-connector-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-outbound-connector-5.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-outbound-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-outbound-connector-4.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-outbound-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-outbound-connector-3.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-outbound-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-eventbridge/element-templates/versioned/aws-eventbridge-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.AWSLAMBDA.v2" : [ {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-lambda/element-templates/aws-lambda-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-lambda/element-templates/aws-lambda-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-lambda/element-templates/versioned/aws-lambda-outbound-connector-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-lambda/element-templates/versioned/aws-lambda-outbound-connector-5.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-lambda/element-templates/versioned/aws-lambda-outbound-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-lambda/element-templates/versioned/aws-lambda-outbound-connector-4.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-lambda/element-templates/versioned/aws-lambda-outbound-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-lambda/element-templates/versioned/aws-lambda-outbound-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-lambda/element-templates/versioned/aws-lambda-outbound-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-lambda/element-templates/versioned/aws-lambda-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.AWSSAGEMAKER.v1" : [ {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sagemaker/element-templates/aws-sagemaker-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sagemaker/element-templates/aws-sagemaker-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sagemaker/element-templates/versioned/aws-sagemaker-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sagemaker/element-templates/versioned/aws-sagemaker-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   } ],
   "io.camunda.connectors.AWSSNS.v1" : [ {
     "version" : 8,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/aws-sns-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/aws-sns-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-outbound-connector-7.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-outbound-connector-7.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-outbound-connector-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-outbound-connector-6.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-outbound-connector-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-outbound-connector-5.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-outbound-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-outbound-connector-4.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-outbound-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-outbound-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-outbound-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.AWSSQS.StartEvent.v1" : [ {
     "version" : 10,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/aws-sqs-start-event-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/aws-sqs-start-event-connector.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 9,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-event-connector-9.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-event-connector-9.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-event-connector-7.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-event-connector-7.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-event-connector-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-event-connector-6.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-event-connector-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-event-connector-5.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-event-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-event-connector-4.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-event-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-event-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-event-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-event-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-event-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-event-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.AWSSQS.boundary.v1" : [ {
     "version" : 10,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/aws-sqs-boundary-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/aws-sqs-boundary-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 9,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-boundary-connector-9.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-boundary-connector-9.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-boundary-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-boundary-connector-3.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-boundary-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-boundary-connector-2.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-boundary-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-boundary-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.AWSSQS.intermediate.v1" : [ {
     "version" : 10,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/aws-sqs-inbound-intermediate-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/aws-sqs-inbound-intermediate-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 9,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-inbound-intermediate-connector-9.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-inbound-intermediate-connector-9.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 8,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-inbound-intermediate-connector-8.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-inbound-intermediate-connector-8.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-inbound-intermediate-connector-7.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-inbound-intermediate-connector-7.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-inbound-intermediate-connector-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-inbound-intermediate-connector-6.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-inbound-intermediate-connector-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-inbound-intermediate-connector-5.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-inbound-intermediate-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-inbound-intermediate-connector-4.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-inbound-intermediate-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-inbound-intermediate-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-inbound-intermediate-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-inbound-intermediate-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-inbound-intermediate-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-inbound-intermediate-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.AWSSQS.startmessage.v1" : [ {
     "version" : 10,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/aws-sqs-start-message.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/aws-sqs-start-message.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 9,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-message-9.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-message-9.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-message-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-message-2.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-message-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-start-message-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.AWSSQS.v1" : [ {
     "version" : 11,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/aws-sqs-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/aws-sqs-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 10,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-outbound-connector-10.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-outbound-connector-10.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 9,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-outbound-connector-9.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-outbound-connector-9.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 8,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-outbound-connector-8.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-outbound-connector-8.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-outbound-connector-7.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-outbound-connector-7.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-outbound-connector-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-outbound-connector-6.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-outbound-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-outbound-connector-4.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-outbound-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-outbound-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-outbound-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sqs/element-templates/versioned/aws-sqs-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.AWSTEXTRACT.v1" : [ {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-textract/element-templates/aws-textract-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-textract/element-templates/aws-textract-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-textract/element-templates/versioned/aws-textract-outbound-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-textract/element-templates/versioned/aws-textract-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-textract/element-templates/versioned/aws-textract-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-textract/element-templates/versioned/aws-textract-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   } ],
   "io.camunda.connectors.Asana.v1" : [ {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/asana/element-templates/asana-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/asana/element-templates/asana-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/asana/element-templates/versioned/asana-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/asana/element-templates/versioned/asana-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/asana/element-templates/versioned/asana-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/asana/element-templates/versioned/asana-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.AutomationAnywhere" : [ {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/automation-anywhere/element-templates/automation-anywhere-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/automation-anywhere/element-templates/automation-anywhere-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/automation-anywhere/element-templates/versioned/automation-anywhere-outbound-connector-02.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/automation-anywhere/element-templates/versioned/automation-anywhere-outbound-connector-02.json",
     "engine" : {
       "camunda" : null
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/automation-anywhere/element-templates/versioned/automation-anywhere-outbound-connector-01.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/automation-anywhere/element-templates/versioned/automation-anywhere-outbound-connector-01.json",
     "engine" : {
       "camunda" : null
     }
   } ],
   "io.camunda.connectors.AutomationAnywhere.v1" : [ {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/automation-anywhere/element-templates/versioned/automation-anywhere-outbound-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/automation-anywhere/element-templates/versioned/automation-anywhere-outbound-connector-4.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/automation-anywhere/element-templates/versioned/automation-anywhere-outbound-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/automation-anywhere/element-templates/versioned/automation-anywhere-outbound-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/automation-anywhere/element-templates/versioned/automation-anywhere-outbound-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/automation-anywhere/element-templates/versioned/automation-anywhere-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/automation-anywhere/element-templates/versioned/automation-anywhere-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/automation-anywhere/element-templates/versioned/automation-anywhere-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.AzureOpenAI.outbound.v1" : [ {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/microsoft/azure-open-ai/element-templates/azure-open-ai-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/microsoft/azure-open-ai/element-templates/azure-open-ai-connector.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/microsoft/azure-open-ai/element-templates/versioned/azure-open-ai-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/microsoft/azure-open-ai/element-templates/versioned/azure-open-ai-connector-1.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   } ],
   "io.camunda.connectors.BluePrism.v1" : [ {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/blue-prism/element-templates/blue-prism-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/blue-prism/element-templates/blue-prism-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/blue-prism/element-templates/versioned/blue-prism-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/blue-prism/element-templates/versioned/blue-prism-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/blue-prism/element-templates/versioned/blue-prism-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/blue-prism/element-templates/versioned/blue-prism-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/blue-prism/element-templates/versioned/blue-prism-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/blue-prism/element-templates/versioned/blue-prism-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.CamundaOperate.v1" : [ {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/operate/element-templates/operate-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/operate/element-templates/operate-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/operate/element-templates/versioned/operate-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/operate/element-templates/versioned/operate-connector-4.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/operate/element-templates/versioned/operate-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/operate/element-templates/versioned/operate-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/operate/element-templates/versioned/operate-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/operate/element-templates/versioned/operate-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/operate/element-templates/versioned/operate-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/operate/element-templates/versioned/operate-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.EasyPost.v1" : [ {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/easy-post/element-templates/easy-post-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/easy-post/element-templates/easy-post-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/easy-post/element-templates/versioned/easy-post-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/easy-post/element-templates/versioned/easy-post-connector-4.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/easy-post/element-templates/versioned/easy-post-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/easy-post/element-templates/versioned/easy-post-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/easy-post/element-templates/versioned/easy-post-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/easy-post/element-templates/versioned/easy-post-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/easy-post/element-templates/versioned/easy-post-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/easy-post/element-templates/versioned/easy-post-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.EmbeddingsVectorDB.v1" : [ {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/embeddings-vector-database/element-templates/embeddings-vector-database-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/embeddings-vector-database/element-templates/embeddings-vector-database-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/embeddings-vector-database/element-templates/versioned/embeddings-vector-database-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/embeddings-vector-database/element-templates/versioned/embeddings-vector-database-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.GitHub.v1" : [ {
     "version" : 8,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/github-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/github-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/versioned/github-connector-7.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/versioned/github-connector-7.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/versioned/github-connector-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/versioned/github-connector-6.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/versioned/github-connector-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/versioned/github-connector-5.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/versioned/github-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/versioned/github-connector-4.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/versioned/github-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/versioned/github-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/versioned/github-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/versioned/github-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/versioned/github-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/versioned/github-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.GitLab.v1" : [ {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/gitlab/element-templates/gitlab-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/gitlab/element-templates/gitlab-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/gitlab/element-templates/versioned/gitlab-connector-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/gitlab/element-templates/versioned/gitlab-connector-6.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/gitlab/element-templates/versioned/gitlab-connector-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/gitlab/element-templates/versioned/gitlab-connector-5.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/gitlab/element-templates/versioned/gitlab-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/gitlab/element-templates/versioned/gitlab-connector-4.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/gitlab/element-templates/versioned/gitlab-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/gitlab/element-templates/versioned/gitlab-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/gitlab/element-templates/versioned/gitlab-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/gitlab/element-templates/versioned/gitlab-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/gitlab/element-templates/versioned/gitlab-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/gitlab/element-templates/versioned/gitlab-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.GoogleDrive.v1" : [ {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/google/google-drive/element-templates/google-drive-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/google/google-drive/element-templates/google-drive-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/google/google-drive/element-templates/versioned/google-drive-outbound-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/google/google-drive/element-templates/versioned/google-drive-outbound-connector-4.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/google/google-drive/element-templates/versioned/google-drive-outbound-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/google/google-drive/element-templates/versioned/google-drive-outbound-connector-3.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/google/google-drive/element-templates/versioned/google-drive-outbound-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/google/google-drive/element-templates/versioned/google-drive-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/google/google-drive/element-templates/versioned/google-drive-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/google/google-drive/element-templates/versioned/google-drive-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.GoogleGemini.v1" : [ {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/google/google-gemini/element-templates/google-gemini-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/google/google-gemini/element-templates/google-gemini-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.7"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/google/google-gemini/element-templates/versioned/google-gemini-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/google/google-gemini/element-templates/versioned/google-gemini-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.7"
     }
   } ],
   "io.camunda.connectors.GoogleMapsPlatform.v1" : [ {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/google-maps-platform/element-templates/google-maps-platform-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/google-maps-platform/element-templates/google-maps-platform-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/google-maps-platform/element-templates/versioned/google-maps-platform-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/google-maps-platform/element-templates/versioned/google-maps-platform-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/google-maps-platform/element-templates/versioned/google-maps-platform-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/google-maps-platform/element-templates/versioned/google-maps-platform-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/google-maps-platform/element-templates/versioned/google-maps-platform-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/google-maps-platform/element-templates/versioned/google-maps-platform-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.GoogleSheets.v1" : [ {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/google/google-sheets/element-templates/google-sheets-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/google/google-sheets/element-templates/google-sheets-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/google/google-sheets/element-templates/versioned/google-sheets-outbound-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/google/google-sheets/element-templates/versioned/google-sheets-outbound-connector-4.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/google/google-sheets/element-templates/versioned/google-sheets-outbound-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/google/google-sheets/element-templates/versioned/google-sheets-outbound-connector-3.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/google/google-sheets/element-templates/versioned/google-sheets-outbound-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/google/google-sheets/element-templates/versioned/google-sheets-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/google/google-sheets/element-templates/versioned/google-sheets-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/google/google-sheets/element-templates/versioned/google-sheets-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.GraphQL.v1" : [ {
     "version" : 8,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/graphql/element-templates/graphql-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/graphql/element-templates/graphql-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/graphql/element-templates/versioned/graphql-outbound-connector-7.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/graphql/element-templates/versioned/graphql-outbound-connector-7.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/graphql/element-templates/versioned/graphql-outbound-connector-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/graphql/element-templates/versioned/graphql-outbound-connector-6.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/graphql/element-templates/versioned/graphql-outbound-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/graphql/element-templates/versioned/graphql-outbound-connector-4.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/graphql/element-templates/versioned/graphql-outbound-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/graphql/element-templates/versioned/graphql-outbound-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/graphql/element-templates/versioned/graphql-outbound-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/graphql/element-templates/versioned/graphql-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/graphql/element-templates/versioned/graphql-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/graphql/element-templates/versioned/graphql-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.HttpJson.v2" : [ {
     "version" : 11,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/rest/element-templates/http-json-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/rest/element-templates/http-json-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 10,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/rest/element-templates/versioned/http-json-connector-10.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/rest/element-templates/versioned/http-json-connector-10.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 8,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/rest/element-templates/versioned/http-json-connector-8.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/rest/element-templates/versioned/http-json-connector-8.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/rest/element-templates/versioned/http-json-connector-7.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/rest/element-templates/versioned/http-json-connector-7.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/rest/element-templates/versioned/http-json-connector-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/rest/element-templates/versioned/http-json-connector-6.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/rest/element-templates/versioned/http-json-connector-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/rest/element-templates/versioned/http-json-connector-5.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/rest/element-templates/versioned/http-json-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/rest/element-templates/versioned/http-json-connector-4.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/rest/element-templates/versioned/http-json-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/rest/element-templates/versioned/http-json-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/rest/element-templates/versioned/http-json-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/rest/element-templates/versioned/http-json-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/rest/element-templates/versioned/http-json-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/rest/element-templates/versioned/http-json-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.HubSpot.v1" : [ {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/hubspot/element-templates/hubspot-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/hubspot/element-templates/hubspot-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   } ],
   "io.camunda.connectors.HuggingFace.v1" : [ {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/hugging-face/element-templates/hugging-face-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/hugging-face/element-templates/hugging-face-connector.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/hugging-face/element-templates/versioned/hugging-face-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/hugging-face/element-templates/versioned/hugging-face-connector-1.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   } ],
   "io.camunda.connectors.Jdbc.v1" : [ {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/jdbc/element-templates/jdbc-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/jdbc/element-templates/jdbc-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/jdbc/element-templates/versioned/jdbc-outbound-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/jdbc/element-templates/versioned/jdbc-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/jdbc/element-templates/versioned/jdbc-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/jdbc/element-templates/versioned/jdbc-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   } ],
   "io.camunda.connectors.KAFKA.v1" : [ {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/kafka-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/kafka-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-outbound-connector-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-outbound-connector-5.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-outbound-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-outbound-connector-4.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-outbound-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-outbound-connector-3.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-outbound-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.MSFT.O365.Mail.v1" : [ {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/microsoft/mail/element-templates/microsoft-office365-mail-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/microsoft/mail/element-templates/microsoft-office365-mail-connector.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/microsoft/mail/element-templates/versioned/microsoft-office365-mail-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/microsoft/mail/element-templates/versioned/microsoft-office365-mail-connector-2.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/microsoft/mail/element-templates/versioned/microsoft-office365-mail-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/microsoft/mail/element-templates/versioned/microsoft-office365-mail-connector-1.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   } ],
   "io.camunda.connectors.MSTeams.v1" : [ {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/microsoft-teams/element-templates/microsoft-teams-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/microsoft-teams/element-templates/microsoft-teams-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/microsoft-teams/element-templates/versioned/microsoft-teams-outbound-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/microsoft-teams/element-templates/versioned/microsoft-teams-outbound-connector-4.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/microsoft-teams/element-templates/versioned/microsoft-teams-outbound-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/microsoft-teams/element-templates/versioned/microsoft-teams-outbound-connector-3.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/microsoft-teams/element-templates/versioned/microsoft-teams-outbound-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/microsoft-teams/element-templates/versioned/microsoft-teams-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/microsoft-teams/element-templates/versioned/microsoft-teams-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/microsoft-teams/element-templates/versioned/microsoft-teams-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.OpenAI.v1" : [ {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/openai/element-templates/openai-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/openai/element-templates/openai-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/openai/element-templates/versioned/openai-connector-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/openai/element-templates/versioned/openai-connector-5.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/openai/element-templates/versioned/openai-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/openai/element-templates/versioned/openai-connector-4.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/openai/element-templates/versioned/openai-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/openai/element-templates/versioned/openai-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/openai/element-templates/versioned/openai-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/openai/element-templates/versioned/openai-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/openai/element-templates/versioned/openai-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/openai/element-templates/versioned/openai-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.PowerAutomate.v1" : [ {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/power-automate/element-templates/power-automate-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/power-automate/element-templates/power-automate-connector.json",
     "engine" : {
       "camunda" : null
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/power-automate/element-templates/versioned/power-automate-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/power-automate/element-templates/versioned/power-automate-connector-2.json",
     "engine" : {
       "camunda" : null
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/power-automate/element-templates/versioned/power-automate-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/power-automate/element-templates/versioned/power-automate-connector-1.json",
     "engine" : {
       "camunda" : null
     }
   } ],
   "io.camunda.connectors.RabbitMQ.v1" : [ {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/rabbitmq-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/rabbitmq-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-outbound-connector-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-outbound-connector-5.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-outbound-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-outbound-connector-4.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-outbound-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-outbound-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-outbound-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.Salesforce.v1" : [ {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/salesforce/element-templates/salesforce-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/salesforce/element-templates/salesforce-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/salesforce/element-templates/versioned/salesforce-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/salesforce/element-templates/versioned/salesforce-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/salesforce/element-templates/versioned/salesforce-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/salesforce/element-templates/versioned/salesforce-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.SendGrid.v2" : [ {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/sendgrid/element-templates/sendgrid-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/sendgrid/element-templates/sendgrid-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/sendgrid/element-templates/versioned/sendgrid-outbound-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/sendgrid/element-templates/versioned/sendgrid-outbound-connector-4.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/sendgrid/element-templates/versioned/sendgrid-outbound-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/sendgrid/element-templates/versioned/sendgrid-outbound-connector-3.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/sendgrid/element-templates/versioned/sendgrid-outbound-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/sendgrid/element-templates/versioned/sendgrid-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/sendgrid/element-templates/versioned/sendgrid-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/sendgrid/element-templates/versioned/sendgrid-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.Slack.v1" : [ {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/slack-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/slack-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-outbound-connector-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-outbound-connector-6.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-outbound-connector-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-outbound-connector-5.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-outbound-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-outbound-connector-4.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-outbound-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-outbound-connector-3.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-outbound-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.Twilio.Webhook.Boundary.v1" : [ {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/twilio/element-templates/twilio-webhook-boundary-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/twilio/element-templates/twilio-webhook-boundary-connector.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/twilio/element-templates/versioned/twilio-webhook-boundary-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/twilio/element-templates/versioned/twilio-webhook-boundary-connector-2.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/twilio/element-templates/versioned/twilio-webhook-boundary-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/twilio/element-templates/versioned/twilio-webhook-boundary-connector-1.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   } ],
   "io.camunda.connectors.Twilio.Webhook.Intermediate.v1" : [ {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/twilio/element-templates/twilio-webhook-intermediate-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/twilio/element-templates/twilio-webhook-intermediate-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/twilio/element-templates/versioned/twilio-webhook-intermediate-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/twilio/element-templates/versioned/twilio-webhook-intermediate-connector-3.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/twilio/element-templates/versioned/twilio-webhook-intermediate-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/twilio/element-templates/versioned/twilio-webhook-intermediate-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/twilio/element-templates/versioned/twilio-webhook-intermediate-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/twilio/element-templates/versioned/twilio-webhook-intermediate-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.Twilio.v1" : [ {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/twilio/element-templates/twilio-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/twilio/element-templates/twilio-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/twilio/element-templates/versioned/twilio-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/twilio/element-templates/versioned/twilio-connector-4.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/twilio/element-templates/versioned/twilio-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/twilio/element-templates/versioned/twilio-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/twilio/element-templates/versioned/twilio-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/twilio/element-templates/versioned/twilio-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/twilio/element-templates/versioned/twilio-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/twilio/element-templates/versioned/twilio-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.TwilioWebhook.v1" : [ {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/twilio/element-templates/twilio-webhook-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/twilio/element-templates/twilio-webhook-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/twilio/element-templates/versioned/twilio-webhook-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/twilio/element-templates/versioned/twilio-webhook-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/twilio/element-templates/versioned/twilio-webhook-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/twilio/element-templates/versioned/twilio-webhook-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.TwilioWebhookMessageStart.v1" : [ {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/twilio/element-templates/twilio-webhook-message-start-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/twilio/element-templates/twilio-webhook-message-start-connector.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/twilio/element-templates/versioned/twilio-webhook-message-start-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/twilio/element-templates/versioned/twilio-webhook-message-start-connector-1.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   } ],
   "io.camunda.connectors.UIPath.v1" : [ {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/uipath/element-templates/uipath-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/uipath/element-templates/uipath-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/uipath/element-templates/versioned/uipath-connector-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/uipath/element-templates/versioned/uipath-connector-4.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/uipath/element-templates/versioned/uipath-connector-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/uipath/element-templates/versioned/uipath-connector-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/uipath/element-templates/versioned/uipath-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/uipath/element-templates/versioned/uipath-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.WhatsApp.v1" : [ {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/whatsapp/element-templates/whatsapp-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/whatsapp/element-templates/whatsapp-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/whatsapp/element-templates/versioned/whatsapp-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/whatsapp/element-templates/versioned/whatsapp-connector-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/whatsapp/element-templates/versioned/whatsapp-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/whatsapp/element-templates/versioned/whatsapp-connector-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.agenticai.adhoctoolsschema.v0" : [ {
     "version" : 0,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/agentic-ai/element-templates/versioned/agenticai-adhoctoolsschema-outbound-connector-0.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/agentic-ai/element-templates/versioned/agenticai-adhoctoolsschema-outbound-connector-0.json",
     "engine" : {
       "camunda" : "^8.8"
     }
   } ],
   "io.camunda.connectors.agenticai.adhoctoolsschema.v1" : [ {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/agentic-ai/element-templates/agenticai-adhoctoolsschema-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/agentic-ai/element-templates/agenticai-adhoctoolsschema-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.8"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/agentic-ai/element-templates/versioned/agenticai-adhoctoolsschema-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/agentic-ai/element-templates/versioned/agenticai-adhoctoolsschema-outbound-connector-1.json",
+    "engine" : {
+      "camunda" : "^8.8"
+    }
+  } ],
+  "io.camunda.connectors.agenticai.aiagent.jobworker.v1" : [ {
+    "version" : 3,
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/agentic-ai/element-templates/agenticai-aiagent-job-worker.json",
     "engine" : {
       "camunda" : "^8.8"
     }
   } ],
   "io.camunda.connectors.agenticai.aiagent.v0" : [ {
     "version" : 0,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/agentic-ai/element-templates/versioned/agenticai-aiagent-outbound-connector-0.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/agentic-ai/element-templates/versioned/agenticai-aiagent-outbound-connector-0.json",
     "engine" : {
       "camunda" : "^8.8"
     }
   } ],
   "io.camunda.connectors.agenticai.aiagent.v1" : [ {
+    "version" : 3,
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/agentic-ai/element-templates/agenticai-aiagent-outbound-connector.json",
+    "engine" : {
+      "camunda" : "^8.8"
+    }
+  }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/agentic-ai/element-templates/agenticai-aiagent-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/agentic-ai/element-templates/versioned/agenticai-aiagent-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.8"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/agentic-ai/element-templates/versioned/agenticai-aiagent-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/agentic-ai/element-templates/versioned/agenticai-aiagent-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.8"
     }
   } ],
   "io.camunda.connectors.agenticai.mcp.client.v0" : [ {
     "version" : 0,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/agentic-ai/element-templates/agenticai-mcp-client-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/agentic-ai/element-templates/agenticai-mcp-client-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.8"
     }
   } ],
   "io.camunda.connectors.agenticai.mcp.remoteclient.v0" : [ {
     "version" : 0,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/agentic-ai/element-templates/agenticai-mcp-remote-client-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/agentic-ai/element-templates/agenticai-mcp-remote-client-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.8"
     }
   } ],
   "io.camunda.connectors.aws.bedrock.v1" : [ {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-bedrock/element-templates/aws-bedrock-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-bedrock/element-templates/aws-bedrock-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-bedrock/element-templates/versioned/aws-bedrock-outbound-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-bedrock/element-templates/versioned/aws-bedrock-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-bedrock/element-templates/versioned/aws-bedrock-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-bedrock/element-templates/versioned/aws-bedrock-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   } ],
   "io.camunda.connectors.aws.s3.v1" : [ {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-s3/element-templates/aws-s3-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-s3/element-templates/aws-s3-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.7"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-s3/element-templates/versioned/aws-s3-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-s3/element-templates/versioned/aws-s3-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.7"
     }
   } ],
   "io.camunda.connectors.azure.blobstorage.v1" : [ {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/microsoft/azure-blobstorage/element-templates/azure-blobstorage-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/microsoft/azure-blobstorage/element-templates/azure-blobstorage-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.8"
     }
   } ],
   "io.camunda.connectors.box" : [ {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/box/element-templates/box-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/box/element-templates/box-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.7"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/box/element-templates/versioned/box-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/box/element-templates/versioned/box-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.7"
     }
   } ],
   "io.camunda.connectors.csv" : [ {
+    "version" : 1,
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/csv/element-templates/csv-outbound-connector.json",
+    "engine" : {
+      "camunda" : "^8.8"
+    }
+  }, {
     "version" : 0,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/csv/element-templates/csv-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/csv/element-templates/versioned/csv-outbound-connector-0.json",
     "engine" : {
       "camunda" : "^8.8"
     }
   } ],
   "io.camunda.connectors.email.v1" : [ {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/email/element-templates/email-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/email/element-templates/email-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/email/element-templates/versioned/email-outbound-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/email/element-templates/versioned/email-outbound-connector-2.json",
     "engine" : {
       "camunda" : "^8.7"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/email/element-templates/versioned/email-outbound-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/email/element-templates/versioned/email-outbound-connector-1.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   } ],
   "io.camunda.connectors.google.gcp.v1" : [ {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/google/google-gcs/element-templates/google-cloud-storage-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/google/google-gcs/element-templates/google-cloud-storage-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.8"
     }
   } ],
   "io.camunda.connectors.http.Polling" : [ {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/polling/element-templates/http-polling-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/polling/element-templates/http-polling-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/polling/element-templates/versioned/http-polling-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/polling/element-templates/versioned/http-polling-connector-2.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/polling/element-templates/versioned/http-polling-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/polling/element-templates/versioned/http-polling-connector-1.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   } ],
   "io.camunda.connectors.http.Polling.Boundary" : [ {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/polling/element-templates/http-polling-boundary-catch-event-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/polling/element-templates/http-polling-boundary-catch-event-connector.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/polling/element-templates/versioned/http-polling-boundary-catch-event-connector-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/polling/element-templates/versioned/http-polling-boundary-catch-event-connector-2.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/http/polling/element-templates/versioned/http-polling-boundary-catch-event-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/http/polling/element-templates/versioned/http-polling-boundary-catch-event-connector-1.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   } ],
   "io.camunda.connectors.inbound.AWSSNS.Boundary.v1" : [ {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/aws-sns-inbound-boundary.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/aws-sns-inbound-boundary.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-boundary-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-boundary-5.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-boundary-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-boundary-4.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-boundary-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-boundary-2.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-boundary-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-boundary-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.inbound.AWSSNS.IntermediateCatchEvent.v1" : [ {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/aws-sns-inbound-intermediate.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/aws-sns-inbound-intermediate.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-intermediate-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-intermediate-5.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-intermediate-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-intermediate-4.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-intermediate-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-intermediate-3.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-intermediate-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-intermediate-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-intermediate-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-intermediate-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.inbound.AWSSNS.MessageStartEvent.v1" : [ {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/aws-sns-inbound-message-start.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/aws-sns-inbound-message-start.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-message-start-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-message-start-5.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-message-start-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-message-start-4.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-message-start-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-message-start-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.inbound.AWSSNS.StartEvent.v1" : [ {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/aws-sns-inbound-start-event.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/aws-sns-inbound-start-event.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-start-event-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-start-event-4.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-start-event-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-start-event-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-start-event-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/aws/aws-sns/element-templates/versioned/aws-sns-inbound-start-event-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.inbound.EmailBoundary.v1" : [ {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/email/element-templates/email-inbound-connector-boundary.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/email/element-templates/email-inbound-connector-boundary.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/email/element-templates/versioned/email-inbound-connector-boundary-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/email/element-templates/versioned/email-inbound-connector-boundary-1.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   } ],
   "io.camunda.connectors.inbound.EmailIntermediate.v1" : [ {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/email/element-templates/email-inbound-connector-intermediate.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/email/element-templates/email-inbound-connector-intermediate.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/email/element-templates/versioned/email-inbound-connector-intermediate-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/email/element-templates/versioned/email-inbound-connector-intermediate-1.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   } ],
   "io.camunda.connectors.inbound.EmailMessageStart.v1" : [ {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/email/element-templates/email-message-start-event-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/email/element-templates/email-message-start-event-connector.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/email/element-templates/versioned/email-message-start-event-connector-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/email/element-templates/versioned/email-message-start-event-connector-1.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   } ],
   "io.camunda.connectors.inbound.KafkaBoundary.v1" : [ {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/kafka-inbound-connector-boundary.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/kafka-inbound-connector-boundary.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-inbound-connector-boundary-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-inbound-connector-boundary-6.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-inbound-connector-boundary-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-inbound-connector-boundary-5.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-inbound-connector-boundary-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-inbound-connector-boundary-3.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-inbound-connector-boundary-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-inbound-connector-boundary-2.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-inbound-connector-boundary-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-inbound-connector-boundary-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.inbound.KafkaIntermediate.v1" : [ {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/kafka-inbound-connector-intermediate.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/kafka-inbound-connector-intermediate.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-inbound-connector-intermediate-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-inbound-connector-intermediate-6.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-inbound-connector-intermediate-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-inbound-connector-intermediate-5.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-inbound-connector-intermediate-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-inbound-connector-intermediate-4.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-inbound-connector-intermediate-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-inbound-connector-intermediate-3.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-inbound-connector-intermediate-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-inbound-connector-intermediate-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-inbound-connector-intermediate-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-inbound-connector-intermediate-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.inbound.KafkaMessageStart.v1" : [ {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/kafka-inbound-connector-start-message.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/kafka-inbound-connector-start-message.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-inbound-connector-start-message-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-inbound-connector-start-message-6.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-inbound-connector-start-message-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-inbound-connector-start-message-5.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/kafka/element-templates/versioned/kafka-inbound-connector-start-message-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/kafka/element-templates/versioned/kafka-inbound-connector-start-message-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.inbound.RabbitMQ.Boundary.v1" : [ {
     "version" : 8,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/rabbitmq-inbound-connector-boundary.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/rabbitmq-inbound-connector-boundary.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-boundary-7.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-boundary-7.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-boundary-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-boundary-6.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-boundary-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-boundary-2.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-boundary-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-boundary-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.inbound.RabbitMQ.Intermediate.v1" : [ {
     "version" : 8,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/rabbitmq-inbound-connector-intermediate.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/rabbitmq-inbound-connector-intermediate.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-intermediate-7.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-intermediate-7.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-intermediate-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-intermediate-6.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-intermediate-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-intermediate-4.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-intermediate-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-intermediate-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-intermediate-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-intermediate-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-intermediate-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-intermediate-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.inbound.RabbitMQ.MessageStart.v1" : [ {
     "version" : 8,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/rabbitmq-inbound-connector-message-start.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/rabbitmq-inbound-connector-message-start.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-message-start-7.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-message-start-7.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-message-start-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-message-start-6.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-message-start-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-message-start-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.inbound.RabbitMQ.StartEvent.v1" : [ {
     "version" : 8,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/rabbitmq-inbound-connector-start-event.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/rabbitmq-inbound-connector-start-event.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-start-event-7.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-start-event-7.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-start-event-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-start-event-6.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-start-event-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-start-event-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-start-event-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-start-event-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-start-event-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/rabbitmq/element-templates/versioned/rabbitmq-inbound-connector-start-event-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.inbound.Slack.BoundaryEvent.v1" : [ {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/slack-inbound-boundary.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/slack-inbound-boundary.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-boundary-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-boundary-6.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-boundary-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-boundary-5.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-boundary-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-boundary-2.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-boundary-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-boundary-1.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   } ],
   "io.camunda.connectors.inbound.Slack.IntermediateCatchEvent.v1" : [ {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/slack-inbound-intermediate.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/slack-inbound-intermediate.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-intermediate-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-intermediate-6.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-intermediate-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-intermediate-5.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-intermediate-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-intermediate-4.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-intermediate-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-intermediate-3.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-intermediate-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-intermediate-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-intermediate-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-intermediate-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.inbound.Slack.MessageStartEvent.v1" : [ {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/slack-inbound-message-start.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/slack-inbound-message-start.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-message-start-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-message-start-6.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-message-start-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-message-start-5.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-message-start-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-message-start-2.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-message-start-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-message-start-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.inbound.Slack.StartEvent.v1" : [ {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/slack-inbound-start-event.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/slack-inbound-start-event.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-start-event-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-start-event-6.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-start-event-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-start-event-5.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-start-event-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-start-event-3.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-start-event-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-start-event-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/slack/element-templates/versioned/slack-inbound-start-event-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/slack/element-templates/versioned/slack-inbound-start-event-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.message.end.v1" : [ {
     "version" : 0,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/camunda-message/element-templates/send-message-connector-message-end-event.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/camunda-message/element-templates/send-message-connector-message-end-event.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   } ],
   "io.camunda.connectors.message.intermediate.v1" : [ {
     "version" : 0,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/camunda-message/element-templates/send-message-connector-intermediate-throw-event.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/camunda-message/element-templates/send-message-connector-intermediate-throw-event.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   } ],
   "io.camunda.connectors.message.sendtask.v1" : [ {
     "version" : 0,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/camunda-message/element-templates/send-message-connector-send-task.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/camunda-message/element-templates/send-message-connector-send-task.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   } ],
   "io.camunda.connectors.webhook.GithubWebhookConnector.v1" : [ {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/github-webhook-connector-start-event.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/github-webhook-connector-start-event.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/versioned/github-webhook-connector-start-event-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/versioned/github-webhook-connector-start-event-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/versioned/github-webhook-connector-start-event-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/versioned/github-webhook-connector-start-event-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/versioned/github-webhook-connector-start-event-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/versioned/github-webhook-connector-start-event-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.webhook.GithubWebhookConnectorBoundary.v1" : [ {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/github-webhook-connector-boundary.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/github-webhook-connector-boundary.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/versioned/github-webhook-connector-boundary-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/versioned/github-webhook-connector-boundary-2.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/versioned/github-webhook-connector-boundary-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/versioned/github-webhook-connector-boundary-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.webhook.GithubWebhookConnectorIntermediate.v1" : [ {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/github-webhook-connector-intermediate.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/github-webhook-connector-intermediate.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/versioned/github-webhook-connector-intermediate-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/versioned/github-webhook-connector-intermediate-3.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/versioned/github-webhook-connector-intermediate-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/versioned/github-webhook-connector-intermediate-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/versioned/github-webhook-connector-intermediate-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/versioned/github-webhook-connector-intermediate-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.webhook.GithubWebhookConnectorMessageStart.v1" : [ {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/github-webhook-connector-message-start.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/github-webhook-connector-message-start.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/github/element-templates/versioned/github-webhook-connector-message-start-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/github/element-templates/versioned/github-webhook-connector-message-start-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.webhook.WebhookConnector.v1" : [ {
     "version" : 13,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/webhook-connector-start-event.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/webhook-connector-start-event.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 12,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-start-event-12.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-start-event-12.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 11,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-start-event-11.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-start-event-11.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 10,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-start-event-10.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-start-event-10.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 9,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-start-event-9.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-start-event-9.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 8,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-start-event-8.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-start-event-8.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 7,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-start-event-7.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-start-event-7.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-start-event-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-start-event-6.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-start-event-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-start-event-5.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-start-event-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-start-event-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-start-event-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-start-event-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-start-event-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-start-event-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.webhook.WebhookConnectorBoundary.v1" : [ {
     "version" : 13,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/webhook-connector-boundary.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/webhook-connector-boundary.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 12,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-boundary-12.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-boundary-12.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 11,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-boundary-11.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-boundary-11.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 10,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-boundary-10.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-boundary-10.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-boundary-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-boundary-3.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-boundary-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-boundary-2.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-boundary-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-boundary-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.webhook.WebhookConnectorIntermediate.v1" : [ {
     "version" : 13,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/webhook-connector-intermediate.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/webhook-connector-intermediate.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 12,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-intermediate-12.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-intermediate-12.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 11,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-intermediate-11.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-intermediate-11.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 10,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-intermediate-10.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-intermediate-10.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 6,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-intermediate-6.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-intermediate-6.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 5,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-intermediate-5.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-intermediate-5.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 4,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-intermediate-4.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-intermediate-4.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-intermediate-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-intermediate-3.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-intermediate-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-intermediate-2.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda.connectors.webhook.WebhookConnectorStartMessage.v1" : [ {
     "version" : 13,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/webhook-connector-start-message.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/webhook-connector-start-message.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 12,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-start-message-12.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-start-message-12.json",
     "engine" : {
       "camunda" : "^8.3"
     }
   }, {
     "version" : 11,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-start-message-11.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-start-message-11.json",
     "engine" : {
       "camunda" : "^8.6"
     }
   }, {
     "version" : 10,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-start-message-10.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-start-message-10.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 3,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-start-message-3.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-start-message-3.json",
     "engine" : {
       "camunda" : "^8.5"
     }
   }, {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-start-message-2.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-start-message-2.json",
     "engine" : {
       "camunda" : "^8.4"
     }
   }, {
     "version" : 1,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/webhook/element-templates/versioned/webhook-connector-start-message-1.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/webhook/element-templates/versioned/webhook-connector-start-message-1.json",
     "engine" : {
       "camunda" : "^8.2"
     }
   } ],
   "io.camunda:soap" : [ {
     "version" : 2,
-    "ref" : "https://raw.githubusercontent.com/camunda/connectors/1e71e3e62c1a3f31e51cf15618f01af262b5bfe1/connectors/soap/element-templates/soap-outbound-connector.json",
+    "ref" : "https://raw.githubusercontent.com/camunda/connectors/b7eccc0b16da584c418fb749b2a9e6ae8d23cd90/connectors/soap/element-templates/soap-outbound-connector.json",
     "engine" : {
       "camunda" : "^8.5"
     }

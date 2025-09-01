@@ -19,6 +19,7 @@ package io.camunda.connector.uniquet.core;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.camunda.connector.uniquet.dto.Connector;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -27,13 +28,24 @@ class ConnectorsFinderTest {
 
   @Test
   void create() {
-    ConnectorsFinder connectorsFinder = ConnectorsFinder.create(Path.of("src/test/resources"));
+    ConnectorsFinder connectorsFinder =
+        ConnectorsFinder.create(Path.of("src/test/resources"), null);
     assertEquals(1, connectorsFinder.getAllConnectors().size());
   }
 
   @Test
+  void createWithIgnore() throws IOException {
+    ConnectorsFinder connectorsFinder =
+        ConnectorsFinder.create(
+            Path.of("src/test/resources"),
+            Path.of("src/test/resources/ignore-templates.json").toString());
+    assertEquals(0, connectorsFinder.getAllConnectors().size());
+  }
+
+  @Test
   void next() {
-    ConnectorsFinder connectorsFinder = ConnectorsFinder.create(Path.of("src/test/resources"));
+    ConnectorsFinder connectorsFinder =
+        ConnectorsFinder.create(Path.of("src/test/resources"), null);
     List<Connector> connectors = connectorsFinder.getAllConnectors();
     assertEquals(
         "soap-outbound-connector.json", connectors.getFirst().currentElementTemplate().getName());

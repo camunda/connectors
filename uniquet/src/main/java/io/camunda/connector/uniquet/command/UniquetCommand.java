@@ -40,10 +40,14 @@ public class UniquetCommand implements Callable<Integer> {
   @CommandLine.Option(names = {"-o", "--output-file"})
   private String outputFile;
 
+  @CommandLine.Option(names = {"--ignore-file"})
+  private String ignoreFile;
+
   @Override
   public Integer call() {
     try {
-      IndexWriter.create(gitDirectory, connectorDirectory, Path.of(outputFile)).persist();
+      IndexWriter.create(gitDirectory, connectorDirectory, Path.of(outputFile), ignoreFile)
+          .persist();
     } catch (RuntimeException e) {
       log.atError().log("an error occurred: {}", e.getMessage(), e);
       return 1;
