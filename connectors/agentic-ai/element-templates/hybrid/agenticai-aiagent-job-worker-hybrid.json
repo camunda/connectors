@@ -83,13 +83,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "toolCallResults",
-    "binding" : {
-      "name" : "toolCallResults",
-      "type" : "zeebe:input"
-    },
-    "type" : "Hidden"
-  }, {
     "id" : "outputCollection",
     "binding" : {
       "property" : "outputCollection",
