@@ -22,8 +22,7 @@ package io.camunda.connector.test;
  * {@link SystemIntegrationTest}.
  */
 public enum ExternalSystem {
-  ServiceNow("ServiceNow"),
-  SAP("SAP");
+  ServiceNow("ServiceNow");
 
   public final String id;
 
