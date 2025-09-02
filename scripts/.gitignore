@@ -1,0 +1,18 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.env
+.env.*
+.vscode/
+.idea/
+*.egg-info/
+.dist-info/
+.cache/
+.mypy_cache/
+.pytest_cache/
+# output files
+output/
+__pycache__/
