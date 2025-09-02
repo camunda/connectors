@@ -40,7 +40,7 @@ public class SystemIntegrationTestCondition implements ExecutionCondition {
     }
     SystemIntegrationTest annotation = testClass.getAnnotation(SystemIntegrationTest.class);
     ExternalSystem externalSystem = annotation.with();
-    String envVar = System.getenv(externalSystem.id);
+    String envVar = System.getenv("SYSTEM_INTEGRATION_TEST_" + externalSystem.id.toUpperCase());
     return (envVar != null && !envVar.isEmpty())
         ? ConditionEvaluationResult.enabled(
             "Running external system integration test with " + externalSystem.id)

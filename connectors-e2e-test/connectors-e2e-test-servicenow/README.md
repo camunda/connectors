@@ -26,5 +26,5 @@ to run the SN system integration test(s) against a live SN instance, you need to
   - `SN_PASSWORD` for the SN user password
 
 - an env var enabling the SN system integration test that in turn correlates with the `@SystemIntegrationTest(with = ExternalSystem.ServiceNow)` annotation:
-  - `export ServiceNow=any-non-empty-value`
+  - `export SYSTEM_INTEGRATION_TEST_ServiceNow=any-non-empty-value`
   - `@SystemIntegrationTest(with = ExternalSystem.ServiceNow)` for the test class
