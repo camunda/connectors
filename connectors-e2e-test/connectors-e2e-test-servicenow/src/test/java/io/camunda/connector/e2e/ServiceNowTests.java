@@ -22,6 +22,7 @@ import io.camunda.client.api.response.ProcessInstanceResult;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.test.ExternalSystem;
 import io.camunda.connector.test.SystemIntegrationTest;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
@@ -34,9 +35,14 @@ import org.springframework.core.env.Environment;
 
 @SpringBootTest(
     classes = {TestConnectorRuntimeApplication.class},
-    properties = {"spring.main.allow-bean-definition-overriding=true"},
+    properties = {
+      "spring.main.allow-bean-definition-overriding=true",
+      "camunda.connector.polling.enabled=false",
+      "camunda.connector.webhook.enabled=false"
+    },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @SystemIntegrationTest(with = ExternalSystem.ServiceNow)
+@CamundaSpringProcessTest
 public class ServiceNowTests {
   @Autowired private CamundaClient client;
 
