@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.test;
 
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.extension.ConditionEvaluationResult;
@@ -34,11 +36,28 @@ public class SystemIntegrationTestCondition implements ExecutionCondition {
 
   @Override
   public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
-    Class<?> testClass = (Class<?>) context.getElement().orElse(null);
-    if (testClass == null || !testClass.isAnnotationPresent(SystemIntegrationTest.class)) {
+    AnnotatedElement element = context.getElement().orElse(null);
+    if (element == null) {
       return DISABLED;
     }
-    SystemIntegrationTest annotation = testClass.getAnnotation(SystemIntegrationTest.class);
+
+    // check the source of the annotation
+    SystemIntegrationTest annotation;
+    if (element instanceof Method m) {
+      annotation = m.getAnnotation(SystemIntegrationTest.class);
+      if (annotation == null) {
+        annotation = m.getDeclaringClass().getAnnotation(SystemIntegrationTest.class);
+      }
+    } else if (element instanceof Class<?> clazz) {
+      annotation = clazz.getAnnotation(SystemIntegrationTest.class);
+    } else {
+      return DISABLED; // unsupported element type
+    }
+
+    if (annotation == null) {
+      return DISABLED;
+    }
+
     ExternalSystem externalSystem = annotation.with();
     String envVar = System.getenv("SYSTEM_INTEGRATION_TEST_" + externalSystem.id.toUpperCase());
     return (envVar != null && !envVar.isEmpty())
