@@ -10,21 +10,26 @@
   <name>Archetype - connectors-e2e-test-servicenow</name>
   <url>http://maven.apache.org</url>
   <dependencies>
-<!--    <dependency>-->
-<!--      <groupId>io.camunda</groupId>-->
-<!--      <artifactId>camunda-process-test-spring</artifactId>-->
-<!--    </dependency>-->
     <dependency>
       <groupId>io.camunda</groupId>
-      <artifactId>spring-boot-starter-camunda-sdk</artifactId>
-      <version>8.8.0-alpha2-rc1</version>
+      <artifactId>camunda-process-test-spring</artifactId>
     </dependency>
+<!--    <dependency>-->
+<!--      <groupId>io.camunda</groupId>-->
+<!--      <artifactId>spring-boot-starter-camunda-sdk</artifactId>-->
+<!--      <version>8.8.0-alpha2-rc1</version>-->
+<!--    </dependency>-->
     <!-- Test -->
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connectors-e2e-test-base</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-http-json</artifactId>
+      <version>${project.version}</version>
     </dependency>
   </dependencies>
 
