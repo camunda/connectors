@@ -47,7 +47,7 @@ class IndexWriterTest {
       mockedStatic
           .when(() -> FileHelper.writeToFile(any(), ArgumentMatchers.any(JsonNode.class)))
           .thenCallRealMethod();
-      IndexWriter.create("", "src/test/resources", filePath).persist();
+      IndexWriter.create("", "src/test/resources", filePath, null).persist();
       JsonNode result = mapper.readTree(new File(filePath.toUri())).get("io.camunda:soap");
       assertTrue(result.isArray());
       ArrayNode jsonArray = (ArrayNode) result;

@@ -41,7 +41,6 @@
         <zeebe:adHoc outputCollection="toolCallResults" outputElement="={&#10;  id: toolCall._meta.id,&#10;  name: toolCall._meta.name,&#10;  content: toolCallResult&#10;}" />
         <zeebe:taskDefinition type="io.camunda.agenticai:aiagent-job-worker:1" />
         <zeebe:ioMapping>
-          <zeebe:input target="toolCallResults" />
           <zeebe:input source="bedrock" target="provider.type" />
           <zeebe:input source="us-east-1" target="provider.bedrock.region" />
           <zeebe:input source="credentials" target="provider.bedrock.authentication.type" />
