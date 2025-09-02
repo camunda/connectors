@@ -7,9 +7,6 @@
 package io.camunda.connector.embeddingstore;
 
 import com.azure.cosmos.ConsistencyLevel;
-import com.azure.cosmos.CosmosClient;
-import com.azure.cosmos.CosmosClientBuilder;
-import com.azure.cosmos.models.CosmosContainerProperties;
 import com.azure.cosmos.models.CosmosVectorDataType;
 import com.azure.cosmos.models.CosmosVectorDistanceFunction;
 import com.azure.cosmos.models.CosmosVectorEmbedding;
@@ -19,11 +16,11 @@ import com.azure.cosmos.models.CosmosVectorIndexType;
 import com.azure.cosmos.models.IncludedPath;
 import com.azure.cosmos.models.IndexingMode;
 import com.azure.cosmos.models.IndexingPolicy;
-import com.azure.cosmos.models.PartitionKeyDefinition;
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.store.embedding.azure.cosmos.nosql.AzureCosmosDBSearchQueryType;
 import dev.langchain4j.store.embedding.azure.cosmos.nosql.AzureCosmosDbNoSqlEmbeddingStore;
 import dev.langchain4j.store.embedding.azure.search.AzureAiSearchEmbeddingStore;
 import io.camunda.connector.model.embedding.vector.store.AzureAiSearchVectorStore;
@@ -65,17 +62,6 @@ public class AzureVectorStoreFactory {
       AzureCosmosDbNoSqlVectorStore azureCosmosDbNoSqlVectorStore, EmbeddingModel model) {
 
     final var cosmosDbNoSql = azureCosmosDbNoSqlVectorStore.azureCosmosDbNoSql();
-    final var cosmosClientBuilder = new CosmosClientBuilder();
-    cosmosClientBuilder.endpoint(cosmosDbNoSql.endpoint());
-    cosmosClientBuilder.consistencyLevel(mapConsistencyLevel(cosmosDbNoSql.consistencyLevel()));
-    cosmosClientBuilder.contentResponseOnWriteEnabled(true);
-
-    switch (cosmosDbNoSql.authentication()) {
-      case AzureAuthentication.AzureApiKeyAuthentication apiKey ->
-          cosmosClientBuilder.key(apiKey.apiKey());
-      case AzureAuthentication.AzureClientCredentialsAuthentication auth ->
-          cosmosClientBuilder.credential(buildClientSecretCredential(auth));
-    }
 
     final var embedding = new CosmosVectorEmbedding();
     embedding.setPath(COSMOS_DB_VECTOR_EMBEDDING_PATH);
@@ -89,28 +75,27 @@ public class AzureVectorStoreFactory {
     vectorIndexSpec.setPath(COSMOS_DB_VECTOR_EMBEDDING_PATH);
     vectorIndexSpec.setType(mapIndexType(cosmosDbNoSql.vectorIndexType()).toString());
 
-    final var partitionKeyDef = new PartitionKeyDefinition();
-    partitionKeyDef.setPaths(List.of(COSMOS_DB_PARTITION_KEY_PATH));
-
-    final var containerProperties =
-        new CosmosContainerProperties(cosmosDbNoSql.containerName(), partitionKeyDef);
     final var indexingPolicy = new IndexingPolicy();
     indexingPolicy.setIndexingMode(IndexingMode.CONSISTENT);
     indexingPolicy.setIncludedPaths(List.of(new IncludedPath("/*")));
-    containerProperties.setIndexingPolicy(indexingPolicy);
 
-    CosmosClient cosmosClient = cosmosClientBuilder.buildClient();
-    AzureCosmosDbNoSqlEmbeddingStore store =
+    var builder =
         AzureCosmosDbNoSqlEmbeddingStore.builder()
-            .cosmosClient(cosmosClient)
+            .endpoint(cosmosDbNoSql.endpoint())
             .databaseName(cosmosDbNoSql.databaseName())
             .containerName(cosmosDbNoSql.containerName())
             .cosmosVectorEmbeddingPolicy(embeddingPolicy)
-            .cosmosVectorIndexes(List.of(vectorIndexSpec))
-            .containerProperties(containerProperties)
-            .build();
-    //noinspection Convert2MethodRef
-    return ClosableEmbeddingStore.wrap(store, () -> cosmosClient.close());
+            .indexingPolicy(indexingPolicy)
+            .partitionKeyPath(COSMOS_DB_PARTITION_KEY_PATH)
+            .searchQueryType(AzureCosmosDBSearchQueryType.VECTOR);
+
+    switch (cosmosDbNoSql.authentication()) {
+      case AzureAuthentication.AzureApiKeyAuthentication apiKey -> builder.apiKey(apiKey.apiKey());
+      case AzureAuthentication.AzureClientCredentialsAuthentication auth ->
+          builder.tokenCredential(buildClientSecretCredential(auth));
+    }
+
+    return ClosableEmbeddingStore.wrap(builder.build());
   }
 
   private static ClientSecretCredential buildClientSecretCredential(
