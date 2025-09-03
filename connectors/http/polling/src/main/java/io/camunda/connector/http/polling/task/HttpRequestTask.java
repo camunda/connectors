@@ -10,8 +10,8 @@ import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.http.base.HttpService;
-import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
+import io.camunda.connector.http.polling.model.PollingRequest;
 
 public class HttpRequestTask implements Runnable {
 
@@ -19,36 +19,38 @@ public class HttpRequestTask implements Runnable {
   private final ProcessInstanceContext processInstanceContext;
 
   private final InboundIntermediateConnectorContext context;
+  private final PollingRequest config;
 
   public HttpRequestTask(
       final HttpService httpService,
       final ProcessInstanceContext processInstanceContext,
-      final InboundIntermediateConnectorContext context) {
+      final InboundIntermediateConnectorContext context,
+      final PollingRequest config) {
     this.httpService = httpService;
     this.processInstanceContext = processInstanceContext;
     this.context = context;
+    this.config = config;
   }
 
   @Override
   public void run() {
     try {
-      HttpCommonRequest httpRequest = processInstanceContext.bind(HttpCommonRequest.class);
       try {
-        HttpCommonResult httpResponse = httpService.executeConnectorRequest(httpRequest);
+        HttpCommonResult httpResponse = httpService.executeConnectorRequest(config);
         processInstanceContext.correlate(httpResponse);
         this.context.log(
             activity ->
                 activity
                     .withSeverity(Severity.INFO)
-                    .withTag(httpRequest.getMethod().toString())
-                    .withMessage("Polled url: " + httpRequest.getUrl()));
+                    .withTag(config.getMethod().toString())
+                    .withMessage("Polled url: " + config.getUrl()));
       } catch (Exception e) {
         this.context.log(
             activity ->
                 activity
                     .withSeverity(Severity.ERROR)
-                    .withTag(httpRequest.getMethod().toString())
-                    .withMessage("Error executing http request: " + httpRequest.getUrl()));
+                    .withTag(config.getMethod().toString())
+                    .withMessage("Error executing http request: " + config.getUrl()));
       }
     } catch (Exception e) {
       this.context.log(
