@@ -22,10 +22,14 @@ import io.camunda.client.api.response.PartitionBrokerHealth;
 import io.camunda.client.api.response.PartitionInfo;
 import java.util.Collection;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.actuate.health.AbstractHealthIndicator;
 import org.springframework.boot.actuate.health.Health.Builder;
 
 public class ZeebeHealthIndicator extends AbstractHealthIndicator {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ZeebeHealthIndicator.class);
 
   private final CamundaClient camundaClient;
 
@@ -47,6 +51,10 @@ public class ZeebeHealthIndicator extends AbstractHealthIndicator {
     if (numBrokers > 0 && anyPartitionHealthy) {
       builder.up().withDetails(details);
     } else {
+      LOG.warn(
+          "Zeebe health check failed: numBrokers={}, anyPartitionHealthy={}",
+          numBrokers,
+          anyPartitionHealthy);
       builder.down().withDetails(details);
     }
   }
