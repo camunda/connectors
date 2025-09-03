@@ -237,10 +237,21 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
             .modelName(connection.model().model())
             .baseUrl(connection.endpoint());
 
-    // apiKey is optional for compatible providers
     Optional.ofNullable(connection.authentication())
         .map(OpenAiCompatibleAuthentication::apiKey)
-        .ifPresent(builder::apiKey);
+        .filter(StringUtils::isNotBlank)
+        .ifPresent(
+            apiKey -> {
+              builder.apiKey(apiKey);
+              if (connection.headers() != null) {
+                if (connection.headers().keySet().stream()
+                    .anyMatch("Authorization"::equalsIgnoreCase)) {
+                  LOGGER.warn(
+                      "Both API key and Authorization header are set. The API key will be ignored.");
+                  builder.apiKey(null);
+                }
+              }
+            });
     Optional.ofNullable(connection.headers()).ifPresent(builder::customHeaders);
 
     final var modelParameters = connection.model().parameters();

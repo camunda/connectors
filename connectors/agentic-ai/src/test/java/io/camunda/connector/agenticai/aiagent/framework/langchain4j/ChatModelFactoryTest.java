@@ -13,6 +13,7 @@ import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -815,6 +816,35 @@ class ChatModelFactoryTest {
               assertThat(parameters.topP()).isNull();
               assertThat(parameters.customParameters()).isEmpty();
             }
+          });
+    }
+
+    @Test
+    void createsOpenAiCompatibleChatModelWithApiKeyAndAuthorizationHeader() {
+      final var authHeaderValue = "Bearer token123";
+      final var providerConfig =
+          new OpenAiCompatibleProviderConfiguration(
+              new OpenAiCompatibleConnection(
+                  ENDPOINT,
+                  new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
+                  Map.of("Authorization", authHeaderValue),
+                  new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
+                      MODEL, DEFAULT_MODEL_PARAMETERS)));
+
+      testOpenAiCompatibleChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder).modelName(MODEL);
+            verify(builder).baseUrl(ENDPOINT);
+            verify(builder).customHeaders(Map.of("Authorization", authHeaderValue));
+
+            // API key set then cleared due to Authorization header
+            final var ordered = inOrder(builder);
+            ordered.verify(builder).apiKey(API_KEY);
+            ordered.verify(builder).apiKey(null);
+
+            verify(builder, never()).organizationId(any());
+            verify(builder, never()).projectId(any());
           });
     }
 

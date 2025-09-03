@@ -30,7 +30,6 @@ public record OpenAiCompatibleProviderConfiguration(
           @TemplateProperty(
               group = "provider",
               label = "API endpoint",
-              description = "API endpoint.",
               tooltip = "Specify an endpoint to use the connector with an OpenAI compatible API. ",
               type = TemplateProperty.PropertyType.String,
               feel = Property.FeelMode.optional,
@@ -51,6 +50,8 @@ public record OpenAiCompatibleProviderConfiguration(
       @TemplateProperty(
               group = "provider",
               label = "API key",
+              tooltip =
+                  "Leave blank if using HTTP headers for authentication.<br>If an Authentication header is specified in the headers, then the API key is ignored.",
               type = TemplateProperty.PropertyType.String,
               feel = Property.FeelMode.optional,
               optional = true)
