@@ -147,9 +147,9 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
   @Test
   void handlesMcpToolCalls() throws IOException {
     when(aMcpClient.executeTool(aMcpClientToolExecutionRequestCaptor.capture()))
-        .thenReturn("A MCP Client result");
+        .thenReturn(toolExecutionResult("A MCP Client result"));
     when(aRemoteMcpClient.executeTool(aRemoteMcpClientToolExecutionRequestCaptor.capture()))
-        .thenReturn("A Remote MCP Client result");
+        .thenReturn(toolExecutionResult("A Remote MCP Client result"));
 
     final var initialUserPrompt = "Explore some of your MCP tools!";
     final var expectedConversation =

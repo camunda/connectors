@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.service.tool.ToolExecutionResult;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation;
@@ -147,7 +148,7 @@ class Langchain4JMcpClientExecutorTest {
       final var operation =
           McpClientCallToolOperation.create("test-tool", Map.of("arg1", "value1"));
 
-      when(mcpClient.executeTool(any())).thenReturn("Tool execution result");
+      when(mcpClient.executeTool(any())).thenReturn(toolExecutionResult("Tool execution result"));
 
       final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
 
@@ -166,7 +167,7 @@ class Langchain4JMcpClientExecutorTest {
     void handlesEmptyArguments(Map<String, Object> arguments) {
       final var operation = McpClientCallToolOperation.create("test-tool", arguments);
 
-      when(mcpClient.executeTool(any())).thenReturn("Success with no args");
+      when(mcpClient.executeTool(any())).thenReturn(toolExecutionResult("Success with no args"));
 
       final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
 
@@ -185,7 +186,7 @@ class Langchain4JMcpClientExecutorTest {
     void handlesDifferentTypesOfArguments(String toolName, Map<String, Object> arguments) {
       final var operation = McpClientCallToolOperation.create(toolName, arguments);
 
-      when(mcpClient.executeTool(any())).thenReturn("Successful result");
+      when(mcpClient.executeTool(any())).thenReturn(toolExecutionResult("Successful result"));
 
       final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
 
@@ -200,13 +201,12 @@ class Langchain4JMcpClientExecutorTest {
     }
 
     @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = " ")
-    void returnsDefaultResponseText_whenResponseIsNullOrEmpty(String resultText) {
+    @ValueSource(strings = {"", " "})
+    void returnsDefaultResponseText_whenResponseIsBlanc(String resultText) {
       final var operation =
           McpClientCallToolOperation.create("test-tool", Map.of("arg1", "value1"));
 
-      when(mcpClient.executeTool(any())).thenReturn(resultText);
+      when(mcpClient.executeTool(any())).thenReturn(toolExecutionResult(resultText));
 
       final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
 
@@ -304,6 +304,10 @@ class Langchain4JMcpClientExecutorTest {
           arguments("valid-tool", Map.of("key", "value")),
           arguments("tool-with-complex-args", Map.of("nested", Map.of("key", "value"))));
     }
+  }
+
+  private ToolExecutionResult toolExecutionResult(String resultText) {
+    return ToolExecutionResult.builder().resultText(resultText).build();
   }
 
   private ToolSpecification createToolSpecification(String name, String description) {

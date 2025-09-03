@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
 import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.transport.McpTransport;
-import dev.langchain4j.mcp.client.transport.http.HttpMcpTransport;
+import dev.langchain4j.mcp.client.transport.http.StreamableHttpMcpTransport;
 import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties;
@@ -46,8 +46,8 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
             .build();
       }
       case McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration http ->
-          new HttpMcpTransport.Builder()
-              .sseUrl(http.url())
+          new StreamableHttpMcpTransport.Builder()
+              .url(http.url())
               .timeout(http.timeout())
               .logRequests(http.logRequests())
               .logResponses(http.logResponses())
