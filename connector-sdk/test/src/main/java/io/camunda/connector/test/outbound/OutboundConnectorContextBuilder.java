@@ -30,11 +30,11 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import io.camunda.connector.test.MapSecretProvider;
-import io.camunda.document.DocumentFactoryImpl;
-import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.HashMap;
 import java.util.Map;
 

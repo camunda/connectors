@@ -19,7 +19,7 @@ package io.camunda.connector.runtime.core.document;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.http.client.utils.DocumentHelper;
-import io.camunda.document.store.InMemoryDocumentStore;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;

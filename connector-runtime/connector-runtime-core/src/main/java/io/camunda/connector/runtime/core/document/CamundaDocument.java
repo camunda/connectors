@@ -21,7 +21,7 @@ import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import java.io.InputStream;
 import java.util.Base64;
 

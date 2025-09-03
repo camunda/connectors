@@ -20,7 +20,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
-import io.camunda.document.CamundaDocumentReferenceImpl;
+import io.camunda.connector.runtime.core.document.CamundaDocumentReferenceImpl;
 import java.io.InputStream;
 
 public class CamundaDocumentStoreImpl implements CamundaDocumentStore {

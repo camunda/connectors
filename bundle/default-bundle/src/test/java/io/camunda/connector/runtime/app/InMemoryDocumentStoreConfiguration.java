@@ -16,8 +16,8 @@
  */
 package io.camunda.connector.runtime.app;
 
-import io.camunda.document.store.CamundaDocumentStore;
-import io.camunda.document.store.InMemoryDocumentStore;
+import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
