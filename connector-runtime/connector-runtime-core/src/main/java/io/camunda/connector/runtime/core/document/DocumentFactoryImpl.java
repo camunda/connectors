@@ -22,7 +22,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
-import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 
 public class DocumentFactoryImpl implements DocumentFactory {
 
@@ -41,9 +41,9 @@ public class DocumentFactoryImpl implements DocumentFactory {
       return new CamundaDocument(
           camundaDocumentReference.getMetadata(), camundaDocumentReference, documentStore);
     }
-    if (reference instanceof ExternalDocumentReference ignored) {
-      throw new IllegalArgumentException(
-          "External document references are not yet supported: " + reference.getClass());
+    if (reference instanceof ExternalDocumentReference externalDocumentReference) {
+      return new ExternalDocument(
+          externalDocumentReference.url(), externalDocumentReference.name());
     }
     throw new IllegalArgumentException("Unknown document reference type: " + reference.getClass());
   }
