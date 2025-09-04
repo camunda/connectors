@@ -20,12 +20,17 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.BrokerInfo;
 import io.camunda.client.api.response.PartitionBrokerHealth;
 import io.camunda.client.api.response.PartitionInfo;
+import io.camunda.client.api.response.Topology;
 import java.util.Collection;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.actuate.health.AbstractHealthIndicator;
 import org.springframework.boot.actuate.health.Health.Builder;
 
 public class ZeebeHealthIndicator extends AbstractHealthIndicator {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ZeebeHealthIndicator.class);
 
   private final CamundaClient camundaClient;
 
@@ -35,7 +40,15 @@ public class ZeebeHealthIndicator extends AbstractHealthIndicator {
 
   @Override
   protected void doHealthCheck(Builder builder) {
-    var topology = camundaClient.newTopologyRequest().send().join();
+    final Topology topology;
+
+    try {
+      topology = camundaClient.newTopologyRequest().send().join();
+    } catch (Exception e) {
+      LOG.warn("Zeebe health check failed: could not retrieve topology", e);
+      builder.down(e);
+      return;
+    }
     var numBrokers = topology.getBrokers().size();
     boolean anyPartitionHealthy =
         topology.getBrokers().stream()
@@ -47,6 +60,10 @@ public class ZeebeHealthIndicator extends AbstractHealthIndicator {
     if (numBrokers > 0 && anyPartitionHealthy) {
       builder.up().withDetails(details);
     } else {
+      LOG.warn(
+          "Zeebe health check failed: numBrokers={}, anyPartitionHealthy={}",
+          numBrokers,
+          anyPartitionHealthy);
       builder.down().withDetails(details);
     }
   }

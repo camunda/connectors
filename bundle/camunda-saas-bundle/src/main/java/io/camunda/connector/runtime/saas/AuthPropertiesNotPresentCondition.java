@@ -43,13 +43,13 @@ public class AuthPropertiesNotPresentCondition implements Condition {
     }
 
     if (!containsClientId) {
-      LOG.error("Camunda client authentication property '{}' is NOT present.", CLIENT_ID_PROPERTY);
+      LOG.debug("Camunda client authentication property '{}' is NOT present.", CLIENT_ID_PROPERTY);
     }
     if (!containsClientSecret) {
-      LOG.error(
+      LOG.debug(
           "Camunda client authentication property '{}' is NOT present.", CLIENT_SECRET_PROPERTY);
     }
-    LOG.info("Custom credentials provider (connector secrets) will be used.");
+    LOG.info("Custom credentials provider (GCP secrets manager) will be used.");
     return true;
   }
 }
