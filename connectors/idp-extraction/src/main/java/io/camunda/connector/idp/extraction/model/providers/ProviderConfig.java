@@ -16,7 +16,9 @@ import jakarta.validation.constraints.NotNull;
   @JsonSubTypes.Type(value = AwsProvider.class, name = "aws"),
   @JsonSubTypes.Type(value = AzureProvider.class, name = "azure"),
   @JsonSubTypes.Type(value = GcpProvider.class, name = "gcp"),
+  @JsonSubTypes.Type(value = OpenAiSpecProvider.class, name = "openaispec")
 })
 @NotNull
 @TemplateDiscriminatorProperty(label = "Hyperscaler providers", group = "provider", name = "type")
-public sealed interface ProviderConfig permits AwsProvider, AzureProvider, GcpProvider {}
+public sealed interface ProviderConfig
+    permits AwsProvider, AzureProvider, GcpProvider, OpenAiSpecProvider {}
