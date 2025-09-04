@@ -588,41 +588,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.openai.endpoint",
-    "label" : "Custom API endpoint",
-    "description" : "Optional custom API endpoint.",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.endpoint",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
-    "tooltip" : "Configure a custom OpenAI compatible API endpoint to use the connector with an OpenAI compatible API. Typically ends in <code>/v1</code>.",
-    "type" : "String"
-  }, {
-    "id" : "provider.openai.headers",
-    "label" : "Custom headers",
-    "description" : "Map of custom HTTP headers to add to the request.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "provider",
-    "binding" : {
-      "name" : "provider.openai.headers",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "provider.type",
-      "equals" : "openai",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
     "id" : "provider.openaiCompatible.endpoint",
     "label" : "API endpoint",
     "optional" : false,
