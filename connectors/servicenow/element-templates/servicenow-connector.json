@@ -202,6 +202,7 @@
       "label": "Sys ID of the record to update",
       "description": "provide the unique identifier of the record to update",
       "type": "String",
+      "feel": "optional",
       "group": "sn",
       "binding": {
         "name": "updateTarget",
@@ -218,6 +219,7 @@
       "label": "Sys ID of the record to delete",
       "description": "provide the unique identifier of the record to delete",
       "type": "String",
+      "feel": "optional",
       "group": "sn",
       "binding": {
         "name": "deleteTarget",
