@@ -22,7 +22,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
-import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 
 public class DocumentFactoryImpl implements DocumentFactory {
 

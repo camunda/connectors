@@ -21,13 +21,13 @@ import static io.camunda.connector.document.jackson.deserializer.Deserialization
 
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.collect.Lists;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
+import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import io.camunda.connector.intrinsic.IntrinsicFunctionExecutor;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -57,7 +57,8 @@ public class DocumentDeserializer extends AbstractDeserializer<Document> {
       return documentFactory.resolve(reference);
     }
     if (node.isArray()) {
-      List<JsonNode> elements = Lists.newArrayList(node.elements());
+      List<JsonNode> elements = new ArrayList<>();
+      node.elements().forEachRemaining(elements::add);
       if (elements.size() == 1 && isDocumentReference(elements.get(0))) {
         final var reference =
             context.readTreeAsValue(elements.get(0), DocumentReferenceModel.class);

@@ -19,7 +19,7 @@ package io.camunda.connector.feel;
 import static io.camunda.connector.feel.JacksonSupport.MAP_TYPE_REFERENCE;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.document.CamundaDocument;
+import io.camunda.connector.api.document.Document;
 import java.util.Optional;
 import java.util.function.Function;
 import org.camunda.feel.syntaxtree.Val;
@@ -35,7 +35,7 @@ public class CustomValueMapper extends JavaCustomValueMapper {
   @Override
   public Optional<Val> toValue(Object object, Function<Object, Val> innerValueMapper) {
     // TODO: Refactor in scope of https://github.com/camunda/team-connectors/issues/964
-    if (object instanceof CamundaDocument document) {
+    if (object instanceof Document document) {
       // Make sure that documents are converted to references before accessing them in FEEL
       // expressions
       return Optional.of(

@@ -24,8 +24,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.PrimitiveArrayDeserializers;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import io.camunda.connector.intrinsic.IntrinsicFunctionExecutor;
 import java.io.IOException;
 
 public class ByteArrayDeserializer extends AbstractDeserializer<byte[]> {

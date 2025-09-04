@@ -28,11 +28,6 @@
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-runtime-core</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
       <artifactId>jackson-datatype-feel</artifactId>
     </dependency>
     <dependency>
@@ -53,6 +48,10 @@
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
       <version>${version.jackson-bom}</version>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>

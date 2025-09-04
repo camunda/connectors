@@ -29,6 +29,12 @@
       <artifactId>element-template-generator-core</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>camunda-client-java</artifactId>
+      <version>${version.camunda}</version>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
 
   <build>

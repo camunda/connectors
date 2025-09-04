@@ -1,4 +1,0 @@
-io.camunda.connector.intrinsic.functions.Base64Function
-io.camunda.connector.intrinsic.functions.CreateLinkFunction
-io.camunda.connector.intrinsic.functions.GetJsonFunction
-io.camunda.connector.intrinsic.functions.GetTextFunction

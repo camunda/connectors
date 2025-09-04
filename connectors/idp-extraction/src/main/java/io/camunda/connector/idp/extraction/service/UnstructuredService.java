@@ -29,7 +29,6 @@ import io.camunda.connector.idp.extraction.utils.StringUtil;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.hc.core5.http.HttpStatus;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -182,7 +181,7 @@ public class UnstructuredService implements ExtractionService {
             llmResponseJson = objectMapper.readValue(nestedResponse.asText(), JsonNode.class);
           } else {
             throw new ConnectorException(
-                String.valueOf(HttpStatus.SC_SERVER_ERROR),
+                String.valueOf(500),
                 String.format(
                     "LLM response is neither a JSON object nor a string: %s", llmResponse));
           }
@@ -205,12 +204,12 @@ public class UnstructuredService implements ExtractionService {
 
       } else {
         throw new ConnectorException(
-            String.valueOf(HttpStatus.SC_SERVER_ERROR),
+            String.valueOf(500),
             String.format("LLM response is not a JSON object: %s", llmResponse));
       }
     } catch (JsonProcessingException e) {
       throw new ConnectorException(
-          String.valueOf(HttpStatus.SC_SERVER_ERROR),
+          String.valueOf(500),
           String.format("Failed to parse the JSON response from LLM: %s", llmResponse),
           e);
     }

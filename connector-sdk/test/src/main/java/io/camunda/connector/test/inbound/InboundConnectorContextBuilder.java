@@ -28,6 +28,9 @@ import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
@@ -35,6 +38,7 @@ import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
+import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import io.camunda.connector.test.MapSecretProvider;
@@ -63,9 +67,31 @@ public class InboundConnectorContextBuilder {
   protected CorrelationResult result;
   protected DocumentFactory documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
-  protected ObjectMapper objectMapper =
-      ConnectorsObjectMapperSupplier.getCopy(
-          this.documentFactory, JacksonModuleDocumentDeserializer.DocumentModuleSettings.create());
+  protected ObjectMapper objectMapper = createObjectMapper();
+
+  private ObjectMapper createObjectMapper() {
+    var copy = ConnectorsObjectMapperSupplier.getCopy();
+    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+    var jacksonModuleDocumentDeserializer =
+        new JacksonModuleDocumentDeserializer(
+            documentFactory, functionExecutor, DocumentModuleSettings.create());
+    return copy.registerModules(
+        jacksonModuleDocumentDeserializer,
+        new JacksonModuleFeelFunction(),
+        new JacksonModuleDocumentSerializer());
+  }
+
+  private ObjectMapper createObjectMapper(DocumentFactory documentFactory) {
+    var copy = ConnectorsObjectMapperSupplier.getCopy();
+    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+    var jacksonModuleDocumentDeserializer =
+        new JacksonModuleDocumentDeserializer(
+            documentFactory, functionExecutor, DocumentModuleSettings.create());
+    return copy.registerModules(
+        jacksonModuleDocumentDeserializer,
+        new JacksonModuleFeelFunction(),
+        new JacksonModuleDocumentSerializer());
+  }
 
   public static InboundConnectorContextBuilder create() {
     return new InboundConnectorContextBuilder();
@@ -177,9 +203,7 @@ public class InboundConnectorContextBuilder {
   }
 
   public InboundConnectorContextBuilder documentFactory(DocumentFactory documentFactory) {
-    this.objectMapper =
-        ConnectorsObjectMapperSupplier.getCopy(
-            documentFactory, JacksonModuleDocumentDeserializer.DocumentModuleSettings.create());
+    this.objectMapper = createObjectMapper(documentFactory);
     return this;
   }
 
