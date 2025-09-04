@@ -20,6 +20,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.BrokerInfo;
 import io.camunda.client.api.response.PartitionBrokerHealth;
 import io.camunda.client.api.response.PartitionInfo;
+import io.camunda.client.api.response.Topology;
 import java.util.Collection;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -39,7 +40,15 @@ public class ZeebeHealthIndicator extends AbstractHealthIndicator {
 
   @Override
   protected void doHealthCheck(Builder builder) {
-    var topology = camundaClient.newTopologyRequest().send().join();
+    final Topology topology;
+
+    try {
+      topology = camundaClient.newTopologyRequest().send().join();
+    } catch (Exception e) {
+      LOG.warn("Zeebe health check failed: could not retrieve topology", e);
+      builder.down(e);
+      return;
+    }
     var numBrokers = topology.getBrokers().size();
     boolean anyPartitionHealthy =
         topology.getBrokers().stream()
