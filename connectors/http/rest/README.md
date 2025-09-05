@@ -215,21 +215,6 @@ used in the result expression.
       "total" : "100.00€"
     }
   },
-  "document" : {
-    "contentHash" : "hash",
-    "documentId" : "977c5cbf-0f19-4a76-a8e1-60902216a07b",
-    "metadata" : {
-      "contentType" : "application/pdf",
-      "customProperties" : {
-        "key" : "value"
-      },
-      "fileName" : "theFileName.pdf",
-      "processInstanceKey" : 0,
-      "size" : 516554
-    },
-    "storeId" : "theStoreId",
-    "camunda.document.type" : "camunda"
-  },
   "headers" : {
     "Content-Type" : "application/json"
   },

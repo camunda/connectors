@@ -26,6 +26,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.common.ClasspathFileSource;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
+import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.inbound.HttpWebhookExecutable;
 import io.camunda.connector.inbound.utils.TestRSAKeyProvider;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
@@ -60,6 +61,7 @@ public class JWTIntegrationTest {
 
   public JWTIntegrationTest() {
     this.objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+    this.objectMapper.registerModules(new JacksonModuleFeelFunction());
   }
 
   @BeforeAll

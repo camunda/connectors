@@ -33,10 +33,8 @@ import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
-import io.camunda.document.CamundaDocument;
-import io.camunda.document.DocumentMetadataImpl;
-import io.camunda.document.store.CamundaDocumentStore;
-import java.io.ByteArrayInputStream;
+import io.camunda.connector.test.TestDocument;
+import io.camunda.connector.test.TestDocumentMetadata;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -283,13 +281,9 @@ class ChatPostMessageDataTest {
   private Document prepareDocument() {
     DocumentReference.CamundaDocumentReference documentReference =
         Mockito.mock(DocumentReference.CamundaDocumentReference.class);
-    CamundaDocumentStore documentStore = Mockito.mock(CamundaDocumentStore.class);
-
-    var byteInput = new ByteArrayInputStream(new byte[0]);
-    when(documentStore.getDocumentContent(any())).thenReturn(byteInput);
 
     DocumentMetadata documentMetadata =
-        new DocumentMetadataImpl(
+        new TestDocumentMetadata(
             "text/plain",
             OffsetDateTime.now().plusDays(1),
             3000L,
@@ -298,7 +292,7 @@ class ChatPostMessageDataTest {
             2000L,
             Map.of());
 
-    return new CamundaDocument(documentMetadata, documentReference, documentStore);
+    return new TestDocument(new byte[0], documentMetadata, documentReference, "id");
   }
 
   private void mockGetExternalURL() throws SlackApiException, IOException {

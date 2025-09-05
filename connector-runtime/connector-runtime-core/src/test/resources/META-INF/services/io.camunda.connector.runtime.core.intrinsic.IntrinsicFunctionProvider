@@ -1,0 +1,5 @@
+io.camunda.connector.runtime.core.intrinsic.TestFunctionProvider
+io.camunda.connector.runtime.core.intrinsic.functions.Base64Function
+io.camunda.connector.runtime.core.intrinsic.functions.CreateLinkFunction
+io.camunda.connector.runtime.core.intrinsic.functions.GetJsonFunction
+io.camunda.connector.runtime.core.intrinsic.functions.GetTextFunction

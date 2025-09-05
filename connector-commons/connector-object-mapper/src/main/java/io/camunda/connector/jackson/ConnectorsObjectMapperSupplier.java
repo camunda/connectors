@@ -23,24 +23,13 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
-import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
-import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
-import io.camunda.connector.intrinsic.DefaultIntrinsicFunctionExecutor;
-import io.camunda.connector.intrinsic.IntrinsicFunctionExecutor;
 
 /** Default ObjectMapper supplier to be used by OOTB connectors and the Connector runtime. */
 public class ConnectorsObjectMapperSupplier {
 
   private static final ObjectMapper DEFAULT_MAPPER =
       JsonMapper.builder()
-          .addModules(
-              new JacksonModuleFeelFunction(),
-              new Jdk8Module(),
-              new JavaTimeModule(),
-              new JacksonModuleDocumentSerializer())
+          .addModules(new Jdk8Module(), new JavaTimeModule())
           .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
           .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
           .enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS)
@@ -55,12 +44,5 @@ public class ConnectorsObjectMapperSupplier {
 
   public static ObjectMapper getCopy() {
     return DEFAULT_MAPPER.copy();
-  }
-
-  public static ObjectMapper getCopy(DocumentFactory factory, DocumentModuleSettings settings) {
-    final ObjectMapper copy = DEFAULT_MAPPER.copy();
-    final IntrinsicFunctionExecutor functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
-    return copy.registerModule(
-        new JacksonModuleDocumentDeserializer(factory, functionExecutor, settings));
   }
 }

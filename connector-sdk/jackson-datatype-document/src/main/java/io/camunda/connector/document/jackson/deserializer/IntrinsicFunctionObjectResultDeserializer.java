@@ -20,10 +20,10 @@ import static io.camunda.connector.document.jackson.deserializer.Deserialization
 
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.document.jackson.IntrinsicFunctionExecutor;
 import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
+import io.camunda.connector.document.jackson.IntrinsicFunctionParams;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import io.camunda.connector.intrinsic.IntrinsicFunctionExecutor;
-import io.camunda.connector.intrinsic.IntrinsicFunctionParams;
 import java.io.IOException;
 
 public class IntrinsicFunctionObjectResultDeserializer extends AbstractDeserializer<Object> {

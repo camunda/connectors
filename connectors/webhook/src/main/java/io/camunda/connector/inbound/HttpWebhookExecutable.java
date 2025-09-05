@@ -36,14 +36,13 @@ import io.camunda.connector.inbound.signature.strategy.HMACEncodingStrategy;
 import io.camunda.connector.inbound.signature.strategy.HMACEncodingStrategyFactory;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
-import io.netty.handler.codec.http.HttpResponseStatus;
+import jakarta.annotation.Nullable;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
-import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,9 +119,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   private void validateHttpMethod(WebhookProcessingPayload payload) {
     if (!HttpMethods.any.name().equalsIgnoreCase(props.method())
         && !payload.method().equalsIgnoreCase(props.method())) {
-      throw new WebhookConnectorException(
-          HttpResponseStatus.METHOD_NOT_ALLOWED.code(),
-          "Method " + payload.method() + " not supported");
+      throw new WebhookConnectorException(405, "Method " + payload.method() + " not supported");
     }
   }
 
@@ -155,9 +152,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   private void verifySignature(WebhookProcessingPayload payload) {
     if (!webhookSignatureIsValid(payload)) {
       throw new WebhookSecurityException(
-          HttpResponseStatus.UNAUTHORIZED.code(),
-          Reason.INVALID_SIGNATURE,
-          "HMAC signature check didn't pass");
+          401, Reason.INVALID_SIGNATURE, "HMAC signature check didn't pass");
     }
   }
 
