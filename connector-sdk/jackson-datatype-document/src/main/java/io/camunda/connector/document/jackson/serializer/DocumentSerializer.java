@@ -21,8 +21,10 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentMetadataModel;
 import io.camunda.connector.document.jackson.DocumentReferenceModel.CamundaDocumentReferenceModel;
+import io.camunda.connector.document.jackson.DocumentReferenceModel.ExternalDocumentReferenceModel;
 import java.io.IOException;
 
 public class DocumentSerializer extends JsonSerializer<Document> {
@@ -34,20 +36,30 @@ public class DocumentSerializer extends JsonSerializer<Document> {
       Document document, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
       throws IOException {
     var reference = document.reference();
-    if (!(reference instanceof CamundaDocumentReference camundaReference)) {
+    if (reference instanceof CamundaDocumentReference camundaReference) {
+      final CamundaDocumentReferenceModel model;
+      if (camundaReference instanceof CamundaDocumentReferenceModel camundaModel) {
+        model = camundaModel;
+      } else {
+        model =
+            new CamundaDocumentReferenceModel(
+                camundaReference.getStoreId(),
+                camundaReference.getDocumentId(),
+                camundaReference.getContentHash(),
+                new CamundaDocumentMetadataModel(camundaReference.getMetadata()));
+      }
+      jsonGenerator.writeObject(model);
+    } else if (reference instanceof ExternalDocumentReference externalReference) {
+      final ExternalDocumentReferenceModel model;
+      if (externalReference instanceof ExternalDocumentReferenceModel externalModel) {
+        model = externalModel;
+      } else {
+        model =
+            new ExternalDocumentReferenceModel(externalReference.url(), externalReference.name());
+      }
+      jsonGenerator.writeObject(model);
+    } else {
       throw new IllegalArgumentException("Unsupported document reference type: " + reference);
     }
-    final CamundaDocumentReferenceModel model;
-    if (camundaReference instanceof CamundaDocumentReferenceModel camundaModel) {
-      model = camundaModel;
-    } else {
-      model =
-          new CamundaDocumentReferenceModel(
-              camundaReference.getStoreId(),
-              camundaReference.getDocumentId(),
-              camundaReference.getContentHash(),
-              new CamundaDocumentMetadataModel(camundaReference.getMetadata()));
-    }
-    jsonGenerator.writeObject(model);
   }
 }
