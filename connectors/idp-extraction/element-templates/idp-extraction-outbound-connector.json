@@ -161,7 +161,7 @@
       "value" : "gcp"
     }, {
       "name" : "OpenAi API Specification Provider",
-      "value" : "openaispec"
+      "value" : "openai"
     } ]
   }, {
     "id" : "baseRequest.authentication.type",
@@ -754,7 +754,7 @@
     },
     "condition" : {
       "property" : "baseRequest.type",
-      "equals" : "openaispec",
+      "equals" : "openai",
       "type" : "simple"
     },
     "type" : "Text"
@@ -774,7 +774,7 @@
     },
     "condition" : {
       "property" : "baseRequest.type",
-      "equals" : "openaispec",
+      "equals" : "openai",
       "type" : "simple"
     },
     "type" : "String"

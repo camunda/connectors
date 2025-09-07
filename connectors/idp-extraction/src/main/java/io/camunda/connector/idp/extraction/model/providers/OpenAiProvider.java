@@ -13,8 +13,8 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 
-@TemplateSubType(id = "openaispec", label = "OpenAi API Specification Provider")
-public final class OpenAiSpecProvider implements ProviderConfig {
+@TemplateSubType(id = "openai", label = "OpenAi API Specification Provider")
+public final class OpenAiProvider implements ProviderConfig {
 
   @TemplateProperty(
       id = "openAiEndpoint",

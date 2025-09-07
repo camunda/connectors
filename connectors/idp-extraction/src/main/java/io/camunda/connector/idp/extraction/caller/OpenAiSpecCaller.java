@@ -11,7 +11,7 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.LlmModel;
-import io.camunda.connector.idp.extraction.model.providers.OpenAiSpecProvider;
+import io.camunda.connector.idp.extraction.model.providers.OpenAiProvider;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,8 +20,7 @@ public class OpenAiSpecCaller {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OpenAiSpecCaller.class);
 
-  public String call(
-      ExtractionRequestData input, OpenAiSpecProvider provider, String extractedText) {
+  public String call(ExtractionRequestData input, OpenAiProvider provider, String extractedText) {
     try {
       LOGGER.debug("Creating OpenAI chat model with endpoint: {}", provider.getOpenAiEndpoint());
 
@@ -50,8 +49,7 @@ public class OpenAiSpecCaller {
     }
   }
 
-  private OpenAiChatModel createChatModel(
-      ExtractionRequestData input, OpenAiSpecProvider provider) {
+  private OpenAiChatModel createChatModel(ExtractionRequestData input, OpenAiProvider provider) {
     var converseData = input.converseData();
 
     var builder =

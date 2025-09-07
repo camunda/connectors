@@ -23,7 +23,7 @@ import io.camunda.connector.idp.extraction.model.TaxonomyItem;
 import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
 import io.camunda.connector.idp.extraction.model.providers.AzureProvider;
 import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
-import io.camunda.connector.idp.extraction.model.providers.OpenAiSpecProvider;
+import io.camunda.connector.idp.extraction.model.providers.OpenAiProvider;
 import io.camunda.connector.idp.extraction.supplier.BedrockRuntimeClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
@@ -107,7 +107,7 @@ public class UnstructuredService implements ExtractionService {
       case AwsProvider aws -> extractUsingAws(input, aws);
       case GcpProvider gemini -> extractUsingGcp(input, gemini);
       case AzureProvider azure -> extractUsingAzure(input, azure);
-      case OpenAiSpecProvider openAiSpec -> extractUsingOpenAiSpec(input, openAiSpec);
+      case OpenAiProvider openAiSpec -> extractUsingOpenAiSpec(input, openAiSpec);
       default ->
           throw new IllegalStateException("Unexpected value: " + extractionRequest.baseRequest());
     };
@@ -175,7 +175,7 @@ public class UnstructuredService implements ExtractionService {
   }
 
   private ExtractionResult extractUsingOpenAiSpec(
-      ExtractionRequestData input, OpenAiSpecProvider baseRequest) {
+      ExtractionRequestData input, OpenAiProvider baseRequest) {
     try {
       long startTime = System.currentTimeMillis();
 

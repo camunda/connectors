@@ -18,7 +18,7 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import io.camunda.connector.idp.extraction.model.ConverseData;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
-import io.camunda.connector.idp.extraction.model.providers.OpenAiSpecProvider;
+import io.camunda.connector.idp.extraction.model.providers.OpenAiProvider;
 import io.camunda.connector.idp.extraction.util.ExtractionTestUtils;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -37,8 +37,7 @@ class OpenAiSpecCallerTest {
     }
 
     @Override
-    public String call(
-        ExtractionRequestData input, OpenAiSpecProvider provider, String extractedText) {
+    public String call(ExtractionRequestData input, OpenAiProvider provider, String extractedText) {
       try {
         ChatResponse response = mockModel.chat(anyList());
         return response.aiMessage().text();
@@ -48,8 +47,8 @@ class OpenAiSpecCallerTest {
     }
   }
 
-  private OpenAiSpecProvider createProvider() {
-    OpenAiSpecProvider provider = new OpenAiSpecProvider();
+  private OpenAiProvider createProvider() {
+    OpenAiProvider provider = new OpenAiProvider();
     provider.setOpenAiEndpoint("https://api.openai.com/v1");
     provider.setOpenAiHeaders(Map.of("Authorization", "Bearer test-token"));
     return provider;
@@ -86,7 +85,7 @@ class OpenAiSpecCallerTest {
     when(mockChatModel.chat(anyList())).thenReturn(mockResponse);
 
     try (MockedStatic<OpenAiChatModel> chatModelMockedStatic = mockStatic(OpenAiChatModel.class)) {
-      OpenAiSpecProvider provider = createProvider();
+      OpenAiProvider provider = createProvider();
       TestOpenAiSpecCaller testCaller = new TestOpenAiSpecCaller(mockChatModel);
 
       String result =
@@ -114,7 +113,7 @@ class OpenAiSpecCallerTest {
     when(mockAiMessage.text()).thenReturn(expectedResponse);
     when(mockChatModel.chat(anyList())).thenReturn(mockResponse);
 
-    OpenAiSpecProvider provider = createProvider();
+    OpenAiProvider provider = createProvider();
     TestOpenAiSpecCaller testCaller = new TestOpenAiSpecCaller(mockChatModel);
 
     String result =
@@ -144,7 +143,7 @@ class OpenAiSpecCallerTest {
     when(mockAiMessage.text()).thenReturn(expectedResponse);
     when(mockChatModel.chat(anyList())).thenReturn(mockResponse);
 
-    OpenAiSpecProvider provider = createProvider();
+    OpenAiProvider provider = createProvider();
     TestOpenAiSpecCaller testCaller = new TestOpenAiSpecCaller(mockChatModel);
 
     String result =
@@ -159,7 +158,7 @@ class OpenAiSpecCallerTest {
     OpenAiChatModel mockChatModel = mock(OpenAiChatModel.class);
     when(mockChatModel.chat(anyList())).thenThrow(new RuntimeException("API Error"));
 
-    OpenAiSpecProvider provider = createProvider();
+    OpenAiProvider provider = createProvider();
     TestOpenAiSpecCaller testCaller = new TestOpenAiSpecCaller(mockChatModel);
 
     RuntimeException exception =
@@ -184,7 +183,7 @@ class OpenAiSpecCallerTest {
     when(mockAiMessage.text()).thenReturn(expectedResponse);
     when(mockChatModel.chat(anyList())).thenReturn(mockResponse);
 
-    OpenAiSpecProvider provider = createProvider();
+    OpenAiProvider provider = createProvider();
     TestOpenAiSpecCaller testCaller = new TestOpenAiSpecCaller(mockChatModel);
 
     // Test with different converse data parameters (null values)
