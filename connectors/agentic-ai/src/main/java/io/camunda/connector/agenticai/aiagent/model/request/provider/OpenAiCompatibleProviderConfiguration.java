@@ -6,8 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request.provider;
 
-import static io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OPENAI_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OPENAI_COMPATIBLE_ID;
 
+import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -15,53 +16,54 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.Map;
 
-@TemplateSubType(id = OPENAI_ID, label = "OpenAI")
-public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection openai)
-    implements ProviderConfiguration {
+@TemplateSubType(id = OPENAI_COMPATIBLE_ID, label = "OpenAI Compatible")
+public record OpenAiCompatibleProviderConfiguration(
+    @Valid @NotNull OpenAiCompatibleConnection openaiCompatible) implements ProviderConfiguration {
 
   @TemplateProperty(ignore = true)
-  public static final String OPENAI_ID = "openai";
+  public static final String OPENAI_COMPATIBLE_ID = "openaiCompatible";
 
-  public record OpenAiConnection(
-      @Valid @NotNull OpenAiAuthentication authentication, @Valid @NotNull OpenAiModel model) {}
-
-  public record OpenAiAuthentication(
+  public record OpenAiCompatibleConnection(
       @NotBlank
           @TemplateProperty(
               group = "provider",
-              label = "OpenAI API key",
+              label = "API endpoint",
+              tooltip = "Specify an endpoint to use the connector with an OpenAI compatible API. ",
               type = TemplateProperty.PropertyType.String,
               feel = Property.FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-          String apiKey,
+          String endpoint,
+      @Valid OpenAiCompatibleAuthentication authentication,
+      @FEEL
+          @TemplateProperty(
+              group = "provider",
+              label = "Headers",
+              description = "Map of HTTP headers to add to the request.",
+              feel = Property.FeelMode.required,
+              optional = true)
+          Map<String, String> headers,
+      @Valid @NotNull OpenAiCompatibleModel model) {}
+
+  public record OpenAiCompatibleAuthentication(
       @TemplateProperty(
               group = "provider",
-              label = "Organization ID",
-              description =
-                  "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
+              label = "API key",
+              tooltip =
+                  "Leave blank if using HTTP headers for authentication.<br>If an Authentication header is specified in the headers, then the API key is ignored.",
               type = TemplateProperty.PropertyType.String,
               feel = Property.FeelMode.optional,
               optional = true)
-          String organizationId,
-      @TemplateProperty(
-              group = "provider",
-              label = "Project ID",
-              description =
-                  "For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
-              type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
-              optional = true)
-          String projectId) {
+          String apiKey) {
 
     @Override
     public String toString() {
-      return "OpenAiAuthentication{apiKey=[REDACTED], organizationId=%s, projectId=%s}"
-          .formatted(organizationId, projectId);
+      return "OpenAiCompatibleAuthentication{apiKey=[REDACTED]}";
     }
   }
 
-  public record OpenAiModel(
+  public record OpenAiCompatibleModel(
       @NotBlank
           @TemplateProperty(
               group = "model",
@@ -74,9 +76,9 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
               defaultValueType = TemplateProperty.DefaultValueType.String,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String model,
-      @Valid OpenAiModel.OpenAiModelParameters parameters) {
+      @Valid OpenAiCompatibleModel.OpenAiCompatibleModelParameters parameters) {
 
-    public record OpenAiModelParameters(
+    public record OpenAiCompatibleModelParameters(
         @Min(0)
             @TemplateProperty(
                 group = "model",
@@ -106,6 +108,14 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
                 type = TemplateProperty.PropertyType.Number,
                 feel = Property.FeelMode.required,
                 optional = true)
-            Double topP) {}
+            Double topP,
+        @FEEL
+            @TemplateProperty(
+                group = "model",
+                label = "Custom parameters",
+                description = "Map of additional request parameters to include.",
+                feel = Property.FeelMode.required,
+                optional = true)
+            Map<String, Object> customParameters) {}
   }
 }

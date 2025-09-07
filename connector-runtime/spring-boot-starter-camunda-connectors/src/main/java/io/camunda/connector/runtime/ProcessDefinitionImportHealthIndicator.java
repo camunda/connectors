@@ -19,10 +19,15 @@ package io.camunda.connector.runtime;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImporter;
 import jakarta.annotation.Nullable;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.actuate.health.AbstractHealthIndicator;
 import org.springframework.boot.actuate.health.Health.Builder;
 
 public class ProcessDefinitionImportHealthIndicator extends AbstractHealthIndicator {
+
+  private static final Logger LOG =
+      LoggerFactory.getLogger(ProcessDefinitionImportHealthIndicator.class);
 
   private final ProcessDefinitionImporter processDefinitionImporter;
 
@@ -37,6 +42,7 @@ public class ProcessDefinitionImportHealthIndicator extends AbstractHealthIndica
     if (processDefinitionImporter == null || processDefinitionImporter.isReady()) {
       builder.up().withDetails(details);
     } else {
+      LOG.warn("Process definition import health check failed");
       builder.down().withDetails(details);
     }
   }
