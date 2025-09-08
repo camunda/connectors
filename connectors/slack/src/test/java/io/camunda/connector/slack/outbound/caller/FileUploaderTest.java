@@ -26,7 +26,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
-import io.camunda.connector.test.TestDocument;
+import io.camunda.connector.test.document.TestDocument;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.List;

@@ -21,7 +21,7 @@ import com.slack.api.model.block.SectionBlock;
 import com.slack.api.model.block.composition.MarkdownTextObject;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.slack.outbound.caller.FileUploader;
-import io.camunda.connector.test.TestDocument;
+import io.camunda.connector.test.document.TestDocument;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

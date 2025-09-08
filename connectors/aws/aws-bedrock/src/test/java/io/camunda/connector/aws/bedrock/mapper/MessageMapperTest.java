@@ -15,7 +15,7 @@ import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.aws.bedrock.model.BedrockContent;
 import io.camunda.connector.aws.bedrock.model.BedrockMessage;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
-import io.camunda.connector.test.TestDocument;
+import io.camunda.connector.test.document.TestDocument;
 import java.io.IOException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
