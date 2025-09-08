@@ -1,0 +1,228 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "A2A Client (experimental)",
+  "id" : "io.camunda.connectors.agenticai.a2a.client.v0",
+  "description" : "Agent-to-Agent (A2A) client, enabling discovering remote agents' Agent Cards as well as invoking remove agents. Compatible with 8.8.0-alpha8 or later.",
+  "metadata" : {
+    "keywords" : [ ]
+  },
+  "version" : 0,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.8"
+  },
+  "groups" : [ {
+    "id" : "connection",
+    "label" : "HTTP Connection",
+    "tooltip" : "Configure the HTTP connection to the remote A2A server for retrieving the Agent Card. Setting authentication headers is not supported yet."
+  }, {
+    "id" : "operation",
+    "label" : "Operation"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "value" : "io.camunda.agenticai:a2aclient:0",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "data.connection.url",
+    "label" : "A2A server URL",
+    "description" : "The base URL of the A2A server.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "connection",
+    "binding" : {
+      "name" : "data.connection.url",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.connection.agentCardLocation",
+    "label" : "Agent card location",
+    "description" : "Optional path to the agent card endpoint relative to the base server URL, defaults to \".well-known/agent-card.json\"",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "connection",
+    "binding" : {
+      "name" : "data.connection.agentCardLocation",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.operation.type",
+    "label" : "Operation",
+    "description" : "The type of operation to perform.",
+    "value" : "fetchAgentCard",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.operation.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Fetch Agent Card",
+      "value" : "fetchAgentCard"
+    }, {
+      "name" : "Send message",
+      "value" : "sendMessage"
+    } ]
+  }, {
+    "id" : "data.operation.text",
+    "label" : "Text",
+    "description" : "The text to to be included in the message.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.operation.text",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.operation.type",
+      "equals" : "sendMessage",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "data.operation.documents",
+    "label" : "Documents",
+    "description" : "Documents to be included in the message.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.operation.documents",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.operation.type",
+      "equals" : "sendMessage",
+      "type" : "simple"
+    },
+    "tooltip" : "Referenced documents that will be added to the message.",
+    "type" : "String"
+  }, {
+    "id" : "data.operation.timeout",
+    "label" : "Response timeout",
+    "description" : "How long to wait for the remote agent response as ISO-8601 duration (example: <code>PT1M</code>).",
+    "optional" : false,
+    "value" : "PT1M",
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.operation.timeout",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.operation.type",
+      "equals" : "sendMessage",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "0",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.agenticai.a2a.client.v0",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "value" : "toolCallResult",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ]
+}
