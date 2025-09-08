@@ -36,8 +36,15 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     icon = "a2a-client.svg")
 public class A2AClientFunction implements OutboundConnectorFunction {
 
+  private final A2AClientHandler handler;
+
+  public A2AClientFunction(A2AClientHandler handler) {
+    this.handler = handler;
+  }
+
   @Override
   public A2AClientResult execute(OutboundConnectorContext context) throws Exception {
-    return null;
+    final A2AClientRequest request = context.bindVariables(A2AClientRequest.class);
+    return handler.handle(request);
   }
 }
