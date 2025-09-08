@@ -13,7 +13,7 @@ import java.util.List;
 public record A2AClientAgentCardResult(String name, String description, List<AgentSkill> skills)
     implements A2AClientResult {
 
-  public record AgentSkill(
+  record AgentSkill(
       String id,
       String name,
       String description,
