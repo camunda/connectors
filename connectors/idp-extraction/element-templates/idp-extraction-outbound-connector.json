@@ -766,7 +766,6 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "required",
     "group" : "configuration",
     "binding" : {
       "name" : "baseRequest.openAiHeaders",

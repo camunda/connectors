@@ -34,7 +34,7 @@ public final class OpenAiProvider implements ProviderConfig {
       label = "Headers",
       group = "configuration",
       description = "Map of HTTP headers to add to the request.",
-      feel = Property.FeelMode.required,
+      feel = Property.FeelMode.disabled,
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
   @NotNull
   private Map<String, String> openAiHeaders;
