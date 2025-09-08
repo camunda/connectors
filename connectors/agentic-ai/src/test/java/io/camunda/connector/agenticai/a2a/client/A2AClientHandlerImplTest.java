@@ -39,11 +39,16 @@ class A2AClientHandlerImplTest {
     public static final List<String> DEFAULT_INPUT_MODES = List.of("text");
     public static final List<String> DEFAULT_OUTPUT_MODES = List.of("application/json");
 
+    private final A2AClientHandler handler =
+        new A2AClientHandlerImpl(
+            mock(DocumentToPartConverter.class),
+            mock(SendMessageResultHandler.class),
+            mock(TaskPoller.class));
+
     @Test
     void fetchAgentCardWithCustomLocation() {
       final var location = "abc/agent.json";
       final var request = buildRequest(location);
-      final var handler = new A2AClientHandlerImpl();
       final var agentCard = createAgentCard(null, null);
 
       try (MockedStatic<A2A> a2aStatic = mockStatic(A2A.class)) {
@@ -62,7 +67,6 @@ class A2AClientHandlerImplTest {
     @NullAndEmptySource
     void fetchAgentCardWithoutCustomLocation(String agentCardLocation) {
       final var request = buildRequest(agentCardLocation);
-      final var handler = new A2AClientHandlerImpl();
       final var agentCard = createAgentCard(null, null);
 
       try (MockedStatic<A2A> a2aStatic = mockStatic(A2A.class)) {
@@ -82,7 +86,6 @@ class A2AClientHandlerImplTest {
       List<String> inputModes = List.of("text", "application/json");
       List<String> outputModes = List.of("image/jpeg");
       final var request = buildRequest(null);
-      final var handler = new A2AClientHandlerImpl();
       final var agentCard = createAgentCard(inputModes, outputModes);
 
       try (MockedStatic<A2A> a2aStatic = mockStatic(A2A.class)) {
