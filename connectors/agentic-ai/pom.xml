@@ -21,6 +21,7 @@
     <version.record-builder>49</version.record-builder>
     <version.groovy>4.0.28</version.groovy>
     <version.gmavenplus-plugin>4.2.1</version.gmavenplus-plugin>
+    <version.a2asdk>0.3.0.Beta1</version.a2asdk>
   </properties>
 
   <licenses>
@@ -128,6 +129,12 @@
           <artifactId>netty-resolver-dns-native-macos</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+
+    <dependency>
+      <groupId>io.github.a2asdk</groupId>
+      <artifactId>a2a-java-sdk-client</artifactId>
+      <version>${version.a2asdk}</version>
     </dependency>
 
     <dependency>

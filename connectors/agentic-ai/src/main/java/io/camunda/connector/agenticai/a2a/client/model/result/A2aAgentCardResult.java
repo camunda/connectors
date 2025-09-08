@@ -16,6 +16,8 @@ import java.util.List;
 public record A2aAgentCardResult(String name, String description, List<AgentSkill> skills)
     implements A2aClientResult {
 
+  @AgenticAiRecord
+  @JsonDeserialize(builder = AgentSkill.AgentSkillJacksonProxyBuilder.class)
   public record AgentSkill(
       String id,
       String name,
@@ -23,7 +25,15 @@ public record A2aAgentCardResult(String name, String description, List<AgentSkil
       List<String> tags,
       List<String> examples,
       List<String> inputModes,
-      List<String> outputModes) {}
+      List<String> outputModes) {
+
+    public static A2aAgentCardResultAgentSkillBuilder builder() {
+      return A2aAgentCardResultAgentSkillBuilder.builder();
+    }
+
+    @JsonPOJOBuilder(withPrefix = "")
+    public static class AgentSkillJacksonProxyBuilder extends A2aAgentCardResultAgentSkillBuilder {}
+  }
 
   public static A2aAgentCardResultBuilder builder() {
     return A2aAgentCardResultBuilder.builder();
