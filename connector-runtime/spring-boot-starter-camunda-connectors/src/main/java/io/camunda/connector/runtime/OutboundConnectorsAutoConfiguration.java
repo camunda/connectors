@@ -103,7 +103,10 @@ public class OutboundConnectorsAutoConfiguration {
   @Bean(name = "camundaJsonMapper")
   @ConditionalOnMissingBean
   public CamundaObjectMapper jsonMapper() {
-    return new CamundaObjectMapper(ConnectorsObjectMapperSupplier.getCopy());
+    return new CamundaObjectMapper(
+        ConnectorsObjectMapperSupplier.getCopy()
+            .registerModules(
+                new JacksonModuleFeelFunction(), new JacksonModuleDocumentSerializer()));
   }
 
   @Bean
