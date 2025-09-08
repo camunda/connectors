@@ -189,7 +189,7 @@ public class ConnectorJobHandler implements JobHandler {
   private void handleSuccessResult(
       JobClient jobClient, ActivatedJob job, ConnectorResult finalResult) {
     if (finalResult instanceof SuccessResult successResult) {
-      LOGGER.debug("Completing job: {} for tenant: {}", job.getKey(), job.getTenantId());
+      LOGGER.info("Completing job: {} for tenant: {}", job.getKey(), job.getTenantId());
       completeJob(jobClient, job, successResult);
     } else if (finalResult instanceof ErrorResult errorResult) {
       // Handle Java error, e.g. ConnectorException
