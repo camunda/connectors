@@ -224,8 +224,7 @@ public class ConnectorJobHandler implements JobHandler {
               },
               () -> {
                 if (finalResult instanceof SuccessResult successResult) {
-                  LOGGER.debug(
-                      "Completing job: {} for tenant: {}", job.getKey(), job.getTenantId());
+                  LOGGER.info("Completing job: {} for tenant: {}", job.getKey(), job.getTenantId());
                   completeJob(client, job, successResult);
                 } else {
                   // Handle Java error, e.g. ConnectorException
