@@ -25,7 +25,6 @@ import io.camunda.connector.document.jackson.deserializer.DocumentDeserializer;
 import io.camunda.connector.document.jackson.deserializer.InputStreamDeserializer;
 import io.camunda.connector.document.jackson.deserializer.ObjectDeserializer;
 import io.camunda.connector.document.jackson.deserializer.StringDeserializer;
-import io.camunda.connector.intrinsic.IntrinsicFunctionExecutor;
 import java.io.InputStream;
 
 public class JacksonModuleDocumentDeserializer extends SimpleModule {

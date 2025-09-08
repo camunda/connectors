@@ -28,13 +28,17 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import io.camunda.connector.test.MapSecretProvider;
-import io.camunda.document.DocumentFactoryImpl;
-import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -49,9 +53,31 @@ public class OutboundConnectorContextBuilder {
   protected Map<String, Object> variables;
   protected DocumentFactory documentFactory =
       new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
-  private ObjectMapper objectMapper =
-      ConnectorsObjectMapperSupplier.getCopy(
-          this.documentFactory, JacksonModuleDocumentDeserializer.DocumentModuleSettings.create());
+  private ObjectMapper objectMapper = createObjectMapper();
+
+  private ObjectMapper createObjectMapper() {
+    var copy = ConnectorsObjectMapperSupplier.getCopy();
+    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+    var jacksonModuleDocumentDeserializer =
+        new JacksonModuleDocumentDeserializer(
+            documentFactory, functionExecutor, DocumentModuleSettings.create());
+    return copy.registerModules(
+        jacksonModuleDocumentDeserializer,
+        new JacksonModuleFeelFunction(),
+        new JacksonModuleDocumentSerializer());
+  }
+
+  private ObjectMapper createObjectMapper(DocumentFactory documentFactory) {
+    var copy = ConnectorsObjectMapperSupplier.getCopy();
+    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+    var jacksonModuleDocumentDeserializer =
+        new JacksonModuleDocumentDeserializer(
+            documentFactory, functionExecutor, DocumentModuleSettings.create());
+    return copy.registerModules(
+        jacksonModuleDocumentDeserializer,
+        new JacksonModuleFeelFunction(),
+        new JacksonModuleDocumentSerializer());
+  }
 
   /**
    * @return a new instance of the {@link OutboundConnectorContextBuilder}
@@ -176,9 +202,7 @@ public class OutboundConnectorContextBuilder {
   }
 
   public OutboundConnectorContextBuilder documentFactory(DocumentFactory documentFactory) {
-    this.objectMapper =
-        ConnectorsObjectMapperSupplier.getCopy(
-            documentFactory, JacksonModuleDocumentDeserializer.DocumentModuleSettings.create());
+    this.objectMapper = createObjectMapper(documentFactory);
     return this;
   }
 

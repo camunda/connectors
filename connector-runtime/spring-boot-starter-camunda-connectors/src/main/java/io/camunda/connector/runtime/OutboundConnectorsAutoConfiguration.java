@@ -20,9 +20,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.impl.CamundaObjectMapper;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
@@ -99,7 +103,10 @@ public class OutboundConnectorsAutoConfiguration {
   @Bean(name = "camundaJsonMapper")
   @ConditionalOnMissingBean
   public CamundaObjectMapper jsonMapper() {
-    return new CamundaObjectMapper(ConnectorsObjectMapperSupplier.getCopy());
+    return new CamundaObjectMapper(
+        ConnectorsObjectMapperSupplier.getCopy()
+            .registerModules(
+                new JacksonModuleFeelFunction(), new JacksonModuleDocumentSerializer()));
   }
 
   @Bean
@@ -154,6 +161,22 @@ public class OutboundConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ObjectMapper objectMapper(DocumentFactory documentFactory) {
-    return ConnectorsObjectMapperSupplier.getCopy(documentFactory, DocumentModuleSettings.create());
+    final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
+    // default intrinsic function contains a pointer of the copy
+    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+
+    // The deserializer module contains the function executor, which contains the pointer of the
+    // object mapper
+    var jacksonModuleDocumentDeserializer =
+        new JacksonModuleDocumentDeserializer(
+            documentFactory, functionExecutor, DocumentModuleSettings.create());
+
+    // We register the deserializer module which contains the function executor, which contains the
+    // pointer of the object mapper
+    // we are overloading
+    return copy.registerModules(
+        jacksonModuleDocumentDeserializer,
+        new JacksonModuleFeelFunction(),
+        new JacksonModuleDocumentSerializer());
   }
 }

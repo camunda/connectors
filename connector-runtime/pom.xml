@@ -22,7 +22,5 @@
     <module>connector-runtime-spring</module>
     <module>spring-boot-starter-camunda-connectors</module>
     <module>connector-runtime-application</module>
-    <module>document</module>
-    <module>intrinsic-functions</module>
   </modules>
 </project>

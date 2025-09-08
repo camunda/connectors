@@ -13,13 +13,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.aws.bedrock.model.BedrockContent;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
-import io.camunda.document.CamundaDocument;
-import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.connector.test.document.TestDocument;
+import io.camunda.connector.test.document.TestDocumentFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -63,7 +65,7 @@ class BedrockContentMapperTest {
   @Test
   void documentToBedrockContent() throws IOException {
     String path = "src/test/resources/converse/text-document.json";
-    var document = prepareDocument(path);
+    Document document = prepareDocument(path);
 
     var bedrockContent = bedrockContentMapper.documentToBedrockContent(document);
 
@@ -87,13 +89,19 @@ class BedrockContentMapperTest {
     String msg = "Hello World!";
     var textBedrockContent = new BedrockContent(msg);
 
-    String path = "src/test/resources/converse/text-document.json";
-    var documentReference = mock(DocumentReference.CamundaDocumentReference.class);
-    var documentStore = mock(CamundaDocumentStore.class);
-    var document = prepareDocument(path, documentReference, documentStore);
-
-    var byteInput = new ByteArrayInputStream(new byte[0]);
-    when(documentStore.getDocumentContent(any())).thenReturn(byteInput);
+    TestDocumentFactory factory = new TestDocumentFactory();
+    Document document =
+        factory.create(
+            new DocumentCreationRequest(
+                new ByteArrayInputStream(new byte[] {}),
+                null,
+                null,
+                "text/plain",
+                "empty.txt",
+                Duration.ofHours(1),
+                null,
+                null,
+                null));
 
     var docContent = new BedrockContent(document);
 
@@ -114,15 +122,12 @@ class BedrockContentMapperTest {
 
   private Document prepareDocument(String path) throws IOException {
     var documentReference = mock(DocumentReference.CamundaDocumentReference.class);
-    var documentStore = mock(CamundaDocumentStore.class);
-
-    return prepareDocument(path, documentReference, documentStore);
+    return prepareDocument(path, documentReference);
   }
 
-  private Document prepareDocument(
-      String path, DocumentReference.CamundaDocumentReference docRef, CamundaDocumentStore docStore)
+  private Document prepareDocument(String path, DocumentReference.CamundaDocumentReference docRef)
       throws IOException {
     var docMetadata = readData(path, DocumentReferenceModel.CamundaDocumentMetadataModel.class);
-    return new CamundaDocument(docMetadata, docRef, docStore);
+    return new TestDocument(null, docMetadata, docRef, "id");
   }
 }
