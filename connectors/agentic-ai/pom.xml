@@ -229,6 +229,17 @@
               <generateHybridTemplates>true</generateHybridTemplates>
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.agenticai.a2a.client.A2AClientFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.agenticai.a2a.client.v0</templateId>
+                  <templateFileName>agenticai-a2a-client-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
+            </connector>
           </connectors>
           <versionHistoryEnabled>true</versionHistoryEnabled>
         </configuration>
