@@ -37,11 +37,11 @@ jobs:
             const repoOwner = context.repo.owner;
             const repoName = context.repo.repo;
             
-            const octokit = new github.constructor({
+            const githubWithOrgAccess = new github.constructor({
               auth: process.env.TOKEN,
             });
-            
-            const teamMembersResponse = await octokit.rest.teams.listMembersInOrg({
+  
+            const teamMembersResponse = await githubWithOrgAccess.rest.teams.listMembersInOrg({
               org: "camunda",
               team_slug: "qa-engineering",
             })
