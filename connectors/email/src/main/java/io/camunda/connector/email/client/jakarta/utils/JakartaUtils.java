@@ -129,6 +129,7 @@ public class JakartaUtils {
         properties.put("mail.imap.host", imap.imapHost().trim());
         properties.put("mail.imap.port", imap.imapPort().toString());
         properties.put("mail.imap.auth", true);
+        properties.put("mail.imap.timeout", "10000");
       }
       case TLS -> {
         properties.put("mail.store.protocol", "imaps");

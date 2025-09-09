@@ -8,7 +8,6 @@ package io.camunda.connector.email.client.jakarta.inbound;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
-import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.email.authentication.Authentication;
 import io.camunda.connector.email.client.jakarta.models.Email;
@@ -18,8 +17,6 @@ import io.camunda.connector.email.inbound.model.*;
 import io.camunda.connector.email.response.ReadEmailResponse;
 import jakarta.mail.*;
 import jakarta.mail.search.FlagTerm;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -169,10 +166,23 @@ public class PollingManager {
   }
 
   public void poll() {
-    this.prepareForPolling();
-    switch (this.emailListenerConfig.pollingConfig()) {
-      case PollAll pollAll -> pollAllAndProcess(pollAll);
-      case PollUnseen pollUnseen -> pollUnseenAndProcess(pollUnseen);
+    try {
+      this.prepareForPolling();
+      switch (this.emailListenerConfig.pollingConfig()) {
+        case PollAll pollAll -> pollAllAndProcess(pollAll);
+        case PollUnseen pollUnseen -> pollUnseenAndProcess(pollUnseen);
+      }
+      this.connectorContext.reportHealth(Health.up());
+    } catch (Exception e) {
+      // All exception are caught at highest level, ensuring the scheduler never stops, and continue
+      // polling indefinitely
+      this.connectorContext.log(
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withTag("mail-polling")
+                  .withMessage(e.getMessage()));
+      this.connectorContext.reportHealth(Health.down());
     }
   }
 
@@ -195,48 +205,16 @@ public class PollingManager {
     }
   }
 
-  private void pollAllAndProcess(PollAll pollAll) {
-    try {
-      Message[] messages = this.folder.getMessages();
-      Arrays.stream(messages).forEach(message -> this.processMail((IMAPMessage) message, pollAll));
-    } catch (Exception e) {
-      this.connectorContext.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withTag("mail-polling")
-                  .withMessage(e.getMessage()));
-      this.connectorContext.cancel(
-          ConnectorRetryException.builder()
-              .cause(e)
-              .message(e.getMessage())
-              .retries(1)
-              .backoffDuration(Duration.of(5, ChronoUnit.SECONDS))
-              .build());
-    }
+  private void pollAllAndProcess(PollAll pollAll) throws MessagingException {
+    Message[] messages = this.folder.getMessages();
+    Arrays.stream(messages).forEach(message -> this.processMail((IMAPMessage) message, pollAll));
   }
 
-  private void pollUnseenAndProcess(PollUnseen pollUnseen) {
-    try {
-      FlagTerm unseenFlagTerm = new FlagTerm(new Flags(Flags.Flag.SEEN), false);
-      Message[] unseenMessages = this.folder.search(unseenFlagTerm, this.folder.getMessages());
-      Arrays.stream(unseenMessages)
-          .forEach(message -> this.processMail((IMAPMessage) message, pollUnseen));
-    } catch (Exception e) {
-      this.connectorContext.log(
-          activity ->
-              activity
-                  .withSeverity(Severity.ERROR)
-                  .withTag("mail-polling")
-                  .withMessage(e.getMessage()));
-      this.connectorContext.cancel(
-          ConnectorRetryException.builder()
-              .cause(e)
-              .message(e.getMessage())
-              .retries(1)
-              .backoffDuration(Duration.of(5, ChronoUnit.SECONDS))
-              .build());
-    }
+  private void pollUnseenAndProcess(PollUnseen pollUnseen) throws MessagingException {
+    FlagTerm unseenFlagTerm = new FlagTerm(new Flags(Flags.Flag.SEEN), false);
+    Message[] unseenMessages = this.folder.search(unseenFlagTerm, this.folder.getMessages());
+    Arrays.stream(unseenMessages)
+        .forEach(message -> this.processMail((IMAPMessage) message, pollUnseen));
   }
 
   private void processMail(IMAPMessage message, PollingConfig pollingConfig) {
@@ -315,8 +293,8 @@ public class PollingManager {
 
   public void stop() {
     try {
-      this.folder.close();
-      this.store.close();
+      if (this.folder.isOpen()) this.folder.close();
+      if (this.store.isConnected()) this.store.close();
     } catch (MessagingException e) {
       throw new RuntimeException(e);
     }
