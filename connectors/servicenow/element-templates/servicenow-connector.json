@@ -426,7 +426,7 @@
       "//": "this sets the actual request body for a write request to the ServiceNow API",
       "group": "input",
       "type": "Hidden",
-      "value": "={\n \"variables\": [body_sc_request_item, body_change_request, body_change_task, body_sc_request, body_sc_task, body_incident, body__custom],\n  \"result\": variables[item != null][1]\n}.result",
+      "value": "={\n \"variables\": [body_sc_req_item, body_change_request, body_change_task, body_sc_request, body_sc_task, body_incident, body__custom],\n  \"result\": variables[item != null][1]\n}.result",
       "binding": {
         "type": "zeebe:input",
         "name": "body"
