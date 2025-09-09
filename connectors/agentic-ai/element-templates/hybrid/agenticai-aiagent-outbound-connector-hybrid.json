@@ -605,7 +605,7 @@
       "equals" : "openaiCompatible",
       "type" : "simple"
     },
-    "tooltip" : "Leave blank if using HTTP headers for authentication.<br>If an Authentication header is specified in the headers, then the API key is ignored.",
+    "tooltip" : "Leave blank if using HTTP headers for authentication.<br>If an Authorization header is specified in the headers, then the API key is ignored.",
     "type" : "String"
   }, {
     "id" : "provider.openaiCompatible.headers",
