@@ -13,6 +13,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.idp.extraction.caller.AzureAiFoundryCaller;
 import io.camunda.connector.idp.extraction.caller.AzureDocumentIntelligenceCaller;
 import io.camunda.connector.idp.extraction.caller.BedrockCaller;
+import io.camunda.connector.idp.extraction.caller.OpenAiSpecCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
 import io.camunda.connector.idp.extraction.caller.VertexCaller;
 import io.camunda.connector.idp.extraction.model.ExtractionRequest;
@@ -22,15 +23,17 @@ import io.camunda.connector.idp.extraction.model.TaxonomyItem;
 import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
 import io.camunda.connector.idp.extraction.model.providers.AzureProvider;
 import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
+import io.camunda.connector.idp.extraction.model.providers.OpenAiProvider;
 import io.camunda.connector.idp.extraction.supplier.BedrockRuntimeClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
 import io.camunda.connector.idp.extraction.utils.StringUtil;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.hc.core5.http.HttpStatus;
 import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.io.RandomAccessReadBuffer;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.slf4j.Logger;
@@ -58,6 +61,8 @@ public class UnstructuredService implements ExtractionService {
 
   private final AzureDocumentIntelligenceCaller azureDocumentIntelligenceCaller;
 
+  private final OpenAiSpecCaller openAiSpecCaller;
+
   public UnstructuredService() {
     this.textractClientSupplier = new TextractClientSupplier();
     this.s3ClientSupplier = new S3ClientSupplier();
@@ -68,6 +73,7 @@ public class UnstructuredService implements ExtractionService {
     this.objectMapper = new ObjectMapper();
     this.azureAiFoundryCaller = new AzureAiFoundryCaller();
     this.azureDocumentIntelligenceCaller = new AzureDocumentIntelligenceCaller();
+    this.openAiSpecCaller = new OpenAiSpecCaller();
   }
 
   public UnstructuredService(
@@ -79,7 +85,8 @@ public class UnstructuredService implements ExtractionService {
       VertexCaller vertexCaller,
       ObjectMapper objectMapper,
       AzureAiFoundryCaller azureAiFoundryCaller,
-      AzureDocumentIntelligenceCaller azureDocumentIntelligenceCaller) {
+      AzureDocumentIntelligenceCaller azureDocumentIntelligenceCaller,
+      OpenAiSpecCaller openAiSpecCaller) {
     this.textractClientSupplier = textractClientSupplier;
     this.s3ClientSupplier = s3ClientSupplier;
     this.bedrockRuntimeClientSupplier = bedrockRuntimeClientSupplier;
@@ -89,6 +96,7 @@ public class UnstructuredService implements ExtractionService {
     this.objectMapper = objectMapper;
     this.azureAiFoundryCaller = azureAiFoundryCaller;
     this.azureDocumentIntelligenceCaller = azureDocumentIntelligenceCaller;
+    this.openAiSpecCaller = openAiSpecCaller;
   }
 
   @Override
@@ -98,6 +106,7 @@ public class UnstructuredService implements ExtractionService {
       case AwsProvider aws -> extractUsingAws(input, aws);
       case GcpProvider gemini -> extractUsingGcp(input, gemini);
       case AzureProvider azure -> extractUsingAzure(input, azure);
+      case OpenAiProvider openAiSpec -> extractUsingOpenAiSpec(input, openAiSpec);
       default ->
           throw new IllegalStateException("Unexpected value: " + extractionRequest.baseRequest());
     };
@@ -164,6 +173,28 @@ public class UnstructuredService implements ExtractionService {
     }
   }
 
+  private ExtractionResult extractUsingOpenAiSpec(
+      ExtractionRequestData input, OpenAiProvider baseRequest) {
+    try {
+      long startTime = System.currentTimeMillis();
+
+      // Extract text using Apache PDFBox (we can add other text extraction options later)
+      String extractedText = extractTextUsingApachePdf(input);
+
+      // Process the extracted text using OpenAI Spec API
+      String openAiResponse = openAiSpecCaller.call(input, baseRequest, extractedText);
+
+      long endTime = System.currentTimeMillis();
+      LOGGER.info("OpenAI Spec content extraction took {} ms", (endTime - startTime));
+
+      return new ExtractionResult(
+          buildResponseJsonIfPossible(openAiResponse, input.taxonomyItems()));
+    } catch (Exception e) {
+      LOGGER.error("Document extraction via OpenAI Spec failed: {}", e.getMessage());
+      throw new ConnectorException(e);
+    }
+  }
+
   private Map<String, Object> buildResponseJsonIfPossible(
       String llmResponse, List<TaxonomyItem> taxonomyItems) {
     try {
@@ -182,7 +213,7 @@ public class UnstructuredService implements ExtractionService {
             llmResponseJson = objectMapper.readValue(nestedResponse.asText(), JsonNode.class);
           } else {
             throw new ConnectorException(
-                String.valueOf(HttpStatus.SC_SERVER_ERROR),
+                String.valueOf(500),
                 String.format(
                     "LLM response is neither a JSON object nor a string: %s", llmResponse));
           }
@@ -205,12 +236,12 @@ public class UnstructuredService implements ExtractionService {
 
       } else {
         throw new ConnectorException(
-            String.valueOf(HttpStatus.SC_SERVER_ERROR),
+            String.valueOf(500),
             String.format("LLM response is not a JSON object: %s", llmResponse));
       }
     } catch (JsonProcessingException e) {
       throw new ConnectorException(
-          String.valueOf(HttpStatus.SC_SERVER_ERROR),
+          String.valueOf(500),
           String.format("Failed to parse the JSON response from LLM: %s", llmResponse),
           e);
     }
@@ -226,8 +257,10 @@ public class UnstructuredService implements ExtractionService {
   }
 
   private String extractTextUsingApachePdf(ExtractionRequestData input) throws Exception {
-    PDDocument document = Loader.loadPDF(input.document().asByteArray());
-    PDFTextStripper pdfStripper = new PDFTextStripper();
-    return pdfStripper.getText(document);
+    try (InputStream inputStream = input.document().asInputStream();
+        PDDocument document = Loader.loadPDF(new RandomAccessReadBuffer(inputStream))) {
+      PDFTextStripper pdfStripper = new PDFTextStripper();
+      return pdfStripper.getText(document);
+    }
   }
 }

@@ -25,6 +25,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProv
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication.AwsStaticCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -57,6 +59,8 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       case GoogleVertexAiProviderConfiguration vertexAi ->
           createGoogleVertexAiChatModelBuilder(vertexAi).build();
       case OpenAiProviderConfiguration openai -> createOpenaiChatModelBuilder(openai).build();
+      case OpenAiCompatibleProviderConfiguration openaiCompatible ->
+          createOpenaiCompatibleChatModelBuilder(openaiCompatible).build();
     };
   }
 
@@ -206,7 +210,46 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     Optional.ofNullable(connection.authentication().organizationId())
         .ifPresent(builder::organizationId);
     Optional.ofNullable(connection.authentication().projectId()).ifPresent(builder::projectId);
-    Optional.ofNullable(connection.endpoint()).ifPresent(builder::baseUrl);
+
+    final var modelParameters = connection.model().parameters();
+    if (modelParameters != null) {
+      final var requestParametersBuilder = OpenAiChatRequestParameters.builder();
+      Optional.ofNullable(modelParameters.maxCompletionTokens())
+          .ifPresent(requestParametersBuilder::maxCompletionTokens);
+      Optional.ofNullable(modelParameters.temperature())
+          .ifPresent(requestParametersBuilder::temperature);
+      Optional.ofNullable(modelParameters.topP()).ifPresent(requestParametersBuilder::topP);
+
+      builder.defaultRequestParameters(requestParametersBuilder.build());
+    }
+
+    return builder;
+  }
+
+  protected OpenAiChatModel.OpenAiChatModelBuilder createOpenaiCompatibleChatModelBuilder(
+      OpenAiCompatibleProviderConfiguration configuration) {
+    final var connection = configuration.openaiCompatible();
+
+    final var builder =
+        OpenAiChatModel.builder()
+            .modelName(connection.model().model())
+            .baseUrl(connection.endpoint());
+
+    Optional.ofNullable(connection.authentication())
+        .map(OpenAiCompatibleAuthentication::apiKey)
+        .filter(StringUtils::isNotBlank)
+        .ifPresent(
+            apiKey -> {
+              builder.apiKey(apiKey);
+              if (connection.headers() != null) {
+                if (connection.headers().keySet().stream()
+                    .anyMatch("Authorization"::equalsIgnoreCase)) {
+                  LOGGER.warn(
+                      "Both API key and Authorization header are set. The API key will be ignored.");
+                  builder.apiKey(null);
+                }
+              }
+            });
     Optional.ofNullable(connection.headers()).ifPresent(builder::customHeaders);
 
     final var modelParameters = connection.model().parameters();
@@ -217,6 +260,8 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       Optional.ofNullable(modelParameters.temperature())
           .ifPresent(requestParametersBuilder::temperature);
       Optional.ofNullable(modelParameters.topP()).ifPresent(requestParametersBuilder::topP);
+      Optional.ofNullable(modelParameters.customParameters())
+          .ifPresent(requestParametersBuilder::customParameters);
 
       builder.defaultRequestParameters(requestParametersBuilder.build());
     }

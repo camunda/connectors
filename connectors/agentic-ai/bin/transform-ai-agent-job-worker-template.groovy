@@ -102,15 +102,6 @@ json.properties.each { property ->
         updatedProperties.add(property)
 
         updatedProperties.add([
-            id: "toolCallResults",
-            binding: [
-                name: "toolCallResults",
-                type: "zeebe:input"
-            ],
-            type: "Hidden"
-        ])
-
-        updatedProperties.add([
             id: "outputCollection",
             binding: [
                 property: "outputCollection",

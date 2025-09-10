@@ -39,12 +39,13 @@ public class IndexWriter {
   private final List<File> allElementTemplates;
   private final Path localRepo;
 
-  private IndexWriter(String gitDirectory, Path finalFile, String connectorDirectory) {
+  private IndexWriter(
+      String gitDirectory, Path finalFile, String connectorDirectory, String ignorePath) {
     if (!gitDirectory.endsWith(File.separator) && !gitDirectory.isEmpty()) {
       gitDirectory = gitDirectory + File.separator;
     }
     List<Connector> connectorList =
-        ConnectorsFinder.create(Path.of(connectorDirectory)).getAllConnectors();
+        ConnectorsFinder.create(Path.of(connectorDirectory), ignorePath).getAllConnectors();
     this.allElementTemplates =
         Stream.concat(
                 connectorList.stream()
@@ -60,8 +61,9 @@ public class IndexWriter {
     this.finalFile = new File(finalFile.toUri());
   }
 
-  public static IndexWriter create(String gitDirectory, String connectorDirectory, Path finalFile) {
-    return new IndexWriter(gitDirectory, finalFile, connectorDirectory);
+  public static IndexWriter create(
+      String gitDirectory, String connectorDirectory, Path finalFile, String ignoreFile) {
+    return new IndexWriter(gitDirectory, finalFile, connectorDirectory, ignoreFile);
   }
 
   public void persist() {

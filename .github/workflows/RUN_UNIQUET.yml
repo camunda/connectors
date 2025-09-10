@@ -24,7 +24,7 @@ jobs:
 
       - name: run-uniquet
         run: |
-          ./uniquet/target/appassembler/bin/uniquet --output-file ./connector-templates.json
+          ./uniquet/target/appassembler/bin/uniquet --output-file ./connector-templates.json  --ignore-file ./ignore-templates.json
 
       - name: Create pull request to main branch
         uses: peter-evans/create-pull-request@v7

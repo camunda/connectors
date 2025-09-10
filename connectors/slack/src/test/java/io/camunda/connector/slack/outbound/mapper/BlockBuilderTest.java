@@ -20,12 +20,8 @@ import com.slack.api.model.block.LayoutBlock;
 import com.slack.api.model.block.SectionBlock;
 import com.slack.api.model.block.composition.MarkdownTextObject;
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentCreationRequest;
-import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.slack.outbound.caller.FileUploader;
-import io.camunda.document.CamundaDocument;
-import io.camunda.document.store.CamundaDocumentStore;
-import io.camunda.document.store.InMemoryDocumentStore;
+import io.camunda.connector.test.document.TestDocument;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -64,12 +60,7 @@ class BlockBuilderTest {
     List<File> uploadedFiles = List.of(file);
     when(fileUploader.uploadDocuments(any())).thenReturn(uploadedFiles);
 
-    CamundaDocumentStore store = InMemoryDocumentStore.INSTANCE;
-    DocumentReference.CamundaDocumentReference documentReference =
-        store.createDocument(DocumentCreationRequest.from(new byte[] {1, 2, 3}).build());
-
-    Document document =
-        new CamundaDocument(documentReference.getMetadata(), documentReference, store);
+    Document document = new TestDocument(null, null, null, "id");
     List<LayoutBlock> layoutBlocks = blockBuilder.documents(List.of(document)).getLayoutBlocks();
 
     // Then

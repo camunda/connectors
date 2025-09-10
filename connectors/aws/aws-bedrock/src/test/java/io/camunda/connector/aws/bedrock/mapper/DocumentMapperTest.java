@@ -10,14 +10,11 @@ import static io.camunda.connector.aws.bedrock.BaseTest.readData;
 import static io.camunda.connector.aws.bedrock.mapper.DocumentMapper.UNSUPPORTED_DOC_TYPE_MSG;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.document.jackson.DocumentReferenceModel;
-import io.camunda.document.CamundaDocument;
-import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.connector.test.document.TestDocument;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
@@ -32,7 +29,6 @@ class DocumentMapperTest {
 
   private final DocumentMapper documentMapper = new DocumentMapper();
   @Mock private DocumentReference.CamundaDocumentReference documentReference;
-  @Mock private CamundaDocumentStore documentStore;
 
   @Test
   void mapToFileBlockShouldCreateDocumentBlock() throws IOException {
@@ -40,7 +36,6 @@ class DocumentMapperTest {
     var document = prepareDocument(path);
 
     var byteInput = new ByteArrayInputStream(new byte[0]);
-    when(documentStore.getDocumentContent(any())).thenReturn(byteInput);
 
     String fileName =
         ((DocumentReferenceModel.CamundaDocumentMetadataModel) document.metadata()).fileName();
@@ -65,7 +60,6 @@ class DocumentMapperTest {
     var document = prepareDocument(path);
 
     var byteInput = new ByteArrayInputStream(new byte[0]);
-    when(documentStore.getDocumentContent(any())).thenReturn(byteInput);
 
     var imageBlockResult = documentMapper.mapToFileBlock(document);
 
@@ -86,9 +80,6 @@ class DocumentMapperTest {
     String path = "src/test/resources/converse/unsupported-document.json";
     var document = prepareDocument(path);
 
-    var byteInput = new ByteArrayInputStream(new byte[0]);
-    when(documentStore.getDocumentContent(any())).thenReturn(byteInput);
-
     var ex =
         assertThrows(IllegalArgumentException.class, () -> documentMapper.mapToFileBlock(document));
 
@@ -97,6 +88,6 @@ class DocumentMapperTest {
 
   private Document prepareDocument(String path) throws IOException {
     var docMetadata = readData(path, DocumentReferenceModel.CamundaDocumentMetadataModel.class);
-    return new CamundaDocument(docMetadata, documentReference, documentStore);
+    return new TestDocument(new byte[0], docMetadata, documentReference, "id");
   }
 }

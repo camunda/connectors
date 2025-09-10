@@ -33,7 +33,7 @@ import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
-import io.camunda.document.store.CamundaDocumentStore;
+import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;

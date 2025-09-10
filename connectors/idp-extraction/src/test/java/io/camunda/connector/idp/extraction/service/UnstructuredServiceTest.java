@@ -19,6 +19,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.idp.extraction.caller.AzureAiFoundryCaller;
 import io.camunda.connector.idp.extraction.caller.AzureDocumentIntelligenceCaller;
 import io.camunda.connector.idp.extraction.caller.BedrockCaller;
+import io.camunda.connector.idp.extraction.caller.OpenAiSpecCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
 import io.camunda.connector.idp.extraction.caller.VertexCaller;
 import io.camunda.connector.idp.extraction.model.ExtractionRequest;
@@ -45,6 +46,7 @@ public class UnstructuredServiceTest {
   @Mock private BedrockCaller bedrockCaller;
   @Mock private AzureAiFoundryCaller azureAiFoundryCaller;
   @Mock private AzureDocumentIntelligenceCaller azureDocumentIntelligenceCaller;
+  @Mock private OpenAiSpecCaller openAiSpecCaller;
 
   private UnstructuredService unstructuredService;
 
@@ -67,7 +69,8 @@ public class UnstructuredServiceTest {
             vertexCaller,
             objectMapper,
             azureAiFoundryCaller,
-            azureDocumentIntelligenceCaller);
+            azureDocumentIntelligenceCaller,
+            openAiSpecCaller);
   }
 
   @Test

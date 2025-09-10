@@ -18,31 +18,48 @@ package io.camunda.connector.runtime.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.core.outbound.ConnectorJobHandler;
 import io.camunda.connector.runtime.utils.TestSecretProvider;
 import io.camunda.connector.runtime.utils.TestValidation;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
-import io.camunda.document.DocumentFactoryImpl;
-import io.camunda.document.store.InMemoryDocumentStore;
 import org.junit.jupiter.api.Test;
 
 public class ConnectorJobHandlerTests {
 
+  static DocumentFactory documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+
+  private static ObjectMapper createObjectMapper() {
+    var copy = ConnectorsObjectMapperSupplier.getCopy();
+    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+    var jacksonModuleDocumentDeserializer =
+        new JacksonModuleDocumentDeserializer(
+            documentFactory, functionExecutor, DocumentModuleSettings.create());
+    return copy.registerModules(
+        jacksonModuleDocumentDeserializer,
+        new JacksonModuleFeelFunction(),
+        new JacksonModuleDocumentSerializer());
+  }
+
   protected static ConnectorJobHandler newConnectorJobHandler(OutboundConnectorFunction call) {
-    DocumentFactory documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
 
     return new ConnectorJobHandler(
         call,
         new TestSecretProvider(),
         new DefaultValidationProvider(),
         documentFactory,
-        ConnectorsObjectMapperSupplier.getCopy(
-            documentFactory, JacksonModuleDocumentDeserializer.DocumentModuleSettings.create()));
+        createObjectMapper());
   }
 
   @Test
