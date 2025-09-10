@@ -59,6 +59,7 @@ import org.springframework.test.web.servlet.MockMvc;
       "management.endpoints.web.exposure.include=*",
       "camunda.client.auth.token-url=https://weblogin.cloud.dev.ultrawombat.com/token",
       "camunda.client.auth.audience=connectors.dev.ultrawombat.com",
+      "spring.cloud.gcp.parametermanager.enabled=false"
     })
 @DirtiesContext
 @ActiveProfiles("test")
