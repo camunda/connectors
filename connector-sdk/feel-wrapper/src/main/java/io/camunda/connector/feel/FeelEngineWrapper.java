@@ -268,8 +268,10 @@ public class FeelEngineWrapper {
    */
   public String evaluateToJson(final String expression, final Object... variables) {
     try {
-
-      return resultToJson(evaluateInternal(expression, variables));
+      var result = evaluateInternal(expression, variables);
+      if (result != null) {
+        return resultToJson(result);
+      } else return null;
     } catch (Exception e) {
       throw new FeelEngineWrapperException(e.getMessage(), expression, variables, e);
     }

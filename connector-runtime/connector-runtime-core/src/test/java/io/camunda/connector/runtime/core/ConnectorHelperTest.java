@@ -16,13 +16,14 @@
  */
 package io.camunda.connector.runtime.core;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class ConnectorHelperTest {
@@ -30,9 +31,17 @@ class ConnectorHelperTest {
   @Test
   void feelEngineWrapperTest() throws JsonProcessingException {
     final var jsonDeserialized = Map.of("data", LocalDate.of(2024, 1, 1));
-    Assertions.assertThat(
-            ConnectorHelper.FEEL_ENGINE_WRAPPER.evaluateToJson("{res: data}", jsonDeserialized))
+    assertThat(ConnectorHelper.FEEL_ENGINE_WRAPPER.evaluateToJson("{res: data}", jsonDeserialized))
         .isEqualTo("{\"res\":\"2024-01-01\"}");
+
+    assertThat(ConnectorHelper.FEEL_ENGINE_WRAPPER.evaluateToJson("\"test\"", jsonDeserialized))
+        .isEqualTo("\"test\"");
+
+    assertThat(ConnectorHelper.FEEL_ENGINE_WRAPPER.evaluateToJson("test", jsonDeserialized))
+        .isEqualTo(null);
+
+    assertThat(ConnectorHelper.FEEL_ENGINE_WRAPPER.evaluateToJson("null", jsonDeserialized))
+        .isEqualTo(null);
 
     final var jsonDeserialized2 =
         Map.of(
@@ -55,7 +64,7 @@ class ConnectorHelperTest {
 				""",
                 jsonDeserialized2),
             new TypeReference<Map<String, Object>>() {});
-    Assertions.assertThat(actual)
+    assertThat(actual)
         .contains(
             Map.entry("res1", "2024-01-01"),
             Map.entry("res2", "hallo2024-01-01"),
