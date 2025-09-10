@@ -12,6 +12,10 @@
   <name>Connector Runtime Bundle</name>
   <description>Connectors Runtime Bundle including out-of-the-box connectors</description>
 
+  <properties>
+    <skip.central.release>true</skip.central.release>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>

@@ -11,6 +11,10 @@
   <name>Connector Runtime Bundle Saas</name>
   <packaging>jar</packaging>
 
+  <properties>
+    <skip.central.release>true</skip.central.release>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
