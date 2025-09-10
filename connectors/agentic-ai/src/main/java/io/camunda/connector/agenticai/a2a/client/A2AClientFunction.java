@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.a2a.client;
 
 import io.camunda.connector.agenticai.a2a.client.model.A2AClientRequest;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2AClientResult;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -35,8 +36,15 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     })
 public class A2AClientFunction implements OutboundConnectorFunction {
 
+  private final A2AClientHandler handler;
+
+  public A2AClientFunction(A2AClientHandler handler) {
+    this.handler = handler;
+  }
+
   @Override
-  public Object execute(OutboundConnectorContext context) throws Exception {
-    return null;
+  public A2AClientResult execute(OutboundConnectorContext context) throws Exception {
+    final A2AClientRequest request = context.bindVariables(A2AClientRequest.class);
+    return handler.handle(request);
   }
 }
