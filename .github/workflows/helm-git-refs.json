@@ -1,5 +1,5 @@
 {
-  "main": "camunda-platform-alpha",
+  "main": "camunda-platform-8.7",
   "release/8.8": "camunda-platform-alpha",
   "release/8.7": "camunda-platform-8.7",
   "release/8.6": "camunda-platform-8.6",
