@@ -80,6 +80,13 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
     } catch (Exception e) {
       connectorsOutboundMetrics.increaseFailure(job);
       LOGGER.warn("Failed to handle job: {} of type: {}", job.getKey(), job.getType());
+      // don't let the job active if something goes wrong
+      client
+          .newFailCommand(job)
+          .retries(0)
+          .errorMessage("Unhandled exception occurred: " + e.getMessage())
+          .send()
+          .join(30, java.util.concurrent.TimeUnit.SECONDS);
     }
   }
 
