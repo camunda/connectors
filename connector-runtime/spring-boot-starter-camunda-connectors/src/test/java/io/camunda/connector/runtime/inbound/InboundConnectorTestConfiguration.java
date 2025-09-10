@@ -16,8 +16,8 @@
  */
 package io.camunda.connector.runtime.inbound;
 
-import io.camunda.spring.client.metrics.MetricsRecorder;
-import io.camunda.spring.client.metrics.SimpleMetricsRecorder;
+import io.camunda.client.metrics.MetricsRecorder;
+import io.camunda.client.metrics.SimpleMetricsRecorder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
