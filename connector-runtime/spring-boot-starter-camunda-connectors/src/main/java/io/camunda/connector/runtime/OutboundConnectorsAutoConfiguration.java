@@ -18,6 +18,7 @@ package io.camunda.connector.runtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.impl.CamundaObjectMapper;
+import io.camunda.client.spring.properties.CamundaClientProperties;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
@@ -34,8 +35,6 @@ import io.camunda.connector.runtime.secret.ConsoleSecretProvider;
 import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
 import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
 import io.camunda.connector.runtime.secret.console.JwtCredential;
-import io.camunda.spring.client.properties.CamundaClientProperties;
-import io.camunda.spring.client.properties.CamundaClientProperties.ClientMode;
 import java.net.URL;
 import java.time.Duration;
 import java.util.LinkedList;
@@ -134,7 +133,7 @@ public class OutboundConnectorsAutoConfiguration {
       havingValue = "true")
   public ConsoleSecretApiClient consoleSecretApiClient(CamundaClientProperties clientProperties) {
 
-    if (!clientProperties.getMode().equals(ClientMode.saas)) {
+    if (!clientProperties.getMode().equals(CamundaClientProperties.ClientMode.saas)) {
       throw new RuntimeException(
           "Console Secrets require a SaaS environment, but the client is configured for "
               + clientProperties.getMode());

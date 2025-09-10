@@ -6,10 +6,10 @@
  */
 package io.camunda.connector.agenticai.aiagent.jobworker;
 
+import io.camunda.client.annotation.customizer.JobWorkerValueCustomizer;
+import io.camunda.client.annotation.value.JobWorkerValue;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
-import io.camunda.spring.client.annotation.customizer.JobWorkerValueCustomizer;
-import io.camunda.spring.client.annotation.value.JobWorkerValue;
 import java.time.Duration;
 import org.springframework.core.env.Environment;
 
