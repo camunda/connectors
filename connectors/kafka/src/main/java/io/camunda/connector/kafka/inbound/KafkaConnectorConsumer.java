@@ -87,7 +87,7 @@ public class KafkaConnectorConsumer {
 
     CheckedSupplier<Void> retryableFutureSupplier =
         () -> {
-          try (Consumer consumer = prepareConsumer()) {
+          try (Consumer<Object, Object> consumer = prepareConsumer()) {
             consume(consumer);
             return null;
           } catch (Exception ex) {
@@ -124,13 +124,13 @@ public class KafkaConnectorConsumer {
               activity
                   .withSeverity(Severity.ERROR)
                   .withTag(ActivityLogTag.CONSUMER)
-                  .withMessage("Failed to initialize connector: " + ex.getMessage()));
+                  .withMessage("Failed to initialize connector: " + ex.getMessage(), ex));
       context.reportHealth(Health.down(ex));
       throw ex;
     }
   }
 
-  public void consume(Consumer consumer) {
+  public void consume(Consumer<Object, Object> consumer) {
     while (shouldLoop) {
       try {
         pollAndPublish(consumer);
@@ -143,7 +143,7 @@ public class KafkaConnectorConsumer {
     LOG.debug("Kafka inbound loop finished");
   }
 
-  private void pollAndPublish(Consumer consumer) {
+  private void pollAndPublish(Consumer<Object, Object> consumer) {
     LOG.trace("Polling the topics: {}", consumer.assignment());
     ConsumerRecords<Object, Object> records = consumer.poll(Duration.ofMillis(500));
     for (ConsumerRecord<Object, Object> record : records) {
@@ -209,7 +209,7 @@ public class KafkaConnectorConsumer {
     }
   }
 
-  private void reportUp(Consumer consumer) {
+  private void reportUp(Consumer<Object, Object> consumer) {
     var details = new HashMap<String, Object>();
     details.put("group-id", consumer.groupMetadata().groupId());
     details.put("group-instance-id", consumer.groupMetadata().groupInstanceId().orElse("unknown"));
@@ -218,6 +218,13 @@ public class KafkaConnectorConsumer {
     if (!newStatus.equals(consumerStatus)) {
       consumerStatus = newStatus;
       context.reportHealth(Health.up(details));
+      context.log(
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withTag(ActivityLogTag.CONSUMER)
+                  .withData(details)
+                  .withMessage("Kafka Consumer status changed to UP."));
       LOG.info(
           "Consumer status changed to UP, deduplication ID: {}",
           context.getDefinition().deduplicationId());
@@ -231,7 +238,7 @@ public class KafkaConnectorConsumer {
             activity
                 .withSeverity(Severity.ERROR)
                 .withTag(ActivityLogTag.CONSUMER)
-                .withMessage("Kafka Consumer status changed to DOWN: " + newStatus));
+                .withMessage("Kafka Consumer status changed to DOWN: " + newStatus, error));
     if (!newStatus.equals(consumerStatus)) {
       consumerStatus = newStatus;
       context.reportHealth(Health.down(error));
