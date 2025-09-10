@@ -49,6 +49,7 @@ import org.springframework.test.web.servlet.MockMvc;
       "management.endpoints.web.exposure.include=*",
       "camunda.client.auth.token-url=https://weblogin.cloud.dev.ultrawombat.com/token",
       "camunda.client.auth.audience=connectors.dev.ultrawombat.com",
+      "spring.cloud.gcp.parametermanager.enabled=false"
     })
 @DirtiesContext
 @ActiveProfiles("test")
@@ -57,10 +58,10 @@ import org.springframework.test.web.servlet.MockMvc;
 @SlowTest
 public class InboundInstancesSecurityConfigurationTest {
 
-  @Autowired private MockMvc mvc;
-
   @MockitoBean(answers = Answers.RETURNS_MOCKS)
   public SaaSSecretConfiguration saaSSecretConfiguration;
+
+  @Autowired private MockMvc mvc;
 
   @Test
   public void inboundInstancesEndpoint_noAuth_returns401() throws Exception {
