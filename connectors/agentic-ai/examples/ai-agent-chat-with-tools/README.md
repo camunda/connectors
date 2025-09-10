@@ -31,7 +31,7 @@ Configure the connectors in the Web Modeler or via environment variables as need
 
 1. **Import the BPMN Model**
 	- Open Camunda Web Modeler.
-	- Import `ai-agent-chat-with-tools.bpmn` from this folder.
+	- Import `ai-agent-chat-with-tools.bpmn` and all the form files from this folder.
 
 2. **Configure Connectors**
 	- Configure any HTTP connectors or other tools you want the agent to use.
