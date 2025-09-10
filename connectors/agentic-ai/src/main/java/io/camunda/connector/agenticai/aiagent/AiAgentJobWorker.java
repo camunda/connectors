@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.annotation.JobWorker;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
@@ -18,7 +19,6 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
-import io.camunda.spring.client.annotation.JobWorker;
 
 /**
  * AI Agent job worker implementation (acting on an ad-hoc sub-process).

@@ -51,7 +51,7 @@ public record OpenAiCompatibleProviderConfiguration(
               group = "provider",
               label = "API key",
               tooltip =
-                  "Leave blank if using HTTP headers for authentication.<br>If an Authentication header is specified in the headers, then the API key is ignored.",
+                  "Leave blank if using HTTP headers for authentication.<br>If an Authorization header is specified in the headers, then the API key is ignored.",
               type = TemplateProperty.PropertyType.String,
               feel = Property.FeelMode.optional,
               optional = true)

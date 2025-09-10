@@ -8,6 +8,8 @@ package io.camunda.connector.agenticai.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
+import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CachingProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
@@ -52,8 +54,6 @@ import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorExceptionHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
-import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
-import io.camunda.spring.client.metrics.MetricsRecorder;
 import io.camunda.zeebe.feel.tagged.impl.TaggedParameterExtractor;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
