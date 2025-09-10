@@ -41,9 +41,9 @@ public class DocumentFactoryImpl implements DocumentFactory {
       return new CamundaDocument(
           camundaDocumentReference.getMetadata(), camundaDocumentReference, documentStore);
     }
-    if (reference instanceof ExternalDocumentReference ignored) {
-      throw new IllegalArgumentException(
-          "External document references are not yet supported: " + reference.getClass());
+    if (reference instanceof ExternalDocumentReference externalDocumentReference) {
+      return new ExternalDocument(
+          externalDocumentReference.url(), externalDocumentReference.name());
     }
     throw new IllegalArgumentException("Unknown document reference type: " + reference.getClass());
   }

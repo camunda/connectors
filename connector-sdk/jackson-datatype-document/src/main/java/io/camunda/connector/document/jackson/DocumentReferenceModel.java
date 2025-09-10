@@ -132,7 +132,7 @@ public sealed interface DocumentReferenceModel extends DocumentReference {
     }
   }
 
-  record ExternalDocumentReferenceModel(String url)
+  record ExternalDocumentReferenceModel(String url, String name)
       implements DocumentReferenceModel, ExternalDocumentReference {
 
     @JsonProperty(DISCRIMINATOR_KEY)

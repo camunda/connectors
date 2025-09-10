@@ -57,7 +57,9 @@ public class CustomApacheHttpClient implements HttpClient {
             client.execute(
                 apacheRequest,
                 new HttpCommonResultResponseHandler(
-                    executionEnvironment, request.isStoreResponse()));
+                    executionEnvironment,
+                    request.isStoreResponse(),
+                    request.shouldReturnRawBody()));
         if (HttpStatusHelper.isError(result.status())) {
           throw ConnectorExceptionMapper.from(result);
         }
