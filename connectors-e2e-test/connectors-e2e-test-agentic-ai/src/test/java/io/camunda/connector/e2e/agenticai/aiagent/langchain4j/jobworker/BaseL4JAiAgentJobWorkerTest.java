@@ -217,12 +217,18 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
                         .id("bbb222")
                         .name("Search_The_Web")
                         .arguments("{\"searchQuery\": \"Where does this data come from?\"}")
+                        .build(),
+                    ToolExecutionRequest.builder()
+                        .id("ccc333")
+                        .name("SuperfluxProduct")
+                        .arguments("{\"a\": 6, \"b\": 4}")
                         .build())),
             new ToolExecutionResultMessage("aaa111", "SuperfluxProduct", "24"),
             new ToolExecutionResultMessage(
                 "bbb222", "Search_The_Web", "No results for 'Where does this data come from?'"),
+            new ToolExecutionResultMessage("ccc333", "SuperfluxProduct", "30"),
             new AiMessage(
-                "I played with the tools and learned that the data comes from the follow-up task and that a superflux calculation of 5 and 3 results in 24."),
+                "I played with the tools and learned that the data comes from the follow-up task and that a superflux calculation of 5 and 3 results in 24 and 6 and 4 in 30."),
             new UserMessage("So what is a superflux calculation anyway?"),
             new AiMessage(responseText));
 
@@ -243,7 +249,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
                         .finishReason(FinishReason.STOP)
                         .tokenUsage(new TokenUsage(100, 200))
                         .build())
-                .aiMessage((AiMessage) expectedConversation.get(5))
+                .aiMessage((AiMessage) expectedConversation.get(6))
                 .build(),
             userFollowUpFeedback("So what is a superflux calculation anyway?")),
         ChatInteraction.of(
