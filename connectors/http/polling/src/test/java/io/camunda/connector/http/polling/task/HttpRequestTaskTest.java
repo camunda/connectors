@@ -46,7 +46,7 @@ public class HttpRequestTaskTest {
     HttpRequestTask task =
         new HttpRequestTask(
             mockHttpService, mockProcessInstanceContext, context, new PollingRequest());
-    when(mockHttpService.executeConnectorRequest(any(PollingRequest.class)))
+    when(mockHttpService.executeConnectorRequest(any(HttpCommonRequest.class)))
         .thenReturn(httpCommonResult);
 
     // When
