@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.metrics;
 
-import io.camunda.spring.client.metrics.MetricsRecorder;
+import io.camunda.client.metrics.MetricsRecorder;
 
 public class ConnectorMetrics {
 

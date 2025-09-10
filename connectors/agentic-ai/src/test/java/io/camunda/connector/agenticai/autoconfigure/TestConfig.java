@@ -10,13 +10,13 @@ import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
+import io.camunda.client.metrics.DefaultNoopMetricsRecorder;
+import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
-import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
-import io.camunda.spring.client.metrics.DefaultNoopMetricsRecorder;
-import io.camunda.spring.client.metrics.MetricsRecorder;
 import org.springframework.context.annotation.Bean;
 
 class TestConfig {
