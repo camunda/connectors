@@ -39,15 +39,16 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
       "camunda.client.auth.token-url=https://weblogin.cloud.dev.ultrawombat.com/token",
       "camunda.client.auth.audience=connectors.dev.ultrawombat.com",
       "camunda.client.auth.client-id=client-id",
-      "camunda.client.auth.client-secret=client-secret"
+      "camunda.client.auth.client-secret=client-secret",
+      "spring.cloud.gcp.parametermanager.enabled=false"
     })
 @ActiveProfiles("test")
 public class CustomCredentialsProviderNotUsedTest {
 
-  @Autowired private ApplicationContext applicationContext;
-
   @MockitoBean(answers = Answers.RETURNS_MOCKS)
   public SaaSSecretConfiguration saaSSecretConfiguration;
+
+  @Autowired private ApplicationContext applicationContext;
 
   @Test
   public void credentialsProvidedInProperties_customCredentialsProviderNotUsed() {
