@@ -79,6 +79,11 @@ jobs:
 
       - name: Commit and tag
         run: |
+          # check if worktree is empty
+          if [ -z "$(git status --porcelain)" ]; then
+              echo "No changes to commit"
+              exit 0
+          fi
           git commit -am "ci: release version ${RELEASE_VERSION}"
           git push --force-with-lease origin ${RELEASE_BRANCH}
           git tag -fa ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
