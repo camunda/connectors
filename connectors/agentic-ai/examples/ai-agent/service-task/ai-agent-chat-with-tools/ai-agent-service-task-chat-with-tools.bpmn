@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_18jxukq" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.39.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
-  <bpmn:process id="ai-agent-chat-with-tools" name="AI Agent Chat With Tools" isExecutable="true">
+  <bpmn:process id="ai-agent-service-task-chat-with-tools" name="AI Agent Service Task Chat With Tools" isExecutable="true">
     <bpmn:startEvent id="StartEvent_1">
       <bpmn:extensionElements>
         <zeebe:formDefinition formId="ai-agent-chat-initial-request" />
@@ -288,7 +288,7 @@ The outside brain &lt;AI Agent&gt; will take that information to instruct the mo
     <bpmn:association id="Association_0fjdrev" associationDirection="None" sourceRef="LoadUserByID" targetRef="TextAnnotation_1cvjkfu" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="ai-agent-chat-with-tools">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="ai-agent-service-task-chat-with-tools">
       <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
         <dc:Bounds x="152" y="442" width="36" height="36" />
       </bpmndi:BPMNShape>

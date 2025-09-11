@@ -39,5 +39,3 @@ camunda:
                 # replace with the URL returned by the OpenMemory MCP link UI
                 url: http://localhost:8765/mcp/openmemory/sse/<your-client-id>
 ```
-
-Make also sure to deploy all the form definitions from the [AI Agent Chat with tools example](../ai-agent-chat-with-tools).
