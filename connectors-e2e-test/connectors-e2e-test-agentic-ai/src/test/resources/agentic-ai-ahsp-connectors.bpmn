@@ -8,7 +8,6 @@
     <bpmn:adHocSubProcess id="AI_Agent" name="AI Agent">
       <bpmn:documentation>My superpowered AI agent</bpmn:documentation>
       <bpmn:extensionElements>
-        <zeebe:adHoc outputCollection="toolCallResults" outputElement="={&#10;  id: toolCall._meta.id,&#10;  name: toolCall._meta.name,&#10;  content: toolCallResult&#10;}" />
         <zeebe:taskDefinition type="dummy" retries="0" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_0xt1jbl</bpmn:incoming>
