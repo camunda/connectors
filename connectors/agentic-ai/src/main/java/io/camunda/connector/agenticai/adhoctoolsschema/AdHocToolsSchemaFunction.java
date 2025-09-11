@@ -23,8 +23,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.adhoctoolsschema.v1",
     name = "Ad-hoc tools schema",
-    description =
-        "Connector to fetch tools schema information from an ad-hoc sub-process. Compatible with 8.8.0-alpha7 or later.",
+    description = "Connector to fetch tools schema information from an ad-hoc sub-process.",
     documentationRef =
         "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-ad-hoc-tools-schema-resolver/",
     engineVersion = "^8.8",

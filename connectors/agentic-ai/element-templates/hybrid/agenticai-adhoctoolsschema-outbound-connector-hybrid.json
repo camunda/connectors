@@ -2,7 +2,7 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Hybrid Ad-hoc tools schema",
   "id" : "io.camunda.connectors.agenticai.adhoctoolsschema.v1-hybrid",
-  "description" : "Connector to fetch tools schema information from an ad-hoc sub-process. Compatible with 8.8.0-alpha7 or later.",
+  "description" : "Connector to fetch tools schema information from an ad-hoc sub-process.",
   "metadata" : {
     "keywords" : [ ]
   },
