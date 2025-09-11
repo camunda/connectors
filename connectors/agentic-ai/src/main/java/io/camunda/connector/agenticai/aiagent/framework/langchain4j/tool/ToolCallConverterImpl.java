@@ -26,6 +26,8 @@ import org.apache.commons.lang3.StringUtils;
 
 public class ToolCallConverterImpl implements ToolCallConverter {
 
+  private static final String TOOL_CALL_NO_RESULT = "Tool call succeeded, but returned no result";
+
   private final ObjectMapper objectMapper;
   private final ContentConverter contentConverter;
 
@@ -86,7 +88,12 @@ public class ToolCallConverterImpl implements ToolCallConverter {
     final var id = Objects.requireNonNullElse(toolCallResult.id(), "");
     final var name = Objects.requireNonNullElse(toolCallResult.name(), "");
 
-    return toolExecutionResultMessage(id, name, contentAsString(name, toolCallResult.content()));
+    var content = contentAsString(name, toolCallResult.content());
+    if (StringUtils.isBlank(content)) {
+      content = TOOL_CALL_NO_RESULT;
+    }
+
+    return toolExecutionResultMessage(id, name, content);
   }
 
   private String contentAsString(String toolName, Object result) {

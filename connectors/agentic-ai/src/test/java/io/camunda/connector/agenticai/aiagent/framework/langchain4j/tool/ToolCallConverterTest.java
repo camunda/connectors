@@ -225,6 +225,23 @@ class ToolCallConverterTest {
                   .formatted(DummyClass.class.getName()));
     }
 
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = "   ")
+    void returnsVoidResultMessageWhenContentIsNullOrBlank(String content) {
+      final ToolCallResult toolCallResult =
+          ToolCallResult.builder().id("toolId").name("toolName").content(content).build();
+
+      final var resultMessage = toolCallConverter.asToolExecutionResultMessage(toolCallResult);
+
+      assertThat(resultMessage)
+          .extracting(
+              ToolExecutionResultMessage::id,
+              ToolExecutionResultMessage::toolName,
+              ToolExecutionResultMessage::text)
+          .containsExactly("toolId", "toolName", "Tool call succeeded, but returned no result");
+    }
+
     private Document createDocument(String content, String contentType, String filename) {
       return documentFactory.create(
           DocumentCreationRequest.from(content.getBytes(StandardCharsets.UTF_8))
