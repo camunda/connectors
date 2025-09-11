@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CachingProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractorImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
@@ -102,12 +103,13 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgenticAiConnectorsConfigurationProperties configuration,
       CamundaClient camundaClient,
       AdHocToolElementParameterExtractor parameterExtractor) {
-
+    final var processDefinitionClient =
+        new ProcessDefinitionClient(camundaClient, configuration.processDefinition().retries());
     final var resolver =
         new CamundaClientProcessDefinitionAdHocToolElementsResolver(
-            camundaClient, parameterExtractor);
+            processDefinitionClient, parameterExtractor);
 
-    final var cacheConfiguration = configuration.tools().cache();
+    final var cacheConfiguration = configuration.processDefinition().cache();
     if (cacheConfiguration.enabled()) {
       return new CachingProcessDefinitionAdHocToolElementsResolver(
           resolver,

@@ -22,11 +22,13 @@ import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementPar
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaRequest;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaRequest.AdHocToolsSchemaRequestData;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerationException;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolverImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ProcessDefinitionConfiguration.RetriesConfiguration;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
@@ -34,6 +36,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -72,9 +75,12 @@ class AdHocToolsSchemaFunctionIntegrationTest {
 
   @BeforeEach
   void setUp() throws IOException {
+    final var procsssDefinitionClient =
+        new ProcessDefinitionClient(
+            camundaClient, new RetriesConfiguration(5, Duration.ofMillis(500)));
     final var toolElementsResolver =
         new CamundaClientProcessDefinitionAdHocToolElementsResolver(
-            camundaClient, parameterExtractor);
+            procsssDefinitionClient, parameterExtractor);
 
     function =
         new AdHocToolsSchemaFunction(

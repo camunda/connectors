@@ -9,8 +9,6 @@ package io.camunda.connector.agenticai.adhoctoolsschema.processdefinition;
 import static io.camunda.connector.agenticai.util.BpmnUtils.getElementDocumentation;
 import static io.camunda.connector.agenticai.util.BpmnUtils.getExtensionProperties;
 
-import io.camunda.client.CamundaClient;
-import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractor;
@@ -26,7 +24,6 @@ import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeMapping;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeOutput;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,22 +37,18 @@ public class CamundaClientProcessDefinitionAdHocToolElementsResolver
   private static final Logger LOGGER =
       LoggerFactory.getLogger(CamundaClientProcessDefinitionAdHocToolElementsResolver.class);
 
-  private static final String ERROR_CODE_AD_HOC_SUB_PROCESS_XML_FETCH_ERROR =
-      "AD_HOC_SUB_PROCESS_XML_FETCH_ERROR";
   private static final String ERROR_CODE_AD_HOC_SUB_PROCESS_NOT_FOUND =
       "AD_HOC_SUB_PROCESS_NOT_FOUND";
   private static final String ERROR_CODE_AD_HOC_TOOL_DEFINITION_INVALID =
       "AD_HOC_TOOL_DEFINITION_INVALID";
 
-  private static final int MAX_RETRIES = 5;
-  private static final Duration INITIAL_RETRY_DELAY = Duration.ofMillis(500);
-
-  private final CamundaClient camundaClient;
+  private final ProcessDefinitionClient processDefinitionClient;
   private final AdHocToolElementParameterExtractor parameterExtractor;
 
   public CamundaClientProcessDefinitionAdHocToolElementsResolver(
-      CamundaClient camundaClient, AdHocToolElementParameterExtractor parameterExtractor) {
-    this.camundaClient = camundaClient;
+      ProcessDefinitionClient processDefinitionClient,
+      AdHocToolElementParameterExtractor parameterExtractor) {
+    this.processDefinitionClient = processDefinitionClient;
     this.parameterExtractor = parameterExtractor;
   }
 
@@ -75,8 +68,8 @@ public class CamundaClientProcessDefinitionAdHocToolElementsResolver
         adHocSubProcessId,
         processDefinitionKey);
 
-    final String processDefinitionXml = getProcessDefinitionXml(processDefinitionKey);
-
+    final String processDefinitionXml =
+        processDefinitionClient.getProcessDefinitionXml(processDefinitionKey);
     final BpmnModelInstance modelInstance =
         Bpmn.readModelFromStream(
             new ByteArrayInputStream(processDefinitionXml.getBytes(StandardCharsets.UTF_8)));
@@ -93,52 +86,6 @@ public class CamundaClientProcessDefinitionAdHocToolElementsResolver
         .filter(this::isToolElement)
         .map(this::asSubProcessElement)
         .toList();
-  }
-
-  private String getProcessDefinitionXml(Long processDefinitionKey) {
-    Exception lastException = null;
-
-    for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        if (attempt > 1) {
-          final var retryDelay =
-              INITIAL_RETRY_DELAY.multipliedBy(Math.round(Math.pow(2, attempt - 2)));
-          LOGGER.warn(
-              "Retrying to fetch process definition XML for process definition key {}. Attempt {}/{}. Waiting for {}.",
-              processDefinitionKey,
-              attempt,
-              MAX_RETRIES,
-              retryDelay);
-
-          try {
-            Thread.sleep(retryDelay);
-          } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new ConnectorException(
-                ERROR_CODE_AD_HOC_SUB_PROCESS_XML_FETCH_ERROR,
-                "Interrupted while retrying to fetch process definition XML with key '%s'."
-                    .formatted(processDefinitionKey));
-          }
-        }
-
-        return camundaClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).send().join();
-      } catch (ClientHttpException e) {
-        lastException = e;
-        if (attempt == MAX_RETRIES) {
-          LOGGER.error(
-              "Failed to retrieve process definition XML for process definition key {} after {} attempts",
-              processDefinitionKey,
-              attempt,
-              e);
-        }
-      }
-    }
-
-    throw new ConnectorException(
-        ERROR_CODE_AD_HOC_SUB_PROCESS_XML_FETCH_ERROR,
-        "Failed to retrieve process definition XML with key %s after %d attempts: %s"
-            .formatted(processDefinitionKey, MAX_RETRIES, lastException.getMessage()),
-        lastException);
   }
 
   private boolean isToolElement(FlowNode element) {

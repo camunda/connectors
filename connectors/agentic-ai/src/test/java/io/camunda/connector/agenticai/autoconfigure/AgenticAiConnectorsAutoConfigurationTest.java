@@ -155,7 +155,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
   @Test
   void whenToolsCachingDisabled_thenConfiguresDefaultToolElementsResolver() {
     contextRunner
-        .withPropertyValues("camunda.connector.agenticai.tools.cache.enabled=false")
+        .withPropertyValues("camunda.connector.agenticai.process-definition.cache.enabled=false")
         .run(
             context ->
                 assertThat(context)
@@ -166,7 +166,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
   @Test
   void whenToolsCachingEnabled_thenConfiguresCachingToolElementsResolver() {
     contextRunner
-        .withPropertyValues("camunda.connector.agenticai.tools.cache.enabled=true")
+        .withPropertyValues("camunda.connector.agenticai.process-definition.cache.enabled=true")
         .run(
             context ->
                 assertThat(context)
@@ -177,7 +177,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
   @Test
   void whenToolsCachingMaximumSizeIsNegative_thenFailsValidation() {
     contextRunner
-        .withPropertyValues("camunda.connector.agenticai.tools.cache.maximumSize=-10")
+        .withPropertyValues("camunda.connector.agenticai.process-definition.cache.maximumSize=-10")
         .run(
             context ->
                 assertThat(context)
@@ -198,7 +198,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
                                   FieldError::getDefaultMessage)
                               .containsExactly(
                                   "camunda.connector.agenticai",
-                                  "tools.cache.maximumSize",
+                                  "processDefinition.cache.maximumSize",
                                   -10L,
                                   "must be greater than or equal to 0");
                         }));

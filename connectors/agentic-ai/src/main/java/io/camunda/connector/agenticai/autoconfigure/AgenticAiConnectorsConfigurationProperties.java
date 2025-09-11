@@ -17,8 +17,15 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "camunda.connector.agenticai")
 public record AgenticAiConnectorsConfigurationProperties(
-    @Valid @NotNull @DefaultValue ToolsSchemaConfiguration tools) {
-  public record ToolsSchemaConfiguration(@Valid @NotNull @DefaultValue CacheConfiguration cache) {
+    @Valid @NotNull @DefaultValue ProcessDefinitionConfiguration processDefinition) {
+  public record ProcessDefinitionConfiguration(
+      @Valid @NotNull @DefaultValue RetriesConfiguration retries,
+      @Valid @NotNull @DefaultValue CacheConfiguration cache) {
+
+    public record RetriesConfiguration(
+        @DefaultValue("5") @PositiveOrZero Integer maxRetries,
+        @DefaultValue("PT0.5S") Duration initialRetryDelay) {}
+
     public record CacheConfiguration(
         @DefaultValue("true") boolean enabled,
         @DefaultValue("100") @PositiveOrZero Long maximumSize,
