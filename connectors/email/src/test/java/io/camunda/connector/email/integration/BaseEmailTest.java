@@ -38,62 +38,6 @@ public class BaseEmailTest {
     greenMail.stop();
   }
 
-  protected static List<String> getSenders(Message message) {
-    try {
-      return Arrays.stream(message.getFrom()).map(Address::toString).toList();
-    } catch (MessagingException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  protected static List<String> getReceivers(Message message) {
-    try {
-      return Arrays.stream(message.getAllRecipients()).map(Address::toString).toList();
-    } catch (MessagingException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  protected static String getPlainTextBody(Message message) {
-    try {
-      if (message.getContent() instanceof Multipart multipart) {
-        for (int i = 0; i < multipart.getCount(); i++) {
-          MimeBodyPart bodyPart = (MimeBodyPart) multipart.getBodyPart(i);
-          if (bodyPart.isMimeType("text/plain")) {
-            return (String) bodyPart.getContent();
-          }
-        }
-      }
-      return null;
-    } catch (MessagingException | IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  protected static String getHtmlBody(Message message) {
-    try {
-      if (message.getContent() instanceof Multipart multipart) {
-        for (int i = 0; i < multipart.getCount(); i++) {
-          MimeBodyPart bodyPart = (MimeBodyPart) multipart.getBodyPart(i);
-          if (bodyPart.isMimeType("text/html") || bodyPart.isMimeType("text/plain")) {
-            return (String) bodyPart.getContent();
-          }
-        }
-      }
-      return null;
-    } catch (MessagingException | IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  protected static String getSubject(Message message) {
-    try {
-      return message.getSubject();
-    } catch (MessagingException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   protected static String getBodyAsHtml(Message message) {
     try {
       if (message.getContent() instanceof Multipart multipart) {
@@ -138,10 +82,6 @@ public class BaseEmailTest {
     return greenMail.getReceivedMessages();
   }
 
-  protected boolean waitForNewEmails(long timeout, int numberOfEmails) {
-    return greenMail.waitForIncomingEmail(timeout, numberOfEmails);
-  }
-
   protected void sendEmail(String to, String subject, String body) {
     MimeMessage mimeMessage =
         GreenMailUtil.createTextEmail(
@@ -181,14 +121,6 @@ public class BaseEmailTest {
       }
       return null;
     } catch (MessagingException | IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  protected List<String> getFrom(Message message) {
-    try {
-      return Arrays.stream(message.getFrom()).map(Address::toString).toList();
-    } catch (MessagingException e) {
       throw new RuntimeException(e);
     }
   }
