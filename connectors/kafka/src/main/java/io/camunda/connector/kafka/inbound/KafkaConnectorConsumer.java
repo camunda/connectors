@@ -91,7 +91,7 @@ public class KafkaConnectorConsumer {
             consume(consumer);
             return null;
           } catch (Exception ex) {
-            LOG.error("Consumer loop failure, retry pending: {}", ex.getMessage(), ex);
+            LOG.warn("Consumer loop failure, retry pending: {}", ex.getMessage(), ex);
             throw ex;
           }
         };
@@ -201,7 +201,7 @@ public class KafkaConnectorConsumer {
       try {
         this.future.get(10, TimeUnit.SECONDS);
       } catch (Exception e) {
-        LOG.error("Timeout while waiting for retryableFuture to stop", e);
+        LOG.warn("Timeout while waiting for retryableFuture to stop", e);
       }
     }
     if (this.executorService != null) {
@@ -217,35 +217,33 @@ public class KafkaConnectorConsumer {
     var newStatus = Health.up(details);
     if (!newStatus.equals(consumerStatus)) {
       consumerStatus = newStatus;
-      context.reportHealth(Health.up(details));
       context.log(
           activity ->
               activity
-                  .withSeverity(Severity.ERROR)
+                  .withSeverity(Severity.INFO)
                   .withTag(ActivityLogTag.CONSUMER)
                   .withData(details)
-                  .withMessage("Kafka Consumer status changed to UP."));
-      LOG.info(
-          "Consumer status changed to UP, deduplication ID: {}",
-          context.getDefinition().deduplicationId());
+                  .withMessage(
+                      "Kafka Consumer status changed to UP, deduplication ID: "
+                          + context.getDefinition().deduplicationId())
+                  .andReportHealth(newStatus));
     }
   }
 
   private void reportDown(Throwable error) {
     var newStatus = Health.down(error);
-    context.log(
-        activity ->
-            activity
-                .withSeverity(Severity.ERROR)
-                .withTag(ActivityLogTag.CONSUMER)
-                .withMessage("Kafka Consumer status changed to DOWN: " + newStatus, error));
     if (!newStatus.equals(consumerStatus)) {
       consumerStatus = newStatus;
-      context.reportHealth(Health.down(error));
-      LOG.error(
-          "Kafka Consumer status changed to DOWN, deduplication ID: {}",
-          context.getDefinition().deduplicationId(),
-          error);
+      context.log(
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withTag(ActivityLogTag.CONSUMER)
+                  .withMessage(
+                      "Kafka Consumer status changed to DOWN, deduplication ID: "
+                          + context.getDefinition().deduplicationId(),
+                      error)
+                  .andReportHealth(newStatus));
     }
   }
 }
