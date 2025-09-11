@@ -142,7 +142,6 @@ class JobWorkerAgentRequestHandlerTest {
   void setUp(final WireMockRuntimeInfo wireMockRuntimeInfo) throws URISyntaxException {
     camundaClient =
         CamundaClient.newClientBuilder()
-            .usePlaintext()
             .preferRestOverGrpc(true)
             .restAddress(new URI(wireMockRuntimeInfo.getHttpBaseUrl()))
             .build();
