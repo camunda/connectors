@@ -31,11 +31,11 @@ Configure the connectors in the Web Modeler or via environment variables as need
 
 1. **Import the BPMN Model**
 	- Open Camunda Web Modeler.
-	- Import `ai-agent-chat-with-tools.bpmn` and all the form files from this folder.
+	- Import `ai-agent-service-task-chat-with-tools.bpmn` and all the form files from this folder.
 
 2. **Configure Connectors**
 	- Configure any HTTP connectors or other tools you want the agent to use.
-    - Feel free to add your own tools by creating new service tasks in the `Agent Tools` ad-hoc sub-process.
+    - Feel free to add your own tools by creating new activities in the `Agent Tools` ad-hoc sub-process.
 
 3. **Set Secrets**
 	- In Camunda Console, add any required secrets (see above).
@@ -82,5 +82,14 @@ The process (`ai-agent-chat-with-tools.bpmn`) works as follows:
 - Extensible: add your own tools as new tasks in the sub-process
 
 ---
+
+## Example Usage
+
+Example inputs which can be entered in the initial form:
+
+- `Send Ervin a joke`: this will need to do multiple tool calling steps to find a user named "Ervin", to fetch a joke
+  and to compose an e-mail for the "Ask human to send email" task. The email sending user can provide feedback to update
+  the message such as "include emojis" or "include a spanish translation". 
+- `Tell me about this document` can be used to analyze a PDF document with the file upload picker provided in the initial form.
 
 _Made with ❤️ by Camunda_
