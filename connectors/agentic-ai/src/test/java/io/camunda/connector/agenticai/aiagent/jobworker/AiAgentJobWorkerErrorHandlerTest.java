@@ -62,7 +62,6 @@ class AiAgentJobWorkerErrorHandlerTest {
     camundaClient =
         spy(
             CamundaClient.newClientBuilder()
-                .usePlaintext()
                 .preferRestOverGrpc(true)
                 .restAddress(new URI(wireMockRuntimeInfo.getHttpBaseUrl()))
                 .build());
