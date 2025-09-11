@@ -77,7 +77,7 @@ class AdHocToolsSchemaFunctionIntegrationTest {
   void setUp() throws IOException {
     final var procsssDefinitionClient =
         new ProcessDefinitionClient(
-            camundaClient, new RetriesConfiguration(5, Duration.ofMillis(500)));
+            camundaClient, new RetriesConfiguration(4, Duration.ofMillis(500)));
     final var toolElementsResolver =
         new CamundaClientProcessDefinitionAdHocToolElementsResolver(
             procsssDefinitionClient, parameterExtractor);

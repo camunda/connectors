@@ -23,7 +23,7 @@ public record AgenticAiConnectorsConfigurationProperties(
       @Valid @NotNull @DefaultValue CacheConfiguration cache) {
 
     public record RetriesConfiguration(
-        @DefaultValue("5") @PositiveOrZero Integer maxRetries,
+        @DefaultValue("4") @PositiveOrZero Integer maxRetries,
         @DefaultValue("PT0.5S") Duration initialRetryDelay) {}
 
     public record CacheConfiguration(
