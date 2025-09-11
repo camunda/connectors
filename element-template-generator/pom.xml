@@ -24,6 +24,7 @@
     <module>http-dsl</module>
     <module>openapi-parser</module>
     <module>postman-collections-parser</module>
+    <module>uniquet</module>
   </modules>
 
 </project>

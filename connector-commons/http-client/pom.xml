@@ -10,7 +10,7 @@
     <version>8.8.0-SNAPSHOT</version>
   </parent>
 
-  <name>http-client</name>
+  <name>Connector HTTP Client</name>
   <description>Camunda Connector HTTP base functionality</description>
   <artifactId>http-client</artifactId>
   <packaging>jar</packaging>

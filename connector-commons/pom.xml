@@ -10,7 +10,9 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>connector-commons</artifactId>
+    <name>Connector Commons</name>
+
+    <artifactId>connector-commons</artifactId>
 
   <packaging>pom</packaging>
 

@@ -15,7 +15,7 @@
   <version>8.8.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
-  <name>Connectors Shared Config</name>
+  <name>Connectors Parent</name>
   <description>${project.name}</description>
   <inceptionYear>2022</inceptionYear>
 
