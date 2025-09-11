@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.adhoctoolsschema.processdefinition;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ProcessDefinitionConfiguration.RetriesConfiguration;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ToolsConfiguration.ProcessDefinitionConfiguration.RetriesConfiguration;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import org.slf4j.Logger;

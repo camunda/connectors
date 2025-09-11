@@ -31,7 +31,7 @@ public class CachingProcessDefinitionAdHocToolElementsResolver
 
   private LoadingCache<AdHocToolsIdentifier, List<AdHocToolElement>> buildCache(
       ProcessDefinitionAdHocToolElementsResolver delegate, CacheConfiguration config) {
-    // configured via camunda.connector.agenticai.process-definition.cache.*
+    // configured via camunda.connector.agenticai.tools.process-definition.cache.*
     // see AgenticAiConnectorsConfigurationProperties for default values
     final var builder = Caffeine.newBuilder();
     Optional.ofNullable(config.maximumSize()).ifPresent(builder::maximumSize);

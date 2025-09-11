@@ -104,12 +104,13 @@ public class AgenticAiConnectorsAutoConfiguration {
       CamundaClient camundaClient,
       AdHocToolElementParameterExtractor parameterExtractor) {
     final var processDefinitionClient =
-        new ProcessDefinitionClient(camundaClient, configuration.processDefinition().retries());
+        new ProcessDefinitionClient(
+            camundaClient, configuration.tools().processDefinition().retries());
     final var resolver =
         new CamundaClientProcessDefinitionAdHocToolElementsResolver(
             processDefinitionClient, parameterExtractor);
 
-    final var cacheConfiguration = configuration.processDefinition().cache();
+    final var cacheConfiguration = configuration.tools().processDefinition().cache();
     if (cacheConfiguration.enabled()) {
       return new CachingProcessDefinitionAdHocToolElementsResolver(
           resolver,

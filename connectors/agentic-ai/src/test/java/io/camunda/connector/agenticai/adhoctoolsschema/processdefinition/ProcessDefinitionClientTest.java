@@ -16,7 +16,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.CamundaFuture;
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.fetch.ProcessDefinitionGetXmlRequest;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ProcessDefinitionConfiguration.RetriesConfiguration;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ToolsConfiguration.ProcessDefinitionConfiguration.RetriesConfiguration;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
