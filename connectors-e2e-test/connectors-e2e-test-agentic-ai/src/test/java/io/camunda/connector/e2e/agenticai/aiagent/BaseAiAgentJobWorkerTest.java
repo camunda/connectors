@@ -21,11 +21,9 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PROPERTIES;
 
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
-import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.process.test.api.CamundaAssert;
 import java.util.Map;
-import java.util.function.Function;
 import org.assertj.core.api.ThrowingConsumer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -47,18 +45,6 @@ public abstract class BaseAiAgentJobWorkerTest extends BaseAiAgentTest {
   @Override
   protected Map<String, String> elementTemplateProperties() {
     return AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PROPERTIES;
-  }
-
-  @Override
-  protected ElementTemplate elementTemplateWithModifications(
-      String elementTemplatePath,
-      Function<ElementTemplate, ElementTemplate> elementTemplateModifier) {
-    final var elementTemplate =
-        super.elementTemplateWithModifications(elementTemplatePath, elementTemplateModifier);
-
-    // TODO JW remove this as soon as supported by the element template. Also, remove the attributes
-    // from the BPMN file as we want to test that they are properly applied via template
-    return elementTemplate.withoutProperty("outputElement").withoutProperty("outputCollection");
   }
 
   protected void assertAgentResponse(

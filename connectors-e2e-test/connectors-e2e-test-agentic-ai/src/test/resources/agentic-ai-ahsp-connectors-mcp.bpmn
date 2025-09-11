@@ -7,7 +7,6 @@
     <bpmn:sequenceFlow id="Flow_1lbh2cw" sourceRef="StartEvent_1" targetRef="Gateway_1adi5t3" />
     <bpmn:adHocSubProcess id="AI_Agent" name="AI Agent">
       <bpmn:extensionElements>
-        <zeebe:adHoc outputCollection="toolCallResults" outputElement="={&#10;  id: toolCall._meta.id,&#10;  name: toolCall._meta.name,&#10;  content: toolCallResult&#10;}" />
         <zeebe:taskDefinition type="dummy" retries="0" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_1p3wcva</bpmn:incoming>

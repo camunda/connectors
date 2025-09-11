@@ -43,7 +43,7 @@ public interface AiAgentTestFixtures {
           Map.entry("provider.openai.model.model", "gpt-4o"),
           Map.entry(
               "data.systemPrompt.prompt",
-              "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
+              "=\"You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking.\""),
           Map.entry(
               "data.userPrompt.prompt",
               "=if (is defined(followUpUserPrompt)) then followUpUserPrompt else userPrompt"),
@@ -66,7 +66,7 @@ public interface AiAgentTestFixtures {
           Map.entry("provider.openai.model.model", "gpt-4o"),
           Map.entry(
               "data.systemPrompt.prompt",
-              "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
+              "=\"You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking.\""),
           Map.entry(
               "data.userPrompt.prompt",
               "=if (is defined(followUpUserPrompt)) then followUpUserPrompt else userPrompt"),
