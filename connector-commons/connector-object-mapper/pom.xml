@@ -11,7 +11,7 @@
   </parent>
 
   <artifactId>connector-object-mapper</artifactId>
-  <name>Connectors Object Mapper Config</name>
+  <name>Connector Object Mapper Config</name>
   <packaging>jar</packaging>
 
   <dependencies>

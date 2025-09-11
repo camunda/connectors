@@ -5,7 +5,7 @@
   <artifactId>connector-runtime-bundle-parent</artifactId>
   <packaging>pom</packaging>
 
-  <name>Connectors Bundle Parent</name>
+  <name>Connectors Bundle</name>
 
   <parent>
     <groupId>io.camunda.connector</groupId>

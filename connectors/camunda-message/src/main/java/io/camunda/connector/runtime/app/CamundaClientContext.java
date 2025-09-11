@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.runtime.app;
 
-import io.camunda.zeebe.client.ZeebeClient;
+import io.camunda.client.CamundaClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -15,11 +15,11 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ZeebeClientContext implements ApplicationContextAware {
+public class CamundaClientContext implements ApplicationContextAware {
 
   private static ApplicationContext context;
 
-  private static final Logger LOG = LoggerFactory.getLogger(ZeebeClientContext.class);
+  private static final Logger LOG = LoggerFactory.getLogger(CamundaClientContext.class);
 
   @Override
   public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
@@ -27,8 +27,8 @@ public class ZeebeClientContext implements ApplicationContextAware {
     context = applicationContext;
   }
 
-  public static ZeebeClient getZeebeClient() {
+  public static CamundaClient getCamundaClient() {
     LOG.debug("Access Zeebe Client");
-    return context.getBean(ZeebeClient.class);
+    return context.getBean(CamundaClient.class);
   }
 }

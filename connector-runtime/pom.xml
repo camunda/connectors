@@ -13,7 +13,7 @@
   <artifactId>connector-runtime-parent</artifactId>
   <packaging>pom</packaging>
 
-  <name>Connector Runtime Parent</name>
+  <name>Connector Runtime</name>
   <description>Connector Runtime root</description>
   <inceptionYear>2022</inceptionYear>
 

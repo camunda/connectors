@@ -9,7 +9,7 @@
     <version>8.8.0-SNAPSHOT</version>
   </parent>
 
-  <name>connector-test</name>
+  <name>Connector SDK Test</name>
   <description>Camunda Connector Test</description>
   <artifactId>connector-test</artifactId>
   <packaging>jar</packaging>
