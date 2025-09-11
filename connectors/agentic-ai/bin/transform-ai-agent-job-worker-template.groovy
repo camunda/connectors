@@ -49,9 +49,9 @@ if (outputFilePath.exists() && !isHybrid) {
 
 // Update template metadata
 json.id = "io.camunda.connectors.agenticai.aiagent.jobworker.v1"
+json.name = json.name + " ad-hoc sub-process"
 if (isHybrid) {
     json.id += "-hybrid"
-    json.name = "Hybrid " + json.name
 }
 
 // Change BPMN element configuration

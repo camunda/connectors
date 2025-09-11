@@ -1,8 +1,8 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "AI Agent",
+  "name" : "AI Agent ad-hoc sub-process",
   "id" : "io.camunda.connectors.agenticai.aiagent.jobworker.v1",
-  "description" : "Provides a generic AI agent implementation handling the feedback loop between user requests, tool calls and LLM responses. Compatible with 8.8.0-alpha8 or later.",
+  "description" : "Provides a generic AI agent implementation handling the feedback loop between user requests, tool calls and LLM responses.",
   "metadata" : {
     "keywords" : [ ]
   },

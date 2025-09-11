@@ -23,7 +23,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     id = "io.camunda.connectors.agenticai.mcp.remoteclient.v0",
     name = "MCP Remote Client (experimental)",
     description =
-        "MCP (Model Context Protocol) client, operating on temporary remote connections. Only supports tool operations. Compatible with 8.8.0-alpha7 or later.",
+        "MCP (Model Context Protocol) client, operating on temporary remote connections. Only supports tool operations.",
     engineVersion = "^8.8",
     version = 0,
     inputDataClass = McpRemoteClientRequest.class,
