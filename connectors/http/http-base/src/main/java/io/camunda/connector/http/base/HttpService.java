@@ -14,8 +14,8 @@ import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.auth.AuthenticationMapper;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.HttpClientService;
-import io.camunda.connector.http.client.client.apache.CustomHttpBody;
-import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesData;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesBody;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.StringBody;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import java.nio.charset.StandardCharsets;
@@ -65,9 +65,9 @@ public class HttpService {
     Object content = result.body();
     Object parsedBody = null;
 
-    if (content instanceof CustomHttpBody.StringData(String value)) {
+    if (content instanceof StringBody(String value)) {
       parsedBody = value;
-    } else if (content instanceof BytesData(byte[] value)) {
+    } else if (content instanceof BytesBody(byte[] value)) {
       String bodyString = new String(value, StandardCharsets.UTF_8);
 
       try {

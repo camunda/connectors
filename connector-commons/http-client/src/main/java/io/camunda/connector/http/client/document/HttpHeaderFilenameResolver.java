@@ -30,7 +30,7 @@ public class HttpHeaderFilenameResolver {
   }
 
   private static String getFilenameFromContentDispositionHeader(Map<String, Object> headers) {
-    Object contentDispositionHeader =
+    String contentDispositionHeader =
         CustomApacheHttpClient.getHeaderIgnoreCase(headers, "Content-Disposition");
     if (contentDispositionHeader instanceof String contentDispositionHeaderString) {
       int index = contentDispositionHeaderString.indexOf("filename=");

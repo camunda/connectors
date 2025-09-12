@@ -23,13 +23,16 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.http.client.HttpClientService;
-import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesData;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesBody;
+import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
+import io.camunda.connector.http.client.model.HttpMethod;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Function;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +43,14 @@ class ExternalDocumentTest {
 
   private HttpClientService httpClientService;
   private HttpClientResult httpClientResult;
+  Function<String, HttpClientResult> downloadDocument =
+      url -> {
+        HttpClientRequest req = new HttpClientRequest();
+        req.setMethod(HttpMethod.GET);
+        req.setUrl(url);
+        req.setStoreResponse(false);
+        return httpClientService.executeConnectorRequest(req);
+      };
 
   private ExternalDocument document;
   private ExternalDocument documentWithoutName;
@@ -58,16 +69,8 @@ class ExternalDocumentTest {
   void setup() {
     httpClientService = mock(HttpClientService.class);
     httpClientResult = mock(HttpClientResult.class);
-    document = new ExternalDocument(URL, NAME);
-    documentWithoutName = new ExternalDocument(URL, null);
-    try {
-      var serviceField = ExternalDocument.class.getDeclaredField("httpClientService");
-      serviceField.setAccessible(true);
-      serviceField.set(document, httpClientService);
-      serviceField.set(documentWithoutName, httpClientService);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    document = new ExternalDocument(URL, NAME, downloadDocument);
+    documentWithoutName = new ExternalDocument(URL, null, downloadDocument);
   }
 
   @Test
@@ -103,11 +106,7 @@ class ExternalDocumentTest {
         "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1\" height=\"1\"><rect width=\"1\" height=\"1\"/></svg>\n";
     when(httpClientService.executeConnectorRequest(any())).thenReturn(httpClientResult);
     when(httpClientResult.body()).thenReturn(svg);
-    Document document = new ExternalDocument(URL, NAME);
-
-    var serviceField = ExternalDocument.class.getDeclaredField("httpClientService");
-    serviceField.setAccessible(true);
-    serviceField.set(document, httpClientService);
+    Document document = new ExternalDocument(URL, NAME, downloadDocument);
 
     try (InputStream is = document.asInputStream()) {
       String content = new String(is.readAllBytes(), StandardCharsets.UTF_8);
@@ -121,12 +120,8 @@ class ExternalDocumentTest {
         Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("testpdf.pdf"))
             .readAllBytes();
     when(httpClientService.executeConnectorRequest(any())).thenReturn(httpClientResult);
-    when(httpClientResult.body()).thenReturn(new BytesData(pdf));
-    Document document = new ExternalDocument(URL, NAME);
-
-    var serviceField = ExternalDocument.class.getDeclaredField("httpClientService");
-    serviceField.setAccessible(true);
-    serviceField.set(document, httpClientService);
+    when(httpClientResult.body()).thenReturn(new BytesBody(pdf));
+    Document document = new ExternalDocument(URL, NAME, downloadDocument);
 
     try (InputStream is = document.asInputStream()) {
       assertThat(is.readAllBytes()).isEqualTo(pdf);

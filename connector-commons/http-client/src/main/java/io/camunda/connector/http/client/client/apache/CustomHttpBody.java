@@ -16,8 +16,11 @@
  */
 package io.camunda.connector.http.client.client.apache;
 
-public sealed interface CustomHttpBody permits CustomHttpBody.BytesData, CustomHttpBody.StringData {
-  record BytesData(byte[] value) implements CustomHttpBody {}
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesBody;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.StringBody;
 
-  record StringData(String value) implements CustomHttpBody {}
+public sealed interface CustomHttpBody permits BytesBody, StringBody {
+  record BytesBody(byte[] value) implements CustomHttpBody {}
+
+  record StringBody(String value) implements CustomHttpBody {}
 }

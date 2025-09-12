@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
 import javax.annotation.Nullable;
+import org.apache.hc.core5.http.HttpHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,7 +77,7 @@ public class FileResponseHandler {
   }
 
   private String getContentType(Map<String, Object> headers) {
-    return CustomApacheHttpClient.getHeaderIgnoreCase(headers, "content-type");
+    return CustomApacheHttpClient.getHeaderIgnoreCase(headers, HttpHeaders.CONTENT_TYPE);
   }
 
   private boolean storeResponseSelected() {
