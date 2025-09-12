@@ -19,6 +19,7 @@ package io.camunda.connector.http.client.document;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.http.client.ExecutionEnvironment;
+import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -30,7 +31,6 @@ import org.slf4j.LoggerFactory;
 
 public class FileResponseHandler {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileResponseHandler.class);
-  public static final String CONTENT_TYPE = "Content-Type";
   private final ExecutionEnvironment executionEnvironment;
   private final boolean isStoreResponseSelected;
 
@@ -77,12 +77,7 @@ public class FileResponseHandler {
   }
 
   private String getContentType(Map<String, Object> headers) {
-    return headers.entrySet().stream()
-        .filter(e -> e.getKey().equalsIgnoreCase(CONTENT_TYPE))
-        .map(Map.Entry::getValue)
-        .map(Object::toString)
-        .findFirst()
-        .orElse(null);
+    return CustomApacheHttpClient.getHeaderIgnoreCase(headers, "content-type");
   }
 
   private boolean storeResponseSelected() {

@@ -21,6 +21,8 @@ import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.http.client.HttpClientService;
+import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
+import io.camunda.connector.http.client.document.HttpHeaderFilenameResolver;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.client.model.HttpMethod;
@@ -30,7 +32,7 @@ import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.Map;
-import java.util.UUID;
+import org.apache.hc.core5.http.HttpHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +54,6 @@ public class ExternalDocument implements Document {
     req.setMethod(HttpMethod.GET);
     req.setUrl(url);
     req.setStoreResponse(false);
-    req.setShouldReturnRawBody(true);
     this.request = req;
     this.httpClientService = new HttpClientService();
   }
@@ -75,7 +76,9 @@ public class ExternalDocument implements Document {
         new DocumentMetadata() {
           @Override
           public String getContentType() {
-            Object contentType = getResult().headers().get("content-type");
+            Object contentType =
+                CustomApacheHttpClient.getHeaderIgnoreCase(
+                    getResult().headers(), HttpHeaders.CONTENT_TYPE);
             return contentType != null ? contentType.toString() : null;
           }
 
@@ -87,7 +90,9 @@ public class ExternalDocument implements Document {
           @Override
           public Long getSize() {
             try {
-              return getResult().headers().get("content-length") instanceof String sizeStr
+              return CustomApacheHttpClient.getHeaderIgnoreCase(
+                          getResult().headers(), HttpHeaders.CONTENT_LENGTH)
+                      instanceof String sizeStr
                   ? Long.parseLong(sizeStr)
                   : -1L;
             } catch (NumberFormatException e) {
@@ -98,7 +103,9 @@ public class ExternalDocument implements Document {
 
           @Override
           public String getFileName() {
-            return name == null ? UUID.randomUUID().toString() : name;
+            return name != null
+                ? name
+                : HttpHeaderFilenameResolver.getFilename(getResult().headers());
           }
 
           @Override
