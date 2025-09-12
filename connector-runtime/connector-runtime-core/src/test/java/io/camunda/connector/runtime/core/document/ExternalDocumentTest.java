@@ -23,14 +23,18 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.http.client.HttpClientService;
-import io.camunda.connector.http.client.model.HttpClientRequest;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesData;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 class ExternalDocumentTest {
 
@@ -38,22 +42,29 @@ class ExternalDocumentTest {
   private HttpClientResult httpClientResult;
 
   private ExternalDocument document;
+  private ExternalDocument documentWithoutName;
 
   private static final String URL = "http://test.local/file.json";
   private static final String NAME = "myfile.json";
+  private static UUID defaultUuid = UUID.fromString("8d8b30e3-de52-4f1c-a71c-9905a8043dac");
+
+  @BeforeAll()
+  static void setupUUID() {
+    MockedStatic<UUID> mockedUuid = Mockito.mockStatic(UUID.class);
+    mockedUuid.when(UUID::randomUUID).thenReturn(defaultUuid);
+  }
 
   @BeforeEach
   void setup() {
     httpClientService = mock(HttpClientService.class);
     httpClientResult = mock(HttpClientResult.class);
     document = new ExternalDocument(URL, NAME);
-    // replace httpClientService with mock
+    documentWithoutName = new ExternalDocument(URL, null);
     try {
       var serviceField = ExternalDocument.class.getDeclaredField("httpClientService");
       serviceField.setAccessible(true);
       serviceField.set(document, httpClientService);
-      HttpClientRequest request = new HttpClientRequest();
-      request.setShouldReturnRawBody(true);
+      serviceField.set(documentWithoutName, httpClientService);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -110,7 +121,7 @@ class ExternalDocumentTest {
         Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("testpdf.pdf"))
             .readAllBytes();
     when(httpClientService.executeConnectorRequest(any())).thenReturn(httpClientResult);
-    when(httpClientResult.body()).thenReturn(pdf);
+    when(httpClientResult.body()).thenReturn(new BytesData(pdf));
     Document document = new ExternalDocument(URL, NAME);
 
     var serviceField = ExternalDocument.class.getDeclaredField("httpClientService");
@@ -129,6 +140,20 @@ class ExternalDocumentTest {
     assertThat(ref).isInstanceOf(DocumentReference.ExternalDocumentReference.class);
     assertThat(((DocumentReference.ExternalDocumentReference) ref).url()).isEqualTo(URL);
     assertThat(((DocumentReference.ExternalDocumentReference) ref).name()).isEqualTo(NAME);
+  }
+
+  @Test
+  void reference_shouldReturnFilenameFromHeader() {
+    when(httpClientService.executeConnectorRequest(any())).thenReturn(httpClientResult);
+    when(httpClientResult.body()).thenReturn("abc");
+    when(httpClientResult.headers())
+        .thenReturn(
+            Map.of(
+                "content-type", "application/json",
+                "content-disposition", "filename=test"));
+
+    DocumentMetadata meta = documentWithoutName.metadata();
+    assertThat(meta.getFileName()).isEqualTo("test.json");
   }
 
   @Test
