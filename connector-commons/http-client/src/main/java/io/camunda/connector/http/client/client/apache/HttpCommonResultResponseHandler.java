@@ -16,22 +16,20 @@
  */
 package io.camunda.connector.http.client.client.apache;
 
-import static io.camunda.connector.http.client.utils.JsonHelper.isJsonStringValid;
-
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.http.client.ExecutionEnvironment;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.client.HttpStatusHelper;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesBody;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.StringBody;
 import io.camunda.connector.http.client.document.FileResponseHandler;
 import io.camunda.connector.http.client.model.ErrorResponse;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
@@ -135,22 +133,12 @@ public class HttpCommonResultResponseHandler
    *
    * @param content the response content
    */
-  private Object extractBody(byte[] content) throws IOException {
+  private CustomHttpBody extractBody(byte[] content) {
     if (executionEnvironment instanceof ExecutionEnvironment.SaaSCloudFunction
         && isStoreResponseSelected) {
-      return Base64.getEncoder().encodeToString(content);
+      return new StringBody(Base64.getEncoder().encodeToString(content));
     }
 
-    String bodyString = null;
-    if (content != null) {
-      bodyString = new String(content, StandardCharsets.UTF_8);
-    }
-
-    if (StringUtils.isNotBlank(bodyString)) {
-      return isJsonStringValid(bodyString)
-          ? HttpClientObjectMapperSupplier.getCopy().readValue(bodyString, Object.class)
-          : bodyString;
-    }
-    return null;
+    return new BytesBody(content);
   }
 }

@@ -25,6 +25,7 @@ import io.camunda.connector.http.client.exception.ConnectorExceptionMapper;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import java.io.IOException;
+import java.util.Map;
 import javax.annotation.Nullable;
 import org.apache.hc.client5.http.ClientProtocolException;
 import org.apache.hc.core5.http.HttpStatus;
@@ -74,5 +75,14 @@ public class CustomApacheHttpClient implements HttpClient {
           "An error occurred while executing the request, or the connection was aborted",
           e);
     }
+  }
+
+  public static String getHeaderIgnoreCase(Map<String, Object> headers, String headerName) {
+    return headers.entrySet().stream()
+        .filter(e -> e.getKey().equalsIgnoreCase(headerName))
+        .map(Map.Entry::getValue)
+        .map(Object::toString)
+        .findFirst()
+        .orElse(null);
   }
 }
