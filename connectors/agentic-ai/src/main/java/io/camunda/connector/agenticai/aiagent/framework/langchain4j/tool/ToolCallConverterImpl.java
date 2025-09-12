@@ -86,7 +86,12 @@ public class ToolCallConverterImpl implements ToolCallConverter {
     final var id = Objects.requireNonNullElse(toolCallResult.id(), "");
     final var name = Objects.requireNonNullElse(toolCallResult.name(), "");
 
-    return toolExecutionResultMessage(id, name, contentAsString(name, toolCallResult.content()));
+    var content = contentAsString(name, toolCallResult.content());
+    if (StringUtils.isBlank(content)) {
+      content = ToolCallResult.CONTENT_NO_RESULT;
+    }
+
+    return toolExecutionResultMessage(id, name, content);
   }
 
   private String contentAsString(String toolName, Object result) {
