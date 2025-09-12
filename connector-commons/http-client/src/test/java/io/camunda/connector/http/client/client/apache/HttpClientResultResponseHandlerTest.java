@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.http.client.ExecutionEnvironment;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesBody;
 import io.camunda.connector.http.client.model.ErrorResponse;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import java.util.Map;
@@ -39,15 +40,17 @@ public class HttpClientResultResponseHandlerTest {
     ClassicHttpResponse response = new BasicClassicHttpResponse(200);
     Header[] headers = new Header[] {new BasicHeader("Content-Type", "application/json")};
     response.setHeaders(headers);
-    response.setEntity(new StringEntity("{\"key\":\"value\"}"));
+    StringEntity entity = new StringEntity("{\"key\":\"value\"}");
+    response.setEntity(entity);
 
     // when
     HttpClientResult result = handler.handleResponse(response);
+    BytesBody body = (BytesBody) result.body();
 
     // then
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(200);
-    assertThat((Map) result.body()).containsEntry("key", "value");
+    assertThat(body.value()).isEqualTo(entity.getContent().readAllBytes());
     assertThat(result.headers()).hasSize(1);
     assertThat(result.headers()).containsEntry("Content-Type", "application/json");
   }
@@ -59,15 +62,17 @@ public class HttpClientResultResponseHandlerTest {
     ClassicHttpResponse response = new BasicClassicHttpResponse(200);
     Header[] headers = new Header[] {new BasicHeader("Content-Type", "text/plain")};
     response.setHeaders(headers);
-    response.setEntity(new StringEntity("text"));
+    StringEntity entity = new StringEntity("text");
+    response.setEntity(entity);
 
     // when
     HttpClientResult result = handler.handleResponse(response);
+    BytesBody body = (BytesBody) result.body();
 
     // then
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(200);
-    assertThat(result.body()).isEqualTo("text");
+    assertThat(body.value()).isEqualTo(entity.getContent().readAllBytes());
     assertThat(result.headers()).hasSize(1);
     assertThat(result.headers()).containsEntry("Content-Type", "text/plain");
   }
