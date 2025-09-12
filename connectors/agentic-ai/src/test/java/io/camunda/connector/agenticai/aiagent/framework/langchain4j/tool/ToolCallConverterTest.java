@@ -228,7 +228,7 @@ class ToolCallConverterTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = "   ")
-    void returnsVoidResultMessageWhenContentIsNullOrBlank(String content) {
+    void returnsNoResultMessageWhenContentIsNullOrBlank(String content) {
       final ToolCallResult toolCallResult =
           ToolCallResult.builder().id("toolId").name("toolName").content(content).build();
 
