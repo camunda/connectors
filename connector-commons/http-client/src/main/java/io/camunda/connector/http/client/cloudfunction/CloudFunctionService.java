@@ -28,6 +28,7 @@ import io.camunda.connector.http.client.model.auth.BearerAuthentication;
 import io.camunda.connector.http.client.utils.DocumentHelper;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
@@ -89,10 +90,14 @@ public class CloudFunctionService {
     ErrorResponse errorContent;
     try {
       Map<String, Object> response = (Map<String, Object>) e.getErrorVariables().get("response");
-      errorContent = (ErrorResponse) response.get("body");
+      errorContent =
+          Optional.ofNullable(response.get("body"))
+              .filter(ErrorResponse.class::isInstance)
+              .map(errorResponse -> (ErrorResponse) errorResponse)
+              .orElseGet(() -> createErrorResponseFromException(e));
     } catch (Exception ex) {
       LOG.warn("Error response cannot be parsed as JSON! Will use the plain message.");
-      errorContent = new ErrorResponse(e.getErrorCode(), e.getMessage(), e.getErrorVariables());
+      errorContent = createErrorResponseFromException(e);
     }
 
     return new ConnectorExceptionBuilder()
@@ -100,6 +105,10 @@ public class CloudFunctionService {
         .errorVariables(errorContent.errorVariables())
         .errorCode(errorContent.errorCode())
         .build();
+  }
+
+  private ErrorResponse createErrorResponseFromException(ConnectorException e) {
+    return new ErrorResponse(e.getErrorCode(), e.getMessage(), e.getErrorVariables());
   }
 
   /**

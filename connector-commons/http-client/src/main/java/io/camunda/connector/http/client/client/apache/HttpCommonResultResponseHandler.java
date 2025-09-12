@@ -22,6 +22,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.http.client.ExecutionEnvironment;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.client.HttpStatusHelper;
+import io.camunda.connector.http.client.document.DocumentCreationException;
 import io.camunda.connector.http.client.document.FileResponseHandler;
 import io.camunda.connector.http.client.model.ErrorResponse;
 import io.camunda.connector.http.client.model.HttpClientResult;
@@ -34,6 +35,7 @@ import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,8 +79,12 @@ public class HttpCommonResultResponseHandler
             documentReference == null ? extractBody(bytes) : null,
             reason,
             documentReference);
+      } catch (final DocumentCreationException e) {
+        LOGGER.error("Failed to create document from response", e);
+        return new HttpClientResult(HttpStatus.SC_SERVER_ERROR, Map.of(), null, e.getMessage());
       } catch (final Exception e) {
         LOGGER.error("Failed to parse external response: {}", response, e);
+        return new HttpClientResult(HttpStatus.SC_SERVER_ERROR, Map.of(), null, e.getMessage());
       }
     }
     return new HttpClientResult(code, headers, null, reason);
@@ -110,7 +116,7 @@ public class HttpCommonResultResponseHandler
    */
   private HttpClientResult getResultForCloudFunction(
       int code, InputStream content, Map<String, Object> headers, String reason)
-      throws IOException {
+      throws IOException, DocumentCreationException {
     if (HttpStatusHelper.isError(code)) {
       // unwrap as ErrorResponse
       var errorResponse =
