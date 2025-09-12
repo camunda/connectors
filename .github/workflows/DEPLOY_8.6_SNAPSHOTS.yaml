@@ -131,4 +131,4 @@ jobs:
     secrets: inherit
     with:
       connectors-version: 8.6-SNAPSHOT
-      release-branch: main
+      release-branch: release/8.6
