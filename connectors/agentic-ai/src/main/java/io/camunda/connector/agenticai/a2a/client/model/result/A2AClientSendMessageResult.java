@@ -13,8 +13,8 @@ import io.camunda.connector.agenticai.model.message.content.Content;
 import java.util.List;
 
 @AgenticAiRecord
-public record A2AClientSendMessageResult(
-    String responseId, List<Content> contentList, TaskState state) implements A2AClientResult {
+public record A2AClientSendMessageResult(String responseId, List<Content> contents, TaskState state)
+    implements A2AClientResult {
 
   public enum TaskState {
     SUBMITTED("submitted"),
@@ -36,6 +36,14 @@ public record A2AClientSendMessageResult(
     @JsonValue
     public String asString() {
       return state;
+    }
+
+    public boolean isSubmittedOrWorking() {
+      return this == SUBMITTED || this == WORKING;
+    }
+
+    public boolean isCompleted() {
+      return this == COMPLETED;
     }
 
     @JsonCreator
