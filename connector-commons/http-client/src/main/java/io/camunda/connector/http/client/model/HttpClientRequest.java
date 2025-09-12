@@ -47,8 +47,6 @@ public class HttpClientRequest {
 
   private boolean ignoreNullValues;
 
-  private boolean shouldReturnRawBody;
-
   public Object getBody() {
     return body;
   }
@@ -151,14 +149,6 @@ public class HttpClientRequest {
 
   public void setStoreResponse(boolean storeResponse) {
     this.storeResponse = storeResponse;
-  }
-
-  public boolean shouldReturnRawBody() {
-    return shouldReturnRawBody;
-  }
-
-  public void setShouldReturnRawBody(boolean shouldReturnRawBody) {
-    this.shouldReturnRawBody = shouldReturnRawBody;
   }
 
   @Override

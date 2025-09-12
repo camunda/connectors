@@ -16,23 +16,21 @@
  */
 package io.camunda.connector.http.client.client.apache;
 
-import static io.camunda.connector.http.client.utils.JsonHelper.isJsonStringValid;
-
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.http.client.ExecutionEnvironment;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.client.HttpStatusHelper;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesData;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.StringData;
 import io.camunda.connector.http.client.document.DocumentCreationException;
 import io.camunda.connector.http.client.document.FileResponseHandler;
 import io.camunda.connector.http.client.model.ErrorResponse;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
@@ -50,22 +48,13 @@ public class HttpCommonResultResponseHandler
   private final ExecutionEnvironment executionEnvironment;
 
   private final boolean isStoreResponseSelected;
-  private final boolean isShouldReturnRawBodySelected;
 
   public HttpCommonResultResponseHandler(
       @Nullable ExecutionEnvironment executionEnvironment, boolean isStoreResponseSelected) {
-    this(executionEnvironment, isStoreResponseSelected, false);
-  }
-
-  public HttpCommonResultResponseHandler(
-      @Nullable ExecutionEnvironment executionEnvironment,
-      boolean isStoreResponseSelected,
-      boolean isShouldReturnRawBodySelected) {
     this.executionEnvironment = executionEnvironment;
     this.isStoreResponseSelected = isStoreResponseSelected;
     this.fileResponseHandler =
         new FileResponseHandler(executionEnvironment, isStoreResponseSelected);
-    this.isShouldReturnRawBodySelected = isShouldReturnRawBodySelected;
   }
 
   @Override
@@ -147,26 +136,12 @@ public class HttpCommonResultResponseHandler
    *
    * @param content the response content
    */
-  private Object extractBody(byte[] content) throws IOException {
+  private CustomHttpBody extractBody(byte[] content) {
     if (executionEnvironment instanceof ExecutionEnvironment.SaaSCloudFunction
         && isStoreResponseSelected) {
-      return Base64.getEncoder().encodeToString(content);
+      return new StringData(Base64.getEncoder().encodeToString(content));
     }
 
-    if (isShouldReturnRawBodySelected) {
-      return content;
-    }
-
-    String bodyString = null;
-    if (content != null) {
-      bodyString = new String(content, StandardCharsets.UTF_8);
-    }
-
-    if (StringUtils.isNotBlank(bodyString)) {
-      return isJsonStringValid(bodyString)
-          ? HttpClientObjectMapperSupplier.getCopy().readValue(bodyString, Object.class)
-          : bodyString;
-    }
-    return null;
+    return new BytesData(content);
   }
 }
