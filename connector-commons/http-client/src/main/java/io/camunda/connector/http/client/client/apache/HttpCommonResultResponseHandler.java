@@ -20,8 +20,8 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.http.client.ExecutionEnvironment;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.client.HttpStatusHelper;
-import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesData;
-import io.camunda.connector.http.client.client.apache.CustomHttpBody.StringData;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesBody;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.StringBody;
 import io.camunda.connector.http.client.document.DocumentCreationException;
 import io.camunda.connector.http.client.document.FileResponseHandler;
 import io.camunda.connector.http.client.model.ErrorResponse;
@@ -139,9 +139,9 @@ public class HttpCommonResultResponseHandler
   private CustomHttpBody extractBody(byte[] content) {
     if (executionEnvironment instanceof ExecutionEnvironment.SaaSCloudFunction
         && isStoreResponseSelected) {
-      return new StringData(Base64.getEncoder().encodeToString(content));
+      return new StringBody(Base64.getEncoder().encodeToString(content));
     }
 
-    return new BytesData(content);
+    return new BytesBody(content);
   }
 }

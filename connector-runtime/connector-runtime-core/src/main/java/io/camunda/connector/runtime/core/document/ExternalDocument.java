@@ -20,19 +20,17 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
-import io.camunda.connector.http.client.HttpClientService;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
-import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesData;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesBody;
 import io.camunda.connector.http.client.document.HttpHeaderFilenameResolver;
-import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
-import io.camunda.connector.http.client.model.HttpMethod;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.Map;
+import java.util.function.Function;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,26 +40,21 @@ public class ExternalDocument implements Document {
   private final String url;
   private final String name;
   private transient DocumentMetadata metadata;
-  private final HttpClientRequest request;
-  private final HttpClientService httpClientService;
+  Function<String, HttpClientResult> downloadDocument;
   private HttpClientResult result = null;
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ExternalDocument.class);
 
-  public ExternalDocument(String url, String name) {
+  public ExternalDocument(
+      String url, String name, Function<String, HttpClientResult> downloadDocument) {
     this.url = url;
     this.name = name;
-    HttpClientRequest req = new HttpClientRequest();
-    req.setMethod(HttpMethod.GET);
-    req.setUrl(url);
-    req.setStoreResponse(false);
-    this.request = req;
-    this.httpClientService = new HttpClientService();
+    this.downloadDocument = downloadDocument;
   }
 
   private HttpClientResult getResult() {
     if (result == null) {
-      this.result = this.httpClientService.executeConnectorRequest(request);
+      this.result = downloadDocument.apply(url);
       LOGGER.debug(
           "Downloading external document completed with status code: {}", this.result.status());
     }
@@ -137,7 +130,7 @@ public class ExternalDocument implements Document {
   public InputStream asInputStream() {
     Object resultBody = getResult().body();
     byte[] bytes =
-        resultBody instanceof BytesData(byte[] value) ? value : ((String) resultBody).getBytes();
+        resultBody instanceof BytesBody(byte[] value) ? value : ((String) resultBody).getBytes();
     return new ByteArrayInputStream(bytes);
   }
 
