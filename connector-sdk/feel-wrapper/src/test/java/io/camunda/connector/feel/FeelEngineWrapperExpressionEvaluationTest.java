@@ -249,8 +249,8 @@ class FeelEngineWrapperExpressionEvaluationTest {
     final var variables = Map.of("code", "TestCode", "message", "TestMessage");
     // when
     Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
-    assertEquals("test", result.get("code"));
-    assertEquals("test message", result.get("message"));
+    assertEquals("test", result.get("errorCode"));
+    assertEquals("test message", result.get("errorMessage"));
     assertNull(result.get("variables"));
   }
 
@@ -263,8 +263,8 @@ class FeelEngineWrapperExpressionEvaluationTest {
         Map.of("code", "TestCode", "message", "TestMessage", "variables", errorVariables);
     // when
     Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
-    assertEquals("test", result.get("code"));
-    assertEquals("test message", result.get("message"));
+    assertEquals("test", result.get("errorCode"));
+    assertEquals("test message", result.get("errorMessage"));
     Map<String, Object> resultErrorVariables = (Map<String, Object>) result.get("variables");
     assertEquals(errorVariables.get("errorVariable"), resultErrorVariables.get("errorVariable"));
   }
@@ -291,7 +291,7 @@ class FeelEngineWrapperExpressionEvaluationTest {
         .containsEntry("retryBackoff", Duration.ofMinutes(1))
         .containsEntry("variables", Collections.emptyMap())
         .containsEntry("errorType", "jobError")
-        .containsEntry("message", "some Message");
+        .containsEntry("errorMessage", "some Message");
   }
 
   @Test
@@ -306,7 +306,7 @@ class FeelEngineWrapperExpressionEvaluationTest {
         .containsEntry("retryBackoff", Duration.ZERO)
         .containsEntry("variables", Collections.emptyMap())
         .containsEntry("errorType", "jobError")
-        .containsEntry("message", "some Message");
+        .containsEntry("errorMessage", "some Message");
   }
 
   @Test
@@ -321,7 +321,7 @@ class FeelEngineWrapperExpressionEvaluationTest {
         .containsEntry("retryBackoff", Duration.ZERO)
         .containsEntry("variables", Collections.emptyMap())
         .containsEntry("errorType", "jobError")
-        .containsEntry("message", "some Message");
+        .containsEntry("errorMessage", "some Message");
   }
 
   @Test
@@ -336,7 +336,7 @@ class FeelEngineWrapperExpressionEvaluationTest {
         .containsEntry("retryBackoff", Duration.ZERO)
         .containsEntry("variables", Collections.emptyMap())
         .containsEntry("errorType", "jobError")
-        .containsEntry("message", "some Message");
+        .containsEntry("errorMessage", "some Message");
   }
 
   @Test

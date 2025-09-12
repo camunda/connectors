@@ -816,7 +816,7 @@ class ConnectorJobHandlerTest {
 
       // then
       assertThat(result.getErrorMessage())
-          .contains("Parameter 'code' of function 'bpmnError' must be a String");
+          .contains("Parameter 'errorCode' of function 'bpmnError' must be a String");
     }
 
     @Test
@@ -824,7 +824,7 @@ class ConnectorJobHandlerTest {
       // given
       var errorExpression =
           "if error.code != null then "
-              + "{ \"errorType\": \"bpmnError\", \"code\": error.code, \"message\": \"Message: \" + error.message} "
+              + "{ \"errorType\": \"bpmnError\", \"errorCode\": error.code, \"errorMessage\": \"Message: \" + error.message} "
               + "else {}";
       var jobHandler =
           newConnectorJobHandler(
@@ -846,7 +846,7 @@ class ConnectorJobHandlerTest {
       // given
       var errorExpression =
           "if error.code != null then "
-              + "{ \"errorType\": \"bpmnError\", \"code\": error.code, \"message\": \"Message: \" + error.message, \"variables\": error.variables} "
+              + "{ \"errorType\": \"bpmnError\", \"errorCode\": error.code, \"errorMessage\": \"Message: \" + error.message, \"variables\": error.variables} "
               + "else {}";
       var jobHandler =
           newConnectorJobHandler(

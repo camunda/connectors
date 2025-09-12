@@ -24,7 +24,7 @@ import java.util.Map;
  * Container record for BPMN error data. This is used to indicate when a BPMN error should be
  * thrown.
  */
-public record BpmnError(String code, String message, Map<String, Object> variables)
+public record BpmnError(String errorCode, String errorMessage, Map<String, Object> variables)
     implements ConnectorError {
   public BpmnError {
     if (variables == null) {
@@ -33,6 +33,6 @@ public record BpmnError(String code, String message, Map<String, Object> variabl
   }
 
   public boolean hasCode() {
-    return code != null;
+    return errorCode != null;
   }
 }

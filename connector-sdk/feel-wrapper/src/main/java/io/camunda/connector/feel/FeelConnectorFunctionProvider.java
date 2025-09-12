@@ -44,9 +44,9 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
 
   // BPMN error
   private static final String BPMN_ERROR_FUNCTION_NAME = "bpmnError";
-  private static final List<String> BPMN_ERROR_ARGUMENTS = List.of("code", "message");
+  private static final List<String> BPMN_ERROR_ARGUMENTS = List.of("errorCode", "errorMessage");
   private static final List<String> BPMN_ERROR_ARGUMENTS_WITH_VARS =
-      List.of("code", "message", "variables");
+      List.of("errorCode", "errorMessage", "variables");
   private static final JavaFunction BPMN_ERROR_FUNCTION =
       new JavaFunction(
           BPMN_ERROR_ARGUMENTS,
@@ -88,7 +88,7 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
   private static final ValDayTimeDuration JOB_ERROR_DEFAULT_ARG_RETRY_BACKOFF =
       new ValDayTimeDuration(Duration.ZERO);
   private static final List<String> JOB_ERROR_FUNCTION_ARGUMENTS =
-      List.of("message", "variables", "retries", "retryBackoff");
+      List.of("errorMessage", "variables", "retries", "retryBackoff");
   private static final JavaFunction JOB_ERROR_FUNCTION_4 =
       new JavaFunction(
           JOB_ERROR_FUNCTION_ARGUMENTS,
