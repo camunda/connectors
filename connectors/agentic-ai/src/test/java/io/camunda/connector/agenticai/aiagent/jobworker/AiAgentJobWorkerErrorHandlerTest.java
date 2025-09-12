@@ -10,8 +10,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static io.camunda.connector.agenticai.util.WireMockUtils.assertJobErrorRequest;
 import static io.camunda.connector.agenticai.util.WireMockUtils.assertJobFailRequest;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -27,11 +29,14 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.Map;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,6 +48,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AiAgentJobWorkerErrorHandlerTest {
 
+  private static final String ERROR_EXPRESSION =
+      """
+      =if error.code = "JOB_ERROR_CODE" then
+        jobError(error.message + " (job error)")
+      else if error.code = "BPMN_ERROR_CODE" then
+        bpmnError("MY_BPMN_ERROR_CODE", error.message + " (BPMN error)")
+      else
+        null
+      """;
+
   private static final AgentResponse AGENT_RESPONSE =
       AgentResponse.builder().context(AgentContext.empty()).build();
 
@@ -53,7 +68,6 @@ class AiAgentJobWorkerErrorHandlerTest {
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private ActivatedJob job;
 
-  private OutboundConnectorExceptionHandler outboundConnectorExceptionHandler;
   private AiAgentJobWorkerErrorHandler errorHandler;
   private CamundaClient camundaClient;
 
@@ -68,10 +82,17 @@ class AiAgentJobWorkerErrorHandlerTest {
 
     lenient().when(job.getKey()).thenReturn(123456L);
 
-    outboundConnectorExceptionHandler = new OutboundConnectorExceptionHandler(secretProvider);
+    final var outboundConnectorExceptionHandler =
+        new OutboundConnectorExceptionHandler(secretProvider);
+    final var connectorResultHandler =
+        new ConnectorResultHandler(ConnectorsObjectMapperSupplier.getCopy());
+
     errorHandler =
         new AiAgentJobWorkerErrorHandler(
-            outboundConnectorExceptionHandler, exceptionHandlingStrategy, metricsRecorder);
+            outboundConnectorExceptionHandler,
+            connectorResultHandler,
+            exceptionHandlingStrategy,
+            metricsRecorder);
 
     stubFor(
         post(urlPathEqualTo("/v2/jobs/123456/failure")).willReturn(aResponse().withStatus(204)));
@@ -189,6 +210,67 @@ class AiAgentJobWorkerErrorHandlerTest {
                       "io.camunda.connector.api.error.ConnectorException",
                       "message",
                       "Execution failed"));
+        });
+  }
+
+  @Test
+  void failsWithJobErrorFromErrorExpression() {
+    when(job.getCustomHeaders()).thenReturn(Map.of("errorExpression", ERROR_EXPRESSION));
+
+    final var exception = new ConnectorException("JOB_ERROR_CODE", "Execution failed");
+    errorHandler.executeWithErrorHandling(
+        camundaClient,
+        job,
+        () -> {
+          throw exception;
+        });
+
+    assertJobFailRequest(
+        request -> {
+          assertThat(request.getErrorMessage()).isEqualTo("Execution failed (job error)");
+          assertThat(request.getVariables())
+              .containsExactly(entry("error", "Execution failed (job error)"));
+        });
+  }
+
+  @Test
+  void throwsBpmnErrorFromErrorExpression() {
+    when(job.getCustomHeaders()).thenReturn(Map.of("errorExpression", ERROR_EXPRESSION));
+
+    final var exception = new ConnectorException("BPMN_ERROR_CODE", "Execution failed");
+    errorHandler.executeWithErrorHandling(
+        camundaClient,
+        job,
+        () -> {
+          throw exception;
+        });
+
+    assertJobErrorRequest(
+        request -> {
+          assertThat(request.getErrorCode()).isEqualTo("MY_BPMN_ERROR_CODE");
+          assertThat(request.getErrorMessage()).isEqualTo("Execution failed (BPMN error)");
+          assertThat(request.getVariables()).isEmpty();
+        });
+  }
+
+  @Test
+  void failsJobWhenErrorExpressionCouldNotBeParsed() {
+    when(job.getCustomHeaders()).thenReturn(Map.of("errorExpression", "=invalid expression"));
+
+    final var exception = new ConnectorException("MY_ERROR_CODE", "Execution failed");
+    errorHandler.executeWithErrorHandling(
+        camundaClient,
+        job,
+        () -> {
+          throw exception;
+        });
+
+    assertJobFailRequest(
+        request -> {
+          assertThat(request.getErrorMessage()).startsWith("Failed to evaluate expression");
+          assertThat(request.getVariables().get("error"))
+              .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+              .containsEntry("type", "io.camunda.connector.feel.FeelEngineWrapperException");
         });
   }
 

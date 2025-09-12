@@ -51,6 +51,7 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientCo
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
@@ -278,6 +279,7 @@ public class AgenticAiConnectorsAutoConfiguration {
     final var errorHandler =
         new AiAgentJobWorkerErrorHandler(
             new OutboundConnectorExceptionHandler(secretProvider),
+            new ConnectorResultHandler(objectMapper),
             exceptionHandlingStrategy,
             metricsRecorder);
 

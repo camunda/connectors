@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.jobworker;
 
 import io.camunda.client.api.command.FinalCommandStep;
+import io.camunda.client.api.command.ThrowErrorCommandStep1.ThrowErrorCommandStep2;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.response.FailJobResponse;
 import io.camunda.client.api.worker.JobClient;
@@ -14,14 +15,22 @@ import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.client.jobhandling.CommandWrapper;
 import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.error.BpmnError;
+import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
+import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.SuccessResult;
+import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
+import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.ErrorExpressionJob;
 import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,14 +41,17 @@ public class AiAgentJobWorkerErrorHandler {
   private static final int MAX_ERROR_MESSAGE_LENGTH = 6000;
 
   private final OutboundConnectorExceptionHandler outboundConnectorExceptionHandler;
+  private final ConnectorResultHandler connectorResultHandler;
   private final CommandExceptionHandlingStrategy exceptionHandlingStrategy;
   private final MetricsRecorder metricsRecorder;
 
   public AiAgentJobWorkerErrorHandler(
       final OutboundConnectorExceptionHandler outboundConnectorExceptionHandler,
+      final ConnectorResultHandler connectorResultHandler,
       final CommandExceptionHandlingStrategy exceptionHandlingStrategy,
       final MetricsRecorder metricsRecorder) {
     this.exceptionHandlingStrategy = exceptionHandlingStrategy;
+    this.connectorResultHandler = connectorResultHandler;
     this.metricsRecorder = metricsRecorder;
     this.outboundConnectorExceptionHandler = outboundConnectorExceptionHandler;
   }
@@ -54,19 +66,22 @@ public class AiAgentJobWorkerErrorHandler {
     }
 
     if (result instanceof ErrorResult errorResult) {
-      LOGGER.error(
-          "Exception while completing AI Agent job with key {}. Message: {}",
-          job.getElementInstanceKey(),
-          errorResult.exception().getMessage(),
-          errorResult.exception());
-      final var failCommandStep = prepareFailJobCommand(jobClient, job, errorResult);
-      new CommandWrapper(
-              failCommandStep,
-              job,
-              exceptionHandlingStrategy,
-              metricsRecorder,
-              MAX_ZEEBE_COMMAND_RETRIES)
-          .executeAsync();
+      try {
+        Optional<ConnectorError> optionalConnectorError =
+            connectorResultHandler.examineErrorExpression(
+                errorResult.responseValue(),
+                job.getCustomHeaders(),
+                new ErrorExpressionJobContext(new ErrorExpressionJob(job.getRetries())));
+
+        optionalConnectorError.ifPresentOrElse(
+            connectorError -> handleConnectorError(jobClient, job, connectorError),
+            () -> failJob(jobClient, job, errorResult));
+      } catch (Exception e) {
+        failJob(
+            jobClient,
+            job,
+            this.outboundConnectorExceptionHandler.handleFinalResultException(e, job));
+      }
     }
   }
 
@@ -99,6 +114,38 @@ public class AiAgentJobWorkerErrorHandler {
     }
   }
 
+  private void handleConnectorError(
+      final JobClient jobClient, final ActivatedJob job, final ConnectorError connectorError) {
+    switch (connectorError) {
+      case BpmnError bpmnError -> throwBpmnError(jobClient, job, bpmnError);
+      case JobError jobError ->
+          failJob(
+              jobClient,
+              job,
+              new ErrorResult(
+                  Map.of("error", jobError.errorMessage()),
+                  new RuntimeException(jobError.errorMessage()),
+                  jobError.retries(),
+                  jobError.retryBackoff()));
+    }
+  }
+
+  private void failJob(
+      final JobClient jobClient, final ActivatedJob job, final ErrorResult errorResult) {
+    LOGGER.error(
+        "Exception while completing AI Agent job with key %s".formatted(job.getKey()),
+        errorResult.exception());
+
+    final var failCommandStep = prepareFailJobCommand(jobClient, job, errorResult);
+    new CommandWrapper(
+            failCommandStep,
+            job,
+            exceptionHandlingStrategy,
+            metricsRecorder,
+            MAX_ZEEBE_COMMAND_RETRIES)
+        .executeAsync();
+  }
+
   private static FinalCommandStep<FailJobResponse> prepareFailJobCommand(
       JobClient jobClient, ActivatedJob job, ErrorResult result) {
     var retries = result.retries();
@@ -114,6 +161,33 @@ public class AiAgentJobWorkerErrorHandler {
       command = command.variables(result.responseValue());
     }
     return command;
+  }
+
+  private void throwBpmnError(
+      final JobClient jobClient, final ActivatedJob job, final BpmnError bpmnError) {
+    LOGGER.error(
+        "BPMN error while completing AI Agent job with key {}. Code: {}. Message: {}",
+        job.getKey(),
+        bpmnError.errorCode(),
+        bpmnError.errorMessage());
+
+    final var throwBpmnErrorStep = prepareThrowBpmnErrorCommand(jobClient, job, bpmnError);
+    new CommandWrapper(
+            throwBpmnErrorStep,
+            job,
+            exceptionHandlingStrategy,
+            metricsRecorder,
+            MAX_ZEEBE_COMMAND_RETRIES)
+        .executeAsync();
+  }
+
+  private ThrowErrorCommandStep2 prepareThrowBpmnErrorCommand(
+      final JobClient jobClient, final ActivatedJob job, final BpmnError bpmnError) {
+    return jobClient
+        .newThrowErrorCommand(job)
+        .errorCode(bpmnError.errorCode())
+        .variables(bpmnError.variables())
+        .errorMessage(truncateErrorMessage(bpmnError.errorMessage()));
   }
 
   private static String truncateErrorMessage(String message) {
