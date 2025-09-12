@@ -218,7 +218,7 @@ class Langchain4JMcpClientExecutorTest {
                 assertThat(res.isError()).isFalse();
                 assertThat(res.content())
                     .containsExactly(
-                        textContent("Tool execution succeeded, but returned no result"));
+                        textContent("Tool execution succeeded, but returned no result."));
               });
     }
 

@@ -240,7 +240,7 @@ class ToolCallConverterTest {
               ToolExecutionResultMessage::toolName,
               ToolExecutionResultMessage::text)
           .containsExactly(
-              "toolId", "toolName", "Tool execution succeeded, but returned no result");
+              "toolId", "toolName", "Tool execution succeeded, but returned no result.");
     }
 
     private Document createDocument(String content, String contentType, String filename) {
