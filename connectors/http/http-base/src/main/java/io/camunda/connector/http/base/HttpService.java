@@ -6,15 +6,26 @@
  */
 package io.camunda.connector.http.base;
 
+import static io.camunda.connector.http.client.utils.JsonHelper.isJsonStringValid;
+
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.auth.AuthenticationMapper;
+import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.HttpClientService;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesData;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
+import java.nio.charset.StandardCharsets;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HttpService {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(HttpService.class);
 
   private final HttpClientService httpClientService;
 
@@ -51,7 +62,27 @@ public class HttpService {
   }
 
   public HttpCommonResult mapToHttpCommonResult(HttpClientResult result) {
+    Object content = result.body();
+    Object parsedBody = null;
+
+    if (content instanceof CustomHttpBody.StringData(String value)) {
+      parsedBody = value;
+    } else if (content instanceof BytesData(byte[] value)) {
+      String bodyString = new String(value, StandardCharsets.UTF_8);
+
+      try {
+        if (StringUtils.isNotBlank(bodyString)) {
+          parsedBody =
+              isJsonStringValid(bodyString)
+                  ? HttpClientObjectMapperSupplier.getCopy().readValue(bodyString, Object.class)
+                  : bodyString;
+        }
+      } catch (final Exception e) {
+        LOGGER.error("Failed to parse external response: {}", result.body(), e);
+      }
+    }
+
     return new HttpCommonResult(
-        result.status(), result.headers(), result.body(), result.reason(), result.document());
+        result.status(), result.headers(), parsedBody, result.reason(), result.document());
   }
 }

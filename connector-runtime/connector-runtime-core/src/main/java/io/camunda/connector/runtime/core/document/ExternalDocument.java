@@ -21,6 +21,7 @@ import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.http.client.HttpClientService;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesData;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.client.model.HttpMethod;
@@ -128,7 +129,8 @@ public class ExternalDocument implements Document {
   @Override
   public InputStream asInputStream() {
     Object resultBody = getResult().body();
-    byte[] bytes = resultBody instanceof byte[] b ? b : ((String) resultBody).getBytes();
+    byte[] bytes =
+        resultBody instanceof BytesData(byte[] value) ? value : ((String) resultBody).getBytes();
     return new ByteArrayInputStream(bytes);
   }
 
