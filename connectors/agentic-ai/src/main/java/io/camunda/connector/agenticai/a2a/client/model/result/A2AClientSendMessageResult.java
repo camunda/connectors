@@ -38,6 +38,14 @@ public record A2AClientSendMessageResult(
       return state;
     }
 
+    public boolean isSubmittedOrWorking() {
+      return this == SUBMITTED || this == WORKING;
+    }
+
+    public boolean isCompleted() {
+      return this == COMPLETED;
+    }
+
     @JsonCreator
     public static TaskState fromString(String stateStr) {
       for (TaskState taskState : TaskState.values()) {
