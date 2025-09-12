@@ -19,6 +19,7 @@ package io.camunda.connector.http.client.document;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import java.util.Map;
 import java.util.UUID;
+import org.apache.hc.core5.http.HttpHeaders;
 
 public class HttpHeaderFilenameResolver {
   public static String getFilename(Map<String, Object> headers) {
@@ -31,11 +32,13 @@ public class HttpHeaderFilenameResolver {
 
   private static String getFilenameFromContentDispositionHeader(Map<String, Object> headers) {
     String contentDispositionHeader =
-        CustomApacheHttpClient.getHeaderIgnoreCase(headers, "Content-Disposition");
+        CustomApacheHttpClient.getHeaderIgnoreCase(headers, HttpHeaders.CONTENT_DISPOSITION);
     if (contentDispositionHeader instanceof String contentDispositionHeaderString) {
-      int index = contentDispositionHeaderString.indexOf("filename=");
+      String filenamePrefix = "filename=";
+      int index = contentDispositionHeaderString.indexOf(filenamePrefix);
       if (index != -1) {
-        String filename = contentDispositionHeaderString.substring(index + 9).trim();
+        String filename =
+            contentDispositionHeaderString.substring(index + filenamePrefix.length()).trim();
         if (filename.startsWith("\"") && filename.endsWith("\"")) {
           filename = filename.substring(1, filename.length() - 1);
         }
@@ -46,7 +49,7 @@ public class HttpHeaderFilenameResolver {
   }
 
   private static String getFilenameFromContentType(Map<String, Object> headers) {
-    Object ctObj = CustomApacheHttpClient.getHeaderIgnoreCase(headers, "Content-Type");
+    Object ctObj = CustomApacheHttpClient.getHeaderIgnoreCase(headers, HttpHeaders.CONTENT_TYPE);
     if (ctObj instanceof String ct && ct.contains("/")) {
       String subtype = ct.substring(ct.indexOf('/') + 1);
       return "." + subtype;
