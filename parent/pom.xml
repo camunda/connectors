@@ -93,9 +93,9 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.18</version.logback>
 
     <version.aws-java-sdk>1.12.791</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.33.6</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.33.9</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.791</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.33.6</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.33.9</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
 
@@ -110,7 +110,7 @@ limitations under the License.</license.inlineheader>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.39.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20250325-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.67.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.68.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20250616-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.57.0</version.google-cloud-storage>
     <version.gson-extras>3.3.0</version.gson-extras>
@@ -126,7 +126,7 @@ limitations under the License.</license.inlineheader>
 
     <version.kafka-clients>4.1.0</version.kafka-clients>
 
-    <version.microsoft-graph>6.51.0</version.microsoft-graph>
+    <version.microsoft-graph>6.52.0</version.microsoft-graph>
     <version.azure-identity>1.17.0</version.azure-identity>
 
     <version.bouncycastle>1.81</version.bouncycastle>
@@ -160,8 +160,8 @@ limitations under the License.</license.inlineheader>
     <plugin.version.license>5.0.0</plugin.version.license>
     <plugin.version.license.codehaus>2.6.0</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.3.1</plugin.version.maven-resources-plugin>
-    <plugin.version.maven-shade-plugin>3.6.0</plugin.version.maven-shade-plugin>
-    <plugin.version.maven-surefire-plugin>3.5.3</plugin.version.maven-surefire-plugin>
+    <plugin.version.maven-shade-plugin>3.6.1</plugin.version.maven-shade-plugin>
+    <plugin.version.maven-surefire-plugin>3.5.4</plugin.version.maven-surefire-plugin>
     <plugin.version.spotless-maven-plugin>2.46.1</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.4.2</plugin.version.maven-jar-plugin>
   </properties>
