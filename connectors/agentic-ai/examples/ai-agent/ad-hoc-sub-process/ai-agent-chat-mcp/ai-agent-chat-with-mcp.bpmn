@@ -59,6 +59,7 @@
           <zeebe:input source="=false" target="data.response.format.parseJson" />
           <zeebe:input source="=false" target="data.response.includeAssistantMessage" />
           <zeebe:input source="=true" target="data.response.includeAgentContext" />
+          <zeebe:output source="=agent" target="agent" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="3" />
@@ -356,17 +357,23 @@ else
           <dc:Bounds x="652" y="552" width="13" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Association_03owhkm_di" bpmnElement="Association_03owhkm">
-        <di:waypoint x="520" y="713" />
-        <di:waypoint x="590" y="713" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="TextAnnotation_1rkjf45_di" bpmnElement="TextAnnotation_1rkjf45">
         <dc:Bounds x="590" y="678" width="120" height="70" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Group_16cfm2b_di" bpmnElement="Group_16cfm2b">
+        <dc:Bounds x="365" y="340" width="390" height="300" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="524" y="347" width="72" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_0pbzrme_di" bpmnElement="Flow_0pbzrme">
         <di:waypoint x="188" y="210" />
         <di:waypoint x="245" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_09y08ef_di" bpmnElement="Flow_09y08ef">
+        <di:waypoint x="920" y="210" />
+        <di:waypoint x="985" y="210" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_19gp461_di" bpmnElement="Flow_19gp461">
         <di:waypoint x="1010" y="185" />
@@ -377,6 +384,13 @@ else
           <dc:Bounds x="915" y="83" width="83" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_16c9bwj_di" bpmnElement="Flow_16c9bwj">
+        <di:waypoint x="1035" y="210" />
+        <di:waypoint x="1092" y="210" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1055" y="192" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0kp0klg_di" bpmnElement="Flow_0kp0klg">
         <di:waypoint x="295" y="210" />
         <di:waypoint x="340" y="210" />
@@ -385,23 +399,10 @@ else
         <di:waypoint x="780" y="210" />
         <di:waypoint x="820" y="210" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_09y08ef_di" bpmnElement="Flow_09y08ef">
-        <di:waypoint x="920" y="210" />
-        <di:waypoint x="985" y="210" />
+      <bpmndi:BPMNEdge id="Association_03owhkm_di" bpmnElement="Association_03owhkm">
+        <di:waypoint x="520" y="713" />
+        <di:waypoint x="590" y="713" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_16c9bwj_di" bpmnElement="Flow_16c9bwj">
-        <di:waypoint x="1035" y="210" />
-        <di:waypoint x="1092" y="210" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="1055" y="192" width="18" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNShape id="Group_16cfm2b_di" bpmnElement="Group_16cfm2b">
-        <dc:Bounds x="365" y="340" width="390" height="300" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="524" y="347" width="72" height="27" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>
