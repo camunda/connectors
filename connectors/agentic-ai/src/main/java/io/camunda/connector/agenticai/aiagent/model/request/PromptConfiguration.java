@@ -10,6 +10,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 
 public interface PromptConfiguration {
@@ -45,7 +46,8 @@ Reveal **no** additional private reasoning outside these tags.\"""";
   }
 
   record UserPromptConfiguration(
-      @FEEL
+      @NotBlank
+          @FEEL
           @TemplateProperty(
               group = "userPrompt",
               label = "User prompt",
