@@ -25,7 +25,7 @@ public class HttpHeaderFilenameResolver {
   public static String getFilename(Map<String, Object> headers) {
     String filename = getFilenameFromContentDispositionHeader(headers);
     if (!filename.contains(".")) {
-      filename += getFilenameFromContentType(headers);
+      filename += getFileEndingFromContentType(headers);
     }
     return filename;
   }
@@ -48,11 +48,18 @@ public class HttpHeaderFilenameResolver {
     return UUID.randomUUID().toString();
   }
 
-  private static String getFilenameFromContentType(Map<String, Object> headers) {
-    Object ctObj = CustomApacheHttpClient.getHeaderIgnoreCase(headers, HttpHeaders.CONTENT_TYPE);
-    if (ctObj instanceof String ct && ct.contains("/")) {
-      String subtype = ct.substring(ct.indexOf('/') + 1);
-      return "." + subtype;
+  private static String getFileEndingFromContentType(Map<String, Object> headers) {
+    Object contentTypeHeader =
+        CustomApacheHttpClient.getHeaderIgnoreCase(headers, HttpHeaders.CONTENT_TYPE);
+    if (contentTypeHeader instanceof String contentType && contentType.contains("/")) {
+      String subtype = contentType.substring(contentType.indexOf('/') + 1);
+
+      // Keep only leading alphanumeric characters to handle e.g. image/svg+xml correctly
+      String cleanSubtype = subtype.replaceAll("[^A-Za-z0-9].*$", "");
+
+      if (!cleanSubtype.isEmpty()) {
+        return "." + cleanSubtype.toLowerCase();
+      }
     }
     return "";
   }

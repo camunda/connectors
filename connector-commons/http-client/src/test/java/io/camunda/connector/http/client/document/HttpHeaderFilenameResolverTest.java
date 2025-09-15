@@ -85,7 +85,8 @@ public class HttpHeaderFilenameResolverTest {
                 "attachment; filename=\"report\"",
                 "content-type",
                 "image/png"),
-            "report.png"));
+            "report.png"),
+        Arguments.of(Map.of("Content-Type", "image/svg+xml"), defaultUuid.toString() + ".svg"));
   }
 
   @ParameterizedTest
