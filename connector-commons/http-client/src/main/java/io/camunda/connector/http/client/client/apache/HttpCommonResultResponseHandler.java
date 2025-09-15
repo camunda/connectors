@@ -79,11 +79,8 @@ public class HttpCommonResultResponseHandler
             documentReference == null ? extractBody(bytes) : null,
             reason,
             documentReference);
-      } catch (final DocumentCreationException e) {
-        LOGGER.error("Failed to create document from response", e);
-        return new HttpClientResult(HttpStatus.SC_SERVER_ERROR, Map.of(), null, e.getMessage());
       } catch (final Exception e) {
-        LOGGER.error("Failed to parse external response: {}", response, e);
+        LOGGER.error("Failed to process response: {}", response, e);
         return new HttpClientResult(HttpStatus.SC_SERVER_ERROR, Map.of(), null, e.getMessage());
       }
     }
