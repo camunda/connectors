@@ -21,6 +21,7 @@ import static io.camunda.connector.http.base.utils.JsonHelper.isJsonStringValid;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.ExecutionEnvironment;
 import io.camunda.connector.http.base.client.HttpStatusHelper;
+import io.camunda.connector.http.base.document.DocumentCreationException;
 import io.camunda.connector.http.base.document.FileResponseHandler;
 import io.camunda.connector.http.base.model.ErrorResponse;
 import io.camunda.connector.http.base.model.HttpCommonResult;
@@ -80,7 +81,7 @@ public class HttpCommonResultResponseHandler
             documentReference);
       } catch (final Exception e) {
         LOGGER.error("Failed to process response: {}", response, e);
-        return new HttpClientResult(HttpStatus.SC_SERVER_ERROR, Map.of(), null, e.getMessage());
+        return new HttpCommonResult(HttpStatus.SC_SERVER_ERROR, Map.of(), null, e.getMessage());
       }
     }
     return new HttpCommonResult(code, headers, null, reason);
@@ -106,7 +107,8 @@ public class HttpCommonResultResponseHandler
                 }));
   }
 
-  private Document handleFileResponse(Map<String, Object> headers, byte[] content) {
+  private Document handleFileResponse(Map<String, Object> headers, byte[] content)
+      throws DocumentCreationException {
     var document = fileResponseHandler.handle(headers, content);
     LOGGER.debug("Stored response as document. Document reference: {}", document);
     return document;

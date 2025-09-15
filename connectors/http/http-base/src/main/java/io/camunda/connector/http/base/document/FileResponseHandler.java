@@ -21,7 +21,6 @@ import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.document.Document;
 import io.camunda.document.store.DocumentCreationRequest;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
@@ -41,7 +40,8 @@ public class FileResponseHandler {
     this.isStoreResponseSelected = isStoreResponseSelected;
   }
 
-  public Document handleCloudFunctionResult(HttpCommonResult result) {
+  public Document handleCloudFunctionResult(HttpCommonResult result)
+      throws DocumentCreationException {
     if (!storeResponseSelected()) return null;
 
     var body = result.body();
@@ -55,15 +55,16 @@ public class FileResponseHandler {
     return null;
   }
 
-  public Document handle(Map<String, Object> headers, byte[] content) {
+  public Document handle(Map<String, Object> headers, byte[] content)
+      throws DocumentCreationException {
     if (storeResponseSelected()
         && executionEnvironment instanceof ExecutionEnvironment.StoresDocument env) {
       try (var byteArrayInputStream = new ByteArrayInputStream(content)) {
-          return env.documentFactory()
-                  .create(
-                          DocumentCreationRequest.from(byteArrayInputStream)
-                                  .contentType(getContentType(headers))
-                                  .build());
+        return env.documentFactory()
+            .create(
+                DocumentCreationRequest.from(byteArrayInputStream)
+                    .contentType(getContentType(headers))
+                    .build());
       } catch (Exception e) {
         LOGGER.error("Failed to create document: {}", e.getMessage(), e);
         throw new DocumentCreationException("Failed to create document: " + e.getMessage(), e);

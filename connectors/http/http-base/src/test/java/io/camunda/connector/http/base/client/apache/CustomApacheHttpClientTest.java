@@ -19,6 +19,7 @@ package io.camunda.connector.http.base.client.apache;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static uk.org.webcompere.systemstubs.SystemStubs.restoreSystemProperties;
@@ -43,6 +44,8 @@ import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import io.camunda.document.CamundaDocument;
+import io.camunda.document.Document;
+import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.store.DocumentCreationRequest;
 import io.camunda.document.store.InMemoryDocumentStore;
@@ -81,6 +84,35 @@ public class CustomApacheHttpClientTest {
 
   @Nested
   class DocumentDownloadTests {
+
+    @Test
+    public void shouldNotStoreDocument_whenErrorOccurs(WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(post("/path").withMultipartRequestBody(aMultipart()).willReturn(created()));
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.POST);
+      request.setHeaders(Map.of("Content-Type", ContentType.MULTIPART_FORM_DATA.getMimeType()));
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
+      request.setStoreResponse(true);
+      assertThatThrownBy(
+              () ->
+                  customApacheHttpClient.execute(
+                      request,
+                      new ExecutionEnvironment.SelfManaged(
+                          new DocumentFactory() {
+                            @Override
+                            public Document resolve(DocumentReference reference) {
+                              return null;
+                            }
+
+                            @Override
+                            public Document create(DocumentCreationRequest request) {
+                              throw new RuntimeException("Cannot create document");
+                            }
+                          })))
+          .hasMessage("Failed to create document: Cannot create document");
+      var documents = store.getDocuments();
+      assertThat(documents).isEmpty();
+    }
 
     @Test
     public void shouldStoreDocument_whenStoreResponseEnabled(WireMockRuntimeInfo wmRuntimeInfo)
