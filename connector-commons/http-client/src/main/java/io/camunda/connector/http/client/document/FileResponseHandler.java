@@ -21,7 +21,6 @@ import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.http.client.ExecutionEnvironment;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
@@ -41,7 +40,8 @@ public class FileResponseHandler {
     this.isStoreResponseSelected = isStoreResponseSelected;
   }
 
-  public Document handleCloudFunctionResult(HttpClientResult result) {
+  public Document handleCloudFunctionResult(HttpClientResult result)
+      throws DocumentCreationException {
     if (!storeResponseSelected()) return null;
 
     var body = result.body();
@@ -55,7 +55,8 @@ public class FileResponseHandler {
     return null;
   }
 
-  public Document handle(Map<String, Object> headers, byte[] content) {
+  public Document handle(Map<String, Object> headers, byte[] content)
+      throws DocumentCreationException {
     if (storeResponseSelected()
         && executionEnvironment instanceof ExecutionEnvironment.StoresDocument env) {
       try (var byteArrayInputStream = new ByteArrayInputStream(content)) {
@@ -67,9 +68,9 @@ public class FileResponseHandler {
                         .build());
         LOGGER.debug("Stored response as document. Document reference: {}", document);
         return document;
-      } catch (IOException e) {
-        LOGGER.error("Failed to create document", e);
-        throw new RuntimeException(e);
+      } catch (Exception e) {
+        LOGGER.error("Failed to create document: {}", e.getMessage(), e);
+        throw new DocumentCreationException("Failed to create document: " + e.getMessage(), e);
       }
     }
     return null;
