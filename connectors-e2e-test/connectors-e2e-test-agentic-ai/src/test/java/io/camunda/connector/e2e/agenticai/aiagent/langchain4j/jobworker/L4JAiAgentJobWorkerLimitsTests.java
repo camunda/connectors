@@ -18,6 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
+import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doAnswer;
 
@@ -32,6 +33,7 @@ import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.test.SlowTest;
+import java.io.IOException;
 import java.util.Map;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
@@ -58,24 +60,34 @@ public class L4JAiAgentJobWorkerLimitsTests extends BaseL4JAiAgentJobWorkerTest 
         elementTemplate -> elementTemplate.withoutPropertyValue("data.limits.maxModelCalls"), 10);
   }
 
+  @Test
+  void mapsExceededLimitToBpmnError() throws IOException {
+    mockInfiniteLoop();
+
+    final var errorExpression =
+        """
+        =if error.code = "MAXIMUM_NUMBER_OF_MODEL_CALLS_REACHED" then
+          bpmnError(error.code, error.message)
+        else
+          null
+        """;
+
+    final var zeebeTest =
+        createProcessInstance(
+                elementTemplate -> elementTemplate.property("errorExpression", errorExpression),
+                Map.of("action", "executeAgent", "userPrompt", "Write a haiku about the sea"))
+            .waitForProcessCompletion();
+
+    assertThat(zeebeTest.getProcessInstanceEvent())
+        .hasNoActiveIncidents()
+        .hasCompletedElementsInOrder(
+            "AI_Agent", "ErrorBoundary_MaxModelCalls", "EndEvent_MaxModelCalls");
+  }
+
   private void testMaxModelCallsLoop(
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier, int expectedMaxModelCalls)
       throws Throwable {
-    // infinite loop - always returning the same answer and handling the same user feedback
-    doAnswer(
-            invocationOnMock -> {
-              userFeedbackVariables.set(userFollowUpFeedback("I don't like it"));
-              return ChatResponse.builder()
-                  .metadata(
-                      ChatResponseMetadata.builder()
-                          .finishReason(FinishReason.STOP)
-                          .tokenUsage(new TokenUsage(10, 20))
-                          .build())
-                  .aiMessage(new AiMessage(HAIKU_TEXT))
-                  .build();
-            })
-        .when(chatModel)
-        .chat(chatRequestCaptor.capture());
+    mockInfiniteLoop();
 
     final var zeebeTest =
         createProcessInstance(
@@ -111,5 +123,23 @@ public class L4JAiAgentJobWorkerLimitsTests extends BaseL4JAiAgentJobWorkerTest 
               .filteredOn(msg -> msg instanceof UserMessage)
               .hasSize(expectedMaxModelCalls);
         });
+  }
+
+  private void mockInfiniteLoop() {
+    // infinite loop - always returning the same answer and handling the same user feedback
+    doAnswer(
+            invocationOnMock -> {
+              userFeedbackVariables.set(userFollowUpFeedback("I don't like it"));
+              return ChatResponse.builder()
+                  .metadata(
+                      ChatResponseMetadata.builder()
+                          .finishReason(FinishReason.STOP)
+                          .tokenUsage(new TokenUsage(10, 20))
+                          .build())
+                  .aiMessage(new AiMessage(HAIKU_TEXT))
+                  .build();
+            })
+        .when(chatModel)
+        .chat(chatRequestCaptor.capture());
   }
 }
