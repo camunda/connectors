@@ -43,18 +43,19 @@ public class HttpService {
       final HttpCommonRequest request, final OutboundConnectorContext context) {
     HttpClientRequest httpClientRequest = mapToHttpClientRequest(request);
     try {
-      HttpClientResult result = httpClientService.executeConnectorRequest(httpClientRequest, context);
+      HttpClientResult result =
+          httpClientService.executeConnectorRequest(httpClientRequest, context);
       HttpCommonResult parsedResult = mapToHttpCommonResult(result);
       LOGGER.debug("Connector returned result: {}", result);
       return parsedResult;
     } catch (ConnectorException e) {
       var errorVariables = e.getErrorVariables();
       Object response = errorVariables.get("response");
-      if(response instanceof HashMap) {
+      if (response instanceof HashMap) {
         var responseMap = (HashMap<String, Object>) response;
         responseMap.compute("body", (k, body) -> parseBody(body));
       }
-      throw new ConnectorException(e.getErrorCode(),e.getMessage(), e.getCause(), errorVariables);
+      throw new ConnectorException(e.getErrorCode(), e.getMessage(), e.getCause(), errorVariables);
     }
   }
 
