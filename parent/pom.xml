@@ -1012,6 +1012,14 @@ limitations under the License.</license.inlineheader>
                 </gpgArguments>
               </configuration>
             </plugin>
+            <plugin>
+              <groupId>org.sonatype.central</groupId>
+              <artifactId>central-publishing-maven-plugin</artifactId>
+              <extensions>true</extensions>
+              <configuration>
+                <excludeArtifacts>connector-runtime-bundle-saas,connector-runtime-bundle,connector-runtime-application</excludeArtifacts>
+              </configuration>
+            </plugin>
           </plugins>
         </pluginManagement>
         <plugins>
