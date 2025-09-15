@@ -75,6 +75,10 @@
                   <templateId>io.camunda.connectors.AWSSQS.boundary.v1</templateId>
                   <templateFileName>aws-sqs-boundary-connector.json</templateFileName>
                 </file>
+                  <file>
+                      <templateId>io.camunda.connectors.AWSSQS.receive.v1</templateId>
+                      <templateFileName>aws-sqs-receive-connector.json</templateFileName>
+                  </file>
               </files>
               <features>
                 <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>

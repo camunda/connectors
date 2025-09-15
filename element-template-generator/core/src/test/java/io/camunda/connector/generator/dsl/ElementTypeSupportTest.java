@@ -137,6 +137,22 @@ public class ElementTypeSupportTest extends BaseTest {
   }
 
   @Test
+  void receiveTask() {
+    ElementTemplate template =
+        ElementTemplateBuilder.createOutbound()
+            .id("id")
+            .name("name")
+            .type("type", false)
+            .appliesTo(BpmnType.RECEIVE_TASK)
+            .elementType(BpmnType.RECEIVE_TASK)
+            .build();
+
+    assertThat(template.appliesTo()).containsExactly(BpmnType.RECEIVE_TASK.getName());
+    assertThat(template.elementType().value()).isEqualTo(BpmnType.RECEIVE_TASK.getName());
+    assertThat(template.elementType().eventDefinition()).isEqualTo("bpmn:MessageEventDefinition");
+  }
+
+  @Test
   void messageStartEvent() {
     ElementTemplate template =
         ElementTemplateBuilder.createOutbound()

@@ -86,6 +86,10 @@ except in compliance with the proprietary license.</license.inlineheader>
                   <templateId>io.camunda.connectors.inbound.AWSSNS.Boundary.v1</templateId>
                   <templateFileName>aws-sns-inbound-boundary.json</templateFileName>
                 </file>
+                  <file>
+                      <templateId>io.camunda.connectors.inbound.AWSSNS.Receive.v1</templateId>
+                      <templateFileName>aws-sns-inbound-receive.json</templateFileName>
+                  </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
               <features>

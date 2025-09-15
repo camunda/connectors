@@ -134,7 +134,8 @@ public record ElementTemplate(
               BpmnType.INTERMEDIATE_THROW_EVENT,
               BpmnType.MESSAGE_START_EVENT,
               BpmnType.MESSAGE_END_EVENT,
-              BpmnType.BOUNDARY_EVENT);
+              BpmnType.BOUNDARY_EVENT,
+              BpmnType.RECEIVE_TASK);
       var messageEventDefinition = "bpmn:MessageEventDefinition";
 
       return new ElementTypeWrapper(
