@@ -20,6 +20,7 @@ import io.a2a.spec.AgentCard;
 import io.a2a.spec.Message;
 import io.a2a.spec.Part;
 import io.a2a.spec.TextPart;
+import io.camunda.connector.agenticai.a2a.client.http.JdkHttpClient;
 import io.camunda.connector.agenticai.a2a.client.model.A2AClientRequest;
 import io.camunda.connector.agenticai.a2a.client.model.A2AClientRequest.A2AClientRequestData.ConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.OperationConfiguration.FetchAgentCardOperationConfiguration;
@@ -133,7 +134,7 @@ public class A2AClientHandlerImpl implements A2AClientHandler {
       // Disable streaming for the time being
       return Client.builder(agentCard)
           .clientConfig(new ClientConfig.Builder().setStreaming(false).setPolling(true).build())
-          .withTransport(JSONRPCTransport.class, new JSONRPCTransportConfig())
+          .withTransport(JSONRPCTransport.class, new JSONRPCTransportConfig(new JdkHttpClient()))
           .addConsumer(consumer)
           .build();
     } catch (A2AClientException e) {
