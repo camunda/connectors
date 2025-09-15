@@ -8,6 +8,7 @@ package io.camunda.connector.http.base;
 
 import static io.camunda.connector.http.client.utils.JsonHelper.isJsonStringValid;
 
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
@@ -19,6 +20,7 @@ import io.camunda.connector.http.client.client.apache.CustomHttpBody.StringBody;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,8 +42,20 @@ public class HttpService {
   public HttpCommonResult executeConnectorRequest(
       final HttpCommonRequest request, final OutboundConnectorContext context) {
     HttpClientRequest httpClientRequest = mapToHttpClientRequest(request);
-    HttpClientResult result = httpClientService.executeConnectorRequest(httpClientRequest, context);
-    return mapToHttpCommonResult(result);
+    try {
+      HttpClientResult result = httpClientService.executeConnectorRequest(httpClientRequest, context);
+      HttpCommonResult parsedResult = mapToHttpCommonResult(result);
+      LOGGER.debug("Connector returned result: {}", result);
+      return parsedResult;
+    } catch (ConnectorException e) {
+      var errorVariables = e.getErrorVariables();
+      Object response = errorVariables.get("response");
+      if(response instanceof HashMap) {
+        var responseMap = (HashMap<String, Object>) response;
+        responseMap.compute("body", (k, body) -> parseBody(body));
+      }
+      throw new ConnectorException(e.getErrorCode(),e.getMessage(), e.getCause(), errorVariables);
+    }
   }
 
   public HttpClientRequest mapToHttpClientRequest(HttpCommonRequest request) {
@@ -62,7 +76,12 @@ public class HttpService {
   }
 
   public HttpCommonResult mapToHttpCommonResult(HttpClientResult result) {
-    Object content = result.body();
+    Object parsedBody = parseBody(result.body());
+    return new HttpCommonResult(
+        result.status(), result.headers(), parsedBody, result.reason(), result.document());
+  }
+
+  private Object parseBody(Object content) {
     Object parsedBody = null;
 
     if (content instanceof StringBody(String value)) {
@@ -78,11 +97,9 @@ public class HttpService {
                   : bodyString;
         }
       } catch (final Exception e) {
-        LOGGER.error("Failed to parse external response: {}", result.body(), e);
+        LOGGER.error("Failed to parse external response: {}", content, e);
       }
     }
-
-    return new HttpCommonResult(
-        result.status(), result.headers(), parsedBody, result.reason(), result.document());
+    return parsedBody;
   }
 }

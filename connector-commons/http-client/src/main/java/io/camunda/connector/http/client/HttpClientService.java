@@ -70,9 +70,9 @@ public class HttpClientService {
   private HttpClientResult executeRequest(
       HttpClientRequest request, @Nullable ExecutionEnvironment executionEnvironment) {
     try {
-      HttpClientResult jsonResult = httpClient.execute(request, executionEnvironment);
-      LOGGER.debug("Connector returned result: {}", jsonResult);
-      return jsonResult;
+      HttpClientResult result = httpClient.execute(request, executionEnvironment);
+      LOGGER.debug("Connector returned result: {}", result);
+      return result;
     } catch (ConnectorException e) {
       LOGGER.debug("Failed to execute request {}", request, e);
       if (executionEnvironment instanceof ExecutionEnvironment.SaaSCluster) {
