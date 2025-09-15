@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.client.jobhandling.CamundaClientExecutorService;
 import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.client.jobhandling.JobWorkerManager;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -32,9 +33,11 @@ import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
+import io.camunda.connector.runtime.outbound.jobhandling.ThreadPerTaskScheduledExecutorService;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
+import java.util.concurrent.Executors;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -52,6 +55,11 @@ public class OutboundConnectorRuntimeConfiguration {
 
     return new DefaultOutboundConnectorFactory(
         mapper, validationProvider, functions, providers, environment::getProperty);
+  }
+
+  @Bean
+  public CamundaClientExecutorService camundaClientExecutorService() {
+    return new CamundaClientExecutorService(new ThreadPerTaskScheduledExecutorService(), true);
   }
 
   @Bean
