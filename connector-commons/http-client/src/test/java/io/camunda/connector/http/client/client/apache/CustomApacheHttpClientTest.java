@@ -14,12 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.base.client.apache;
+package io.camunda.connector.http.client.client.apache;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static uk.org.webcompere.systemstubs.SystemStubs.restoreSystemProperties;
@@ -31,25 +30,16 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.matching.MultipartValuePatternBuilder;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.http.base.ExecutionEnvironment;
-import io.camunda.connector.http.base.TestDocumentFactory;
-import io.camunda.connector.http.base.authentication.OAuthConstants;
-import io.camunda.connector.http.base.model.HttpCommonRequest;
-import io.camunda.connector.http.base.model.HttpCommonResult;
-import io.camunda.connector.http.base.model.HttpMethod;
-import io.camunda.connector.http.base.model.auth.ApiKeyAuthentication;
-import io.camunda.connector.http.base.model.auth.ApiKeyLocation;
-import io.camunda.connector.http.base.model.auth.BasicAuthentication;
-import io.camunda.connector.http.base.model.auth.BearerAuthentication;
-import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
-import io.camunda.document.CamundaDocument;
-import io.camunda.document.Document;
-import io.camunda.document.factory.DocumentFactory;
-import io.camunda.document.reference.DocumentReference;
-import io.camunda.document.store.DocumentCreationRequest;
-import io.camunda.document.store.InMemoryDocumentStore;
-import java.io.IOException;
+import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
+import io.camunda.connector.http.client.authentication.OAuthConstants;
+import io.camunda.connector.http.client.model.HttpClientRequest;
+import io.camunda.connector.http.client.model.HttpClientResult;
+import io.camunda.connector.http.client.model.HttpMethod;
+import io.camunda.connector.http.client.model.auth.ApiKeyAuthentication;
+import io.camunda.connector.http.client.model.auth.ApiKeyLocation;
+import io.camunda.connector.http.client.model.auth.BasicAuthentication;
+import io.camunda.connector.http.client.model.auth.BearerAuthentication;
+import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,175 +64,7 @@ import wiremock.com.fasterxml.jackson.databind.node.POJONode;
 public class CustomApacheHttpClientTest {
 
   private final CustomApacheHttpClient customApacheHttpClient = new CustomApacheHttpClient();
-  private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
-  private final InMemoryDocumentStore store = InMemoryDocumentStore.INSTANCE;
-
-  @BeforeEach
-  public void setUp() {
-    store.clear();
-  }
-
-  @Nested
-  class DocumentDownloadTests {
-
-    @Test
-    public void shouldNotStoreDocument_whenErrorOccurs(WireMockRuntimeInfo wmRuntimeInfo) {
-      stubFor(post("/path").withMultipartRequestBody(aMultipart()).willReturn(created()));
-      HttpCommonRequest request = new HttpCommonRequest();
-      request.setMethod(HttpMethod.POST);
-      request.setHeaders(Map.of("Content-Type", ContentType.MULTIPART_FORM_DATA.getMimeType()));
-      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      request.setStoreResponse(true);
-      assertThatThrownBy(
-              () ->
-                  customApacheHttpClient.execute(
-                      request,
-                      new ExecutionEnvironment.SelfManaged(
-                          new DocumentFactory() {
-                            @Override
-                            public Document resolve(DocumentReference reference) {
-                              return null;
-                            }
-
-                            @Override
-                            public Document create(DocumentCreationRequest request) {
-                              throw new RuntimeException("Cannot create document");
-                            }
-                          })))
-          .hasMessage("Failed to create document: Cannot create document");
-      var documents = store.getDocuments();
-      assertThat(documents).isEmpty();
-    }
-
-    @Test
-    public void shouldStoreDocument_whenStoreResponseEnabled(WireMockRuntimeInfo wmRuntimeInfo)
-        throws IOException {
-      stubFor(
-          get("/download")
-              .willReturn(
-                  ok().withHeader(HttpHeaders.CONTENT_TYPE, ContentType.IMAGE_JPEG.getMimeType())
-                      .withBodyFile("fileName.jpg")));
-      HttpCommonRequest request = new HttpCommonRequest();
-      request.setMethod(HttpMethod.GET);
-      request.setStoreResponse(true);
-      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/download");
-      HttpCommonResult result =
-          customApacheHttpClient.execute(
-              request, new ExecutionEnvironment.SelfManaged(new TestDocumentFactory()));
-      assertThat(result).isNotNull();
-      assertThat(result.status()).isEqualTo(200);
-      assertThat(result.headers().get(HttpHeaders.CONTENT_TYPE))
-          .isEqualTo(ContentType.IMAGE_JPEG.getMimeType());
-      assertThat(result.body()).isNull();
-      var documents = store.getDocuments();
-      assertThat(documents).hasSize(1);
-      var responseDocument = (CamundaDocument) result.document();
-      DocumentReference.CamundaDocumentReference responseDocumentReference =
-          (DocumentReference.CamundaDocumentReference) responseDocument.reference();
-      assertThat(responseDocumentReference).isNotNull();
-      var documentContent = documents.get(responseDocumentReference.getDocumentId());
-      assertThat(documentContent)
-          .isEqualTo(getClass().getResourceAsStream("/__files/fileName.jpg").readAllBytes());
-    }
-  }
-
-  @Nested
-  class DocumentUploadTests {
-
-    @Test
-    public void shouldReturn201_whenUploadDocument(WireMockRuntimeInfo wmRuntimeInfo) {
-      stubFor(post("/path").withMultipartRequestBody(aMultipart()).willReturn(created()));
-      var ref =
-          store.createDocument(
-              DocumentCreationRequest.from("The content of this file".getBytes())
-                  .fileName("file.txt")
-                  .contentType("text/plain")
-                  .build());
-      HttpCommonRequest request = new HttpCommonRequest();
-      request.setMethod(HttpMethod.POST);
-      var bodyMap = new HashMap<>();
-      bodyMap.put("document", new CamundaDocument(ref.getMetadata(), ref, store));
-      bodyMap.put("otherField", "otherValue");
-      bodyMap.put("nullField", null);
-      request.setHeaders(Map.of("Content-Type", ContentType.MULTIPART_FORM_DATA.getMimeType()));
-      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      request.setBody(bodyMap);
-      HttpCommonResult result = customApacheHttpClient.execute(request);
-      assertThat(result).isNotNull();
-      assertThat(result.status()).isEqualTo(201);
-
-      verify(
-          postRequestedFor(urlEqualTo("/path"))
-              .withHeader(
-                  "Content-Type", and(containing("multipart/form-data"), containing("boundary=")))
-              .withRequestBodyPart(
-                  new MultipartValuePatternBuilder()
-                      .withName("otherField")
-                      .withBody(equalTo("otherValue"))
-                      .build())
-              .withRequestBodyPart(
-                  new MultipartValuePatternBuilder()
-                      .withName("document")
-                      .withBody(equalTo("The content of this file"))
-                      .withHeader("Content-Type", equalTo("text/plain"))
-                      .build()));
-    }
-
-    @Test
-    public void shouldReturn201_whenUploadDocuments(WireMockRuntimeInfo wmRuntimeInfo) {
-      stubFor(post("/path").withMultipartRequestBody(aMultipart()).willReturn(created()));
-      var ref =
-          store.createDocument(
-              DocumentCreationRequest.from("The content of this file".getBytes())
-                  .fileName("file.txt")
-                  .contentType("text/plain")
-                  .build());
-      var ref2 =
-          store.createDocument(
-              DocumentCreationRequest.from("The content of this file 2".getBytes())
-                  .fileName("file2.txt")
-                  .contentType("text/plain")
-                  .build());
-      HttpCommonRequest request = new HttpCommonRequest();
-      request.setMethod(HttpMethod.POST);
-      var bodyMap = new HashMap<>();
-      bodyMap.put(
-          "documents",
-          List.of(
-              new CamundaDocument(ref.getMetadata(), ref, store),
-              new CamundaDocument(ref2.getMetadata(), ref2, store)));
-      bodyMap.put("otherField", "otherValue");
-      bodyMap.put("nullField", null);
-      request.setHeaders(Map.of("Content-Type", ContentType.MULTIPART_FORM_DATA.getMimeType()));
-      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      request.setBody(bodyMap);
-      HttpCommonResult result = customApacheHttpClient.execute(request);
-      assertThat(result).isNotNull();
-      assertThat(result.status()).isEqualTo(201);
-
-      verify(
-          postRequestedFor(urlEqualTo("/path"))
-              .withHeader(
-                  "Content-Type", and(containing("multipart/form-data"), containing("boundary=")))
-              .withRequestBodyPart(
-                  new MultipartValuePatternBuilder()
-                      .withName("otherField")
-                      .withBody(equalTo("otherValue"))
-                      .build())
-              .withRequestBodyPart(
-                  new MultipartValuePatternBuilder()
-                      .withName("documents")
-                      .withBody(equalTo("The content of this file"))
-                      .withHeader("Content-Type", equalTo("text/plain"))
-                      .build())
-              .withRequestBodyPart(
-                  new MultipartValuePatternBuilder()
-                      .withName("documents")
-                      .withBody(equalTo("The content of this file 2"))
-                      .withHeader("Content-Type", equalTo("text/plain"))
-                      .build()));
-    }
-  }
+  private final ObjectMapper objectMapper = HttpClientObjectMapperSupplier.getCopy();
 
   @Nested
   class ProxyTests {
@@ -310,10 +132,10 @@ public class CustomApacheHttpClientTest {
       proxy.stubFor(get("/protected").willReturn(ok().withBody("Hello, world!")));
       setAllSystemProperties();
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/protected"));
-      HttpCommonResult result = proxiedApacheHttpClient.execute(request);
+      HttpClientResult result = proxiedApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       assertThat(result.body()).isEqualTo("Hello, world!");
@@ -349,10 +171,10 @@ public class CustomApacheHttpClientTest {
                     () -> {
                       proxy.stubFor(get(path).willReturn(ok().withBody("Hello, world!")));
 
-                      HttpCommonRequest request = new HttpCommonRequest();
+                      HttpClientRequest request = new HttpClientRequest();
                       request.setMethod(HttpMethod.GET);
                       request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, path));
-                      HttpCommonResult result =
+                      HttpClientResult result =
                           proxiedApacheHttpClient.execute(
                               request); // http://host.testcontainers.internal:33029/protected
                       assertThat(result).isNotNull();
@@ -374,7 +196,7 @@ public class CustomApacheHttpClientTest {
       System.setProperty("http.proxyUser", input);
       System.setProperty("http.proxyPassword", input);
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/protected"));
       ConnectorException e =
@@ -400,7 +222,7 @@ public class CustomApacheHttpClientTest {
                 .execute(
                     () -> {
                       proxy.stubFor(get("/protected").willReturn(ok().withBody("Hello, world!")));
-                      HttpCommonRequest request = new HttpCommonRequest();
+                      HttpClientRequest request = new HttpClientRequest();
                       request.setMethod(HttpMethod.GET);
                       request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/protected"));
                       ConnectorException e =
@@ -433,7 +255,7 @@ public class CustomApacheHttpClientTest {
                       proxy.stubFor(get("/protected").willReturn(ok().withBody("Hello, world!")));
                       setAllSystemProperties();
 
-                      HttpCommonRequest request = new HttpCommonRequest();
+                      HttpClientRequest request = new HttpClientRequest();
                       request.setMethod(HttpMethod.GET);
                       request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/protected"));
                       ConnectorException e =
@@ -450,10 +272,10 @@ public class CustomApacheHttpClientTest {
       proxy.stubFor(get("/path").willReturn(ok().withBody("Hello, world!")));
       setAllSystemProperties();
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/path"));
-      HttpCommonResult result = proxiedApacheHttpClient.execute(request);
+      HttpClientResult result = proxiedApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       assertThat(result.body()).isEqualTo("Hello, world!");
@@ -467,10 +289,10 @@ public class CustomApacheHttpClientTest {
           post("/path").willReturn(created().withJsonBody(new POJONode(Map.of("key1", "value1")))));
       setAllSystemProperties();
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.POST);
       request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/path"));
-      HttpCommonResult result = proxiedApacheHttpClient.execute(request);
+      HttpClientResult result = proxiedApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(201);
       assertThat(result.body()).isEqualTo(Map.of("key1", "value1"));
@@ -484,10 +306,10 @@ public class CustomApacheHttpClientTest {
           put("/path").willReturn(ok().withJsonBody(new POJONode(Map.of("key1", "value1")))));
       setAllSystemProperties();
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.PUT);
       request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/path"));
-      HttpCommonResult result = proxiedApacheHttpClient.execute(request);
+      HttpClientResult result = proxiedApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       assertThat(result.body()).isEqualTo(Map.of("key1", "value1"));
@@ -500,10 +322,10 @@ public class CustomApacheHttpClientTest {
       proxy.stubFor(delete("/path").willReturn(noContent()));
       setAllSystemProperties();
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.DELETE);
       request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/path"));
-      HttpCommonResult result = proxiedApacheHttpClient.execute(request);
+      HttpClientResult result = proxiedApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(204);
       assertThat(result.headers().get("Via")).asString().contains("squid");
@@ -525,11 +347,11 @@ public class CustomApacheHttpClientTest {
 
       stubFor(any(urlEqualTo("/path%20with%20spaces?andQuery=S%C3%A3o%20Paulo")).willReturn(ok()));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(method);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path with spaces");
       request.setQueryParameters(Map.of("andQuery", "São Paulo"));
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
     }
@@ -543,11 +365,11 @@ public class CustomApacheHttpClientTest {
               .withQueryParams(Map.of("andQuery", equalTo("Param with space")))
               .willReturn(ok()));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(method);
       request.setUrl(
           wmRuntimeInfo.getHttpBaseUrl() + "/path with spaces?andQuery=Param with space");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
     }
@@ -561,11 +383,11 @@ public class CustomApacheHttpClientTest {
               .withQueryParams(Map.of("andQuery", equalTo("Param with space")))
               .willReturn(ok()));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(method);
       request.setUrl(
           wmRuntimeInfo.getHttpBaseUrl() + "/path%20with%20spaces?andQuery=Param with space");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
     }
@@ -576,12 +398,12 @@ public class CustomApacheHttpClientTest {
         HttpMethod method, WireMockRuntimeInfo wmRuntimeInfo) {
       stubFor(any(urlEqualTo("/path%2Fwith%2Fencoding")).willReturn(ok()));
       stubFor(any(urlEqualTo("/path/with/encoding")).willReturn(badRequest()));
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(method);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path%2Fwith%2Fencoding");
       request.setSkipEncoding("true");
 
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
 
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
@@ -594,13 +416,13 @@ public class CustomApacheHttpClientTest {
     @Test
     public void shouldReturn200_whenNullHeaders(WireMockRuntimeInfo wmRuntimeInfo) {
       stubFor(get("/path").willReturn(ok()));
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       var headers = new HashMap<String, String>();
       headers.put("Content-Type", null);
       request.setHeaders(headers);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
     }
@@ -608,12 +430,12 @@ public class CustomApacheHttpClientTest {
     @Test
     public void shouldReturn200_whenNoTimeouts(WireMockRuntimeInfo wmRuntimeInfo) {
       stubFor(get("/path").willReturn(ok()));
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setConnectionTimeoutInSeconds(null);
       request.setReadTimeoutInSeconds(null);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
     }
@@ -623,10 +445,10 @@ public class CustomApacheHttpClientTest {
         throws Exception {
       stubFor(get("/path").willReturn(ok()));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
     }
@@ -645,10 +467,10 @@ public class CustomApacheHttpClientTest {
         Object expectedValue,
         WireMockRuntimeInfo wmRuntimeInfo) {
       stubFor(get("/path").willReturn(ok().withHeader(headerKey, "Test-Value-1", "Test-Value-2")));
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       assertThat(result.headers().get(headerKey) instanceof List).isEqualTo(expectedDoesReturnList);
@@ -660,10 +482,10 @@ public class CustomApacheHttpClientTest {
         throws Exception {
       stubFor(get("/path").willReturn(ok("Hello, world!")));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       assertThat(result.body()).isEqualTo("Hello, world!");
@@ -682,11 +504,11 @@ public class CustomApacheHttpClientTest {
                               .put("age", 30)
                               .putNull("message"))));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setHeaders(Map.of("Accept", "application/json"));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       JSONAssert.assertEquals(
@@ -701,19 +523,19 @@ public class CustomApacheHttpClientTest {
         String acceptHeader, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
       stubFor(post("/path").willReturn(ok().withBody("\"Hello, world\"")));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.POST);
       request.setHeaders(Map.of("Accept", acceptHeader));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
       request.setBody("\"Hello, world\"");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      HttpCommonRequest parsedRequest =
-          objectMapper.readValue(objectMapper.writeValueAsString(request), HttpCommonRequest.class);
+      HttpClientRequest parsedRequest =
+          objectMapper.readValue(objectMapper.writeValueAsString(request), HttpClientRequest.class);
       assertEquals("\"Hello, world\"", parsedRequest.getBody());
-      HttpCommonRequest parsedResult =
-          objectMapper.readValue(objectMapper.writeValueAsString(result), HttpCommonRequest.class);
+      HttpClientRequest parsedResult =
+          objectMapper.readValue(objectMapper.writeValueAsString(result), HttpClientRequest.class);
       assertEquals("\"Hello, world\"", parsedResult.getBody());
     }
 
@@ -732,12 +554,12 @@ public class CustomApacheHttpClientTest {
                               + "  <body>Don't forget me this weekend!</body>\n"
                               + "</note>")));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(method);
       request.setQueryParameters(Map.of("format", "xml"));
       request.setHeaders(Map.of("Accept", "application/xml"));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       assertThat(result.body())
@@ -753,7 +575,7 @@ public class CustomApacheHttpClientTest {
     @Test
     public void shouldReturn500_whenGetWithInvalidBody(WireMockRuntimeInfo wmRuntimeInfo) {
       stubFor(get("/path").willReturn(serverError().withStatusMessage("Invalid JSON")));
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
       ConnectorException e =
@@ -766,7 +588,7 @@ public class CustomApacheHttpClientTest {
     public void shouldReturn404_whenGetWithNonExistingPath(WireMockRuntimeInfo wmRuntimeInfo) {
       stubFor(get("/path").willReturn(notFound().withBody("Not Found: /path")));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
       ConnectorException e =
@@ -781,7 +603,7 @@ public class CustomApacheHttpClientTest {
     public void shouldReturn408_whenGetWithTimeout(WireMockRuntimeInfo wmRuntimeInfo) {
       stubFor(get("/path").willReturn(ok().withFixedDelay(2000)));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
       request.setReadTimeoutInSeconds(1);
@@ -801,10 +623,10 @@ public class CustomApacheHttpClientTest {
         throws Exception {
       stubFor(post("/path").willReturn(created()));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.POST);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(201);
     }
@@ -814,7 +636,7 @@ public class CustomApacheHttpClientTest {
         throws Exception {
       stubFor(post("/path").willReturn(created()));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.POST);
       request.setHeaders(Map.of("header", "headerValue"));
       var bodyMap = new HashMap<>();
@@ -822,7 +644,7 @@ public class CustomApacheHttpClientTest {
       bodyMap.put("nullKey", null);
       request.setBody(bodyMap);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(201);
 
@@ -840,13 +662,13 @@ public class CustomApacheHttpClientTest {
         throws Exception {
       stubFor(post("/path").willReturn(created()));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.POST);
       request.setHeaders(
           Map.of(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.getMimeType()));
       request.setBody(Map.of("key1", "value1", "key2", "value2"));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(201);
 
@@ -861,13 +683,13 @@ public class CustomApacheHttpClientTest {
     public void shouldReturn201WithBody_whenPostBodyMultiPart(WireMockRuntimeInfo wmRuntimeInfo) {
       stubFor(post("/path").withMultipartRequestBody(aMultipart()).willReturn(created()));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.POST);
       request.setHeaders(
           Map.of(HttpHeaders.CONTENT_TYPE, ContentType.MULTIPART_FORM_DATA.getMimeType()));
       request.setBody(Map.of("key1", "value1", "key2", "value2"));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(201);
 
@@ -892,7 +714,7 @@ public class CustomApacheHttpClientTest {
         WireMockRuntimeInfo wmRuntimeInfo) {
       stubFor(post("/path").withMultipartRequestBody(aMultipart()).willReturn(created()));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.POST);
       request.setHeaders(
           Map.of(
@@ -900,7 +722,7 @@ public class CustomApacheHttpClientTest {
               "multipart/form-data; charset=ISO-8859-1; boundary=g7wNbtOKHnEq4vnSoWdDYS88OICfGHzBA68DqmJS"));
       request.setBody(Map.of("key1", "value1", "key2", "value2"));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(201);
 
@@ -928,12 +750,12 @@ public class CustomApacheHttpClientTest {
         WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
       stubFor(post("/path").willReturn(created()));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.POST);
       request.setHeaders(Map.of(HttpHeaders.CONTENT_TYPE, ContentType.TEXT_PLAIN.getMimeType()));
       request.setBody("Hello, world!");
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(201);
 
@@ -948,12 +770,12 @@ public class CustomApacheHttpClientTest {
         WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
       stubFor(post("/path").willReturn(created()));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.POST);
       request.setHeaders(Map.of(HttpHeaders.CONTENT_TYPE, ContentType.TEXT_PLAIN.getMimeType()));
       request.setBody(123);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(201);
 
@@ -968,12 +790,12 @@ public class CustomApacheHttpClientTest {
         WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
       stubFor(post("/path").willReturn(created()));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.POST);
       request.setHeaders(Map.of(HttpHeaders.CONTENT_TYPE, ContentType.TEXT_PLAIN.getMimeType()));
       request.setBody(true);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(201);
 
@@ -991,10 +813,10 @@ public class CustomApacheHttpClientTest {
         throws Exception {
       stubFor(delete("/path/id").willReturn(noContent()));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.DELETE);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path/id");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.body()).isNull();
       assertThat(result.status()).isEqualTo(204);
@@ -1008,10 +830,10 @@ public class CustomApacheHttpClientTest {
         throws Exception {
       stubFor(put("/path").willReturn(ok()));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.PUT);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
     }
@@ -1021,12 +843,12 @@ public class CustomApacheHttpClientTest {
         throws Exception {
       stubFor(put("/path").willReturn(ok()));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.PUT);
       request.setHeaders(Map.of("header", "headerValue"));
       request.setBody(Map.of("key1", "value1"));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
 
@@ -1042,13 +864,13 @@ public class CustomApacheHttpClientTest {
         throws Exception {
       stubFor(put("/path").willReturn(ok()));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.PUT);
       request.setHeaders(
           Map.of(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.getMimeType()));
       request.setBody(Map.of("key1", "value1", "key2", "value2"));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
 
@@ -1064,12 +886,12 @@ public class CustomApacheHttpClientTest {
         WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
       stubFor(put("/path").willReturn(ok().withBody("Hello, world updated!")));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.PUT);
       request.setHeaders(Map.of(HttpHeaders.CONTENT_TYPE, ContentType.TEXT_PLAIN.getMimeType()));
       request.setBody("Hello, world!");
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       assertThat(result.body()).isEqualTo("Hello, world updated!");
@@ -1080,12 +902,12 @@ public class CustomApacheHttpClientTest {
         WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
       stubFor(put("/path").willReturn(ok().withBody("123")));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.PUT);
       request.setHeaders(Map.of(HttpHeaders.CONTENT_TYPE, ContentType.TEXT_PLAIN.getMimeType()));
       request.setBody(123);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       assertThat(result.body()).isEqualTo("123");
@@ -1109,12 +931,12 @@ public class CustomApacheHttpClientTest {
                               .put("age", 30)
                               .putNull("message"))));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setHeaders(Map.of("Accept", "application/json"));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
       request.setAuthentication(new BasicAuthentication("user", "password"));
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       JSONAssert.assertEquals(
@@ -1130,7 +952,7 @@ public class CustomApacheHttpClientTest {
               .withBasicAuth("user", "password")
               .willReturn(unauthorized().withBody("Unauthorized")));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
       request.setAuthentication(new BasicAuthentication("user", "password"));
@@ -1154,11 +976,11 @@ public class CustomApacheHttpClientTest {
                               .put("age", 30)
                               .putNull("message"))));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setAuthentication(new BearerAuthentication("token"));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       JSONAssert.assertEquals(
@@ -1181,12 +1003,12 @@ public class CustomApacheHttpClientTest {
                               .put("age", 30)
                               .putNull("message"))));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setAuthentication(
           new ApiKeyAuthentication(ApiKeyLocation.HEADERS, "theName", "theValue"));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       JSONAssert.assertEquals(
@@ -1209,12 +1031,12 @@ public class CustomApacheHttpClientTest {
                               .put("age", 30)
                               .putNull("message"))));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setAuthentication(
           new ApiKeyAuthentication(ApiKeyLocation.QUERY, "theName", "theValue"));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       JSONAssert.assertEquals(
@@ -1239,7 +1061,7 @@ public class CustomApacheHttpClientTest {
                               .put("age", 30)
                               .putNull("message"))));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setAuthentication(
           new OAuthAuthentication(
@@ -1250,7 +1072,7 @@ public class CustomApacheHttpClientTest {
               credentialsLocation,
               "read:resource"));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      HttpCommonResult result = customApacheHttpClient.execute(request);
+      HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
       JSONAssert.assertEquals(
@@ -1275,7 +1097,7 @@ public class CustomApacheHttpClientTest {
                               .put("age", 30)
                               .putNull("message"))));
 
-      HttpCommonRequest request = new HttpCommonRequest();
+      HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setAuthentication(
           new OAuthAuthentication(

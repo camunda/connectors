@@ -25,6 +25,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.matching.MultipartValuePatternBuilder;
@@ -36,6 +37,9 @@ import io.camunda.connector.http.base.cloudfunction.CloudFunctionService;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
+import io.camunda.document.Document;
+import io.camunda.document.factory.DocumentFactory;
+import io.camunda.document.reference.DocumentReference;
 import io.camunda.document.store.DocumentCreationRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -45,6 +49,7 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -66,6 +71,18 @@ public class HttpServiceTest {
       new HttpService(disabledCloudFunctionService);
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
   private final TestDocumentFactory documentFactory = new TestDocumentFactory();
+  private final DocumentFactory failingDocumentFactory =
+      new DocumentFactory() {
+        @Override
+        public Document resolve(DocumentReference reference) {
+          throw new RuntimeException("Document resolution failed");
+        }
+
+        @Override
+        public Document create(DocumentCreationRequest request) {
+          throw new RuntimeException("Document creation failed");
+        }
+      };
 
   @BeforeAll
   public static void setUp() {
@@ -345,6 +362,44 @@ public class HttpServiceTest {
       verify(
           postRequestedFor(urlEqualTo("/proxy"))
               .withRequestBody(equalTo(objectMapper.writeValueAsString(request))));
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  public void shouldReturn500WithErrorMessage_whenCreateFileRequestFails(
+      boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    stubCloudFunction(wmRuntimeInfo);
+    HttpService httpClientService =
+        cloudFunctionEnabled ? HttpServiceTest.this.httpService : httpServiceWithoutCloudFunction;
+    WireMock.stubFor(
+        WireMock.get("/download")
+            .willReturn(
+                WireMock.ok()
+                    .withHeader(HttpHeaders.CONTENT_TYPE, ContentType.IMAGE_JPEG.getMimeType())
+                    .withBodyFile("fileName.jpg")));
+
+    // given
+    HttpCommonRequest request = new HttpCommonRequest();
+    request.setMethod(HttpMethod.GET);
+    request.setStoreResponse(true);
+    request.setUrl(getHostAndPort(wmRuntimeInfo) + "/download");
+
+    // when
+    var e =
+        assertThrows(
+            ConnectorException.class,
+            () -> httpClientService.executeConnectorRequest(request, failingDocumentFactory));
+
+    // then
+    Assertions.assertThat(e).isNotNull();
+    Assertions.assertThat(e.getErrorCode()).isEqualTo("500");
+    Assertions.assertThat(e.getMessage())
+        .isEqualTo("Failed to create document: Document creation failed");
+    if (cloudFunctionEnabled) {
+      WireMock.verify(
+          WireMock.postRequestedFor(WireMock.urlEqualTo("/proxy"))
+              .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(request))));
     }
   }
 
