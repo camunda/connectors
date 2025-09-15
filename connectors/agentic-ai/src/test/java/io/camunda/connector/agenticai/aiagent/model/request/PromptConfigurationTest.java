@@ -7,9 +7,11 @@
 package io.camunda.connector.agenticai.aiagent.model.request;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
@@ -24,7 +26,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @Import(ValidationAutoConfiguration.class)
-class OutboundConnectorAgentRequestTest {
+class PromptConfigurationTest {
 
   @Autowired private Validator validator;
 
@@ -47,11 +49,13 @@ class OutboundConnectorAgentRequestTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"  "})
-    void supportsEmptyUserPrompt(String prompt) {
+    void doesNotSupportEmptyUserPrompt(String prompt) {
       final var userPrompt = new UserPromptConfiguration(prompt, List.of());
 
-      assertThat(validator.validate(userPrompt)).isEmpty();
-      assertThat(userPrompt.prompt()).isEqualTo(prompt);
+      assertThat(validator.validate(userPrompt))
+          .hasSize(1)
+          .extracting(c -> c.getPropertyPath().toString(), ConstraintViolation::getMessage)
+          .contains(tuple("prompt", "must not be blank"));
     }
   }
 }
