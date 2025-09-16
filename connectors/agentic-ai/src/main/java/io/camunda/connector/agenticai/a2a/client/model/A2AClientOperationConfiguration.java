@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.a2a.client.model;
 
-import static io.camunda.connector.agenticai.a2a.client.model.OperationConfiguration.FetchAgentCardOperationConfiguration.FETCH_AGENT_CARD_ID;
-import static io.camunda.connector.agenticai.a2a.client.model.OperationConfiguration.SendMessageOperationConfiguration.SEND_MESSAGE_ID;
+import static io.camunda.connector.agenticai.a2a.client.model.A2AClientOperationConfiguration.FetchAgentCardOperationConfiguration.FETCH_AGENT_CARD_ID;
+import static io.camunda.connector.agenticai.a2a.client.model.A2AClientOperationConfiguration.SendMessageOperationConfiguration.SEND_MESSAGE_ID;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -17,17 +17,19 @@ import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.List;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
   @JsonSubTypes.Type(
-      value = OperationConfiguration.FetchAgentCardOperationConfiguration.class,
+      value = A2AClientOperationConfiguration.FetchAgentCardOperationConfiguration.class,
       name = FETCH_AGENT_CARD_ID),
   @JsonSubTypes.Type(
-      value = OperationConfiguration.SendMessageOperationConfiguration.class,
+      value = A2AClientOperationConfiguration.SendMessageOperationConfiguration.class,
       name = SEND_MESSAGE_ID)
 })
 @TemplateDiscriminatorProperty(
@@ -36,12 +38,12 @@ import java.util.List;
     name = "type",
     description = "The type of operation to perform.",
     defaultValue = FETCH_AGENT_CARD_ID)
-public sealed interface OperationConfiguration
-    permits OperationConfiguration.FetchAgentCardOperationConfiguration,
-        OperationConfiguration.SendMessageOperationConfiguration {
+public sealed interface A2AClientOperationConfiguration
+    permits A2AClientOperationConfiguration.FetchAgentCardOperationConfiguration,
+        A2AClientOperationConfiguration.SendMessageOperationConfiguration {
 
   @TemplateSubType(id = FETCH_AGENT_CARD_ID, label = "Fetch Agent Card")
-  record FetchAgentCardOperationConfiguration() implements OperationConfiguration {
+  record FetchAgentCardOperationConfiguration() implements A2AClientOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String FETCH_AGENT_CARD_ID = "fetchAgentCard";
@@ -49,25 +51,7 @@ public sealed interface OperationConfiguration
 
   @TemplateSubType(id = SEND_MESSAGE_ID, label = "Send message")
   record SendMessageOperationConfiguration(
-      @NotBlank
-          @FEEL
-          @TemplateProperty(
-              group = "operation",
-              label = "Text",
-              description = "The text to to be included in the message.",
-              type = TemplateProperty.PropertyType.Text,
-              feel = Property.FeelMode.optional)
-          String text,
-      @FEEL
-          @TemplateProperty(
-              group = "operation",
-              label = "Documents",
-              description = "Documents to be included in the message.",
-              // TODO: add link to documentation
-              tooltip = "Referenced documents that will be added to the message.",
-              feel = Property.FeelMode.required,
-              optional = true)
-          List<Document> documents,
+      @Valid @NotNull Parameters params,
       @TemplateProperty(
               group = "operation",
               label = "Response timeout",
@@ -75,9 +59,30 @@ public sealed interface OperationConfiguration
                   "How long to wait for the remote agent response as ISO-8601 duration (example: <code>PT1M</code>).",
               defaultValue = "PT1M")
           Duration timeout)
-      implements OperationConfiguration {
+      implements A2AClientOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String SEND_MESSAGE_ID = "sendMessage";
+
+    public record Parameters(
+        @NotBlank
+            @FEEL
+            @TemplateProperty(
+                group = "operation",
+                label = "Text",
+                description = "The text to to be included in the message.",
+                type = TemplateProperty.PropertyType.Text,
+                feel = Property.FeelMode.optional)
+            String text,
+        @FEEL
+            @TemplateProperty(
+                group = "operation",
+                label = "Documents",
+                description = "Documents to be included in the message.",
+                // TODO: add link to documentation
+                tooltip = "Referenced documents that will be added to the message.",
+                feel = Property.FeelMode.required,
+                optional = true)
+            List<Document> documents) {}
   }
 }

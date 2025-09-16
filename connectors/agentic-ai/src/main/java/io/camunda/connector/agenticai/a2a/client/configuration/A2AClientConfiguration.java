@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.a2a.client.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.a2a.client.A2AClientAsToolFunction;
 import io.camunda.connector.agenticai.a2a.client.A2AClientFunction;
 import io.camunda.connector.agenticai.a2a.client.A2AClientHandler;
 import io.camunda.connector.agenticai.a2a.client.A2AClientHandlerImpl;
@@ -20,11 +21,15 @@ import io.camunda.connector.agenticai.a2a.client.TaskPoller;
 import io.camunda.connector.agenticai.a2a.client.TaskPollerImpl;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@ConditionalOnBooleanProperty(
+    value = "camunda.connector.agenticai.a2aclient.enabled",
+    matchIfMissing = true)
 public class A2AClientConfiguration {
 
   @Bean
@@ -71,5 +76,11 @@ public class A2AClientConfiguration {
   @ConditionalOnMissingBean
   public A2AClientFunction a2AClientFunction(A2AClientHandler handler) {
     return new A2AClientFunction(handler);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public A2AClientAsToolFunction a2AClientAsToolFunction(A2AClientHandler handler) {
+    return new A2AClientAsToolFunction(handler);
   }
 }

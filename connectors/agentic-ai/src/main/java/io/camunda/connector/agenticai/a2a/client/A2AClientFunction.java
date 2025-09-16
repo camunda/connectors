@@ -25,7 +25,6 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     engineVersion = "^8.8",
     version = 0,
     inputDataClass = A2AClientRequest.class,
-    defaultResultVariable = "toolCallResult",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(
           id = "connection",
@@ -33,7 +32,8 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
           tooltip =
               "Configure the HTTP connection to the remote A2A server for retrieving the Agent Card. Setting authentication headers is not supported yet."),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation")
-    })
+    },
+    icon = "a2a-client.svg")
 public class A2AClientFunction implements OutboundConnectorFunction {
 
   private final A2AClientHandler handler;

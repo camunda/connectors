@@ -15,7 +15,7 @@ import jakarta.validation.constraints.NotNull;
 public record A2AClientRequest(@Valid @NotNull A2AClientRequestData data) {
   public record A2AClientRequestData(
       @Valid @NotNull ConnectionConfiguration connection,
-      @Valid @NotNull OperationConfiguration operation) {
+      @Valid @NotNull A2AClientOperationConfiguration operation) {
 
     public record ConnectionConfiguration(
         @NotBlank
@@ -30,7 +30,7 @@ public record A2AClientRequest(@Valid @NotNull A2AClientRequestData data) {
                 group = "connection",
                 label = "Agent card location",
                 description =
-                    "Optional path to the agent card endpoint relative to the base server URL, defaults to \".well-known/agent-card.json\"",
+                    "Optional path to the agent card endpoint relative to the base server URL, defaults to <code>.well-known/agent-card.json</code>.",
                 type = TemplateProperty.PropertyType.String,
                 feel = Property.FeelMode.optional,
                 optional = true)

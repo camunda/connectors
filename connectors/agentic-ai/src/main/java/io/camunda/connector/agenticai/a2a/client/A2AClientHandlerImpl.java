@@ -21,10 +21,10 @@ import io.a2a.spec.Message;
 import io.a2a.spec.Part;
 import io.a2a.spec.TextPart;
 import io.camunda.connector.agenticai.a2a.client.http.JdkHttpClient;
+import io.camunda.connector.agenticai.a2a.client.model.A2AClientOperationConfiguration.FetchAgentCardOperationConfiguration;
+import io.camunda.connector.agenticai.a2a.client.model.A2AClientOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2AClientRequest;
 import io.camunda.connector.agenticai.a2a.client.model.A2AClientRequest.A2AClientRequestData.ConnectionConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.OperationConfiguration.FetchAgentCardOperationConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.OperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2AClientAgentCardResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2AClientResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2AClientSendMessageResult;
@@ -119,9 +119,9 @@ public class A2AClientHandlerImpl implements A2AClientHandler {
 
   private Message createMessage(SendMessageOperationConfiguration sendMessageOperation) {
     List<Part<?>> parts = new ArrayList<>();
-    parts.add(new TextPart(sendMessageOperation.text()));
-    if (CollectionUtils.isNotEmpty(sendMessageOperation.documents())) {
-      for (var document : sendMessageOperation.documents()) {
+    parts.add(new TextPart(sendMessageOperation.params().text()));
+    if (CollectionUtils.isNotEmpty(sendMessageOperation.params().documents())) {
+      for (var document : sendMessageOperation.params().documents()) {
         parts.add(documentToPartConverter.convert(document));
       }
     }
