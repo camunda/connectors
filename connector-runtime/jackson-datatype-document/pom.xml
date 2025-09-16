@@ -3,7 +3,7 @@
 
   <parent>
     <groupId>io.camunda.connector</groupId>
-    <artifactId>connector-sdk-parent</artifactId>
+    <artifactId>connector-runtime-parent</artifactId>
     <relativePath>../pom.xml</relativePath>
     <version>8.8.0-SNAPSHOT</version>
   </parent>

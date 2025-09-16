@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.automationanywhere.model.request;
 
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.automationanywhere.model.request.auth.Authentication;
 import io.camunda.connector.automationanywhere.model.request.operation.OperationData;
-import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;

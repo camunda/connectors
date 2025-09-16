@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.email.config;
 
-import io.camunda.connector.feel.annotation.FEEL;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;

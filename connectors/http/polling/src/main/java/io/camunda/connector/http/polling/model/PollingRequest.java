@@ -8,7 +8,7 @@ package io.camunda.connector.http.polling.model;
 
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
-import io.camunda.connector.feel.annotation.FEEL;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.http.base.model.HttpMethod;

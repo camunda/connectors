@@ -61,8 +61,6 @@
       <artifactId>commons-collections4</artifactId>
     </dependency>
 
-
-
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-validation</artifactId>
