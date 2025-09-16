@@ -150,10 +150,19 @@ public class PollingManager {
   }
 
   public void poll() {
-    this.prepareForPolling();
-    switch (this.emailListenerConfig.pollingConfig()) {
-      case PollAll pollAll -> pollAllAndProcess(pollAll);
-      case PollUnseen pollUnseen -> pollUnseenAndProcess(pollUnseen);
+    try {
+      this.prepareForPolling();
+      switch (this.emailListenerConfig.pollingConfig()) {
+        case PollAll pollAll -> pollAllAndProcess(pollAll);
+        case PollUnseen pollUnseen -> pollUnseenAndProcess(pollUnseen);
+      }
+      this.connectorContext.reportHealth(Health.up());
+    } catch (Exception e) {
+      // All exception are caught at highest level, ensuring the scheduler never stops, and continue
+      // polling indefinitely
+      this.connectorContext.log(
+          Activity.level(Severity.ERROR).tag("mail-polling").message(e.getMessage()));
+      this.connectorContext.reportHealth(Health.down());
     }
   }
 
@@ -264,8 +273,8 @@ public class PollingManager {
 
   public void stop() {
     try {
-      this.folder.close();
-      this.store.close();
+      if (this.folder.isOpen()) this.folder.close();
+      if (this.store.isConnected()) this.store.close();
     } catch (MessagingException e) {
       throw new RuntimeException(e);
     }
