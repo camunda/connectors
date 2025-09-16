@@ -27,7 +27,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.runtime.core.outbound.OutboundConnectorExceptionHandler;
+import io.camunda.connector.runtime.outbound.jobhandling.OutboundConnectorExceptionHandler;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;

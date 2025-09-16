@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package io.camunda.connector.runtime.core.outbound;
+package io.camunda.connector.runtime.outbound.jobhandling;
 
 import static io.camunda.connector.runtime.core.Keywords.ERROR_EXPRESSION_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.RESULT_EXPRESSION_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.RESULT_VARIABLE_KEYWORD;
-import static io.camunda.connector.runtime.core.outbound.ConnectorJobHandlerTest.OutputTests.ResultVariableTests.newConnectorJobHandler;
+import static io.camunda.connector.runtime.outbound.jobhandling.SpringConnectorJobHandlerTest.OutputTests.ResultVariableTests.newConnectorJobHandler;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -34,19 +34,31 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.client.api.command.FailJobCommandStep1;
+import io.camunda.client.api.worker.BackoffSupplier;
 import io.camunda.client.api.worker.JobClient;
+import io.camunda.client.jobhandling.DefaultCommandExceptionHandlingStrategy;
+import io.camunda.client.metrics.DefaultNoopMetricsRecorder;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.runtime.core.FooBarSecretProvider;
+import io.camunda.connector.runtime.JobBuilder;
+import io.camunda.connector.runtime.TestObjectMapperSupplier;
+import io.camunda.connector.runtime.TestValidation;
 import io.camunda.connector.runtime.core.Keywords;
-import io.camunda.connector.runtime.core.TestObjectMapperSupplier;
+import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
+import io.camunda.connector.runtime.secret.FooBarSecretProvider;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +68,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.*;
 import org.mockito.ArgumentCaptor;
 
-class ConnectorJobHandlerTest {
+class SpringConnectorJobHandlerTest {
 
   private record TestConnectorResponsePojo(String value) {}
 
@@ -70,9 +82,19 @@ class ConnectorJobHandlerTest {
     @Nested
     class ResultVariableTests {
 
-      protected static ConnectorJobHandler newConnectorJobHandler(OutboundConnectorFunction call) {
-        return new ConnectorJobHandler(
-            call, new FooBarSecretProvider(), e -> {}, null, TestObjectMapperSupplier.INSTANCE);
+      protected static SpringConnectorJobHandler newConnectorJobHandler(
+          OutboundConnectorFunction call) {
+        return new SpringConnectorJobHandler(
+            new ConnectorsOutboundMetrics(new SimpleMeterRegistry()),
+            new DefaultCommandExceptionHandlingStrategy(
+                BackoffSupplier.newBackoffBuilder().build(),
+                Executors.newSingleThreadScheduledExecutor()),
+            new SecretProviderAggregator(List.of(new FooBarSecretProvider())),
+            new DefaultValidationProvider(),
+            mock(DocumentFactory.class),
+            TestObjectMapperSupplier.INSTANCE,
+            call,
+            new DefaultNoopMetricsRecorder());
       }
 
       @ParameterizedTest
@@ -493,7 +515,7 @@ class ConnectorJobHandlerTest {
 
       // then
       assertThat(result.getErrorMessage().length())
-          .isLessThanOrEqualTo(ConnectorJobHandler.MAX_ERROR_MESSAGE_LENGTH);
+          .isLessThanOrEqualTo(SpringConnectorJobHandler.MAX_ERROR_MESSAGE_LENGTH);
     }
 
     @Test
@@ -516,7 +538,7 @@ class ConnectorJobHandlerTest {
 
       // then
       assertThat(result.getErrorMessage().length())
-          .isLessThanOrEqualTo(ConnectorJobHandler.MAX_ERROR_MESSAGE_LENGTH);
+          .isLessThanOrEqualTo(SpringConnectorJobHandler.MAX_ERROR_MESSAGE_LENGTH);
     }
 
     @ParameterizedTest
@@ -1236,5 +1258,94 @@ class ConnectorJobHandlerTest {
       assertThat(result.getErrorCode()).isEqualTo("9999");
       assertThat(result.getErrorMessage()).isEqualTo("Message for foo value on test property");
     }
+  }
+
+  @Test
+  void shouldRaiseExceptionDuringJsonProcessing() {
+    // given
+    var jobHandler = newConnectorJobHandler(context -> context.bindVariables(TestValidation.class));
+
+    // when
+    var result =
+        JobBuilder.create()
+            .withVariables("{ \"test\" : \"{{secrets.FOO}}\", \"test2\" : \"{{secrets.FOO}}\" }")
+            .executeAndCaptureResult(jobHandler, false);
+
+    // then
+    assertThat(result.getErrorMessage())
+        .isEqualTo(
+            "jakarta.validation.ValidationException: Found constraints violated while validating input: \n"
+                + " - Property: test: Validation failed. Original message: numeric value out of bounds (<2 digits>.<0 digits> expected)");
+  }
+
+  @Test
+  void shouldPrioritizeSecretNotFoundException() {
+    // given
+    var jobHandler = newConnectorJobHandler(context -> context.bindVariables(TestValidation.class));
+
+    // when
+    var result =
+        JobBuilder.create()
+            .withVariables("{ \"test\" : \"{{secrets.FOO}}\", \"test2\" : \"{{secrets.FOO2}}\" }")
+            .executeAndCaptureResult(jobHandler, false);
+
+    // then
+    assertThat(result.getErrorMessage()).isEqualTo("Secret with name 'FOO2' is not available");
+  }
+
+  @Test
+  void shouldRaiseMultipleExceptionsDuringJsonProcessing() {
+    // given
+    var jobHandler = newConnectorJobHandler(context -> context.bindVariables(TestValidation.class));
+
+    // when
+    var result =
+        JobBuilder.create()
+            .withVariables("{ \"test\" : \"{{secrets.FOO}}\", \"test2\" : \"\" }")
+            .executeAndCaptureResult(jobHandler, false);
+
+    // then
+    assertThat(result.getErrorMessage())
+        .contains("Property: test2: Validation failed. Original message: must not be empty");
+    assertThat(result.getErrorMessage())
+        .contains("Property: test2: Validation failed. Original message: must not be empty");
+  }
+
+  @Test
+  void connectorRaiseAnExceptionContainingSecret() {
+    // given
+    var jobHandler =
+        newConnectorJobHandler(
+            context -> {
+              throw new ConnectorException("test: bar");
+            });
+
+    // when
+    var result =
+        JobBuilder.create()
+            .withVariables("{ \"test\" : \"{{secrets.FOO}}\", \"test2\" : \"null\" }")
+            .executeAndCaptureResult(jobHandler, false);
+
+    // then
+    assertThat(result.getErrorMessage()).isEqualTo("test: ***");
+  }
+
+  @Test
+  void retrieveAllSecretsShouldNotThrowIfSecretNotFound() {
+    // given
+    var jobHandler =
+        newConnectorJobHandler(
+            context -> {
+              throw new ConnectorException("test: bar");
+            });
+
+    // when
+    var result =
+        JobBuilder.create()
+            .withVariables("{ \"test\" : \"12\", \"test2\" : \"{{secrets.FOO}}\" }")
+            .executeAndCaptureResult(jobHandler, false);
+
+    // then
+    assertThat(result.getErrorMessage()).isEqualTo("test: ***");
   }
 }

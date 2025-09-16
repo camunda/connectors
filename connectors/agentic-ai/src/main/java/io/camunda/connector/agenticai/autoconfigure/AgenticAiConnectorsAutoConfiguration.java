@@ -52,9 +52,9 @@ import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryCo
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
-import io.camunda.connector.runtime.core.outbound.OutboundConnectorExceptionHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
+import io.camunda.connector.runtime.outbound.jobhandling.OutboundConnectorExceptionHandler;
 import io.camunda.zeebe.feel.tagged.impl.TaggedParameterExtractor;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;

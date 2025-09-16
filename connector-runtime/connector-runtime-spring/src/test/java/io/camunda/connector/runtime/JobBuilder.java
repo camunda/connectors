@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.outbound;
+package io.camunda.connector.runtime;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -28,13 +28,14 @@ import io.camunda.client.api.command.ThrowErrorCommandStep1;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.outbound.jobhandling.SpringConnectorJobHandler;
 import java.util.HashMap;
 import java.util.Map;
 import org.mockito.ArgumentCaptor;
 
-class JobBuilder {
+public class JobBuilder {
 
-  protected static JobBuilderStep create() {
+  public static JobBuilderStep create() {
     return new JobBuilderStep();
   }
 
@@ -74,6 +75,7 @@ class JobBuilder {
       when(throwCommand.errorCode(any())).thenReturn(throwCommandStep2);
       when(throwCommandStep2.variables(any(Map.class))).thenReturn(throwCommandStep2_2);
       when(job.getKey()).thenReturn(-1L);
+      when(job.getType()).thenReturn("some-type");
     }
 
     public JobBuilderStep useJobClient(JobClient client) {
@@ -114,20 +116,22 @@ class JobBuilder {
       return withHeaders(headers);
     }
 
-    public JobResult executeAndCaptureResult(ConnectorJobHandler connectorJobHandler) {
-      return executeAndCaptureResult(connectorJobHandler, true, false);
+    public JobResult executeAndCaptureResult(SpringConnectorJobHandler SpringConnectorJobHandler) {
+      return executeAndCaptureResult(SpringConnectorJobHandler, true, false);
     }
 
     public JobResult executeAndCaptureResult(
-        ConnectorJobHandler connectorJobHandler, boolean expectComplete) {
-      return executeAndCaptureResult(connectorJobHandler, expectComplete, false);
+        SpringConnectorJobHandler springConnectorJobHandler, boolean expectComplete) {
+      return executeAndCaptureResult(springConnectorJobHandler, expectComplete, false);
     }
 
     public JobResult executeAndCaptureResult(
-        ConnectorJobHandler connectorJobHandler, boolean expectComplete, boolean expectBpmnError) {
+        SpringConnectorJobHandler SpringConnectorJobHandler,
+        boolean expectComplete,
+        boolean expectBpmnError) {
 
       // when
-      connectorJobHandler.handle(jobClient, job);
+      SpringConnectorJobHandler.handle(jobClient, job);
 
       if (expectComplete) {
         var variablesCaptor = ArgumentCaptor.forClass(Map.class);
@@ -159,8 +163,8 @@ class JobBuilder {
       }
     }
 
-    public void execute(ConnectorJobHandler connectorJobHandler) {
-      connectorJobHandler.handle(jobClient, job);
+    public void execute(SpringConnectorJobHandler SpringConnectorJobHandler) {
+      SpringConnectorJobHandler.handle(jobClient, job);
     }
   }
 

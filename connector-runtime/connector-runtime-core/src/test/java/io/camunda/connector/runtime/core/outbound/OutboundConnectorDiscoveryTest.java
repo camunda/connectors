@@ -93,7 +93,7 @@ public class OutboundConnectorDiscoveryTest {
           "CONNECTOR_NOT_ANNOTATED_FUNCTION",
           // This class does not implement the OutboundConnectorFunction interface
           // But since it never gets constructed, it is not a problem
-          "io.camunda.connector.runtime.core.outbound.JobBuilder",
+          "io.camunda.connector.runtime.core.outbound.NotAnnotatedRegisteredFunction",
           "CONNECTOR_NOT_ANNOTATED_INPUT_VARIABLES",
           "foo,bar"
         };

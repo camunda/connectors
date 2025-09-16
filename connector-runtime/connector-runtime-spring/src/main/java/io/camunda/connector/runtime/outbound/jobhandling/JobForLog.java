@@ -14,10 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.utils;
+package io.camunda.connector.runtime.outbound.jobhandling;
 
-import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.NotEmpty;
+import io.camunda.client.api.response.ActivatedJob;
+import java.util.Map;
 
-public record TestValidation(
-    @Digits(fraction = 0, integer = 2) String test, @NotEmpty String test2) {}
+record JobForLog(
+    Long key,
+    Map<String, String> customHeaders,
+    String tenantId,
+    String bpmnProcessId,
+    String type,
+    Long processDefinitionKey,
+    Integer processDefinitionVersion,
+    Long processInstanceKey) {
+  public static JobForLog from(ActivatedJob job) {
+    return new JobForLog(
+        job.getKey(),
+        job.getCustomHeaders(),
+        job.getTenantId(),
+        job.getBpmnProcessId(),
+        job.getType(),
+        job.getProcessDefinitionKey(),
+        job.getProcessDefinitionVersion(),
+        job.getProcessInstanceKey());
+  }
+}
