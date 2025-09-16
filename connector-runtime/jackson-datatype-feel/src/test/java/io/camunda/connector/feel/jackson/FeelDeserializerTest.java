@@ -25,7 +25,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.camunda.connector.feel.annotation.FEEL;
+import io.camunda.connector.api.annotation.FEEL;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;

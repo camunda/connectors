@@ -8,7 +8,7 @@ package io.camunda.connector.sns.outbound.model;
 
 import com.amazonaws.services.sns.model.MessageAttributeValue;
 import com.amazonaws.util.StringUtils;
-import io.camunda.connector.feel.annotation.FEEL;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.AssertTrue;

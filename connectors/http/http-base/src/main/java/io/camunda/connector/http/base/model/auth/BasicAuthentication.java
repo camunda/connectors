@@ -7,7 +7,7 @@
 package io.camunda.connector.http.base.model.auth;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.feel.annotation.FEEL;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotEmpty;

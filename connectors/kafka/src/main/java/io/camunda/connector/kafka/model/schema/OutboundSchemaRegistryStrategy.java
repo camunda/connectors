@@ -9,7 +9,7 @@ package io.camunda.connector.kafka.model.schema;
 
 import static io.camunda.connector.kafka.model.schema.OutboundSchemaRegistryStrategy.TYPE;
 
-import io.camunda.connector.feel.annotation.FEEL;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;

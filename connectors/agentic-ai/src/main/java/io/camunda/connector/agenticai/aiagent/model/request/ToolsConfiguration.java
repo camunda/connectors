@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.model.request;
 
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.feel.annotation.FEEL;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import java.util.List;
