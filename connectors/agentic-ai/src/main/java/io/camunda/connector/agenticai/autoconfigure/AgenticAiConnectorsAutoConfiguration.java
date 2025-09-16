@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.autoconfigure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
-import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CachingProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
@@ -36,8 +35,11 @@ import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
-import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentJobWorkerErrorHandler;
+import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentJobWorkerHandler;
+import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentJobWorkerHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentJobWorkerValueCustomizer;
+import io.camunda.connector.agenticai.aiagent.jobworker.JobWorkerAgentExecutionContextFactory;
+import io.camunda.connector.agenticai.aiagent.jobworker.JobWorkerAgentExecutionContextFactoryImpl;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
@@ -55,6 +57,7 @@ import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
+import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import io.camunda.zeebe.feel.tagged.impl.TaggedParameterExtractor;
 import java.util.List;
@@ -244,9 +247,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> aiFrameworkAdapter,
-      AgentResponseHandler responseHandler,
-      CommandExceptionHandlingStrategy exceptionHandlingStrategy,
-      MetricsRecorder metricsRecorder) {
+      AgentResponseHandler responseHandler) {
     return new JobWorkerAgentRequestHandler(
         agentInitializer,
         conversationStoreRegistry,
@@ -254,9 +255,7 @@ public class AgenticAiConnectorsAutoConfiguration {
         messagesHandler,
         gatewayToolHandlers,
         aiFrameworkAdapter,
-        responseHandler,
-        exceptionHandlingStrategy,
-        metricsRecorder);
+        responseHandler);
   }
 
   @Bean
@@ -264,31 +263,46 @@ public class AgenticAiConnectorsAutoConfiguration {
   @ConditionalOnBooleanProperty(
       value = "camunda.connector.agenticai.aiagent.job-worker.enabled",
       matchIfMissing = true)
-  public AiAgentJobWorker aiAgentJobWorker(
+  public JobWorkerAgentExecutionContextFactory aiAgentJobWorkerAgentExecutionContextFactory(
       SecretProviderAggregator secretProvider,
       @Autowired(required = false) ValidationProvider validationProvider,
       DocumentFactory documentFactory,
-      ObjectMapper objectMapper,
-      JobWorkerAgentRequestHandler agentRequestHandler,
-      CommandExceptionHandlingStrategy exceptionHandlingStrategy,
-      MetricsRecorder metricsRecorder) {
+      ObjectMapper objectMapper) {
     if (validationProvider == null) {
       validationProvider = ValidationUtil.discoverDefaultValidationProviderImplementation();
     }
 
-    final var errorHandler =
-        new AiAgentJobWorkerErrorHandler(
-            new OutboundConnectorExceptionHandler(secretProvider),
-            new ConnectorResultHandler(objectMapper),
-            exceptionHandlingStrategy,
-            metricsRecorder);
+    return new JobWorkerAgentExecutionContextFactoryImpl(
+        secretProvider, validationProvider, documentFactory, objectMapper);
+  }
 
-    return new AiAgentJobWorker(
-        secretProvider,
-        validationProvider,
-        documentFactory,
-        objectMapper,
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnBooleanProperty(
+      value = "camunda.connector.agenticai.aiagent.job-worker.enabled",
+      matchIfMissing = true)
+  public AiAgentJobWorkerHandler aiAgentJobWorkerHandler(
+      JobWorkerAgentExecutionContextFactory executionContextFactory,
+      JobWorkerAgentRequestHandler agentRequestHandler,
+      CommandExceptionHandlingStrategy exceptionHandlingStrategy,
+      SecretProviderAggregator secretProvider,
+      ObjectMapper objectMapper,
+      ConnectorsOutboundMetrics connectorsOutboundMetrics) {
+    return new AiAgentJobWorkerHandlerImpl(
+        executionContextFactory,
         agentRequestHandler,
-        errorHandler);
+        exceptionHandlingStrategy,
+        new OutboundConnectorExceptionHandler(secretProvider),
+        new ConnectorResultHandler(objectMapper),
+        connectorsOutboundMetrics);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnBooleanProperty(
+      value = "camunda.connector.agenticai.aiagent.job-worker.enabled",
+      matchIfMissing = true)
+  public AiAgentJobWorker aiAgentJobWorker(AiAgentJobWorkerHandler jobWorkerHandler) {
+    return new AiAgentJobWorker(jobWorkerHandler);
   }
 }

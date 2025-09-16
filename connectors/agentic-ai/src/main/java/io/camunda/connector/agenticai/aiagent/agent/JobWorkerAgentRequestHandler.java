@@ -6,41 +6,29 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import io.camunda.client.api.command.CompleteJobCommandStep1;
-import io.camunda.client.api.command.FinalCommandStep;
-import io.camunda.client.api.response.CompleteJobResponse;
-import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
-import io.camunda.client.jobhandling.CommandWrapper;
-import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentCompletion;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 public class JobWorkerAgentRequestHandler
-    extends BaseAgentRequestHandler<JobWorkerAgentExecutionContext> {
+    extends BaseAgentRequestHandler<JobWorkerAgentExecutionContext, JobWorkerAgentCompletion> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JobWorkerAgentRequestHandler.class);
-
-  private static final int MAX_ZEEBE_COMMAND_RETRIES = 3;
-
-  private final CommandExceptionHandlingStrategy defaultExceptionHandlingStrategy;
-  private final MetricsRecorder metricsRecorder;
 
   public JobWorkerAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -49,9 +37,7 @@ public class JobWorkerAgentRequestHandler
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> framework,
-      AgentResponseHandler responseHandler,
-      CommandExceptionHandlingStrategy defaultExceptionHandlingStrategy,
-      MetricsRecorder metricsRecorder) {
+      AgentResponseHandler responseHandler) {
     super(
         agentInitializer,
         conversationStoreRegistry,
@@ -60,8 +46,6 @@ public class JobWorkerAgentRequestHandler
         gatewayToolHandlers,
         framework,
         responseHandler);
-    this.defaultExceptionHandlingStrategy = defaultExceptionHandlingStrategy;
-    this.metricsRecorder = metricsRecorder;
   }
 
   @Override
@@ -96,7 +80,7 @@ public class JobWorkerAgentRequestHandler
   }
 
   @Override
-  public AgentResponse completeJob(
+  public JobWorkerAgentCompletion completeJob(
       JobWorkerAgentExecutionContext executionContext,
       AgentResponse agentResponse,
       ConversationStore conversationStore) {
@@ -104,7 +88,13 @@ public class JobWorkerAgentRequestHandler
       LOGGER.debug(
           "No agent response provided, completing job {} without response",
           executionContext.job().getKey());
-      completeAsyncWithoutResponse(executionContext);
+
+      // no-op (do not activate elements, do not complete agent process) -> wait for next job to
+      // proceed (e.g. by adding user messages or to complete tool call results)
+      return JobWorkerAgentCompletion.builder()
+          .completionConditionFulfilled(false)
+          .cancelRemainingInstances(false)
+          .build();
     } else {
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug(
@@ -113,22 +103,11 @@ public class JobWorkerAgentRequestHandler
             agentResponse.toolCalls().stream().map(tc -> tc.metadata().name()).toList());
       }
 
-      completeAsyncWithResponse(executionContext, agentResponse, conversationStore);
+      return completeWithResponse(executionContext, agentResponse, conversationStore);
     }
-
-    return agentResponse;
   }
 
-  private void completeAsyncWithoutResponse(JobWorkerAgentExecutionContext executionContext) {
-    // no-op (do not activate elements, do not complete agent process) -> wait for next job to
-    // proceed (e.g. by adding user messages or to complete tool call results)
-    executeCommandAsync(
-        executionContext,
-        prepareCompleteCommand(executionContext),
-        defaultExceptionHandlingStrategy);
-  }
-
-  private void completeAsyncWithResponse(
+  private JobWorkerAgentCompletion completeWithResponse(
       JobWorkerAgentExecutionContext executionContext,
       AgentResponse agentResponse,
       ConversationStore conversationStore) {
@@ -153,43 +132,22 @@ public class JobWorkerAgentRequestHandler
       variables.put(AiAgentJobWorker.TOOL_CALL_RESULTS_VARIABLE, List.of());
     }
 
-    final var completeCommand =
-        prepareCompleteCommand(executionContext)
-            .variables(variables)
-            .withResult(
-                result -> {
-                  var adHocSubProcess =
-                      result
-                          .forAdHocSubProcess()
-                          .completionConditionFulfilled(completionConditionFulfilled)
-                          .cancelRemainingInstances(cancelRemainingInstances);
+    return JobWorkerAgentCompletion.builder()
+        .agentResponse(agentResponse)
+        .completionConditionFulfilled(completionConditionFulfilled)
+        .cancelRemainingInstances(cancelRemainingInstances)
+        .variables(variables)
+        .onCompletionError(
+            throwable -> {
+              if (conversationStore != null) {
+                LOGGER.debug("Allowing conversation store to compensate job failure");
 
-                  for (ToolCallProcessVariable toolCall : agentResponse.toolCalls()) {
-                    if (LOGGER.isTraceEnabled()) {
-                      LOGGER.trace("Activating tool {}: {}", toolCall.metadata().name(), toolCall);
-                    } else {
-                      LOGGER.debug("Activating tool {}", toolCall.metadata().name());
-                    }
-
-                    adHocSubProcess =
-                        adHocSubProcess
-                            .activateElement(toolCall.metadata().name())
-                            .variables(
-                                Map.ofEntries(
-                                    Map.entry(AiAgentJobWorker.TOOL_CALL_VARIABLE, toolCall),
-                                    // Creating empty toolCall result variable to avoid variable
-                                    // to bubble up in the upper scopes while merging variables on
-                                    // ad-hoc sub-process inner instance completion.
-                                    Map.entry(AiAgentJobWorker.TOOL_CALL_RESULT_VARIABLE, "")));
-                  }
-
-                  return adHocSubProcess;
-                });
-
-    executeCommandAsync(
-        executionContext,
-        completeCommand,
-        exceptionHandlingStrategy(executionContext, agentResponse, conversationStore));
+                // allow storage to compensate for failed job completion
+                conversationStore.compensateFailedJobCompletion(
+                    executionContext, agentResponse.context(), throwable);
+              }
+            })
+        .build();
   }
 
   private JobWorkerAgentResponse createAgentResponseVariable(
@@ -207,47 +165,5 @@ public class JobWorkerAgentRequestHandler
     }
 
     return builder.build();
-  }
-
-  private void executeCommandAsync(
-      JobWorkerAgentExecutionContext executionContext,
-      FinalCommandStep<CompleteJobResponse> command,
-      CommandExceptionHandlingStrategy exceptionHandlingStrategy) {
-    LOGGER.debug(
-        "Asynchronously executing complete command for job: {}, max retries: {}",
-        executionContext.job().getKey(),
-        MAX_ZEEBE_COMMAND_RETRIES);
-    new CommandWrapper(
-            command,
-            executionContext.job(),
-            exceptionHandlingStrategy,
-            metricsRecorder,
-            MAX_ZEEBE_COMMAND_RETRIES)
-        .executeAsync();
-  }
-
-  private CommandExceptionHandlingStrategy exceptionHandlingStrategy(
-      JobWorkerAgentExecutionContext executionContext,
-      AgentResponse agentResponse,
-      ConversationStore conversationStore) {
-    // conversationStore may be null if agent did not reach a state where it
-    // interacted with the store (initialization only)
-    if (conversationStore == null || agentResponse == null) {
-      return defaultExceptionHandlingStrategy;
-    } else {
-      return (command, throwable) -> {
-        LOGGER.error("Exception occurred during AI Agent job completion", throwable);
-
-        // allow storage to compensate for failed job completion
-        conversationStore.compensateFailedJobCompletion(
-            executionContext, agentResponse.context(), throwable);
-        defaultExceptionHandlingStrategy.handleCommandError(command, throwable);
-      };
-    }
-  }
-
-  private CompleteJobCommandStep1 prepareCompleteCommand(
-      JobWorkerAgentExecutionContext executionContext) {
-    return executionContext.jobClient().newCompleteCommand(executionContext.job());
   }
 }

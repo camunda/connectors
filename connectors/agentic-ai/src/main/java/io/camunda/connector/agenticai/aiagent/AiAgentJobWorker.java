@@ -6,19 +6,10 @@
  */
 package io.camunda.connector.agenticai.aiagent;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.annotation.JobWorker;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
-import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
-import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentJobWorkerErrorHandler;
-import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest;
-import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
+import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentJobWorkerHandler;
 
 /**
  * AI Agent job worker implementation (acting on an ad-hoc sub-process).
@@ -44,26 +35,10 @@ public class AiAgentJobWorker {
   public static final String DATA_VARIABLE = "data";
   public static final String TOOL_CALL_VARIABLE = "toolCall";
 
-  private final SecretProvider secretProvider;
-  private final ValidationProvider validationProvider;
-  private final DocumentFactory documentFactory;
-  private final ObjectMapper objectMapper;
-  private final JobWorkerAgentRequestHandler agentRequestHandler;
-  private final AiAgentJobWorkerErrorHandler errorHandler;
+  private final AiAgentJobWorkerHandler jobWorkerHandler;
 
-  public AiAgentJobWorker(
-      SecretProvider secretProvider,
-      ValidationProvider validationProvider,
-      DocumentFactory documentFactory,
-      ObjectMapper objectMapper,
-      JobWorkerAgentRequestHandler agentRequestHandler,
-      AiAgentJobWorkerErrorHandler errorHandler) {
-    this.secretProvider = secretProvider;
-    this.validationProvider = validationProvider;
-    this.documentFactory = documentFactory;
-    this.objectMapper = objectMapper;
-    this.agentRequestHandler = agentRequestHandler;
-    this.errorHandler = errorHandler;
+  public AiAgentJobWorker(AiAgentJobWorkerHandler jobWorkerHandler) {
+    this.jobWorkerHandler = jobWorkerHandler;
   }
 
   @JobWorker(
@@ -77,18 +52,7 @@ public class AiAgentJobWorker {
         DATA_VARIABLE
       },
       autoComplete = false)
-  public void execute(final JobClient jobClient, final ActivatedJob job) {
-    errorHandler.executeWithErrorHandling(
-        jobClient,
-        job,
-        () -> {
-          final OutboundConnectorContext context =
-              new JobHandlerContext(
-                  job, secretProvider, validationProvider, documentFactory, objectMapper);
-          final var request = context.bindVariables(JobWorkerAgentRequest.class);
-          final var executionContext = new JobWorkerAgentExecutionContext(jobClient, job, request);
-
-          return agentRequestHandler.handleRequest(executionContext);
-        });
+  public void execute(final JobClient jobClient, final ActivatedJob job) throws Exception {
+    jobWorkerHandler.handle(jobClient, job);
   }
 }
