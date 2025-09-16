@@ -34,7 +34,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     type = "io.camunda.agenticai:aiagent:1")
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.aiagent.v1",
-    name = "AI Agent",
+    name = "AI Agent Task",
     description =
         "Provides a generic AI agent implementation handling the feedback loop between user requests, tool calls and LLM responses.",
     documentationRef =
