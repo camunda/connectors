@@ -149,7 +149,7 @@ public class ElementTypeSupportTest extends BaseTest {
 
     assertThat(template.appliesTo()).containsExactly(BpmnType.RECEIVE_TASK.getName());
     assertThat(template.elementType().value()).isEqualTo(BpmnType.RECEIVE_TASK.getName());
-    assertThat(template.elementType().eventDefinition()).isEqualTo("bpmn:MessageEventDefinition");
+    assertThat(template.elementType().eventDefinition()).isNull();
   }
 
   @Test

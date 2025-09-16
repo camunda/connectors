@@ -14,8 +14,7 @@
   },
   "appliesTo" : [ "bpmn:ReceiveTask" ],
   "elementType" : {
-    "value" : "bpmn:ReceiveTask",
-    "eventDefinition" : "bpmn:MessageEventDefinition"
+    "value" : "bpmn:ReceiveTask"
   },
   "groups": [
     {
