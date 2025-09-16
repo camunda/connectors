@@ -31,7 +31,7 @@ import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
-import io.camunda.connector.runtime.outbound.jobhandling.SpringConnectorJobHandler;
+import io.camunda.connector.runtime.outbound.job.SpringConnectorJobHandler;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Set;

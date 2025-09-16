@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.outbound.jobhandling;
+package io.camunda.connector.runtime.outbound.job;
 
-import static io.camunda.connector.runtime.outbound.jobhandling.SpringConnectorJobHandler.MAX_ERROR_MESSAGE_LENGTH;
+import static io.camunda.connector.runtime.outbound.job.SpringConnectorJobHandler.MAX_ERROR_MESSAGE_LENGTH;
 
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.error.ConnectorException;

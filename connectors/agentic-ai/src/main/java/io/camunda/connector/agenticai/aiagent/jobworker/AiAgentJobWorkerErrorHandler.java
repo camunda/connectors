@@ -19,7 +19,7 @@ import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.SuccessResult;
-import io.camunda.connector.runtime.outbound.jobhandling.OutboundConnectorExceptionHandler;
+import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.function.Supplier;

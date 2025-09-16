@@ -28,7 +28,7 @@ import io.camunda.client.api.command.ThrowErrorCommandStep1;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.runtime.core.Keywords;
-import io.camunda.connector.runtime.outbound.jobhandling.SpringConnectorJobHandler;
+import io.camunda.connector.runtime.outbound.job.SpringConnectorJobHandler;
 import java.util.HashMap;
 import java.util.Map;
 import org.mockito.ArgumentCaptor;

@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package io.camunda.connector.runtime.outbound.jobhandling;
+package io.camunda.connector.runtime.outbound.job;
 
 import static io.camunda.connector.runtime.core.Keywords.ERROR_EXPRESSION_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.RESULT_EXPRESSION_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.RESULT_VARIABLE_KEYWORD;
-import static io.camunda.connector.runtime.outbound.jobhandling.SpringConnectorJobHandlerTest.OutputTests.ResultVariableTests.newConnectorJobHandler;
+import static io.camunda.connector.runtime.outbound.job.SpringConnectorJobHandlerTest.OutputTests.ResultVariableTests.newConnectorJobHandler;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;

@@ -54,7 +54,7 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
-import io.camunda.connector.runtime.outbound.jobhandling.OutboundConnectorExceptionHandler;
+import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import io.camunda.zeebe.feel.tagged.impl.TaggedParameterExtractor;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
