@@ -54,17 +54,12 @@ public class ConnectorJobHandler implements JobHandler {
   public static final int MAX_ERROR_MESSAGE_LENGTH = 6000;
   private static final Logger LOGGER = LoggerFactory.getLogger(ConnectorJobHandler.class);
   protected final OutboundConnectorFunction call;
-  protected SecretProvider secretProvider;
-
-  protected ValidationProvider validationProvider;
-
-  protected DocumentFactory documentFactory;
-
-  protected ObjectMapper objectMapper;
-
-  private OutboundConnectorExceptionHandler outboundConnectorExceptionHandler;
-
   private final ConnectorResultHandler connectorResultHandler;
+  protected SecretProvider secretProvider;
+  protected ValidationProvider validationProvider;
+  protected DocumentFactory documentFactory;
+  protected ObjectMapper objectMapper;
+  private OutboundConnectorExceptionHandler outboundConnectorExceptionHandler;
 
   /**
    * Create a handler wrapper for the specified connector function.
@@ -112,9 +107,9 @@ public class ConnectorJobHandler implements JobHandler {
       JobClient client, ActivatedJob job, BpmnError error) {
     return client
         .newThrowErrorCommand(job)
-        .errorCode(error.code())
+        .errorCode(error.errorCode())
         .variables(error.variables())
-        .errorMessage(truncateErrorMessage(error.message()));
+        .errorMessage(truncateErrorMessage(error.errorMessage()));
   }
 
   private static String truncateErrorMessage(String message) {
@@ -205,7 +200,8 @@ public class ConnectorJobHandler implements JobHandler {
 
   private void handleBPMNError(JobClient client, ActivatedJob job, ConnectorError error) {
     if (error instanceof BpmnError bpmnError) {
-      LOGGER.debug("Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.code());
+      LOGGER.debug(
+          "Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.errorCode());
       throwBpmnError(client, job, bpmnError);
     } else if (error instanceof JobError jobError) {
       LOGGER.debug("Throwing incident for job {}", job.getKey());
@@ -213,8 +209,8 @@ public class ConnectorJobHandler implements JobHandler {
           client,
           job,
           new ErrorResult(
-              Map.of("error", jobError.message()),
-              new RuntimeException(jobError.message()),
+              Map.of("error", jobError.errorMessage()),
+              new RuntimeException(jobError.errorMessage()),
               jobError.retries(),
               jobError.retryBackoff()));
     }
