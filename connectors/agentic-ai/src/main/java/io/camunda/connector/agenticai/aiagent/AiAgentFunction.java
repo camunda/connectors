@@ -37,6 +37,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     name = "AI Agent Task",
     description =
         "Handles individual tasks by aligning user requests with AI responses, optimized for focused, single-goal queries.",
+    metadata = @ElementTemplate.Metadata(keywords = {"AI", "AI Agent", "agentic orchestration"}),
     documentationRef =
         "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/",
     engineVersion = "^8.8",
