@@ -14,10 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.utils;
+package io.camunda.connector.runtime.core.outbound;
 
-import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.NotEmpty;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 
-public record TestValidation(
-    @Digits(fraction = 0, integer = 2) String test, @NotEmpty String test2) {}
+public class NotAnnotatedRegisteredFunction implements OutboundConnectorFunction {
+
+  @Override
+  public Object execute(OutboundConnectorContext context) throws Exception {
+    return null;
+  }
+}
