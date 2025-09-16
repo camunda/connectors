@@ -18,10 +18,12 @@ package io.camunda.connector.http.client.client.apache.builder.parts;
 
 import static org.apache.hc.core5.http.HttpHeaders.AUTHORIZATION;
 
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.authentication.Base64Helper;
 import io.camunda.connector.http.client.authentication.OAuthService;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesBody;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.client.model.auth.ApiKeyAuthentication;
@@ -29,6 +31,7 @@ import io.camunda.connector.http.client.model.auth.BasicAuthentication;
 import io.camunda.connector.http.client.model.auth.BearerAuthentication;
 import io.camunda.connector.http.client.model.auth.NoAuthentication;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
+import java.nio.charset.StandardCharsets;
 import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 
 public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuilder {
@@ -68,6 +71,10 @@ public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuil
   String fetchOAuthToken(OAuthAuthentication authentication) {
     HttpClientRequest oAuthRequest = oAuthService.createOAuthRequestFrom(authentication);
     HttpClientResult response = new CustomApacheHttpClient().execute(oAuthRequest);
-    return oAuthService.extractTokenFromResponse(response.body());
+    if (response.body() instanceof BytesBody(byte[] value)) {
+      return oAuthService.extractTokenFromResponse(new String(value, StandardCharsets.UTF_8));
+    } else {
+      throw new ConnectorException("Invalid OAuth token response body: " + response.body());
+    }
   }
 }

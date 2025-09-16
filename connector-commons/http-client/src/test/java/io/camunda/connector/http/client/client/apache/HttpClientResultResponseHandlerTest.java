@@ -103,6 +103,31 @@ public class HttpClientResultResponseHandlerTest {
   }
 
   @Test
+  public void shouldHandleJsonAsTextResponse_whenCloudFunctionEnabled() throws Exception {
+    // given
+    HttpCommonResultResponseHandler handler =
+        new HttpCommonResultResponseHandler(new ExecutionEnvironment.SaaSCluster(null), false);
+    ClassicHttpResponse response = new BasicClassicHttpResponse(201);
+    Header[] headers = new Header[] {new BasicHeader("Content-Type", "application/json")};
+    response.setHeaders(headers);
+    HttpClientResult cloudFunctionResult =
+        new HttpClientResult(200, Map.of("X-Header", "value"), "{\"key\":\"value\"}");
+    response.setEntity(
+        new StringEntity(
+            HttpClientObjectMapperSupplier.getCopy().writeValueAsString(cloudFunctionResult)));
+
+    // when
+    HttpClientResult result = handler.handleResponse(response);
+
+    // then
+    assertThat(result).isNotNull();
+    assertThat(result.status()).isEqualTo(200);
+    assertThat(result.body()).isEqualTo("{\"key\":\"value\"}");
+    assertThat(result.headers()).hasSize(1);
+    assertThat(result.headers()).containsEntry("X-Header", "value");
+  }
+
+  @Test
   public void shouldHandleError_whenCloudFunctionEnabled() throws Exception {
     // given
     HttpCommonResultResponseHandler handler =
@@ -129,30 +154,5 @@ public class HttpClientResultResponseHandlerTest {
     assertThat(result.headers()).hasSize(2);
     assertThat(result.headers()).containsEntry("X-Header", "value");
     assertThat(result.headers()).containsEntry("Content-Type", "application/json");
-  }
-
-  @Test
-  public void shouldHandleJsonAsTextResponse_whenCloudFunctionEnabled() throws Exception {
-    // given
-    HttpCommonResultResponseHandler handler =
-        new HttpCommonResultResponseHandler(new ExecutionEnvironment.SaaSCluster(null), false);
-    ClassicHttpResponse response = new BasicClassicHttpResponse(201);
-    Header[] headers = new Header[] {new BasicHeader("Content-Type", "application/json")};
-    response.setHeaders(headers);
-    HttpClientResult cloudFunctionResult =
-        new HttpClientResult(200, Map.of("X-Header", "value"), "{\"key\":\"value\"}");
-    response.setEntity(
-        new StringEntity(
-            HttpClientObjectMapperSupplier.getCopy().writeValueAsString(cloudFunctionResult)));
-
-    // when
-    HttpClientResult result = handler.handleResponse(response);
-
-    // then
-    assertThat(result).isNotNull();
-    assertThat(result.status()).isEqualTo(200);
-    assertThat(result.body()).isEqualTo("{\"key\":\"value\"}");
-    assertThat(result.headers()).hasSize(1);
-    assertThat(result.headers()).containsEntry("X-Header", "value");
   }
 }

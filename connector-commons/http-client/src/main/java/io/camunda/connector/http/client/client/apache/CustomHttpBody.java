@@ -20,6 +20,8 @@ import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesBody;
 import io.camunda.connector.http.client.client.apache.CustomHttpBody.StringBody;
 
 public sealed interface CustomHttpBody permits BytesBody, StringBody {
+  Object value();
+
   record BytesBody(byte[] value) implements CustomHttpBody {}
 
   record StringBody(String value) implements CustomHttpBody {}

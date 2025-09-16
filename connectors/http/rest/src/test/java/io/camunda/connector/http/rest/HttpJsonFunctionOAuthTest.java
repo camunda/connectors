@@ -28,10 +28,12 @@ import io.camunda.connector.http.client.authentication.OAuthConstants;
 import io.camunda.connector.http.client.authentication.OAuthService;
 import io.camunda.connector.http.client.client.apache.ApacheRequestFactory;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesBody;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,7 +43,7 @@ import org.mockito.MockedConstruction;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class HttpClientServiceTest extends BaseTest {
+class HttpJsonFunctionOAuthTest extends BaseTest {
 
   public static final String ACCESS_TOKEN =
       "{\"access_token\": \"abcd\", \"scope\":\"read:clients\", \"expires_in\":86400,\"token_type\":\"Bearer\"}";
@@ -70,7 +72,13 @@ class HttpClientServiceTest extends BaseTest {
             (io.camunda.connector.http.client.model.auth.OAuthAuthentication)
                 request.getAuthentication());
     HttpClientResult oauthResult =
-        new HttpClientResult(200, null, Map.of(OAuthConstants.ACCESS_TOKEN, ACCESS_TOKEN));
+        new HttpClientResult(
+            200,
+            null,
+            new BytesBody(
+                Map.of(OAuthConstants.ACCESS_TOKEN, ACCESS_TOKEN)
+                    .toString()
+                    .getBytes(StandardCharsets.UTF_8)));
     var mockedClient = mock(CustomApacheHttpClient.class);
     try (MockedConstruction<CustomApacheHttpClient> mocked =
         mockConstruction(

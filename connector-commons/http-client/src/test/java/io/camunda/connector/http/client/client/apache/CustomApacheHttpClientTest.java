@@ -32,6 +32,7 @@ import com.github.tomakehurst.wiremock.matching.MultipartValuePatternBuilder;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
+import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesBody;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.client.model.HttpMethod;
@@ -40,6 +41,7 @@ import io.camunda.connector.http.client.model.auth.ApiKeyLocation;
 import io.camunda.connector.http.client.model.auth.BasicAuthentication;
 import io.camunda.connector.http.client.model.auth.BearerAuthentication;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,20 +53,21 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.*;
-import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.DockerImageName;
 import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import wiremock.com.fasterxml.jackson.databind.node.POJONode;
 
 @WireMockTest
 public class CustomApacheHttpClientTest {
 
   private final CustomApacheHttpClient customApacheHttpClient = new CustomApacheHttpClient();
   private final ObjectMapper objectMapper = HttpClientObjectMapperSupplier.getCopy();
+
+  private static String convertToString(Object object) {
+    return new String(((BytesBody) object).value(), StandardCharsets.UTF_8);
+  }
 
   @Nested
   class ProxyTests {
@@ -138,7 +141,7 @@ public class CustomApacheHttpClientTest {
       HttpClientResult result = proxiedApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      assertThat(result.body()).isEqualTo("Hello, world!");
+      assertThat(convertToString(result.body())).isEqualTo("Hello, world!");
       assertThat(result.headers().get("Via")).asString().contains("squid");
       proxy.verify(getRequestedFor(urlEqualTo("/protected")));
     }
@@ -179,7 +182,7 @@ public class CustomApacheHttpClientTest {
                               request); // http://host.testcontainers.internal:33029/protected
                       assertThat(result).isNotNull();
                       assertThat(result.status()).isEqualTo(200);
-                      assertThat(result.body()).isEqualTo("Hello, world!");
+                      assertThat(convertToString(result.body())).isEqualTo("Hello, world!");
                       assertThat(result.headers().get("Via")).asString().contains("squid");
                       proxy.verify(getRequestedFor(urlEqualTo(path)));
                     });
@@ -278,15 +281,14 @@ public class CustomApacheHttpClientTest {
       HttpClientResult result = proxiedApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      assertThat(result.body()).isEqualTo("Hello, world!");
+      assertThat(convertToString(result.body())).isEqualTo("Hello, world!");
       assertThat(result.headers().get("Via")).asString().contains("squid");
       proxy.verify(getRequestedFor(urlEqualTo("/path")));
     }
 
     @Test
     public void shouldReturn200_whenPostAndProxySet(WireMockRuntimeInfo wmRuntimeInfo) {
-      proxy.stubFor(
-          post("/path").willReturn(created().withJsonBody(new POJONode(Map.of("key1", "value1")))));
+      proxy.stubFor(post("/path").willReturn(ok().withBody("Hello, world!")));
       setAllSystemProperties();
 
       HttpClientRequest request = new HttpClientRequest();
@@ -294,16 +296,15 @@ public class CustomApacheHttpClientTest {
       request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/path"));
       HttpClientResult result = proxiedApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
-      assertThat(result.status()).isEqualTo(201);
-      assertThat(result.body()).isEqualTo(Map.of("key1", "value1"));
+      assertThat(result.status()).isEqualTo(200);
+      assertThat(convertToString(result.body())).isEqualTo("Hello, world!");
       assertThat(result.headers().get("Via")).asString().contains("squid");
       proxy.verify(postRequestedFor(urlEqualTo("/path")));
     }
 
     @Test
     public void shouldReturn200_whenPutAndProxySet(WireMockRuntimeInfo wmRuntimeInfo) {
-      proxy.stubFor(
-          put("/path").willReturn(ok().withJsonBody(new POJONode(Map.of("key1", "value1")))));
+      proxy.stubFor(put("/path").willReturn(ok().withBody("Hello, world!")));
       setAllSystemProperties();
 
       HttpClientRequest request = new HttpClientRequest();
@@ -312,7 +313,7 @@ public class CustomApacheHttpClientTest {
       HttpClientResult result = proxiedApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      assertThat(result.body()).isEqualTo(Map.of("key1", "value1"));
+      assertThat(convertToString(result.body())).isEqualTo("Hello, world!");
       assertThat(result.headers().get("Via")).asString().contains("squid");
       proxy.verify(putRequestedFor(urlEqualTo("/path")));
     }
@@ -488,7 +489,7 @@ public class CustomApacheHttpClientTest {
       HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      assertThat(result.body()).isEqualTo("Hello, world!");
+      assertThat(convertToString(result.body())).isEqualTo("Hello, world!");
     }
 
     @Test
@@ -511,10 +512,8 @@ public class CustomApacheHttpClientTest {
       HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      JSONAssert.assertEquals(
-          "{\"name\":\"John\",\"age\":30,\"message\":null}",
-          objectMapper.writeValueAsString(result.body()),
-          JSONCompareMode.STRICT);
+      assertThat("{\"name\":\"John\",\"age\":30,\"message\":null}")
+          .isEqualTo(convertToString(result.body()));
     }
 
     @ParameterizedTest
@@ -531,12 +530,9 @@ public class CustomApacheHttpClientTest {
       HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      HttpClientRequest parsedRequest =
-          objectMapper.readValue(objectMapper.writeValueAsString(request), HttpClientRequest.class);
-      assertEquals("\"Hello, world\"", parsedRequest.getBody());
-      HttpClientRequest parsedResult =
-          objectMapper.readValue(objectMapper.writeValueAsString(result), HttpClientRequest.class);
-      assertEquals("\"Hello, world\"", parsedResult.getBody());
+
+      assertEquals("\"Hello, world\"", request.getBody());
+      assertEquals("\"Hello, world\"", convertToString(result.body()));
     }
 
     @ParameterizedTest
@@ -562,7 +558,7 @@ public class CustomApacheHttpClientTest {
       HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      assertThat(result.body())
+      assertThat(convertToString(result.body()))
           .isEqualTo(
               "<note>\n"
                   + "  <to>Tove</to>\n"
@@ -595,7 +591,7 @@ public class CustomApacheHttpClientTest {
           assertThrows(ConnectorException.class, () -> customApacheHttpClient.execute(request));
       assertThat(e.getErrorCode()).isEqualTo("404");
       assertThat(e.getMessage()).contains("Not Found");
-      assertThat(((Map) e.getErrorVariables().get("response")).get("body"))
+      assertThat(convertToString(((Map) e.getErrorVariables().get("response")).get("body")))
           .isEqualTo("Not Found: /path");
     }
 
@@ -808,6 +804,7 @@ public class CustomApacheHttpClientTest {
 
   @Nested
   class DeleteTests {
+
     @Test
     public void shouldReturn204WithoutBody_whenDelete(WireMockRuntimeInfo wmRuntimeInfo)
         throws Exception {
@@ -825,6 +822,7 @@ public class CustomApacheHttpClientTest {
 
   @Nested
   class PutTests {
+
     @Test
     public void shouldReturn200WithoutBody_whenEmptyPut(WireMockRuntimeInfo wmRuntimeInfo)
         throws Exception {
@@ -894,7 +892,7 @@ public class CustomApacheHttpClientTest {
       HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      assertThat(result.body()).isEqualTo("Hello, world updated!");
+      assertThat(convertToString(result.body())).isEqualTo("Hello, world updated!");
     }
 
     @Test
@@ -910,7 +908,7 @@ public class CustomApacheHttpClientTest {
       HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      assertThat(result.body()).isEqualTo("123");
+      assertThat(convertToString(result.body())).isEqualTo("123");
     }
   }
 
@@ -939,10 +937,8 @@ public class CustomApacheHttpClientTest {
       HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      JSONAssert.assertEquals(
-          "{\"name\":\"John\",\"age\":30,\"message\":null}",
-          objectMapper.writeValueAsString(result.body()),
-          JSONCompareMode.STRICT);
+      assertThat("{\"name\":\"John\",\"age\":30,\"message\":null}")
+          .isEqualTo(convertToString(result.body()));
     }
 
     @Test
@@ -983,10 +979,8 @@ public class CustomApacheHttpClientTest {
       HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      JSONAssert.assertEquals(
-          "{\"name\":\"John\",\"age\":30,\"message\":null}",
-          objectMapper.writeValueAsString(result.body()),
-          JSONCompareMode.STRICT);
+      assertThat("{\"name\":\"John\",\"age\":30,\"message\":null}")
+          .isEqualTo((convertToString(result.body())));
     }
 
     @Test
@@ -1011,10 +1005,8 @@ public class CustomApacheHttpClientTest {
       HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      JSONAssert.assertEquals(
-          "{\"name\":\"John\",\"age\":30,\"message\":null}",
-          objectMapper.writeValueAsString(result.body()),
-          JSONCompareMode.STRICT);
+      assertThat("{\"name\":\"John\",\"age\":30,\"message\":null}")
+          .isEqualTo(convertToString(result.body()));
     }
 
     @Test
@@ -1039,10 +1031,8 @@ public class CustomApacheHttpClientTest {
       HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      JSONAssert.assertEquals(
-          "{\"name\":\"John\",\"age\":30,\"message\":null}",
-          objectMapper.writeValueAsString(result.body()),
-          JSONCompareMode.STRICT);
+      assertThat("{\"name\":\"John\",\"age\":30,\"message\":null}")
+          .isEqualTo(convertToString(result.body()));
     }
 
     @ParameterizedTest
@@ -1075,10 +1065,8 @@ public class CustomApacheHttpClientTest {
       HttpClientResult result = customApacheHttpClient.execute(request);
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      JSONAssert.assertEquals(
-          "{\"name\":\"John\",\"age\":30,\"message\":null}",
-          objectMapper.writeValueAsString(result.body()),
-          JSONCompareMode.STRICT);
+      assertThat("{\"name\":\"John\",\"age\":30,\"message\":null}")
+          .isEqualTo(convertToString(result.body()));
     }
 
     @ParameterizedTest

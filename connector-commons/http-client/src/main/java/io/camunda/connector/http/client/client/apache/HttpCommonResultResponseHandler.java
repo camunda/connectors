@@ -28,6 +28,7 @@ import io.camunda.connector.http.client.model.ErrorResponse;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -120,7 +121,10 @@ public class HttpCommonResultResponseHandler
     }
     // Unwrap the response as a HttpCommonResult directly
     var result =
-        HttpClientObjectMapperSupplier.getCopy().readValue(content, HttpClientResult.class);
+        HttpClientObjectMapperSupplier
+            .getCopy() // TODO i think this will break for doucments, right?
+            .readValue(
+                new String(content.readAllBytes(), StandardCharsets.UTF_8), HttpClientResult.class);
     Document document = fileResponseHandler.handleCloudFunctionResult(result);
     return new HttpClientResult(
         result.status(),
