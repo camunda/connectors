@@ -79,6 +79,7 @@
        <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
+          <version>${plugin.version.maven-shade-plugin}</version>
           <dependencies>
             <dependency>
               <groupId>org.springframework.boot</groupId>
