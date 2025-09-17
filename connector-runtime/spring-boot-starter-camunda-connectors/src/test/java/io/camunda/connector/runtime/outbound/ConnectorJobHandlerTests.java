@@ -21,6 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.secret.SecretContext;
+import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.runtime.core.outbound.ConnectorJobHandler;
 import io.camunda.connector.runtime.utils.TestSecretProvider;
@@ -29,20 +31,26 @@ import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import io.camunda.document.factory.DocumentFactory;
 import io.camunda.document.factory.DocumentFactoryImpl;
 import io.camunda.document.store.InMemoryDocumentStore;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 public class ConnectorJobHandlerTests {
 
-  protected static ConnectorJobHandler newConnectorJobHandler(OutboundConnectorFunction call) {
+  protected static ConnectorJobHandler newConnectorJobHandler(
+      OutboundConnectorFunction call, SecretProvider secretProvider) {
     DocumentFactory documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
 
     return new ConnectorJobHandler(
         call,
-        new TestSecretProvider(),
+        secretProvider,
         new DefaultValidationProvider(),
         documentFactory,
         ConnectorsObjectMapperSupplier.getCopy(
             documentFactory, JacksonModuleDocumentDeserializer.DocumentModuleSettings.create()));
+  }
+
+  protected static ConnectorJobHandler newConnectorJobHandler(OutboundConnectorFunction call) {
+    return newConnectorJobHandler(call, new TestSecretProvider());
   }
 
   @Test
@@ -76,6 +84,49 @@ public class ConnectorJobHandlerTests {
 
     // then
     assertThat(result.getErrorMessage()).isEqualTo("Secret with name 'FOO2' is not available");
+  }
+
+  @Test
+  void shouldHideExceptionMessageWhenSecretsObfuscationFails() {
+    // given
+    var jobHandlerForMissingSecret =
+        newConnectorJobHandler(
+            context -> context.bindVariables(TestValidation.class),
+            new TestSecretProvider() {
+              @Override
+              public List<String> fetchAll(List<String> keys, SecretContext context) {
+                throw new RuntimeException("Network error while fetching secrets");
+              }
+            });
+    var jobHandlerRaisingException =
+        newConnectorJobHandler(
+            context -> {
+              throw new ConnectorException("Crazy error something with bar");
+            },
+            new TestSecretProvider() {
+              @Override
+              public List<String> fetchAll(List<String> keys, SecretContext context) {
+                throw new RuntimeException("Network error while fetching secrets");
+              }
+            });
+
+    // when
+    var resultForMissingSecret =
+        JobBuilder.create()
+            .withVariables("{ \"test\" : \"{{secrets.FOO}}\" }")
+            .executeAndCaptureResult(jobHandlerForMissingSecret, false);
+    var resultForRaisingException =
+        JobBuilder.create()
+            .withVariables("{ \"test\" : \"{{secrets.FOO}}\" }")
+            .executeAndCaptureResult(jobHandlerRaisingException, false);
+
+    // then
+    assertThat(resultForMissingSecret.getErrorMessage())
+        .isEqualTo(
+            "Fetching secrets failed, original error can't be displayed as the error message might contain secrets: Network error while fetching secrets");
+    assertThat(resultForRaisingException.getErrorMessage())
+        .isEqualTo(
+            "Fetching secrets failed, original error can't be displayed as the error message might contain secrets: Network error while fetching secrets");
   }
 
   @Test

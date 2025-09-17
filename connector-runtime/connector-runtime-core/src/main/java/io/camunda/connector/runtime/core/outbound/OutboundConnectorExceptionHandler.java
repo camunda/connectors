@@ -73,14 +73,21 @@ public class OutboundConnectorExceptionHandler {
           this.secretProvider.fetchAll(
               SecretUtil.retrieveSecretKeysInInput(job.getVariables()),
               new SecretContext(job.getTenantId()));
-    } catch (Exception fetchException) {
+    } catch (Exception ex) {
       LOGGER.error(
-          "Failed to fetch secrets for job: {} for tenant: {}, message: {}",
+          "Initial error for job: {} for tenant: {} can't be displayed because fetching secrets failed: {}",
           job.getKey(),
           job.getTenantId(),
-          fetchException.getMessage());
+          ex.getMessage());
+      var wrappedException =
+          new RuntimeException(
+              "Fetching secrets failed, original error can't be displayed as the error message might contain secrets: "
+                  + ex.getMessage(),
+              ex);
       return new ConnectorResult.ErrorResult(
-          Map.of("error", exceptionToMap(fetchException)), fetchException, 0);
+          Map.of("error", exceptionToMap(wrappedException)),
+          wrappedException,
+          job.getRetries() - 1);
     }
     return switch (e) {
       case InvalidBackOffDurationException invalidBackOffDurationException ->
