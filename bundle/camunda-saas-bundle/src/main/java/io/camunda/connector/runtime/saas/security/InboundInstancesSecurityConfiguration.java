@@ -42,7 +42,7 @@ public class InboundInstancesSecurityConfiguration {
   @Value("${camunda.connector.auth.console.audience:}")
   private String consoleAudience;
 
-  @Value("${camunda.connector.auth.allowed.roles:owner,admin}")
+  @Value("${camunda.connector.auth.allowed.roles:owner,admin,supportagent}")
   private List<String> allowedRoles;
 
   @Value("${camunda.connector.auth.issuer}")
