@@ -67,10 +67,21 @@ public class OutboundConnectorExceptionHandler {
 
   public ConnectorResult.ErrorResult manageConnectorJobHandlerException(
       Exception e, ActivatedJob job, Duration retryBackoffDuration) {
-    List<String> secrets =
-        this.secretProvider.fetchAll(
-            SecretUtil.retrieveSecretKeysInInput(job.getVariables()),
-            new SecretContext(job.getTenantId()));
+    List<String> secrets;
+    try {
+      secrets =
+          this.secretProvider.fetchAll(
+              SecretUtil.retrieveSecretKeysInInput(job.getVariables()),
+              new SecretContext(job.getTenantId()));
+    } catch (Exception fetchException) {
+      LOGGER.error(
+          "Failed to fetch secrets for job: {} for tenant: {}, message: {}",
+          job.getKey(),
+          job.getTenantId(),
+          fetchException.getMessage());
+      return new ConnectorResult.ErrorResult(
+          Map.of("error", exceptionToMap(fetchException)), fetchException, 0);
+    }
     return switch (e) {
       case InvalidBackOffDurationException invalidBackOffDurationException ->
           handleBackOffException(invalidBackOffDurationException, secrets);
