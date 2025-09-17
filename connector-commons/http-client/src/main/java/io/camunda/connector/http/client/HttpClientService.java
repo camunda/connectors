@@ -16,68 +16,38 @@
  */
 package io.camunda.connector.http.client;
 
-import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.blocklist.DefaultHttpBlocklistManager;
 import io.camunda.connector.http.client.blocklist.HttpBlockListManager;
 import io.camunda.connector.http.client.client.HttpClient;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
-import io.camunda.connector.http.client.cloudfunction.CloudFunctionService;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
-import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class HttpClientService {
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpClientService.class);
 
-  private final CloudFunctionService cloudFunctionService;
-
   private final HttpClient httpClient = new CustomApacheHttpClient();
 
   private final HttpBlockListManager httpBlocklistManager = new DefaultHttpBlocklistManager();
 
-  public HttpClientService() {
-    this(new CloudFunctionService());
-  }
-
-  public HttpClientService(CloudFunctionService cloudFunctionService) {
-    this.cloudFunctionService = cloudFunctionService;
-  }
-
-  public HttpClientResult executeConnectorRequest(HttpClientRequest request) {
-    return executeConnectorRequest(request, null);
-  }
-
   public HttpClientResult executeConnectorRequest(
-      HttpClientRequest request, @Nullable DocumentFactory documentFactory) {
+      HttpClientRequest request) {
     // Will throw ConnectorInputException if URL is blocked
     httpBlocklistManager.validateUrlAgainstBlocklist(request.getUrl());
-    ExecutionEnvironment executionEnvironment =
-        ExecutionEnvironment.from(
-            cloudFunctionService.isCloudFunctionEnabled(),
-            cloudFunctionService.isRunningInCloudFunction(),
-            documentFactory);
-
-    if (executionEnvironment instanceof ExecutionEnvironment.SaaSCluster) {
-      // Wrap the request in a proxy request
-      request = cloudFunctionService.toCloudFunctionRequest(request);
-    }
-    return executeRequest(request, executionEnvironment);
+    return executeRequest(request);
   }
 
   private HttpClientResult executeRequest(
-      HttpClientRequest request, @Nullable ExecutionEnvironment executionEnvironment) {
+      HttpClientRequest request) {
     try {
-      HttpClientResult jsonResult = httpClient.execute(request, executionEnvironment);
+      HttpClientResult jsonResult = httpClient.execute(request);
       LOGGER.debug("Connector returned result: {}", jsonResult);
       return jsonResult;
     } catch (ConnectorException e) {
       LOGGER.debug("Failed to execute request {}", request, e);
-      if (executionEnvironment instanceof ExecutionEnvironment.SaaSCluster) {
-        throw cloudFunctionService.parseCloudFunctionError(e);
-      }
       throw e;
     } catch (final Exception e) {
       LOGGER.debug("Failed to execute request {}", request, e);

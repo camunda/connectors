@@ -28,21 +28,7 @@ public interface HttpClient {
    * HttpClientResult}.
    *
    * @param request the {@link HttpClientRequest} to execute
-   * @param executionEnvironment the {@link ExecutionEnvironment} to use for the execution.
    * @return the result of the request as a {@link HttpClientResult}
    */
-  HttpClientResult execute(
-      HttpClientRequest request, @Nullable ExecutionEnvironment executionEnvironment);
-
-  /**
-   * Executes the given {@link HttpClientRequest} and returns the result as a {@link
-   * HttpClientResult}.
-   *
-   * @param request the {@link HttpClientRequest} to execute
-   * @return the result of the request as a {@link HttpClientResult}
-   * @see #execute(HttpClientRequest, ExecutionEnvironment)
-   */
-  default HttpClientResult execute(HttpClientRequest request) {
-    return execute(request, null);
-  }
+  HttpClientResult execute(HttpClientRequest request);
 }

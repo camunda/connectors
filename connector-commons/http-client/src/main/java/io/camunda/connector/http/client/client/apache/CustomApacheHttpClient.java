@@ -38,12 +38,11 @@ public class CustomApacheHttpClient implements HttpClient {
    * <p>This method is thread-safe.
    *
    * @param request the request to execute
-   * @param executionEnvironment the {@link ExecutionEnvironment} we are in
    * @return the {@link HttpClientResult}
    */
   @Override
   public HttpClientResult execute(
-      HttpClientRequest request, @Nullable ExecutionEnvironment executionEnvironment) {
+      HttpClientRequest request) {
     try {
       var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
       var host = apacheRequest.getAuthority().getHostName();
@@ -56,8 +55,7 @@ public class CustomApacheHttpClient implements HttpClient {
         var result =
             client.execute(
                 apacheRequest,
-                new HttpCommonResultResponseHandler(
-                    executionEnvironment, request.isStoreResponse()));
+                new HttpCommonResultResponseHandler());
         if (HttpStatusHelper.isError(result.status())) {
           throw ConnectorExceptionMapper.from(result);
         }

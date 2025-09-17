@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.http.base;
 
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
@@ -13,10 +14,12 @@ import io.camunda.connector.http.base.model.auth.AuthenticationMapper;
 import io.camunda.connector.http.client.HttpClientService;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
+import java.util.Optional;
 
 public class HttpService {
 
   private final HttpClientService httpClientService;
+  private final FileResponseHandler fileResponseHandler;
 
   public HttpService() {
     httpClientService = new HttpClientService();
@@ -30,6 +33,9 @@ public class HttpService {
       final HttpCommonRequest request, final OutboundConnectorContext context) {
     HttpClientRequest httpClientRequest = mapToHttpClientRequest(request);
     HttpClientResult result = httpClientService.executeConnectorRequest(httpClientRequest, context);
+    if (request.isStoreResponse() && result.body() != null) {
+      return fileResponseHandler.handle(result.headers(), result.body());
+    }
     return mapToHttpCommonResult(result);
   }
 
@@ -51,6 +57,7 @@ public class HttpService {
   }
 
   public HttpCommonResult mapToHttpCommonResult(HttpClientResult result) {
+
     return new HttpCommonResult(
         result.status(), result.headers(), result.body(), result.reason(), result.document());
   }

@@ -16,23 +16,15 @@
  */
 package io.camunda.connector.http.client.model;
 
-import io.camunda.connector.api.document.Document;
 import java.util.Map;
 
 public record HttpClientResult(
-    int status, Map<String, Object> headers, Object body, String reason, Document document) {
-
-  public HttpClientResult(int status, Map<String, Object> headers, Object body, String reason) {
-    this(status, headers, body, reason, null);
-  }
+    int status, Map<String, Object> headers, CustomHttpBody body, String reason) implements
+    AutoCloseable {
 
   public HttpClientResult(
-      int status, Map<String, Object> headers, Object body, Document documentReference) {
-    this(status, headers, body, null, documentReference);
-  }
-
-  public HttpClientResult(int status, Map<String, Object> headers, Object body) {
-    this(status, headers, body, null, null);
+      int status, Map<String, Object> headers, CustomHttpBody body) {
+    this(status, headers, body, null);
   }
 
   public int status() {
@@ -43,7 +35,7 @@ public record HttpClientResult(
     return headers;
   }
 
-  public Object body() {
+  public CustomHttpBody body() {
     return body;
   }
 
@@ -51,7 +43,10 @@ public record HttpClientResult(
     return reason;
   }
 
-  public Document document() {
-    return document;
+  @Override
+  public void close() throws Exception {
+    if (body != null) {
+      body.close();
+    }
   }
 }

@@ -18,20 +18,15 @@ package io.camunda.connector.http.client.client.apache;
 
 import static io.camunda.connector.http.client.utils.JsonHelper.isJsonStringValid;
 
-import io.camunda.connector.api.document.Document;
 import io.camunda.connector.http.client.ExecutionEnvironment;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
-import io.camunda.connector.http.client.client.HttpStatusHelper;
-import io.camunda.connector.http.client.document.DocumentCreationException;
 import io.camunda.connector.http.client.document.FileResponseHandler;
-import io.camunda.connector.http.client.model.ErrorResponse;
 import io.camunda.connector.http.client.model.HttpClientResult;
+import io.camunda.connector.http.client.model.CustomHttpBody;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.Header;
@@ -45,20 +40,6 @@ public class HttpCommonResultResponseHandler
   private static final Logger LOGGER =
       LoggerFactory.getLogger(HttpCommonResultResponseHandler.class);
 
-  private final FileResponseHandler fileResponseHandler;
-
-  private final ExecutionEnvironment executionEnvironment;
-
-  private final boolean isStoreResponseSelected;
-
-  public HttpCommonResultResponseHandler(
-      @Nullable ExecutionEnvironment executionEnvironment, boolean isStoreResponseSelected) {
-    this.executionEnvironment = executionEnvironment;
-    this.isStoreResponseSelected = isStoreResponseSelected;
-    this.fileResponseHandler =
-        new FileResponseHandler(executionEnvironment, isStoreResponseSelected);
-  }
-
   @Override
   public HttpClientResult handleResponse(ClassicHttpResponse response) {
     int code = response.getCode();
@@ -67,19 +48,17 @@ public class HttpCommonResultResponseHandler
         HttpCommonResultResponseHandler.formatHeaders(response.getHeaders());
 
     if (response.getEntity() != null) {
-      try (InputStream content = response.getEntity().getContent()) {
-        if (executionEnvironment instanceof ExecutionEnvironment.SaaSCluster) {
-          return getResultForCloudFunction(code, content, headers, reason);
-        }
-        var bytes = content.readAllBytes();
-        var documentReference = fileResponseHandler.handle(headers, bytes);
+      try {
         return new HttpClientResult(
             code,
             headers,
-            documentReference == null ? extractBody(bytes) : null,
-            reason,
-            documentReference);
-      } catch (final Exception e) {
+            new CustomHttpBody(
+                // content stream to be closed when the response is closed
+                response.getEntity().getContent(),
+                response.getEntity().getContentLength(),
+                response.getEntity().getContentType()),
+            reason);
+      } catch (Exception e) {
         LOGGER.error("Failed to process response: {}", response, e);
         return new HttpClientResult(HttpStatus.SC_SERVER_ERROR, Map.of(), null, e.getMessage());
       }
@@ -108,41 +87,12 @@ public class HttpCommonResultResponseHandler
   }
 
   /**
-   * Will parse the response as a Cloud Function response. If the response is an error, it will be
-   * unwrapped as an ErrorResponse. Otherwise, it will be unwrapped as a HttpCommonResult.
-   */
-  private HttpClientResult getResultForCloudFunction(
-      int code, InputStream content, Map<String, Object> headers, String reason)
-      throws IOException, DocumentCreationException {
-    if (HttpStatusHelper.isError(code)) {
-      // unwrap as ErrorResponse
-      var errorResponse =
-          HttpClientObjectMapperSupplier.getCopy().readValue(content, ErrorResponse.class);
-      return new HttpClientResult(code, headers, errorResponse, reason);
-    }
-    // Unwrap the response as a HttpCommonResult directly
-    var result =
-        HttpClientObjectMapperSupplier.getCopy().readValue(content, HttpClientResult.class);
-    Document document = fileResponseHandler.handleCloudFunctionResult(result);
-    return new HttpClientResult(
-        result.status(),
-        result.headers(),
-        document == null ? result.body() : null,
-        result.reason(),
-        document);
-  }
-
-  /**
    * Extracts the body from the response content. Tries to parse the body as JSON, if it fails,
    * returns the body as a string.
    *
    * @param content the response content
    */
   private Object extractBody(byte[] content) throws IOException {
-    if (executionEnvironment instanceof ExecutionEnvironment.SaaSCloudFunction
-        && isStoreResponseSelected) {
-      return Base64.getEncoder().encodeToString(content);
-    }
 
     String bodyString = null;
     if (content != null) {
