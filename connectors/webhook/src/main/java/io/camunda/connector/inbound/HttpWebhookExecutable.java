@@ -77,7 +77,12 @@ import org.slf4j.LoggerFactory;
           appliesTo = BpmnType.BOUNDARY_EVENT,
           elementType = BpmnType.BOUNDARY_EVENT,
           templateIdOverride = "io.camunda.connectors.webhook.WebhookConnectorBoundary.v1",
-          templateNameOverride = "Webhook Boundary Event Connector")
+          templateNameOverride = "Webhook Boundary Event Connector"),
+      @ConnectorElementType(
+          appliesTo = BpmnType.RECEIVE_TASK,
+          elementType = BpmnType.RECEIVE_TASK,
+          templateIdOverride = "io.camunda.connectors.webhook.WebhookConnectorReceive.v1",
+          templateNameOverride = "Webhook Receive Task Connector")
     })
 public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 

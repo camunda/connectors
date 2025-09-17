@@ -164,6 +164,10 @@ except in compliance with the proprietary license.</license.inlineheader>
                   <templateId>io.camunda.connectors.inbound.KafkaBoundary.v1</templateId>
                   <templateFileName>kafka-inbound-connector-boundary.json</templateFileName>
                 </file>
+                  <file>
+                      <templateId>io.camunda.connectors.inbound.KafkaReceive.v1</templateId>
+                      <templateFileName>kafka-inbound-connector-receive.json</templateFileName>
+                  </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
               <features>

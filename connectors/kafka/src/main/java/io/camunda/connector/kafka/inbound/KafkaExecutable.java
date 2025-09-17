@@ -55,7 +55,12 @@ import org.slf4j.LoggerFactory;
           appliesTo = BpmnType.BOUNDARY_EVENT,
           elementType = BpmnType.BOUNDARY_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.KafkaBoundary.v1",
-          templateNameOverride = "Kafka Boundary Event Connector")
+          templateNameOverride = "Kafka Boundary Event Connector"),
+      @ElementTemplate.ConnectorElementType(
+          appliesTo = BpmnType.RECEIVE_TASK,
+          elementType = BpmnType.RECEIVE_TASK,
+          templateIdOverride = "io.camunda.connectors.inbound.KafkaReceive.v1",
+          templateNameOverride = "Kafka Receive Task Connector")
     })
 public class KafkaExecutable implements InboundConnectorExecutable<InboundConnectorContext> {
   private static final Logger LOG = LoggerFactory.getLogger(KafkaExecutable.class);

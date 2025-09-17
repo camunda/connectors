@@ -95,6 +95,10 @@
                   <templateId>io.camunda.connectors.inbound.Slack.BoundaryEvent.v1</templateId>
                   <templateFileName>slack-inbound-boundary.json</templateFileName>
                 </file>
+                  <file>
+                      <templateId>io.camunda.connectors.inbound.Slack.ReceiveTask.v1</templateId>
+                      <templateFileName>slack-inbound-receive.json</templateFileName>
+                  </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
               <features>

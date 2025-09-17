@@ -62,7 +62,12 @@ import org.slf4j.LoggerFactory;
           appliesTo = BpmnType.BOUNDARY_EVENT,
           elementType = BpmnType.BOUNDARY_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.Slack.BoundaryEvent.v1",
-          templateNameOverride = "Slack Webhook Boundary Event Connector")
+          templateNameOverride = "Slack Webhook Boundary Event Connector"),
+      @ConnectorElementType(
+          appliesTo = BpmnType.RECEIVE_TASK,
+          elementType = BpmnType.RECEIVE_TASK,
+          templateIdOverride = "io.camunda.connectors.inbound.Slack.ReceiveTask.v1",
+          templateNameOverride = "Slack Webhook Receive Task Connector")
     })
 public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable {
   private static final Logger LOGGER = LoggerFactory.getLogger(SlackInboundWebhookExecutable.class);

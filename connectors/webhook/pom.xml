@@ -103,6 +103,10 @@
                   <templateId>io.camunda.connectors.webhook.WebhookConnectorBoundary.v1</templateId>
                   <templateFileName>webhook-connector-boundary.json</templateFileName>
                 </file>
+                  <file>
+                      <templateId>io.camunda.connectors.webhook.WebhookConnectorReceive.v1</templateId>
+                      <templateFileName>webhook-connector-receive.json</templateFileName>
+                  </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
               <features>
