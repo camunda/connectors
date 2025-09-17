@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
+import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.io.IOException;
@@ -70,6 +71,9 @@ public abstract class TestMessagesFixture {
               .arguments(Map.of("location", "MUC"))
               .build(),
           ToolCall.builder().id("fedcba").name("getDateTime").build());
+
+  public static final List<ToolCallProcessVariable> TOOL_CALLS_PROCESS_VARIABLES =
+      TOOL_CALLS.stream().map(ToolCallProcessVariable::from).toList();
 
   public static final List<ToolCallResult> TOOL_CALL_RESULTS =
       List.of(

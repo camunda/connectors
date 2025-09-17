@@ -62,14 +62,9 @@ json.appliesTo = ["bpmn:SubProcess"]
 json.elementType.value = "bpmn:AdHocSubProcess"
 
 // Transform groups
-def skipGroups = ["error"]
 def updatedGroups = []
 
 json.groups.each { group ->
-    if (group.id in skipGroups) {
-        return
-    }
-
     updatedGroups.add(group)
 
     if (group.id == "limits") {
@@ -87,7 +82,6 @@ json.groups = updatedGroups
 def skipProperties = [
     "data.tools.containerElementId",
     "data.tools.toolCallResults",
-    "errorExpression",
     "resultExpression"
 ]
 def updatedProperties = []

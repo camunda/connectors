@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
+import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -26,6 +27,7 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
+import io.camunda.client.api.search.enums.IncidentErrorType;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.SlowTest;
@@ -127,5 +129,46 @@ public class L4JAiAgentJobWorkerFeedbackLoopTests extends BaseL4JAiAgentJobWorke
                 .hasResponseText(expectedResponseText));
 
     assertThat(jobWorkerCounter.get()).isEqualTo(2);
+  }
+
+  @Test
+  void raisesIncidentWhenUserPromptIsEmpty() throws Exception {
+    final var zeebeTest =
+        createProcessInstance(Map.of("action", "executeAgent", "userPrompt", ""))
+            .waitForActiveIncidents();
+
+    assertIncident(
+        zeebeTest,
+        incident -> {
+          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
+          assertThat(incident.getErrorType())
+              .isEqualTo(IncidentErrorType.AD_HOC_SUB_PROCESS_NO_RETRIES);
+          assertThat(incident.getErrorMessage())
+              .contains(
+                  "Property: data.userPrompt.prompt: Validation failed. Original message: must not be blank");
+        });
+  }
+
+  @Test
+  void mapsIncidentToJobError() throws Exception {
+    final var zeebeTest =
+        createProcessInstance(
+                elementTemplate ->
+                    elementTemplate.property(
+                        "errorExpression", "=jobError(\"Job error: \" + error.message)"),
+                Map.of("action", "executeAgent", "userPrompt", ""))
+            .waitForActiveIncidents();
+
+    assertIncident(
+        zeebeTest,
+        incident -> {
+          assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
+          assertThat(incident.getErrorType())
+              .isEqualTo(IncidentErrorType.AD_HOC_SUB_PROCESS_NO_RETRIES);
+          assertThat(incident.getErrorMessage())
+              .startsWith("Job error: ")
+              .contains(
+                  "Property: data.userPrompt.prompt: Validation failed. Original message: must not be blank");
+        });
   }
 }
