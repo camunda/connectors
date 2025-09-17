@@ -91,13 +91,13 @@ public record AgentResponse(
                 Map.of(
                     "framework",
                     Map.ofEntries(
+                        Map.entry("id", "chatcmpl-123"),
                         Map.entry(
                             "tokenUsage",
                             Map.of(
                                 "inputTokenCount", 5,
                                 "outputTokenCount", 6,
-                                "totalTokenCount", 11)),
-                        Map.entry("finishReason", "STOP"))))
+                                "totalTokenCount", 11)))))
             .build();
 
     return AgentResponse.builder()
