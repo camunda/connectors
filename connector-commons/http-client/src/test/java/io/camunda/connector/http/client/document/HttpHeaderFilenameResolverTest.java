@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -30,11 +31,17 @@ import org.mockito.Mockito;
 
 public class HttpHeaderFilenameResolverTest {
   private static final UUID defaultUuid = UUID.fromString("8d8b30e3-de52-4f1c-a71c-9905a8043dac");
+  private static MockedStatic<UUID> mockedUuid;
 
   @BeforeAll()
   static void setupUUID() {
-    MockedStatic<UUID> mockedUuid = Mockito.mockStatic(UUID.class);
+    mockedUuid = Mockito.mockStatic(UUID.class);
     mockedUuid.when(UUID::randomUUID).thenReturn(defaultUuid);
+  }
+
+  @AfterAll()
+  static void tearDown() {
+    mockedUuid.close();
   }
 
   private static Stream<Arguments> provideHeaders() {
