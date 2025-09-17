@@ -37,14 +37,14 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogEntry;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogWriter;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
-import io.camunda.document.DocumentFactoryImpl;
-import io.camunda.document.store.InMemoryDocumentStore;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -270,14 +270,28 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void reportHealth(Health health) {
-    this.health = health;
-    var activityLog = Activity.newBuilder().andReportHealth(health).build();
+    if (health == null) {
+      throw new IllegalArgumentException("Health must not be null");
+    }
+    if (health.equals(this.health)) {
+      return;
+    }
+    var activityLog =
+        Activity.newBuilder()
+            .withTag(ActivityLogTag.HEALTH)
+            .withMessage(
+                String.format(
+                    "Health status changed to %s, details: %s",
+                    health.getStatus(), health.getDetails()))
+            .andReportHealth(health)
+            .build();
     // append the activity log to store the health status change history
     activityLogWriter.log(
         new ActivityLogEntry(
             ExecutableId.fromDeduplicationId(connectorDetails.deduplicationId()),
             ActivitySource.CONNECTOR,
             activityLog));
+    this.health = health;
   }
 
   @Override

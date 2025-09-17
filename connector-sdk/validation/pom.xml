@@ -11,7 +11,7 @@
     <version>8.8.0-SNAPSHOT</version>
   </parent>
 
-  <name>connector-validation</name>
+  <name>Connector SDK Validation</name>
   <description>Camunda Connector Validation Module</description>
   <artifactId>connector-validation</artifactId>
   <packaging>jar</packaging>

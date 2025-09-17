@@ -164,6 +164,9 @@
     }, {
       "name" : "GCP Provider",
       "value" : "gcp"
+    }, {
+      "name" : "OpenAi API Specification Provider",
+      "value" : "openai"
     } ]
   }, {
     "id" : "baseRequest.authentication.type",
@@ -739,6 +742,44 @@
         "equals" : "gcp",
         "type" : "simple"
       } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "baseRequest.openAiEndpoint",
+    "label" : "OpenAI Spec Endpoint",
+    "description" : "Specify the OpenAI compatible specification endpoint.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.openAiEndpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "baseRequest.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "baseRequest.openAiHeaders",
+    "label" : "Headers",
+    "description" : "Map of HTTP headers to add to the request.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "configuration",
+    "binding" : {
+      "name" : "baseRequest.openAiHeaders",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "baseRequest.type",
+      "equals" : "openai",
+      "type" : "simple"
     },
     "type" : "String"
   }, {

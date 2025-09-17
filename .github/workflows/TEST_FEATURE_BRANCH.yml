@@ -44,7 +44,7 @@ jobs:
       # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
 
       - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@v3.1.0
+        uses: s4u/maven-settings-action@v4.0.0
         with:
           githubServer: false
           servers: |
@@ -55,7 +55,7 @@ jobs:
              }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
 
@@ -66,17 +66,17 @@ jobs:
         run: mvn --batch-mode clean test -PcheckFormat -Dquickly
 
       - name: Lint Dockerfile - connector-runtime
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.2.0
         with:
           dockerfile: connector-runtime/connector-runtime-application/Dockerfile
 
       - name: Lint Dockerfile - SaaS
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.2.0
         with:
           dockerfile: bundle/camunda-saas-bundle/Dockerfile
 
       - name: Lint Dockerfile - default-bundle
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.2.0
         with:
           dockerfile: bundle/default-bundle/Dockerfile
 

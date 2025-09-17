@@ -9,8 +9,13 @@
   </parent>
   <artifactId>connector-runtime-bundle</artifactId>
   <packaging>jar</packaging>
-  <name>Connector Runtime Bundle</name>
+  <name>Connectors Bundle Self-Managed</name>
   <description>Connectors Runtime Bundle including out-of-the-box connectors</description>
+
+  <properties>
+    <skip.central.release>true</skip.central.release>
+    <skip.camunda.release>true</skip.camunda.release>
+  </properties>
 
   <dependencies>
     <dependency>

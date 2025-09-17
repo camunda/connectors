@@ -6,20 +6,20 @@
  */
 package io.camunda.connector.message;
 
+import io.camunda.client.CamundaClient;
+import io.camunda.client.api.command.CorrelateMessageCommandStep1.CorrelateMessageCommandStep2;
+import io.camunda.client.api.command.CorrelateMessageCommandStep1.CorrelateMessageCommandStep3;
+import io.camunda.client.api.command.PublishMessageCommandStep1.PublishMessageCommandStep2;
+import io.camunda.client.api.command.PublishMessageCommandStep1.PublishMessageCommandStep3;
+import io.camunda.client.api.response.CorrelateMessageResponse;
+import io.camunda.client.api.response.PublishMessageResponse;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
-import io.camunda.connector.runtime.app.ZeebeClientContext;
-import io.camunda.zeebe.client.ZeebeClient;
-import io.camunda.zeebe.client.api.command.CorrelateMessageCommandStep1.CorrelateMessageCommandStep2;
-import io.camunda.zeebe.client.api.command.CorrelateMessageCommandStep1.CorrelateMessageCommandStep3;
-import io.camunda.zeebe.client.api.command.PublishMessageCommandStep1.PublishMessageCommandStep2;
-import io.camunda.zeebe.client.api.command.PublishMessageCommandStep1.PublishMessageCommandStep3;
-import io.camunda.zeebe.client.api.response.CorrelateMessageResponse;
-import io.camunda.zeebe.client.api.response.PublishMessageResponse;
+import io.camunda.connector.runtime.app.CamundaClientContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,11 +58,11 @@ public class SendMessageConnectorFunction implements OutboundConnectorFunction {
 
   private static final Logger LOG = LoggerFactory.getLogger(SendMessageConnectorFunction.class);
 
-  ZeebeClient zeebeClient;
+  CamundaClient camundaClient;
 
   public SendMessageConnectorFunction() {
     super();
-    this.zeebeClient = ZeebeClientContext.getZeebeClient();
+    this.camundaClient = CamundaClientContext.getCamundaClient();
   }
 
   @Override
@@ -97,7 +97,7 @@ public class SendMessageConnectorFunction implements OutboundConnectorFunction {
       SendMessageRequest messageRequest, SendMessageRequest.CorrelationType.Publish publish) {
     PublishMessageCommandStep3 publishMessageCommand;
     PublishMessageCommandStep2 step2 =
-        zeebeClient.newPublishMessageCommand().messageName(messageRequest.messageName());
+        camundaClient.newPublishMessageCommand().messageName(messageRequest.messageName());
     if (messageRequest.correlationKey() != null
         && messageRequest.correlationKey().isBlank() == false) {
       publishMessageCommand = step2.correlationKey(messageRequest.correlationKey());
@@ -125,7 +125,7 @@ public class SendMessageConnectorFunction implements OutboundConnectorFunction {
 
   private CorrelateMessageResponse correlateMessageWithResponse(SendMessageRequest messageRequest) {
     CorrelateMessageCommandStep2 correlateMessageCommand =
-        zeebeClient.newCorrelateMessageCommand().messageName(messageRequest.messageName());
+        camundaClient.newCorrelateMessageCommand().messageName(messageRequest.messageName());
     CorrelateMessageCommandStep3 correlateMessageCommandStep3;
     if (messageRequest.correlationKey() == null || messageRequest.correlationKey().isBlank()) {
       correlateMessageCommandStep3 = correlateMessageCommand.withoutCorrelationKey();

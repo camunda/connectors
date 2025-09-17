@@ -1,10 +1,10 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "AI Agent",
+  "name" : "AI Agent Task",
   "id" : "io.camunda.connectors.agenticai.aiagent.v1",
-  "description" : "Provides a generic AI agent implementation handling the feedback loop between user requests, tool calls and LLM responses. Compatible with 8.8.0-alpha8 or later.",
+  "description" : "Handles individual tasks by aligning user requests with AI responses, optimized for focused, single-goal queries.",
   "metadata" : {
-    "keywords" : [ ]
+    "keywords" : [ "AI", "AI Agent", "agentic orchestration" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/",
   "version" : 3,
@@ -102,6 +102,9 @@
     }, {
       "name" : "OpenAI",
       "value" : "openai"
+    }, {
+      "name" : "OpenAI Compatible",
+      "value" : "openaiCompatible"
     } ]
   }, {
     "id" : "provider.anthropic.endpoint",
@@ -563,37 +566,56 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.openai.endpoint",
-    "label" : "Custom API endpoint",
-    "description" : "Optional custom API endpoint.",
+    "id" : "provider.openaiCompatible.endpoint",
+    "label" : "API endpoint",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openaiCompatible.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openaiCompatible",
+      "type" : "simple"
+    },
+    "tooltip" : "Specify an endpoint to use the connector with an OpenAI compatible API. ",
+    "type" : "String"
+  }, {
+    "id" : "provider.openaiCompatible.authentication.apiKey",
+    "label" : "API key",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.openai.endpoint",
+      "name" : "provider.openaiCompatible.authentication.apiKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
-      "equals" : "openai",
+      "equals" : "openaiCompatible",
       "type" : "simple"
     },
-    "tooltip" : "Configure a custom OpenAI compatible API endpoint to use the connector with an OpenAI compatible API. Typically ends in <code>/v1</code>.",
+    "tooltip" : "Leave blank if using HTTP headers for authentication.<br>If an Authorization header is specified in the headers, then the API key is ignored.",
     "type" : "String"
   }, {
-    "id" : "provider.openai.headers",
-    "label" : "Custom headers",
-    "description" : "Map of custom HTTP headers to add to the request.",
+    "id" : "provider.openaiCompatible.headers",
+    "label" : "Headers",
+    "description" : "Map of HTTP headers to add to the request.",
     "optional" : true,
     "feel" : "required",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.openai.headers",
+      "name" : "provider.openaiCompatible.headers",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
-      "equals" : "openai",
+      "equals" : "openaiCompatible",
       "type" : "simple"
     },
     "type" : "String"
@@ -990,14 +1012,103 @@
     "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "data.systemPrompt.prompt",
-    "label" : "System prompt",
+    "id" : "provider.openaiCompatible.model.model",
+    "label" : "Model",
+    "description" : "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
-    "value" : "You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitly configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nWrap minimal, inspectable reasoning in *exactly* this XML template:\n\n<thinking>\n<context>…briefly state the customer’s need and current state…</context>\n<reflection>…list candidate tools, justify which you will call next and why…</reflection>\n</thinking>\n\nReveal **no** additional private reasoning outside these tags.\n",
+    "value" : "gpt-4o",
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openaiCompatible.model.model",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openaiCompatible",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openaiCompatible.model.parameters.maxCompletionTokens",
+    "label" : "Maximum completion tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openaiCompatible.model.parameters.maxCompletionTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openaiCompatible",
+      "type" : "simple"
+    },
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openaiCompatible.model.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openaiCompatible.model.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openaiCompatible",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openaiCompatible.model.parameters.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openaiCompatible.model.parameters.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openaiCompatible",
+      "type" : "simple"
+    },
+    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openaiCompatible.model.parameters.customParameters",
+    "label" : "Custom parameters",
+    "description" : "Map of additional request parameters to include.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openaiCompatible.model.parameters.customParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openaiCompatible",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.systemPrompt.prompt",
+    "label" : "System prompt",
+    "optional" : false,
+    "value" : "\"You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitly configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nWrap minimal, inspectable reasoning in *exactly* this XML template:\n\n<thinking>\n<context>…briefly state the customer’s need and current state…</context>\n<reflection>…list candidate tools, justify which you will call next and why…</reflection>\n</thinking>\n\nReveal **no** additional private reasoning outside these tags.\"",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
     "group" : "systemPrompt",
     "binding" : {
       "name" : "data.systemPrompt.prompt",
@@ -1005,43 +1116,19 @@
     },
     "type" : "Text"
   }, {
-    "id" : "data.systemPrompt.parameters",
-    "label" : "System prompt parameters",
-    "description" : "Use <code>{{parameter}}</code> format in the prompt to insert values defined in this map.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "systemPrompt",
-    "binding" : {
-      "name" : "data.systemPrompt.parameters",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
-  }, {
     "id" : "data.userPrompt.prompt",
     "label" : "User prompt",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "userPrompt",
     "binding" : {
       "name" : "data.userPrompt.prompt",
       "type" : "zeebe:input"
     },
     "type" : "Text"
-  }, {
-    "id" : "data.userPrompt.parameters",
-    "label" : "User prompt parameters",
-    "description" : "Use <code>{{parameter}}</code> format in the prompt to insert values defined in this map.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "userPrompt",
-    "binding" : {
-      "name" : "data.userPrompt.parameters",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
   }, {
     "id" : "data.userPrompt.documents",
     "label" : "Documents",

@@ -33,6 +33,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
       "camunda.connector.secretprovider.discovery.enabled=false",
       "camunda.client.auth.token-url=https://weblogin.cloud.dev.ultrawombat.com/token",
       "camunda.client.auth.audience=connectors.dev.ultrawombat.com",
+      "spring.cloud.gcp.parametermanager.enabled=false"
     })
 @ActiveProfiles("test")
 @ExtendWith(MockitoExtension.class)

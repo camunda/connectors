@@ -10,14 +10,15 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>connector-commons</artifactId>
+    <name>Connector Commons</name>
+
+    <artifactId>connector-commons</artifactId>
 
   <packaging>pom</packaging>
 
   <modules>
     <module>connector-object-mapper</module>
     <module>http-client</module>
-    <module>intrinsic-functions</module>
   </modules>
 
 </project>

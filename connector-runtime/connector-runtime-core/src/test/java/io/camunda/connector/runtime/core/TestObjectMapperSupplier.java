@@ -17,9 +17,29 @@
 package io.camunda.connector.runtime.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
 
 public class TestObjectMapperSupplier {
 
-  public static final ObjectMapper INSTANCE = ConnectorsObjectMapperSupplier.getCopy();
+  public static final ObjectMapper INSTANCE = getInstance();
+
+  public static ObjectMapper getInstance() {
+    var copy = ConnectorsObjectMapperSupplier.getCopy();
+    var documentFactory = new DocumentFactoryImpl(InMemoryDocumentStore.INSTANCE);
+    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+    var jacksonModuleDocumentDeserializer =
+        new JacksonModuleDocumentDeserializer(
+            documentFactory, functionExecutor, DocumentModuleSettings.create());
+    return copy.registerModules(
+        jacksonModuleDocumentDeserializer,
+        new JacksonModuleFeelFunction(),
+        new JacksonModuleDocumentSerializer());
+  }
 }

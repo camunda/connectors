@@ -49,6 +49,9 @@ if (outputFilePath.exists() && !isHybrid) {
 
 // Update template metadata
 json.id = "io.camunda.connectors.agenticai.aiagent.jobworker.v1"
+json.name = "AI Agent Process"
+json.description = "Processes user requests with an integrated, customizable toolbox and services for dynamic workflows."
+
 if (isHybrid) {
     json.id += "-hybrid"
     json.name = "Hybrid " + json.name
@@ -100,15 +103,6 @@ json.properties.each { property ->
 
         // Add new hidden properties after the type property
         updatedProperties.add(property)
-
-        updatedProperties.add([
-            id: "toolCallResults",
-            binding: [
-                name: "toolCallResults",
-                type: "zeebe:input"
-            ],
-            type: "Hidden"
-        ])
 
         updatedProperties.add([
             id: "outputCollection",

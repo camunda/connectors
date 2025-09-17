@@ -13,6 +13,11 @@
   <artifactId>connector-runtime-application</artifactId>
   <name>Connector Runtime Application</name>
 
+  <properties>
+    <skip.central.release>true</skip.central.release>
+    <skip.camunda.release>true</skip.camunda.release>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>

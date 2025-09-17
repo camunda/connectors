@@ -8,8 +8,13 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>connector-runtime-bundle-saas</artifactId>
-  <name>Connector Runtime Bundle Saas</name>
+  <name>Connectors Bundle Saas</name>
   <packaging>jar</packaging>
+
+  <properties>
+    <skip.central.release>true</skip.central.release>
+    <skip.camunda.release>true</skip.camunda.release>
+  </properties>
 
   <dependencies>
     <dependency>

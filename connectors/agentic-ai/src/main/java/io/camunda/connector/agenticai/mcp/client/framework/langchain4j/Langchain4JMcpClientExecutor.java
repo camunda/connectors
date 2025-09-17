@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolR
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
+import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.Collections;
 import java.util.List;
@@ -29,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 public class Langchain4JMcpClientExecutor {
   private static final Logger LOGGER = LoggerFactory.getLogger(Langchain4JMcpClientExecutor.class);
-  private static final String NO_RESULT_MESSAGE = "Tool execution returned no result";
 
   private final ObjectMapper objectMapper;
   private final ToolSpecificationConverter toolSpecificationConverter;
@@ -113,7 +113,9 @@ public class Langchain4JMcpClientExecutor {
           "MCP({}): Successfully executed tool '{}'", client.key(), toolExecutionRequest.name());
 
       final var normalizedResult =
-          Optional.ofNullable(result).filter(StringUtils::isNotBlank).orElse(NO_RESULT_MESSAGE);
+          Optional.ofNullable(result)
+              .filter(StringUtils::isNotBlank)
+              .orElse(ToolCallResult.CONTENT_NO_RESULT);
 
       return new McpClientCallToolResult(
           toolExecutionRequest.name(), List.of(TextContent.textContent(normalizedResult)), false);

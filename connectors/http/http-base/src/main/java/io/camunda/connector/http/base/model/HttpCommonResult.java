@@ -7,12 +7,11 @@
 package io.camunda.connector.http.base.model;
 
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.generator.java.annotation.DataExample;
-import io.camunda.document.CamundaDocument;
-import io.camunda.document.CamundaDocumentReferenceImpl;
-import io.camunda.document.DocumentMetadataImpl;
-import io.camunda.document.store.InMemoryDocumentStore;
+// import io.camunda.connector.runtime.core.document.CamundaDocument;
+// import io.camunda.connector.runtime.core.document.CamundaDocumentReferenceImpl;
+// import io.camunda.connector.runtime.core.document.DocumentMetadataImpl;
+// import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.util.Map;
 
 public record HttpCommonResult(
@@ -34,23 +33,7 @@ public record HttpCommonResult(
   @DataExample(id = "basic", feel = "= body.order.id")
   public static HttpCommonResult exampleResult() {
     Map<String, Object> headers = Map.of("Content-Type", "application/json");
-    DocumentReference.CamundaDocumentReference documentReference =
-        new CamundaDocumentReferenceImpl(
-            "theStoreId",
-            "977c5cbf-0f19-4a76-a8e1-60902216a07b",
-            "hash",
-            new DocumentMetadataImpl(
-                "application/pdf",
-                null,
-                516554L,
-                "theFileName.pdf",
-                "",
-                0L,
-                Map.of("key", "value")));
-    CamundaDocument doc =
-        new CamundaDocument(
-            documentReference.getMetadata(), documentReference, InMemoryDocumentStore.INSTANCE);
     var body = Map.of("order", Map.of("id", "123", "total", "100.00€"));
-    return new HttpCommonResult(200, headers, body, doc);
+    return new HttpCommonResult(200, headers, body);
   }
 }

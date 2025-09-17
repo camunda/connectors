@@ -29,7 +29,7 @@ import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
 import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
-import io.camunda.document.store.InMemoryDocumentStore;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.io.IOException;

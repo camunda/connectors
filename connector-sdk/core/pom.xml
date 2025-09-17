@@ -9,7 +9,7 @@
     <version>8.8.0-SNAPSHOT</version>
   </parent>
 
-  <name>connector-core</name>
+  <name>Connector SDK Core</name>
   <description>Camunda Connector Core</description>
   <artifactId>connector-core</artifactId>
   <packaging>jar</packaging>
@@ -20,7 +20,19 @@
       <artifactId>slf4j-api</artifactId>
     </dependency>
 
-    <dependency>
+      <dependency>
+          <groupId>com.fasterxml.jackson.core</groupId>
+          <artifactId>jackson-annotations</artifactId>
+          <scope>provided</scope>
+      </dependency>
+
+      <dependency>
+          <groupId>com.fasterxml.jackson.core</groupId>
+          <artifactId>jackson-databind</artifactId>
+          <scope>provided</scope>
+      </dependency>
+
+      <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>

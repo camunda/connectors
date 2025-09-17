@@ -91,6 +91,16 @@
         "release/8.5"
       ],
       "enabled": false
+    },
+    {
+      "description": "Exclude dev.langchain4j artifacts >= 1.4.0",
+      "matchManagers": [
+        "maven"
+      ],
+      "matchPackagePrefixes": [
+        "dev.langchain4j:"
+      ],
+      "allowedVersions": "< 1.4.0"
     }
   ],
   "baseBranches": [

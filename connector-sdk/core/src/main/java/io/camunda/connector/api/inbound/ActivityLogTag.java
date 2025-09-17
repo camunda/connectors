@@ -30,4 +30,5 @@ public class ActivityLogTag {
   public static final String LIFECYCLE = "Lifecycle";
   public static final String QUEUEING = "Queueing";
   public static final String ACTIVATION = "Activation";
+  public static final String HEALTH = "Health";
 }

@@ -20,8 +20,8 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.document.DocumentFactoryImpl;
-import io.camunda.document.store.InMemoryDocumentStore;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -223,6 +223,24 @@ class ToolCallConverterTest {
           .hasMessageStartingWith(
               "Failed to convert result of tool call 'toolName' to string: No serializer found for class %s and no properties discovered to create BeanSerializer"
                   .formatted(DummyClass.class.getName()));
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = "   ")
+    void returnsNoResultMessageWhenContentIsNullOrBlank(String content) {
+      final ToolCallResult toolCallResult =
+          ToolCallResult.builder().id("toolId").name("toolName").content(content).build();
+
+      final var resultMessage = toolCallConverter.asToolExecutionResultMessage(toolCallResult);
+
+      assertThat(resultMessage)
+          .extracting(
+              ToolExecutionResultMessage::id,
+              ToolExecutionResultMessage::toolName,
+              ToolExecutionResultMessage::text)
+          .containsExactly(
+              "toolId", "toolName", "Tool execution succeeded, but returned no result.");
     }
 
     private Document createDocument(String content, String contentType, String filename) {

@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.adhoctoolsschema.processdefinition;
 import static io.camunda.connector.agenticai.util.BpmnUtils.getElementDocumentation;
 import static io.camunda.connector.agenticai.util.BpmnUtils.getExtensionProperties;
 
-import io.camunda.client.CamundaClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElementParameter;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractor;
@@ -43,12 +42,13 @@ public class CamundaClientProcessDefinitionAdHocToolElementsResolver
   private static final String ERROR_CODE_AD_HOC_TOOL_DEFINITION_INVALID =
       "AD_HOC_TOOL_DEFINITION_INVALID";
 
-  private final CamundaClient camundaClient;
+  private final ProcessDefinitionClient processDefinitionClient;
   private final AdHocToolElementParameterExtractor parameterExtractor;
 
   public CamundaClientProcessDefinitionAdHocToolElementsResolver(
-      CamundaClient camundaClient, AdHocToolElementParameterExtractor parameterExtractor) {
-    this.camundaClient = camundaClient;
+      ProcessDefinitionClient processDefinitionClient,
+      AdHocToolElementParameterExtractor parameterExtractor) {
+    this.processDefinitionClient = processDefinitionClient;
     this.parameterExtractor = parameterExtractor;
   }
 
@@ -69,8 +69,7 @@ public class CamundaClientProcessDefinitionAdHocToolElementsResolver
         processDefinitionKey);
 
     final String processDefinitionXml =
-        camundaClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).send().join();
-
+        processDefinitionClient.getProcessDefinitionXml(processDefinitionKey);
     final BpmnModelInstance modelInstance =
         Bpmn.readModelFromStream(
             new ByteArrayInputStream(processDefinitionXml.getBytes(StandardCharsets.UTF_8)));

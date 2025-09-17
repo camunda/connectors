@@ -8,10 +8,13 @@ package io.camunda.connector.agenticai.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
+import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
+import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CachingProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CamundaClientProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
+import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractor;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.feel.AdHocToolElementParameterExtractorImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
@@ -48,12 +51,10 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientCo
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.runtime.core.outbound.OutboundConnectorExceptionHandler;
+import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
-import io.camunda.document.store.CamundaDocumentStore;
-import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
-import io.camunda.spring.client.metrics.MetricsRecorder;
+import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import io.camunda.zeebe.feel.tagged.impl.TaggedParameterExtractor;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,12 +103,14 @@ public class AgenticAiConnectorsAutoConfiguration {
       AgenticAiConnectorsConfigurationProperties configuration,
       CamundaClient camundaClient,
       AdHocToolElementParameterExtractor parameterExtractor) {
-
+    final var processDefinitionClient =
+        new ProcessDefinitionClient(
+            camundaClient, configuration.tools().processDefinition().retries());
     final var resolver =
         new CamundaClientProcessDefinitionAdHocToolElementsResolver(
-            camundaClient, parameterExtractor);
+            processDefinitionClient, parameterExtractor);
 
-    final var cacheConfiguration = configuration.tools().cache();
+    final var cacheConfiguration = configuration.tools().processDefinition().cache();
     if (cacheConfiguration.enabled()) {
       return new CachingProcessDefinitionAdHocToolElementsResolver(
           resolver,

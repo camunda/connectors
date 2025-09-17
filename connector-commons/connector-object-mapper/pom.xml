@@ -11,7 +11,7 @@
   </parent>
 
   <artifactId>connector-object-mapper</artifactId>
-  <name>Connectors Object Mapper Config</name>
+  <name>Connector Object Mapper Config</name>
   <packaging>jar</packaging>
 
   <dependencies>
@@ -19,23 +19,11 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-core</artifactId>
     </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>intrinsic-functions</artifactId>
-    </dependency>
 
     <!-- Jackson databind & datatype dependencies -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>jackson-datatype-feel</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>jackson-datatype-document</artifactId>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.datatype</groupId>

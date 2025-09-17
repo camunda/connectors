@@ -28,6 +28,10 @@
       <artifactId>http-client</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-test</artifactId>
+    </dependency>
   </dependencies>
 
 </project>

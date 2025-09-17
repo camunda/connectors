@@ -21,13 +21,13 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.ActivatedJob;
+import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
+import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.runtime.core.outbound.OutboundConnectorExceptionHandler;
-import io.camunda.spring.client.jobhandling.CommandExceptionHandlingStrategy;
-import io.camunda.spring.client.metrics.MetricsRecorder;
+import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
@@ -62,7 +62,6 @@ class AiAgentJobWorkerErrorHandlerTest {
     camundaClient =
         spy(
             CamundaClient.newClientBuilder()
-                .usePlaintext()
                 .preferRestOverGrpc(true)
                 .restAddress(new URI(wireMockRuntimeInfo.getHttpBaseUrl()))
                 .build());
