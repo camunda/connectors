@@ -23,7 +23,6 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.http.client.HttpClientService;
-import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesBody;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.client.model.HttpMethod;
@@ -127,7 +126,7 @@ class ExternalDocumentTest {
         Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("testpdf.pdf"))
             .readAllBytes();
     when(httpClientService.executeConnectorRequest(any())).thenReturn(httpClientResult);
-    when(httpClientResult.body()).thenReturn(new BytesBody(pdf));
+    when(httpClientResult.body()).thenReturn(pdf);
     Document document = new ExternalDocument(URL, NAME, downloadDocument);
 
     try (InputStream is = document.asInputStream()) {

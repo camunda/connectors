@@ -44,6 +44,7 @@ public class DocumentFactoryImpl implements DocumentFactory {
           req.setMethod(HttpMethod.GET);
           req.setUrl(url);
           req.setStoreResponse(false);
+          req.setShouldReturnRawBody(true);
           return this.httpClientService.executeConnectorRequest(req);
         };
   }

@@ -16,19 +16,8 @@
  */
 package io.camunda.connector.runtime;
 
-<<<<<<< HEAD:connector-runtime/connector-runtime-spring/src/test/java/io/camunda/connector/runtime/TestValidation.java
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotEmpty;
 
 public record TestValidation(
     @Digits(fraction = 0, integer = 2) String test, @NotEmpty String test2) {}
-=======
-import io.camunda.connector.http.client.client.apache.CustomHttpBody.BytesBody;
-import io.camunda.connector.http.client.client.apache.CustomHttpBody.StringBody;
-
-public sealed interface CustomHttpBody permits BytesBody, StringBody {
-  record BytesBody(byte[] value) implements CustomHttpBody {}
-
-  record StringBody(String value) implements CustomHttpBody {}
-}
->>>>>>> e048b31f0 (feat(external-document): Improvments for external document):connector-commons/http-client/src/main/java/io/camunda/connector/http/client/client/apache/CustomHttpBody.java
