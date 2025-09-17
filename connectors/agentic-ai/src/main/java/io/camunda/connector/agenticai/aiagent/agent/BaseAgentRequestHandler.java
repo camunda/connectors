@@ -128,7 +128,6 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
         executionContext, agentContext, runtimeMemory, executionContext.systemPrompt());
 
     // update memory with user messages/tool call responses
-    LOGGER.trace("Adding system message (if necessary)");
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
           "Adding user messages including {} tool call results for the following tool call results: {}",
