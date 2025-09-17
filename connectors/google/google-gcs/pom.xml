@@ -60,30 +60,6 @@
           </connectors>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <executions>
-          <execution>
-            <!--This must be named-->
-            <id>shade</id>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <skip>false</skip>
-          <relocations>
-            <!-- common relocation for all OOTB connectors -->
-            <relocation>
-              <pattern>com.fasterxml.jackson</pattern>
-              <shadedPattern>connector.com.fasterxml.jackson</shadedPattern>
-            </relocation>
-          </relocations>
-        </configuration>
-      </plugin>
     </plugins>
   </build>
 

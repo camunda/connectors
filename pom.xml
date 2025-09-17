@@ -28,7 +28,7 @@
     <module>secret-providers/gcp-secret-provider</module>
     <module>connector-runtime</module>
     <module>connectors</module>
-    <module>bundle</module>
+    <module>app</module>
     <module>connector-commons</module>
   </modules>
 
