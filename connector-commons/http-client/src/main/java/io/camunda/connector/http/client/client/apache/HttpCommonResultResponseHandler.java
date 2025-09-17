@@ -121,8 +121,7 @@ public class HttpCommonResultResponseHandler
     }
     // Unwrap the response as a HttpCommonResult directly
     var result =
-        HttpClientObjectMapperSupplier
-            .getCopy() // TODO i think this will break for doucments, right?
+        HttpClientObjectMapperSupplier.getCopy()
             .readValue(
                 new String(content.readAllBytes(), StandardCharsets.UTF_8), HttpClientResult.class);
     Document document = fileResponseHandler.handleCloudFunctionResult(result);

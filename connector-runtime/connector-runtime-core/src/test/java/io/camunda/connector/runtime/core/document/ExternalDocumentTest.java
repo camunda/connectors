@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,12 +58,18 @@ class ExternalDocumentTest {
 
   private static final String URL = "http://test.local/file.json";
   private static final String NAME = "myfile.json";
+  private static MockedStatic<UUID> mockedUuid;
   private static UUID defaultUuid = UUID.fromString("8d8b30e3-de52-4f1c-a71c-9905a8043dac");
 
   @BeforeAll()
   static void setupUUID() {
-    MockedStatic<UUID> mockedUuid = Mockito.mockStatic(UUID.class);
+    mockedUuid = Mockito.mockStatic(UUID.class);
     mockedUuid.when(UUID::randomUUID).thenReturn(defaultUuid);
+  }
+
+  @AfterAll()
+  static void tearDown() {
+    mockedUuid.close();
   }
 
   @BeforeEach
