@@ -1,4 +1,5 @@
 {
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
     "group:allNonMajor",
@@ -65,10 +66,10 @@
         "release/8.6",
         "release/8.7"
       ],
-      "matchPackagePrefixes": [
-        "com.google.http-client:google-http-client"
-      ],
-      "enabled": false
+      "enabled": false,
+      "matchPackageNames": [
+        "com.google.http-client:google-http-client{/,}**"
+      ]
     },
     {
       "matchPackageNames": [
@@ -84,26 +85,26 @@
       "matchManagers": [
         "maven"
       ],
-      "matchPackagePrefixes": [
-        "io.camunda.spring"
-      ],
       "matchBaseBranches": [
         "release/8.5"
       ],
-      "enabled": false
+      "enabled": false,
+      "matchPackageNames": [
+        "io.camunda.spring{/,}**"
+      ]
     },
     {
       "description": "Exclude dev.langchain4j artifacts >= 1.4.0",
       "matchManagers": [
         "maven"
       ],
-      "matchPackagePrefixes": [
-        "dev.langchain4j:"
-      ],
-      "allowedVersions": "< 1.4.0"
+      "allowedVersions": "< 1.4.0",
+      "matchPackageNames": [
+        "dev.langchain4j:{/,}**"
+      ]
     }
   ],
-  "baseBranches": [
+  "baseBranchPatterns": [
     "main",
     "release/8.4",
     "release/8.5",
