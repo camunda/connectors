@@ -52,17 +52,13 @@ public class Langchain4JAiFrameworkAdapter
     final var messages = chatMessageConverter.map(runtimeMemory.filteredMessages());
     final var toolSpecifications =
         toolSpecificationConverter.asToolSpecifications(agentContext.toolDefinitions());
-    final var responseFormat = createResponseFormat(executionContext.response());
 
-    final var chatRequest =
-        ChatRequest.builder()
-            .messages(messages)
-            .toolSpecifications(toolSpecifications)
-            .responseFormat(responseFormat)
-            .build();
+    final var chatRequestBuilder =
+        ChatRequest.builder().messages(messages).toolSpecifications(toolSpecifications);
+    configureResponseFormat(chatRequestBuilder, executionContext.response());
 
     final ChatModel chatModel = chatModelFactory.createChatModel(executionContext.provider());
-    final ChatResponse chatResponse = chatModel.chat(chatRequest);
+    final ChatResponse chatResponse = chatModel.chat(chatRequestBuilder.build());
     final AssistantMessage assistantMessage = chatMessageConverter.toAssistantMessage(chatResponse);
 
     final var updatedAgentContext =
@@ -76,14 +72,21 @@ public class Langchain4JAiFrameworkAdapter
         updatedAgentContext, assistantMessage, chatResponse);
   }
 
-  private ResponseFormat createResponseFormat(ResponseConfiguration responseConfiguration) {
-    final var builder = ResponseFormat.builder();
+  private void configureResponseFormat(
+      ChatRequest.Builder chatRequestBuilder, ResponseConfiguration responseConfiguration) {
+    final var responseFormat = createResponseFormat(responseConfiguration);
+    if (responseFormat != null) {
+      chatRequestBuilder.responseFormat(responseFormat);
+    }
+  }
 
+  private ResponseFormat createResponseFormat(ResponseConfiguration responseConfiguration) {
+    // do not explicitely configure response format to TEXT as (depending on the model) this might
+    // lead to exceptions
     if (responseConfiguration != null
         && responseConfiguration.format() != null
         && responseConfiguration.format() instanceof JsonResponseFormatConfiguration jsonFormat) {
-      builder.type(ResponseFormatType.JSON);
-
+      final var builder = ResponseFormat.builder().type(ResponseFormatType.JSON);
       if (jsonFormat.schema() != null) {
         final var jsonSchema =
             JsonSchema.builder()
@@ -95,11 +98,11 @@ public class Langchain4JAiFrameworkAdapter
                 .build();
         builder.jsonSchema(jsonSchema);
       }
-    } else {
-      builder.type(ResponseFormatType.TEXT);
+
+      return builder.build();
     }
 
-    return builder.build();
+    return null;
   }
 
   private AgentMetrics.TokenUsage tokenUsage(dev.langchain4j.model.output.TokenUsage tokenUsage) {

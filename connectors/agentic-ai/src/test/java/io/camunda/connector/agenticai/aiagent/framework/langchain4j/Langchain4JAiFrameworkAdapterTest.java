@@ -136,33 +136,30 @@ class Langchain4JAiFrameworkAdapterTest {
   }
 
   @Test
-  void requestsTextResponseWhenConfigured() {
+  void doesNotExplicitelyConfigureResponseFormatWhenTextFormatIsConfigured() {
     adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory);
 
     final var chatRequest = chatRequestCaptor.getValue();
-    assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.TEXT);
-    assertThat(chatRequest.responseFormat().jsonSchema()).isNull();
+    assertThat(chatRequest.responseFormat()).isNull();
   }
 
   @Test
-  void requestsTextResponseIfResponseConfigurationIsMissing() {
+  void doesNotExplicitelyConfigureResponseFormatWhenResponseConfigurationIsMissing() {
     adapter.executeChatRequest(createExecutionContext(null), AGENT_CONTEXT, runtimeMemory);
 
     final var chatRequest = chatRequestCaptor.getValue();
-    assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.TEXT);
-    assertThat(chatRequest.responseFormat().jsonSchema()).isNull();
+    assertThat(chatRequest.responseFormat()).isNull();
   }
 
   @Test
-  void requestsTextResponseIfResponseFormatConfigurationIsMissing() {
+  void doesNotExplicitelyConfigureResponseFormatWhenResponseFormatConfigurationIsMissing() {
     adapter.executeChatRequest(
         createExecutionContext(new OutboundConnectorResponseConfiguration(null, false)),
         AGENT_CONTEXT,
         runtimeMemory);
 
     final var chatRequest = chatRequestCaptor.getValue();
-    assertThat(chatRequest.responseFormat().type()).isEqualTo(ResponseFormatType.TEXT);
-    assertThat(chatRequest.responseFormat().jsonSchema()).isNull();
+    assertThat(chatRequest.responseFormat()).isNull();
   }
 
   @Test
