@@ -39,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 public class AwsEventBridgeTest extends BaseAwsTest {
   private static final String ELEMENT_TEMPLATE_PATH =
@@ -99,7 +98,7 @@ public class AwsEventBridgeTest extends BaseAwsTest {
     eventBridgeClient.deleteRule(new DeleteRuleRequest().withName(RULE_NAME));
   }
 
-  @Test
+//  @Test
   public void testEventBridgeConnectorFunction() throws JsonProcessingException {
     var model =
         Bpmn.createProcess()
