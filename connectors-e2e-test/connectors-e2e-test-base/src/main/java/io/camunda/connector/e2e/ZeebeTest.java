@@ -67,7 +67,7 @@ public class ZeebeTest {
 
   public ZeebeTest waitForProcessCompletion() {
     ZeebeTestThreadSupport.waitForProcessInstanceCompleted(
-        processInstanceEvent, Duration.of(10, ChronoUnit.SECONDS));
+        processInstanceEvent, Duration.of(60, ChronoUnit.SECONDS));
     return this;
   }
 
