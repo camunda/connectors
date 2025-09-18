@@ -27,6 +27,7 @@
         <module>connectors-e2e-test-easy-post</module>
         <module>connectors-e2e-test-soap</module>
         <module>connectors-e2e-test-rabbitmq</module>
+      <module>connectors-e2e-test-servicenow</module>
         <module>connectors-e2e-test-message</module>
         <module>connectors-e2e-test-agentic-ai</module>
         <module>connectors-e2e-email</module>
