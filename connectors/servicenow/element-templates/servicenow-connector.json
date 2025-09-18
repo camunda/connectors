@@ -8,7 +8,7 @@
   "metadata": {
     "keywords": []
   },
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/servicenow/?servicenow=outbound",
+  "documentationRef": "https://docs.camunda.io/docs/components/camunda-integrations/overview/",
   "category": {
     "id": "connectors",
     "name": "Connectors"
