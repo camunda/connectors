@@ -16,7 +16,6 @@
 
   <modules>
     <module>connectors-e2e-test-aws-base</module>
-    <module>connectors-e2e-test-aws-dynamodb</module>
     <module>connectors-e2e-test-aws-event-bridge</module>
     <module>connectors-e2e-test-aws-lambda</module>
     <module>connectors-e2e-test-aws-sns</module>
