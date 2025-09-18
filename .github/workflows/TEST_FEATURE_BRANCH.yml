@@ -60,10 +60,17 @@ jobs:
           node-version: '22'
 
       - name: Install element templates CLI
-        run: npm install --global element-templates-cli
+        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
 
       - name: Build Connectors
         run: mvn --batch-mode clean test -PcheckFormat -Dquickly
+
+      - name: Upload surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: '**/target/surefire-reports/*.xml'
 
       - name: Lint Dockerfile - connector-runtime
         uses: hadolint/hadolint-action@v3.2.0

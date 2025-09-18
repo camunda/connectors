@@ -1,0 +1,7 @@
+{
+  "name": "ci-tools",
+  "private": true,
+  "devDependencies": {
+    "element-templates-cli": "0.5.0"
+  }
+}
