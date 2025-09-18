@@ -66,6 +66,13 @@ jobs:
       - name: Publish Test Report
         if: success() || failure()
         uses: scacap/action-surefire-report@v1
+        
+      - name: Upload surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: '**/target/surefire-reports/*.xml'
 
       - name: Lint Dockerfile - connector-runtime
         uses: hadolint/hadolint-action@v3.1.0
