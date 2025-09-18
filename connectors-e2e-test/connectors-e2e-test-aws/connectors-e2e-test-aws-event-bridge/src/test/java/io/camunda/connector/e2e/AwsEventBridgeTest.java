@@ -30,16 +30,13 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
 import com.amazonaws.services.sqs.model.GetQueueAttributesResult;
 import com.amazonaws.services.sqs.model.Message;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
@@ -105,7 +102,7 @@ public class AwsEventBridgeTest extends BaseAwsTest {
   }
 
   @Test
-  public void testEventBridgeConnectorFunction() throws IOException {
+  public void testEventBridgeConnectorFunction() throws JsonProcessingException {
     var model =
         Bpmn.createProcess()
             .executable()
@@ -113,9 +110,6 @@ public class AwsEventBridgeTest extends BaseAwsTest {
             .serviceTask("aws-eventbridge-element-id")
             .endEvent()
             .done();
-    Path elementTemplatePath = Paths.get(ELEMENT_TEMPLATE_PATH);
-    String elementTemplateContent = Files.readString(elementTemplatePath);
-    System.out.println("Element Template Content:\n" + elementTemplateContent);
 
     var elementTemplate =
         ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
@@ -123,7 +117,7 @@ public class AwsEventBridgeTest extends BaseAwsTest {
             .property("authentication.accessKey", localstack.getAccessKey())
             .property("authentication.secretKey", localstack.getSecretKey())
             .property("configuration.region", localstack.getRegion())
-            .property("input.eventBusName", "=\"" + EVENT_BUS_NAME + "\"")
+            .property("input.eventBusName", EVENT_BUS_NAME)
             .property("input.source", SOURCE)
             .property("input.detailType", DETAIL_TYPE)
             .property("input.detail", "=" + DETAIL)
@@ -139,15 +133,6 @@ public class AwsEventBridgeTest extends BaseAwsTest {
             .apply(elementTemplate, "aws-eventbridge-element-id", new File(tempDir, "result.bpmn"));
 
     ServiceTask serviceTask = updatedModel.getModelElementById("aws-eventbridge-element-id");
-    System.out.println(
-        "Service Task type: "
-            + serviceTask
-                .getExtensionElements()
-                .getElementsQuery()
-                .filterByType(ZeebeTaskDefinition.class)
-                .singleResult()
-                .getType());
-
     assertEquals(
         "io.camunda:aws-eventbridge:1",
         serviceTask
