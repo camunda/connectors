@@ -10,7 +10,7 @@
     <version>8.8.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>secret-providers-shared</artifactId>
+  <artifactId>secret-providers-base</artifactId>
   <name>Secret Providers Shared</name>
 
   <properties>

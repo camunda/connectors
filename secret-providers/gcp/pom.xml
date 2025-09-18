@@ -33,7 +33,7 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>secret-providers-shared</artifactId>
+      <artifactId>secret-providers-base</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

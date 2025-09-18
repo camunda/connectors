@@ -29,7 +29,7 @@ import org.springframework.context.annotation.Profile;
 @Profile("!test")
 public class SaaSSecretConfiguration {
 
-  @Value("${camunda.saas.secrets.projectId}")
+  @Value("${camunda.saas.secrets.projectId:#{null}}")
   private String secretsProjectId;
 
   @Value("${camunda.saas.secrets.prefix:connector-secrets}")
@@ -51,14 +51,14 @@ public class SaaSSecretConfiguration {
   @Bean
   public SecretProvider getSecretProvider() {
     if (useAwsSecretProvider && Objects.equals(clusterProvider, "aws")) {
-      return new AwsSecretProvider(clusterId, secretsProjectId, secretsNamePrefix);
+      return new AwsSecretProvider(clusterId, secretsNamePrefix);
     }
     return new GcpSecretProvider(clusterId, secretsProjectId, secretsNamePrefix);
   }
 
   public SecretProvider getInternalSecretProvider() {
     if (useAwsSecretProvider && Objects.equals(clusterProvider, "aws")) {
-      return new AwsSecretProvider(clusterId, secretsProjectId, secretsNamePrefix);
+      return new AwsSecretProvider(clusterId, secretsNamePrefix);
     }
     return new GcpSecretProvider(clusterId, secretsProjectId, secretsInternalNamePrefix);
   }

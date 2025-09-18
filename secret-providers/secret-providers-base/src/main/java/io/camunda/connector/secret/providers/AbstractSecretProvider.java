@@ -46,7 +46,7 @@ public abstract class AbstractSecretProvider implements SecretProvider {
   public static final String SECRETS_CACHE_MILLIS_ENV_NAME =
       "CAMUNDA_CONNECTOR_SECRETS_CACHE_MILLIS";
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractSecretProvider.class);
+  private static final Logger logger = LoggerFactory.getLogger(AbstractSecretProvider.class);
   private static final ObjectMapper DEFAULT_MAPPER =
       new ObjectMapper()
           .registerModule(new Jdk8Module())
@@ -77,8 +77,7 @@ public abstract class AbstractSecretProvider implements SecretProvider {
     this.mapper = mapper;
 
     this.clusterId = clusterId;
-    this.secretsProjectId =
-        Objects.requireNonNull(secretsProjectId, "Configuration for Secrets project id is missing");
+    this.secretsProjectId = secretsProjectId;
     this.secretsNamePrefix =
         Objects.requireNonNull(
             secretsNamePrefix, "Configuration for Secrets name prefix is missing");
@@ -93,7 +92,7 @@ public abstract class AbstractSecretProvider implements SecretProvider {
           @Override
           public Map<String, String> load(String key) throws JsonProcessingException {
             return unwrapSecrets(
-                loadSecrets(clusterId, secretsProjectId, secretsNamePrefix, LOGGER));
+                loadSecrets(clusterId, secretsProjectId, secretsNamePrefix, logger));
           }
         };
     long millis =
@@ -110,7 +109,7 @@ public abstract class AbstractSecretProvider implements SecretProvider {
   }
 
   protected abstract String loadSecrets(
-      String clusterId, String secretsProjectId, String secretsNamePrefix, Logger LOGGER);
+      String clusterId, String secretsProjectId, String secretsNamePrefix, Logger logger);
 
   @Override
   public String getSecret(String name, SecretContext context) {

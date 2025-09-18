@@ -25,7 +25,6 @@
     <module>parent</module>
     <module>connector-sdk</module>
     <module>element-template-generator</module>
-    <module>uniquet</module>
     <module>connector-runtime</module>
     <module>connectors</module>
     <module>bundle</module>

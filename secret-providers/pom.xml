@@ -20,7 +20,7 @@
 
   <name>Connector Secret Provider</name>
   <modules>
-    <module>secret-providers-shared</module>
+    <module>secret-providers-base</module>
     <module>gcp</module>
     <module>aws</module>
   </modules>

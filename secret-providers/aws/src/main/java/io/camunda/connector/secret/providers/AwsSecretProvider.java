@@ -32,20 +32,19 @@ public class AwsSecretProvider extends AbstractSecretProvider {
     super();
   }
 
-  public AwsSecretProvider(String clusterId, String secretsProjectId, String secretsNamePrefix) {
-    super(clusterId, secretsProjectId, secretsNamePrefix);
+  public AwsSecretProvider(String clusterId, String secretsNamePrefix) {
+    super(clusterId, null, secretsNamePrefix);
   }
 
-  public AwsSecretProvider(
-      ObjectMapper mapper, String clusterId, String secretsProjectId, String secretsNamePrefix) {
-    super(mapper, clusterId, secretsProjectId, secretsNamePrefix);
+  public AwsSecretProvider(ObjectMapper mapper, String clusterId, String secretsNamePrefix) {
+    super(mapper, clusterId, null, secretsNamePrefix);
   }
 
   @Override
   protected String loadSecrets(
-      String clusterId, String secretsProjectId, String secretsNamePrefix, Logger LOGGER) {
+      String clusterId, String secretsProjectId, String secretsNamePrefix, Logger logger) {
     Objects.requireNonNull(clusterId, "You need to specify the clusterId to load secrets for");
-    LOGGER.info("Fetching secrets for cluster {} from aws secret manager", clusterId);
+    logger.info("Fetching secrets for cluster {} from aws secret manager", clusterId);
 
     DefaultAwsRegionProviderChain provider = new DefaultAwsRegionProviderChain();
 
@@ -59,7 +58,7 @@ public class AwsSecretProvider extends AbstractSecretProvider {
       GetSecretValueResponse valueResponse = secretsClient.getSecretValue(valueRequest);
       return valueResponse.secretString();
     } catch (final SecretsManagerException e) {
-      LOGGER.error("Error loading secret from aws: {}", e.awsErrorDetails().errorMessage());
+      logger.error("Error loading secret from aws: {}", e.awsErrorDetails().errorMessage());
       throw new ConnectorException(
           "Failed to load secret from AWS Secrets Manager: " + e.awsErrorDetails().errorMessage(),
           e);
