@@ -30,15 +30,21 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
 import com.amazonaws.services.sqs.model.GetQueueAttributesResult;
 import com.amazonaws.services.sqs.model.Message;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.zeebe.model.bpmn.Bpmn;
+import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AwsEventBridgeTest extends BaseAwsTest {
   private static final String ELEMENT_TEMPLATE_PATH =
@@ -98,8 +104,8 @@ public class AwsEventBridgeTest extends BaseAwsTest {
     eventBridgeClient.deleteRule(new DeleteRuleRequest().withName(RULE_NAME));
   }
 
-  //  @Test
-  public void testEventBridgeConnectorFunction() throws JsonProcessingException {
+  @Test
+  public void testEventBridgeConnectorFunction() throws IOException {
     var model =
         Bpmn.createProcess()
             .executable()
@@ -107,6 +113,10 @@ public class AwsEventBridgeTest extends BaseAwsTest {
             .serviceTask("aws-eventbridge-element-id")
             .endEvent()
             .done();
+    Path elementTemplatePath = Paths.get(ELEMENT_TEMPLATE_PATH);
+    String elementTemplateContent = Files.readString(elementTemplatePath);
+    System.out.println("Element Template Content:\n" + elementTemplateContent);
+
     var elementTemplate =
         ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
             .property("authentication.type", "credentials")
@@ -127,6 +137,19 @@ public class AwsEventBridgeTest extends BaseAwsTest {
         new BpmnFile(model)
             .writeToFile(new File(tempDir, "test.bpmn"))
             .apply(elementTemplate, "aws-eventbridge-element-id", new File(tempDir, "result.bpmn"));
+
+    ServiceTask serviceTask = updatedModel.getModelElementById("aws-eventbridge-element-id");
+    System.out.println(
+        "Service Task type: "
+            + serviceTask
+                .getExtensionElements()
+                .getElementsQuery()
+                .filterByType(ZeebeTaskDefinition.class)
+                .singleResult()
+                .getType());
+
+    System.out.println(
+        "Zeebe brokers: " + zeebeClient.newTopologyRequest().send().join().getBrokers());
 
     var bpmnTest =
         ZeebeTest.with(zeebeClient)
