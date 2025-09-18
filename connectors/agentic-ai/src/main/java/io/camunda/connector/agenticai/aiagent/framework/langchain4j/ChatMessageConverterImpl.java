@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -158,8 +159,16 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     }
 
     final var metadata = new LinkedHashMap<String, Object>();
-    metadata.put("id", chatResponseMetadata.id());
-    metadata.put("tokenUsage", serializedTokenUsage(chatResponseMetadata.tokenUsage()));
+    Optional.ofNullable(chatResponseMetadata.id())
+        .filter(StringUtils::isNotBlank)
+        .ifPresent(id -> metadata.put("id", id));
+    Optional.ofNullable(chatResponseMetadata.finishReason())
+        .ifPresent(finishReason -> metadata.put("finishReason", finishReason.name()));
+
+    final var tokenUsage = serializedTokenUsage(chatResponseMetadata.tokenUsage());
+    if (!tokenUsage.isEmpty()) {
+      metadata.put("tokenUsage", tokenUsage);
+    }
 
     return metadata;
   }

@@ -92,6 +92,7 @@ public record AgentResponse(
                     "framework",
                     Map.ofEntries(
                         Map.entry("id", "chatcmpl-123"),
+                        Map.entry("finishReason", "STOP"),
                         Map.entry(
                             "tokenUsage",
                             Map.of(

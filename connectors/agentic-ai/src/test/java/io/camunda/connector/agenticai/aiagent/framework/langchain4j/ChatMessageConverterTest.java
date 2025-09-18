@@ -204,6 +204,7 @@ class ChatMessageConverterTest {
     final var chatResponseMetadata =
         ChatResponseMetadata.builder()
             .id("chatcmpl-123")
+            .finishReason(FinishReason.STOP)
             .tokenUsage(new TokenUsage(10, 20))
             .build();
 
@@ -233,6 +234,7 @@ class ChatMessageConverterTest {
         .asInstanceOf(InstanceOfAssertFactories.MAP)
         .containsExactly(
             entry("id", "chatcmpl-123"),
+            entry("finishReason", "STOP"),
             entry(
                 "tokenUsage",
                 Map.of("inputTokenCount", 10, "outputTokenCount", 20, "totalTokenCount", 30)));
@@ -245,7 +247,7 @@ class ChatMessageConverterTest {
     final var chatResponseMetadata =
         OpenAiChatResponseMetadata.builder()
             .id("chatcmpl-123")
-            .finishReason(FinishReason.STOP)
+            .finishReason(FinishReason.TOOL_EXECUTION)
             .tokenUsage(
                 OpenAiTokenUsage.builder()
                     .inputTokenCount(10)
@@ -277,7 +279,10 @@ class ChatMessageConverterTest {
 
     assertThat(result.metadata().get("framework"))
         .asInstanceOf(InstanceOfAssertFactories.MAP)
-        .containsExactly(entry("id", "chatcmpl-123"), entry("tokenUsage", expectedTokenUsage))
+        .containsExactly(
+            entry("id", "chatcmpl-123"),
+            entry("finishReason", "TOOL_EXECUTION"),
+            entry("tokenUsage", expectedTokenUsage))
         .doesNotContainKeys("serviceTier", "rawHttpResponse");
   }
 
@@ -286,7 +291,11 @@ class ChatMessageConverterTest {
     final var aiMessage = AiMessage.builder().build();
 
     final var chatResponseMetadata =
-        ChatResponseMetadata.builder().id("chatcmpl-123").tokenUsage(new TokenUsage(10, 0)).build();
+        ChatResponseMetadata.builder()
+            .id("chatcmpl-123")
+            .finishReason(FinishReason.CONTENT_FILTER)
+            .tokenUsage(new TokenUsage(10, 0))
+            .build();
 
     final var chatResponse =
         new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
@@ -300,6 +309,7 @@ class ChatMessageConverterTest {
         .asInstanceOf(InstanceOfAssertFactories.MAP)
         .containsExactly(
             entry("id", "chatcmpl-123"),
+            entry("finishReason", "CONTENT_FILTER"),
             entry(
                 "tokenUsage",
                 Map.of("inputTokenCount", 10, "outputTokenCount", 0, "totalTokenCount", 10)));
@@ -314,8 +324,9 @@ class ChatMessageConverterTest {
 
     assertThat(result.metadata()).containsKey("framework");
     assertThat(result.metadata().get("framework"))
+        .isNotNull()
         .asInstanceOf(InstanceOfAssertFactories.MAP)
-        .containsExactly(entry("id", null), entry("tokenUsage", Map.of()));
+        .isEmpty();
   }
 
   @Test
