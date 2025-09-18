@@ -148,6 +148,15 @@ public class AwsEventBridgeTest extends BaseAwsTest {
                 .singleResult()
                 .getType());
 
+    assertEquals(
+        "io.camunda:aws-eventbridge:1",
+        serviceTask
+            .getExtensionElements()
+            .getElementsQuery()
+            .filterByType(ZeebeTaskDefinition.class)
+            .singleResult()
+            .getType());
+
     System.out.println(
         "Zeebe brokers: " + zeebeClient.newTopologyRequest().send().join().getBrokers());
 
