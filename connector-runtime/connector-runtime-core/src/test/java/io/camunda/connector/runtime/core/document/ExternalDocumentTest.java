@@ -1,0 +1,164 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Camunda licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.camunda.connector.runtime.core.document;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentMetadata;
+import io.camunda.connector.api.document.DocumentReference;
+import io.camunda.connector.http.client.HttpClientService;
+import io.camunda.connector.http.client.model.HttpClientRequest;
+import io.camunda.connector.http.client.model.HttpClientResult;
+import io.camunda.connector.http.client.model.HttpMethod;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.function.Function;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+
+class ExternalDocumentTest {
+
+  private HttpClientService httpClientService;
+  private HttpClientResult httpClientResult;
+  Function<String, HttpClientResult> downloadDocument =
+      url -> {
+        HttpClientRequest req = new HttpClientRequest();
+        req.setMethod(HttpMethod.GET);
+        req.setUrl(url);
+        req.setStoreResponse(false);
+        return httpClientService.executeConnectorRequest(req);
+      };
+
+  private ExternalDocument document;
+  private ExternalDocument documentWithoutName;
+
+  private static final String URL = "http://test.local/file.json";
+  private static final String NAME = "myfile.json";
+  private static MockedStatic<UUID> mockedUuid;
+  private static UUID defaultUuid = UUID.fromString("8d8b30e3-de52-4f1c-a71c-9905a8043dac");
+
+  @BeforeAll()
+  static void setupUUID() {
+    mockedUuid = Mockito.mockStatic(UUID.class);
+    mockedUuid.when(UUID::randomUUID).thenReturn(defaultUuid);
+  }
+
+  @AfterAll()
+  static void tearDown() {
+    mockedUuid.close();
+  }
+
+  @BeforeEach
+  void setup() {
+    httpClientService = mock(HttpClientService.class);
+    httpClientResult = mock(HttpClientResult.class);
+    document = new ExternalDocument(URL, NAME, downloadDocument);
+    documentWithoutName = new ExternalDocument(URL, null, downloadDocument);
+  }
+
+  @Test
+  void metadata_shouldReturnContentTypeAndSize() {
+    when(httpClientService.executeConnectorRequest(any())).thenReturn(httpClientResult);
+    when(httpClientResult.body()).thenReturn("abc");
+    when(httpClientResult.headers())
+        .thenReturn(
+            Map.of(
+                "content-type", "application/json",
+                "content-length", "123"));
+
+    DocumentMetadata meta = document.metadata();
+
+    assertThat(meta.getContentType()).isEqualTo("application/json");
+    assertThat(meta.getSize()).isEqualTo(123L);
+  }
+
+  @Test
+  void metadata_shouldFallbackOnInvalidSize() {
+    when(httpClientService.executeConnectorRequest(any())).thenReturn(httpClientResult);
+    when(httpClientResult.body()).thenReturn("abc");
+
+    DocumentMetadata meta = document.metadata();
+
+    assertThat(meta.getSize()).isEqualTo(-1L);
+    assertThat(meta.getContentType()).isEqualTo(null);
+  }
+
+  @Test
+  void asInputStream_shouldReturnStreamOfStringBody() throws Exception {
+    String svg =
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1\" height=\"1\"><rect width=\"1\" height=\"1\"/></svg>\n";
+    when(httpClientService.executeConnectorRequest(any())).thenReturn(httpClientResult);
+    when(httpClientResult.body()).thenReturn(svg);
+    Document document = new ExternalDocument(URL, NAME, downloadDocument);
+
+    try (InputStream is = document.asInputStream()) {
+      String content = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+      assertThat(content).isEqualTo(svg);
+    }
+  }
+
+  @Test
+  void asInputStream_shouldReturnStreamOfPDF() throws Exception {
+    var pdf =
+        Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("testpdf.pdf"))
+            .readAllBytes();
+    when(httpClientService.executeConnectorRequest(any())).thenReturn(httpClientResult);
+    when(httpClientResult.body()).thenReturn(pdf);
+    Document document = new ExternalDocument(URL, NAME, downloadDocument);
+
+    try (InputStream is = document.asInputStream()) {
+      assertThat(is.readAllBytes()).isEqualTo(pdf);
+    }
+  }
+
+  @Test
+  void reference_shouldReturnExternalDocumentReference() {
+    DocumentReference ref = document.reference();
+
+    assertThat(ref).isInstanceOf(DocumentReference.ExternalDocumentReference.class);
+    assertThat(((DocumentReference.ExternalDocumentReference) ref).url()).isEqualTo(URL);
+    assertThat(((DocumentReference.ExternalDocumentReference) ref).name()).isEqualTo(NAME);
+  }
+
+  @Test
+  void reference_shouldReturnFilenameFromHeader() {
+    when(httpClientService.executeConnectorRequest(any())).thenReturn(httpClientResult);
+    when(httpClientResult.body()).thenReturn("abc");
+    when(httpClientResult.headers())
+        .thenReturn(
+            Map.of(
+                "content-type", "application/json",
+                "content-disposition", "filename=test"));
+
+    DocumentMetadata meta = documentWithoutName.metadata();
+    assertThat(meta.getFileName()).isEqualTo("test.json");
+  }
+
+  @Test
+  void generateLink_shouldReturnUrl() {
+    assertThat(document.generateLink(null)).isEqualTo(URL);
+  }
+}

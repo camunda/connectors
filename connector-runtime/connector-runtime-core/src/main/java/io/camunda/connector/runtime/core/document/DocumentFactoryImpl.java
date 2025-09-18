@@ -22,14 +22,31 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
+import io.camunda.connector.http.client.HttpClientService;
+import io.camunda.connector.http.client.model.HttpClientRequest;
+import io.camunda.connector.http.client.model.HttpClientResult;
+import io.camunda.connector.http.client.model.HttpMethod;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
+import java.util.function.Function;
 
 public class DocumentFactoryImpl implements DocumentFactory {
 
   private final CamundaDocumentStore documentStore;
+  private final HttpClientService httpClientService;
+  private final Function<String, HttpClientResult> downloadDocument;
 
   public DocumentFactoryImpl(CamundaDocumentStore documentStore) {
     this.documentStore = documentStore;
+    this.httpClientService = new HttpClientService();
+    this.downloadDocument =
+        url -> {
+          HttpClientRequest req = new HttpClientRequest();
+          req.setMethod(HttpMethod.GET);
+          req.setUrl(url);
+          req.setStoreResponse(false);
+          req.setShouldReturnRawBody(true);
+          return this.httpClientService.executeConnectorRequest(req);
+        };
   }
 
   @Override
@@ -41,9 +58,9 @@ public class DocumentFactoryImpl implements DocumentFactory {
       return new CamundaDocument(
           camundaDocumentReference.getMetadata(), camundaDocumentReference, documentStore);
     }
-    if (reference instanceof ExternalDocumentReference ignored) {
-      throw new IllegalArgumentException(
-          "External document references are not yet supported: " + reference.getClass());
+    if (reference instanceof ExternalDocumentReference externalDocumentReference) {
+      return new ExternalDocument(
+          externalDocumentReference.url(), externalDocumentReference.name(), downloadDocument);
     }
     throw new IllegalArgumentException("Unknown document reference type: " + reference.getClass());
   }

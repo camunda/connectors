@@ -39,7 +39,8 @@ public class HttpClientResultResponseHandlerTest {
     ClassicHttpResponse response = new BasicClassicHttpResponse(200);
     Header[] headers = new Header[] {new BasicHeader("Content-Type", "application/json")};
     response.setHeaders(headers);
-    response.setEntity(new StringEntity("{\"key\":\"value\"}"));
+    StringEntity entity = new StringEntity("{\"key\":\"value\"}");
+    response.setEntity(entity);
 
     // when
     HttpClientResult result = handler.handleResponse(response);

@@ -50,13 +50,22 @@ public class HttpCommonResultResponseHandler
   private final ExecutionEnvironment executionEnvironment;
 
   private final boolean isStoreResponseSelected;
+  private final boolean isShouldReturnRawBodySelected;
 
   public HttpCommonResultResponseHandler(
       @Nullable ExecutionEnvironment executionEnvironment, boolean isStoreResponseSelected) {
+    this(executionEnvironment, isStoreResponseSelected, false);
+  }
+
+  public HttpCommonResultResponseHandler(
+      @Nullable ExecutionEnvironment executionEnvironment,
+      boolean isStoreResponseSelected,
+      boolean isShouldReturnRawBodySelected) {
     this.executionEnvironment = executionEnvironment;
     this.isStoreResponseSelected = isStoreResponseSelected;
     this.fileResponseHandler =
         new FileResponseHandler(executionEnvironment, isStoreResponseSelected);
+    this.isShouldReturnRawBodySelected = isShouldReturnRawBodySelected;
   }
 
   @Override
@@ -142,6 +151,10 @@ public class HttpCommonResultResponseHandler
     if (executionEnvironment instanceof ExecutionEnvironment.SaaSCloudFunction
         && isStoreResponseSelected) {
       return Base64.getEncoder().encodeToString(content);
+    }
+
+    if (isShouldReturnRawBodySelected) {
+      return content;
     }
 
     String bodyString = null;
