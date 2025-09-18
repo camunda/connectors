@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -21,8 +22,11 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import dev.langchain4j.http.client.SuccessfulHttpResponse;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
+import dev.langchain4j.model.openai.OpenAiChatResponseMetadata;
+import dev.langchain4j.model.openai.OpenAiTokenUsage;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
@@ -39,6 +43,7 @@ import io.camunda.connector.api.document.Document;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -198,6 +203,7 @@ class ChatMessageConverterTest {
 
     final var chatResponseMetadata =
         ChatResponseMetadata.builder()
+            .id("chatcmpl-123")
             .finishReason(FinishReason.STOP)
             .tokenUsage(new TokenUsage(10, 20))
             .build();
@@ -226,10 +232,58 @@ class ChatMessageConverterTest {
     assertThat(result.metadata()).containsKey("framework");
     assertThat(result.metadata().get("framework"))
         .asInstanceOf(InstanceOfAssertFactories.MAP)
-        .containsEntry("finishReason", "STOP")
-        .containsEntry(
-            "tokenUsage",
-            Map.of("inputTokenCount", 10, "outputTokenCount", 20, "totalTokenCount", 30));
+        .containsExactly(
+            entry("id", "chatcmpl-123"),
+            entry("finishReason", "STOP"),
+            entry(
+                "tokenUsage",
+                Map.of("inputTokenCount", 10, "outputTokenCount", 20, "totalTokenCount", 30)));
+  }
+
+  @Test
+  void toAssistantMessage_containsOnlyBasicMetadata() {
+    final var aiMessage = AiMessage.builder().text("AI response").build();
+
+    final var chatResponseMetadata =
+        OpenAiChatResponseMetadata.builder()
+            .id("chatcmpl-123")
+            .finishReason(FinishReason.TOOL_EXECUTION)
+            .tokenUsage(
+                OpenAiTokenUsage.builder()
+                    .inputTokenCount(10)
+                    .inputTokensDetails(
+                        OpenAiTokenUsage.InputTokensDetails.builder().cachedTokens(1).build())
+                    .outputTokenCount(20)
+                    .totalTokenCount(30)
+                    .build())
+            .serviceTier("super-premium")
+            .rawHttpResponse(
+                SuccessfulHttpResponse.builder()
+                    .statusCode(200)
+                    .headers(Map.of("x-my-header", List.of("dummy")))
+                    .body("AI response")
+                    .build())
+            .build();
+
+    final var chatResponse =
+        new ChatResponse.Builder().aiMessage(aiMessage).metadata(chatResponseMetadata).build();
+
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
+
+    final var expectedTokenUsage = new LinkedHashMap<String, Object>();
+    expectedTokenUsage.put("inputTokenCount", 10);
+    expectedTokenUsage.put("inputTokensDetails", Map.of("cachedTokens", 1));
+    expectedTokenUsage.put("outputTokenCount", 20);
+    expectedTokenUsage.put("outputTokensDetails", null);
+    expectedTokenUsage.put("totalTokenCount", 30);
+
+    assertThat(result.metadata().get("framework"))
+        .asInstanceOf(InstanceOfAssertFactories.MAP)
+        .containsExactly(
+            entry("id", "chatcmpl-123"),
+            entry("finishReason", "TOOL_EXECUTION"),
+            entry("tokenUsage", expectedTokenUsage))
+        .doesNotContainKeys("serviceTier", "rawHttpResponse");
   }
 
   @Test
@@ -238,7 +292,8 @@ class ChatMessageConverterTest {
 
     final var chatResponseMetadata =
         ChatResponseMetadata.builder()
-            .finishReason(FinishReason.STOP)
+            .id("chatcmpl-123")
+            .finishReason(FinishReason.CONTENT_FILTER)
             .tokenUsage(new TokenUsage(10, 0))
             .build();
 
@@ -252,10 +307,26 @@ class ChatMessageConverterTest {
     assertThat(result.metadata()).containsKey("framework");
     assertThat(result.metadata().get("framework"))
         .asInstanceOf(InstanceOfAssertFactories.MAP)
-        .containsEntry("finishReason", "STOP")
-        .containsEntry(
-            "tokenUsage",
-            Map.of("inputTokenCount", 10, "outputTokenCount", 0, "totalTokenCount", 10));
+        .containsExactly(
+            entry("id", "chatcmpl-123"),
+            entry("finishReason", "CONTENT_FILTER"),
+            entry(
+                "tokenUsage",
+                Map.of("inputTokenCount", 10, "outputTokenCount", 0, "totalTokenCount", 10)));
+  }
+
+  @Test
+  void toAssistantMessage_convertsFromChatResponse_withoutMetadata() {
+    final var chatResponse =
+        new ChatResponse.Builder().aiMessage(AiMessage.builder().build()).build();
+
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
+
+    assertThat(result.metadata()).containsKey("framework");
+    assertThat(result.metadata().get("framework"))
+        .isNotNull()
+        .asInstanceOf(InstanceOfAssertFactories.MAP)
+        .isEmpty();
   }
 
   @Test

@@ -15,6 +15,7 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.internal.Json;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
+import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.AssistantMessageBuilder;
@@ -26,12 +27,18 @@ import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.ZonedDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 public class ChatMessageConverterImpl implements ChatMessageConverter {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ChatMessageConverterImpl.class);
 
   private final ContentConverter contentConverter;
   private final ToolCallConverter toolCallConverter;
@@ -145,18 +152,40 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     return builder;
   }
 
-  protected Map<String, Object> serializedChatResponseMetadata(ChatResponseMetadata metadata) {
-    if (metadata == null) {
+  protected Map<String, Object> serializedChatResponseMetadata(
+      ChatResponseMetadata chatResponseMetadata) {
+    if (chatResponseMetadata == null) {
+      return Map.of();
+    }
+
+    final var metadata = new LinkedHashMap<String, Object>();
+    Optional.ofNullable(chatResponseMetadata.id())
+        .filter(StringUtils::isNotBlank)
+        .ifPresent(id -> metadata.put("id", id));
+    Optional.ofNullable(chatResponseMetadata.finishReason())
+        .ifPresent(finishReason -> metadata.put("finishReason", finishReason.name()));
+
+    final var tokenUsage = serializedTokenUsage(chatResponseMetadata.tokenUsage());
+    if (!tokenUsage.isEmpty()) {
+      metadata.put("tokenUsage", tokenUsage);
+    }
+
+    return metadata;
+  }
+
+  protected Map<String, Object> serializedTokenUsage(TokenUsage tokenUsage) {
+    if (tokenUsage == null) {
       return Map.of();
     }
 
     try {
       return objectMapper.readValue(
-          Json.toJson(metadata), ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE);
+          Json.toJson(tokenUsage), ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE);
     } catch (JsonProcessingException e) {
-      throw new RuntimeException(
-          "Failed to deserialize chat response metadata: %s"
-              .formatted(humanReadableJsonProcessingExceptionMessage(e)));
+      LOGGER.warn(
+          "Failed to deserialize token usage metadata: {}",
+          humanReadableJsonProcessingExceptionMessage(e));
+      return Map.of();
     }
   }
 
