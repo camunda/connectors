@@ -105,7 +105,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Install element templates CLI
-        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' package.json)
+        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
 
       # Maven build & version bump
 
