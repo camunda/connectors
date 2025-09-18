@@ -1,6 +1,8 @@
 # Snyk cache
 .dccache
 
+.tool-versions
+
 # Compiled class file
 *.class
 

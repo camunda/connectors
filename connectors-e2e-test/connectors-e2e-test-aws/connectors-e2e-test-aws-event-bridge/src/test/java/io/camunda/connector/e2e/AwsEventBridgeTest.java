@@ -98,7 +98,7 @@ public class AwsEventBridgeTest extends BaseAwsTest {
     eventBridgeClient.deleteRule(new DeleteRuleRequest().withName(RULE_NAME));
   }
 
-//  @Test
+  //  @Test
   public void testEventBridgeConnectorFunction() throws JsonProcessingException {
     var model =
         Bpmn.createProcess()
