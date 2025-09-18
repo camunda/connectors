@@ -11,6 +11,7 @@
   </parent>
 
   <artifactId>connector-http-base</artifactId>
+  <name>HTTP Connector Base</name>
 
   <properties>
     <maven.compiler.source>21</maven.compiler.source>
