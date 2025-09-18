@@ -63,6 +63,14 @@ jobs:
       - name: Build Connectors
         run: mvn --batch-mode clean test -PcheckFormat
 
+      # 👇 Add this AFTER the tests
+      - name: Upload surefire reports
+        if: always() # ensures upload even if tests fail
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports
+          
       - name: Lint Dockerfile - connector-runtime
         uses: hadolint/hadolint-action@v3.1.0
         with:
