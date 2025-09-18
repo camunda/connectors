@@ -106,7 +106,7 @@
       "description": "Choose a table for the record operation",
       "group": "sn",
       "type": "Dropdown",
-      "value": "incident",
+      "value": "change_task",
       "choices": [
         { "name": "Requested Item [sc_req_item]", "value": "sc_req_item" },
         { "name": "Change Request [change_request]", "value": "change_request" },
