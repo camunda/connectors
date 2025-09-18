@@ -3,7 +3,7 @@
   "name": "ServiceNow Flow Starter",
   "id": "io.camunda.connectors.ServiceNowFlow.v1",
   "version": 1,
-  "description": "Start a flow in ServiceNow",
+  "description": "Start a ServiceNow flow from a Camunda process",
   "metadata": {
     "keywords": []
   },
