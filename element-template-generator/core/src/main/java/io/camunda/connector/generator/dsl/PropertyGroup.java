@@ -140,7 +140,7 @@ public record PropertyGroup(
               CommonProperties.messageNameUuidHidden().build())
           .build();
 
-  public static PropertyGroup CORRELATION_GROUP_INTERMEDIATE_CATCH_EVENT_OR_BOUNDARY =
+  public static PropertyGroup CORRELATION_GROUP_INTERMEDIATE_CATCH_EVENT_OR_BOUNDARY_OR_RECEIVE =
       PropertyGroup.builder()
           .id("correlation")
           .label("Correlation")

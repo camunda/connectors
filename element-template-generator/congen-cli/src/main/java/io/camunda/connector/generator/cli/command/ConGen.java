@@ -117,6 +117,7 @@ public class ConGen {
       case INTERMEDIATE_THROW_EVENT, INTERMEDIATE_CATCH_EVENT ->
           Set.of(BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT);
       case START_EVENT -> Set.of(BpmnType.START_EVENT);
+      case RECEIVE_TASK -> Set.of(BpmnType.RECEIVE_TASK);
       case MESSAGE_START_EVENT -> Set.of(BpmnType.MESSAGE_START_EVENT);
       case END_EVENT, MESSAGE_END_EVENT -> Set.of(BpmnType.END_EVENT);
       default -> throw new IllegalArgumentException("Unsupported BPMN type: " + bpmnType);

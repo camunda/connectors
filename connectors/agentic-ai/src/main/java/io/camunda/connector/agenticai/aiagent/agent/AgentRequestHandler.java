@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 
 /**
  * Main entry point for handling agent requests.
@@ -15,6 +14,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
  * <p>The agent response is expected to either return an agent response or to contain a list of tool
  * calls to handle through the process.
  */
-public interface AgentRequestHandler<C extends AgentExecutionContext> {
-  AgentResponse handleRequest(C executionContext);
+public interface AgentRequestHandler<C extends AgentExecutionContext, R> {
+  R handleRequest(C executionContext);
 }

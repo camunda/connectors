@@ -41,7 +41,8 @@ public class TemplateGenerationContextUtil {
           BpmnType.START_EVENT,
           BpmnType.INTERMEDIATE_CATCH_EVENT,
           BpmnType.MESSAGE_START_EVENT,
-          BpmnType.BOUNDARY_EVENT);
+          BpmnType.BOUNDARY_EVENT,
+          BpmnType.RECEIVE_TASK);
   private static final GeneratorConfiguration.ConnectorElementType OUTBOUND_DEFAULT_ELEMENT_TYPE =
       new GeneratorConfiguration.ConnectorElementType(
           Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null);

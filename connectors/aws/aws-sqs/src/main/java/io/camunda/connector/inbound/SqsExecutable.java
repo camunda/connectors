@@ -71,7 +71,12 @@ import org.slf4j.LoggerFactory;
           appliesTo = BpmnType.BOUNDARY_EVENT,
           elementType = BpmnType.BOUNDARY_EVENT,
           templateIdOverride = "io.camunda.connectors.AWSSQS.boundary.v1",
-          templateNameOverride = "Amazon SQS Boundary Event Connector")
+          templateNameOverride = "Amazon SQS Boundary Event Connector"),
+      @ConnectorElementType(
+          appliesTo = BpmnType.RECEIVE_TASK,
+          elementType = BpmnType.RECEIVE_TASK,
+          templateIdOverride = "io.camunda.connectors.AWSSQS.receive.v1",
+          templateNameOverride = "Amazon SQS Receive Task Connector")
     })
 public class SqsExecutable implements InboundConnectorExecutable<InboundConnectorContext> {
 

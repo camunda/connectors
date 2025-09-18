@@ -61,7 +61,12 @@ import java.util.Optional;
           appliesTo = BpmnType.BOUNDARY_EVENT,
           elementType = BpmnType.BOUNDARY_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.AWSSNS.Boundary.v1",
-          templateNameOverride = "SNS HTTPS Boundary Event Connector")
+          templateNameOverride = "SNS HTTPS Boundary Event Connector"),
+      @ConnectorElementType(
+          appliesTo = BpmnType.RECEIVE_TASK,
+          elementType = BpmnType.RECEIVE_TASK,
+          templateIdOverride = "io.camunda.connectors.inbound.AWSSNS.Receive.v1",
+          templateNameOverride = "SNS HTTPS Receive Task Connector")
     })
 public class SnsWebhookExecutable implements WebhookConnectorExecutable {
   protected static final String TOPIC_ARN_HEADER = "x-amz-sns-topic-arn";

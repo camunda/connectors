@@ -28,8 +28,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.Nullable;
 
-public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext>
-    implements AgentRequestHandler<C> {
+public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R>
+    implements AgentRequestHandler<C, R> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(BaseAgentRequestHandler.class);
 
@@ -61,7 +61,7 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext>
   }
 
   @Override
-  public AgentResponse handleRequest(final C executionContext) {
+  public R handleRequest(final C executionContext) {
     final var agentInitializationResult = agentInitializer.initializeAgent(executionContext);
     return switch (agentInitializationResult) {
       // directly return agent response if needed (e.g. tool discovery tool calls before calling the
@@ -84,7 +84,7 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext>
     };
   }
 
-  private AgentResponse handleRequest(
+  private R handleRequest(
       final C executionContext,
       final AgentContext agentContext,
       final List<ToolCallResult> toolCallResults) {
@@ -128,7 +128,6 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext>
         executionContext, agentContext, runtimeMemory, executionContext.systemPrompt());
 
     // update memory with user messages/tool call responses
-    LOGGER.trace("Adding system message (if necessary)");
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
           "Adding user messages including {} tool call results for the following tool call results: {}",
@@ -188,7 +187,7 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext>
   }
 
   /** Handles job completion if needed. Agent response and conversation store may be null. */
-  protected abstract AgentResponse completeJob(
+  protected abstract R completeJob(
       final C executionContext,
       @Nullable final AgentResponse agentResponse,
       @Nullable final ConversationStore conversationStore);

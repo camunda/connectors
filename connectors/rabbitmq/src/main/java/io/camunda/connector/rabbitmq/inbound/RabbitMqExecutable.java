@@ -60,7 +60,12 @@ import org.slf4j.LoggerFactory;
           appliesTo = BpmnType.BOUNDARY_EVENT,
           elementType = BpmnType.BOUNDARY_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.RabbitMQ.Boundary.v1",
-          templateNameOverride = "RabbitMQ Boundary Event Connector")
+          templateNameOverride = "RabbitMQ Boundary Event Connector"),
+      @ElementTemplate.ConnectorElementType(
+          appliesTo = BpmnType.RECEIVE_TASK,
+          elementType = BpmnType.RECEIVE_TASK,
+          templateIdOverride = "io.camunda.connectors.inbound.RabbitMQ.Receive.v1",
+          templateNameOverride = "RabbitMQ Receive Task Connector")
     })
 public class RabbitMqExecutable implements InboundConnectorExecutable<InboundConnectorContext> {
 

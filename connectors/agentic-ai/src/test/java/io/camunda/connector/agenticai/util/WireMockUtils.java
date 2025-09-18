@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent;
 import io.camunda.client.protocol.rest.JobCompletionRequest;
+import io.camunda.client.protocol.rest.JobErrorRequest;
 import io.camunda.client.protocol.rest.JobFailRequest;
 import org.assertj.core.api.ThrowingConsumer;
 
@@ -44,6 +45,17 @@ public class WireMockUtils {
     await()
         .untilAsserted(
             () -> verify(1, postRequestedFor(urlPathMatching("^/v2/jobs/([0-9]+)/failure$"))));
+  }
+
+  public static void assertJobErrorRequest(ThrowingConsumer<JobErrorRequest> assertions) {
+    awaitJobErrorRequest();
+    assertions.accept(getLastRequest(JobErrorRequest.class));
+  }
+
+  public static void awaitJobErrorRequest() {
+    await()
+        .untilAsserted(
+            () -> verify(1, postRequestedFor(urlPathMatching("^/v2/jobs/([0-9]+)/error$"))));
   }
 
   public static <T> T getLastRequest(final Class<T> requestType) {

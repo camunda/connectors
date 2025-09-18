@@ -246,7 +246,6 @@ public class InboundCorrelationHandler {
 
   public ActivationCheckResult canActivate(List<InboundConnectorElement> elements, Object context) {
     var matchingElements = getMatchingElements(elements, context);
-
     if (matchingElements.isEmpty()) {
       var discardUnmatchedEvents =
           elements.stream()
