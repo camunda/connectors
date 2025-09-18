@@ -23,8 +23,6 @@ import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
-import io.camunda.connector.api.reflection.ReflectionUtil;
-import io.camunda.connector.api.reflection.ReflectionUtil.MethodWithAnnotation;
 import io.camunda.connector.generator.api.ElementTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
@@ -35,6 +33,8 @@ import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.util.*;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext.Outbound;
+import io.camunda.connector.util.reflection.ReflectionUtil;
+import io.camunda.connector.util.reflection.ReflectionUtil.MethodWithAnnotation;
 import java.util.*;
 import java.util.regex.Pattern;
 

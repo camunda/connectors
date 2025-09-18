@@ -233,7 +233,13 @@ limitations under the License.</license.inlineheader>
         <version>${project.version}</version>
       </dependency>
 
-      <dependency>
+        <dependency>
+            <groupId>io.camunda.connector</groupId>
+            <artifactId>connector-utils</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>http-client</artifactId>
         <version>${project.version}</version>

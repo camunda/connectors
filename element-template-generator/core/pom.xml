@@ -23,10 +23,14 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-object-mapper</artifactId>
     </dependency>
-      <dependency>
-          <groupId>io.camunda.connector</groupId>
-          <artifactId>connector-feel-wrapper</artifactId>
-      </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-utils</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-feel-wrapper</artifactId>
+    </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>jackson-datatype-feel</artifactId>

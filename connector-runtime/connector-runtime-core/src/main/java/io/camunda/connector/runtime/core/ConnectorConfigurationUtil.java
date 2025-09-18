@@ -16,8 +16,8 @@
  */
 package io.camunda.connector.runtime.core;
 
-import static io.camunda.connector.api.reflection.ReflectionUtil.getMethodsAnnotatedWith;
-import static io.camunda.connector.api.reflection.ReflectionUtil.getVariableName;
+import static io.camunda.connector.util.reflection.ReflectionUtil.getMethodsAnnotatedWith;
+import static io.camunda.connector.util.reflection.ReflectionUtil.getVariableName;
 
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.annotation.Operation;
@@ -25,11 +25,10 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.api.reflection.ReflectionUtil;
-import io.camunda.connector.api.reflection.ReflectionUtil.MethodWithAnnotation;
 import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
+import io.camunda.connector.util.reflection.ReflectionUtil.MethodWithAnnotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
@@ -105,8 +104,7 @@ public final class ConnectorConfigurationUtil {
     }
   }
 
-  public static Set<String> getInputVariables(
-      List<ReflectionUtil.MethodWithAnnotation<Operation>> operations) {
+  public static Set<String> getInputVariables(List<MethodWithAnnotation<Operation>> operations) {
     Set<String> variables = new HashSet<>();
     operations.forEach(
         method -> {

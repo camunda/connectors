@@ -17,13 +17,13 @@
 package io.camunda.connector.generator.java;
 
 import static com.fasterxml.jackson.databind.MapperFeature.SORT_PROPERTIES_ALPHABETICALLY;
+import static io.camunda.connector.util.reflection.ReflectionUtil.getRequiredAnnotation;
 import static java.lang.Boolean.TRUE;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import io.camunda.connector.api.reflection.ReflectionUtil;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.generator.api.DocsGenerator;
 import io.camunda.connector.generator.api.DocsGeneratorConfiguration;
@@ -136,8 +136,7 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
   @Override
   public Doc generate(Class<?> connectorDefinition, DocsGeneratorConfiguration configuration) {
 
-    ElementTemplate template =
-        ReflectionUtil.getRequiredAnnotation(connectorDefinition, ElementTemplate.class);
+    ElementTemplate template = getRequiredAnnotation(connectorDefinition, ElementTemplate.class);
     TemplateGenerationContext templateGenerationContext =
         TemplateGenerationContextUtil.createContext(
             connectorDefinition, GeneratorConfiguration.DEFAULT);

@@ -16,16 +16,16 @@
  */
 package io.camunda.connector.generator.java.util;
 
-import static io.camunda.connector.api.reflection.ReflectionUtil.*;
 import static io.camunda.connector.generator.java.processor.TemplatePropertyFieldProcessor.buildCondition;
 import static io.camunda.connector.generator.java.processor.TemplatePropertyFieldProcessor.getValue;
+import static io.camunda.connector.util.reflection.ReflectionUtil.*;
 
 import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.annotation.Variable;
-import io.camunda.connector.api.reflection.ReflectionUtil;
 import io.camunda.connector.generator.dsl.*;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.util.reflection.ReflectionUtil.MethodWithAnnotation;
 import java.lang.reflect.Parameter;
 import java.util.Comparator;
 import java.util.List;
@@ -39,7 +39,7 @@ public class OperationBasedConnectorUtil {
   public static String VARIABLE_PATH_SEPARATOR = ".";
 
   public static PropertyBuilder createOperationsProperty(
-      List<ReflectionUtil.MethodWithAnnotation<Operation>> methods) {
+      List<MethodWithAnnotation<Operation>> methods) {
     if (methods.isEmpty()) {
       throw new IllegalArgumentException("No operations found for the connector.");
     }
@@ -73,13 +73,12 @@ public class OperationBasedConnectorUtil {
   }
 
   public static List<PropertyBuilder> getOperationProperties(
-      List<ReflectionUtil.MethodWithAnnotation<Operation>> methods,
-      TemplateGenerationContext context) {
+      List<MethodWithAnnotation<Operation>> methods, TemplateGenerationContext context) {
     return methods.stream().flatMap(m -> getOperationProperties(m, context).stream()).toList();
   }
 
   private static List<PropertyBuilder> getOperationProperties(
-      ReflectionUtil.MethodWithAnnotation<Operation> method, TemplateGenerationContext context) {
+      MethodWithAnnotation<Operation> method, TemplateGenerationContext context) {
     Operation operation = method.annotation();
     List<Parameter> parameters =
         method.parameters().stream()

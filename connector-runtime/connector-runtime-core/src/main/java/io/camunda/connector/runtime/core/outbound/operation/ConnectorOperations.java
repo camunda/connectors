@@ -16,16 +16,16 @@
  */
 package io.camunda.connector.runtime.core.outbound.operation;
 
-import static io.camunda.connector.api.reflection.ReflectionUtil.*;
+import static io.camunda.connector.util.reflection.ReflectionUtil.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.api.reflection.ReflectionUtil.MethodWithAnnotation;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.outbound.operation.ParameterDescriptor.Context;
+import io.camunda.connector.util.reflection.ReflectionUtil.MethodWithAnnotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
