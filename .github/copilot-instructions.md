@@ -66,6 +66,51 @@ public class MyConnectorFunction implements OutboundConnectorFunction {
 }
 ```
 
+### Operation-Based Outbound Connector Implementation (New Preferred Syntax)
+
+For connectors that involve multiple operations, the new operation-based syntax is preferred. This approach uses `@Operation` annotations to define multiple operations within a single connector class:
+
+```java
+@OutboundConnector(name = "CSV Connector", type = "io.camunda:csv-connector")
+@ElementTemplate(
+    name = "CSV Connector",
+    id = "io.camunda.connectors.csv",
+    version = 1,
+    engineVersion = "^8.8",
+    icon = "icon.svg")
+public class CsvConnector implements OutboundConnectorProvider {
+
+  @Operation(id = "readCsv", name = "Read CSV")
+  public ReadCsvResult readCsv(
+      @Variable ReadCsvRequest request,
+      @Header(name = "recordMapper", required = false)
+          @TemplateProperty(
+              label = "Record mapping",
+              tooltip = "FEEL function that allows to map each record",
+              feel = Property.FeelMode.required)
+          Function<Map<String, Object>, Object> mapper) {
+    // Read CSV implementation
+    return readCsvRequest(/* ... */);
+  }
+
+  @Operation(id = "writeCsv", name = "Write CSV")
+  public Object writeCsv(@Variable WriteCsvRequest request, OutboundConnectorContext context) {
+    // Write CSV implementation
+    var csv = createCsv(request.data(), request.format());
+    return new WriteCsvResult(csv);
+  }
+}
+```
+
+**Key differences from traditional syntax:**
+- Implements `OutboundConnectorProvider` instead of `OutboundConnectorFunction`
+- Uses `@Operation` annotations to define multiple operations
+- Each operation method can have different input/output types
+- Uses `@Variable` and `@Header` annotations for parameter binding
+- Better suited for connectors with multiple distinct operations
+
+**Note:** Both syntaxes are still supported. Use the operation-based syntax for connectors with multiple operations, and the traditional syntax for simple single-operation connectors.
+
 ### Inbound Connector Implementation
 ```java
 @InboundConnector(
@@ -100,8 +145,8 @@ public class MyInboundConnector implements InboundConnectorExecutable {
 # Full build
 mvn clean package
 
-# Skip E2E tests (faster development)
-mvn clean package -P e2eExcluded
+# Quick build, skip long-running tests (faster development)
+mvn clean package -Dquickly
 
 # Generate element templates for connectors
 ./connectors/create-element-templates-symlinks.sh
@@ -171,5 +216,6 @@ Templates auto-link to Camunda Modeler via `create-element-templates-symlinks.sh
 - **Scope issues**: Use `provided` scope for SDK dependencies
 - **Service registration**: Don't forget ServiceLoader registration files
 - **Template generation**: Run `GenerateElementTemplate` after model changes
+- **File structure changes**: When modifying file or folder structure, always check for references in CI workflows (`.github/workflows/`), READMEs, and this copilot instructions file
 
 For examples, see existing connectors in `connectors/` directory. HTTP REST connector (`connectors/http/rest/`) is the reference implementation.
