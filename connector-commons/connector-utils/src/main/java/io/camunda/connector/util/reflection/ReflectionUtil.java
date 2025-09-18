@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.reflection;
+package io.camunda.connector.util.reflection;
 
 import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Operation;

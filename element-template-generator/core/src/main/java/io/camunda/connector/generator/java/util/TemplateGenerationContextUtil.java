@@ -16,9 +16,10 @@
  */
 package io.camunda.connector.generator.java.util;
 
+import static io.camunda.connector.util.reflection.ReflectionUtil.getRequiredAnnotation;
+
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.annotation.OutboundConnector;
-import io.camunda.connector.api.reflection.ReflectionUtil;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -84,7 +85,7 @@ public class TemplateGenerationContextUtil {
       Class<?> connectorDefinition,
       GeneratorConfiguration configuration,
       OutboundConnector connector) {
-    var template = ReflectionUtil.getRequiredAnnotation(connectorDefinition, ElementTemplate.class);
+    var template = getRequiredAnnotation(connectorDefinition, ElementTemplate.class);
 
     GeneratorConfiguration mergedConfig = ConfigurationUtil.fromAnnotation(template, configuration);
     var elementTypes = mergedConfig.elementTypes();
@@ -106,7 +107,7 @@ public class TemplateGenerationContextUtil {
       Class<?> connectorDefinition,
       GeneratorConfiguration configuration,
       InboundConnector connector) {
-    var template = ReflectionUtil.getRequiredAnnotation(connectorDefinition, ElementTemplate.class);
+    var template = getRequiredAnnotation(connectorDefinition, ElementTemplate.class);
 
     GeneratorConfiguration mergedConfig = ConfigurationUtil.fromAnnotation(template, configuration);
     var elementTypes = mergedConfig.elementTypes();

@@ -19,6 +19,7 @@
   <modules>
     <module>connector-object-mapper</module>
     <module>http-client</module>
+    <module>connector-utils</module>
   </modules>
 
 </project>
