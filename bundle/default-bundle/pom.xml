@@ -173,6 +173,7 @@
        <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
+          <version>${plugin.version.maven-shade-plugin}</version>
           <dependencies>
             <dependency>
               <groupId>org.springframework.boot</groupId>
@@ -225,6 +226,27 @@
                 <mainClass>io.camunda.connector.runtime.app.ConnectorRuntimeApplication</mainClass>
               </transformer>
             </transformers>
+            <artifactSet>
+              <excludes>
+                <!-- Classes provided by JSR-250 artifact are fully covered by javax.annotation-api artifact
+                     that comes with google-cloud-secretmanager (dependency of connector-runtime-cloud) -->
+                <exclude>javax.annotation:jsr250-api</exclude>
+              </excludes>
+            </artifactSet>
+            <filters>
+              <filter>
+                <artifact>*:*</artifact>
+                <excludes>
+                  <exclude>module-info.class</exclude>
+                  <exclude>META-INF/versions/9/module-info.class</exclude>
+                  <exclude>META-INF/DEPENDENCIES</exclude>
+                  <exclude>META-INF/MANIFEST.MF</exclude>
+                  <exclude>META-INF/*.SF</exclude>
+                  <exclude>META-INF/*.DSA</exclude>
+                  <exclude>META-INF/*.RSA</exclude>
+                </excludes>
+              </filter>
+            </filters>
           </configuration>
           <executions>
             <execution>
