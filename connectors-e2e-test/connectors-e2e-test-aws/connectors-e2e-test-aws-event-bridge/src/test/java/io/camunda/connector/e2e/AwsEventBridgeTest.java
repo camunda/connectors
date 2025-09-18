@@ -117,7 +117,7 @@ public class AwsEventBridgeTest extends BaseAwsTest {
             .property("authentication.accessKey", localstack.getAccessKey())
             .property("authentication.secretKey", localstack.getSecretKey())
             .property("configuration.region", localstack.getRegion())
-            .property("input.eventBusName", EVENT_BUS_NAME)
+            .property("input.eventBusName", "=\"" + EVENT_BUS_NAME + "\"")
             .property("input.source", SOURCE)
             .property("input.detailType", DETAIL_TYPE)
             .property("input.detail", "=" + DETAIL)
@@ -141,9 +141,6 @@ public class AwsEventBridgeTest extends BaseAwsTest {
             .filterByType(ZeebeTaskDefinition.class)
             .singleResult()
             .getType());
-
-    System.out.println(
-        "Zeebe brokers: " + zeebeClient.newTopologyRequest().send().join().getBrokers());
 
     var bpmnTest =
         ZeebeTest.with(zeebeClient)
