@@ -30,7 +30,7 @@ import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.inbound.HttpWebhookExecutable;
 import io.camunda.connector.inbound.utils.TestRSAKeyProvider;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
+import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.util.Arrays;
 import java.util.Date;

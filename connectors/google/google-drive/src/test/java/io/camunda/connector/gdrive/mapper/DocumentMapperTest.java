@@ -10,7 +10,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import com.google.api.services.drive.model.File;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import org.junit.jupiter.api.Test;
 
 class DocumentMapperTest {

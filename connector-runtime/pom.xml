@@ -25,5 +25,6 @@
     <module>feel-wrapper</module>
     <module>jackson-datatype-feel</module>
     <module>jackson-datatype-document</module>
+    <module>connector-runtime-test</module>
   </modules>
 </project>

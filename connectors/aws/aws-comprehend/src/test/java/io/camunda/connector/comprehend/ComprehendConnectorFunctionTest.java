@@ -20,7 +20,7 @@ import io.camunda.connector.comprehend.caller.AsyncComprehendCaller;
 import io.camunda.connector.comprehend.caller.SyncComprehendCaller;
 import io.camunda.connector.comprehend.model.ComprehendRequest;
 import io.camunda.connector.comprehend.supplier.ComprehendClientSupplier;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

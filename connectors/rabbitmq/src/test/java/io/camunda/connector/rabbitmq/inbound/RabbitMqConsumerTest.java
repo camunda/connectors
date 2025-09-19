@@ -24,7 +24,7 @@ import io.camunda.connector.api.inbound.CorrelationResult.Failure.ZeebeClientSta
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult.RabbitMqInboundMessage;
-import io.camunda.connector.test.inbound.InboundConnectorContextBuilder.TestInboundConnectorContext;
+import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder.TestInboundConnectorContext;
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;

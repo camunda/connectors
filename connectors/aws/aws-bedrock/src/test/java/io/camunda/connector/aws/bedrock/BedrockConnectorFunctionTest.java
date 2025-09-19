@@ -11,7 +11,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.aws.bedrock.core.BedrockExecutor;
 import io.camunda.connector.aws.bedrock.model.InvokeModelWrappedResponse;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;

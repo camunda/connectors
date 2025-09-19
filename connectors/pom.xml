@@ -70,7 +70,7 @@ except in compliance with the proprietary license.</license.inlineheader>
     <!-- test dependencies -->
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-test</artifactId>
+      <artifactId>connector-runtime-test</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

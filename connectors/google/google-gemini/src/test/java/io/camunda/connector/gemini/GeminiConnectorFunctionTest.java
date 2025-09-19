@@ -26,7 +26,7 @@ import io.camunda.connector.gemini.mapper.GenerativeModelMapper;
 import io.camunda.connector.gemini.mapper.PromptsMapper;
 import io.camunda.connector.gemini.model.GeminiRequestData;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
