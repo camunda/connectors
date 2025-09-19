@@ -66,7 +66,6 @@ public class AzureAiFoundryCaller {
         Optional.ofNullable(input.converseData().temperature())
             .map(Float::doubleValue)
             .orElse(null));
-    options.setMaxTokens(input.converseData().maxTokens());
     options.setTopP(
         Optional.ofNullable(input.converseData().topP()).map(Float::doubleValue).orElse(1.0));
 
@@ -95,7 +94,6 @@ public class AzureAiFoundryCaller {
     ChatCompletionsOptions options = new ChatCompletionsOptions(messages);
     options.setModel(input.converseData().modelId());
     options.setTemperature(input.converseData().temperature().doubleValue());
-    options.setMaxTokens(input.converseData().maxTokens());
     options.setTopP(input.converseData().topP().doubleValue());
 
     // Make the call to Azure AI Foundry

@@ -62,10 +62,7 @@ public class BedrockCaller {
                   .messages(message)
                   .inferenceConfig(
                       config ->
-                          config
-                              .maxTokens(converseData.maxTokens())
-                              .temperature(converseData.temperature())
-                              .topP(converseData.topP()));
+                          config.temperature(converseData.temperature()).topP(converseData.topP()));
             });
 
     return response.output().message().content().getFirst().text();

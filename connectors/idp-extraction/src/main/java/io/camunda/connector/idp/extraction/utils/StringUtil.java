@@ -43,4 +43,33 @@ public final class StringUtil {
 
     return response;
   }
+
+  /**
+   * Filters out thinking content from AI responses to prevent including reasoning in the final
+   * output.
+   *
+   * <p>This method removes content between &lt;thinking&gt; and &lt;/thinking&gt; tags from AI
+   * responses. It handles case-insensitive matching and content that spans multiple lines.
+   *
+   * @param response the AI response that may contain thinking tags
+   * @return the response with thinking content filtered out, or the original response if no
+   *     thinking tags are found
+   */
+  public static String filterThinkingContent(String response) {
+    if (response == null) {
+      return null;
+    }
+
+    // Remove content between <thinking> and </thinking> tags (case insensitive)
+    // Uses DOTALL flag to match across newlines
+    String filtered = response.replaceAll("(?is)<thinking>.*?</thinking>", "");
+
+    // Also handle cases where thinking tags might be on separate lines
+    filtered = filtered.replaceAll("(?is)<thinking>\\s*\\n.*?\\n\\s*</thinking>", "");
+
+    // Clean up any extra whitespace that might be left
+    filtered = filtered.replaceAll("\\n\\s*\\n", "\n").trim();
+
+    return filtered;
+  }
 }
