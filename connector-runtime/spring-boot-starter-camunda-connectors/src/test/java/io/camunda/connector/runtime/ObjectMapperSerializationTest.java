@@ -45,6 +45,7 @@ public class ObjectMapperSerializationTest {
 
   @Autowired private JsonMapper jsonMapper;
   @Autowired private ObjectMapper objectMapper;
+
   @Autowired private ApplicationContext applicationContext;
 
   @Test
