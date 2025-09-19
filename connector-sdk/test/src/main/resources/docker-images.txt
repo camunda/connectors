@@ -1,0 +1,10 @@
+kafka=confluentinc/cp-kafka:7.2.1
+schema-registry=confluentinc/cp-schema-registry:7.5.2
+mariadb=mariadb:11.3.2
+postgres=postgres:9.6.12
+mysql=mysql:5.7.34
+mssql=mcr.microsoft.com/mssql/server:2022-latest
+oracle=gvenzl/oracle-free:23-slim-faststart
+rabbitmq=rabbitmq:4.1.1-management-alpine
+localstack=localstack/localstack:4.8
+squid=sameersbn/squid:3.5.27-2

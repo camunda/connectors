@@ -41,6 +41,7 @@ import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.test.SlowTest;
+import io.camunda.connector.test.docker.DockerImages;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -85,12 +86,12 @@ public class KafkaIntegrationTest {
   private static final Network NETWORK = Network.newNetwork();
 
   private static final KafkaContainer kafkaContainer =
-      new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.2.1"))
+      new KafkaContainer(DockerImageName.parse(DockerImages.KAFKA))
           .withNetwork(NETWORK)
           .withKraft();
 
   private static final GenericContainer<?> SCHEMA_REGISTRY =
-      new GenericContainer<>(DockerImageName.parse("confluentinc/cp-schema-registry:7.5.2"))
+      new GenericContainer<>(DockerImageName.parse(DockerImages.SCHEMA_REGISTRY))
           .withNetwork(NETWORK)
           .withExposedPorts(8081)
           .withEnv("SCHEMA_REGISTRY_HOST_NAME", "schema-registry")

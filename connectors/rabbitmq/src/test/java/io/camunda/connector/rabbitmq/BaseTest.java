@@ -13,6 +13,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.rabbitmq.supplier.ObjectMapperSupplier;
+import io.camunda.connector.test.docker.DockerImages;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -20,7 +21,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.params.provider.Arguments;
 
 public abstract class BaseTest {
-  public static final String RABBITMQ_TEST_IMAGE = "rabbitmq:4.1.1-management-alpine";
+  public static final String RABBITMQ_TEST_IMAGE = DockerImages.RABBITMQ;
 
   protected ObjectMapper objectMapper = ObjectMapperSupplier.instance();
 

@@ -40,6 +40,7 @@ import io.camunda.connector.http.client.model.auth.ApiKeyLocation;
 import io.camunda.connector.http.client.model.auth.BasicAuthentication;
 import io.camunda.connector.http.client.model.auth.BearerAuthentication;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
+import io.camunda.connector.test.docker.DockerImages;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,7 +78,7 @@ public class CustomApacheHttpClientTest {
     public static void setUp() {
       proxy.start();
       proxyContainer =
-          new GenericContainer<>(DockerImageName.parse("sameersbn/squid:3.5.27-2"))
+          new GenericContainer<>(DockerImageName.parse(DockerImages.SQUID))
               .withExposedPorts(3128)
               .withClasspathResourceMapping(
                   "squid.conf", "/etc/squid/squid.conf", BindMode.READ_ONLY)

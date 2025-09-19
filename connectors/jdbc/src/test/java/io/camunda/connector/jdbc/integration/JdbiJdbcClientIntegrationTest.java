@@ -13,6 +13,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.jdbc.model.request.SupportedDatabase;
 import io.camunda.connector.test.SlowTest;
+import io.camunda.connector.test.docker.DockerImages;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
@@ -40,13 +41,12 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
   public static final String PROVIDE_SQL_SERVERS_CONFIG =
       "io.camunda.connector.jdbc.integration.JdbiJdbcClientIntegrationTest#provideSqlServersConfig";
   static final MSSQLServerContainer msSqlServer =
-      new MSSQLServerContainer<>("mcr.microsoft.com/mssql/server:2022-latest").acceptLicense();
-  static final MySQLContainer mySqlServer = new MySQLContainer<>("mysql:5.7.34");
-  static final PostgreSQLContainer postgreServer = new PostgreSQLContainer<>("postgres:9.6.12");
+      new MSSQLServerContainer<>(DockerImages.MSSQL).acceptLicense();
+  static final MySQLContainer mySqlServer = new MySQLContainer<>(DockerImages.MYSQL);
+  static final PostgreSQLContainer postgreServer = new PostgreSQLContainer<>(DockerImages.POSTGRES);
   static final MariaDBContainer mariaDbServer =
-      new MariaDBContainer<>(DockerImageName.parse("mariadb:11.3.2"));
-  static final OracleContainer oracleServer =
-      new OracleContainer("gvenzl/oracle-free:23-slim-faststart");
+      new MariaDBContainer<>(DockerImageName.parse(DockerImages.MARIADB));
+  static final OracleContainer oracleServer = new OracleContainer(DockerImages.ORACLE);
 
   static List<IntegrationTestConfig> sqlServersConfig;
 
