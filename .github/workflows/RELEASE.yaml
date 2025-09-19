@@ -29,7 +29,7 @@ jobs:
           node-version: 22
 
       - name: Install element templates CLI
-        run: npm install --global element-templates-cli
+        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
 
       - uses: actions/checkout@v4
         with:
@@ -131,6 +131,17 @@ jobs:
           MAVEN_USR: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}
           MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
+
+      - name: Publish Test Report
+        if: success() || failure()
+        uses: scacap/action-surefire-report@v1
+
+      - name: Upload detailed surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: '**/target/surefire-reports/*.xml'
 
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
         run: mvn -B deploy -DskipTests -Pcentral-sonatype-publish
