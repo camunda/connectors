@@ -114,7 +114,7 @@ public class AwsEventBridgeTest extends BaseAwsTest {
             .property("authentication.accessKey", localstack.getAccessKey())
             .property("authentication.secretKey", localstack.getSecretKey())
             .property("configuration.region", localstack.getRegion())
-            .property("input.eventBusName", EVENT_BUS_NAME)
+            .property("input.eventBusName", "=\"" + EVENT_BUS_NAME + "\"")
             .property("input.source", SOURCE)
             .property("input.detailType", DETAIL_TYPE)
             .property("input.detail", "=" + DETAIL)
