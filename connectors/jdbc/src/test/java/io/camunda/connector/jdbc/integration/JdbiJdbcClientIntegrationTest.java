@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.jdbc.integration;
 
+import static io.camunda.connector.test.docker.DockerImages.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -41,12 +42,13 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
   public static final String PROVIDE_SQL_SERVERS_CONFIG =
       "io.camunda.connector.jdbc.integration.JdbiJdbcClientIntegrationTest#provideSqlServersConfig";
   static final MSSQLServerContainer msSqlServer =
-      new MSSQLServerContainer<>(DockerImages.MSSQL).acceptLicense();
-  static final MySQLContainer mySqlServer = new MySQLContainer<>(DockerImages.MYSQL);
-  static final PostgreSQLContainer postgreServer = new PostgreSQLContainer<>(DockerImages.POSTGRES);
+      new MSSQLServerContainer<>(DockerImages.get(MSSQL)).acceptLicense();
+  static final MySQLContainer mySqlServer = new MySQLContainer<>(DockerImages.get(MYSQL));
+  static final PostgreSQLContainer postgreServer =
+      new PostgreSQLContainer<>(DockerImages.get(POSTGRES));
   static final MariaDBContainer mariaDbServer =
-      new MariaDBContainer<>(DockerImageName.parse(DockerImages.MARIADB));
-  static final OracleContainer oracleServer = new OracleContainer(DockerImages.ORACLE);
+      new MariaDBContainer<>(DockerImageName.parse(DockerImages.get(MARIADB)));
+  static final OracleContainer oracleServer = new OracleContainer(DockerImages.get(ORACLE));
 
   static List<IntegrationTestConfig> sqlServersConfig;
 

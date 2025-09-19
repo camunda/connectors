@@ -38,7 +38,8 @@ public class DockerImages {
   public static final String SQUID = "squid";
 
   private static Map<String, String> loadImages() {
-    Path path = Paths.get("docker-images.txt");
+    var dockerImagesUrl = DockerImages.class.getClassLoader().getResource("docker-images.txt");
+    Path path = Paths.get(dockerImagesUrl.getPath());
     try (var lines = Files.lines(path)) {
       return lines
           .filter(line -> !line.isBlank() && !line.startsWith("#"))
