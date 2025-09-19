@@ -7,7 +7,7 @@
 package io.camunda.connector.rabbitmq.inbound;
 
 import io.camunda.connector.rabbitmq.BaseTest;
-import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
+import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
 import java.io.IOException;
 import java.util.stream.Stream;
 

@@ -12,7 +12,7 @@ import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.outbound.model.SqsConnectorRequest;
 import io.camunda.connector.outbound.model.SqsMessageAttribute;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;

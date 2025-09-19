@@ -18,7 +18,7 @@ import com.amazonaws.services.textract.model.AnalyzeDocumentResult;
 import com.amazonaws.services.textract.model.GetDocumentAnalysisResult;
 import com.amazonaws.services.textract.model.StartDocumentAnalysisResult;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.textract.caller.AsyncTextractCaller;
 import io.camunda.connector.textract.caller.PollingTextractCalller;
 import io.camunda.connector.textract.caller.SyncTextractCaller;

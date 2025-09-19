@@ -16,7 +16,7 @@ import io.camunda.connector.idp.extraction.model.ExtractionResult;
 import io.camunda.connector.idp.extraction.service.StructuredService;
 import io.camunda.connector.idp.extraction.service.UnstructuredService;
 import io.camunda.connector.idp.extraction.util.ExtractionTestUtils;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

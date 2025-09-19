@@ -18,7 +18,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.inbound.HttpWebhookExecutable;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
+import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;

@@ -68,7 +68,7 @@ jobs:
         run: mvn -B package generate-sources source:jar javadoc:jar
 
       - name: Publish Test Report
-        if: success() || failure()
+        if: always()
         uses: scacap/action-surefire-report@v1
 
       - name: Upload detailed surefire reports

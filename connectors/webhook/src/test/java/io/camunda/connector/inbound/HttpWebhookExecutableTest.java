@@ -21,7 +21,7 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.*;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.utils.HttpMethods;
-import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
+import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
