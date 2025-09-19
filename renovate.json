@@ -12,6 +12,19 @@
     "no milestone"
   ],
   "prHourlyLimit": 10,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^docker-images\\.txt$/"
+      ],
+      "matchStrings": [
+        "^.*=(?<currentValue>.*)$"
+      ],
+      "depNameTemplate": "{{{matchString}}}",
+      "datasourceTemplate": "docker"
+    }
+  ],
   "packageRules": [
     {
       "matchManagers": [
