@@ -146,6 +146,7 @@ leading to the following result
     } ],
     "metadata" : {
       "framework" : {
+        "finishReason" : "STOP",
         "id" : "chatcmpl-123",
         "tokenUsage" : {
           "inputTokenCount" : 5,
