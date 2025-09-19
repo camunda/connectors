@@ -41,13 +41,7 @@ public class L4JAiAgentJobWorkerResponseHandlingTests extends BaseL4JAiAgentJobW
     @AfterEach
     void verifyRequestedResponseFormat() {
       final var lastChatRequest = chatRequestCaptor.getValue();
-      assertThat(lastChatRequest.responseFormat())
-          .isNotNull()
-          .satisfies(
-              format -> {
-                assertThat(format.type()).isEqualTo(ResponseFormatType.TEXT);
-                assertThat(format.jsonSchema()).isNull();
-              });
+      assertThat(lastChatRequest.responseFormat()).isNull();
     }
 
     @Test
