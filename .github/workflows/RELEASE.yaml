@@ -56,9 +56,9 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Install element templates CLI
-        run: npm install --global element-templates-cli
+        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
 
-      # Maven build & version bump
+        # Maven build & version bump
       - name: Set Connectors release version
         run: mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
         env:
@@ -66,6 +66,17 @@ jobs:
 
       - name: Compile and Test
         run: mvn -B package generate-sources source:jar javadoc:jar
+
+      - name: Publish Test Report
+        if: success() || failure()
+        uses: scacap/action-surefire-report@v1
+
+      - name: Upload detailed surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: '**/target/surefire-reports/*.xml'
 
       - name: Generate sbom reports
         run: |
@@ -128,7 +139,7 @@ jobs:
             minor="${BASH_REMATCH[2]}"
             current_minor="${major}.${minor}"
             previous_minor="${major}.$((minor - 1))"
-  
+          
             echo "is_first_minor=true" >> $GITHUB_OUTPUT
             echo "current_minor=${current_minor}" >> $GITHUB_OUTPUT
             echo "previous_minor=${previous_minor}" >> $GITHUB_OUTPUT
@@ -407,7 +418,7 @@ jobs:
 
 
   helm-deploy:
-    needs: [setup, docker-release]
+    needs: [ setup, docker-release ]
     name: Run Helm Integration Tests
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
