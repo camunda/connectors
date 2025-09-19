@@ -18,6 +18,7 @@ package io.camunda.connector.http.client.client.apache;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+import static io.camunda.connector.test.docker.DockerImages.SQUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -78,7 +79,7 @@ public class CustomApacheHttpClientTest {
     public static void setUp() {
       proxy.start();
       proxyContainer =
-          new GenericContainer<>(DockerImageName.parse(DockerImages.SQUID))
+          new GenericContainer<>(DockerImageName.parse(DockerImages.get(SQUID)))
               .withExposedPorts(3128)
               .withClasspathResourceMapping(
                   "squid.conf", "/etc/squid/squid.conf", BindMode.READ_ONLY)

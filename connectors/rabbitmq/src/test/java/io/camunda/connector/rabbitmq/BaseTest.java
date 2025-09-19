@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.rabbitmq;
 
+import static io.camunda.connector.test.docker.DockerImages.RABBITMQ;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
 
@@ -21,7 +22,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.params.provider.Arguments;
 
 public abstract class BaseTest {
-  public static final String RABBITMQ_TEST_IMAGE = DockerImages.RABBITMQ;
+  public static final String RABBITMQ_TEST_IMAGE = DockerImages.get(RABBITMQ);
 
   protected ObjectMapper objectMapper = ObjectMapperSupplier.instance();
 

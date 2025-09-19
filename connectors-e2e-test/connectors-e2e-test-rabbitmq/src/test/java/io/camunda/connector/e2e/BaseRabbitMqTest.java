@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.e2e;
 
+import static io.camunda.connector.test.docker.DockerImages.RABBITMQ;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
@@ -35,7 +36,7 @@ public abstract class BaseRabbitMqTest {
   protected static final String OUTBOUND_ELEMENT_TEMPLATE_PATH =
       "../../connectors/rabbitmq/element-templates/rabbitmq-outbound-connector.json";
   protected static final String INTERMEDIATE_CATCH_EVENT_BPMN = "intermediate-catch-event.bpmn";
-  public static final String RABBITMQ_TEST_IMAGE = DockerImages.RABBITMQ;
+  public static final String RABBITMQ_TEST_IMAGE = DockerImages.get(RABBITMQ);
 
   @TempDir File tempDir;
 
