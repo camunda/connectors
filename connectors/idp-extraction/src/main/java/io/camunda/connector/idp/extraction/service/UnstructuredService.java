@@ -198,7 +198,9 @@ public class UnstructuredService implements ExtractionService {
   private Map<String, Object> buildResponseJsonIfPossible(
       String llmResponse, List<TaxonomyItem> taxonomyItems) {
     try {
-      String cleanedResponse = StringUtil.stripMarkdownCodeBlocks(llmResponse);
+      // First filter out thinking content, then strip markdown code blocks
+      String thinkingRemoved = StringUtil.filterThinkingContent(llmResponse);
+      String cleanedResponse = StringUtil.stripMarkdownCodeBlocks(thinkingRemoved);
       var llmResponseJson = objectMapper.readValue(cleanedResponse, JsonNode.class);
       var taxonomyItemsNames = taxonomyItems.stream().map(TaxonomyItem::name).toList();
 

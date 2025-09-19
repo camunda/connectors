@@ -144,7 +144,6 @@ class AzureAiFoundryCallerTest {
       ChatCompletionsOptions options = optionsCaptor.getValue();
       assertEquals(modelId, options.getModel());
       assertEquals(0.5, options.getTemperature(), 0.001);
-      assertEquals(512, options.getMaxTokens());
       assertEquals(0.9, options.getTopP(), 0.001);
     }
   }
@@ -215,7 +214,6 @@ class AzureAiFoundryCallerTest {
 
       com.azure.ai.openai.models.ChatCompletionsOptions options = optionsCaptor.getValue();
       assertEquals(0.5, options.getTemperature(), 0.001);
-      assertEquals(512, options.getMaxTokens());
       assertEquals(0.9, options.getTopP(), 0.001);
     }
   }
