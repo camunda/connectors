@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.jdbc;
 
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 
 public class OutboundBaseTest extends BaseTest {
 

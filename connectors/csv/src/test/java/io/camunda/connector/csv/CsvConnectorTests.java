@@ -12,7 +12,7 @@ import static org.junit.Assert.*;
 
 import io.camunda.connector.csv.model.*;
 import io.camunda.connector.csv.model.ReadCsvRequest.RowType;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;

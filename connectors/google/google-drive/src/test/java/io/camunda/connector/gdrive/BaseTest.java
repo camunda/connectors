@@ -10,7 +10,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;

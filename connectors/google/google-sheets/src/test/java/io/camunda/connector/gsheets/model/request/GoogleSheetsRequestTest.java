@@ -23,7 +23,7 @@ import io.camunda.connector.gsheets.model.request.input.GetRowByIndex;
 import io.camunda.connector.gsheets.model.request.input.GetSpreadsheetDetails;
 import io.camunda.connector.gsheets.model.request.input.GetWorksheetData;
 import io.camunda.connector.gsheets.model.request.input.Input;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.google.model.Authentication;
 import io.camunda.google.model.AuthenticationType;
 import java.io.IOException;

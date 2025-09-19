@@ -22,7 +22,7 @@ import io.camunda.connector.email.response.SearchEmailsResponse;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import jakarta.mail.Message;
 import java.io.IOException;
 import java.nio.file.Files;

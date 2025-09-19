@@ -23,7 +23,7 @@ import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import io.camunda.connector.http.graphql.utils.GraphQLRequestMapper;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
 import java.util.stream.Stream;
