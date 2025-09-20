@@ -90,11 +90,17 @@ jobs:
         if: always()
         uses: scacap/action-surefire-report@v1
 
+      - name: Sanitize branch name
+        id: sanitize
+        run: echo "SANITIZED_BRANCH=${BRANCH//\//-}" >> $GITHUB_ENV
+        env:
+          BRANCH: ${{ matrix.branch }}
+
       - name: Upload detailed surefire reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: surefire-reports-${{ matrix.branch }}
+          name: surefire-reports-${{ env.SANITIZED_BRANCH }}
           path: '**/target/surefire-reports/*.xml'
 
       - name: Send Slack notification on failure
