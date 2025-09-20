@@ -94,7 +94,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: surefire-reports
+          name: surefire-reports-${{ matrix.branch }}
           path: '**/target/surefire-reports/*.xml'
 
       - name: Send Slack notification on failure
