@@ -94,7 +94,7 @@ limitations under the License.</license.inlineheader>
     <version.software-aws-java-sdk>2.33.12</version.software-aws-java-sdk>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-
+    <version.aws-sdk-secretsmanager>2.32.29</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.3</version.localstack>
 

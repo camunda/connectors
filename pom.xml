@@ -27,7 +27,7 @@
     <module>element-template-generator/postman-collections-parser</module>
     <module>element-template-generator/congen-cli</module>
     <module>element-template-generator/uniquet</module>
-    <module>secret-providers/gcp-secret-provider</module>
+    <module>secret-providers</module>
     <module>connector-runtime/connector-runtime-core</module>
     <module>connector-runtime/connector-runtime-spring</module>
     <module>connector-runtime/spring-boot-starter-camunda-connectors</module>
