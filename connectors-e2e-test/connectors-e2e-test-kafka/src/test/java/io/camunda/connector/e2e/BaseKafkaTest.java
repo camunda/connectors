@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.e2e;
 
+import static io.camunda.connector.test.utils.DockerImages.KAFKA;
 import static org.apache.kafka.clients.admin.AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG;
 import static org.mockito.Mockito.when;
 
@@ -23,7 +24,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
-import io.camunda.connector.test.docker.DockerImages;
+import io.camunda.connector.test.utils.DockerImages;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
@@ -68,7 +69,7 @@ public class BaseKafkaTest {
 
   static KafkaContainer kafkaContainer;
 
-  private static final String kafkaDockerImage = DockerImages.KAFKA;
+  private static final String kafkaDockerImage = DockerImages.get(KAFKA);
 
   @BeforeAll
   static void setup() {

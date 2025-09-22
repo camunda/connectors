@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.rabbitmq;
 
-import static io.camunda.connector.test.docker.DockerImages.RABBITMQ;
+import static io.camunda.connector.test.utils.DockerImages.RABBITMQ;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
 
@@ -14,7 +14,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.rabbitmq.supplier.ObjectMapperSupplier;
-import io.camunda.connector.test.docker.DockerImages;
+import io.camunda.connector.test.utils.DockerImages;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;

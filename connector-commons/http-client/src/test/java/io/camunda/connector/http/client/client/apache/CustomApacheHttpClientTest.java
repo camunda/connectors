@@ -18,7 +18,7 @@ package io.camunda.connector.http.client.client.apache;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
-import static io.camunda.connector.test.docker.DockerImages.SQUID;
+import static io.camunda.connector.test.utils.DockerImages.SQUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -41,7 +41,7 @@ import io.camunda.connector.http.client.model.auth.ApiKeyLocation;
 import io.camunda.connector.http.client.model.auth.BasicAuthentication;
 import io.camunda.connector.http.client.model.auth.BearerAuthentication;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
-import io.camunda.connector.test.docker.DockerImages;
+import io.camunda.connector.test.utils.DockerImages;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.jdbc.integration;
 
-import static io.camunda.connector.test.docker.DockerImages.*;
+import static io.camunda.connector.test.utils.DockerImages.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -14,7 +14,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.jdbc.model.request.SupportedDatabase;
 import io.camunda.connector.test.SlowTest;
-import io.camunda.connector.test.docker.DockerImages;
+import io.camunda.connector.test.utils.DockerImages;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;

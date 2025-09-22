@@ -32,7 +32,7 @@ When writing integration or end-to-end tests that require a service (like a data
 recommended to use Docker images to ensure consistency and isolation. You can use libraries like Testcontainers to
 manage the lifecycle of these containers during your tests.
 
-When doing so, make sure to use `io.camunda.connector.test.docker.DockerImages`.
+When doing so, make sure to use `io.camunda.connector.test.utils.DockerImages`.
 You need to add your image in [docker-images.txt](../connector-sdk/test/src/main/resources/docker-images.txt), for
 example:
 
@@ -41,10 +41,10 @@ example:
 localstack=localstack/localstack:4.8
 ```
 
-Then add a constant in `DockerImages` and you can use it in your tests like this:
+Then add a constant in `io.camunda.connector.test.utils.DockerImages` and you can use it in your tests like this:
 
 ```
-new GenericContainer<>(DockerImageName.parse(DockerImages.SCHEMA_REGISTRY));
+new GenericContainer<>(DockerImageName.parse(io.camunda.connector.test.utils.DockerImages.SCHEMA_REGISTRY));
 ```
 
 ### Standard Connector Structure

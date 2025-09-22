@@ -193,7 +193,7 @@ rabbitmq=rabbitmq:4.1.1-management-alpine
 kafka=confluentinc/cp-kafka:7.4.0
 ```
 
-Then, in your test, use `DockerImages.get("<key>")` to get the image name with tag.
+Then, in your test, use `io.camunda.connector.test.utils.DockerImages.get("<key>")` to get the image name with tag.
 This allows us to control the versions of the Docker images (using Renovate) we use in our tests centrally.
 
 ```bash

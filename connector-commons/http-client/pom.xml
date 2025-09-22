@@ -137,7 +137,7 @@ limitations under the License.</license.inlineheader>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-test</artifactId>
+      <artifactId>connector-test-utils</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

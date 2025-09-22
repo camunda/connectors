@@ -74,6 +74,11 @@ except in compliance with the proprietary license.</license.inlineheader>
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-test-utils</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
