@@ -274,6 +274,10 @@ public class PollingManager {
   public void stop() {
     try {
       if (this.folder.isOpen()) this.folder.close();
+    } catch (MessagingException e) {
+      throw new RuntimeException(e);
+    }
+    try {
       if (this.store.isConnected()) this.store.close();
     } catch (MessagingException e) {
       throw new RuntimeException(e);
