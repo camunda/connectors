@@ -7,7 +7,8 @@
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fcamunda%2Fconnectors.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fcamunda%2Fconnectors?ref=badge_shield)
 
 This is the repository for Camunda Connectors. It manages all parts of the Connectors ecosystem,
-including the Connector SDK, out-of-the-box Connectors available in Camunda, the Connector Runtime, and the Docker images.
+including the Connector SDK, out-of-the-box Connectors available in Camunda, the Connector Runtime, and the Docker
+images.
 
 For more information on Connectors, refer to the
 [Camunda documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/).
@@ -27,7 +28,6 @@ For more information on Connectors, refer to the
 ## License
 
 This is a multi-module project with different licenses applied to different modules.
-
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fcamunda%2Fconnectors.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fcamunda%2Fconnectors?ref=badge_large)
 
@@ -59,88 +59,104 @@ The [Connector SDK](connector-sdk) uses Java 17, unlike the rest of this reposit
 Include the [connector-core](connector-sdk/core), e.g. via Maven:
 
 ```xml
+
 <dependency>
-  <groupId>io.camunda.connector</groupId>
-  <artifactId>connector-core</artifactId>
-  <version>${version.connectors}</version>
-  <scope>provided</scope>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connector-core</artifactId>
+    <version>${version.connectors}</version>
+    <scope>provided</scope>
 </dependency>
 ```
 
 Set the dependency to a `provided` scope as the runtimes that execute Connectors provide the necessary classes already.
 
-To find the latest version, check the [Maven Central repository](https://search.maven.org/artifact/io.camunda.connector/connector-core).
+To find the latest version, check
+the [Maven Central repository](https://search.maven.org/artifact/io.camunda.connector/connector-core).
 
 ### Outbound Connector
 
-Define your Connector logic through the [`OutboundConnectorFunction`](./core/src/main/java/io/camunda/connector/api/outbound/OutboundConnectorFunction.java) interface:
+Define your Connector logic through the [
+`OutboundConnectorFunction`](./core/src/main/java/io/camunda/connector/api/outbound/OutboundConnectorFunction.java)
+interface:
 
 ```java
 
 @OutboundConnector(
-  name = "PING",
-  inputVariables = {"caller"},
-  type = "io.camunda.example.PingConnector:1"
+        name = "PING",
+        inputVariables = {"caller"},
+        type = "io.camunda.example.PingConnector:1"
 )
 public class PingConnector implements OutboundConnectorFunction {
 
-  @Override
-  public Object execute(OutboundConnectorContext context) throws Exception {
-    var request = context.bindVariables(PingRequest.class);
-    var caller = request.getCaller();
-    return new PingResponse("Pong to " + caller);
-  }
+    @Override
+    public Object execute(OutboundConnectorContext context) throws Exception {
+        var request = context.bindVariables(PingRequest.class);
+        var caller = request.getCaller();
+        return new PingResponse("Pong to " + caller);
+    }
 }
 ```
 
 ### Inbound Connector
 
-Define your Connector logic through the [`InboundConnectorExecutable`](./core/src/main/java/io/camunda/connector/api/inbound/InboundConnectorExecutable.java) interface:
+Define your Connector logic through the [
+`InboundConnectorExecutable`](./core/src/main/java/io/camunda/connector/api/inbound/InboundConnectorExecutable.java)
+interface:
+
 ```java
+
 @InboundConnector(
-  name = "SUBSCRIPTION",
-  type = "io.camunda.example.SubscriptionConnector:1"
+        name = "SUBSCRIPTION",
+        type = "io.camunda.example.SubscriptionConnector:1"
 )
 public class SubscriptionConnector implements InboundConnectorExecutable {
 
-  private MockSubscription subscription; // imitates some real-world subscription
+    private MockSubscription subscription; // imitates some real-world subscription
 
-  @Override
-  public void activate(InboundConnectorContext context) throws Exception {
-    var properties = context.bindProperties(SubscriptionProperties.class);
-    // subscribe to events
-    subscription = new MockSubscription(properties.getTopic());
-    subscription.subscribe(event -> {
-      var result = context.correlateWithResult(event);
-      // handleResult(result);
-    });
-  }
+    @Override
+    public void activate(InboundConnectorContext context) throws Exception {
+        var properties = context.bindProperties(SubscriptionProperties.class);
+        // subscribe to events
+        subscription = new MockSubscription(properties.getTopic());
+        subscription.subscribe(event -> {
+            var result = context.correlateWithResult(event);
+            // handleResult(result);
+        });
+    }
 
-  @Override
-  public void deactivate() throws Exception {
-    // unsubscribe from events
-    subscription.shutdown();
-  }
+    @Override
+    public void deactivate() throws Exception {
+        // unsubscribe from events
+        subscription.shutdown();
+    }
 }
 ```
 
 ### Connector Discovery
 
-The SDK provides a default implementation for Connector discovery using [Java ServiceLoader](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/ServiceLoader.html) with the [connector-runtime-core](./connector-runtime/connector-runtime-core) module.
+The SDK provides a default implementation for Connector discovery
+using [Java ServiceLoader](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/ServiceLoader.html)
+with the [connector-runtime-core](./connector-runtime/connector-runtime-core) module.
 
-To make your Connector discoverable, expose the `OutboundConnectorFunction` or `InboundConnectorExecutable` implementation as an SPI implementation.
-Alternatively, you can use the [manual discovery mechanism](https://docs.camunda.io/docs/self-managed/connectors-deployment/connectors-configuration/#manual-discovery-of-connectors) via properties.
+To make your Connector discoverable, expose the `OutboundConnectorFunction` or `InboundConnectorExecutable`
+implementation as an SPI implementation.
+Alternatively, you can use
+the [manual discovery mechanism](https://docs.camunda.io/docs/self-managed/connectors-deployment/connectors-configuration/#manual-discovery-of-connectors)
+via properties.
 
 ## Connector Validation
 
-If you want to validate your Connector input, the SDK provides a default implementation using [Jakarta Bean Validation](https://beanvalidation.org/) with the [connector-validation](./validation) module. You can include it via maven with the following dependency:
+If you want to validate your Connector input, the SDK provides a default implementation
+using [Jakarta Bean Validation](https://beanvalidation.org/) with the [connector-validation](./validation) module. You
+can include it via maven with the following dependency:
 
 ```xml
+
 <dependency>
-  <groupId>io.camunda.connector</groupId>
-  <artifactId>connector-validation</artifactId>
-  <version>${version.connectors}</version>
-  <scope>provided</scope>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connector-validation</artifactId>
+    <version>${version.connectors}</version>
+    <scope>provided</scope>
 </dependency>
 ```
 
@@ -150,8 +166,10 @@ Find more details in the [validation module](./validation).
 
 ## Start a Connector
 
-[Connector runtime](connector-runtime) supports running outbound Connectors as job workers and manages the lifecycle of the inbound Connectors.
-You can also build your own runtime, tailored towards your environment. For more details, refer to the [connector-runtime](connector-runtime) module.
+[Connector runtime](connector-runtime) supports running outbound Connectors as job workers and manages the lifecycle of
+the inbound Connectors.
+You can also build your own runtime, tailored towards your environment. For more details, refer to
+the [connector-runtime](connector-runtime) module.
 
 ## Build
 
@@ -159,14 +177,38 @@ You can also build your own runtime, tailored towards your environment. For more
 mvn clean package
 ```
 
+## Integration Tests
+
+To run the integration tests, you need to have Docker installed and running. We
+use [Testcontainers](https://www.testcontainers.org/) to manage the lifecycle of the containers.
+Remember to add the [@SlowTest](connector-sdk/test/src/main/java/io/camunda/connector/test/SlowTest.java) annotation to
+your integration tests to avoid them being run with the unit tests.
+
+Create a `docker-images.txt` file in the `test/resources` folder of the module where you want to run the tests.
+List all Docker images that need to be pulled before running the tests in this file, using the format
+`<key>=<imageWithTag>` like this:
+
+```
+rabbitmq=rabbitmq:4.1.1-management-alpine
+kafka=confluentinc/cp-kafka:7.4.0
+```
+
+Then, in your test, use `DockerImages.get("<key>")` to get the image name with tag.
+This allows us to control the versions of the Docker images (using Renovate) we use in our tests centrally.
+
+```bash
 ## Build a release
 
-1. For minor releases (x.y.0), create a new branch `release/x.y` from `main` in advance and rebase it onto `main` from time to time. This can be done using the `CREATE_RELEASE_BRANCH` workflow.
-2. To trigger the release, publish a new GitHub release and name the tag according to the version you want to release (e.g. `1.0.0`). This will trigger a GitHub workflow that builds and publishes the release artifacts, generates a changelog and bundles the element templates into an archive.
+1. For minor releases (x.y.0), create a new branch `release/x.y` from `main` in advance and rebase it onto `main` from
+   time to time. This can be done using the `CREATE_RELEASE_BRANCH` workflow.
+2. To trigger the release, publish a new GitHub release and name the tag according to the version you want to release (
+   e.g. `1.0.0`). This will trigger a GitHub workflow that builds and publishes the release artifacts, generates a
+   changelog and bundles the element templates into an archive.
 
 ### Backport a PR to an older release
 
 We use [backport-action](https://github.com/korthout/backport-action) to backport PRs to older releases.
-For example, add a label `backport release/8.3` to backport a PR to the `release/8.3` branch. This will take effect when the PR is meged.
+For example, add a label `backport release/8.3` to backport a PR to the `release/8.3` branch. This will take effect when
+the PR is meged.
 
 You can also trigger this for already merged PRs by posting a comment on the PR containing `/backport`.
