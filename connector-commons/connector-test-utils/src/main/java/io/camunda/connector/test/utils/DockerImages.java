@@ -17,14 +17,10 @@
 package io.camunda.connector.test.utils;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Properties;
 
 public class DockerImages {
-  private static final Map<String, String> images = loadImages();
+  private static final Properties PROPERTIES = new Properties();
 
   public static final String KAFKA = "kafka";
   public static final String SCHEMA_REGISTRY = "schema-registry";
@@ -37,20 +33,15 @@ public class DockerImages {
   public static final String LOCALSTACK = "localstack";
   public static final String SQUID = "squid";
 
-  private static Map<String, String> loadImages() {
-    var dockerImagesUrl = DockerImages.class.getClassLoader().getResource("docker-images.txt");
-    Path path = Paths.get(dockerImagesUrl.getPath());
-    try (var lines = Files.lines(path)) {
-      return lines
-          .filter(line -> !line.isBlank() && !line.startsWith("#"))
-          .map(line -> line.split("=", 2))
-          .collect(Collectors.toMap(parts -> parts[0].trim(), parts -> parts[1].trim()));
+  static {
+    try {
+      PROPERTIES.load(DockerImages.class.getClassLoader().getResourceAsStream("docker-images.txt"));
     } catch (IOException e) {
-      throw new RuntimeException("Failed to load docker-images.txt", e);
+      throw new RuntimeException("Failed to load docker images from properties file", e);
     }
   }
 
   public static String get(String key) {
-    return images.get(key);
+    return PROPERTIES.getProperty(key);
   }
 }
