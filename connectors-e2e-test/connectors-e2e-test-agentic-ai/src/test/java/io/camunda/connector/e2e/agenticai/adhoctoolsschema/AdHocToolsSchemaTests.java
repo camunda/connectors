@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.adhoctoolsschema;
 
-import io.camunda.connector.test.SlowTest;
+import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;

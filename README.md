@@ -22,6 +22,7 @@ For more information on Connectors, refer to the
     * [Inbound Connector](#inbound-connector)
 * [Connector Validation](#connector-validation)
 * [Start a Connector](#start-a-connector)
+* [Integration Tests](#integration-tests)
 * [Build](#build)
 * [Build a release](#build-a-release)
 
@@ -181,7 +182,9 @@ mvn clean package
 
 To run the integration tests, you need to have Docker installed and running. We
 use [Testcontainers](https://www.testcontainers.org/) to manage the lifecycle of the containers.
-Remember to add the [@SlowTest](connector-sdk/test/src/main/java/io/camunda/connector/test/SlowTest.java) annotation to
+Remember to add
+the [@SlowTest](connector-commons/connector-test-utils/src/main/java/io/camunda/connector/test/utils/annotation/SlowTest.java)
+annotation to
 your integration tests to avoid them being run with the unit tests.
 
 Create a `docker-images.txt` file in the `test/resources` folder of the module where you want to run the tests.
@@ -196,7 +199,6 @@ kafka=confluentinc/cp-kafka:7.4.0
 Then, in your test, use `io.camunda.connector.test.utils.DockerImages.get("<key>")` to get the image name with tag.
 This allows us to control the versions of the Docker images (using Renovate) we use in our tests centrally.
 
-```bash
 ## Build a release
 
 1. For minor releases (x.y.0), create a new branch `release/x.y` from `main` in advance and rebase it onto `main` from

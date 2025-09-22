@@ -32,7 +32,7 @@ import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentResponseModel;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
-import io.camunda.connector.test.SlowTest;
+import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;

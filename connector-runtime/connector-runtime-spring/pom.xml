@@ -101,6 +101,11 @@
       <version>${version.wiremock}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-test-utils</artifactId>
+      <scope>test</scope>
+    </dependency>
 
     <dependency>
       <groupId>dev.failsafe</groupId>

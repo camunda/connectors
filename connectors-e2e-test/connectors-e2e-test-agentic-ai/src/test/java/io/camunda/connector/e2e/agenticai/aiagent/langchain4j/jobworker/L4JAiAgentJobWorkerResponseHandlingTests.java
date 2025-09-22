@@ -26,7 +26,7 @@ import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
-import io.camunda.connector.test.SlowTest;
+import io.camunda.connector.test.utils.annotation.SlowTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

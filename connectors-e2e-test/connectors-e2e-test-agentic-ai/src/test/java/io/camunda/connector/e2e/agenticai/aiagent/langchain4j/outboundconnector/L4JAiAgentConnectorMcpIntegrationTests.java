@@ -43,7 +43,7 @@ import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
-import io.camunda.connector.test.SlowTest;
+import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import java.io.IOException;
 import java.util.List;

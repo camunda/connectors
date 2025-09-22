@@ -45,7 +45,7 @@ import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentConnectorTest;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.e2e.agenticai.assertj.ToolExecutionRequestEqualsPredicate;
-import io.camunda.connector.test.SlowTest;
+import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

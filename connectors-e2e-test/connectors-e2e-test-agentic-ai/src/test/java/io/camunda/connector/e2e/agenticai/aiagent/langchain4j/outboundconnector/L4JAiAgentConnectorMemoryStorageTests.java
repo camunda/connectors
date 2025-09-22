@@ -24,7 +24,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.document.Camun
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
-import io.camunda.connector.test.SlowTest;
+import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Map;

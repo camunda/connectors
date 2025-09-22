@@ -25,7 +25,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
-import io.camunda.connector.test.SlowTest;
+import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.io.File;
 import java.util.Map;

@@ -32,7 +32,7 @@ import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.e2e.ElementTemplate;
-import io.camunda.connector.test.SlowTest;
+import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Function;

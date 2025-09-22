@@ -29,7 +29,7 @@ import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
-import io.camunda.connector.test.SlowTest;
+import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.util.List;
 import java.util.Map;
