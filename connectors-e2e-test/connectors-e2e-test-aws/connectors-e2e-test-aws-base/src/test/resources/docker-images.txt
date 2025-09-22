@@ -1,0 +1,1 @@
+localstack=localstack/localstack:4.8
