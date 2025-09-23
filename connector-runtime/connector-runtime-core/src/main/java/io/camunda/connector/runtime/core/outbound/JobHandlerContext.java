@@ -39,8 +39,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of {@link io.camunda.connector.api.outbound.OutboundConnectorContext} passed on to
- * a {@link io.camunda.connector.api.outbound.OutboundConnectorFunction} when called from the {@link
- * ConnectorJobHandler}.
+ * a {@link io.camunda.connector.api.outbound.OutboundConnectorFunction} when called from the
+ * JobHandler, e.g. SpringConnectorJobHandler.
  */
 public class JobHandlerContext extends AbstractConnectorContext
     implements OutboundConnectorContext {
