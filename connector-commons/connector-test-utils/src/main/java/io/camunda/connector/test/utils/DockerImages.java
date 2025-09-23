@@ -14,15 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.test;
+package io.camunda.connector.test.utils;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-import org.junit.jupiter.api.extension.ExtendWith;
+import java.io.IOException;
+import java.util.Properties;
 
-@Target(ElementType.TYPE)
-@Retention(RetentionPolicy.RUNTIME)
-@ExtendWith(SlowTestCondition.class)
-public @interface SlowTest {}
+public class DockerImages {
+  private static final Properties PROPERTIES = new Properties();
+
+  static {
+    try {
+      PROPERTIES.load(
+          DockerImages.class.getClassLoader().getResourceAsStream("docker-images.properties"));
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to load docker images from properties file", e);
+    }
+  }
+
+  public static String get(String key) {
+    return PROPERTIES.getProperty(key);
+  }
+}

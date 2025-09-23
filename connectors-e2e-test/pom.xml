@@ -33,4 +33,11 @@
         <module>connectors-e2e-email</module>
     </modules>
 
+    <dependencies>
+        <dependency>
+            <groupId>io.camunda.connector</groupId>
+            <artifactId>connector-test-utils</artifactId>
+        </dependency>
+    </dependencies>
+
 </project>

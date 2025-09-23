@@ -135,6 +135,11 @@ limitations under the License.</license.inlineheader>
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-test-utils</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
 

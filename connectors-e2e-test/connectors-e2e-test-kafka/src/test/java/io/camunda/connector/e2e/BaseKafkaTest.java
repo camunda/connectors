@@ -23,6 +23,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
+import io.camunda.connector.test.utils.DockerImages;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
@@ -67,7 +68,9 @@ public class BaseKafkaTest {
 
   static KafkaContainer kafkaContainer;
 
-  private static final String kafkaDockerImage = "confluentinc/cp-kafka:6.2.1";
+  // Docker image name from docker-images.properties
+  private static final String KAFKA = "kafka";
+  private static final String kafkaDockerImage = DockerImages.get(KAFKA);
 
   @BeforeAll
   static void setup() {

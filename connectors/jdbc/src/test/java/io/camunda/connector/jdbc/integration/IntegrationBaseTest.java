@@ -41,7 +41,12 @@ import org.jdbi.v3.core.statement.UnableToCreateStatementException;
 import org.jdbi.v3.jackson2.Jackson2Plugin;
 
 public abstract class IntegrationBaseTest {
-
+  // docker image keys from docker-images.properties
+  static final String MYSQL = "mysql";
+  static final String MSSQL = "mssql";
+  static final String POSTGRES = "postgres";
+  static final String MARIADB = "mariadb";
+  static final String ORACLE = "oracle";
   static final String DEFAULT_ADDRESS_JSON =
       "{\"street\":\"123 Main St\",\"city\":\"New York\",\"zip\":\"10001\"}";
   static final Employee NEW_EMPLOYEE = new Employee(7, "Eve", 55, "HR");

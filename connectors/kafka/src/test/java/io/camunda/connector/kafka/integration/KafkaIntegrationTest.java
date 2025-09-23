@@ -40,7 +40,8 @@ import io.camunda.connector.kafka.outbound.model.KafkaMessage;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
-import io.camunda.connector.test.SlowTest;
+import io.camunda.connector.test.utils.DockerImages;
+import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -73,6 +74,9 @@ import org.testcontainers.utility.DockerImageName;
 @SlowTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class KafkaIntegrationTest {
+  // Docker image keys in docker-images.properties
+  private static final String KAFKA = "kafka";
+  private static final String SCHEMA_REGISTRY = "schema-registry";
 
   private static final String TOPIC = "test-topic-" + UUID.randomUUID();
   private static final String AVRO_TOPIC = "avro-test-topic-" + UUID.randomUUID();
@@ -85,12 +89,12 @@ public class KafkaIntegrationTest {
   private static final Network NETWORK = Network.newNetwork();
 
   private static final KafkaContainer kafkaContainer =
-      new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.2.1"))
+      new KafkaContainer(DockerImageName.parse(DockerImages.get(KAFKA)))
           .withNetwork(NETWORK)
           .withKraft();
 
-  private static final GenericContainer<?> SCHEMA_REGISTRY =
-      new GenericContainer<>(DockerImageName.parse("confluentinc/cp-schema-registry:7.5.2"))
+  private static final GenericContainer<?> SCHEMA_REGISTRY_CONTAINER =
+      new GenericContainer<>(DockerImageName.parse(DockerImages.get(SCHEMA_REGISTRY)))
           .withNetwork(NETWORK)
           .withExposedPorts(8081)
           .withEnv("SCHEMA_REGISTRY_HOST_NAME", "schema-registry")
@@ -107,7 +111,7 @@ public class KafkaIntegrationTest {
   @BeforeAll
   public static void init() throws Exception {
     kafkaContainer.start();
-    SCHEMA_REGISTRY.start();
+    SCHEMA_REGISTRY_CONTAINER.start();
     createTopics(TOPIC, AVRO_TOPIC);
     BOOTSTRAP_SERVERS = kafkaContainer.getBootstrapServers().replace("PLAINTEXT://", "");
     var avroSchema = getSchema("nested-avro-schema.json");
@@ -120,20 +124,24 @@ public class KafkaIntegrationTest {
             List.of(
                 new SchemaRegistryClient.SchemaWithTopic(avroSchema, SCHEMA_REGISTRY_AVRO_TOPIC),
                 new SchemaRegistryClient.SchemaWithTopic(jsonSchema, SCHEMA_REGISTRY_JSON_TOPIC)),
-            SCHEMA_REGISTRY.getHost() + ":" + SCHEMA_REGISTRY.getFirstMappedPort());
+            SCHEMA_REGISTRY_CONTAINER.getHost()
+                + ":"
+                + SCHEMA_REGISTRY_CONTAINER.getFirstMappedPort());
     assertThat(responses).isNotNull();
     assertThat(responses).hasSize(2);
     assertThat(responses.get(0)).contains("id");
     assertThat(responses.get(1)).contains("id");
     var subjects =
         SCHEMA_REGISTRY_CLIENT.getSubjects(
-            SCHEMA_REGISTRY.getHost() + ":" + SCHEMA_REGISTRY.getFirstMappedPort());
+            SCHEMA_REGISTRY_CONTAINER.getHost()
+                + ":"
+                + SCHEMA_REGISTRY_CONTAINER.getFirstMappedPort());
     System.out.println(subjects);
   }
 
   @AfterAll
   public static void cleanup() {
-    SCHEMA_REGISTRY.stop();
+    SCHEMA_REGISTRY_CONTAINER.stop();
     kafkaContainer.stop();
   }
 
@@ -568,7 +576,10 @@ public class KafkaIntegrationTest {
             kafkaMessage,
             new OutboundSchemaRegistryStrategy(
                 avro,
-                "http://" + SCHEMA_REGISTRY.getHost() + ":" + SCHEMA_REGISTRY.getFirstMappedPort(),
+                "http://"
+                    + SCHEMA_REGISTRY_CONTAINER.getHost()
+                    + ":"
+                    + SCHEMA_REGISTRY_CONTAINER.getFirstMappedPort(),
                 SchemaType.AVRO),
             null,
             Map.of(AUTO_REGISTER_SCHEMAS, false));
@@ -603,7 +614,10 @@ public class KafkaIntegrationTest {
             null,
             KafkaConnectorProperties.AutoOffsetReset.EARLIEST,
             new InboundSchemaRegistryStrategy(
-                "http://" + SCHEMA_REGISTRY.getHost() + ":" + SCHEMA_REGISTRY.getFirstMappedPort(),
+                "http://"
+                    + SCHEMA_REGISTRY_CONTAINER.getHost()
+                    + ":"
+                    + SCHEMA_REGISTRY_CONTAINER.getFirstMappedPort(),
                 SchemaType.AVRO));
 
     InboundConnectorContextBuilder.TestInboundConnectorContext context2 =
@@ -674,7 +688,10 @@ public class KafkaIntegrationTest {
             kafkaMessage,
             new OutboundSchemaRegistryStrategy(
                 json,
-                "http://" + SCHEMA_REGISTRY.getHost() + ":" + SCHEMA_REGISTRY.getFirstMappedPort(),
+                "http://"
+                    + SCHEMA_REGISTRY_CONTAINER.getHost()
+                    + ":"
+                    + SCHEMA_REGISTRY_CONTAINER.getFirstMappedPort(),
                 SchemaType.JSON),
             null,
             Map.of(AUTO_REGISTER_SCHEMAS, false));
@@ -709,7 +726,10 @@ public class KafkaIntegrationTest {
             null,
             KafkaConnectorProperties.AutoOffsetReset.EARLIEST,
             new InboundSchemaRegistryStrategy(
-                "http://" + SCHEMA_REGISTRY.getHost() + ":" + SCHEMA_REGISTRY.getFirstMappedPort(),
+                "http://"
+                    + SCHEMA_REGISTRY_CONTAINER.getHost()
+                    + ":"
+                    + SCHEMA_REGISTRY_CONTAINER.getFirstMappedPort(),
                 SchemaType.JSON));
 
     InboundConnectorContextBuilder.TestInboundConnectorContext context2 =

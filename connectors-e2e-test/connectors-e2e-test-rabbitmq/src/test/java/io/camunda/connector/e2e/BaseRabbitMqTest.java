@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
+import io.camunda.connector.test.utils.DockerImages;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.util.Collections;
@@ -34,7 +35,10 @@ public abstract class BaseRabbitMqTest {
   protected static final String OUTBOUND_ELEMENT_TEMPLATE_PATH =
       "../../connectors/rabbitmq/element-templates/rabbitmq-outbound-connector.json";
   protected static final String INTERMEDIATE_CATCH_EVENT_BPMN = "intermediate-catch-event.bpmn";
-  public static final String RABBITMQ_TEST_IMAGE = "rabbitmq:4.1.1-management-alpine";
+
+  // RabbitMQ Docker image from docker-images.properties
+  private static final String RABBITMQ = "rabbitmq";
+  public static final String RABBITMQ_TEST_IMAGE = DockerImages.get(RABBITMQ);
 
   @TempDir File tempDir;
 
