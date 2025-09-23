@@ -187,7 +187,7 @@ the [@SlowTest](connector-commons/connector-test-utils/src/main/java/io/camunda/
 annotation to
 your integration tests to avoid them being run with the unit tests.
 
-Create a `docker-images.txt` file in the `test/resources` folder of the module where you want to run the tests.
+Create a `docker-images.properties` file in the `test/resources` folder of the module where you want to run the tests.
 List all Docker images that need to be pulled before running the tests in this file, using the format
 `<key>=<imageWithTag>` like this:
 

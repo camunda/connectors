@@ -22,20 +22,10 @@ import java.util.Properties;
 public class DockerImages {
   private static final Properties PROPERTIES = new Properties();
 
-  public static final String KAFKA = "kafka";
-  public static final String SCHEMA_REGISTRY = "schema-registry";
-  public static final String MARIADB = "mariadb";
-  public static final String POSTGRES = "postgres";
-  public static final String MYSQL = "mysql";
-  public static final String MSSQL = "mssql";
-  public static final String ORACLE = "oracle";
-  public static final String RABBITMQ = "rabbitmq";
-  public static final String LOCALSTACK = "localstack";
-  public static final String SQUID = "squid";
-
   static {
     try {
-      PROPERTIES.load(DockerImages.class.getClassLoader().getResourceAsStream("docker-images.txt"));
+      PROPERTIES.load(
+          DockerImages.class.getClassLoader().getResourceAsStream("docker-images.properties"));
     } catch (IOException e) {
       throw new RuntimeException("Failed to load docker images from properties file", e);
     }

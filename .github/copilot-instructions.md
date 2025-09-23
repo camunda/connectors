@@ -33,11 +33,11 @@ recommended to use Docker images to ensure consistency and isolation. You can us
 manage the lifecycle of these containers during your tests.
 
 When doing so, make sure to use `io.camunda.connector.test.utils.DockerImages`.
-You need to add your image in a docker-images.txt file (in the test `resources` folder), for
+You need to add your image in a docker-images.properties file (in the test `resources` folder), for
 example:
 
 ```
-# In docker-images.txt
+# In docker-images.propoties
 localstack=localstack/localstack:4.8
 ```
 

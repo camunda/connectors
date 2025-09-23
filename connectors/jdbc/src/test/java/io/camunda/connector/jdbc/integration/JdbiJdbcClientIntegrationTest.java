@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.jdbc.integration;
 
-import static io.camunda.connector.test.utils.DockerImages.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 

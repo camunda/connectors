@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.e2e;
 
-import static io.camunda.connector.test.utils.DockerImages.KAFKA;
 import static org.apache.kafka.clients.admin.AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG;
 import static org.mockito.Mockito.when;
 
@@ -69,6 +68,8 @@ public class BaseKafkaTest {
 
   static KafkaContainer kafkaContainer;
 
+  // Docker image name from docker-images.properties
+  private static final String KAFKA = "kafka";
   private static final String kafkaDockerImage = DockerImages.get(KAFKA);
 
   @BeforeAll

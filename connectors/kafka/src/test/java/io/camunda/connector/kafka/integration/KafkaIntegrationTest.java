@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.kafka.integration;
 
-import static io.camunda.connector.test.utils.DockerImages.KAFKA;
-import static io.camunda.connector.test.utils.DockerImages.SCHEMA_REGISTRY;
 import static io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS;
 import static org.apache.kafka.clients.admin.AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -76,6 +74,9 @@ import org.testcontainers.utility.DockerImageName;
 @SlowTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class KafkaIntegrationTest {
+  // Docker image keys in docker-images.properties
+  private static final String KAFKA = "kafka";
+  private static final String SCHEMA_REGISTRY = "schema-registry";
 
   private static final String TOPIC = "test-topic-" + UUID.randomUUID();
   private static final String AVRO_TOPIC = "avro-test-topic-" + UUID.randomUUID();

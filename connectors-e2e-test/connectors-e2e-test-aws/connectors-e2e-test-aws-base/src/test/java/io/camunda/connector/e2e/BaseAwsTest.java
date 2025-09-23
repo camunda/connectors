@@ -20,7 +20,6 @@ import static io.camunda.connector.e2e.AwsService.EVENTBRIDGE;
 import static io.camunda.connector.e2e.AwsService.LAMBDA;
 import static io.camunda.connector.e2e.AwsService.SNS;
 import static io.camunda.connector.e2e.AwsService.SQS;
-import static io.camunda.connector.test.utils.DockerImages.LOCALSTACK;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
@@ -55,6 +54,8 @@ import org.testcontainers.utility.DockerImageName;
 @SlowTest
 @ExtendWith(MockitoExtension.class)
 public abstract class BaseAwsTest {
+  // LocalStack docker image name in docker-images.properties
+  private static final String LOCALSTACK = "localstack";
   private static final DockerImageName localstackImage =
       DockerImageName.parse(DockerImages.get(LOCALSTACK));
   @TempDir File tempDir;

@@ -18,7 +18,6 @@ package io.camunda.connector.http.client.client.apache;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
-import static io.camunda.connector.test.utils.DockerImages.SQUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -64,6 +63,7 @@ import wiremock.com.fasterxml.jackson.databind.node.POJONode;
 
 @WireMockTest
 public class CustomApacheHttpClientTest {
+  private static final String SQUID = "squid";
 
   private final CustomApacheHttpClient customApacheHttpClient = new CustomApacheHttpClient();
   private final ObjectMapper objectMapper = HttpClientObjectMapperSupplier.getCopy();
