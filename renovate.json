@@ -16,7 +16,7 @@
     {
       "customType": "regex",
       "managerFilePatterns": [
-        "/^docker-images\\.txt$/"
+        "/^docker-images\\.properties$/"
       ],
       "matchStrings": [
         "^.*=(?<currentValue>.*)$"
