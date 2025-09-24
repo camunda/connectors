@@ -39,7 +39,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 import org.apache.commons.collections4.CollectionUtils;
 
-// TODO: proper exception handling
 public class A2AClientHandlerImpl implements A2AClientHandler {
 
   private static final Duration DEFAULT_POLL_INTERVAL = Duration.ofMillis(500);
@@ -100,8 +99,7 @@ public class A2AClientHandlerImpl implements A2AClientHandler {
           response.get(sendMessageOperation.timeout().toMillis(), TimeUnit.MILLISECONDS);
       if (result.state().isSubmittedOrWorking()) {
         Duration timeSpent = Duration.between(startTime, Instant.now());
-        Duration updatedTimeout =
-            sendMessageOperation.timeout().minus(timeSpent); // TODO: check for negative duration
+        Duration updatedTimeout = sendMessageOperation.timeout().minus(timeSpent);
         return taskPoller
             .poll(result.responseId(), client, DEFAULT_POLL_INTERVAL, updatedTimeout)
             .get(updatedTimeout.toMillis(), TimeUnit.MILLISECONDS);

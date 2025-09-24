@@ -17,7 +17,6 @@ import io.camunda.connector.agenticai.a2a.client.model.result.A2AClientSendMessa
 import io.camunda.connector.agenticai.a2a.client.model.result.A2AClientSendMessageResultBuilder;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
-import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Set;
 import org.apache.commons.collections4.CollectionUtils;
@@ -27,6 +26,7 @@ public class SendMessageResultHandlerImpl implements SendMessageResultHandler {
   public static final String FALLBACK_COMPLETION_MESSAGE = "Task completed.";
   private static final Set<TaskState> ERROR_STATES =
       Set.of(TaskState.FAILED, TaskState.CANCELED, TaskState.REJECTED, TaskState.UNKNOWN);
+
   private final PartsToContentConverter partsToContentConverter;
 
   public SendMessageResultHandlerImpl(PartsToContentConverter partsToContentConverter) {
@@ -35,45 +35,60 @@ public class SendMessageResultHandlerImpl implements SendMessageResultHandler {
 
   @Override
   public A2AClientSendMessageResult handleClientEvent(ClientEvent clientEvent) {
-    if (clientEvent instanceof MessageEvent messageEvent) {
-      Message message = messageEvent.getMessage();
-      List<Content> contents = partsToContentConverter.convert(message.getParts());
-      return buildCompletedResult(message.getMessageId(), contents);
-    } else {
-      if (clientEvent instanceof TaskEvent taskEvent) {
+    switch (clientEvent) {
+      case MessageEvent messageEvent -> {
+        Message message = messageEvent.getMessage();
+        List<Content> contents = partsToContentConverter.convert(message.getParts());
+        return buildCompletedResult(message.getMessageId(), contents);
+      }
+      case TaskEvent taskEvent -> {
         Task task = taskEvent.getTask();
         return handleTask(task);
       }
+      default ->
+          throw new RuntimeException(
+              "Only message events and completed tasks are supported in the response yet.");
     }
-    throw new ConnectorException(
-        "Only message events and completed tasks are supported in the response yet.");
   }
 
   @Override
   public A2AClientSendMessageResult handleTask(Task task) {
     TaskStatus status = task.getStatus();
-    if (status.state() == TaskState.COMPLETED) {
-      List<Content> contents = getContents(task);
-      return buildCompletedResult(task.getId(), contents);
-    }
-    if (status.state() == TaskState.SUBMITTED || status.state() == TaskState.WORKING) {
-      return buildResult(task, List.of());
-    }
-
-    if (status.state() == TaskState.INPUT_REQUIRED) {
-      return buildResult(task, getContents(task));
-    }
-
-    if (ERROR_STATES.contains(status.state())) {
-      List<Content> contents = getContents(task);
-      if (CollectionUtils.isEmpty(contents)) {
-        contents = createFallbackErrorContent(status);
+    switch (status.state()) {
+      case COMPLETED -> {
+        List<Content> contents = getContents(task);
+        return buildCompletedResult(task.getId(), contents);
       }
-      return buildResult(task, contents);
-    }
+      case SUBMITTED, WORKING -> {
+        return buildResult(task, List.of());
+      }
+      case INPUT_REQUIRED -> {
+        return buildResult(task, getContents(task));
+      }
+      default -> {
+        if (ERROR_STATES.contains(status.state())) {
+          List<Content> contents = getContents(task);
+          if (CollectionUtils.isEmpty(contents)) {
+            contents = createFallbackErrorContent(status);
+          }
+          return buildResult(task, contents);
+        }
 
-    throw new ConnectorException(
-        "Task status %s is not supported yet.".formatted(status.state().asString()));
+        throw new RuntimeException(
+            "Task status %s is not supported yet.".formatted(status.state().asString()));
+      }
+    }
+  }
+
+  private List<Content> getContents(Task task) {
+    // TODO: handle multiple artifacts
+    List<Content> contentList = List.of();
+    if (CollectionUtils.isNotEmpty(task.getArtifacts())) {
+      contentList = partsToContentConverter.convert(task.getArtifacts().getFirst().parts());
+    } else if (task.getStatus().message() != null) {
+      contentList = partsToContentConverter.convert(task.getStatus().message().getParts());
+    }
+    return contentList;
   }
 
   private static A2AClientSendMessageResult buildCompletedResult(
@@ -98,16 +113,5 @@ public class SendMessageResultHandlerImpl implements SendMessageResultHandler {
 
   private static List<Content> createFallbackErrorContent(TaskStatus status) {
     return List.of(TextContent.textContent("Task ended with state: " + status.state()));
-  }
-
-  private List<Content> getContents(Task task) {
-    // TODO: handle multiple artifacts
-    List<Content> contentList = List.of();
-    if (CollectionUtils.isNotEmpty(task.getArtifacts())) {
-      contentList = partsToContentConverter.convert(task.getArtifacts().getFirst().parts());
-    } else if (task.getStatus().message() != null) {
-      contentList = partsToContentConverter.convert(task.getStatus().message().getParts());
-    }
-    return contentList;
   }
 }

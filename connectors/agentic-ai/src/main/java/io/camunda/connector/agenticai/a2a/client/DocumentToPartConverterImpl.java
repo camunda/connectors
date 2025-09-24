@@ -58,15 +58,15 @@ public class DocumentToPartConverterImpl implements DocumentToPartConverter {
   public Part<?> convert(Document camundaDocument) {
     final var contentType = getContentType(camundaDocument);
 
+    if (contentType.isSameMimeType(ContentType.APPLICATION_JSON)) {
+      return createDataPart(camundaDocument, contentType);
+    }
+
     if (contentType.getMimeType().startsWith("text/")
         || isCompatibleWithAnyOf(contentType, ADDITIONAL_TEXT_FILE_CONTENT_TYPES)) {
       return new TextPart(
           new String(camundaDocument.asByteArray(), StandardCharsets.UTF_8),
           Map.of("contentType", contentType));
-    }
-
-    if (contentType.isSameMimeType(ContentType.APPLICATION_JSON)) {
-      return createDataPart(camundaDocument, contentType);
     }
 
     if (isCompatibleWithAnyOf(contentType, PDF_AND_IMAGE_CONTENT_TYPES)) {

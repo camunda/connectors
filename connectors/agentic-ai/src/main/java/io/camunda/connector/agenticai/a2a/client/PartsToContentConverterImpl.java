@@ -19,8 +19,13 @@ import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class PartsToContentConverterImpl implements PartsToContentConverter {
+
+  public static final String ERROR_CODE_FAILED_TO_SERIALIZE_DATA_PART =
+      "FAILED_TO_SERIALIZE_DATA_PART_AS_JSON";
 
   private final ObjectMapper objectMapper;
 
@@ -35,16 +40,18 @@ public class PartsToContentConverterImpl implements PartsToContentConverter {
     }
     StringBuilder textBuilder = new StringBuilder();
     for (Part<?> part : parts) {
-      if (part instanceof TextPart textPart) {
-        textBuilder.append(textPart.getText());
-      } else if (part instanceof DataPart dataPart) {
-        textBuilder.append(convertDataPart(dataPart));
-      } else {
-        // TODO: yaml and xml files can be converted to text content
-        throw new ConnectorException("Only text and data parts are supported in the response yet.");
+      switch (part) {
+        case TextPart textPart -> appendText(textBuilder, textPart.getText());
+        case DataPart dataPart -> appendText(textBuilder, convertDataPart(dataPart));
+        default ->
+            // TODO: yaml and xml files can be converted to text content
+            throw new RuntimeException(
+                "Only text and data parts are supported in the response yet.");
       }
     }
-    return textBuilder.isEmpty() ? List.of() : List.of(new TextContent(textBuilder.toString()));
+    return StringUtils.isBlank(textBuilder)
+        ? List.of()
+        : List.of(new TextContent(textBuilder.deleteCharAt(textBuilder.length() - 1).toString()));
   }
 
   private String convertDataPart(DataPart dataPart) {
@@ -54,7 +61,7 @@ public class PartsToContentConverterImpl implements PartsToContentConverter {
     textBuilder.append(
         serializeAsJSONString(dataPart.getData(), "Could not convert data part to string: %s"));
 
-    if (dataPart.getMetadata() != null && !dataPart.getMetadata().isEmpty()) {
+    if (MapUtils.isNotEmpty(dataPart.getMetadata())) {
       textBuilder.append("\nMetadata:\n");
       textBuilder.append(
           serializeAsJSONString(
@@ -69,7 +76,14 @@ public class PartsToContentConverterImpl implements PartsToContentConverter {
       return objectMapper.writeValueAsString(dataPart);
     } catch (JsonProcessingException e) {
       throw new ConnectorException(
+          ERROR_CODE_FAILED_TO_SERIALIZE_DATA_PART,
           errorMessage.formatted(humanReadableJsonProcessingExceptionMessage(e)));
+    }
+  }
+
+  private static void appendText(StringBuilder textBuilder, String text) {
+    if (StringUtils.isNotBlank(text)) {
+      textBuilder.append(text).append("\n");
     }
   }
 }
