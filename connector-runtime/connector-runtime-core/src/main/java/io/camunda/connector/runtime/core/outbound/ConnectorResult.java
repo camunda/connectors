@@ -19,7 +19,6 @@ package io.camunda.connector.runtime.core.outbound;
 import java.time.Duration;
 import java.util.Map;
 
-/** Result container for the {@link ConnectorJobHandler} */
 public sealed interface ConnectorResult {
 
   Object responseValue();
