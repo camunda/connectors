@@ -120,7 +120,6 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
     Optional.ofNullable(contentType.getParameter("boundary")).ifPresent(builder::setBoundary);
     for (Map.Entry<?, ?> entry : body.entrySet()) {
       switch (entry.getValue()) {
-        case Document document -> streamDocumentContent(entry, document, builder);
         case null -> {}
         default ->
             builder.addTextBody(
