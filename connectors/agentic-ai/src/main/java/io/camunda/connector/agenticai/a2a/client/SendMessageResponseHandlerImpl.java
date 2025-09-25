@@ -13,6 +13,7 @@ import io.a2a.spec.Message;
 import io.a2a.spec.Task;
 import io.a2a.spec.TaskState;
 import io.a2a.spec.TaskStatus;
+import io.camunda.connector.agenticai.a2a.client.convert.PartsToContentConverter;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2AClientSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2AClientSendMessageResultBuilder;
 import io.camunda.connector.agenticai.model.message.content.Content;

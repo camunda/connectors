@@ -6,9 +6,11 @@
  */
 package io.camunda.connector.agenticai.a2a.client;
 
-import io.a2a.spec.Part;
-import io.camunda.connector.api.document.Document;
+import io.a2a.client.Client;
+import io.a2a.client.ClientEvent;
+import io.a2a.spec.AgentCard;
+import java.util.function.BiConsumer;
 
-public interface DocumentToPartConverter {
-  Part<?> convert(Document camundaDocument);
+public interface ClientFactory {
+  Client buildClient(AgentCard agentCard, BiConsumer<ClientEvent, AgentCard> consumer);
 }

@@ -10,14 +10,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.A2AClientFunction;
 import io.camunda.connector.agenticai.a2a.client.A2AClientHandler;
 import io.camunda.connector.agenticai.a2a.client.A2AClientHandlerImpl;
-import io.camunda.connector.agenticai.a2a.client.DocumentToPartConverter;
-import io.camunda.connector.agenticai.a2a.client.DocumentToPartConverterImpl;
-import io.camunda.connector.agenticai.a2a.client.PartsToContentConverter;
-import io.camunda.connector.agenticai.a2a.client.PartsToContentConverterImpl;
+import io.camunda.connector.agenticai.a2a.client.AgentCardFetcher;
+import io.camunda.connector.agenticai.a2a.client.AgentCardFetcherImpl;
+import io.camunda.connector.agenticai.a2a.client.ClientFactory;
+import io.camunda.connector.agenticai.a2a.client.ClientFactoryImpl;
+import io.camunda.connector.agenticai.a2a.client.MessageSender;
+import io.camunda.connector.agenticai.a2a.client.MessageSenderImpl;
 import io.camunda.connector.agenticai.a2a.client.SendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.client.SendMessageResponseHandlerImpl;
 import io.camunda.connector.agenticai.a2a.client.TaskPoller;
 import io.camunda.connector.agenticai.a2a.client.TaskPollerImpl;
+import io.camunda.connector.agenticai.a2a.client.convert.DocumentToPartConverter;
+import io.camunda.connector.agenticai.a2a.client.convert.DocumentToPartConverterImpl;
+import io.camunda.connector.agenticai.a2a.client.convert.PartsToContentConverter;
+import io.camunda.connector.agenticai.a2a.client.convert.PartsToContentConverterImpl;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -60,12 +66,32 @@ public class A2AClientConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public A2AClientHandler a2AClientHandler(
+  public AgentCardFetcher agentCardFetcher() {
+    return new AgentCardFetcherImpl();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ClientFactory clientFactory() {
+    return new ClientFactoryImpl();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public MessageSender messageSender(
       DocumentToPartConverter documentToPartConverter,
       SendMessageResponseHandler sendMessageResponseHandler,
-      TaskPoller taskPoller) {
-    return new A2AClientHandlerImpl(
-        documentToPartConverter, sendMessageResponseHandler, taskPoller);
+      TaskPoller taskPoller,
+      ClientFactory clientFactory) {
+    return new MessageSenderImpl(
+        documentToPartConverter, sendMessageResponseHandler, taskPoller, clientFactory);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public A2AClientHandler a2AClientHandler(
+      AgentCardFetcher agentCardFetcher, MessageSender messageSender) {
+    return new A2AClientHandlerImpl(agentCardFetcher, messageSender);
   }
 
   @Bean

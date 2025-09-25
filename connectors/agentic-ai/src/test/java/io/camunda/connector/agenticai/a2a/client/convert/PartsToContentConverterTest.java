@@ -5,9 +5,9 @@
  * except in compliance with the proprietary license.
  */
 
-package io.camunda.connector.agenticai.a2a.client;
+package io.camunda.connector.agenticai.a2a.client.convert;
 
-import static io.camunda.connector.agenticai.a2a.client.PartsToContentConverterImpl.ERROR_CODE_FAILED_TO_SERIALIZE_DATA_PART;
+import static io.camunda.connector.agenticai.a2a.client.convert.PartsToContentConverterImpl.ERROR_CODE_FAILED_TO_SERIALIZE_DATA_PART;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
