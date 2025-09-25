@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Set;
 import org.apache.commons.collections4.CollectionUtils;
 
-public class SendMessageResultHandlerImpl implements SendMessageResultHandler {
+public class SendMessageResponseHandlerImpl implements SendMessageResponseHandler {
 
   public static final String FALLBACK_COMPLETION_MESSAGE = "Task completed.";
   private static final Set<TaskState> ERROR_STATES =
@@ -29,7 +29,7 @@ public class SendMessageResultHandlerImpl implements SendMessageResultHandler {
 
   private final PartsToContentConverter partsToContentConverter;
 
-  public SendMessageResultHandlerImpl(PartsToContentConverter partsToContentConverter) {
+  public SendMessageResponseHandlerImpl(PartsToContentConverter partsToContentConverter) {
     this.partsToContentConverter = partsToContentConverter;
   }
 

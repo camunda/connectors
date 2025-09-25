@@ -14,8 +14,8 @@ import io.camunda.connector.agenticai.a2a.client.DocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.DocumentToPartConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.PartsToContentConverter;
 import io.camunda.connector.agenticai.a2a.client.PartsToContentConverterImpl;
-import io.camunda.connector.agenticai.a2a.client.SendMessageResultHandler;
-import io.camunda.connector.agenticai.a2a.client.SendMessageResultHandlerImpl;
+import io.camunda.connector.agenticai.a2a.client.SendMessageResponseHandler;
+import io.camunda.connector.agenticai.a2a.client.SendMessageResponseHandlerImpl;
 import io.camunda.connector.agenticai.a2a.client.TaskPoller;
 import io.camunda.connector.agenticai.a2a.client.TaskPollerImpl;
 import java.util.concurrent.Executors;
@@ -41,9 +41,9 @@ public class A2AClientConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public SendMessageResultHandler clientEventToContentConverter(
+  public SendMessageResponseHandler clientEventToContentConverter(
       PartsToContentConverter partsToContentConverter) {
-    return new SendMessageResultHandlerImpl(partsToContentConverter);
+    return new SendMessageResponseHandlerImpl(partsToContentConverter);
   }
 
   @Bean
@@ -54,17 +54,18 @@ public class A2AClientConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public TaskPoller taskPoller(SendMessageResultHandler sendMessageResultHandler) {
-    return new TaskPollerImpl(taskPollerExecutor(), sendMessageResultHandler);
+  public TaskPoller taskPoller(SendMessageResponseHandler sendMessageResponseHandler) {
+    return new TaskPollerImpl(taskPollerExecutor(), sendMessageResponseHandler);
   }
 
   @Bean
   @ConditionalOnMissingBean
   public A2AClientHandler a2AClientHandler(
       DocumentToPartConverter documentToPartConverter,
-      SendMessageResultHandler sendMessageResultHandler,
+      SendMessageResponseHandler sendMessageResponseHandler,
       TaskPoller taskPoller) {
-    return new A2AClientHandlerImpl(documentToPartConverter, sendMessageResultHandler, taskPoller);
+    return new A2AClientHandlerImpl(
+        documentToPartConverter, sendMessageResponseHandler, taskPoller);
   }
 
   @Bean

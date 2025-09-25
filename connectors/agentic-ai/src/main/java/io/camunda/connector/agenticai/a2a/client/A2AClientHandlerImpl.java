@@ -44,15 +44,15 @@ public class A2AClientHandlerImpl implements A2AClientHandler {
   private static final Duration DEFAULT_POLL_INTERVAL = Duration.ofMillis(500);
 
   private final DocumentToPartConverter documentToPartConverter;
-  private final SendMessageResultHandler sendMessageResultHandler;
+  private final SendMessageResponseHandler sendMessageResponseHandler;
   private final TaskPoller taskPoller;
 
   public A2AClientHandlerImpl(
       DocumentToPartConverter documentToPartConverter,
-      SendMessageResultHandler sendMessageResultHandler,
+      SendMessageResponseHandler sendMessageResponseHandler,
       TaskPoller taskPoller) {
     this.documentToPartConverter = documentToPartConverter;
-    this.sendMessageResultHandler = sendMessageResultHandler;
+    this.sendMessageResponseHandler = sendMessageResponseHandler;
     this.taskPoller = taskPoller;
   }
 
@@ -78,7 +78,7 @@ public class A2AClientHandlerImpl implements A2AClientHandler {
     BiConsumer<ClientEvent, AgentCard> consumer =
         (event, ignore) -> {
           try {
-            A2AClientSendMessageResult result = sendMessageResultHandler.handleClientEvent(event);
+            A2AClientSendMessageResult result = sendMessageResponseHandler.handleClientEvent(event);
             response.complete(result);
           } catch (Exception e) {
             response.completeExceptionally(e);

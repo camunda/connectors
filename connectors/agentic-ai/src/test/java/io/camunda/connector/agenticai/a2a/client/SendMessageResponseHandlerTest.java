@@ -43,10 +43,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class SendMessageResultHandlerTest {
+class SendMessageResponseHandlerTest {
 
   @Mock private PartsToContentConverter partsToContentConverter;
-  @InjectMocks private SendMessageResultHandlerImpl handler;
+  @InjectMocks private SendMessageResponseHandlerImpl handler;
 
   private static final TextContent SAMPLE_CONTENT = new TextContent("Hello world");
   private static final TextPart SAMPLE_TEXT_PART = new TextPart("Hello world");
@@ -89,7 +89,7 @@ class SendMessageResultHandlerTest {
       assertThat(result.state()).isEqualTo(A2AClientSendMessageResult.TaskState.COMPLETED);
       assertThat(result.contents())
           .containsExactly(
-              new TextContent(SendMessageResultHandlerImpl.FALLBACK_COMPLETION_MESSAGE));
+              new TextContent(SendMessageResponseHandlerImpl.FALLBACK_COMPLETION_MESSAGE));
     }
   }
 
@@ -144,7 +144,7 @@ class SendMessageResultHandlerTest {
       assertThat(result.state()).isEqualTo(A2AClientSendMessageResult.TaskState.COMPLETED);
       assertThat(result.contents())
           .containsExactly(
-              new TextContent(SendMessageResultHandlerImpl.FALLBACK_COMPLETION_MESSAGE));
+              new TextContent(SendMessageResponseHandlerImpl.FALLBACK_COMPLETION_MESSAGE));
       verify(partsToContentConverter, never()).convert(any());
     }
 

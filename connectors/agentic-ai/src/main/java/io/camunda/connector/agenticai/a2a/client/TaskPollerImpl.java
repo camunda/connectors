@@ -18,12 +18,12 @@ import java.util.concurrent.TimeoutException;
 
 public class TaskPollerImpl implements TaskPoller {
   private final ScheduledExecutorService scheduler;
-  private final SendMessageResultHandler sendMessageResultHandler;
+  private final SendMessageResponseHandler sendMessageResponseHandler;
 
   public TaskPollerImpl(
-      ScheduledExecutorService scheduler, SendMessageResultHandler sendMessageResultHandler) {
+      ScheduledExecutorService scheduler, SendMessageResponseHandler sendMessageResponseHandler) {
     this.scheduler = scheduler;
-    this.sendMessageResultHandler = sendMessageResultHandler;
+    this.sendMessageResponseHandler = sendMessageResponseHandler;
   }
 
   @Override
@@ -42,7 +42,7 @@ public class TaskPollerImpl implements TaskPoller {
             }
             try {
               var task = client.getTask(new TaskQueryParams(taskId));
-              A2AClientSendMessageResult result = sendMessageResultHandler.handleTask(task);
+              A2AClientSendMessageResult result = sendMessageResponseHandler.handleTask(task);
               if (result.state().isSubmittedOrWorking()) {
                 // schedule next poll
                 scheduler.schedule(this, pollInterval.toMillis(), TimeUnit.MILLISECONDS);

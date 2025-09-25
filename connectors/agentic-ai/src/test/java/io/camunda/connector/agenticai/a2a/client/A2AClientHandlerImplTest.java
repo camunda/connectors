@@ -42,7 +42,7 @@ class A2AClientHandlerImplTest {
     private final A2AClientHandler handler =
         new A2AClientHandlerImpl(
             mock(DocumentToPartConverter.class),
-            mock(SendMessageResultHandler.class),
+            mock(SendMessageResponseHandler.class),
             mock(TaskPoller.class));
 
     @Test
