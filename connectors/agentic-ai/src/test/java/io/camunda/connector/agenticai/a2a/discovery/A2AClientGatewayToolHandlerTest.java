@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.a2a.discovery;
 
 import static io.camunda.connector.agenticai.a2a.discovery.A2AClientGatewayToolHandler.PROPERTY_A2A_CLIENTS;
+import static io.camunda.connector.agenticai.util.ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -134,8 +135,9 @@ class A2AClientGatewayToolHandlerTest {
     @Test
     void convertsA2ADiscoveryResults_toToolDefinitions() {
       var agentContext = AgentContext.empty();
+      Map<String, Object> content = Map.of("title", "Agent 1", "version", 1);
       var toolDiscoveryResults =
-          List.of(createToolCallResultWithContent("A2A_fetchAgentCard_a2a1", "a2a1", "Agent 1"));
+          List.of(createToolCallResultWithContent("A2A_fetchAgentCard_a2a1", "a2a1", content));
 
       var result = handler.handleToolDiscoveryResults(agentContext, toolDiscoveryResults);
 
@@ -159,26 +161,38 @@ class A2AClientGatewayToolHandlerTest {
           .satisfiesExactly(
               toolDefinition -> {
                 assertThat(toolDefinition.name()).isEqualTo("A2A_a2a1");
-                assertThat(toolDefinition.description()).isEqualTo("Agent 1");
+                // description is JSON string of the map; parse and compare
+                var parsed = readDescriptionAsMap(toolDefinition.description());
+                assertThat(parsed).isEqualTo(content);
                 assertThat(toolDefinition.inputSchema()).isEqualTo(expectedSchema);
               });
     }
 
     @Test
     void handlesMultipleDiscoveryResults() {
+      Map<String, Object> content1 = Map.of("title", "Desc 1");
+      Map<String, Object> content2 = Map.of("title", "Desc 2");
       var agentContext = AgentContext.empty();
       var toolDiscoveryResults =
           List.of(
-              createToolCallResultWithContent("A2A_fetchAgentCard_a2a1", "a2a1", "Desc 1"),
-              createToolCallResultWithContent("A2A_fetchAgentCard_a2a2", "a2a2", "Desc 2"));
+              createToolCallResultWithContent("A2A_fetchAgentCard_a2a1", "a2a1", content1),
+              createToolCallResultWithContent("A2A_fetchAgentCard_a2a2", "a2a2", content2));
 
       var result = handler.handleToolDiscoveryResults(agentContext, toolDiscoveryResults);
 
       assertThat(result).hasSize(2);
       assertThat(result)
           .satisfiesExactly(
-              td -> assertThat(td.name()).isEqualTo("A2A_a2a1"),
-              td -> assertThat(td.name()).isEqualTo("A2A_a2a2"));
+              td -> {
+                assertThat(td.name()).isEqualTo("A2A_a2a1");
+                var parsed = readDescriptionAsMap(td.description());
+                assertThat(parsed).isEqualTo(content1);
+              },
+              td -> {
+                assertThat(td.name()).isEqualTo("A2A_a2a2");
+                var parsed = readDescriptionAsMap(td.description());
+                assertThat(parsed).isEqualTo(content2);
+              });
     }
 
     static Stream<Arguments> toolDiscoveryResultScenarios() {
@@ -201,6 +215,18 @@ class A2AClientGatewayToolHandlerTest {
               () -> handler.handleToolDiscoveryResults(agentContext, toolDiscoveryResults))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessage("Tool call result content for A2A client tool discovery is null.");
+    }
+
+    @Test
+    void throwsException_whenDiscoveryResultContentIsNotAMap() {
+      var agentContext = AgentContext.empty();
+      var toolDiscoveryResults =
+          List.of(createToolCallResultWithContent("A2A_fetchAgentCard_a2a1", "a2a1", "not a map"));
+
+      assertThatThrownBy(
+              () -> handler.handleToolDiscoveryResults(agentContext, toolDiscoveryResults))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessage("Tool call result content for A2A client tool discovery is not a map.");
     }
   }
 
@@ -294,7 +320,7 @@ class A2AClientGatewayToolHandlerTest {
       var result = handler.transformToolCallResults(agentContext, toolCallResults);
 
       assertThat(result).hasSize(1);
-      assertThat(result.get(0).content())
+      assertThat(result.getFirst().content())
           .isEqualTo(List.of(new TextContent("First content"), new TextContent("Second content")));
     }
 
@@ -334,5 +360,13 @@ class A2AClientGatewayToolHandlerTest {
 
   private ToolCallResult createToolCallResultWithContent(String id, String name, Object content) {
     return ToolCallResult.builder().id(id).name(name).content(content).build();
+  }
+
+  private Map<String, Object> readDescriptionAsMap(String descriptionJson) {
+    try {
+      return objectMapper.readValue(descriptionJson, STRING_OBJECT_MAP_TYPE_REFERENCE);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to parse tool description JSON", e);
+    }
   }
 }

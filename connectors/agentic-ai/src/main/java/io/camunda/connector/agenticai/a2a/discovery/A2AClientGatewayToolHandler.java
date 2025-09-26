@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
@@ -118,11 +119,24 @@ public class A2AClientGatewayToolHandler implements GatewayToolHandler {
           "Tool call result content for A2A client tool discovery is null.");
     }
 
-    return ToolDefinition.builder()
-        .name(new A2AToolCallIdentifier(toolCallResult.name()).fullyQualifiedName())
-        .description(toolCallResult.content().toString())
-        .inputSchema(defaultInputSchema)
-        .build();
+    if (!(toolCallResult.content() instanceof Map<?, ?>)) {
+      throw new IllegalArgumentException(
+          "Tool call result content for A2A client tool discovery is not a map.");
+    }
+
+    String toolName = new A2AToolCallIdentifier(toolCallResult.name()).fullyQualifiedName();
+    try {
+      return ToolDefinition.builder()
+          .name(toolName)
+          .description(objectMapper.writeValueAsString(toolCallResult.content()))
+          .inputSchema(defaultInputSchema)
+          .build();
+    } catch (JsonProcessingException e) {
+      throw new ConnectorException(
+          "Failed to serialize A2A client tool description for tool %s: %s"
+              .formatted(toolName, toolCallResult.content()),
+          e);
+    }
   }
 
   /**
