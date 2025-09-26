@@ -25,7 +25,6 @@ import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
-import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
 import io.camunda.connector.runtime.secret.ConsoleSecretProvider;
 import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
 import io.camunda.connector.runtime.secret.console.ConsoleSecretApiClient;
@@ -44,7 +43,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 
 @AutoConfiguration
@@ -53,7 +51,6 @@ import org.springframework.core.env.Environment;
   InboundConnectorsAutoConfiguration.class
 })
 @EnableConfigurationProperties(ConnectorProperties.class)
-@Import(OutboundConnectorRuntimeConfiguration.class)
 public class ConnectorsAutoConfiguration {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConnectorsAutoConfiguration.class);
