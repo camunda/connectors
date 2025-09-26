@@ -31,7 +31,7 @@ public class A2AClientGatewayToolHandler implements GatewayToolHandler {
   public static final String PROPERTY_A2A_CLIENTS = "a2aClients";
   public static final String A2A_PREFIX = "A2A_";
   private static final String A2A_TOOLS_DISCOVERY_PREFIX = A2A_PREFIX + "fetchAgentCard_";
-  private static final String DEFAULT_INPUT_SCHEMA =
+  private static final String DEFAULT_INPUT_JSON_SCHEMA =
       """
       {
         "type": "object",
@@ -52,9 +52,9 @@ public class A2AClientGatewayToolHandler implements GatewayToolHandler {
     this.objectMapper = objectMapper;
     try {
       this.defaultInputSchema =
-          objectMapper.readValue(DEFAULT_INPUT_SCHEMA, STRING_OBJECT_MAP_TYPE_REFERENCE);
+          objectMapper.readValue(DEFAULT_INPUT_JSON_SCHEMA, STRING_OBJECT_MAP_TYPE_REFERENCE);
     } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
