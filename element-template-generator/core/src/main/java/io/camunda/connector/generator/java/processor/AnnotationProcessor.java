@@ -19,14 +19,17 @@ package io.camunda.connector.generator.java.processor;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext;
-import java.lang.reflect.Field;
+import java.lang.reflect.AnnotatedElement;
 
-public interface FieldProcessor {
+public interface AnnotationProcessor {
 
   void process(
-      Field field, PropertyBuilder propertyBuilder, final TemplateGenerationContext context);
+      AnnotatedElement field,
+      Class<?> type,
+      PropertyBuilder propertyBuilder,
+      final TemplateGenerationContext context);
 
-  static boolean isOptional(Field field) {
+  static boolean isOptional(AnnotatedElement field) {
     var annotation = field.getAnnotation(TemplateProperty.class);
     if (annotation == null) {
       return TemplateProperty.OPTIONAL_DEFAULT;

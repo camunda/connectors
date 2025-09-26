@@ -16,8 +16,8 @@
  */
 package io.camunda.connector.generator.java.util;
 
-import static io.camunda.connector.generator.java.processor.TemplatePropertyFieldProcessor.buildCondition;
-import static io.camunda.connector.generator.java.processor.TemplatePropertyFieldProcessor.getValue;
+import static io.camunda.connector.generator.java.processor.TemplatePropertyAnnotationProcessor.buildCondition;
+import static io.camunda.connector.generator.java.processor.TemplatePropertyAnnotationProcessor.getValue;
 import static io.camunda.connector.util.reflection.ReflectionUtil.*;
 
 import io.camunda.connector.api.annotation.Header;
@@ -92,13 +92,17 @@ public class OperationBasedConnectorUtil {
     return parameters.stream()
         .map(
             parameter -> {
+              boolean shouldMapParameterBindings =
+                  TemplatePropertiesUtil.shouldMapBindingsForParameter(parameter);
               Variable variable = parameter.getAnnotation(Variable.class);
               if (variable != null) {
                 List<PropertyBuilder> properties =
-                    TemplatePropertiesUtil.extractTemplatePropertiesFromType(
-                        parameter.getType(), context);
+                    TemplatePropertiesUtil.extractTemplatePropertiesFromParameter(
+                        parameter, context);
                 return properties.stream()
-                    .map(property -> mapProperty(property, operation, variable))
+                    .map(
+                        property ->
+                            mapProperty(property, operation, variable, shouldMapParameterBindings))
                     .toList();
               } else {
                 return List.of(buildHeaderProperty(operation, parameter));
@@ -144,12 +148,19 @@ public class OperationBasedConnectorUtil {
   }
 
   private static PropertyBuilder mapProperty(
-      PropertyBuilder property, Operation operation, Variable variable) {
-    return property
+      PropertyBuilder property,
+      Operation operation,
+      Variable variable,
+      boolean shouldMapParameterBindings) {
+    property
         .id(concatenateOperationIdAndPropertyId(getOperationId(operation), property.getId()))
-        .binding(mapBinding(property.getBinding(), variable))
         .condition(mapCondition(property.getCondition(), operation))
         .group(OPERATION_GROUP_ID);
+
+    if (shouldMapParameterBindings) {
+      property.binding(mapBinding(property.getBinding(), variable));
+    }
+    return property;
   }
 
   private static PropertyCondition mapCondition(PropertyCondition condition, Operation operation) {

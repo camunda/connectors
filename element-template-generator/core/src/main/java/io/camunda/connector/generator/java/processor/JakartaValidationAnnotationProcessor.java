@@ -25,15 +25,18 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import java.lang.reflect.Field;
+import java.lang.reflect.AnnotatedElement;
 import org.apache.commons.lang3.tuple.Pair;
 
 /** Jakarta Bean Validation API annotations processor */
-public class JakartaValidationFieldProcessor implements FieldProcessor {
+public class JakartaValidationAnnotationProcessor implements AnnotationProcessor {
 
   @Override
   public void process(
-      Field field, PropertyBuilder propertyBuilder, final TemplateGenerationContext context) {
+      AnnotatedElement field,
+      Class<?> type,
+      PropertyBuilder propertyBuilder,
+      final TemplateGenerationContext context) {
     PropertyConstraintsBuilder constraintsBuilder =
         PropertyConstraints.builder(propertyBuilder.build().getConstraints());
 
@@ -55,20 +58,20 @@ public class JakartaValidationFieldProcessor implements FieldProcessor {
       constraintsBuilder.pattern(
           new PropertyConstraints.Pattern(pattern.getLeft(), pattern.getRight()));
     }
-    if (pattern != null && !hasNotEmptyConstraint(field) && FieldProcessor.isOptional(field)) {
+    if (pattern != null && !hasNotEmptyConstraint(field) && AnnotationProcessor.isOptional(field)) {
       constraintsBuilder.notEmpty(false);
     }
     var constraints = constraintsBuilder.build();
     propertyBuilder.constraints(constraints);
   }
 
-  private boolean hasNotEmptyConstraint(Field field) {
+  private boolean hasNotEmptyConstraint(AnnotatedElement field) {
     return field.isAnnotationPresent(NotBlank.class)
         || field.isAnnotationPresent(NotEmpty.class)
         || field.isAnnotationPresent(NotNull.class);
   }
 
-  private Integer hasMinSizeAnnotation(Field field) {
+  private Integer hasMinSizeAnnotation(AnnotatedElement field) {
     var sizeAnnotation = field.getAnnotation(Size.class);
     if (sizeAnnotation != null && sizeAnnotation.min() != Integer.MIN_VALUE) {
       return sizeAnnotation.min();
@@ -76,7 +79,7 @@ public class JakartaValidationFieldProcessor implements FieldProcessor {
     return null;
   }
 
-  private Integer hasMaxSizeAnnotation(Field field) {
+  private Integer hasMaxSizeAnnotation(AnnotatedElement field) {
     var sizeAnnotation = field.getAnnotation(Size.class);
     if (sizeAnnotation != null && sizeAnnotation.max() != Integer.MAX_VALUE) {
       return sizeAnnotation.max();
@@ -84,7 +87,7 @@ public class JakartaValidationFieldProcessor implements FieldProcessor {
     return null;
   }
 
-  private Pair<String, String> hasPatternAnnotation(Field field) {
+  private Pair<String, String> hasPatternAnnotation(AnnotatedElement field) {
     var patternAnnotation = field.getAnnotation(Pattern.class);
     if (patternAnnotation != null) {
       if (patternAnnotation.message().equals("{jakarta.validation.constraints.Pattern.message}")) {
@@ -93,12 +96,5 @@ public class JakartaValidationFieldProcessor implements FieldProcessor {
       return Pair.of(patternAnnotation.regexp(), patternAnnotation.message());
     }
     return null;
-  }
-
-  private boolean isConstraintEmpty(PropertyConstraints constraints) {
-    return constraints.pattern() == null
-        && constraints.minLength() == null
-        && constraints.maxLength() == null
-        && constraints.notEmpty() == null;
   }
 }

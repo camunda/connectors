@@ -19,6 +19,8 @@ package io.camunda.connector.generator.java.util;
 import static io.camunda.connector.util.reflection.ReflectionUtil.getAllFields;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.api.annotation.Header;
+import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.generator.dsl.*;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
@@ -30,12 +32,14 @@ import io.camunda.connector.generator.dsl.PropertyCondition.OneOf;
 import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import io.camunda.connector.generator.java.annotation.*;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
-import io.camunda.connector.generator.java.processor.FieldProcessor;
-import io.camunda.connector.generator.java.processor.JakartaValidationFieldProcessor;
-import io.camunda.connector.generator.java.processor.TemplatePropertyFieldProcessor;
+import io.camunda.connector.generator.java.processor.AnnotationProcessor;
+import io.camunda.connector.generator.java.processor.JakartaValidationAnnotationProcessor;
+import io.camunda.connector.generator.java.processor.TemplatePropertyAnnotationProcessor;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext.Outbound;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
+import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -46,8 +50,32 @@ import org.apache.commons.lang3.StringUtils;
 /** Utility class for transforming data classes into {@link PropertyBuilder} instances. */
 public class TemplatePropertiesUtil {
 
-  private static final List<FieldProcessor> fieldProcessors =
-      List.of(new JakartaValidationFieldProcessor(), new TemplatePropertyFieldProcessor());
+  private static final List<AnnotationProcessor> fieldProcessors =
+      List.of(
+          new JakartaValidationAnnotationProcessor(), new TemplatePropertyAnnotationProcessor());
+
+  public static List<PropertyBuilder> extractTemplatePropertiesFromParameter(
+      Parameter parameter, TemplateGenerationContext context) {
+
+    var type = parameter.getType();
+    var annotation = parameter.getAnnotation(TemplateProperty.class);
+    if (!isContainerType(parameter.getType(), annotation)) {
+      // If the type is a primitive, String, Enum or Number, return a single property
+      var property = buildProperty(parameter, parameter.getName(), type, context);
+      if (property != null) {
+        return List.of(property);
+      } else {
+        return Collections.emptyList();
+      }
+    }
+
+    //
+    return extractTemplatePropertiesFromType(type, context);
+  }
+
+  public static boolean shouldMapBindingsForParameter(Parameter parameter) {
+    return isContainerType(parameter.getType(), parameter.getAnnotation(TemplateProperty.class));
+  }
 
   /**
    * Analyze the type and return a list of {@link PropertyBuilder} instances.
@@ -84,7 +112,7 @@ public class TemplatePropertiesUtil {
     var properties = new ArrayList<PropertyBuilder>();
 
     for (Field field : fields) {
-      if (isContainerType(field)) {
+      if (isContainerType(field.getType(), field.getAnnotation(TemplateProperty.class))) {
         var nestedPropertiesAnnotation = field.getAnnotation(NestedProperties.class);
         boolean hasPathPrefix =
             nestedPropertiesAnnotation == null || nestedPropertiesAnnotation.addNestedPath();
@@ -106,7 +134,7 @@ public class TemplatePropertiesUtil {
                         }
                         if (hasConditionOverride) {
                           builder.condition(
-                              TemplatePropertyFieldProcessor.transformToCondition(
+                              TemplatePropertyAnnotationProcessor.transformToCondition(
                                   nestedPropertiesAnnotation.condition()));
                         }
                         if (hasGroupOverride) {
@@ -126,7 +154,7 @@ public class TemplatePropertiesUtil {
                   + "a container type and consider applying a type override using @TemplateProperty or breaking the circular reference.");
         }
       } else {
-        properties.add(buildProperty(field, context));
+        properties.add(buildProperty(field, field.getName(), field.getType(), context));
       }
     }
     return properties.stream().filter(Objects::nonNull).toList();
@@ -156,48 +184,73 @@ public class TemplatePropertiesUtil {
         .toList();
   }
 
-  private static PropertyBuilder buildProperty(Field field, TemplateGenerationContext context) {
-    var annotation = field.getAnnotation(TemplateProperty.class);
+  private static PropertyBuilder buildProperty(
+      AnnotatedElement declaredProperty,
+      String declaredName,
+      Class<?> type,
+      TemplateGenerationContext context) {
+
+    var templatePropertyAnnotation = declaredProperty.getAnnotation(TemplateProperty.class);
+    var variableAnnotation = declaredProperty.getAnnotation(Variable.class);
+    var headerAnnotation = declaredProperty.getAnnotation(Header.class);
+
     String name, label, tooltip = null, exampleValue = null;
-    String bindingName = field.getName();
-    if (annotation != null) {
-      if (annotation.ignore()) {
+    String bindingName = declaredName;
+    if (templatePropertyAnnotation != null) {
+      if (templatePropertyAnnotation.ignore()) {
         return null;
       }
-      if (!annotation.id().isBlank()) {
-        name = annotation.id();
+      if (!templatePropertyAnnotation.id().isBlank()) {
+        name = templatePropertyAnnotation.id();
       } else {
-        name = field.getName();
+        name = declaredName;
       }
-      if (!annotation.label().isBlank()) {
-        label = annotation.label();
+      if (!templatePropertyAnnotation.label().isBlank()) {
+        label = templatePropertyAnnotation.label();
       } else {
         label = transformIdIntoLabel(name);
       }
-      if (!annotation.binding().name().isBlank()) {
-        bindingName = annotation.binding().name();
+      if (!templatePropertyAnnotation.binding().name().isBlank()) {
+        bindingName = templatePropertyAnnotation.binding().name();
       }
-      if (!annotation.tooltip().isBlank()) {
-        tooltip = annotation.tooltip();
+      if (!templatePropertyAnnotation.tooltip().isBlank()) {
+        tooltip = templatePropertyAnnotation.tooltip();
       }
-      if (!annotation.exampleValue().isBlank()) {
-        exampleValue = annotation.exampleValue();
+      if (!templatePropertyAnnotation.exampleValue().isBlank()) {
+        exampleValue = templatePropertyAnnotation.exampleValue();
       }
     } else {
-      name = field.getName();
+      name = declaredName;
+      label = transformIdIntoLabel(name);
+    }
+
+    if (variableAnnotation != null) {
+      if (!variableAnnotation.name().isBlank()) {
+        name = variableAnnotation.name();
+      } else if (!variableAnnotation.value().isBlank()) {
+        name = variableAnnotation.value();
+      }
+      label = transformIdIntoLabel(name);
+      bindingName = name;
+    } else if (headerAnnotation != null) {
+      if (!headerAnnotation.name().isBlank()) {
+        bindingName = headerAnnotation.name();
+      } else if (!headerAnnotation.value().isBlank()) {
+        bindingName = headerAnnotation.value();
+      }
       label = transformIdIntoLabel(name);
     }
 
     PropertyBuilder propertyBuilder =
-        createPropertyBuilder(field, annotation, context)
+        createPropertyBuilder(type, templatePropertyAnnotation, context)
             .id(name)
             .label(label)
             .tooltip(tooltip)
             .exampleValue(exampleValue)
             .binding(createBinding(bindingName, context));
 
-    for (FieldProcessor processor : fieldProcessors) {
-      processor.process(field, propertyBuilder, context);
+    for (AnnotationProcessor processor : fieldProcessors) {
+      processor.process(declaredProperty, type, propertyBuilder, context);
     }
     return propertyBuilder;
   }
@@ -288,17 +341,16 @@ public class TemplatePropertiesUtil {
   }
 
   private static PropertyBuilder createPropertyBuilder(
-      Field field, TemplateProperty annotation, TemplateGenerationContext context) {
+      Class<?> parameterType, TemplateProperty annotation, TemplateGenerationContext context) {
     PropertyType type;
     List<DropdownModel> dropdownChoices = new ArrayList<>();
 
-    if (field.getType() == Boolean.class || field.getType() == boolean.class) {
+    if (parameterType == Boolean.class || parameterType == boolean.class) {
       type = PropertyType.Boolean;
-    } else if (field.getType().isEnum()) {
+    } else if (parameterType.isEnum()) {
       type = PropertyType.Dropdown;
-      Class<?> enumType = field.getType();
-      dropdownChoices = createDropdownModelList(enumType);
-    } else if (isNumberClass(field.getType()) && isOutbound(context)) { // TODO: To be removed
+      dropdownChoices = createDropdownModelList(parameterType);
+    } else if (isNumberClass(parameterType) && isOutbound(context)) { // TODO: To be removed
       type = PropertyType.Number;
     } else {
       type = PropertyType.String;
@@ -336,10 +388,10 @@ public class TemplatePropertiesUtil {
           case Text -> TextProperty.builder();
           case Unknown -> throw new IllegalStateException("Unknown property type");
         };
-    if (Object.class.equals(field.getType())
-        || JsonNode.class.equals(field.getType())
-        || Collection.class.isAssignableFrom(field.getType())
-        || Map.class.isAssignableFrom(field.getType())) {
+    if (Object.class.equals(parameterType)
+        || JsonNode.class.equals(parameterType)
+        || Collection.class.isAssignableFrom(parameterType)
+        || Map.class.isAssignableFrom(parameterType)) {
       builder.feel(FeelMode.required);
     }
     return builder;
@@ -501,9 +553,7 @@ public class TemplatePropertiesUtil {
     return label.toString();
   }
 
-  private static boolean isContainerType(Field field) {
-    var type = field.getType();
-    var propertyAnnotation = field.getAnnotation(TemplateProperty.class);
+  private static boolean isContainerType(Class<?> type, TemplateProperty propertyAnnotation) {
     boolean hasManualTypeOverride =
         propertyAnnotation != null && propertyAnnotation.type() != PropertyType.Unknown;
     // true if object with fields, false if primitive or collection or map or array

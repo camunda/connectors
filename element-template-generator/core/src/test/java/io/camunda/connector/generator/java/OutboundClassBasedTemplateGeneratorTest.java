@@ -33,6 +33,7 @@ import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.ElementTemplate.ElementTypeWrapper;
 import io.camunda.connector.generator.dsl.HiddenProperty;
+import io.camunda.connector.generator.dsl.NumberProperty;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
@@ -46,6 +47,7 @@ import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnector;
+import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnectorWithPrimitiveTypes;
 import io.camunda.connector.generator.java.example.outbound.SingleOperationAnnotatedConnector;
 import java.io.File;
 import java.io.IOException;
@@ -1044,6 +1046,50 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
       HiddenProperty operationProperty = (HiddenProperty) getPropertyById("operation", template);
       assertThat(operationProperty.getValue()).isEqualTo("operation-1");
+    }
+
+    @Test
+    void operationWithPrimitiveParametersAnnotated() {
+      var template =
+          generator.generate(OperationAnnotatedConnectorWithPrimitiveTypes.class).getFirst();
+      assertThat(template.id()).isNotNull();
+
+      NumberProperty propertyA = (NumberProperty) getPropertyById("add:a", template);
+      NumberProperty propertyB = (NumberProperty) getPropertyById("add:b", template);
+      assertThat(propertyA.getType()).isEqualTo("Number");
+      assertThat(propertyB.getType()).isEqualTo("Number");
+      assertThat(propertyA.getBinding()).isEqualTo(new ZeebeInput("a"));
+      assertThat(propertyB.getBinding()).isEqualTo(new ZeebeInput("b"));
+
+      NumberProperty propertyAWithTemplateProperty =
+          (NumberProperty) getPropertyById("addWithVariableAndTemplateProperty:a", template);
+      NumberProperty propertyBWithTemplateProperty =
+          (NumberProperty) getPropertyById("addWithVariableAndTemplateProperty:b", template);
+      assertThat(propertyAWithTemplateProperty.getType()).isEqualTo("Number");
+      assertThat(propertyBWithTemplateProperty.getType()).isEqualTo("Number");
+      assertThat(propertyAWithTemplateProperty.getBinding()).isEqualTo(new ZeebeInput("a"));
+      assertThat(propertyBWithTemplateProperty.getBinding()).isEqualTo(new ZeebeInput("b"));
+
+      // TODO: all header params are currently forced to String, even if the method parameter is
+      // of a different type. Do we want to change this?
+
+      StringProperty propertyAWithHeader =
+          (StringProperty) getPropertyById("addWithHeader:a", template);
+      StringProperty propertyBWithHeader =
+          (StringProperty) getPropertyById("addWithHeader:b", template);
+      assertThat(propertyAWithHeader.getBinding())
+          .isEqualTo(new PropertyBinding.ZeebeTaskHeader("a"));
+      assertThat(propertyBWithHeader.getBinding())
+          .isEqualTo(new PropertyBinding.ZeebeTaskHeader("b"));
+
+      StringProperty propertyAWithHeaderAndTemplateProperty =
+          (StringProperty) getPropertyById("addWithHeaderAndTemplateProperty:a", template);
+      StringProperty propertyBWithHeaderAndTemplateProperty =
+          (StringProperty) getPropertyById("addWithHeaderAndTemplateProperty:b", template);
+      assertThat(propertyAWithHeaderAndTemplateProperty.getBinding())
+          .isEqualTo(new PropertyBinding.ZeebeTaskHeader("a"));
+      assertThat(propertyBWithHeaderAndTemplateProperty.getBinding())
+          .isEqualTo(new PropertyBinding.ZeebeTaskHeader("b"));
     }
   }
 }
