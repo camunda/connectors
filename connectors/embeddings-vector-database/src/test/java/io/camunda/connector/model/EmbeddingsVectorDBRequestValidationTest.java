@@ -51,6 +51,13 @@ class EmbeddingsVectorDBRequestValidationTest {
     var request = new EmbeddingsVectorDBRequest(null, sampleModelProvider(), sampleVectorStore());
     var violations = validator.validate(request);
     assertThat(violations).hasSize(1);
+    assertThat(violations.iterator().next())
+        .satisfies(
+            violation -> {
+              assertThat(violation.getMessage()).isEqualTo("must not be null");
+              assertThat(violation.getPropertyPath().toString())
+                  .isEqualTo("vectorDatabaseConnectorOperation");
+            });
   }
 
   @Test
@@ -58,6 +65,13 @@ class EmbeddingsVectorDBRequestValidationTest {
     var request = new EmbeddingsVectorDBRequest(sampleOperation(), null, sampleVectorStore());
     var violations = validator.validate(request);
     assertThat(violations).hasSize(1);
+    assertThat(violations.iterator().next())
+        .satisfies(
+            violation -> {
+              assertThat(violation.getMessage()).isEqualTo("must not be null");
+              assertThat(violation.getPropertyPath().toString())
+                  .isEqualTo("embeddingModelProvider");
+            });
   }
 
   @Test
@@ -65,6 +79,12 @@ class EmbeddingsVectorDBRequestValidationTest {
     var request = new EmbeddingsVectorDBRequest(sampleOperation(), sampleModelProvider(), null);
     var violations = validator.validate(request);
     assertThat(violations).hasSize(1);
+    assertThat(violations.iterator().next())
+        .satisfies(
+            violation -> {
+              assertThat(violation.getMessage()).isEqualTo("must not be null");
+              assertThat(violation.getPropertyPath().toString()).isEqualTo("vectorStore");
+            });
   }
 
   @Test
@@ -80,6 +100,18 @@ class EmbeddingsVectorDBRequestValidationTest {
             sampleVectorStore());
     var violations = validator.validate(request);
     assertThat(violations).hasSize(2);
+    assertThat(violations)
+        .anySatisfy(
+            violation -> {
+              assertThat(violation.getMessage()).isEqualTo("must be greater than or equal to 1");
+              assertThat(violation.getPropertyPath().toString()).contains("maxSegmentSizeInChars");
+            });
+    assertThat(violations)
+        .anySatisfy(
+            violation -> {
+              assertThat(violation.getMessage()).isEqualTo("must be greater than or equal to 1");
+              assertThat(violation.getPropertyPath().toString()).contains("maxOverlapSizeInChars");
+            });
   }
 
   @Test
@@ -93,6 +125,18 @@ class EmbeddingsVectorDBRequestValidationTest {
             sampleVectorStore());
     var violations = validator.validate(request);
     assertThat(violations).hasSize(2);
+    assertThat(violations)
+        .anySatisfy(
+            violation -> {
+              assertThat(violation.getMessage()).isEqualTo("must not be blank");
+              assertThat(violation.getPropertyPath().toString()).contains("apiKey");
+            });
+    assertThat(violations)
+        .anySatisfy(
+            violation -> {
+              assertThat(violation.getMessage()).isEqualTo("must not be blank");
+              assertThat(violation.getPropertyPath().toString()).contains("modelName");
+            });
   }
 
   @Test
@@ -106,6 +150,24 @@ class EmbeddingsVectorDBRequestValidationTest {
                     null, new AzureAuthentication.AzureApiKeyAuthentication(null), " ")));
     var violations = validator.validate(request);
     assertThat(violations).hasSize(3);
+    assertThat(violations)
+        .anySatisfy(
+            violation -> {
+              assertThat(violation.getMessage()).isEqualTo("must not be blank");
+              assertThat(violation.getPropertyPath().toString()).contains("endpoint");
+            });
+    assertThat(violations)
+        .anySatisfy(
+            violation -> {
+              assertThat(violation.getMessage()).isEqualTo("must not be blank");
+              assertThat(violation.getPropertyPath().toString()).contains("apiKey");
+            });
+    assertThat(violations)
+        .anySatisfy(
+            violation -> {
+              assertThat(violation.getMessage()).isEqualTo("must not be blank");
+              assertThat(violation.getPropertyPath().toString()).contains("indexName");
+            });
   }
 
   private VectorDatabaseConnectorOperation sampleOperation() {
