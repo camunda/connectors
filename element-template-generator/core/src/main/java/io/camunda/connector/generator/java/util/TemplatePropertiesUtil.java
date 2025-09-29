@@ -561,6 +561,7 @@ public class TemplatePropertiesUtil {
     return !ClassUtils.isPrimitiveOrWrapper(type)
         && !hasManualTypeOverride
         && !"java.time".equals(type.getPackageName())
+        && type != Date.class
         && type != Function.class
         && type != Supplier.class
         && type != String.class
