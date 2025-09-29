@@ -115,6 +115,14 @@ public class OperationBasedConnectorUtil {
   private static PropertyBuilder buildHeaderProperty(Operation operation, Parameter parameter) {
     Header header = parameter.getAnnotation(Header.class);
     String headerName = getHeaderName(header);
+    if (headerName.isBlank()) {
+      throw new IllegalArgumentException(
+          "Header parameter '"
+              + parameter.getName()
+              + "' of operation '"
+              + getOperationName(operation)
+              + "' is missing a name. Please provide a name using the @Header annotation.");
+    }
     TemplateProperty templateProperty = parameter.getAnnotation(TemplateProperty.class);
     String id = concatenateOperationIdAndPropertyId(getOperationId(operation), headerName);
     var builder =

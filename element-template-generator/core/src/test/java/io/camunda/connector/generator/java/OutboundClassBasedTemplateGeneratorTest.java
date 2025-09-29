@@ -1069,6 +1069,8 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(propertyBWithTemplateProperty.getType()).isEqualTo("Number");
       assertThat(propertyAWithTemplateProperty.getBinding()).isEqualTo(new ZeebeInput("a"));
       assertThat(propertyBWithTemplateProperty.getBinding()).isEqualTo(new ZeebeInput("b"));
+      assertThat(propertyAWithTemplateProperty.getLabel()).isEqualTo("a prop");
+      assertThat(propertyBWithTemplateProperty.getLabel()).isEqualTo("b prop");
 
       // TODO: all header params are currently forced to String, even if the method parameter is
       // of a different type. Do we want to change this?
@@ -1090,6 +1092,8 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           .isEqualTo(new PropertyBinding.ZeebeTaskHeader("a"));
       assertThat(propertyBWithHeaderAndTemplateProperty.getBinding())
           .isEqualTo(new PropertyBinding.ZeebeTaskHeader("b"));
+      assertThat(propertyAWithHeaderAndTemplateProperty.getLabel()).isEqualTo("a prop");
+      assertThat(propertyBWithHeaderAndTemplateProperty.getLabel()).isEqualTo("b prop");
     }
   }
 }

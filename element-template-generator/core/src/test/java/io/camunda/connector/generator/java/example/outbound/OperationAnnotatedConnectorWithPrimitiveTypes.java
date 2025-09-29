@@ -37,7 +37,8 @@ public class OperationAnnotatedConnectorWithPrimitiveTypes implements OutboundCo
       name = "Add two integers with variable and template property",
       id = "addWithVariableAndTemplateProperty")
   public int addWithVariableAndTemplateProperty(
-      @Variable @TemplateProperty(id = "a") int a, @Variable @TemplateProperty(id = "b") int b) {
+      @Variable(name = "a") @TemplateProperty(label = "a prop") int a,
+      @Variable(name = "b") @TemplateProperty(label = "b prop") int b) {
     return a + b;
   }
 
@@ -50,7 +51,8 @@ public class OperationAnnotatedConnectorWithPrimitiveTypes implements OutboundCo
       name = "Add two integers with headers and template properties",
       id = "addWithHeaderAndTemplateProperty")
   public int addWithHeaderAndTemplateProperty(
-      @Header @TemplateProperty(id = "a") int a, @Header @TemplateProperty(id = "b") int b) {
+      @Header(name = "a") @TemplateProperty(label = "a prop") int a,
+      @Header("b") @TemplateProperty(label = "b prop") int b) {
     return a + b;
   }
 }
