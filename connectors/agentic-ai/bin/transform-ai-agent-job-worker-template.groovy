@@ -5,6 +5,14 @@ import com.fasterxml.jackson.databind.SerializationFeature
 
 import java.nio.file.Files
 
+static def replaceDocumentationLinks(String text) {
+    if (text == null) return null
+    return text.replace(
+        "out-of-the-box-connectors/agentic-ai-aiagent-task/",
+        "out-of-the-box-connectors/agentic-ai-aiagent-process/"
+    )
+}
+
 def sourceFile = sourceFile
 if (!sourceFile) {
     System.err.println("Error: Source file path required as property")
@@ -65,6 +73,10 @@ json.elementType.value = "bpmn:AdHocSubProcess"
 def updatedGroups = []
 
 json.groups.each { group ->
+    if (group.tooltip) {
+        group.tooltip = replaceDocumentationLinks(group.tooltip)
+    }
+
     updatedGroups.add(group)
 
     if (group.id == "limits") {
@@ -89,6 +101,14 @@ def updatedProperties = []
 json.properties.each { property ->
     if (property.id in skipProperties) {
         return
+    }
+
+    if (property.description) {
+        property.description = replaceDocumentationLinks(property.description)
+    }
+
+    if (property.tooltip) {
+        property.tooltip = replaceDocumentationLinks(property.tooltip)
     }
 
     // Update specific property values and bindings

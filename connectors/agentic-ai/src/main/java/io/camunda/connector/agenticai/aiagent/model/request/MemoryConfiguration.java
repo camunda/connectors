@@ -23,7 +23,7 @@ public record MemoryConfiguration(
                 "Use this to limit the number of messages which are sent to the model. The agent will only send "
                     + "the most recent messages up to the configured limit to the LLM. Older messages will be kept "
                     + "in the conversation store, but not sent to the model. "
-                    + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> "
+                    + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> "
                     + "for details.",
             type = TemplateProperty.PropertyType.Number,
             defaultValue = "20",
