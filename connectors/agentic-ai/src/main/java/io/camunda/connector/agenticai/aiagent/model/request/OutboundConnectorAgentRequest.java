@@ -33,7 +33,7 @@ public record OutboundConnectorAgentRequest(
                   "The agent context variable containing all relevant data for the agent to support the feedback loop between "
                       + "user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> "
                       + "variable which is returned from the agent response. "
-                      + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> "
+                      + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> "
                       + "for details.",
               constraints = @PropertyConstraints(notEmpty = true),
               type = TemplateProperty.PropertyType.Text,

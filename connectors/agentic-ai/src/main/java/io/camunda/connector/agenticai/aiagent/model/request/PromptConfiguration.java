@@ -62,7 +62,7 @@ Reveal **no** additional private reasoning outside these tags.\"""";
               description = "Documents to be included in the user prompt.",
               tooltip =
                   "Referenced documents will be automatically added to the user prompt. "
-                      + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> "
+                      + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> "
                       + "for details and supported file types.",
               feel = Property.FeelMode.required,
               optional = true)
