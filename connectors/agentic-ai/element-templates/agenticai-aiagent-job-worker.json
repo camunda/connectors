@@ -58,7 +58,7 @@
   }, {
     "id" : "response",
     "label" : "Response",
-    "tooltip" : "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.<br><br>See <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/#response\">documentation</a> for details.",
+    "tooltip" : "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.<br><br>See <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-process/#response\">documentation</a> for details.",
     "openByDefault" : false
   }, {
     "id" : "connector",
@@ -1160,7 +1160,7 @@
       "name" : "data.userPrompt.documents",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Referenced documents will be automatically added to the user prompt. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details and supported file types.",
+    "tooltip" : "Referenced documents will be automatically added to the user prompt. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-process/\" target=\"_blank\">See documentation</a> for details and supported file types.",
     "type" : "String"
   }, {
     "id" : "agentContext",
@@ -1173,7 +1173,7 @@
       "name" : "agentContext",
       "type" : "zeebe:input"
     },
-    "tooltip" : "The agent context variable containing all relevant data for the agent to support the feedback loop between user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> variable which is returned from the agent response. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details.",
+    "tooltip" : "The agent context variable containing all relevant data for the agent to support the feedback loop between user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> variable which is returned from the agent response. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-process/\" target=\"_blank\">See documentation</a> for details.",
     "type" : "Text"
   }, {
     "id" : "data.memory.storage.type",
@@ -1279,7 +1279,7 @@
       "name" : "data.memory.contextWindowSize",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Use this to limit the number of messages which are sent to the model. The agent will only send the most recent messages up to the configured limit to the LLM. Older messages will be kept in the conversation store, but not sent to the model. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details.",
+    "tooltip" : "Use this to limit the number of messages which are sent to the model. The agent will only send the most recent messages up to the configured limit to the LLM. Older messages will be kept in the conversation store, but not sent to the model. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-process/\" target=\"_blank\">See documentation</a> for details.",
     "type" : "Number"
   }, {
     "id" : "data.limits.maxModelCalls",

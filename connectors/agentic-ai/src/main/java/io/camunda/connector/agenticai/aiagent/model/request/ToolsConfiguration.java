@@ -20,7 +20,7 @@ public record ToolsConfiguration(
             tooltip =
                 "Add an ad-hoc sub-process ID to attach the AI agent to the tools. Ensure your process includes a tools "
                     + "feedback loop routing into the ad-hoc sub-process and back to the AI agent connector. "
-                    + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> "
+                    + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> "
                     + "for details.",
             optional = true)
         String containerElementId,
@@ -32,7 +32,7 @@ public record ToolsConfiguration(
             tooltip =
                 "This defines where to handle tool call results returned by the ad-hoc sub-process. Model this "
                     + "as part of your process and route it into the tools feedback loop. "
-                    + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> "
+                    + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> "
                     + "for details.",
             type = TemplateProperty.PropertyType.Text,
             feel = Property.FeelMode.required,
