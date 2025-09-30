@@ -26,6 +26,7 @@ import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestCli
   io.camunda.connector.runtime.InboundConnectorsAutoConfiguration.class,
   io.camunda.connector.runtime.OutboundConnectorsAutoConfiguration.class,
   io.camunda.connector.runtime.WebhookConnectorAutoConfiguration.class,
+  io.camunda.connector.runtime.ConnectorsAutoConfiguration.class,
 })
 public class TestConnectorRuntimeApplication {
 
