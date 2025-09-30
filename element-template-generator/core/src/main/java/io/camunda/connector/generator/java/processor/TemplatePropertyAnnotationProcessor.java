@@ -23,12 +23,12 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.EqualsBoolean;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.NestedPropertyCondition;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext;
-import java.lang.reflect.Field;
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
 /** {@link TemplateProperty} annotation processor */
-public class TemplatePropertyFieldProcessor implements FieldProcessor {
+public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor {
 
   public static PropertyCondition transformToCondition(
       TemplateProperty.PropertyCondition conditionAnnotation) {
@@ -45,7 +45,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     } else if (conditionAnnotation.allMatch().length > 0) {
       return new PropertyCondition.AllMatch(
           Arrays.stream(conditionAnnotation.allMatch())
-              .map(TemplatePropertyFieldProcessor::transformToNestedCondition)
+              .map(TemplatePropertyAnnotationProcessor::transformToNestedCondition)
               .toList());
     } else {
       // isActive always has a value, so we consider it is selected if nothing else is set
@@ -119,12 +119,15 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
 
   @Override
   public void process(
-      Field field, PropertyBuilder builder, final TemplateGenerationContext context) {
+      AnnotatedElement field,
+      Class<?> type,
+      PropertyBuilder builder,
+      final TemplateGenerationContext context) {
     var annotation = field.getAnnotation(TemplateProperty.class);
     if (annotation == null) {
       return;
     }
-    builder.optional(FieldProcessor.isOptional(field));
+    builder.optional(AnnotationProcessor.isOptional(field));
 
     switch (builder) {
       case DropdownProperty.DropdownPropertyBuilder ignored -> {}
@@ -146,7 +149,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
       builder.description(annotation.description());
     }
     if (!annotation.defaultValue().isBlank()) {
-      builder.value(getValue(annotation, field.getType(), isOutbound(context)));
+      builder.value(getValue(annotation, type, isOutbound(context)));
     }
     if (!annotation.group().isBlank()) {
       builder.group(annotation.group());
