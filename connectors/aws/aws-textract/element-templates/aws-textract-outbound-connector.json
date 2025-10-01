@@ -7,7 +7,7 @@
     "keywords" : [ "extract text", "extract data", "extract text from image", "extract data from image", "ocr" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/amazon-textract/",
-  "version" : 3,
+  "version" : 4,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -26,8 +26,14 @@
     "id" : "configuration",
     "label" : "Configuration"
   }, {
+    "id" : "document",
+    "label" : "Input document"
+  }, {
     "id" : "input",
-    "label" : "Configure input"
+    "label" : "Operation configuration"
+  }, {
+    "id" : "advanced",
+    "label" : "Advanced configuration"
   }, {
     "id" : "connector",
     "label" : "Connector"
@@ -133,47 +139,16 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "input.executionType",
-    "label" : "Execution type",
-    "description" : "Endpoint inference type",
-    "optional" : false,
-    "value" : "ASYNC",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "input",
-    "binding" : {
-      "name" : "input.executionType",
-      "type" : "zeebe:input"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Asynchronous",
-      "value" : "ASYNC"
-    }, {
-      "name" : "Real-time",
-      "value" : "SYNC"
-    }, {
-      "name" : "Polling",
-      "value" : "POLLING"
-    } ]
-  }, {
     "id" : "input.documentLocationType",
-    "label" : "Document location type",
-    "description" : "Document location",
+    "label" : "Document source",
+    "description" : "Document source of the input document that should be analyzed.",
     "optional" : false,
-    "value" : "UPLOADED",
-    "group" : "input",
+    "value" : "S3",
+    "group" : "document",
     "binding" : {
       "name" : "input.documentLocationType",
       "type" : "zeebe:input"
     },
-    "condition" : {
-      "property" : "input.executionType",
-      "equals" : "SYNC",
-      "type" : "simple"
-    },
-    "tooltip" : "<a href=\"https://docs.camunda.io/docs/8.7/apis-tools/camunda-api-rest/specifications/create-document-link/\">Camunda Document</a>",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Camunda Document",
@@ -185,13 +160,13 @@
   }, {
     "id" : "input.documentS3Bucket",
     "label" : "Document bucket",
-    "description" : "S3 bucket that contains document that needs to be processed",
+    "description" : "S3 bucket that contains document that should be analyzed.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "input",
+    "group" : "document",
     "binding" : {
       "name" : "input.documentS3Bucket",
       "type" : "zeebe:input"
@@ -204,14 +179,14 @@
     "type" : "String"
   }, {
     "id" : "input.documentName",
-    "label" : "Document path",
-    "description" : "S3 document path to be processed",
+    "label" : "Document name",
+    "description" : "S3 document name of the document that should be analyzed.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "input",
+    "group" : "document",
     "binding" : {
       "name" : "input.documentName",
       "type" : "zeebe:input"
@@ -225,10 +200,10 @@
   }, {
     "id" : "input.documentVersion",
     "label" : "Document version",
-    "description" : "S3 document version to be processed",
+    "description" : "S3 document version of the document that should be analyzed.",
     "optional" : true,
     "feel" : "optional",
-    "group" : "input",
+    "group" : "document",
     "binding" : {
       "name" : "input.documentVersion",
       "type" : "zeebe:input"
@@ -240,8 +215,59 @@
     },
     "type" : "String"
   }, {
+    "id" : "input.document",
+    "label" : "Camunda Document",
+    "description" : "The Camunda document of the process that should be analyzed.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "document",
+    "binding" : {
+      "name" : "input.document",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "input.documentLocationType",
+      "equals" : "UPLOADED",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.executionType",
+    "label" : "Execution type",
+    "description" : "How the document should be processes. See more info in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-textract/#execution-types\" target=\"_blank\">documentation</a>.",
+    "optional" : false,
+    "value" : "POLLING",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "input",
+    "binding" : {
+      "name" : "input.executionType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "input.documentLocationType",
+      "equals" : "S3",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Asynchronous",
+      "value" : "ASYNC"
+    }, {
+      "name" : "Real-time",
+      "value" : "SYNC"
+    }, {
+      "name" : "Polling",
+      "value" : "POLLING"
+    } ]
+  }, {
     "id" : "input.analyzeTables",
     "label" : "Analyze tables",
+    "description" : "Select this to return information about the tables that are detected in the input document.",
     "optional" : false,
     "value" : true,
     "constraints" : {
@@ -257,6 +283,7 @@
   }, {
     "id" : "input.analyzeForms",
     "label" : "Analyze form",
+    "description" : "Select this to return information detected form data.",
     "optional" : false,
     "value" : true,
     "constraints" : {
@@ -272,6 +299,7 @@
   }, {
     "id" : "input.analyzeSignatures",
     "label" : "Analyze signatures",
+    "description" : "Select this to return the locations of detected signatures.",
     "optional" : false,
     "value" : true,
     "constraints" : {
@@ -287,8 +315,9 @@
   }, {
     "id" : "input.analyzeLayout",
     "label" : "Analyze layout",
+    "description" : "Select this to return information about the layout of the document.",
     "optional" : false,
-    "value" : true,
+    "value" : false,
     "constraints" : {
       "notEmpty" : true
     },
@@ -300,95 +329,13 @@
     },
     "type" : "Boolean"
   }, {
-    "id" : "input.clientRequestToken",
-    "label" : "Client request token",
-    "description" : "The idempotent token that you use to identify the start request",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "input",
-    "binding" : {
-      "name" : "input.clientRequestToken",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "input.executionType",
-      "equals" : "ASYNC",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "input.jobTag",
-    "label" : "Job tag",
-    "description" : "An identifier that you specify that's included in the completion notification published to the Amazon SNS topic",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "input",
-    "binding" : {
-      "name" : "input.jobTag",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "input.executionType",
-      "equals" : "ASYNC",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "input.kmsKeyId",
-    "label" : "KMS key ID",
-    "description" : "The KMS key used to encrypt the inference results",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "input",
-    "binding" : {
-      "name" : "input.kmsKeyId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "input.executionType",
-      "equals" : "ASYNC",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "input.notificationChannelRoleArn",
-    "label" : "Notification channel role ARN",
-    "description" : "The Amazon SNS topic role ARN that you want Amazon Textract to publish the completion status of the operation to",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "input",
-    "binding" : {
-      "name" : "input.notificationChannelRoleArn",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "input.executionType",
-      "equals" : "ASYNC",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "input.notificationChannelSnsTopicArn",
-    "label" : "Notification channel SNS topic ARN",
-    "description" : "The Amazon SNS topic ARN that you want Amazon Textract to publish the completion status of the operation to",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "input",
-    "binding" : {
-      "name" : "input.notificationChannelSnsTopicArn",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "input.executionType",
-      "equals" : "ASYNC",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
     "id" : "input.outputConfigS3Bucket",
     "label" : "Output S3 bucket",
     "description" : "The name of the bucket your output will go to",
-    "optional" : true,
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "input",
     "binding" : {
@@ -405,7 +352,10 @@
     "id" : "input.outputConfigS3Prefix",
     "label" : "Output S3 prefix",
     "description" : "The prefix of the object key that the output will be saved to",
-    "optional" : true,
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "input",
     "binding" : {
@@ -419,21 +369,87 @@
     },
     "type" : "String"
   }, {
-    "id" : "input.document",
-    "label" : "Document",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "input",
+    "id" : "input.clientRequestToken",
+    "label" : "Client request token",
+    "description" : "The idempotent token that you use to identify the start request",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "advanced",
     "binding" : {
-      "name" : "input.document",
+      "name" : "input.clientRequestToken",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "input.documentLocationType",
-      "equals" : "UPLOADED",
+      "property" : "input.executionType",
+      "equals" : "ASYNC",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.jobTag",
+    "label" : "Job tag",
+    "description" : "An identifier that you specify that's included in the completion notification published to the Amazon SNS topic",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "advanced",
+    "binding" : {
+      "name" : "input.jobTag",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "input.executionType",
+      "equals" : "ASYNC",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.kmsKeyId",
+    "label" : "KMS key ID",
+    "description" : "The KMS key used to encrypt the inference results",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "advanced",
+    "binding" : {
+      "name" : "input.kmsKeyId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "input.executionType",
+      "equals" : "ASYNC",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.notificationChannelRoleArn",
+    "label" : "Notification channel role ARN",
+    "description" : "The Amazon SNS topic role ARN that you want Amazon Textract to publish the completion status of the operation to",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "advanced",
+    "binding" : {
+      "name" : "input.notificationChannelRoleArn",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "input.executionType",
+      "equals" : "ASYNC",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.notificationChannelSnsTopicArn",
+    "label" : "Notification channel SNS topic ARN",
+    "description" : "The Amazon SNS topic ARN that you want Amazon Textract to publish the completion status of the operation to",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "advanced",
+    "binding" : {
+      "name" : "input.notificationChannelSnsTopicArn",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "input.executionType",
+      "equals" : "ASYNC",
       "type" : "simple"
     },
     "type" : "String"
@@ -441,7 +457,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "3",
+    "value" : "4",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

@@ -16,32 +16,17 @@ import org.apache.commons.lang3.StringUtils;
 
 public record TextractRequestData(
     @TemplateProperty(
-            label = "Execution type",
-            group = "input",
-            type = TemplateProperty.PropertyType.Dropdown,
-            defaultValue = "ASYNC",
-            feel = FeelMode.disabled,
-            description = "Endpoint inference type")
-        @NotNull
-        TextractExecutionType executionType,
-    @TemplateProperty(
-            group = "input",
-            label = "Document location type",
-            description = "Document location",
+            group = "document",
+            label = "Document source",
+            description = "Document source of the input document that should be analyzed.",
             feel = FeelMode.disabled,
             type = TemplateProperty.PropertyType.Dropdown,
-            defaultValue = "UPLOADED",
-            tooltip =
-                "<a href=\"https://docs.camunda.io/docs/8.7/apis-tools/camunda-api-rest/specifications/create-document-link/\">Camunda Document</a>",
-            condition =
-                @TemplateProperty.PropertyCondition(
-                    property = "input.executionType",
-                    equals = "SYNC"))
+            defaultValue = "S3")
         DocumentLocationType documentLocationType,
     @TemplateProperty(
-            group = "input",
+            group = "document",
             label = "Document bucket",
-            description = "S3 bucket that contains document that needs to be processed",
+            description = "S3 bucket that contains document that should be analyzed.",
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.documentLocationType",
@@ -49,9 +34,9 @@ public record TextractRequestData(
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String documentS3Bucket,
     @TemplateProperty(
-            group = "input",
-            label = "Document path",
-            description = "S3 document path to be processed",
+            group = "document",
+            label = "Document name",
+            description = "S3 document name of the document that should be analyzed.",
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.documentLocationType",
@@ -59,9 +44,9 @@ public record TextractRequestData(
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String documentName,
     @TemplateProperty(
-            group = "input",
+            group = "document",
             label = "Document version",
-            description = "S3 document version to be processed",
+            description = "S3 document version of the document that should be analyzed.",
             optional = true,
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -69,7 +54,35 @@ public record TextractRequestData(
                     equals = "S3"))
         String documentVersion,
     @TemplateProperty(
+            group = "document",
+            label = "Camunda Document",
+            description = "The Camunda document of the process that should be analyzed.",
+            feel = Property.FeelMode.required,
+            type = TemplateProperty.PropertyType.String,
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "input.documentLocationType",
+                    equals = "UPLOADED"),
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+        Document document,
+    @TemplateProperty(
+            label = "Execution type",
+            group = "input",
+            type = TemplateProperty.PropertyType.Dropdown,
+            defaultValue = "POLLING",
+            feel = FeelMode.disabled,
+            description =
+                "How the document should be processes. See more info in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-textract/#execution-types\" target=\"_blank\">documentation</a>.",
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "input.documentLocationType",
+                    equals = "S3"))
+        @NotNull
+        TextractExecutionType executionType,
+    @TemplateProperty(
             label = "Analyze tables",
+            description =
+                "Select this to return information about the tables that are detected in the input document.",
             group = "input",
             type = TemplateProperty.PropertyType.Boolean,
             defaultValueType = TemplateProperty.DefaultValueType.Boolean,
@@ -78,6 +91,7 @@ public record TextractRequestData(
         boolean analyzeTables,
     @TemplateProperty(
             label = "Analyze form",
+            description = "Select this to return information detected form data.",
             group = "input",
             type = TemplateProperty.PropertyType.Boolean,
             defaultValueType = TemplateProperty.DefaultValueType.Boolean,
@@ -86,6 +100,7 @@ public record TextractRequestData(
         boolean analyzeForms,
     @TemplateProperty(
             label = "Analyze signatures",
+            description = "Select this to return the locations of detected signatures.",
             group = "input",
             type = TemplateProperty.PropertyType.Boolean,
             defaultValueType = TemplateProperty.DefaultValueType.Boolean,
@@ -94,14 +109,15 @@ public record TextractRequestData(
         boolean analyzeSignatures,
     @TemplateProperty(
             label = "Analyze layout",
+            description = "Select this to return information about the layout of the document.",
             group = "input",
             type = TemplateProperty.PropertyType.Boolean,
             defaultValueType = TemplateProperty.DefaultValueType.Boolean,
-            defaultValue = "true")
+            defaultValue = "false")
         @NotNull
         boolean analyzeLayout,
     @TemplateProperty(
-            group = "input",
+            group = "advanced",
             label = "Client request token",
             description = "The idempotent token that you use to identify the start request",
             optional = true,
@@ -111,7 +127,7 @@ public record TextractRequestData(
                     equals = "ASYNC"))
         String clientRequestToken,
     @TemplateProperty(
-            group = "input",
+            group = "advanced",
             label = "Job tag",
             description =
                 "An identifier that you specify that's included in the completion notification published to the Amazon SNS topic",
@@ -122,7 +138,7 @@ public record TextractRequestData(
                     equals = "ASYNC"))
         String jobTag,
     @TemplateProperty(
-            group = "input",
+            group = "advanced",
             label = "KMS key ID",
             description = "The KMS key used to encrypt the inference results",
             optional = true,
@@ -132,7 +148,7 @@ public record TextractRequestData(
                     equals = "ASYNC"))
         String kmsKeyId,
     @TemplateProperty(
-            group = "input",
+            group = "advanced",
             label = "Notification channel role ARN",
             description =
                 "The Amazon SNS topic role ARN that you want Amazon Textract to publish the completion status of the operation to",
@@ -143,7 +159,7 @@ public record TextractRequestData(
                     equals = "ASYNC"))
         String notificationChannelRoleArn,
     @TemplateProperty(
-            group = "input",
+            group = "advanced",
             label = "Notification channel SNS topic ARN",
             description =
                 "The Amazon SNS topic ARN that you want Amazon Textract to publish the completion status of the operation to",
@@ -157,36 +173,22 @@ public record TextractRequestData(
             group = "input",
             label = "Output S3 bucket",
             description = "The name of the bucket your output will go to",
-            optional = true,
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.executionType",
-                    equals = "ASYNC"))
+                    equals = "ASYNC"),
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String outputConfigS3Bucket,
     @TemplateProperty(
             group = "input",
             label = "Output S3 prefix",
             description = "The prefix of the object key that the output will be saved to",
-            optional = true,
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.executionType",
-                    equals = "ASYNC"))
-        String outputConfigS3Prefix,
-    @TemplateProperty(
-            group = "input",
-            label = "Document",
-            feel = Property.FeelMode.required,
-            type = TemplateProperty.PropertyType.String,
-            condition =
-                @TemplateProperty.PropertyCondition(
-                    property = "input.documentLocationType",
-                    equals = "UPLOADED"),
+                    equals = "ASYNC"),
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-        Document document) {
-  @TemplateProperty(ignore = true)
-  public static final String WRONG_OUTPUT_VALUES_MSG =
-      "Output S3 bucket must be filled in if output S3 prefix is filled in";
+        String outputConfigS3Prefix) {
 
   @TemplateProperty(ignore = true)
   public static final String WRONG_NOTIFICATION_VALUES_MSG =
@@ -199,21 +201,5 @@ public record TextractRequestData(
     }
     return StringUtils.isNoneBlank(notificationChannelRoleArn, notificationChannelSnsTopicArn)
         || StringUtils.isAllBlank(notificationChannelRoleArn, notificationChannelSnsTopicArn);
-  }
-
-  @AssertTrue(message = WRONG_OUTPUT_VALUES_MSG)
-  public boolean isValidOutputConfigProperties() {
-    if (executionType != TextractExecutionType.ASYNC) {
-      return true;
-    }
-
-    if (StringUtils.isAllBlank(outputConfigS3Bucket, outputConfigS3Prefix)) {
-      return true;
-    }
-
-    if (StringUtils.isNoneBlank(outputConfigS3Bucket, outputConfigS3Prefix)) {
-      return true;
-    }
-    return !StringUtils.isBlank(outputConfigS3Bucket);
   }
 }

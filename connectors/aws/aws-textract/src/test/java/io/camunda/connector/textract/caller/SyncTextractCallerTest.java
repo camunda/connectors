@@ -28,11 +28,12 @@ class SyncTextractCallerTest {
   void callWithS3DocumentLocation() {
     TextractRequestData requestData =
         new TextractRequestData(
-            TextractExecutionType.SYNC,
             DocumentLocationType.S3,
             "test-bucket",
             "test-object",
             "1",
+            null,
+            TextractExecutionType.SYNC,
             true,
             true,
             true,
@@ -43,8 +44,7 @@ class SyncTextractCallerTest {
             "notification-channel",
             "role-arn",
             "outputBucket",
-            "prefix",
-            null);
+            "prefix");
 
     AmazonTextractClient textractClient = mock(AmazonTextractClient.class);
 
@@ -65,11 +65,12 @@ class SyncTextractCallerTest {
 
     TextractRequestData requestData =
         new TextractRequestData(
-            TextractExecutionType.SYNC,
             DocumentLocationType.UPLOADED,
             null,
             null,
             null,
+            document,
+            TextractExecutionType.SYNC,
             true,
             false,
             false,
@@ -80,8 +81,7 @@ class SyncTextractCallerTest {
             "notification-channel",
             "role-arn",
             "outputBucket",
-            "prefix",
-            document);
+            "prefix");
 
     AmazonTextractClient textractClient = mock(AmazonTextractClient.class);
 
