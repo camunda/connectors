@@ -131,7 +131,7 @@ public class MessageTests {
 
   @Test
   @Disabled(
-      """
+"""
 Unauthorized access to correlate message REST API:
 Details from surefire report:
 2025-03-03T08:45:02.658+01:00 DEBUG 99400 --- [pool-7-thread-1] i.c.c.r.c.outbound.ConnectorJobHandler   : Exception while processing job: 2251799813685359 for tenant: <default>
