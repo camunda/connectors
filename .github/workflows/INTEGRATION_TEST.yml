@@ -78,6 +78,7 @@ jobs:
           echo "Helm dir: ${{ steps.determine-helm-dir.outputs.helm-dir }}"
 
   helm-deploy:
+    if: github.ref != 'refs/heads/main'
     needs: prepare-inputs
     name: Helm chart Integration Tests
     uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@main
