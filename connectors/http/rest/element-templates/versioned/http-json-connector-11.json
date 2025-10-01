@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
-  "version" : 12,
+  "version" : 11,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -478,23 +478,10 @@
     },
     "type" : "Text"
   }, {
-    "id" : "ignoreNullValues",
-    "label" : "Ignore null values",
-    "optional" : false,
-    "value" : false,
-    "feel" : "static",
-    "group" : "payload",
-    "binding" : {
-      "name" : "ignoreNullValues",
-      "type" : "zeebe:input"
-    },
-    "tooltip" : "Null values will not be sent",
-    "type" : "Boolean"
-  }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "12",
+    "value" : "11",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

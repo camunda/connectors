@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
-  "version" : 11,
+  "version" : 12,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -499,7 +499,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "11",
+    "value" : "12",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

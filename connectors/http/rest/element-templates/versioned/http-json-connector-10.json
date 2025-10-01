@@ -531,20 +531,6 @@
       "type": "Text"
     },
     {
-      "id": "ignoreNullValues",
-      "label": "Ignore null values",
-      "optional": false,
-      "value": false,
-      "feel": "static",
-      "group": "payload",
-      "binding": {
-        "name": "ignoreNullValues",
-        "type": "zeebe:input"
-      },
-      "tooltip": "Null values will not be sent",
-      "type": "Boolean"
-    },
-    {
       "id": "resultVariable",
       "label": "Result variable",
       "description": "Name of variable to store the response in",
