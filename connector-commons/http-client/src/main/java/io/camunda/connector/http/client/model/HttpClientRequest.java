@@ -41,13 +41,9 @@ public class HttpClientRequest {
 
   private Map<String, String> queryParameters;
 
-  private boolean storeResponse;
-
   private String skipEncoding;
 
   private boolean ignoreNullValues;
-
-  private boolean shouldReturnRawBody;
 
   public Object getBody() {
     return body;
@@ -145,22 +141,6 @@ public class HttpClientRequest {
     this.headers = headers;
   }
 
-  public boolean isStoreResponse() {
-    return storeResponse;
-  }
-
-  public void setStoreResponse(boolean storeResponse) {
-    this.storeResponse = storeResponse;
-  }
-
-  public boolean shouldReturnRawBody() {
-    return shouldReturnRawBody;
-  }
-
-  public void setShouldReturnRawBody(boolean shouldReturnRawBody) {
-    this.shouldReturnRawBody = shouldReturnRawBody;
-  }
-
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -173,8 +153,7 @@ public class HttpClientRequest {
         && Objects.equals(readTimeoutInSeconds, that.readTimeoutInSeconds)
         && Objects.equals(headers, that.headers)
         && Objects.equals(body, that.body)
-        && Objects.equals(queryParameters, that.queryParameters)
-        && storeResponse == that.storeResponse;
+        && Objects.equals(queryParameters, that.queryParameters);
   }
 
   @Override
@@ -187,8 +166,7 @@ public class HttpClientRequest {
         readTimeoutInSeconds,
         headers,
         body,
-        queryParameters,
-        storeResponse);
+        queryParameters);
   }
 
   @Override
@@ -214,8 +192,6 @@ public class HttpClientRequest {
         + body
         + ", queryParameters="
         + queryParameters
-        + ", storeResponse="
-        + storeResponse
         + '}';
   }
 

@@ -35,15 +35,19 @@ import io.camunda.connector.http.client.authentication.OAuthConstants;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.client.model.HttpMethod;
+import io.camunda.connector.http.client.model.ResponseBody;
 import io.camunda.connector.http.client.model.auth.ApiKeyAuthentication;
 import io.camunda.connector.http.client.model.auth.ApiKeyLocation;
 import io.camunda.connector.http.client.model.auth.BasicAuthentication;
 import io.camunda.connector.http.client.model.auth.BearerAuthentication;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
 import io.camunda.connector.test.utils.DockerImages;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.hc.core5.http.ContentType;
@@ -1160,6 +1164,18 @@ public class CustomApacheHttpClientTest {
         request.withBasicAuth("clientId", "clientSecret");
       }
       stubFor(request.willReturn(unauthorized().withBody("Unauthorized")));
+    }
+  }
+
+  private static Object readBody(ResponseBody body) {
+    if (body == null) {
+      return null;
+    }
+    try (body) {
+      var string = new String(body.readBytes());
+
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 }

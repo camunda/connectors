@@ -17,12 +17,14 @@
 package io.camunda.connector.http.client.client.apache;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
-import io.camunda.connector.http.client.ExecutionEnvironment;
-import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
-import io.camunda.connector.http.client.model.ErrorResponse;
 import io.camunda.connector.http.client.model.HttpClientResult;
-import java.util.Map;
+import io.camunda.connector.http.client.model.ResponseBody;
+import java.io.IOException;
+import java.io.InputStream;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.io.entity.StringEntity;
@@ -32,14 +34,14 @@ import org.junit.jupiter.api.Test;
 
 public class HttpClientResultResponseHandlerTest {
 
+  private final String RESPONSE_BODY = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
+
   @Test
-  public void shouldHandleJsonResponse_whenCloudFunctionDisabled() throws Exception {
+  public void shouldProduceInputStream() throws IOException {
     // given
-    HttpCommonResultResponseHandler handler = new HttpCommonResultResponseHandler(null, false);
+    HttpCommonResultResponseHandler handler = new HttpCommonResultResponseHandler();
     ClassicHttpResponse response = new BasicClassicHttpResponse(200);
-    Header[] headers = new Header[] {new BasicHeader("Content-Type", "application/json")};
-    response.setHeaders(headers);
-    StringEntity entity = new StringEntity("{\"key\":\"value\"}");
+    StringEntity entity = new StringEntity(RESPONSE_BODY);
     response.setEntity(entity);
 
     // when
@@ -48,19 +50,21 @@ public class HttpClientResultResponseHandlerTest {
     // then
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(200);
-    assertThat((Map) result.body()).containsEntry("key", "value");
-    assertThat(result.headers()).hasSize(1);
-    assertThat(result.headers()).containsEntry("Content-Type", "application/json");
+    var body = result.body();
+    assertThat(body).isNotNull();
+    InputStream inputStream = body.getStream();
+    byte[] bytes = inputStream.readAllBytes();
+    String readString = new String(bytes);
+    assertThat(readString).isEqualTo(RESPONSE_BODY);
   }
 
   @Test
-  public void shouldHandleTextResponse_whenCloudFunctionDisabled() throws Exception {
+  public void shouldProduceBytes() throws IOException {
     // given
-    HttpCommonResultResponseHandler handler = new HttpCommonResultResponseHandler(null, false);
+    HttpCommonResultResponseHandler handler = new HttpCommonResultResponseHandler();
     ClassicHttpResponse response = new BasicClassicHttpResponse(200);
-    Header[] headers = new Header[] {new BasicHeader("Content-Type", "text/plain")};
-    response.setHeaders(headers);
-    response.setEntity(new StringEntity("text"));
+    StringEntity entity = new StringEntity(RESPONSE_BODY);
+    response.setEntity(entity);
 
     // when
     HttpClientResult result = handler.handleResponse(response);
@@ -68,51 +72,50 @@ public class HttpClientResultResponseHandlerTest {
     // then
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(200);
-    assertThat(result.body()).isEqualTo("text");
-    assertThat(result.headers()).hasSize(1);
-    assertThat(result.headers()).containsEntry("Content-Type", "text/plain");
+    var body = result.body();
+    assertThat(body).isNotNull();
+    byte[] bytes = body.readBytes();
+    String readString = new String(bytes);
+    assertThat(readString).isEqualTo(RESPONSE_BODY);
+
+    // the body can be read multiple times
+    byte[] bytes2 = body.readBytes();
+    String readString2 = new String(bytes2);
+    assertThat(readString2).isEqualTo(RESPONSE_BODY);
   }
 
   @Test
-  public void shouldHandleJsonResponse_whenCloudFunctionEnabled() throws Exception {
+  public void shouldPreserveHeaders() {
     // given
-    HttpCommonResultResponseHandler handler =
-        new HttpCommonResultResponseHandler(new ExecutionEnvironment.SaaSCluster(null), false);
-    ClassicHttpResponse response = new BasicClassicHttpResponse(201);
-    Header[] headers = new Header[] {new BasicHeader("Content-Type", "application/json")};
-    response.setHeaders(headers);
-    HttpClientResult cloudFunctionResult =
-        new HttpClientResult(200, Map.of("X-Header", "value"), Map.of("key", "value"));
-    response.setEntity(
-        new StringEntity(
-            HttpClientObjectMapperSupplier.getCopy().writeValueAsString(cloudFunctionResult)));
-
-    // when
-    HttpClientResult result = handler.handleResponse(response);
-
-    // then
-    assertThat(result).isNotNull();
-    assertThat(result.status()).isEqualTo(200);
-    assertThat((Map) result.body()).containsEntry("key", "value");
-    assertThat(result.headers()).hasSize(1);
-    assertThat(result.headers()).containsEntry("X-Header", "value");
-  }
-
-  @Test
-  public void shouldHandleError_whenCloudFunctionEnabled() throws Exception {
-    // given
-    HttpCommonResultResponseHandler handler =
-        new HttpCommonResultResponseHandler(new ExecutionEnvironment.SaaSCluster(null), false);
-    ClassicHttpResponse response = new BasicClassicHttpResponse(500);
+    HttpCommonResultResponseHandler handler = new HttpCommonResultResponseHandler();
+    ClassicHttpResponse response = new BasicClassicHttpResponse(200);
     Header[] headers =
         new Header[] {
-          new BasicHeader("Content-Type", "application/json"), new BasicHeader("X-Header", "value")
+          new BasicHeader("Content-Type", "application/json"),
+          new BasicHeader("X-Custom-Header", "custom-value")
         };
     response.setHeaders(headers);
-    response.setEntity(
-        new StringEntity(
-            HttpClientObjectMapperSupplier.getCopy()
-                .writeValueAsString(new ErrorResponse("500", "Custom message", null))));
+    StringEntity entity = new StringEntity(RESPONSE_BODY);
+    response.setEntity(entity);
+
+    // when
+    HttpClientResult result = handler.handleResponse(response);
+
+    // then
+    assertThat(result).isNotNull();
+    assertThat(result.status()).isEqualTo(200);
+    assertThat(result.headers()).hasSize(2);
+    assertThat(result.headers()).containsEntry("Content-Type", "application/json");
+    assertThat(result.headers()).containsEntry("X-Custom-Header", "custom-value");
+  }
+
+  @Test
+  public void shouldHandleErrorResponse() throws IOException {
+    // given
+    HttpCommonResultResponseHandler handler = new HttpCommonResultResponseHandler();
+    ClassicHttpResponse response = new BasicClassicHttpResponse(500);
+    StringEntity entity = new StringEntity("Internal Server Error: something went wrong");
+    response.setEntity(entity);
 
     // when
     HttpClientResult result = handler.handleResponse(response);
@@ -120,35 +123,26 @@ public class HttpClientResultResponseHandlerTest {
     // then
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(500);
-    assertThat((ErrorResponse) result.body())
-        .isEqualTo(new ErrorResponse("500", "Custom message", null));
-    assertThat(result.headers()).hasSize(2);
-    assertThat(result.headers()).containsEntry("X-Header", "value");
-    assertThat(result.headers()).containsEntry("Content-Type", "application/json");
+    var body = result.body();
+    assertThat(body).isNotNull();
+    byte[] bytes = body.readBytes();
+    String readString = new String(bytes);
+    assertThat(readString).isEqualTo("Internal Server Error: something went wrong");
+    assertThat(result.reason()).isEqualTo("Internal Server Error");
   }
 
   @Test
-  public void shouldHandleJsonAsTextResponse_whenCloudFunctionEnabled() throws Exception {
+  public void closingResponseObjectShouldCloseBodyStream() throws IOException {
     // given
-    HttpCommonResultResponseHandler handler =
-        new HttpCommonResultResponseHandler(new ExecutionEnvironment.SaaSCluster(null), false);
-    ClassicHttpResponse response = new BasicClassicHttpResponse(201);
-    Header[] headers = new Header[] {new BasicHeader("Content-Type", "application/json")};
-    response.setHeaders(headers);
-    HttpClientResult cloudFunctionResult =
-        new HttpClientResult(200, Map.of("X-Header", "value"), "{\"key\":\"value\"}");
-    response.setEntity(
-        new StringEntity(
-            HttpClientObjectMapperSupplier.getCopy().writeValueAsString(cloudFunctionResult)));
+    var mockStream = mock(InputStream.class);
 
     // when
-    HttpClientResult result = handler.handleResponse(response);
+    var body = new ResponseBody(mockStream);
+    HttpClientResult result = new HttpClientResult(200, null, body, "OK");
+    result.close();
 
     // then
-    assertThat(result).isNotNull();
-    assertThat(result.status()).isEqualTo(200);
-    assertThat(result.body()).isEqualTo("{\"key\":\"value\"}");
-    assertThat(result.headers()).hasSize(1);
-    assertThat(result.headers()).containsEntry("X-Header", "value");
+    // verify that the body stream was closed when closing the response
+    verify(mockStream, times(1)).close();
   }
 }

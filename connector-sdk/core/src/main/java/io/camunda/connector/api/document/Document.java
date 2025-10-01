@@ -32,6 +32,10 @@ public interface Document {
 
   String asBase64();
 
+  /**
+   * Provides the document content as an InputStream. The caller is responsible for closing the
+   * stream after use.
+   */
   InputStream asInputStream();
 
   byte[] asByteArray();

@@ -21,13 +21,12 @@ import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
-import io.camunda.connector.http.client.document.HttpHeaderFilenameResolver;
 import io.camunda.connector.http.client.model.HttpClientResult;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.hc.core5.http.HttpHeaders;
@@ -39,8 +38,10 @@ public class ExternalDocument implements Document {
   private final String url;
   private final String name;
   private transient DocumentMetadata metadata;
-  Function<String, HttpClientResult> downloadDocument;
-  private HttpClientResult result = null;
+  private final Function<String, HttpClientResult> downloadDocument;
+
+  // We only cache headers to avoid storing large response bodies in memory
+  private Map<String, Object> cachedHeaders = null;
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ExternalDocument.class);
 
@@ -51,13 +52,24 @@ public class ExternalDocument implements Document {
     this.downloadDocument = downloadDocument;
   }
 
-  private HttpClientResult getResult() {
-    if (result == null) {
-      this.result = downloadDocument.apply(url);
-      LOGGER.debug(
-          "Downloading external document completed with status code: {}", this.result.status());
-    }
+  private HttpClientResult fetchDocument() {
+    HttpClientResult result = downloadDocument.apply(url);
+    LOGGER.debug(
+        "Downloading external document completed with status code: {}", result.status());
     return result;
+  }
+
+  private Map<String, Object> fetchHeaders() {
+    if (cachedHeaders != null) {
+      return cachedHeaders;
+    }
+    try (HttpClientResult result = downloadDocument.apply(url)) {
+      cachedHeaders = new HashMap<>(result.headers());
+      return cachedHeaders;
+    } catch (IOException e) {
+      LOGGER.error("Failed to fetch headers for URL {}: {}", url, e.getMessage(), e);
+      return Map.of();
+    }
   }
 
   @Override
@@ -71,7 +83,7 @@ public class ExternalDocument implements Document {
           public String getContentType() {
             Object contentType =
                 CustomApacheHttpClient.getHeaderIgnoreCase(
-                    getResult().headers(), HttpHeaders.CONTENT_TYPE);
+                    fetchHeaders(), HttpHeaders.CONTENT_TYPE);
             return contentType != null ? contentType.toString() : null;
           }
 
@@ -84,7 +96,7 @@ public class ExternalDocument implements Document {
           public Long getSize() {
             try {
               return CustomApacheHttpClient.getHeaderIgnoreCase(
-                          getResult().headers(), HttpHeaders.CONTENT_LENGTH)
+                          fetchHeaders(), HttpHeaders.CONTENT_LENGTH)
                       instanceof String sizeStr
                   ? Long.parseLong(sizeStr)
                   : -1L;
@@ -98,7 +110,7 @@ public class ExternalDocument implements Document {
           public String getFileName() {
             return name != null
                 ? name
-                : HttpHeaderFilenameResolver.getFilename(getResult().headers());
+                : HttpHeaderFilenameResolver.getFilename(fetchHeaders());
           }
 
           @Override
@@ -127,9 +139,8 @@ public class ExternalDocument implements Document {
 
   @Override
   public InputStream asInputStream() {
-    Object resultBody = getResult().body();
-    byte[] bytes = resultBody instanceof byte[] b ? b : ((String) resultBody).getBytes();
-    return new ByteArrayInputStream(bytes);
+    // must be closed by the caller
+    return fetchDocument().body().getStream();
   }
 
   @Override

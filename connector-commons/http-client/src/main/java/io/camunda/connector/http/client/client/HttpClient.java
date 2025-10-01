@@ -16,10 +16,8 @@
  */
 package io.camunda.connector.http.client.client;
 
-import io.camunda.connector.http.client.ExecutionEnvironment;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
-import javax.annotation.Nullable;
 
 public interface HttpClient {
 
@@ -27,22 +25,10 @@ public interface HttpClient {
    * Executes the given {@link HttpClientRequest} and returns the result as a {@link
    * HttpClientResult}.
    *
-   * @param request the {@link HttpClientRequest} to execute
-   * @param executionEnvironment the {@link ExecutionEnvironment} to use for the execution.
-   * @return the result of the request as a {@link HttpClientResult}
-   */
-  HttpClientResult execute(
-      HttpClientRequest request, @Nullable ExecutionEnvironment executionEnvironment);
-
-  /**
-   * Executes the given {@link HttpClientRequest} and returns the result as a {@link
-   * HttpClientResult}.
+   * <p>Note that the result must be closed by the caller to prevent resource leaks.
    *
    * @param request the {@link HttpClientRequest} to execute
-   * @return the result of the request as a {@link HttpClientResult}
-   * @see #execute(HttpClientRequest, ExecutionEnvironment)
+   * @return the result of the request as an autocloseable {@link HttpClientResult}
    */
-  default HttpClientResult execute(HttpClientRequest request) {
-    return execute(request, null);
-  }
+  HttpClientResult execute(HttpClientRequest request);
 }

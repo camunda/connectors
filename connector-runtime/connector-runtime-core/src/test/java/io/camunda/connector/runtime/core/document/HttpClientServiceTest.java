@@ -32,8 +32,6 @@ import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.HttpClientService;
-import io.camunda.connector.http.client.cloudfunction.CloudFunctionCredentials;
-import io.camunda.connector.http.client.cloudfunction.CloudFunctionService;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.client.model.HttpMethod;

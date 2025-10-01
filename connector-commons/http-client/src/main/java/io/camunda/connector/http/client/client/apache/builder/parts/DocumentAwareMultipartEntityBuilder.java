@@ -16,12 +16,10 @@
  */
 package io.camunda.connector.http.client.client.apache.builder.parts;
 
+import static org.apache.hc.core5.http.ContentType.MULTIPART_FORM_DATA;
+
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
-import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
-import io.camunda.connector.http.client.cloudfunction.CloudFunctionFilePart;
-import io.camunda.connector.http.client.cloudfunction.CloudFunctionService;
-import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,8 +27,6 @@ import org.apache.hc.client5.http.entity.mime.HttpMultipartMode;
 import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpEntity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A builder for creating a multipart entity from a map. The map represents the parts of a
@@ -41,8 +37,6 @@ import org.slf4j.LoggerFactory;
  */
 public class DocumentAwareMultipartEntityBuilder {
 
-  private static final Logger LOG =
-      LoggerFactory.getLogger(DocumentAwareMultipartEntityBuilder.class);
   private final ContentType contentType;
   private final Map<?, ?> body;
   private final MultipartEntityBuilder builder;
@@ -66,12 +60,8 @@ public class DocumentAwareMultipartEntityBuilder {
    * The content (map values) can be:
    *
    * <ul>
-   *   <li>Maps that are convertible to {@link CloudFunctionFilePart}. If the map is not
-   *       convertible, an error is logged and the map is ignored.
    *   <li>Documents
-   *   <li>Lists that contain Documents or Maps that are convertible to {@link
-   *       CloudFunctionFilePart}. If the map is not convertible, an error is logged and the list is
-   *       ignored.
+   *   <li>Lists that contain Documents
    *   <li>Null values are ignored
    *   <li>Any other value is converted to a text body
    * </ul>
@@ -82,47 +72,25 @@ public class DocumentAwareMultipartEntityBuilder {
   private HttpEntity createMultiPartEntity(Map<?, ?> body) {
     for (Map.Entry<?, ?> entry : body.entrySet()) {
       switch (entry.getValue()) {
-        case Map map -> handleFilePartContent(map);
         case Document document -> handleDocumentContent(entry, document);
         case List<?> list -> handleListContent(entry, list);
         case null -> {}
         default ->
-            builder.addTextBody(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
+            builder.addTextBody(
+                String.valueOf(entry.getKey()),
+                String.valueOf(entry.getValue()),
+                MULTIPART_FORM_DATA);
       }
     }
     return builder.build();
   }
 
-  /**
-   * Converts a map to a {@link CloudFunctionFilePart} and adds it to the multipart entity builder.
-   * Map values that are Maps are expected to be convertible to CloudFunctionFilePart in the context
-   * of a multipart/form-data request executed in SaaS.
-   *
-   * @see CloudFunctionService
-   */
-  private void handleFilePartContent(Map map) {
-    try {
-      var part =
-          HttpClientObjectMapperSupplier.getCopy().convertValue(map, CloudFunctionFilePart.class);
-      builder.addBinaryBody(
-          part.name(),
-          new ByteArrayInputStream(part.content()),
-          getContentType(part.contentType()),
-          part.fileName());
-    } catch (IllegalArgumentException | NullPointerException e) {
-      LOG.error(
-          "Failed to convert the provided map {} to CloudFunctionFilePart. A request with Content-Type: multipart/form-data can only contain maps that are convertible to CloudFunctionFilePart.",
-          map,
-          e);
-    }
-  }
-
   private void handleListContent(Map.Entry<?, ?> entry, List<?> list) {
     for (Object item : list) {
-      switch (item) {
-        case Document document -> handleDocumentContent(entry, document);
-        case Map map -> handleFilePartContent(map);
-        default -> builder.addTextBody(String.valueOf(entry.getKey()), String.valueOf(item));
+      if (item instanceof Document document) {
+        handleDocumentContent(entry, document);
+      } else {
+        builder.addTextBody(String.valueOf(entry.getKey()), String.valueOf(item));
       }
     }
   }
