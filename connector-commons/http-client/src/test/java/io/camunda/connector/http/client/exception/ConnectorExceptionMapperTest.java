@@ -19,6 +19,8 @@ package io.camunda.connector.http.client.exception;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.http.client.model.HttpClientResult;
+import io.camunda.connector.http.client.model.ResponseBody;
+import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -28,7 +30,7 @@ public class ConnectorExceptionMapperTest {
   @Test
   public void shouldMapResultToException_whehOnlyStatusCode() {
     // given
-    HttpClientResult result = new HttpClientResult(200, null, null, null, null);
+    HttpClientResult result = new HttpClientResult(200, null, null, null);
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -66,7 +68,7 @@ public class ConnectorExceptionMapperTest {
     // given
     HttpClientResult result =
         new HttpClientResult(
-            200, Map.of("Content-Type", "text/plain", "X-Custom", "value"), null, null, null);
+            200, Map.of("Content-Type", "text/plain", "X-Custom", "value"), null, null);
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -84,7 +86,8 @@ public class ConnectorExceptionMapperTest {
   @Test
   public void shouldMapResultToException_whenStatusCodeAndBody() {
     // given
-    HttpClientResult result = new HttpClientResult(400, null, "text", null, null);
+    var body = new ResponseBody(new ByteArrayInputStream("text".getBytes()));
+    HttpClientResult result = new HttpClientResult(400, null, body, null);
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -102,7 +105,8 @@ public class ConnectorExceptionMapperTest {
   @Test
   public void shouldMapResultToException_whenStatusCodeAndBodyAndReason() {
     // given
-    HttpClientResult result = new HttpClientResult(400, null, "text", "Custom reason");
+    var body = new ResponseBody(new ByteArrayInputStream("text".getBytes()));
+    HttpClientResult result = new HttpClientResult(400, null, body, "Custom reason");
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -120,9 +124,10 @@ public class ConnectorExceptionMapperTest {
   @Test
   public void shouldMapResultToException_whenStatusCodeAndBodyAndHeaders() {
     // given
+    var body = new ResponseBody(new ByteArrayInputStream("text".getBytes()));
     HttpClientResult result =
         new HttpClientResult(
-            400, Map.of("Content-Type", "text/plain", "X-Custom", "value"), "text", null, null);
+            400, Map.of("Content-Type", "text/plain", "X-Custom", "value"), body, null);
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -140,11 +145,12 @@ public class ConnectorExceptionMapperTest {
   @Test
   public void shouldMapResultToException_whenStatusCodeAndBodyAndHeadersAndReason() {
     // given
+    var body = new ResponseBody(new ByteArrayInputStream("text".getBytes()));
     HttpClientResult result =
         new HttpClientResult(
             400,
             Map.of("Content-Type", "text/plain", "X-Custom", "value"),
-            "text",
+            body,
             "Custom reason");
 
     // when
@@ -163,11 +169,12 @@ public class ConnectorExceptionMapperTest {
   @Test
   public void shouldMapResultToException_whenStatusCodeAndJsonBodyAndHeadersAndReason() {
     // given
+    var body = new ResponseBody(new ByteArrayInputStream("{\"key\":\"value\"}".getBytes()));
     HttpClientResult result =
         new HttpClientResult(
             400,
             Map.of("Content-Type", "application/json", "X-Custom", "value"),
-            Map.of("key", "value"),
+            body,
             "Custom reason");
 
     // when

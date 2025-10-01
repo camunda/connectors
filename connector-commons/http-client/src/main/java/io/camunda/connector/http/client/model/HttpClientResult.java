@@ -16,23 +16,23 @@
  */
 package io.camunda.connector.http.client.model;
 
-import io.camunda.connector.api.document.Document;
+import java.io.IOException;
 import java.util.Map;
 
+/**
+ * Represents the result of an HTTP request executed by the {@link
+ * io.camunda.connector.http.client.client.HttpClient}.
+ *
+ * <p>Note that this class implements {@link AutoCloseable} to ensure that resources associated with
+ * the response body can be released. It is important to call the {@link #close()} method when the
+ * response body is no longer needed to prevent resource leaks.
+ */
 public record HttpClientResult(
-    int status, Map<String, Object> headers, Object body, String reason, Document document) {
+    int status, Map<String, Object> headers, ResponseBody body, String reason)
+    implements AutoCloseable {
 
-  public HttpClientResult(int status, Map<String, Object> headers, Object body, String reason) {
-    this(status, headers, body, reason, null);
-  }
-
-  public HttpClientResult(
-      int status, Map<String, Object> headers, Object body, Document documentReference) {
-    this(status, headers, body, null, documentReference);
-  }
-
-  public HttpClientResult(int status, Map<String, Object> headers, Object body) {
-    this(status, headers, body, null, null);
+  public HttpClientResult(int status, Map<String, Object> headers, ResponseBody body) {
+    this(status, headers, body, null);
   }
 
   public int status() {
@@ -43,7 +43,7 @@ public record HttpClientResult(
     return headers;
   }
 
-  public Object body() {
+  public ResponseBody body() {
     return body;
   }
 
@@ -51,7 +51,10 @@ public record HttpClientResult(
     return reason;
   }
 
-  public Document document() {
-    return document;
+  @Override
+  public void close() throws IOException {
+    if (body != null) {
+      body.close();
+    }
   }
 }
