@@ -85,34 +85,78 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.operation.operation",
+    "id" : "data.operation.type",
     "label" : "Operation",
-    "description" : "The action to perform. Possible values are <code>fetchAgentCard</code> and <code>sendMessage</code>.",
+    "description" : "The type of operation to perform.",
+    "value" : "fetchAgentCard",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.operation.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode",
+      "equals" : "standalone",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Fetch Agent Card",
+      "value" : "fetchAgentCard"
+    }, {
+      "name" : "Send message",
+      "value" : "sendMessage"
+    } ]
+  }, {
+    "id" : "data.operation.params.text",
+    "label" : "Text",
+    "description" : "The text to to be included in the message.",
     "optional" : false,
-    "value" : "=toolCall.operation",
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "required",
+    "feel" : "optional",
     "group" : "operation",
     "binding" : {
-      "name" : "data.operation.operation",
+      "name" : "data.operation.params.text",
       "type" : "zeebe:input"
     },
-    "type" : "String"
-  }, {
-    "id" : "data.operation.params",
-    "label" : "Parameters",
-    "description" : "The parameters used to build the message that will be send to the remote agent.",
-    "optional" : true,
-    "value" : "=toolCall.params",
-    "feel" : "required",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.operation.params",
-      "type" : "zeebe:input"
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.operation.type",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
     },
     "type" : "Text"
+  }, {
+    "id" : "data.operation.params.documents",
+    "label" : "Documents",
+    "description" : "Documents to be included in the message.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.operation.params.documents",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.operation.type",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "Referenced documents that will be added to the message.",
+    "type" : "String"
   }, {
     "id" : "data.operation.timeout",
     "label" : "Response timeout",
@@ -124,6 +168,74 @@
     "binding" : {
       "name" : "data.operation.timeout",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.operation.type",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.toolOperation.operation",
+    "label" : "Operation",
+    "description" : "The action to perform. Possible values are <code>fetchAgentCard</code> and <code>sendMessage</code>.",
+    "optional" : false,
+    "value" : "=toolCall.operation",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.toolOperation.operation",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode",
+      "equals" : "aiAgentTool",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.toolOperation.params",
+    "label" : "Parameters",
+    "description" : "The parameters used to build the message that will be send to the remote agent.",
+    "optional" : true,
+    "value" : "=toolCall.params",
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.toolOperation.params",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode",
+      "equals" : "aiAgentTool",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "data.toolOperation.timeout",
+    "label" : "Response timeout",
+    "description" : "How long to wait for the remote agent response as ISO-8601 duration (example: <code>PT1M</code>).",
+    "optional" : false,
+    "value" : "PT1M",
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.toolOperation.timeout",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode",
+      "equals" : "aiAgentTool",
+      "type" : "simple"
     },
     "type" : "String"
   }, {

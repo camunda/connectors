@@ -13,7 +13,7 @@ import jakarta.validation.constraints.NotBlank;
 import java.time.Duration;
 import java.util.Map;
 
-public record A2AClientAsToolOperationConfiguration(
+public record ToolModeOperationConfiguration(
     @NotBlank
         @FEEL
         @TemplateProperty(

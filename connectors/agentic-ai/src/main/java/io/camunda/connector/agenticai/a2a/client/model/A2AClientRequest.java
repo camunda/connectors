@@ -15,7 +15,7 @@ import jakarta.validation.constraints.NotNull;
 public record A2AClientRequest(@Valid @NotNull A2AClientRequestData data) {
   public record A2AClientRequestData(
       @Valid @NotNull ConnectionConfiguration connection,
-      @Valid @NotNull A2AClientOperationConfiguration operation) {
+      @Valid @NotNull ConnectorModeConfiguration connectorModeConfiguration) {
 
     public record ConnectionConfiguration(
         @NotBlank

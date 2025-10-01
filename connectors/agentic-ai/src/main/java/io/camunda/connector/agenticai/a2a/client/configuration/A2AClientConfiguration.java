@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.a2a.client.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.a2a.client.A2AClientAsToolFunction;
 import io.camunda.connector.agenticai.a2a.client.A2AClientFunction;
 import io.camunda.connector.agenticai.a2a.client.A2AClientHandler;
 import io.camunda.connector.agenticai.a2a.client.A2AClientHandlerImpl;
@@ -103,11 +102,5 @@ public class A2AClientConfiguration {
   @ConditionalOnMissingBean
   public A2AClientFunction a2AClientFunction(A2AClientHandler handler) {
     return new A2AClientFunction(handler);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public A2AClientAsToolFunction a2AClientAsToolFunction(A2AClientHandler handler) {
-    return new A2AClientAsToolFunction(handler);
   }
 }
