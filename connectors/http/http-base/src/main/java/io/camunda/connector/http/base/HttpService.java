@@ -16,11 +16,7 @@ import io.camunda.connector.http.client.model.HttpClientResult;
 
 public class HttpService {
 
-  private final HttpClientService httpClientService;
-
-  public HttpService() {
-    httpClientService = new HttpClientService();
-  }
+  private final static HttpClientService HTTP_CLIENT = new HttpClientService();
 
   public HttpCommonResult executeConnectorRequest(HttpCommonRequest request) {
     return executeConnectorRequest(request, null);
@@ -29,8 +25,13 @@ public class HttpService {
   public HttpCommonResult executeConnectorRequest(
       final HttpCommonRequest request, final OutboundConnectorContext context) {
     HttpClientRequest httpClientRequest = mapToHttpClientRequest(request);
-    HttpClientResult result = httpClientService.executeConnectorRequest(httpClientRequest, context);
-    return mapToHttpCommonResult(result);
+    ResponseHandler responseHandler = new ResponseHandler(context, request.isStoreResponse());
+
+    try (HttpClientResult result = HTTP_CLIENT.executeConnectorRequest(httpClientRequest)) {
+      return responseHandler.handle(result);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to execute HTTP request", e);
+    }
   }
 
   public HttpClientRequest mapToHttpClientRequest(HttpCommonRequest request) {
@@ -42,16 +43,10 @@ public class HttpService {
     httpClientRequest.setQueryParameters(request.getQueryParameters());
     httpClientRequest.setBody(request.getBody());
     httpClientRequest.setAuthentication(AuthenticationMapper.map(request.getAuthentication()));
-    httpClientRequest.setStoreResponse(request.isStoreResponse());
     httpClientRequest.setConnectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds());
     httpClientRequest.setReadTimeoutInSeconds(request.getReadTimeoutInSeconds());
     httpClientRequest.setSkipEncoding(request.getSkipEncoding());
     httpClientRequest.setIgnoreNullValues(request.isIgnoreNullValues());
     return httpClientRequest;
-  }
-
-  public HttpCommonResult mapToHttpCommonResult(HttpClientResult result) {
-    return new HttpCommonResult(
-        result.status(), result.headers(), result.body(), result.reason(), result.document());
   }
 }

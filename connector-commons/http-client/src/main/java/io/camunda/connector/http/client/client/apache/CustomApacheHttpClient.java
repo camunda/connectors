@@ -17,7 +17,6 @@
 package io.camunda.connector.http.client.client.apache;
 
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.http.client.ExecutionEnvironment;
 import io.camunda.connector.http.client.client.HttpClient;
 import io.camunda.connector.http.client.client.HttpStatusHelper;
 import io.camunda.connector.http.client.client.apache.proxy.ProxyAwareHttpClient;
@@ -26,7 +25,6 @@ import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import java.io.IOException;
 import java.util.Map;
-import javax.annotation.Nullable;
 import org.apache.hc.client5.http.ClientProtocolException;
 import org.apache.hc.core5.http.HttpStatus;
 
@@ -39,12 +37,10 @@ public class CustomApacheHttpClient implements HttpClient {
    * <p>This method is thread-safe.
    *
    * @param request the request to execute
-   * @param executionEnvironment the {@link ExecutionEnvironment} we are in
    * @return the {@link HttpClientResult}
    */
   @Override
-  public HttpClientResult execute(
-      HttpClientRequest request, @Nullable ExecutionEnvironment executionEnvironment) {
+  public HttpClientResult execute(HttpClientRequest request) {
     try {
       var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
       var host = apacheRequest.getAuthority().getHostName();
@@ -54,13 +50,7 @@ public class CustomApacheHttpClient implements HttpClient {
               new ProxyAwareHttpClient.TimeoutConfiguration(
                   request.getConnectionTimeoutInSeconds(), request.getReadTimeoutInSeconds()),
               new ProxyAwareHttpClient.ProxyContext(scheme, host))) {
-        var result =
-            client.execute(
-                apacheRequest,
-                new HttpCommonResultResponseHandler(
-                    executionEnvironment,
-                    request.isStoreResponse(),
-                    request.shouldReturnRawBody()));
+        var result = client.execute(apacheRequest, new HttpCommonResultResponseHandler());
         if (HttpStatusHelper.isError(result.status())) {
           throw ConnectorExceptionMapper.from(result);
         }
