@@ -300,6 +300,50 @@
               </properties>
             </configuration>
           </execution>
+          <execution>
+            <id>transform-a2a-client-template</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/transform-a2a-client-template.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>sourceFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-a2a-client-outbound-connector.json</value>
+                </property>
+                <property>
+                  <name>outputFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-a2a-client-outbound-connector.json</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+          <execution>
+            <id>transform-a2a-client-template-hybrid</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/transform-a2a-client-template.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>sourceFile</name>
+                  <value>${project.basedir}/element-templates/hybrid/agenticai-a2a-client-outbound-connector-hybrid.json</value>
+                </property>
+                <property>
+                  <name>outputFile</name>
+                  <value>${project.basedir}/element-templates/hybrid/agenticai-a2a-client-outbound-connector-hybrid.json</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
         </executions>
         <dependencies>
           <dependency>
