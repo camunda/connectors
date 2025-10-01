@@ -15,7 +15,7 @@ import java.util.List;
 public class EmbeddingsVectorDBRequestFixture {
 
   private static final String CONVERSATION =
-      """
+"""
 [{"user":"operator123","message":"Hey how are you?"},{"user":"customer9000","message":"Yes I am fine, just busy with RAG connector"}]
 """;
 

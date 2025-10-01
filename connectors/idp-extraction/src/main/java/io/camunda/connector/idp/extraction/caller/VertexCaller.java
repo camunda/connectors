@@ -125,11 +125,11 @@ public class VertexCaller {
                 ImageContent.DetailLevel.AUTO);
 
         case "text/plain",
-                "text/html",
-                "text/markdown",
-                "application/json",
-                "application/xml",
-                "text/csv" ->
+            "text/html",
+            "text/markdown",
+            "application/json",
+            "application/xml",
+            "text/csv" ->
             new TextContent("Document content:\n" + new String(document.asByteArray()));
 
         default -> {

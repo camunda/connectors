@@ -74,8 +74,8 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
       }
 
       case AgentContextInitializationResult(
-          AgentContext agentContext,
-          List<ToolCallResult> toolCallResults) -> {
+              AgentContext agentContext,
+              List<ToolCallResult> toolCallResults) -> {
         LOGGER.debug(
             "Handling agent request with {} tool call results",
             toolCallResults != null ? toolCallResults.size() : 0);
