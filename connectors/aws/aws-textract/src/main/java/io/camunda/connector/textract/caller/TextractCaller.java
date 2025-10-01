@@ -34,11 +34,9 @@ public interface TextractCaller<T extends AmazonWebServiceResult<ResponseMetadat
     if (request.analyzeForms()) {
       types.add(FeatureType.FORMS.name());
     }
-
     if (request.analyzeLayout()) {
       types.add(FeatureType.LAYOUT.name());
     }
-
     if (request.analyzeSignatures()) {
       types.add(FeatureType.SIGNATURES.name());
     }

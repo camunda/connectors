@@ -6,82 +6,89 @@
  */
 package io.camunda.connector.textract.caller;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-
 import com.amazonaws.services.textract.AmazonTextract;
-import com.amazonaws.services.textract.AmazonTextractAsync;
 import com.amazonaws.services.textract.model.*;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.textract.model.TextractRequestData;
-import io.camunda.connector.textract.model.TextractTask;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PollingTextractCalller implements TextractCaller<GetDocumentAnalysisResult> {
-  public static final long DELAY_BETWEEN_POLLING = 5;
-
+public class PollingTextractCaller implements TextractCaller<GetDocumentAnalysisResult> {
   public static final int MAX_RESULT = 1000;
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(PollingTextractCalller.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PollingTextractCaller.class);
 
   @Override
   public GetDocumentAnalysisResult call(
       TextractRequestData requestData, AmazonTextract textractClient) throws Exception {
-    LOGGER.debug("Starting polling task for document analysis with request data: {}", requestData);
+
     final StartDocumentAnalysisRequest startDocReq =
         new StartDocumentAnalysisRequest()
             .withFeatureTypes(this.prepareFeatureTypes(requestData))
             .withDocumentLocation(this.prepareDocumentLocation(requestData));
 
     final StartDocumentAnalysisResult result = textractClient.startDocumentAnalysis(startDocReq);
+    final String jobId = result.getJobId();
 
-    GetDocumentAnalysisResult lastDocumentResult;
-    List<Block> allBlocks;
-    try (ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor()) {
-      final String jobId = result.getJobId();
-      final TextractTask firstTextractTask = prepareTextractTask(jobId, null, textractClient);
-      final GetDocumentAnalysisResult firstDocumentResult =
-          executeTask(firstTextractTask, 0, executorService);
+    LOGGER.debug("Started document analysis with jobId: {}", jobId);
 
-      allBlocks = new ArrayList<>(firstDocumentResult.getBlocks());
-      lastDocumentResult = firstDocumentResult;
-      String nextToken = firstDocumentResult.getNextToken();
+    GetDocumentAnalysisResult firstResult = pollUntilComplete(jobId, textractClient);
 
-      while (StringUtils.isNoneEmpty(nextToken)) {
-        final TextractTask nextTextractTask = prepareTextractTask(jobId, nextToken, textractClient);
-        GetDocumentAnalysisResult nextDocumentResult =
-            executeTask(nextTextractTask, DELAY_BETWEEN_POLLING, executorService);
-        nextToken = nextDocumentResult.getNextToken();
-        allBlocks.addAll(nextDocumentResult.getBlocks());
-        lastDocumentResult = nextDocumentResult;
+    List<Block> allBlocks = new ArrayList<>(firstResult.getBlocks());
+    GetDocumentAnalysisResult lastResult = firstResult;
+    String nextToken = firstResult.getNextToken();
+
+    while (StringUtils.isNotEmpty(nextToken)) {
+      GetDocumentAnalysisRequest nextRequest =
+          new GetDocumentAnalysisRequest()
+              .withJobId(jobId)
+              .withMaxResults(MAX_RESULT)
+              .withNextToken(nextToken);
+
+      GetDocumentAnalysisResult nextResult = textractClient.getDocumentAnalysis(nextRequest);
+      nextToken = nextResult.getNextToken();
+      allBlocks.addAll(nextResult.getBlocks());
+      lastResult = nextResult;
+    }
+
+    lastResult.setBlocks(allBlocks);
+    return lastResult;
+  }
+
+  private GetDocumentAnalysisResult pollUntilComplete(String jobId, AmazonTextract textractClient)
+      throws InterruptedException {
+
+    final long INITIAL_DELAY_MS = 5000;
+    final long MAX_DELAY_MS = 30 * 60 * 1000;
+    final int MAX_RETRIES = 20;
+
+    long delay = INITIAL_DELAY_MS;
+
+    for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      LOGGER.debug("Polling job {} attempt {} (waiting {}ms)", jobId, attempt, delay);
+      Thread.sleep(delay);
+
+      GetDocumentAnalysisResult response =
+          textractClient.getDocumentAnalysis(
+              new GetDocumentAnalysisRequest().withJobId(jobId).withMaxResults(MAX_RESULT));
+
+      String status = response.getJobStatus();
+
+      if (JobStatus.SUCCEEDED.toString().equals(status)) {
+        LOGGER.info("Job {} succeeded after {} attempts", jobId, attempt);
+        return response;
+      } else if (JobStatus.FAILED.toString().equals(status)) {
+        throw new ConnectorInputException("Textract job failed: " + response);
       }
+
+      LOGGER.debug("Job {} still in progress ({})", jobId, status);
+      delay = Math.min(delay * 2, MAX_DELAY_MS);
     }
 
-    lastDocumentResult.setBlocks(allBlocks);
-    return lastDocumentResult;
-  }
-
-  private TextractTask prepareTextractTask(
-      String jobId, String nextToken, AmazonTextract textractClient) {
-    GetDocumentAnalysisRequest documentAnalysisReq =
-        new GetDocumentAnalysisRequest().withJobId(jobId).withMaxResults(MAX_RESULT);
-
-    if (StringUtils.isNoneEmpty(nextToken)) {
-      documentAnalysisReq.withNextToken(nextToken);
-    }
-
-    return new TextractTask(documentAnalysisReq, (AmazonTextractAsync) textractClient);
-  }
-
-  private GetDocumentAnalysisResult executeTask(
-      TextractTask task, long delay, ScheduledExecutorService executorService) throws Exception {
-    ScheduledFuture<GetDocumentAnalysisResult> nextDocumentResultFuture =
-        executorService.schedule(task, delay, SECONDS);
-    return nextDocumentResultFuture.get();
+    throw new ConnectorInputException(
+        "Textract job did not complete after " + MAX_RETRIES + " attempts");
   }
 }
