@@ -100,11 +100,12 @@ class AsyncTextractCallerTest {
 
   private TextractRequestData prepareReqData(String roleArn, String topicArn) {
     return new TextractRequestData(
-        TextractExecutionType.ASYNC,
         DocumentLocationType.S3,
         "test-bucket",
         "test-object",
         "1",
+        null,
+        TextractExecutionType.ASYNC,
         true,
         true,
         true,
@@ -115,17 +116,17 @@ class AsyncTextractCallerTest {
         roleArn,
         topicArn,
         "outputBucket",
-        "prefix",
-        null);
+        "prefix");
   }
 
   private TextractRequestData prepareReqDataWithoutOutputS3Bucket() {
     return new TextractRequestData(
-        TextractExecutionType.ASYNC,
         DocumentLocationType.S3,
         "test-bucket",
         "test-object",
         "1",
+        null,
+        TextractExecutionType.ASYNC,
         true,
         true,
         true,
@@ -136,7 +137,6 @@ class AsyncTextractCallerTest {
         "roleArn",
         "topicArn",
         "",
-        "prefix",
-        null);
+        "prefix");
   }
 }
