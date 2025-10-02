@@ -17,12 +17,15 @@
 package io.camunda.connector.http.client.client.apache;
 
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.http.client.blocklist.DefaultHttpBlocklistManager;
+import io.camunda.connector.http.client.blocklist.HttpBlockListManager;
 import io.camunda.connector.http.client.client.HttpClient;
-import io.camunda.connector.http.client.client.HttpStatusHelper;
+import io.camunda.connector.http.client.client.ResponseMapper;
 import io.camunda.connector.http.client.client.apache.proxy.ProxyAwareHttpClient;
 import io.camunda.connector.http.client.exception.ConnectorExceptionMapper;
 import io.camunda.connector.http.client.model.HttpClientRequest;
-import io.camunda.connector.http.client.model.HttpClientResult;
+import io.camunda.connector.http.client.model.response.StreamingHttpResponse;
+import io.camunda.connector.http.client.utils.HttpStatusHelper;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.util.Map;
@@ -31,6 +34,21 @@ import org.apache.hc.core5.http.HttpStatus;
 
 public class CustomApacheHttpClient implements HttpClient {
 
+  private final HttpBlockListManager httpBlocklistManager = new DefaultHttpBlocklistManager();
+
+  @Override
+  public <T> T execute(HttpClientRequest request, ResponseMapper<T> responseMapper) {
+
+    try (var result = execute(request)) {
+      return responseMapper.apply(result);
+    } catch (Exception e) {
+      throw new ConnectorException(
+          String.valueOf(HttpStatus.SC_INTERNAL_SERVER_ERROR),
+          "An error occurred while processing the response",
+          e);
+    }
+  }
+
   /**
    * Converts the given {@link HttpClientRequest} to an Apache {@link
    * org.apache.hc.core5.http.ClassicHttpRequest} and executes it.
@@ -38,25 +56,37 @@ public class CustomApacheHttpClient implements HttpClient {
    * <p>This method is thread-safe.
    *
    * @param request the request to execute
-   * @return the {@link HttpClientResult}
+   * @return the {@link StreamingHttpResponse} containing the response details
    */
   @Override
-  public HttpClientResult execute(HttpClientRequest request) {
+  public StreamingHttpResponse execute(HttpClientRequest request) {
+    // Will throw ConnectorInputException if URL is blocked
+    httpBlocklistManager.validateUrlAgainstBlocklist(request.getUrl());
+
     try {
       var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
       var host = apacheRequest.getAuthority().getHostName();
       var scheme = apacheRequest.getScheme();
-      try (var client =
+      var client =
           new ProxyAwareHttpClient(
               new ProxyAwareHttpClient.TimeoutConfiguration(
                   request.getConnectionTimeoutInSeconds(), request.getReadTimeoutInSeconds()),
-              new ProxyAwareHttpClient.ProxyContext(scheme, host))) {
-        var result = client.execute(apacheRequest, new HttpCommonResultResponseHandler());
-        if (HttpStatusHelper.isError(result.status())) {
-          throw ConnectorExceptionMapper.from(result);
-        }
-        return result;
+              new ProxyAwareHttpClient.ProxyContext(scheme, host));
+      var result = client.execute(
+          apacheRequest,
+          new HttpCommonResultResponseHandler(
+              () ->
+              {
+                try {
+                  client.close();
+                } catch (IOException e) {
+                  throw new RuntimeException("Failed to reset the request", e);
+                }
+              }));
+      if (HttpStatusHelper.isError(result.status())) {
+        throw ConnectorExceptionMapper.from(result);
       }
+      return result;
     } catch (ClientProtocolException e) {
       throw new ConnectorException(
           String.valueOf(HttpStatus.SC_SERVER_ERROR),
@@ -73,14 +103,5 @@ public class CustomApacheHttpClient implements HttpClient {
           "An error occurred while executing the request, or the connection was aborted",
           e);
     }
-  }
-
-  public static String getHeaderIgnoreCase(Map<String, Object> headers, String headerName) {
-    return headers.entrySet().stream()
-        .filter(e -> e.getKey().equalsIgnoreCase(headerName))
-        .map(Map.Entry::getValue)
-        .map(Object::toString)
-        .findFirst()
-        .orElse(null);
   }
 }

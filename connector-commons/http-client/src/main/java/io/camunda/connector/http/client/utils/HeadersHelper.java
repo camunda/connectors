@@ -14,8 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.client.model;
+package io.camunda.connector.http.client.utils;
 
+import java.util.List;
 import java.util.Map;
 
-public record ErrorResponse(String errorCode, String error, Map<String, Object> errorVariables) {}
+public class HeadersHelper {
+
+  public static String getHeaderIgnoreCase(Map<String, List<String>> headers, String headerName) {
+    return headers.entrySet().stream()
+        .filter(e -> e.getKey().equalsIgnoreCase(headerName))
+        .map(Map.Entry::getValue)
+        .map(Object::toString)
+        .findFirst()
+        .orElse(null);
+  }
+}

@@ -18,10 +18,10 @@ package io.camunda.connector.http.client.exception;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.http.client.model.HttpClientResult;
-import io.camunda.connector.http.client.model.ResponseBody;
+import io.camunda.connector.http.client.model.response.StreamingHttpResponse;
 import java.io.ByteArrayInputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -30,7 +30,7 @@ public class ConnectorExceptionMapperTest {
   @Test
   public void shouldMapResultToException_whehOnlyStatusCode() {
     // given
-    HttpClientResult result = new HttpClientResult(200, null, null, null);
+    StreamingHttpResponse result = new StreamingHttpResponse(200, null, null, null, () -> {});
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -41,14 +41,14 @@ public class ConnectorExceptionMapperTest {
     assertThat(exception.getMessage()).isEqualTo("[no reason]");
     var response = new HashMap<>();
     response.put("headers", null);
-    response.put("body", null);
+    response.put("body", "[no body]");
     assertThat(exception.getErrorVariables()).containsEntry("response", response);
   }
 
   @Test
   public void shouldMapResultToException_whenStatusCodeAndReason() {
     // given
-    HttpClientResult result = new HttpClientResult(200, null, null, "Custom reason");
+    StreamingHttpResponse result = new StreamingHttpResponse(200, "Custom reason", null, null, () -> {});
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -59,16 +59,20 @@ public class ConnectorExceptionMapperTest {
     assertThat(exception.getMessage()).isEqualTo("Custom reason");
     var response = new HashMap<>();
     response.put("headers", null);
-    response.put("body", null);
+    response.put("body", "[no body]");
     assertThat(exception.getErrorVariables()).containsEntry("response", response);
   }
 
   @Test
   public void shouldMapResultToException_whenStatusCodeAndHeaders() {
     // given
-    HttpClientResult result =
-        new HttpClientResult(
-            200, Map.of("Content-Type", "text/plain", "X-Custom", "value"), null, null);
+    StreamingHttpResponse result =
+        new StreamingHttpResponse(
+            200,
+            null,
+            Map.of("Content-Type", List.of("text/plain"), "X-Custom", List.of("value")),
+            null,
+        () -> {});
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -78,16 +82,17 @@ public class ConnectorExceptionMapperTest {
     assertThat(exception.getErrorCode()).isEqualTo("200");
     assertThat(exception.getMessage()).isEqualTo("[no reason]");
     var response = new HashMap<>();
-    response.put("headers", Map.of("Content-Type", "text/plain", "X-Custom", "value"));
-    response.put("body", null);
+    response.put(
+        "headers", Map.of("Content-Type", List.of("text/plain"), "X-Custom", List.of("value")));
+    response.put("body", "[no body]");
     assertThat(exception.getErrorVariables()).containsEntry("response", response);
   }
 
   @Test
   public void shouldMapResultToException_whenStatusCodeAndBody() {
     // given
-    var body = new ResponseBody(new ByteArrayInputStream("text".getBytes()));
-    HttpClientResult result = new HttpClientResult(400, null, body, null);
+    StreamingHttpResponse result =
+        new StreamingHttpResponse(400, null, null, new ByteArrayInputStream("text".getBytes()), () -> {});
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -105,8 +110,9 @@ public class ConnectorExceptionMapperTest {
   @Test
   public void shouldMapResultToException_whenStatusCodeAndBodyAndReason() {
     // given
-    var body = new ResponseBody(new ByteArrayInputStream("text".getBytes()));
-    HttpClientResult result = new HttpClientResult(400, null, body, "Custom reason");
+    StreamingHttpResponse result =
+        new StreamingHttpResponse(
+            400, "Custom reason", null, new ByteArrayInputStream("text".getBytes()), () -> {});
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -124,10 +130,13 @@ public class ConnectorExceptionMapperTest {
   @Test
   public void shouldMapResultToException_whenStatusCodeAndBodyAndHeaders() {
     // given
-    var body = new ResponseBody(new ByteArrayInputStream("text".getBytes()));
-    HttpClientResult result =
-        new HttpClientResult(
-            400, Map.of("Content-Type", "text/plain", "X-Custom", "value"), body, null);
+    StreamingHttpResponse result =
+        new StreamingHttpResponse(
+            400,
+            null,
+            Map.of("Content-Type", List.of("text/plain"), "X-Custom", List.of("value")),
+            new ByteArrayInputStream("text".getBytes()),
+            () -> {});
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -137,7 +146,8 @@ public class ConnectorExceptionMapperTest {
     assertThat(exception.getErrorCode()).isEqualTo("400");
     assertThat(exception.getMessage()).isEqualTo("[no reason]");
     var response = new HashMap<>();
-    response.put("headers", Map.of("Content-Type", "text/plain", "X-Custom", "value"));
+    response.put(
+        "headers", Map.of("Content-Type", List.of("text/plain"), "X-Custom", List.of("value")));
     response.put("body", "text");
     assertThat(exception.getErrorVariables()).containsEntry("response", response);
   }
@@ -145,13 +155,13 @@ public class ConnectorExceptionMapperTest {
   @Test
   public void shouldMapResultToException_whenStatusCodeAndBodyAndHeadersAndReason() {
     // given
-    var body = new ResponseBody(new ByteArrayInputStream("text".getBytes()));
-    HttpClientResult result =
-        new HttpClientResult(
+    StreamingHttpResponse result =
+        new StreamingHttpResponse(
             400,
-            Map.of("Content-Type", "text/plain", "X-Custom", "value"),
-            body,
-            "Custom reason");
+            "Custom reason",
+            Map.of("Content-Type", List.of("text/plain"), "X-Custom", List.of("value")),
+            new ByteArrayInputStream("text".getBytes()),
+            () -> {});
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -161,7 +171,8 @@ public class ConnectorExceptionMapperTest {
     assertThat(exception.getErrorCode()).isEqualTo("400");
     assertThat(exception.getMessage()).isEqualTo("Custom reason");
     var response = new HashMap<>();
-    response.put("headers", Map.of("Content-Type", "text/plain", "X-Custom", "value"));
+    response.put(
+        "headers", Map.of("Content-Type", List.of("text/plain"), "X-Custom", List.of("value")));
     response.put("body", "text");
     assertThat(exception.getErrorVariables()).containsEntry("response", response);
   }
@@ -169,13 +180,13 @@ public class ConnectorExceptionMapperTest {
   @Test
   public void shouldMapResultToException_whenStatusCodeAndJsonBodyAndHeadersAndReason() {
     // given
-    var body = new ResponseBody(new ByteArrayInputStream("{\"key\":\"value\"}".getBytes()));
-    HttpClientResult result =
-        new HttpClientResult(
+    StreamingHttpResponse result =
+        new StreamingHttpResponse(
             400,
-            Map.of("Content-Type", "application/json", "X-Custom", "value"),
-            body,
-            "Custom reason");
+            "Custom reason",
+            Map.of("Content-Type", List.of("application/json"), "X-Custom", List.of("value")),
+            new ByteArrayInputStream("{\"key\":\"value\"}".getBytes()),
+            () -> {});
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -185,8 +196,10 @@ public class ConnectorExceptionMapperTest {
     assertThat(exception.getErrorCode()).isEqualTo("400");
     assertThat(exception.getMessage()).isEqualTo("Custom reason");
     var response = new HashMap<>();
-    response.put("headers", Map.of("Content-Type", "application/json", "X-Custom", "value"));
-    response.put("body", Map.of("key", "value"));
+    response.put(
+        "headers",
+        Map.of("Content-Type", List.of("application/json"), "X-Custom", List.of("value")));
+    response.put("body", "{\"key\":\"value\"}");
     assertThat(exception.getErrorVariables()).containsEntry("response", response);
   }
 }

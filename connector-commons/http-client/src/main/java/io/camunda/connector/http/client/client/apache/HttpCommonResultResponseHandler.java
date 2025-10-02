@@ -16,8 +16,7 @@
  */
 package io.camunda.connector.http.client.client.apache;
 
-import io.camunda.connector.http.client.model.HttpClientResult;
-import io.camunda.connector.http.client.model.ResponseBody;
+import io.camunda.connector.http.client.model.response.StreamingHttpResponse;
 import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -29,50 +28,42 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class HttpCommonResultResponseHandler
-    implements HttpClientResponseHandler<HttpClientResult> {
+    implements HttpClientResponseHandler<StreamingHttpResponse> {
+
   private static final Logger LOGGER =
       LoggerFactory.getLogger(HttpCommonResultResponseHandler.class);
 
-  public HttpCommonResultResponseHandler() {}
+  private final Runnable onClose;
+
+  public HttpCommonResultResponseHandler(Runnable onClose) {
+    this.onClose = onClose;
+  }
 
   @Override
-  public HttpClientResult handleResponse(ClassicHttpResponse response) {
+  public StreamingHttpResponse handleResponse(ClassicHttpResponse response) {
     int code = response.getCode();
     String reason = response.getReasonPhrase();
-    Map<String, Object> headers =
+    Map<String, List<String>> headers =
         HttpCommonResultResponseHandler.formatHeaders(response.getHeaders());
 
     if (response.getEntity() != null) {
       try {
         // stream must be closed by the caller
         InputStream content = response.getEntity().getContent();
-        ResponseBody body = new ResponseBody(content);
-        return new HttpClientResult(code, headers, body, reason);
+        return new StreamingHttpResponse(code, reason, headers, content, onClose);
       } catch (final Exception e) {
         LOGGER.error("Failed to process response: {}", response, e);
-        return new HttpClientResult(HttpStatus.SC_SERVER_ERROR, Map.of(), null, e.getMessage());
+        return new StreamingHttpResponse(
+            HttpStatus.SC_SERVER_ERROR, e.getMessage(), Map.of(), null, onClose);
       }
     }
-    return new HttpClientResult(code, headers, null, reason);
+    return new StreamingHttpResponse(code, reason, headers, null, onClose);
   }
 
-  private static Map<String, Object> formatHeaders(Header[] headersArray) {
+  private static Map<String, List<String>> formatHeaders(Header[] headersArray) {
     return Arrays.stream(headersArray)
         .collect(
-            Collectors.toMap(
-                Header::getName,
-                header -> {
-                  if (header.getName().equalsIgnoreCase("Set-Cookie")) {
-                    return new ArrayList<String>(List.of(header.getValue()));
-                  } else {
-                    return header.getValue();
-                  }
-                },
-                (existingValue, newValue) -> {
-                  if (existingValue instanceof List && newValue instanceof List) {
-                    ((List<String>) existingValue).add(((List<String>) newValue).getFirst());
-                  }
-                  return existingValue;
-                }));
+            Collectors.groupingBy(
+                Header::getName, Collectors.mapping(Header::getValue, Collectors.toList())));
   }
 }

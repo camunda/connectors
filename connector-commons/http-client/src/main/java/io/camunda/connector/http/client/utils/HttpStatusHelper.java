@@ -16,22 +16,9 @@
  */
 package io.camunda.connector.http.client.utils;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.JsonParseException;
-import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
-import java.io.IOException;
+public class HttpStatusHelper {
 
-public class JsonHelper {
-
-  private static final ObjectMapper objectMapper = HttpClientObjectMapperSupplier.getCopy();
-
-  public static boolean isJsonStringValid(String jsonString) {
-    try {
-      JsonNode jsonNode = objectMapper.readTree(jsonString);
-      return jsonNode.isObject() || jsonNode.isArray();
-    } catch (JsonParseException | IOException e) {
-      return false;
-    }
+  public static boolean isError(int statusCode) {
+    return statusCode >= 400;
   }
 }
