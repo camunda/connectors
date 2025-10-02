@@ -25,21 +25,34 @@ import org.slf4j.Logger;
 
 public class GcpSecretProvider extends AbstractSecretProvider {
 
+  private SecretManagerServiceClient secretsClient;
+
   public GcpSecretProvider() {
     super();
     Objects.requireNonNull(
         System.getenv(SECRETS_PROJECT_ENV_NAME), "Configuration for Secrets project id is missing");
+    init();
   }
 
   public GcpSecretProvider(String clusterId, String secretsProjectId, String secretsNamePrefix) {
     super(clusterId, secretsProjectId, secretsNamePrefix);
     Objects.requireNonNull(secretsProjectId, "Configuration for Secrets project id is missing");
+    init();
   }
 
   public GcpSecretProvider(
       ObjectMapper mapper, String clusterId, String secretsProjectId, String secretsNamePrefix) {
     super(mapper, clusterId, secretsProjectId, secretsNamePrefix);
     Objects.requireNonNull(secretsProjectId, "Configuration for Secrets project id is missing");
+    init();
+  }
+
+  private void init() {
+    try {
+      this.secretsClient = SecretManagerServiceClient.create();
+    } catch (final Exception e) {
+      throw new RuntimeException("Failed to load secrets from secret manager", e);
+    }
   }
 
   @Override
@@ -47,15 +60,23 @@ public class GcpSecretProvider extends AbstractSecretProvider {
       String clusterId, String secretsProjectId, String secretsNamePrefix, Logger logger) {
     Objects.requireNonNull(clusterId, "You need to specify the clusterId to load secrets for");
     logger.info("Fetching secrets for cluster {} from gcp secret manager", clusterId);
-    try (final SecretManagerServiceClient client = SecretManagerServiceClient.create()) {
+    try {
       final String secretName = String.format("%s-%s", secretsNamePrefix, clusterId);
       final SecretVersionName secretVersionName =
           SecretVersionName.of(secretsProjectId, secretName, "latest");
-      final AccessSecretVersionResponse response = client.accessSecretVersion(secretVersionName);
+      final AccessSecretVersionResponse response =
+          secretsClient.accessSecretVersion(secretVersionName);
       return response.getPayload().getData().toStringUtf8();
     } catch (final Exception e) {
       logger.trace("Failed to load secrets from secret manager", e);
       throw new RuntimeException("Failed to load secrets from secret manager", e);
+    }
+  }
+
+  @Override
+  public void close() {
+    if (secretsClient != null) {
+      secretsClient.close();
     }
   }
 }
