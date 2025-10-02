@@ -26,14 +26,13 @@ import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.authentication.Base64Helper;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
 import io.camunda.connector.http.client.model.HttpClientRequest;
-import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.client.model.HttpMethod;
-import io.camunda.connector.http.client.model.ResponseBody;
 import io.camunda.connector.http.client.model.auth.ApiKeyAuthentication;
 import io.camunda.connector.http.client.model.auth.ApiKeyLocation;
 import io.camunda.connector.http.client.model.auth.BasicAuthentication;
 import io.camunda.connector.http.client.model.auth.BearerAuthentication;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
+import io.camunda.connector.http.client.model.response.StreamingHttpResponse;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -110,8 +109,7 @@ public class ApacheRequestFactoryTest {
     public void shouldSetOAuthAuthentication_whenProvided() throws Exception {
       // given request with oauth authentication
       var bodyString = "{\"access_token\":\"token\"}";
-      ResponseBody body = new ResponseBody(new ByteArrayInputStream(bodyString.getBytes()));
-      HttpClientResult result = new HttpClientResult(200, null, body);
+      StreamingHttpResponse result = new StreamingHttpResponse(200, null, null, new ByteArrayInputStream(bodyString.getBytes()), () -> {});
       HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setUrl("theurl");

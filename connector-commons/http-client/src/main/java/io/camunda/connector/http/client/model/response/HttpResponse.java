@@ -14,24 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.client.utils;
+package io.camunda.connector.http.client.model.response;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.JsonParseException;
-import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
-import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
-public class JsonHelper {
+public interface HttpResponse<T> {
 
-  private static final ObjectMapper objectMapper = HttpClientObjectMapperSupplier.getCopy();
+  int status();
 
-  public static boolean isJsonStringValid(String jsonString) {
-    try {
-      JsonNode jsonNode = objectMapper.readTree(jsonString);
-      return jsonNode.isObject() || jsonNode.isArray();
-    } catch (JsonParseException | IOException e) {
-      return false;
-    }
-  }
+  String reason();
+
+  Map<String, List<String>> headers();
+
+  T body();
 }

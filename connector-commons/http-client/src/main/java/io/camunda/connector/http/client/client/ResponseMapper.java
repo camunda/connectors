@@ -14,24 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.client.utils;
+package io.camunda.connector.http.client.client;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.JsonParseException;
-import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
-import java.io.IOException;
+import io.camunda.connector.http.client.model.response.StreamingHttpResponse;
+import java.util.function.Function;
 
-public class JsonHelper {
-
-  private static final ObjectMapper objectMapper = HttpClientObjectMapperSupplier.getCopy();
-
-  public static boolean isJsonStringValid(String jsonString) {
-    try {
-      JsonNode jsonNode = objectMapper.readTree(jsonString);
-      return jsonNode.isObject() || jsonNode.isArray();
-    } catch (JsonParseException | IOException e) {
-      return false;
-    }
-  }
-}
+/**
+ * A function that converts a {@link StreamingHttpResponse} to a desired type. The mapper does not
+ * need to handle closing the response body stream, as it will be closed automatically after the
+ * mapping is done.
+ *
+ * @param <T> the type to map the response to
+ */
+public interface ResponseMapper<T> extends Function<StreamingHttpResponse, T> {}

@@ -18,18 +18,34 @@ package io.camunda.connector.http.client.exception;
 
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
-import io.camunda.connector.http.client.model.HttpClientResult;
+import io.camunda.connector.http.client.model.response.StreamingHttpResponse;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConnectorExceptionMapper {
 
-  public static ConnectorException from(HttpClientResult result) {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ConnectorExceptionMapper.class);
+
+  public static ConnectorException from(StreamingHttpResponse result) {
     String status = String.valueOf(result.status());
     String reason = Optional.ofNullable(result.reason()).orElse("[no reason]");
-    Map<String, Object> headers = result.headers();
-    Object body = result.body();
+    Map<String, List<String>> headers = result.headers();
+    String body = "[no body]";
+
+    try (InputStream bodyStream = result.body()) {
+      if (bodyStream != null) {
+        body = new String(bodyStream.readAllBytes());
+      }
+    } catch (IOException e) {
+      LOGGER.error("Failed to read response body for error mapping", e);
+    }
+
     Map<String, Object> response = new HashMap<>();
     response.put("headers", headers);
     response.put("body", body);

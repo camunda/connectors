@@ -21,10 +21,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import io.camunda.connector.http.client.model.HttpClientResult;
-import io.camunda.connector.http.client.model.ResponseBody;
+import io.camunda.connector.http.client.model.response.StreamingHttpResponse;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.io.entity.StringEntity;
@@ -39,21 +39,20 @@ public class HttpClientResultResponseHandlerTest {
   @Test
   public void shouldProduceInputStream() throws IOException {
     // given
-    HttpCommonResultResponseHandler handler = new HttpCommonResultResponseHandler();
+    HttpCommonResultResponseHandler handler = new HttpCommonResultResponseHandler(() -> {});
     ClassicHttpResponse response = new BasicClassicHttpResponse(200);
     StringEntity entity = new StringEntity(RESPONSE_BODY);
     response.setEntity(entity);
 
     // when
-    HttpClientResult result = handler.handleResponse(response);
+    StreamingHttpResponse result = handler.handleResponse(response);
 
     // then
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(200);
     var body = result.body();
     assertThat(body).isNotNull();
-    InputStream inputStream = body.getStream();
-    byte[] bytes = inputStream.readAllBytes();
+    byte[] bytes = body.readAllBytes();
     String readString = new String(bytes);
     assertThat(readString).isEqualTo(RESPONSE_BODY);
   }
@@ -61,33 +60,28 @@ public class HttpClientResultResponseHandlerTest {
   @Test
   public void shouldProduceBytes() throws IOException {
     // given
-    HttpCommonResultResponseHandler handler = new HttpCommonResultResponseHandler();
+    HttpCommonResultResponseHandler handler = new HttpCommonResultResponseHandler(() -> {});
     ClassicHttpResponse response = new BasicClassicHttpResponse(200);
     StringEntity entity = new StringEntity(RESPONSE_BODY);
     response.setEntity(entity);
 
     // when
-    HttpClientResult result = handler.handleResponse(response);
+    StreamingHttpResponse result = handler.handleResponse(response);
 
     // then
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(200);
     var body = result.body();
     assertThat(body).isNotNull();
-    byte[] bytes = body.readBytes();
+    byte[] bytes = body.readAllBytes();
     String readString = new String(bytes);
     assertThat(readString).isEqualTo(RESPONSE_BODY);
-
-    // the body can be read multiple times
-    byte[] bytes2 = body.readBytes();
-    String readString2 = new String(bytes2);
-    assertThat(readString2).isEqualTo(RESPONSE_BODY);
   }
 
   @Test
   public void shouldPreserveHeaders() {
     // given
-    HttpCommonResultResponseHandler handler = new HttpCommonResultResponseHandler();
+    HttpCommonResultResponseHandler handler = new HttpCommonResultResponseHandler(() -> {});
     ClassicHttpResponse response = new BasicClassicHttpResponse(200);
     Header[] headers =
         new Header[] {
@@ -99,33 +93,33 @@ public class HttpClientResultResponseHandlerTest {
     response.setEntity(entity);
 
     // when
-    HttpClientResult result = handler.handleResponse(response);
+    StreamingHttpResponse result = handler.handleResponse(response);
 
     // then
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(200);
     assertThat(result.headers()).hasSize(2);
-    assertThat(result.headers()).containsEntry("Content-Type", "application/json");
-    assertThat(result.headers()).containsEntry("X-Custom-Header", "custom-value");
+    assertThat(result.headers()).containsEntry("Content-Type", List.of("application/json"));
+    assertThat(result.headers()).containsEntry("X-Custom-Header", List.of("custom-value"));
   }
 
   @Test
   public void shouldHandleErrorResponse() throws IOException {
     // given
-    HttpCommonResultResponseHandler handler = new HttpCommonResultResponseHandler();
+    HttpCommonResultResponseHandler handler = new HttpCommonResultResponseHandler(() -> {});
     ClassicHttpResponse response = new BasicClassicHttpResponse(500);
     StringEntity entity = new StringEntity("Internal Server Error: something went wrong");
     response.setEntity(entity);
 
     // when
-    HttpClientResult result = handler.handleResponse(response);
+    StreamingHttpResponse result = handler.handleResponse(response);
 
     // then
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(500);
     var body = result.body();
     assertThat(body).isNotNull();
-    byte[] bytes = body.readBytes();
+    byte[] bytes = body.readAllBytes();
     String readString = new String(bytes);
     assertThat(readString).isEqualTo("Internal Server Error: something went wrong");
     assertThat(result.reason()).isEqualTo("Internal Server Error");
@@ -137,9 +131,8 @@ public class HttpClientResultResponseHandlerTest {
     var mockStream = mock(InputStream.class);
 
     // when
-    var body = new ResponseBody(mockStream);
-    HttpClientResult result = new HttpClientResult(200, null, body, "OK");
-    result.close();
+    StreamingHttpResponse result = new StreamingHttpResponse(200, "OK", null, mockStream, () -> {});
+    result.body().close();
 
     // then
     // verify that the body stream was closed when closing the response

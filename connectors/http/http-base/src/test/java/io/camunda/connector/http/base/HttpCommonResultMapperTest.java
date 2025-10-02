@@ -12,7 +12,7 @@ import org.apache.hc.core5.http.message.BasicClassicHttpResponse;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.jupiter.api.Test;
 
-public class ResponseHandlerTest {
+public class HttpCommonResultMapperTest {
 
   @Test
   public void shouldHandleJsonResponse() {
