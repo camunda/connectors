@@ -17,12 +17,14 @@
 package io.camunda.connector.runtime.core.document;
 
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
+import io.camunda.connector.http.client.utils.HeadersHelper;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.apache.hc.core5.http.HttpHeaders;
 
 public class HttpHeaderFilenameResolver {
-  public static String getFilename(Map<String, Object> headers) {
+  public static String getFilename(Map<String, List<String>> headers) {
     String filename = getFilenameFromContentDispositionHeader(headers);
     if (!filename.contains(".")) {
       filename += getFileEndingFromContentType(headers);
@@ -30,9 +32,9 @@ public class HttpHeaderFilenameResolver {
     return filename;
   }
 
-  private static String getFilenameFromContentDispositionHeader(Map<String, Object> headers) {
+  private static String getFilenameFromContentDispositionHeader(Map<String, List<String>> headers) {
     String contentDispositionHeader =
-        CustomApacheHttpClient.getHeaderIgnoreCase(headers, HttpHeaders.CONTENT_DISPOSITION);
+        HeadersHelper.getHeaderIgnoreCase(headers, HttpHeaders.CONTENT_DISPOSITION);
     if (contentDispositionHeader instanceof String contentDispositionHeaderString) {
       String filenamePrefix = "filename=";
       int index = contentDispositionHeaderString.indexOf(filenamePrefix);
@@ -48,9 +50,9 @@ public class HttpHeaderFilenameResolver {
     return UUID.randomUUID().toString();
   }
 
-  private static String getFileEndingFromContentType(Map<String, Object> headers) {
+  private static String getFileEndingFromContentType(Map<String, List<String>> headers) {
     Object contentTypeHeader =
-        CustomApacheHttpClient.getHeaderIgnoreCase(headers, HttpHeaders.CONTENT_TYPE);
+        HeadersHelper.getHeaderIgnoreCase(headers, HttpHeaders.CONTENT_TYPE);
     if (contentTypeHeader instanceof String contentType && contentType.contains("/")) {
       String subtype = contentType.substring(contentType.indexOf('/') + 1);
 

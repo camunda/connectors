@@ -14,11 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.client.client;
+package io.camunda.connector.http.client.model.response;
 
-public class HttpStatusHelper {
+import java.util.List;
+import java.util.Map;
 
-  public static boolean isError(int statusCode) {
-    return statusCode >= 400;
-  }
-}
+/**
+ * An HTTP response where the body is fully read into memory. Normally created by applying a {@link
+ * io.camunda.connector.http.client.client.ResponseMapper} to a {@link StreamingHttpResponse}.
+ *
+ * @see io.camunda.connector.http.client.client.ResponseMappers for common mappers
+ */
+public record InMemoryHttpResponse<T>(
+    int status, String reason, Map<String, List<String>> headers, T body)
+    implements HttpResponse<T> {}
