@@ -26,7 +26,12 @@ import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueReques
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerException;
 
-public class AwsSecretProvider extends AbstractSecretProvider {
+public class AwsSecretProvider extends AbstractSecretProvider implements AutoCloseable {
+
+  private final SecretsManagerClient secretsClient =
+      SecretsManagerClient.builder()
+          .region(new DefaultAwsRegionProviderChain().getRegion())
+          .build();
 
   public AwsSecretProvider() {
     super();
@@ -46,15 +51,10 @@ public class AwsSecretProvider extends AbstractSecretProvider {
     Objects.requireNonNull(clusterId, "You need to specify the clusterId to load secrets for");
     logger.info("Fetching secrets for cluster {} from aws secret manager", clusterId);
 
-    DefaultAwsRegionProviderChain provider = new DefaultAwsRegionProviderChain();
-
-    try (final SecretsManagerClient secretsClient =
-        SecretsManagerClient.builder().region(provider.getRegion()).build(); ) {
+    try {
       final String secretName = String.format("%s-%s", secretsNamePrefix, clusterId);
-
       GetSecretValueRequest valueRequest =
           GetSecretValueRequest.builder().secretId(secretName).build();
-
       GetSecretValueResponse valueResponse = secretsClient.getSecretValue(valueRequest);
       return valueResponse.secretString();
     } catch (final SecretsManagerException e) {
@@ -62,6 +62,12 @@ public class AwsSecretProvider extends AbstractSecretProvider {
       throw new ConnectorException(
           "Failed to load secret from AWS Secrets Manager: " + e.awsErrorDetails().errorMessage(),
           e);
+    }
+  }
+
+  public void close() {
+    if (secretsClient != null) {
+      secretsClient.close();
     }
   }
 }
