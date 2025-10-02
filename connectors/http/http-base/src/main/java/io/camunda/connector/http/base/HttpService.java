@@ -10,17 +10,13 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.auth.AuthenticationMapper;
-import io.camunda.connector.http.client.HttpClientService;
+import io.camunda.connector.http.client.client.HttpClient;
+import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.client.model.HttpClientRequest;
-import io.camunda.connector.http.client.model.HttpClientResult;
 
 public class HttpService {
 
-  private final HttpClientService httpClientService;
-
-  public HttpService() {
-    httpClientService = new HttpClientService();
-  }
+  private final static HttpClient HTTP_CLIENT = new CustomApacheHttpClient();
 
   public HttpCommonResult executeConnectorRequest(HttpCommonRequest request) {
     return executeConnectorRequest(request, null);
@@ -29,8 +25,8 @@ public class HttpService {
   public HttpCommonResult executeConnectorRequest(
       final HttpCommonRequest request, final OutboundConnectorContext context) {
     HttpClientRequest httpClientRequest = mapToHttpClientRequest(request);
-    HttpClientResult result = httpClientService.executeConnectorRequest(httpClientRequest, context);
-    return mapToHttpCommonResult(result);
+    HttpCommonResultMapper responseHandler = new HttpCommonResultMapper(context, request.isStoreResponse());
+    return HTTP_CLIENT.execute(httpClientRequest, responseHandler);
   }
 
   public HttpClientRequest mapToHttpClientRequest(HttpCommonRequest request) {
@@ -42,16 +38,10 @@ public class HttpService {
     httpClientRequest.setQueryParameters(request.getQueryParameters());
     httpClientRequest.setBody(request.getBody());
     httpClientRequest.setAuthentication(AuthenticationMapper.map(request.getAuthentication()));
-    httpClientRequest.setStoreResponse(request.isStoreResponse());
     httpClientRequest.setConnectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds());
     httpClientRequest.setReadTimeoutInSeconds(request.getReadTimeoutInSeconds());
     httpClientRequest.setSkipEncoding(request.getSkipEncoding());
     httpClientRequest.setIgnoreNullValues(request.isIgnoreNullValues());
     return httpClientRequest;
-  }
-
-  public HttpCommonResult mapToHttpCommonResult(HttpClientResult result) {
-    return new HttpCommonResult(
-        result.status(), result.headers(), result.body(), result.reason(), result.document());
   }
 }

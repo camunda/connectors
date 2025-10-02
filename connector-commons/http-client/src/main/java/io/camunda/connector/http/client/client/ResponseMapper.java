@@ -14,33 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.document;
+package io.camunda.connector.http.client.client;
 
-import java.io.InputStream;
+import io.camunda.connector.http.client.model.response.StreamingHttpResponse;
+import java.util.function.Function;
 
 /**
- * Represents a uniform document (file) object that can be passed between connectors and used in the
- * FEEL engine.
+ * A function that converts a {@link StreamingHttpResponse} to a desired type. The mapper does not
+ * need to handle closing the response body stream, as it will be closed automatically after the
+ * mapping is done.
+ *
+ * @param <T> the type to map the response to
  */
-public interface Document {
-
-  /**
-   * Domain-specific metadata that can be attached to the document. When a file is consumed by a
-   * connector as input, the metadata originates from the
-   */
-  DocumentMetadata metadata();
-
-  String asBase64();
-
-  /**
-   * Provides the document content as an InputStream. The caller is responsible for closing the
-   * stream after use.
-   */
-  InputStream asInputStream();
-
-  byte[] asByteArray();
-
-  DocumentReference reference();
-
-  String generateLink(DocumentLinkParameters parameters);
-}
+public interface ResponseMapper<T> extends Function<StreamingHttpResponse, T> {}

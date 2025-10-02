@@ -14,11 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.client.document;
+package io.camunda.connector.http.client.model.response;
 
-public class DocumentCreationException extends Exception {
+import java.util.List;
+import java.util.Map;
 
-  public DocumentCreationException(String message, Throwable cause) {
-    super(message, cause);
-  }
+public interface HttpResponse<T> {
+
+  int status();
+
+  String reason();
+
+  Map<String, List<String>> headers();
+
+  T body();
 }
