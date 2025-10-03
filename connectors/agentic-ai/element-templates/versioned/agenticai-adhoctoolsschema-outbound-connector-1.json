@@ -8,6 +8,7 @@
   },
   "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-ad-hoc-tools-schema-resolver/",
   "version" : 1,
+  "deprecated": true,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"

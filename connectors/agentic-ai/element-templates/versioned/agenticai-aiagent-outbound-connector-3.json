@@ -1,14 +1,13 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "AI Agent",
+  "name" : "AI Agent Task",
   "id" : "io.camunda.connectors.agenticai.aiagent.v1",
-  "description" : "Provides a generic AI agent implementation handling the feedback loop between user requests, tool calls and LLM responses. Compatible with 8.8.0-alpha7 or later.",
+  "description" : "Handles individual tasks by aligning user requests with AI responses, optimized for focused, single-goal queries.",
   "metadata" : {
-    "keywords" : [ ]
+    "keywords" : [ "AI", "AI Agent", "agentic orchestration" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/",
-  "version" : 2,
-  "deprecated": true,
+  "version" : 3,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -55,7 +54,7 @@
   }, {
     "id" : "response",
     "label" : "Response",
-    "tooltip" : "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.<br><br>See <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\">documentation</a> for details.",
+    "tooltip" : "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.<br><br>See <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/#response\">documentation</a> for details.",
     "openByDefault" : false
   }, {
     "id" : "connector",
@@ -98,11 +97,14 @@
       "name" : "Azure OpenAI",
       "value" : "azureOpenAi"
     }, {
-      "name" : "Google Vertex AI (Hybrid/Self-Managed only)",
+      "name" : "Google Vertex AI",
       "value" : "google-vertex-ai"
     }, {
       "name" : "OpenAI",
       "value" : "openai"
+    }, {
+      "name" : "OpenAI Compatible",
+      "value" : "openaiCompatible"
     } ]
   }, {
     "id" : "provider.anthropic.endpoint",
@@ -442,8 +444,8 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.googleVertexAi.location",
-    "label" : "Location",
+    "id" : "provider.googleVertexAi.region",
+    "label" : "Region",
     "description" : "Specify the region where AI inference should take place",
     "optional" : false,
     "constraints" : {
@@ -452,13 +454,62 @@
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.googleVertexAi.location",
+      "name" : "provider.googleVertexAi.region",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
       "equals" : "google-vertex-ai",
       "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.googleVertexAi.authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify the Google Vertex AI authentication strategy.",
+    "value" : "serviceAccountCredentials",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleVertexAi.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "google-vertex-ai",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Service account credentials",
+      "value" : "serviceAccountCredentials"
+    }, {
+      "name" : "Application default credentials (Hybrid/Self-Managed only)",
+      "value" : "applicationDefaultCredentials"
+    } ]
+  }, {
+    "id" : "provider.googleVertexAi.authentication.jsonKey",
+    "label" : "JSON key of the service account",
+    "description" : "This is the key of the service account in JSON format.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.googleVertexAi.authentication.jsonKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.googleVertexAi.authentication.type",
+        "equals" : "serviceAccountCredentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "google-vertex-ai",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -515,37 +566,56 @@
     },
     "type" : "String"
   }, {
-    "id" : "provider.openai.endpoint",
-    "label" : "Custom API endpoint",
-    "description" : "Optional custom API endpoint.",
+    "id" : "provider.openaiCompatible.endpoint",
+    "label" : "API endpoint",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openaiCompatible.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openaiCompatible",
+      "type" : "simple"
+    },
+    "tooltip" : "Specify an endpoint to use the connector with an OpenAI compatible API. ",
+    "type" : "String"
+  }, {
+    "id" : "provider.openaiCompatible.authentication.apiKey",
+    "label" : "API key",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.openai.endpoint",
+      "name" : "provider.openaiCompatible.authentication.apiKey",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
-      "equals" : "openai",
+      "equals" : "openaiCompatible",
       "type" : "simple"
     },
-    "tooltip" : "Configure a custom OpenAI compatible API endpoint to use the connector with an OpenAI compatible API. Typically ends in <code>/v1</code>.",
+    "tooltip" : "Leave blank if using HTTP headers for authentication.<br>If an Authorization header is specified in the headers, then the API key is ignored.",
     "type" : "String"
   }, {
-    "id" : "provider.openai.headers",
-    "label" : "Custom headers",
-    "description" : "Map of custom HTTP headers to add to the request.",
+    "id" : "provider.openaiCompatible.headers",
+    "label" : "Headers",
+    "description" : "Map of HTTP headers to add to the request.",
     "optional" : true,
     "feel" : "required",
     "group" : "provider",
     "binding" : {
-      "name" : "provider.openai.headers",
+      "name" : "provider.openaiCompatible.headers",
       "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "provider.type",
-      "equals" : "openai",
+      "equals" : "openaiCompatible",
       "type" : "simple"
     },
     "type" : "String"
@@ -942,14 +1012,103 @@
     "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
     "type" : "Number"
   }, {
-    "id" : "data.systemPrompt.prompt",
-    "label" : "System prompt",
+    "id" : "provider.openaiCompatible.model.model",
+    "label" : "Model",
+    "description" : "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
-    "value" : "You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitly configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nWrap minimal, inspectable reasoning in *exactly* this XML template:\n\n<thinking>\n  <context>…briefly state the customer’s need and current state…</context>\n  <reflection>…list candidate tools, justify which you will call next and why…</reflection>\n</thinking>\n\nReveal **no** additional private reasoning outside these tags.\n",
+    "value" : "gpt-4o",
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openaiCompatible.model.model",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openaiCompatible",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openaiCompatible.model.parameters.maxCompletionTokens",
+    "label" : "Maximum completion tokens",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openaiCompatible.model.parameters.maxCompletionTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openaiCompatible",
+      "type" : "simple"
+    },
+    "tooltip" : "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openaiCompatible.model.parameters.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openaiCompatible.model.parameters.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openaiCompatible",
+      "type" : "simple"
+    },
+    "tooltip" : "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openaiCompatible.model.parameters.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openaiCompatible.model.parameters.topP",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openaiCompatible",
+      "type" : "simple"
+    },
+    "tooltip" : "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
+    "type" : "Number"
+  }, {
+    "id" : "provider.openaiCompatible.model.parameters.customParameters",
+    "label" : "Custom parameters",
+    "description" : "Map of additional request parameters to include.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "model",
+    "binding" : {
+      "name" : "provider.openaiCompatible.model.parameters.customParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openaiCompatible",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.systemPrompt.prompt",
+    "label" : "System prompt",
+    "optional" : false,
+    "value" : "\"You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitly configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nWrap minimal, inspectable reasoning in *exactly* this XML template:\n\n<thinking>\n<context>…briefly state the customer’s need and current state…</context>\n<reflection>…list candidate tools, justify which you will call next and why…</reflection>\n</thinking>\n\nReveal **no** additional private reasoning outside these tags.\"",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
     "group" : "systemPrompt",
     "binding" : {
       "name" : "data.systemPrompt.prompt",
@@ -957,43 +1116,19 @@
     },
     "type" : "Text"
   }, {
-    "id" : "data.systemPrompt.parameters",
-    "label" : "System prompt parameters",
-    "description" : "Use <code>{{parameter}}</code> format in the prompt to insert values defined in this map.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "systemPrompt",
-    "binding" : {
-      "name" : "data.systemPrompt.parameters",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
-  }, {
     "id" : "data.userPrompt.prompt",
     "label" : "User prompt",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "userPrompt",
     "binding" : {
       "name" : "data.userPrompt.prompt",
       "type" : "zeebe:input"
     },
     "type" : "Text"
-  }, {
-    "id" : "data.userPrompt.parameters",
-    "label" : "User prompt parameters",
-    "description" : "Use <code>{{parameter}}</code> format in the prompt to insert values defined in this map.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "userPrompt",
-    "binding" : {
-      "name" : "data.userPrompt.parameters",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
   }, {
     "id" : "data.userPrompt.documents",
     "label" : "Documents",
@@ -1005,7 +1140,7 @@
       "name" : "data.userPrompt.documents",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Referenced documents will be automatically added to the user prompt. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details and supported file types.",
+    "tooltip" : "Referenced documents will be automatically added to the user prompt. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details and supported file types.",
     "type" : "String"
   }, {
     "id" : "data.tools.containerElementId",
@@ -1018,7 +1153,7 @@
       "name" : "data.tools.containerElementId",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Add an ad-hoc sub-process ID to attach the AI agent to the tools. Ensure your process includes a tools feedback loop routing into the ad-hoc sub-process and back to the AI agent connector. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details.",
+    "tooltip" : "Add an ad-hoc sub-process ID to attach the AI agent to the tools. Ensure your process includes a tools feedback loop routing into the ad-hoc sub-process and back to the AI agent connector. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details.",
     "type" : "String"
   }, {
     "id" : "data.tools.toolCallResults",
@@ -1031,7 +1166,7 @@
       "name" : "data.tools.toolCallResults",
       "type" : "zeebe:input"
     },
-    "tooltip" : "This defines where to handle tool call results returned by the ad-hoc sub-process. Model this as part of your process and route it into the tools feedback loop. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details.",
+    "tooltip" : "This defines where to handle tool call results returned by the ad-hoc sub-process. Model this as part of your process and route it into the tools feedback loop. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details.",
     "type" : "Text"
   }, {
     "id" : "data.agentContext",
@@ -1048,7 +1183,7 @@
       "name" : "data.context",
       "type" : "zeebe:input"
     },
-    "tooltip" : "The agent context variable containing all relevant data for the agent to support the feedback loop between user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> variable which is returned from the agent response. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details.",
+    "tooltip" : "The agent context variable containing all relevant data for the agent to support the feedback loop between user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> variable which is returned from the agent response. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details.",
     "type" : "Text"
   }, {
     "id" : "data.memory.storage.type",
@@ -1154,7 +1289,7 @@
       "name" : "data.memory.contextWindowSize",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Use this to limit the number of messages which are sent to the model. The agent will only send the most recent messages up to the configured limit to the LLM. Older messages will be kept in the conversation store, but not sent to the model. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/\" target=\"_blank\">See documentation</a> for details.",
+    "tooltip" : "Use this to limit the number of messages which are sent to the model. The agent will only send the most recent messages up to the configured limit to the LLM. Older messages will be kept in the conversation store, but not sent to the model. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details.",
     "type" : "Number"
   }, {
     "id" : "data.limits.maxModelCalls",
@@ -1258,7 +1393,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "2",
+    "value" : "3",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
