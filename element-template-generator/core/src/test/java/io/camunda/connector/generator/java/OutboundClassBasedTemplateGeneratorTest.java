@@ -615,12 +615,14 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
                 assertThat(p.getBinding())
                     .isEqualTo(new PropertyBinding.ZeebeProperty("myExtensionProperty1"));
                 assertThat(p.getValue()).isEqualTo("value1");
+                assertThat(p.getCondition()).isNull();
               },
               p -> {
                 assertThat(p).isInstanceOf(HiddenProperty.class);
                 assertThat(p.getBinding())
                     .isEqualTo(new PropertyBinding.ZeebeProperty("myExtensionProperty2"));
                 assertThat(p.getValue()).isEqualTo("value2");
+                assertThat(p.getCondition()).isEqualTo(new Equals("booleanProperty", false));
               });
     }
   }

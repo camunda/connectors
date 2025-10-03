@@ -138,6 +138,9 @@ public @interface ElementTemplate {
     String name();
 
     String value();
+
+    TemplateProperty.PropertyCondition condition() default
+        @TemplateProperty.PropertyCondition(property = "");
   }
 
   @interface ConnectorElementType {

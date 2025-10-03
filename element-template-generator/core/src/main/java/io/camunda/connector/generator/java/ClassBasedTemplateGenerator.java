@@ -31,6 +31,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.GenerationFeatu
 import io.camunda.connector.generator.dsl.*;
 import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.generator.java.processor.TemplatePropertyAnnotationProcessor;
 import io.camunda.connector.generator.java.util.*;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext.Outbound;
 import io.camunda.connector.util.reflection.ReflectionUtil;
@@ -118,13 +119,8 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
               + " must implement OutboundConnectorFunction, InboundConnectorExecutable or OutboundConnectorProvider");
     }
 
-    Arrays.stream(template.extensionProperties())
-        .map(
-            extensionProperty ->
-                HiddenProperty.builder()
-                    .binding(new PropertyBinding.ZeebeProperty(extensionProperty.name()))
-                    .value(extensionProperty.value()))
-        .forEach(properties::add);
+    List<PropertyBuilder> extensionProperties = generateExtensionProperties(template);
+    properties.addAll(extensionProperties);
 
     var groupsDefinedInProperties =
         new ArrayList<>(TemplatePropertiesUtil.groupProperties(properties));
@@ -258,5 +254,18 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
               template.defaultResultVariable(), template.defaultResultExpression()));
     }
     return newGroups;
+  }
+
+  private List<PropertyBuilder> generateExtensionProperties(ElementTemplate template) {
+    return Arrays.stream(template.extensionProperties())
+        .map(
+            extensionProperty ->
+                HiddenProperty.builder()
+                    .binding(new PropertyBinding.ZeebeProperty(extensionProperty.name()))
+                    .value(extensionProperty.value())
+                    .condition(
+                        TemplatePropertyAnnotationProcessor.buildCondition(
+                            extensionProperty.condition())))
+        .toList();
   }
 }
