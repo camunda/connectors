@@ -17,6 +17,9 @@
       <bpmn:extensionElements>
         <zeebe:userTask />
         <zeebe:formDefinition formId="ai-agent-chat-user-feedback" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=agent.responseText" target="responseText" />
+        </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_1t8vqr1</bpmn:incoming>
       <bpmn:outgoing>Flow_09y08ef</bpmn:outgoing>
