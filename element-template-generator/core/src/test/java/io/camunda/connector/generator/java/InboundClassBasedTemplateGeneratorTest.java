@@ -34,6 +34,7 @@ import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.MessageProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeSubscriptionProperty;
+import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyCondition.IsActive;
 import io.camunda.connector.generator.dsl.StringProperty;
@@ -446,11 +447,14 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
               assertThat(p).isInstanceOf(HiddenProperty.class);
               assertThat(p.getBinding()).isEqualTo(new ZeebeProperty("myExtensionProperty1"));
               assertThat(p.getValue()).isEqualTo("value1");
+              assertThat(p.getCondition()).isNull();
             },
             p -> {
               assertThat(p).isInstanceOf(HiddenProperty.class);
               assertThat(p.getBinding()).isEqualTo(new ZeebeProperty("myExtensionProperty2"));
               assertThat(p.getValue()).isEqualTo("value2");
+              assertThat(p.getCondition())
+                  .isEqualTo(new PropertyCondition.Equals("prop1", "value1"));
             });
   }
 }

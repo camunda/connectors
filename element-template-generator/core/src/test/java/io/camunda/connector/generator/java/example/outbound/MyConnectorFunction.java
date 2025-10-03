@@ -23,6 +23,7 @@ import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
 public abstract class MyConnectorFunction implements OutboundConnectorFunction {
 
@@ -111,7 +112,13 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       inputDataClass = MyConnectorInput.class,
       extensionProperties = {
         @ElementTemplate.ExtensionProperty(name = "myExtensionProperty1", value = "value1"),
-        @ElementTemplate.ExtensionProperty(name = "myExtensionProperty2", value = "value2"),
+        @ElementTemplate.ExtensionProperty(
+            name = "myExtensionProperty2",
+            value = "value2",
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "booleanProperty",
+                    equalsBoolean = TemplateProperty.EqualsBoolean.FALSE)),
       })
   public static class MinimallyAnnotatedWithExtensionProperties extends MyConnectorFunction {}
 

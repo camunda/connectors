@@ -21,6 +21,7 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ExtensionProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
 public class MyConnectorExecutable implements InboundConnectorExecutable<InboundConnectorContext> {
 
@@ -50,7 +51,10 @@ public class MyConnectorExecutable implements InboundConnectorExecutable<Inbound
       inputDataClass = MyConnectorProperties.class,
       extensionProperties = {
         @ExtensionProperty(name = "myExtensionProperty1", value = "value1"),
-        @ExtensionProperty(name = "myExtensionProperty2", value = "value2"),
+        @ExtensionProperty(
+            name = "myExtensionProperty2",
+            value = "value2",
+            condition = @TemplateProperty.PropertyCondition(property = "prop1", equals = "value1")),
       },
       icon = "my-connector-icon.png")
   public static class MinimallyAnnotatedWithExtensionProperties extends MyConnectorExecutable {}
