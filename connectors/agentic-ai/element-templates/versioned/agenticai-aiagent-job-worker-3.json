@@ -1,13 +1,13 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid AI Agent Process",
-  "id" : "io.camunda.connectors.agenticai.aiagent.jobworker.v1-hybrid",
+  "name" : "AI Agent Process",
+  "id" : "io.camunda.connectors.agenticai.aiagent.jobworker.v1",
   "description" : "Processes user requests with an integrated, customizable toolbox and services for dynamic workflows.",
   "metadata" : {
     "keywords" : [ "AI", "AI Agent", "agentic orchestration" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/",
-  "version" : 4,
+  "version" : 3,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -20,9 +20,6 @@
     "camunda" : "^8.8"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "provider",
     "label" : "Model provider",
     "openByDefault" : false
@@ -77,14 +74,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda.agenticai:aiagent-job-worker:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "outputCollection",
     "binding" : {
@@ -1423,7 +1418,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "4",
+    "value" : "3",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

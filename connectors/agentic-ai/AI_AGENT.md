@@ -230,6 +230,6 @@ leading to the following result
 | Connector Info            |                                                                       |
 | ---                       | ---                                                                   |
 | Type                      | io.camunda.agenticai:aiagent:1                                                            |
-| Version                   | 3                                                         |
+| Version                   | 4                                                         |
 | Supported element types   |     |
 
