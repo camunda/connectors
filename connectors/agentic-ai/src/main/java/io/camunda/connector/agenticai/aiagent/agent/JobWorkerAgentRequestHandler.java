@@ -129,7 +129,7 @@ public class JobWorkerAgentRequestHandler
           createAgentResponseVariable(executionContext, agentResponse));
     } else {
       LOGGER.debug(
-          "Completion condition not fulfilled, creating agent context variable and clearing tool call results for next tool call iteration");
+          "Completion condition not fulfilled, clearing tool call results for next tool call iteration");
       variables.put(AiAgentJobWorker.TOOL_CALL_RESULTS_VARIABLE, List.of());
     }
 
