@@ -180,11 +180,12 @@ class JobWorkerAgentRequestHandlerTest {
                     .build());
 
     final var completion = requestHandler.handleRequest(agentExecutionContext);
-    assertThat(completion.variables()).containsOnlyKeys("agent");
+    assertThat(completion.variables()).containsOnlyKeys("agentContext", "agent");
     assertThat(completion.completionConditionFulfilled()).isTrue();
     assertThat(completion.cancelRemainingInstances()).isFalse();
 
     final var agentResponse = completion.agentResponse();
+    assertThat(agentResponse.context()).isEqualTo(completion.variables().get("agentContext"));
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
         .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
@@ -321,11 +322,12 @@ class JobWorkerAgentRequestHandlerTest {
                     .build());
 
     final var completion = requestHandler.handleRequest(agentExecutionContext);
-    assertThat(completion.variables()).containsOnlyKeys("agent");
+    assertThat(completion.variables()).containsOnlyKeys("agentContext", "agent");
     assertThat(completion.completionConditionFulfilled()).isTrue();
     assertThat(completion.cancelRemainingInstances()).isTrue();
 
     final var agentResponse = completion.agentResponse();
+    assertThat(agentResponse.context()).isEqualTo(completion.variables().get("agentContext"));
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
         .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));

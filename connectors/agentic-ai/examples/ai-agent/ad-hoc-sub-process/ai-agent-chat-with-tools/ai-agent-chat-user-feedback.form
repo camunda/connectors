@@ -4,7 +4,7 @@
       "label": "Latest Message",
       "components": [
         {
-          "text": "=agent.responseText",
+          "text": "=responseText",
           "type": "text",
           "layout": {
             "row": "Row_0bbt4ob",
@@ -81,7 +81,7 @@
   "executionPlatformVersion": "8.8.0",
   "exporter": {
     "name": "Camunda Modeler",
-    "version": "5.35.0"
+    "version": "5.39.0"
   },
-  "schemaVersion": 18
+  "schemaVersion": 19
 }
