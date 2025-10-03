@@ -120,6 +120,8 @@ public class JobWorkerAgentRequestHandler
         cancelRemainingInstances);
 
     final var variables = new LinkedHashMap<String, Object>();
+    variables.put(AiAgentJobWorker.AGENT_CONTEXT_VARIABLE, agentResponse.context());
+
     if (completionConditionFulfilled) {
       LOGGER.debug("Completion condition fulfilled, creating agent response variable");
       variables.put(
@@ -128,7 +130,6 @@ public class JobWorkerAgentRequestHandler
     } else {
       LOGGER.debug(
           "Completion condition not fulfilled, creating agent context variable and clearing tool call results for next tool call iteration");
-      variables.put(AiAgentJobWorker.AGENT_CONTEXT_VARIABLE, agentResponse.context());
       variables.put(AiAgentJobWorker.TOOL_CALL_RESULTS_VARIABLE, List.of());
     }
 
