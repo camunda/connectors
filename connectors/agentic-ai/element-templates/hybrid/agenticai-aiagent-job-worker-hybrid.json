@@ -1171,7 +1171,7 @@
     "id" : "agentContext",
     "label" : "Agent context",
     "description" : "Initial agent context from previous interactions. Avoid reusing context variables across agents to prevent issues with stale data or tool access.",
-    "optional" : true,
+    "optional" : false,
     "feel" : "required",
     "group" : "memory",
     "binding" : {

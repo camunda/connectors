@@ -147,7 +147,7 @@ json.properties.each { property ->
     } else if (property.id == "data.agentContext") {
         property.id = "agentContext"
         property.description = "Initial agent context from previous interactions. Avoid reusing context variables across agents to prevent issues with stale data or tool access."
-        property.optional = true
+        property.optional = false
         property.feel = "required"
         property.binding.name = "agentContext"
         property.remove("value")
