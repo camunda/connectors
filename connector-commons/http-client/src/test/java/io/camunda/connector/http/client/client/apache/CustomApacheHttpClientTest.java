@@ -461,28 +461,18 @@ public class CustomApacheHttpClientTest {
       assertThat(result.mappedEntity()).isNull();
     }
 
-    private static Stream<Arguments> provideTestDataForHeaderTest() {
-      return Stream.of(
-          Arguments.of("Set-Cookie", List.of("Test-Value-1", "Test-Value-2")),
-          Arguments.of("other-than-set-cookie", List.of("Test-Value-1")));
-    }
-
-    @ParameterizedTest
-    @MethodSource("provideTestDataForHeaderTest")
-    @Disabled
-    public void shouldReturn200_whenMultipleHeaders(
-        String headerKey, Object expectedValue, WireMockRuntimeInfo wmRuntimeInfo) {
-
-      // TODO: why??
-
-      stubFor(get("/path").willReturn(ok().withHeader(headerKey, "Test-Value-1", "Test-Value-2")));
+    @Test
+    public void shouldReturn200_whenMultipleHeaders(WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(
+          get("/path").willReturn(ok().withHeader("my-header", "Test-Value-1", "Test-Value-2")));
       HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
       var result = httpClient.execute(request, ResponseMappers.asString());
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      assertThat(result.headers().get(headerKey)).isEqualTo(expectedValue);
+      assertThat(result.headers().get("my-header")).isEqualTo(
+          List.of("Test-Value-1", "Test-Value-2"));
     }
 
     @Test
