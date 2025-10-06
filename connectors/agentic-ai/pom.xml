@@ -257,6 +257,21 @@
               <generateHybridTemplates>true</generateHybridTemplates>
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.agenticai.a2a.inbound.A2aClientPollingExecutable</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.agenticai.a2a.polling.v0</templateId>
+                  <templateFileName>agenticai-a2a-client-polling-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>false</generateHybridTemplates>
+              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
+              <features>
+                <ACKNOWLEDGEMENT_STRATEGY_SELECTION>false</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
+                <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>
+              </features>
+            </connector>
           </connectors>
           <versionHistoryEnabled>true</versionHistoryEnabled>
         </configuration>
