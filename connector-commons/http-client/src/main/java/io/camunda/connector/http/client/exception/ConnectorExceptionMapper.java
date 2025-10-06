@@ -18,7 +18,7 @@ package io.camunda.connector.http.client.exception;
 
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
-import io.camunda.connector.http.client.model.response.StreamingHttpResponse;
+import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;

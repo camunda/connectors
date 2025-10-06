@@ -20,12 +20,11 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.blocklist.DefaultHttpBlocklistManager;
 import io.camunda.connector.http.client.blocklist.HttpBlockListManager;
 import io.camunda.connector.http.client.client.HttpClient;
-import io.camunda.connector.http.client.client.ResponseMapper;
 import io.camunda.connector.http.client.client.apache.proxy.ProxyAwareHttpClient;
-import io.camunda.connector.http.client.exception.ConnectorExceptionMapper;
+import io.camunda.connector.http.client.mapper.MappedHttpResponse;
+import io.camunda.connector.http.client.mapper.ResponseMapper;
+import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import io.camunda.connector.http.client.model.HttpClientRequest;
-import io.camunda.connector.http.client.model.response.StreamingHttpResponse;
-import io.camunda.connector.http.client.utils.HttpStatusHelper;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.util.Map;
@@ -36,57 +35,30 @@ public class CustomApacheHttpClient implements HttpClient {
 
   private final HttpBlockListManager httpBlocklistManager = new DefaultHttpBlocklistManager();
 
-  @Override
-  public <T> T execute(HttpClientRequest request, ResponseMapper<T> responseMapper) {
-
-    try (var result = execute(request)) {
-      return responseMapper.apply(result);
-    } catch (Exception e) {
-      throw new ConnectorException(
-          String.valueOf(HttpStatus.SC_INTERNAL_SERVER_ERROR),
-          "An error occurred while processing the response",
-          e);
-    }
-  }
-
   /**
    * Converts the given {@link HttpClientRequest} to an Apache {@link
    * org.apache.hc.core5.http.ClassicHttpRequest} and executes it.
-   *
-   * <p>This method is thread-safe.
    *
    * @param request the request to execute
    * @return the {@link StreamingHttpResponse} containing the response details
    */
   @Override
-  public StreamingHttpResponse execute(HttpClientRequest request) {
+  public <T> MappedHttpResponse<T> execute(
+      HttpClientRequest request, ResponseMapper<T> responseMapper) {
     // Will throw ConnectorInputException if URL is blocked
     httpBlocklistManager.validateUrlAgainstBlocklist(request.getUrl());
+    var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
+    var host = apacheRequest.getAuthority().getHostName();
+    var scheme = apacheRequest.getScheme();
 
-    try {
-      var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
-      var host = apacheRequest.getAuthority().getHostName();
-      var scheme = apacheRequest.getScheme();
-      var client =
-          new ProxyAwareHttpClient(
-              new ProxyAwareHttpClient.TimeoutConfiguration(
-                  request.getConnectionTimeoutInSeconds(), request.getReadTimeoutInSeconds()),
-              new ProxyAwareHttpClient.ProxyContext(scheme, host));
-      var result = client.execute(
-          apacheRequest,
-          new HttpCommonResultResponseHandler(
-              () ->
-              {
-                try {
-                  client.close();
-                } catch (IOException e) {
-                  throw new RuntimeException("Failed to reset the request", e);
-                }
-              }));
-      if (HttpStatusHelper.isError(result.status())) {
-        throw ConnectorExceptionMapper.from(result);
-      }
-      return result;
+    try (var client =
+        new ProxyAwareHttpClient(
+            new ProxyAwareHttpClient.TimeoutConfiguration(
+                request.getConnectionTimeoutInSeconds(), request.getReadTimeoutInSeconds()),
+            new ProxyAwareHttpClient.ProxyContext(scheme, host))) {
+
+      var apacheResponseHandler = new MappingResponseHandler<>(responseMapper);
+      return client.execute(apacheRequest, apacheResponseHandler);
     } catch (ClientProtocolException e) {
       throw new ConnectorException(
           String.valueOf(HttpStatus.SC_SERVER_ERROR),

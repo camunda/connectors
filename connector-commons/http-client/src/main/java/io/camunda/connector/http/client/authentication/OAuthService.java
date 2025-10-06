@@ -17,6 +17,9 @@
 package io.camunda.connector.http.client.authentication;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
+import io.camunda.connector.http.client.mapper.ResponseMappers;
+import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpMethod;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
@@ -60,10 +63,11 @@ public class OAuthService {
     return oauthRequest;
   }
 
-  public String extractTokenFromResponse(JsonNode body) {
-    return Optional.ofNullable(body)
+  public String extractTokenFromResponse(StreamingHttpResponse body) {
+    var jsonNode = ResponseMappers.asJsonNode(HttpClientObjectMapperSupplier::getCopy).apply(body);
+    return Optional.ofNullable(jsonNode)
         .filter(JsonNode::isObject)
-        .map(jsonNode -> jsonNode.findValue(OAuthConstants.ACCESS_TOKEN))
+        .map(node -> node.findValue(OAuthConstants.ACCESS_TOKEN))
         .map(JsonNode::asText)
         .orElse(null);
   }

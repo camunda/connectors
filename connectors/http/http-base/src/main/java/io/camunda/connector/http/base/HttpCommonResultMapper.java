@@ -21,9 +21,8 @@ import static io.camunda.connector.http.client.utils.JsonHelper.isJsonStringVali
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.http.base.model.HttpCommonResult;
-import io.camunda.connector.http.client.client.ResponseMapper;
-import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
-import io.camunda.connector.http.client.model.response.StreamingHttpResponse;
+import io.camunda.connector.http.client.mapper.ResponseMapper;
+import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import io.camunda.connector.http.client.utils.HeadersHelper;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;

@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.core.document;
 
-import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.client.utils.HeadersHelper;
 import java.util.List;
 import java.util.Map;
@@ -51,8 +50,7 @@ public class HttpHeaderFilenameResolver {
   }
 
   private static String getFileEndingFromContentType(Map<String, List<String>> headers) {
-    Object contentTypeHeader =
-        HeadersHelper.getHeaderIgnoreCase(headers, HttpHeaders.CONTENT_TYPE);
+    Object contentTypeHeader = HeadersHelper.getHeaderIgnoreCase(headers, HttpHeaders.CONTENT_TYPE);
     if (contentTypeHeader instanceof String contentType && contentType.contains("/")) {
       String subtype = contentType.substring(contentType.indexOf('/') + 1);
 

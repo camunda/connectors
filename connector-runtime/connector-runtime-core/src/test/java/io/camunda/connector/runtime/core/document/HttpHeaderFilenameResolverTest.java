@@ -82,9 +82,11 @@ public class HttpHeaderFilenameResolverTest {
                 "Content-Type",
                 List.of("application/pdf")),
             "report.png"),
-        Arguments.of(Map.of("Content-Disposition", List.of("attachment; filename=\"report\"")), "report"),
         Arguments.of(
-            Map.of("Content-Disposition", List.of("attachment; filename=\"report.pdf\"")), "report.pdf"),
+            Map.of("Content-Disposition", List.of("attachment; filename=\"report\"")), "report"),
+        Arguments.of(
+            Map.of("Content-Disposition", List.of("attachment; filename=\"report.pdf\"")),
+            "report.pdf"),
         Arguments.of(Map.of("Content-Type", List.of("text/csv")), defaultUuid + ".csv"),
         Arguments.of(Map.of(), defaultUuid.toString()),
         Arguments.of(

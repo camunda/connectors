@@ -19,25 +19,22 @@ package io.camunda.connector.http.rest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
 import io.camunda.connector.http.client.authentication.OAuthService;
 import io.camunda.connector.http.client.client.apache.ApacheRequestFactory;
-import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
+import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import io.camunda.connector.http.client.model.HttpClientRequest;
-import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.MockedConstruction;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -69,36 +66,32 @@ class HttpClientServiceTest extends BaseTest {
         oAuthService.createOAuthRequestFrom(
             (io.camunda.connector.http.client.model.auth.OAuthAuthentication)
                 request.getAuthentication());
-    HttpClientResult oauthResult =
-        new HttpClientResult(200, null, Map.of(OAuthConstants.ACCESS_TOKEN, ACCESS_TOKEN));
-    var mockedClient = mock(CustomApacheHttpClient.class);
-    try (MockedConstruction<CustomApacheHttpClient> mocked =
-        mockConstruction(
-            CustomApacheHttpClient.class,
-            (mock, ctx) ->
-                when(mock.execute(any(HttpClientRequest.class))).thenReturn(oauthResult))) {
-      // when
-      String bearerToken = oAuthService.extractTokenFromResponse(oauthResult.body());
-      var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
+    var oauthBodyBytes = objectMapper.writeValueAsBytes(
+        Map.of(OAuthConstants.ACCESS_TOKEN, ACCESS_TOKEN));
+    StreamingHttpResponse oauthResult =
+        new StreamingHttpResponse(200, null, Map.of(), new ByteArrayInputStream(oauthBodyBytes));
 
-      // check if the bearer token is correctly added on the header of the main request
-      assertEquals("Bearer " + bearerToken, apacheRequest.getHeader("Authorization").getValue());
-      assertNotEquals("Bearer abcde", apacheRequest.getHeader("Authorization").getValue());
-      assertThat(oauthRequest.getBody())
-          .isEqualTo(
-              scopes == null
-                  ? Map.of(
-                      "audience",
-                      "https://dev-test.eu.auth0.com/api/v2/",
-                      "grant_type",
-                      "client_credentials")
-                  : Map.of(
-                      "audience",
-                      "https://dev-test.eu.auth0.com/api/v2/",
-                      "grant_type",
-                      "client_credentials",
-                      "scope",
-                      scopes));
-    }
+    // when
+    String bearerToken = oAuthService.extractTokenFromResponse(oauthResult);
+    var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
+
+    // check if the bearer token is correctly added on the header of the main request
+    assertEquals("Bearer " + bearerToken, apacheRequest.getHeader("Authorization").getValue());
+    assertNotEquals("Bearer abcde", apacheRequest.getHeader("Authorization").getValue());
+    assertThat(oauthRequest.getBody())
+        .isEqualTo(
+            scopes == null
+                ? Map.of(
+                "audience",
+                "https://dev-test.eu.auth0.com/api/v2/",
+                "grant_type",
+                "client_credentials")
+                : Map.of(
+                    "audience",
+                    "https://dev-test.eu.auth0.com/api/v2/",
+                    "grant_type",
+                    "client_credentials",
+                    "scope",
+                    scopes));
   }
 }

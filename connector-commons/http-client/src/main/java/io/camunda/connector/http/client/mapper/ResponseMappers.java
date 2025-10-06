@@ -14,14 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.client.client;
+package io.camunda.connector.http.client.mapper;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.http.client.model.response.InMemoryHttpResponse;
-import io.camunda.connector.http.client.model.response.StreamingHttpResponse;
 import io.camunda.connector.http.client.utils.JsonHelper;
 import java.io.IOException;
 import java.util.function.Supplier;
@@ -36,52 +34,55 @@ import org.apache.commons.lang3.StringUtils;
  */
 public final class ResponseMappers {
 
-  public static ResponseMapper<InMemoryHttpResponse<String>> asString() {
+  public static ResponseMapper<String> asString() {
     return ResponseMappers::asString;
   }
 
-  public static ResponseMapper<InMemoryHttpResponse<byte[]>> asByteArray() {
+  public static ResponseMapper<byte[]> asByteArray() {
     return ResponseMappers::asBytes;
   }
 
-  public static ResponseMapper<InMemoryHttpResponse<JsonNode>> asJsonNode(
-      Supplier<ObjectMapper> objectMapperSupplier) {
+  public static ResponseMapper<JsonNode> asJsonNode(Supplier<ObjectMapper> objectMapperSupplier) {
     return (response) -> asJson(response, objectMapperSupplier.get());
+  }
+
+  public static ResponseMapper<Void> asVoid() {
+    return (response) -> null;
   }
 
   private static final int MAX_IN_MEMORY_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
   private static final String ERROR_MESSAGE_TOO_LARGE =
       "Response body exceeds maximum in-memory size of " + MAX_IN_MEMORY_BODY_SIZE + " bytes";
 
-  private static InMemoryHttpResponse<String> asString(StreamingHttpResponse response) {
+  private static String asString(StreamingHttpResponse response) {
     try {
-      var body = new String(response.body().readNBytes(MAX_IN_MEMORY_BODY_SIZE));
+      var bytes = response.body().readNBytes(MAX_IN_MEMORY_BODY_SIZE);
       if (response.body().read() != -1) {
         throw new RuntimeException(ERROR_MESSAGE_TOO_LARGE);
       }
-      return new InMemoryHttpResponse<>(
-          response.status(), response.reason(), response.headers(), body);
+      if (bytes.length == 0) {
+        return null;
+      }
+      return new String(bytes);
     } catch (IOException e) {
       throw new RuntimeException("Failed to read response body as string", e);
     }
   }
 
-  private static InMemoryHttpResponse<byte[]> asBytes(StreamingHttpResponse response) {
+  private static byte[] asBytes(StreamingHttpResponse response) {
     try {
       var body = response.body().readNBytes(MAX_IN_MEMORY_BODY_SIZE);
       if (response.body().read() != -1) {
         throw new RuntimeException(ERROR_MESSAGE_TOO_LARGE);
       }
-      return new InMemoryHttpResponse<>(
-          response.status(), response.reason(), response.headers(), body);
+      return body;
     } catch (IOException e) {
       throw new RuntimeException("Failed to read response body as bytes", e);
     }
   }
 
-  private static InMemoryHttpResponse<JsonNode> asJson(
-      StreamingHttpResponse response, ObjectMapper objectMapper) {
-    var stringBody = asString(response).body();
+  private static JsonNode asJson(StreamingHttpResponse response, ObjectMapper objectMapper) {
+    var stringBody = asString(response);
     if (!JsonHelper.isJsonStringValid(stringBody)) {
       throw new ConnectorException(
           "Response body is not valid JSON: "
@@ -90,9 +91,7 @@ public final class ResponseMappers {
                   : "<empty>"));
     }
     try {
-      var jsonNode = objectMapper.readTree(stringBody);
-      return new InMemoryHttpResponse<>(
-          response.status(), response.reason(), response.headers(), jsonNode);
+      return objectMapper.readTree(stringBody);
     } catch (JsonProcessingException e) {
       throw new ConnectorException("Failed to parse JSON string: " + stringBody, e);
     }

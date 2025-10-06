@@ -14,17 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.client.model.response;
+package io.camunda.connector.http.client.mapper;
 
-import java.util.List;
-import java.util.Map;
+import java.util.function.Function;
 
 /**
- * An HTTP response where the body is fully read into memory. Normally created by applying a {@link
- * io.camunda.connector.http.client.client.ResponseMapper} to a {@link StreamingHttpResponse}.
+ * A function that converts a {@link StreamingHttpResponse} to a desired type. The mapper does not
+ * need to handle closing the response body stream, as it will be closed automatically after the
+ * mapping is done.
  *
- * @see io.camunda.connector.http.client.client.ResponseMappers for common mappers
+ * @param <T> the type to map the response to
  */
-public record InMemoryHttpResponse<T>(
-    int status, String reason, Map<String, List<String>> headers, T body)
-    implements HttpResponse<T> {}
+public interface ResponseMapper<T> extends Function<StreamingHttpResponse, T> {}
