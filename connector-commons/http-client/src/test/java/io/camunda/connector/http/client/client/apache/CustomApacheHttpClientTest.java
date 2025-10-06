@@ -611,7 +611,8 @@ public class CustomApacheHttpClientTest {
           assertThrows(ConnectorException.class, () -> customApacheHttpClient.execute(request));
       assertThat(e.getErrorCode()).isEqualTo(String.valueOf(HttpStatus.SC_REQUEST_TIMEOUT));
       assertThat(e.getMessage())
-          .contains("An error occurred while executing the request, or the connection was aborted");
+          .contains(
+              "The request timed out. Please try increasing the read and connection timeouts.");
     }
   }
 
