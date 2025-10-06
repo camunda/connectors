@@ -21,8 +21,8 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     id = "io.camunda.connectors.agenticai.a2a.client.v0",
     name = "A2A Client (experimental)",
     description =
-        "Agent-to-Agent (A2A) client, enabling discovering remote agents' Agent Cards as well as invoking remove agents. Compatible with 8.8.0-alpha8 or later.",
-    engineVersion = "^8.8",
+        "Agent-to-Agent (A2A) client, enabling discovering remote agents' Agent Cards as well as invoking remove agents.",
+    engineVersion = "^8.9",
     version = 0,
     inputDataClass = A2AClientRequest.class,
     propertyGroups = {
