@@ -83,7 +83,8 @@ class ExternalDocumentTest {
 
   @Test
   void metadata_shouldReturnContentTypeAndSize() {
-    when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class))).thenReturn(httpClientResult);
+    when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class)))
+        .thenReturn(httpClientResult);
     when(httpClientResult.mappedEntity()).thenReturn("abc".getBytes());
     when(httpClientResult.headers())
         .thenReturn(
@@ -99,8 +100,8 @@ class ExternalDocumentTest {
 
   @Test
   void metadata_shouldFallbackOnInvalidSize() {
-    when(httpClientService.execute(any(HttpClientRequest.class),
-        any(ResponseMapper.class))).thenReturn(httpClientResult);
+    when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class)))
+        .thenReturn(httpClientResult);
     when(httpClientResult.mappedEntity()).thenReturn("abc".getBytes());
 
     DocumentMetadata meta = document.metadata();
@@ -113,7 +114,8 @@ class ExternalDocumentTest {
   void asInputStream_shouldReturnStreamOfStringBody() throws Exception {
     String svg =
         "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1\" height=\"1\"><rect width=\"1\" height=\"1\"/></svg>\n";
-    when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class))).thenReturn(httpClientResult);
+    when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class)))
+        .thenReturn(httpClientResult);
     when(httpClientResult.mappedEntity()).thenReturn(svg.getBytes());
     Document document = new ExternalDocument(URL, NAME, downloadDocument);
 
@@ -128,7 +130,8 @@ class ExternalDocumentTest {
     var pdf =
         Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("testpdf.pdf"))
             .readAllBytes();
-    when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class))).thenReturn(httpClientResult);
+    when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class)))
+        .thenReturn(httpClientResult);
     when(httpClientResult.mappedEntity()).thenReturn(pdf);
     Document document = new ExternalDocument(URL, NAME, downloadDocument);
 
@@ -148,7 +151,8 @@ class ExternalDocumentTest {
 
   @Test
   void reference_shouldReturnFilenameFromHeader() {
-    when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class))).thenReturn(httpClientResult);
+    when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class)))
+        .thenReturn(httpClientResult);
     when(httpClientResult.mappedEntity()).thenReturn("abc".getBytes());
     when(httpClientResult.headers())
         .thenReturn(

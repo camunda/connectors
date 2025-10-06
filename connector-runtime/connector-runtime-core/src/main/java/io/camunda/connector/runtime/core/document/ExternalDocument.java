@@ -68,7 +68,8 @@ public class ExternalDocument implements Document {
         new DocumentMetadata() {
           @Override
           public String getContentType() {
-            return HeadersHelper.getHeaderIgnoreCase(getResult().headers(), HttpHeaders.CONTENT_TYPE);
+            return HeadersHelper.getHeaderIgnoreCase(
+                getResult().headers(), HttpHeaders.CONTENT_TYPE);
           }
 
           @Override

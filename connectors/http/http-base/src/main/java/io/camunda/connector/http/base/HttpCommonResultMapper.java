@@ -1,18 +1,8 @@
 /*
  * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
- * under one or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information regarding copyright
- * ownership. Camunda licenses this file to you under the Apache License,
- * Version 2.0; you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
  */
 package io.camunda.connector.http.base;
 
@@ -45,8 +35,7 @@ public class HttpCommonResultMapper implements ResponseMapper<HttpCommonResult> 
   private final DocumentFactory documentFactory;
   private final boolean isStoreResponseSelected;
 
-  public HttpCommonResultMapper(DocumentFactory documentFactory,
-      boolean isStoreResponseSelected) {
+  public HttpCommonResultMapper(DocumentFactory documentFactory, boolean isStoreResponseSelected) {
     this.documentFactory = documentFactory;
     this.isStoreResponseSelected = isStoreResponseSelected;
   }
@@ -57,17 +46,14 @@ public class HttpCommonResultMapper implements ResponseMapper<HttpCommonResult> 
       return storeDocument(streamingHttpResponse);
     } else {
       try { // stream is closed by the http client
-        byte[] bytes = streamingHttpResponse.body() != null
-            ? streamingHttpResponse.body().readAllBytes()
-            : null;
+        byte[] bytes =
+            streamingHttpResponse.body() != null
+                ? streamingHttpResponse.body().readAllBytes()
+                : null;
         Object body = deserializeBody(bytes);
-        Map<String, Object> headers = parseHeaders(streamingHttpResponse.headers());
+        Map<String, Object> headers = HeadersHelper.flattenHeaders(streamingHttpResponse.headers());
         return new HttpCommonResult(
-            streamingHttpResponse.status(),
-            headers,
-            body,
-            streamingHttpResponse.reason(),
-            null);
+            streamingHttpResponse.status(), headers, body, streamingHttpResponse.reason(), null);
       } catch (IOException e) {
         LOGGER.error("Failed to read response body: {}", e.getMessage(), e);
         throw new RuntimeException("Failed to read response body: " + e.getMessage(), e);
@@ -83,15 +69,14 @@ public class HttpCommonResultMapper implements ResponseMapper<HttpCommonResult> 
     var headers = response.headers();
     try {
       var document =
-          documentFactory
-              .create(
-                  DocumentCreationRequest.from(response.body())
-                      .contentType(getContentType(headers))
-                      .build());
-      var formattedHeaders = parseHeaders(headers);
+          documentFactory.create(
+              DocumentCreationRequest.from(response.body())
+                  .contentType(getContentType(headers))
+                  .build());
+      var flattenedHeaders = HeadersHelper.flattenHeaders(headers);
       LOGGER.debug("Stored response as document. Document reference: {}", document);
       return new HttpCommonResult(
-          response.status(), formattedHeaders, null, response.reason(), document);
+          response.status(), flattenedHeaders, null, response.reason(), document);
     } catch (Exception e) {
       LOGGER.error("Failed to create document: {}", e.getMessage(), e);
       throw new RuntimeException("Failed to create document: " + e.getMessage(), e);
@@ -116,21 +101,5 @@ public class HttpCommonResultMapper implements ResponseMapper<HttpCommonResult> 
           : bodyString;
     }
     return null;
-  }
-
-  private Map<String, Object> parseHeaders(Map<String, List<String>> headers) {
-    // convert single value headers from List<String> to String
-    return headers.entrySet().stream()
-        .collect(
-            java.util.stream.Collectors.toMap(
-                Map.Entry::getKey,
-                entry -> {
-                  List<String> values = entry.getValue();
-                  if (values.size() == 1) {
-                    return values.getFirst();
-                  } else {
-                    return values;
-                  }
-                }));
   }
 }
