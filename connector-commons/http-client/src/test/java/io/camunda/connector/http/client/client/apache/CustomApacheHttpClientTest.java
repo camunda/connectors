@@ -471,8 +471,8 @@ public class CustomApacheHttpClientTest {
       var result = httpClient.execute(request, ResponseMappers.asString());
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      assertThat(result.headers().get("my-header")).isEqualTo(
-          List.of("Test-Value-1", "Test-Value-2"));
+      assertThat(result.headers().get("my-header"))
+          .isEqualTo(List.of("Test-Value-1", "Test-Value-2"));
     }
 
     @Test
