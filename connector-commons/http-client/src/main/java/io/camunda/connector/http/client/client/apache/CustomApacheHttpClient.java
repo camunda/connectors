@@ -27,7 +27,6 @@ import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
-import java.util.Map;
 import org.apache.hc.client5.http.ClientProtocolException;
 import org.apache.hc.core5.http.HttpStatus;
 
