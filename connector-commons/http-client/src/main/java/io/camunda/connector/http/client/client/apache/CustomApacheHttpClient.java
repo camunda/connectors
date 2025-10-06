@@ -25,6 +25,7 @@ import io.camunda.connector.http.client.exception.ConnectorExceptionMapper;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.util.Map;
 import javax.annotation.Nullable;
 import org.apache.hc.client5.http.ClientProtocolException;
@@ -70,6 +71,11 @@ public class CustomApacheHttpClient implements HttpClient {
       throw new ConnectorException(
           String.valueOf(HttpStatus.SC_SERVER_ERROR),
           "An error with the HTTP protocol occurred",
+          e);
+    } catch (SocketTimeoutException e) {
+      throw new ConnectorException(
+          String.valueOf(HttpStatus.SC_REQUEST_TIMEOUT),
+          "The request timed out. Please try increasing the read and connection timeouts.",
           e);
     } catch (IOException e) {
       throw new ConnectorException(
