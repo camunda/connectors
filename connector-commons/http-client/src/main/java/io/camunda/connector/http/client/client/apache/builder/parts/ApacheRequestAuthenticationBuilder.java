@@ -18,13 +18,11 @@ package io.camunda.connector.http.client.client.apache.builder.parts;
 
 import static org.apache.hc.core5.http.HttpHeaders.AUTHORIZATION;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.authentication.Base64Helper;
 import io.camunda.connector.http.client.authentication.OAuthService;
-import io.camunda.connector.http.client.client.ResponseMappers;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.auth.ApiKeyAuthentication;
@@ -71,11 +69,8 @@ public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuil
 
   String fetchOAuthToken(OAuthAuthentication authentication) {
     HttpClientRequest oAuthRequest = oAuthService.createOAuthRequestFrom(authentication);
-    JsonNode body =
-        new CustomApacheHttpClient()
-            .execute(
-                oAuthRequest, ResponseMappers.asJsonNode(HttpClientObjectMapperSupplier::getCopy))
-            .body();
-    return oAuthService.extractTokenFromResponse(body);
+    return new CustomApacheHttpClient()
+        .execute(oAuthRequest, oAuthService::extractTokenFromResponse)
+        .mappedEntity();
   }
 }

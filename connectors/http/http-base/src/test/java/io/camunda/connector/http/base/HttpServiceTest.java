@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.document;
+package io.camunda.connector.http.base;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,10 +29,13 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
-import io.camunda.connector.http.client.HttpClientService;
+import io.camunda.connector.http.client.client.HttpClient;
+import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
+import io.camunda.connector.http.client.mapper.MappedHttpResponse;
+import io.camunda.connector.http.client.mapper.ResponseMappers;
 import io.camunda.connector.http.client.model.HttpClientRequest;
-import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.client.model.HttpMethod;
+import io.camunda.connector.runtime.test.document.TestDocumentFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
@@ -44,27 +45,17 @@ import java.util.Objects;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 @WireMockTest(extensionScanningEnabled = true)
-public class HttpClientServiceTest {
+public class HttpServiceTest {
 
-  private static final CloudFunctionCredentials cloudFunctionCredentials =
-      Mockito.mock(CloudFunctionCredentials.class);
-  private static final CloudFunctionService cloudFunctionService =
-      Mockito.spy(new CloudFunctionService(cloudFunctionCredentials));
-  private static final CloudFunctionService disabledCloudFunctionService =
-      Mockito.spy(new CloudFunctionService());
-  private final HttpClientService httpClientService = new HttpClientService(cloudFunctionService);
-  private final HttpClientService httpClientServiceWithoutCloudFunction =
-      new HttpClientService(disabledCloudFunctionService);
+  private final HttpClient httpClient = new CustomApacheHttpClient();
   private final ObjectMapper objectMapper = HttpClientObjectMapperSupplier.getCopy();
   private final TestDocumentFactory documentFactory = new TestDocumentFactory();
   private final DocumentFactory failingDocumentFactory =
@@ -80,33 +71,13 @@ public class HttpClientServiceTest {
         }
       };
 
-  @BeforeAll
-  public static void setUp() {
-    Mockito.when(cloudFunctionService.isCloudFunctionEnabled()).thenReturn(true);
-    Mockito.when(cloudFunctionCredentials.getOAuthToken(ArgumentMatchers.anyString()))
-        .thenReturn("token");
-    Mockito.when(disabledCloudFunctionService.isCloudFunctionEnabled()).thenReturn(false);
-  }
-
   private String getHostAndPort(WireMockRuntimeInfo wmRuntimeInfo) {
     return "http://localhost:" + wmRuntimeInfo.getHttpPort();
   }
 
-  private void stubCloudFunction(WireMockRuntimeInfo wmRuntimeInfo) {
-    Mockito.when(cloudFunctionService.getProxyFunctionUrl())
-        .thenReturn(getHostAndPort(wmRuntimeInfo) + "/proxy");
-    WireMock.stubFor(
-        WireMock.post("/proxy")
-            .willReturn(
-                WireMock.aResponse()
-                    .withTransformers(
-                        CloudFunctionResponseTransformer.CLOUD_FUNCTION_TRANSFORMER)));
-  }
-
-  @ParameterizedTest
-  @ValueSource(booleans = {true, false})
+  @Test
   public void shouldReturn200WithFileBodyParam_whenPostMultipartFormDataRequest(
-      boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+      WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
     var documentBytes =
         Objects.requireNonNull(ClassLoader.getSystemResourceAsStream("__files/fileName.jpg"))
             .readAllBytes();
@@ -123,11 +94,6 @@ public class HttpClientServiceTest {
                 .contentType("text/plain")
                 .build());
 
-    stubCloudFunction(wmRuntimeInfo);
-    HttpClientService httpClientService =
-        cloudFunctionEnabled
-            ? HttpClientServiceTest.this.httpClientService
-            : httpClientServiceWithoutCloudFunction;
     WireMock.stubFor(WireMock.post("/upload").willReturn(WireMock.ok()));
 
     // given
@@ -146,14 +112,13 @@ public class HttpClientServiceTest {
     request.setUrl(getHostAndPort(wmRuntimeInfo) + "/upload");
 
     // when
-    HttpClientResult result =
-        httpClientService.executeConnectorRequest(request, new TestDocumentFactory());
+    MappedHttpResponse<byte[]> result = httpClient.execute(request, ResponseMappers.asByteArray());
 
     // then
     Assertions.assertThat(result).isNotNull();
     Assertions.assertThat(result.status()).isEqualTo(200);
-    Assertions.assertThat(result.body()).isNull();
-    Assertions.assertThat(result.document()).isNull();
+    Assertions.assertThat(result.reason()).isNull();
+    Assertions.assertThat(result.mappedEntity()).isNull();
 
     WireMock.verify(
         WireMock.postRequestedFor(WireMock.urlEqualTo("/upload"))
@@ -187,11 +152,6 @@ public class HttpClientServiceTest {
                     .withBody(WireMock.equalTo("the content"))
                     .withHeader("Content-Type", WireMock.equalTo("text/plain"))
                     .build()));
-    if (cloudFunctionEnabled) {
-      WireMock.verify(
-          WireMock.postRequestedFor(WireMock.urlEqualTo("/proxy"))
-              .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(request))));
-    }
   }
 
   @ParameterizedTest
@@ -203,11 +163,6 @@ public class HttpClientServiceTest {
             .readAllBytes();
     var document = documentFactory.create(DocumentCreationRequest.from(documentBytes).build());
 
-    stubCloudFunction(wmRuntimeInfo);
-    HttpClientService httpClientService =
-        cloudFunctionEnabled
-            ? HttpClientServiceTest.this.httpClientService
-            : httpClientServiceWithoutCloudFunction;
     WireMock.stubFor(WireMock.post("/upload").willReturn(WireMock.ok()));
 
     // given
@@ -217,14 +172,12 @@ public class HttpClientServiceTest {
     request.setUrl(getHostAndPort(wmRuntimeInfo) + "/upload");
 
     // when
-    HttpClientResult result =
-        httpClientService.executeConnectorRequest(request, new TestDocumentFactory());
+    MappedHttpResponse<Void> result = httpClient.execute(request, ResponseMappers.asVoid());
 
     // then
     Assertions.assertThat(result).isNotNull();
     Assertions.assertThat(result.status()).isEqualTo(200);
-    Assertions.assertThat(result.body()).isNull();
-    Assertions.assertThat(result.document()).isNull();
+    Assertions.assertThat(result.mappedEntity()).isNull();
 
     WireMock.verify(
         WireMock.postRequestedFor(WireMock.urlEqualTo("/upload"))
@@ -243,11 +196,6 @@ public class HttpClientServiceTest {
   @ValueSource(booleans = {true, false})
   public void shouldReturn200WithFileBody_whenGetFileRequest(
       boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-    stubCloudFunction(wmRuntimeInfo);
-    HttpClientService httpClientService =
-        cloudFunctionEnabled
-            ? HttpClientServiceTest.this.httpClientService
-            : httpClientServiceWithoutCloudFunction;
     WireMock.stubFor(
         WireMock.get("/download")
             .willReturn(
@@ -258,12 +206,10 @@ public class HttpClientServiceTest {
     // given
     HttpClientRequest request = new HttpClientRequest();
     request.setMethod(HttpMethod.GET);
-    request.setStoreResponse(true);
     request.setUrl(getHostAndPort(wmRuntimeInfo) + "/download");
 
     // when
-    HttpClientResult result =
-        httpClientService.executeConnectorRequest(request, new TestDocumentFactory());
+    MappedHttpResponse<byte[]> result = httpClient.execute(request, new TestDocumentFactory());
 
     // then
     Assertions.assertThat(result).isNotNull();
@@ -271,7 +217,7 @@ public class HttpClientServiceTest {
     Assertions.assertThat(result.body()).isNull();
     Assertions.assertThat(result.document()).isNotNull();
     var content = documentFactory.resolve(result.document().reference());
-    assertThat(content.asByteArray())
+    Assertions.assertThat(content.asByteArray())
         .isEqualTo(getClass().getResourceAsStream("/__files/fileName.jpg").readAllBytes());
     WireMock.verify(WireMock.getRequestedFor(WireMock.urlEqualTo("/download")));
     if (cloudFunctionEnabled) {
@@ -288,7 +234,7 @@ public class HttpClientServiceTest {
     stubCloudFunction(wmRuntimeInfo);
     HttpClientService httpClientService =
         cloudFunctionEnabled
-            ? HttpClientServiceTest.this.httpClientService
+            ? HttpServiceTest.this.httpClient
             : httpClientServiceWithoutCloudFunction;
 
     WireMock.stubFor(
@@ -339,15 +285,9 @@ public class HttpClientServiceTest {
     }
   }
 
-  @ParameterizedTest
-  @ValueSource(booleans = {true, false})
+  @Test
   public void shouldReturn401_whenUnauthorizedGetRequestWithBody(
-      boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-    stubCloudFunction(wmRuntimeInfo);
-    HttpClientService httpClientService =
-        cloudFunctionEnabled
-            ? HttpClientServiceTest.this.httpClientService
-            : httpClientServiceWithoutCloudFunction;
+      WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
     WireMock.stubFor(
         WireMock.get("/path")
             .willReturn(
@@ -382,15 +322,9 @@ public class HttpClientServiceTest {
     }
   }
 
-  @ParameterizedTest
-  @ValueSource(booleans = {true, false})
+  @Test
   public void shouldReturn500WithErrorMessage_whenCreateFileRequestFails(
-      boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-    stubCloudFunction(wmRuntimeInfo);
-    HttpClientService httpClientService =
-        cloudFunctionEnabled
-            ? HttpClientServiceTest.this.httpClientService
-            : httpClientServiceWithoutCloudFunction;
+      WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
     WireMock.stubFor(
         WireMock.get("/download")
             .willReturn(
@@ -401,7 +335,6 @@ public class HttpClientServiceTest {
     // given
     HttpClientRequest request = new HttpClientRequest();
     request.setMethod(HttpMethod.GET);
-    request.setStoreResponse(true);
     request.setUrl(getHostAndPort(wmRuntimeInfo) + "/download");
 
     // when
@@ -415,22 +348,11 @@ public class HttpClientServiceTest {
     Assertions.assertThat(e.getErrorCode()).isEqualTo("500");
     Assertions.assertThat(e.getMessage())
         .isEqualTo("Failed to create document: Document creation failed");
-    if (cloudFunctionEnabled) {
-      WireMock.verify(
-          WireMock.postRequestedFor(WireMock.urlEqualTo("/proxy"))
-              .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(request))));
-    }
   }
 
-  @ParameterizedTest
-  @ValueSource(booleans = {true, false})
+  @Test
   public void shouldReturn401_whenUnauthorizedGetRequestWithJsonBody(
-      boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-    stubCloudFunction(wmRuntimeInfo);
-    HttpClientService httpClientService =
-        cloudFunctionEnabled
-            ? HttpClientServiceTest.this.httpClientService
-            : httpClientServiceWithoutCloudFunction;
+      WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
     WireMock.stubFor(
         WireMock.get("/path")
             .willReturn(
@@ -467,22 +389,11 @@ public class HttpClientServiceTest {
     expectedBody.put("responseKey2", 40);
     expectedBody.put("responseKey3", null);
     Assertions.assertThat((Map) response.get("body")).containsAllEntriesOf(expectedBody);
-    if (cloudFunctionEnabled) {
-      WireMock.verify(
-          WireMock.postRequestedFor(WireMock.urlEqualTo("/proxy"))
-              .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(request))));
-    }
   }
 
-  @ParameterizedTest
-  @ValueSource(booleans = {true, false})
+  @Test
   public void shouldReturn401_whenUnauthorizedGetRequestWithReason(
-      boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-    stubCloudFunction(wmRuntimeInfo);
-    HttpClientService httpClientService =
-        cloudFunctionEnabled
-            ? HttpClientServiceTest.this.httpClientService
-            : httpClientServiceWithoutCloudFunction;
+      WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
     WireMock.stubFor(
         WireMock.get("/path")
             .willReturn(WireMock.unauthorized().withStatusMessage("Unauthorized sorry!")));
@@ -504,22 +415,11 @@ public class HttpClientServiceTest {
     Assertions.assertThat(e).isNotNull();
     Assertions.assertThat(e.getErrorCode()).isEqualTo("401");
     Assertions.assertThat(e.getMessage()).isEqualTo("Unauthorized sorry!");
-    if (cloudFunctionEnabled) {
-      WireMock.verify(
-          WireMock.postRequestedFor(WireMock.urlEqualTo("/proxy"))
-              .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(request))));
-    }
   }
 
-  @ParameterizedTest
-  @ValueSource(booleans = {true, false})
+  @Test
   public void shouldReturn200WithBody_whenPostRequestWithNullContentType(
-      boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-    stubCloudFunction(wmRuntimeInfo);
-    HttpClientService httpClientService =
-        cloudFunctionEnabled
-            ? HttpClientServiceTest.this.httpClientService
-            : httpClientServiceWithoutCloudFunction;
+      WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
 
     WireMock.stubFor(
         WireMock.post("/path")
@@ -562,10 +462,5 @@ public class HttpClientServiceTest {
                         WireMock.matchingJsonPath(
                             "$.message", WireMock.equalTo("{\"key\":\"value\"}")))
                     .and(WireMock.matchingJsonPath("$.age", WireMock.equalTo("30")))));
-    if (cloudFunctionEnabled) {
-      WireMock.verify(
-          WireMock.postRequestedFor(WireMock.urlEqualTo("/proxy"))
-              .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(request))));
-    }
   }
 }

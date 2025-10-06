@@ -14,53 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.client.model.response;
+package io.camunda.connector.http.client.mapper;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
 /** An HTTP response where the body is represented as a stream. */
-public class StreamingHttpResponse implements HttpResponse<InputStream>, AutoCloseable {
-
-  private final Runnable onClose;
-  private final int status;
-  private final String reason;
-  private final Map<String, List<String>> headers;
-  private final InputStream body;
-
-  public StreamingHttpResponse(int status, String reason, Map<String, List<String>> headers, InputStream body, Runnable onClose) {
-    this.status = status;
-    this.reason = reason;
-    this.headers = headers;
-    this.body = body;
-    this.onClose = onClose;
-  }
-
-  @Override
-  public int status() {
-    return status;
-  }
-
-  @Override
-  public String reason() {
-    return reason;
-  }
-
-  @Override
-  public InputStream body() {
-    return body;
-  }
-
-  @Override
-  public Map<String, List<String>> headers() {
-    return headers;
-  }
+public record StreamingHttpResponse(
+    int status, String reason, Map<String, List<String>> headers, InputStream body)
+    implements Closeable {
 
   @Override
   public void close() {
-    onClose.run();
     if (body != null) {
       try {
         body.close();

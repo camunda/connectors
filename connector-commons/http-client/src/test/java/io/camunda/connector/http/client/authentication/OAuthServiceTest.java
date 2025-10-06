@@ -20,22 +20,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
+import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import io.camunda.connector.http.client.model.HttpMethod;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
+import java.io.ByteArrayInputStream;
 import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 public class OAuthServiceTest {
+
   private final OAuthService oAuthService = new OAuthService();
 
   private final ObjectMapper objectMapper = HttpClientObjectMapperSupplier.getCopy();
 
   @Nested
   class CreateOAuthRequestTests {
+
     @Test
     public void
         shouldCreateOAuthRequestWithBodyCredentials_whenCreatingRequestWithBodyCredentials() {
@@ -98,14 +101,15 @@ public class OAuthServiceTest {
   class ExtractTokenFromResponseTests {
 
     @Test
-    public void shouldReturnNull_whenExtractingTokenFromJsonWithoutAccessToken()
-        throws JsonProcessingException {
+    public void shouldReturnNull_whenExtractingTokenFromJsonWithoutAccessToken() {
       // Given
       String body = "{\"scope\":\"read:clients\", \"expires_in\":86400,\"token_type\":\"Bearer\"}";
-      JsonNode jsonNode = objectMapper.readValue(body, JsonNode.class);
 
       // When
-      String token = oAuthService.extractTokenFromResponse(jsonNode);
+      String token =
+          oAuthService.extractTokenFromResponse(
+              new StreamingHttpResponse(
+                  200, null, null, new ByteArrayInputStream(body.getBytes())));
 
       // Then
       assertNull(token);
@@ -125,39 +129,41 @@ public class OAuthServiceTest {
               86400,
               "token_type",
               "Bearer");
-      JsonNode jsonNode = objectMapper.valueToTree(body);
+      String s = objectMapper.writeValueAsString(body);
+      var response =
+          new StreamingHttpResponse(200, null, null, new ByteArrayInputStream(s.getBytes()));
 
       // When
-      String token = oAuthService.extractTokenFromResponse(jsonNode);
+      String token = oAuthService.extractTokenFromResponse(response);
 
       // Then
       assertThat(token).isEqualTo("abcd");
     }
 
     @Test
-    public void shouldReturnToken_whenExtractingTokenFromValidJsonString()
-        throws JsonProcessingException {
+    public void shouldReturnToken_whenExtractingTokenFromValidJsonString() {
       // Given
       String body =
           "{\"access_token\": \"abcd\", \"scope\":\"read:clients\", \"expires_in\":86400,\"token_type\":\"Bearer\"}";
-      JsonNode jsonNode = objectMapper.readValue(body, JsonNode.class);
+      var response =
+          new StreamingHttpResponse(200, null, null, new ByteArrayInputStream(body.getBytes()));
 
       // When
-      String token = oAuthService.extractTokenFromResponse(jsonNode);
+      String token = oAuthService.extractTokenFromResponse(response);
 
       // Then
       assertThat(token).isEqualTo("abcd");
     }
 
     @Test
-    public void shouldReturnToken_whenExtractingTokenFromValidJsonStringWithoutScopes()
-        throws JsonProcessingException {
+    public void shouldReturnToken_whenExtractingTokenFromValidJsonStringWithoutScopes() {
       // Given
       String body = "{\"access_token\": \"abcd\", \"expires_in\":86400,\"token_type\":\"Bearer\"}";
-      JsonNode jsonNode = objectMapper.readValue(body, JsonNode.class);
+      var response =
+          new StreamingHttpResponse(200, null, null, new ByteArrayInputStream(body.getBytes()));
 
       // When
-      String token = oAuthService.extractTokenFromResponse(jsonNode);
+      String token = oAuthService.extractTokenFromResponse(response);
 
       // Then
       assertThat(token).isEqualTo("abcd");

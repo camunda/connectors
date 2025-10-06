@@ -25,6 +25,7 @@ public class HeadersHelper {
     return headers.entrySet().stream()
         .filter(e -> e.getKey().equalsIgnoreCase(headerName))
         .map(Map.Entry::getValue)
+        .map(List::getFirst)
         .map(Object::toString)
         .findFirst()
         .orElse(null);

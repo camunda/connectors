@@ -18,7 +18,7 @@ package io.camunda.connector.http.client.exception;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.http.client.model.response.StreamingHttpResponse;
+import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.List;
@@ -28,9 +28,9 @@ import org.junit.jupiter.api.Test;
 public class ConnectorExceptionMapperTest {
 
   @Test
-  public void shouldMapResultToException_whehOnlyStatusCode() {
+  public void shouldMapResultToException_whenOnlyStatusCode() {
     // given
-    StreamingHttpResponse result = new StreamingHttpResponse(200, null, null, null, () -> {});
+    StreamingHttpResponse result = new StreamingHttpResponse(200, null, null, null);
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -48,7 +48,7 @@ public class ConnectorExceptionMapperTest {
   @Test
   public void shouldMapResultToException_whenStatusCodeAndReason() {
     // given
-    StreamingHttpResponse result = new StreamingHttpResponse(200, "Custom reason", null, null, () -> {});
+    StreamingHttpResponse result = new StreamingHttpResponse(200, "Custom reason", null, null);
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -71,8 +71,7 @@ public class ConnectorExceptionMapperTest {
             200,
             null,
             Map.of("Content-Type", List.of("text/plain"), "X-Custom", List.of("value")),
-            null,
-        () -> {});
+            null);
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -92,7 +91,7 @@ public class ConnectorExceptionMapperTest {
   public void shouldMapResultToException_whenStatusCodeAndBody() {
     // given
     StreamingHttpResponse result =
-        new StreamingHttpResponse(400, null, null, new ByteArrayInputStream("text".getBytes()), () -> {});
+        new StreamingHttpResponse(400, null, null, new ByteArrayInputStream("text".getBytes()));
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -112,7 +111,7 @@ public class ConnectorExceptionMapperTest {
     // given
     StreamingHttpResponse result =
         new StreamingHttpResponse(
-            400, "Custom reason", null, new ByteArrayInputStream("text".getBytes()), () -> {});
+            400, "Custom reason", null, new ByteArrayInputStream("text".getBytes()));
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -135,8 +134,7 @@ public class ConnectorExceptionMapperTest {
             400,
             null,
             Map.of("Content-Type", List.of("text/plain"), "X-Custom", List.of("value")),
-            new ByteArrayInputStream("text".getBytes()),
-            () -> {});
+            new ByteArrayInputStream("text".getBytes()));
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -160,8 +158,7 @@ public class ConnectorExceptionMapperTest {
             400,
             "Custom reason",
             Map.of("Content-Type", List.of("text/plain"), "X-Custom", List.of("value")),
-            new ByteArrayInputStream("text".getBytes()),
-            () -> {});
+            new ByteArrayInputStream("text".getBytes()));
 
     // when
     var exception = ConnectorExceptionMapper.from(result);
@@ -185,8 +182,7 @@ public class ConnectorExceptionMapperTest {
             400,
             "Custom reason",
             Map.of("Content-Type", List.of("application/json"), "X-Custom", List.of("value")),
-            new ByteArrayInputStream("{\"key\":\"value\"}".getBytes()),
-            () -> {});
+            new ByteArrayInputStream("{\"key\":\"value\"}".getBytes()));
 
     // when
     var exception = ConnectorExceptionMapper.from(result);

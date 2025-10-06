@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.document;
+package io.camunda.connector.http.base;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.client.WireMock.aMultipart;
@@ -42,6 +42,7 @@ import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.client.model.HttpMethod;
+import io.camunda.connector.runtime.core.document.CamundaDocument;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.io.IOException;
 import java.util.HashMap;
@@ -69,7 +70,8 @@ public class CustomApacheHttpClientDocumentTest {
 
     @Test
     public void shouldNotStoreDocument_whenErrorOccurs(WireMockRuntimeInfo wmRuntimeInfo) {
-      stubFor(post("/path").withMultipartRequestBody(aMultipart()).willReturn(created()));
+      WireMock.stubFor(WireMock.post("/path").withMultipartRequestBody(WireMock.aMultipart()).willReturn(
+          WireMock.created()));
       HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.POST);
       request.setHeaders(Map.of("Content-Type", ContentType.MULTIPART_FORM_DATA.getMimeType()));
@@ -99,10 +101,10 @@ public class CustomApacheHttpClientDocumentTest {
     @Test
     public void shouldStoreDocument_whenStoreResponseEnabled(WireMockRuntimeInfo wmRuntimeInfo)
         throws IOException {
-      stubFor(
-          get("/download")
+      WireMock.stubFor(
+          WireMock.get("/download")
               .willReturn(
-                  ok().withHeader(HttpHeaders.CONTENT_TYPE, ContentType.IMAGE_JPEG.getMimeType())
+                  WireMock.ok().withHeader(HttpHeaders.CONTENT_TYPE, ContentType.IMAGE_JPEG.getMimeType())
                       .withBodyFile("fileName.jpg")));
       HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
@@ -133,7 +135,8 @@ public class CustomApacheHttpClientDocumentTest {
 
     @Test
     public void shouldReturn201_whenUploadDocument(WireMockRuntimeInfo wmRuntimeInfo) {
-      stubFor(post("/path").withMultipartRequestBody(aMultipart()).willReturn(created()));
+      WireMock.stubFor(WireMock.post("/path").withMultipartRequestBody(WireMock.aMultipart()).willReturn(
+          WireMock.created()));
       var ref =
           store.createDocument(
               DocumentCreationRequest.from("The content of this file".getBytes())
@@ -153,26 +156,28 @@ public class CustomApacheHttpClientDocumentTest {
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(201);
 
-      verify(
-          postRequestedFor(urlEqualTo("/path"))
+      WireMock.verify(
+          WireMock.postRequestedFor(WireMock.urlEqualTo("/path"))
               .withHeader(
-                  "Content-Type", and(containing("multipart/form-data"), containing("boundary=")))
+                  "Content-Type", WireMock.and(
+                      WireMock.containing("multipart/form-data"), WireMock.containing("boundary=")))
               .withRequestBodyPart(
                   new MultipartValuePatternBuilder()
                       .withName("otherField")
-                      .withBody(equalTo("otherValue"))
+                      .withBody(WireMock.equalTo("otherValue"))
                       .build())
               .withRequestBodyPart(
                   new MultipartValuePatternBuilder()
                       .withName("document")
-                      .withBody(equalTo("The content of this file"))
-                      .withHeader("Content-Type", equalTo("text/plain"))
+                      .withBody(WireMock.equalTo("The content of this file"))
+                      .withHeader("Content-Type", WireMock.equalTo("text/plain"))
                       .build()));
     }
 
     @Test
     public void shouldReturn201_whenUploadDocuments(WireMockRuntimeInfo wmRuntimeInfo) {
-      stubFor(post("/path").withMultipartRequestBody(aMultipart()).willReturn(created()));
+      WireMock.stubFor(WireMock.post("/path").withMultipartRequestBody(WireMock.aMultipart()).willReturn(
+          WireMock.created()));
       var ref =
           store.createDocument(
               DocumentCreationRequest.from("The content of this file".getBytes())
@@ -202,26 +207,27 @@ public class CustomApacheHttpClientDocumentTest {
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(201);
 
-      verify(
-          postRequestedFor(urlEqualTo("/path"))
+      WireMock.verify(
+          WireMock.postRequestedFor(WireMock.urlEqualTo("/path"))
               .withHeader(
-                  "Content-Type", and(containing("multipart/form-data"), containing("boundary=")))
+                  "Content-Type", WireMock.and(
+                      WireMock.containing("multipart/form-data"), WireMock.containing("boundary=")))
               .withRequestBodyPart(
                   new MultipartValuePatternBuilder()
                       .withName("otherField")
-                      .withBody(equalTo("otherValue"))
+                      .withBody(WireMock.equalTo("otherValue"))
                       .build())
               .withRequestBodyPart(
                   new MultipartValuePatternBuilder()
                       .withName("documents")
-                      .withBody(equalTo("The content of this file"))
-                      .withHeader("Content-Type", equalTo("text/plain"))
+                      .withBody(WireMock.equalTo("The content of this file"))
+                      .withHeader("Content-Type", WireMock.equalTo("text/plain"))
                       .build())
               .withRequestBodyPart(
                   new MultipartValuePatternBuilder()
                       .withName("documents")
-                      .withBody(equalTo("The content of this file 2"))
-                      .withHeader("Content-Type", equalTo("text/plain"))
+                      .withBody(WireMock.equalTo("The content of this file 2"))
+                      .withHeader("Content-Type", WireMock.equalTo("text/plain"))
                       .build()));
     }
   }

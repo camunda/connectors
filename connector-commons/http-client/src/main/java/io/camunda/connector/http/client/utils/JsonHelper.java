@@ -27,6 +27,9 @@ public class JsonHelper {
   private static final ObjectMapper objectMapper = HttpClientObjectMapperSupplier.getCopy();
 
   public static boolean isJsonStringValid(String jsonString) {
+    if (jsonString == null) {
+      return false;
+    }
     try {
       JsonNode jsonNode = objectMapper.readTree(jsonString);
       return jsonNode.isObject() || jsonNode.isArray();
