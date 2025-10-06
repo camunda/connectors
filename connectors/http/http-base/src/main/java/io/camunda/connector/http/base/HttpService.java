@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.http.base;
 
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.auth.AuthenticationMapper;
@@ -16,17 +16,18 @@ import io.camunda.connector.http.client.model.HttpClientRequest;
 
 public class HttpService {
 
-  private final static HttpClient HTTP_CLIENT = new CustomApacheHttpClient();
+  private static final HttpClient HTTP_CLIENT = new CustomApacheHttpClient();
 
   public HttpCommonResult executeConnectorRequest(HttpCommonRequest request) {
     return executeConnectorRequest(request, null);
   }
 
   public HttpCommonResult executeConnectorRequest(
-      final HttpCommonRequest request, final OutboundConnectorContext context) {
+      final HttpCommonRequest request, final DocumentFactory documentFactory) {
     HttpClientRequest httpClientRequest = mapToHttpClientRequest(request);
-    HttpCommonResultMapper responseHandler = new HttpCommonResultMapper(context, request.isStoreResponse());
-    return HTTP_CLIENT.execute(httpClientRequest, responseHandler);
+    HttpCommonResultMapper responseHandler =
+        new HttpCommonResultMapper(documentFactory, request.isStoreResponse());
+    return HTTP_CLIENT.execute(httpClientRequest, responseHandler).mappedEntity();
   }
 
   public HttpClientRequest mapToHttpClientRequest(HttpCommonRequest request) {

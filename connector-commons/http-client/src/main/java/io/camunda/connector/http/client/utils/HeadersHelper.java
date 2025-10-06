@@ -30,4 +30,29 @@ public class HeadersHelper {
         .findFirst()
         .orElse(null);
   }
+
+  /**
+   * Flattens headers to the format Map<String, Object> where value can be either a String or a List
+   * of Strings. If a header has multiple values, the list is preserved, otherwise the single value
+   * is returned as a String.
+   */
+  public static Map<String, Object> flattenHeaders(Map<String, List<String>> headers) {
+    if (headers == null) {
+      return null;
+    }
+    return headers.entrySet().stream()
+        .collect(
+            java.util.stream.Collectors.toMap(
+                Map.Entry::getKey,
+                e -> {
+                  List<String> values = e.getValue();
+                  if (values == null || values.isEmpty()) {
+                    return "";
+                  } else if (values.size() == 1) {
+                    return values.getFirst();
+                  } else {
+                    return values;
+                  }
+                }));
+  }
 }

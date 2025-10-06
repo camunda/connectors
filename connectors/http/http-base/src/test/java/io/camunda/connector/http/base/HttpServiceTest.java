@@ -1,18 +1,8 @@
 /*
  * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
- * under one or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information regarding copyright
- * ownership. Camunda licenses this file to you under the Apache License,
- * Version 2.0; you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
  */
 package io.camunda.connector.http.base;
 
@@ -28,13 +18,10 @@ import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.http.base.model.HttpCommonRequest;
+import io.camunda.connector.http.base.model.HttpCommonResult;
+import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
-import io.camunda.connector.http.client.client.HttpClient;
-import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
-import io.camunda.connector.http.client.mapper.MappedHttpResponse;
-import io.camunda.connector.http.client.mapper.ResponseMappers;
-import io.camunda.connector.http.client.model.HttpClientRequest;
-import io.camunda.connector.http.client.model.HttpMethod;
 import io.camunda.connector.runtime.test.document.TestDocumentFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -46,8 +33,6 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -55,7 +40,7 @@ import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
 @WireMockTest(extensionScanningEnabled = true)
 public class HttpServiceTest {
 
-  private final HttpClient httpClient = new CustomApacheHttpClient();
+  private final HttpService httpService = new HttpService();
   private final ObjectMapper objectMapper = HttpClientObjectMapperSupplier.getCopy();
   private final TestDocumentFactory documentFactory = new TestDocumentFactory();
   private final DocumentFactory failingDocumentFactory =
@@ -97,7 +82,7 @@ public class HttpServiceTest {
     WireMock.stubFor(WireMock.post("/upload").willReturn(WireMock.ok()));
 
     // given
-    HttpClientRequest request = new HttpClientRequest();
+    HttpCommonRequest request = new HttpCommonRequest();
     request.setMethod(HttpMethod.POST);
     request.setBody(
         Map.of(
@@ -112,13 +97,12 @@ public class HttpServiceTest {
     request.setUrl(getHostAndPort(wmRuntimeInfo) + "/upload");
 
     // when
-    MappedHttpResponse<byte[]> result = httpClient.execute(request, ResponseMappers.asByteArray());
+    HttpCommonResult result = httpService.executeConnectorRequest(request, documentFactory);
 
     // then
     Assertions.assertThat(result).isNotNull();
     Assertions.assertThat(result.status()).isEqualTo(200);
-    Assertions.assertThat(result.reason()).isNull();
-    Assertions.assertThat(result.mappedEntity()).isNull();
+    Assertions.assertThat(result.body()).isNull();
 
     WireMock.verify(
         WireMock.postRequestedFor(WireMock.urlEqualTo("/upload"))
@@ -154,10 +138,9 @@ public class HttpServiceTest {
                     .build()));
   }
 
-  @ParameterizedTest
-  @ValueSource(booleans = {true, false})
+  @Test
   public void shouldReturn200WithFileBodyParam_whenPostFileRequest(
-      boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+      WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
     var documentBytes =
         Objects.requireNonNull(ClassLoader.getSystemResourceAsStream("__files/fileName.jpg"))
             .readAllBytes();
@@ -166,18 +149,18 @@ public class HttpServiceTest {
     WireMock.stubFor(WireMock.post("/upload").willReturn(WireMock.ok()));
 
     // given
-    HttpClientRequest request = new HttpClientRequest();
+    HttpCommonRequest request = new HttpCommonRequest();
     request.setMethod(HttpMethod.POST);
     request.setBody(Map.of("myFile", document));
     request.setUrl(getHostAndPort(wmRuntimeInfo) + "/upload");
 
     // when
-    MappedHttpResponse<Void> result = httpClient.execute(request, ResponseMappers.asVoid());
+    HttpCommonResult result = httpService.executeConnectorRequest(request, documentFactory);
 
     // then
     Assertions.assertThat(result).isNotNull();
     Assertions.assertThat(result.status()).isEqualTo(200);
-    Assertions.assertThat(result.mappedEntity()).isNull();
+    Assertions.assertThat(result.body()).isNull();
 
     WireMock.verify(
         WireMock.postRequestedFor(WireMock.urlEqualTo("/upload"))
@@ -185,17 +168,11 @@ public class HttpServiceTest {
                 WireMock.matchingJsonPath(
                     "$.myFile",
                     WireMock.equalTo(Base64.getEncoder().encodeToString(documentBytes)))));
-    if (cloudFunctionEnabled) {
-      WireMock.verify(
-          WireMock.postRequestedFor(WireMock.urlEqualTo("/proxy"))
-              .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(request))));
-    }
   }
 
-  @ParameterizedTest
-  @ValueSource(booleans = {true, false})
-  public void shouldReturn200WithFileBody_whenGetFileRequest(
-      boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+  @Test
+  public void shouldReturn200WithFileBody_whenGetFileRequest(WireMockRuntimeInfo wmRuntimeInfo)
+      throws Exception {
     WireMock.stubFor(
         WireMock.get("/download")
             .willReturn(
@@ -204,12 +181,13 @@ public class HttpServiceTest {
                     .withBodyFile("fileName.jpg")));
 
     // given
-    HttpClientRequest request = new HttpClientRequest();
+    HttpCommonRequest request = new HttpCommonRequest();
     request.setMethod(HttpMethod.GET);
+    request.setStoreResponse(true);
     request.setUrl(getHostAndPort(wmRuntimeInfo) + "/download");
 
     // when
-    MappedHttpResponse<byte[]> result = httpClient.execute(request, new TestDocumentFactory());
+    HttpCommonResult result = httpService.executeConnectorRequest(request, documentFactory);
 
     // then
     Assertions.assertThat(result).isNotNull();
@@ -220,22 +198,11 @@ public class HttpServiceTest {
     Assertions.assertThat(content.asByteArray())
         .isEqualTo(getClass().getResourceAsStream("/__files/fileName.jpg").readAllBytes());
     WireMock.verify(WireMock.getRequestedFor(WireMock.urlEqualTo("/download")));
-    if (cloudFunctionEnabled) {
-      WireMock.verify(
-          WireMock.postRequestedFor(WireMock.urlEqualTo("/proxy"))
-              .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(request))));
-    }
   }
 
-  @ParameterizedTest
-  @ValueSource(booleans = {true, false})
-  public void shouldReturn200WithBody_whenPostRequest(
-      boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-    stubCloudFunction(wmRuntimeInfo);
-    HttpClientService httpClientService =
-        cloudFunctionEnabled
-            ? HttpServiceTest.this.httpClient
-            : httpClientServiceWithoutCloudFunction;
+  @Test
+  public void shouldReturn200WithBody_whenPostRequest(WireMockRuntimeInfo wmRuntimeInfo)
+      throws Exception {
 
     WireMock.stubFor(
         WireMock.post("/path")
@@ -251,14 +218,14 @@ public class HttpServiceTest {
                             .putNull("responseKey3"))));
 
     // given
-    HttpClientRequest request = new HttpClientRequest();
+    HttpCommonRequest request = new HttpCommonRequest();
     request.setMethod(HttpMethod.POST);
     request.setBody(Map.of("name", "John", "age", 30, "message", "{\"key\":\"value\"}"));
     request.setHeaders(Map.of("Accept", "application/json"));
     request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
 
     // when
-    HttpClientResult result = httpClientService.executeConnectorRequest(request);
+    HttpCommonResult result = httpService.executeConnectorRequest(request);
 
     // then
     Assertions.assertThat(result).isNotNull();
@@ -278,16 +245,11 @@ public class HttpServiceTest {
                         WireMock.matchingJsonPath(
                             "$.message", WireMock.equalTo("{\"key\":\"value\"}")))
                     .and(WireMock.matchingJsonPath("$.age", WireMock.equalTo("30")))));
-    if (cloudFunctionEnabled) {
-      WireMock.verify(
-          WireMock.postRequestedFor(WireMock.urlEqualTo("/proxy"))
-              .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(request))));
-    }
   }
 
   @Test
   public void shouldReturn401_whenUnauthorizedGetRequestWithBody(
-      WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+      WireMockRuntimeInfo wmRuntimeInfo) {
     WireMock.stubFor(
         WireMock.get("/path")
             .willReturn(
@@ -297,7 +259,7 @@ public class HttpServiceTest {
                     .withBody("Unauthorized sorry in the body!")));
 
     // given
-    HttpClientRequest request = new HttpClientRequest();
+    HttpCommonRequest request = new HttpCommonRequest();
     request.setMethod(HttpMethod.GET);
     request.setHeaders(Map.of("Accept", "application/json"));
     request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
@@ -305,7 +267,8 @@ public class HttpServiceTest {
     // when
     var e =
         assertThrows(
-            ConnectorException.class, () -> httpClientService.executeConnectorRequest(request));
+            ConnectorException.class,
+            () -> httpService.executeConnectorRequest(request, documentFactory));
 
     // then
     Assertions.assertThat(e).isNotNull();
@@ -315,16 +278,11 @@ public class HttpServiceTest {
     Assertions.assertThat((Map) response.get("headers"))
         .containsEntry("Content-Type", "text/plain");
     Assertions.assertThat(response).containsEntry("body", "Unauthorized sorry in the body!");
-    if (cloudFunctionEnabled) {
-      WireMock.verify(
-          WireMock.postRequestedFor(WireMock.urlEqualTo("/proxy"))
-              .withRequestBody(WireMock.equalTo(objectMapper.writeValueAsString(request))));
-    }
   }
 
   @Test
   public void shouldReturn500WithErrorMessage_whenCreateFileRequestFails(
-      WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+      WireMockRuntimeInfo wmRuntimeInfo) {
     WireMock.stubFor(
         WireMock.get("/download")
             .willReturn(
@@ -333,15 +291,16 @@ public class HttpServiceTest {
                     .withBodyFile("fileName.jpg")));
 
     // given
-    HttpClientRequest request = new HttpClientRequest();
+    HttpCommonRequest request = new HttpCommonRequest();
     request.setMethod(HttpMethod.GET);
+    request.setStoreResponse(true);
     request.setUrl(getHostAndPort(wmRuntimeInfo) + "/download");
 
     // when
     var e =
         assertThrows(
             ConnectorException.class,
-            () -> httpClientService.executeConnectorRequest(request, failingDocumentFactory));
+            () -> httpService.executeConnectorRequest(request, failingDocumentFactory));
 
     // then
     Assertions.assertThat(e).isNotNull();
@@ -352,7 +311,7 @@ public class HttpServiceTest {
 
   @Test
   public void shouldReturn401_whenUnauthorizedGetRequestWithJsonBody(
-      WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+      WireMockRuntimeInfo wmRuntimeInfo) {
     WireMock.stubFor(
         WireMock.get("/path")
             .willReturn(
@@ -367,7 +326,7 @@ public class HttpServiceTest {
                             .putNull("responseKey3"))));
 
     // given
-    HttpClientRequest request = new HttpClientRequest();
+    HttpCommonRequest request = new HttpCommonRequest();
     request.setMethod(HttpMethod.GET);
     request.setHeaders(Map.of("Accept", "application/json"));
     request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
@@ -375,8 +334,8 @@ public class HttpServiceTest {
     // when
     var e =
         assertThrows(
-            ConnectorException.class, () -> httpClientService.executeConnectorRequest(request));
-
+            ConnectorException.class,
+            () -> httpService.executeConnectorRequest(request, documentFactory));
     // then
     Assertions.assertThat(e).isNotNull();
     Assertions.assertThat(e.getErrorCode()).isEqualTo("401");
@@ -393,13 +352,13 @@ public class HttpServiceTest {
 
   @Test
   public void shouldReturn401_whenUnauthorizedGetRequestWithReason(
-      WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+      WireMockRuntimeInfo wmRuntimeInfo) {
     WireMock.stubFor(
         WireMock.get("/path")
             .willReturn(WireMock.unauthorized().withStatusMessage("Unauthorized sorry!")));
 
     // given
-    HttpClientRequest request = new HttpClientRequest();
+    HttpCommonRequest request = new HttpCommonRequest();
     request.setMethod(HttpMethod.GET);
     request.setConnectionTimeoutInSeconds(10000);
     request.setReadTimeoutInSeconds(10000);
@@ -409,7 +368,8 @@ public class HttpServiceTest {
     // when
     var e =
         assertThrows(
-            ConnectorException.class, () -> httpClientService.executeConnectorRequest(request));
+            ConnectorException.class,
+            () -> httpService.executeConnectorRequest(request, documentFactory));
 
     // then
     Assertions.assertThat(e).isNotNull();
@@ -433,7 +393,7 @@ public class HttpServiceTest {
                             .putNull("responseKey3"))));
 
     // given
-    HttpClientRequest request = new HttpClientRequest();
+    HttpCommonRequest request = new HttpCommonRequest();
     request.setMethod(HttpMethod.POST);
     request.setBody(Map.of("name", "John", "age", 30, "message", "{\"key\":\"value\"}"));
     Map<String, String> headers = new HashMap<>();
@@ -443,7 +403,7 @@ public class HttpServiceTest {
     request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
 
     // when
-    HttpClientResult result = httpClientService.executeConnectorRequest(request);
+    HttpCommonResult result = httpService.executeConnectorRequest(request, documentFactory);
 
     // then
     Assertions.assertThat(result).isNotNull();

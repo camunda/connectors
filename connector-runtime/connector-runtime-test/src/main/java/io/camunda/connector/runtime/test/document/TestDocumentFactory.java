@@ -25,9 +25,11 @@ import io.camunda.connector.api.document.DocumentReference.CamundaDocumentRefere
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public class TestDocumentFactory implements DocumentFactory {
@@ -65,7 +67,8 @@ public class TestDocumentFactory implements DocumentFactory {
     DocumentMetadata metadata =
         new TestDocumentMetadata(
             request.contentType(),
-            OffsetDateTime.now().plus(request.timeToLive()),
+            OffsetDateTime.now()
+                .plus(Optional.ofNullable(request.timeToLive()).orElse(Duration.ofDays(1))),
             (long) content.length,
             request.fileName(),
             request.processDefinitionId(),

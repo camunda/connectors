@@ -81,8 +81,7 @@ public class ConnectorExceptionMapperTest {
     assertThat(exception.getErrorCode()).isEqualTo("200");
     assertThat(exception.getMessage()).isEqualTo("[no reason]");
     var response = new HashMap<>();
-    response.put(
-        "headers", Map.of("Content-Type", List.of("text/plain"), "X-Custom", List.of("value")));
+    response.put("headers", Map.of("Content-Type", "text/plain", "X-Custom", "value"));
     response.put("body", "[no body]");
     assertThat(exception.getErrorVariables()).containsEntry("response", response);
   }
@@ -144,8 +143,7 @@ public class ConnectorExceptionMapperTest {
     assertThat(exception.getErrorCode()).isEqualTo("400");
     assertThat(exception.getMessage()).isEqualTo("[no reason]");
     var response = new HashMap<>();
-    response.put(
-        "headers", Map.of("Content-Type", List.of("text/plain"), "X-Custom", List.of("value")));
+    response.put("headers", Map.of("Content-Type", "text/plain", "X-Custom", "value"));
     response.put("body", "text");
     assertThat(exception.getErrorVariables()).containsEntry("response", response);
   }
@@ -168,8 +166,7 @@ public class ConnectorExceptionMapperTest {
     assertThat(exception.getErrorCode()).isEqualTo("400");
     assertThat(exception.getMessage()).isEqualTo("Custom reason");
     var response = new HashMap<>();
-    response.put(
-        "headers", Map.of("Content-Type", List.of("text/plain"), "X-Custom", List.of("value")));
+    response.put("headers", Map.of("Content-Type", "text/plain", "X-Custom", "value"));
     response.put("body", "text");
     assertThat(exception.getErrorVariables()).containsEntry("response", response);
   }
@@ -192,10 +189,8 @@ public class ConnectorExceptionMapperTest {
     assertThat(exception.getErrorCode()).isEqualTo("400");
     assertThat(exception.getMessage()).isEqualTo("Custom reason");
     var response = new HashMap<>();
-    response.put(
-        "headers",
-        Map.of("Content-Type", List.of("application/json"), "X-Custom", List.of("value")));
-    response.put("body", "{\"key\":\"value\"}");
+    response.put("headers", Map.of("Content-Type", "application/json", "X-Custom", "value"));
+    response.put("body", Map.of("key", "value"));
     assertThat(exception.getErrorVariables()).containsEntry("response", response);
   }
 }

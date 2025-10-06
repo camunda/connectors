@@ -66,8 +66,8 @@ class HttpClientServiceTest extends BaseTest {
         oAuthService.createOAuthRequestFrom(
             (io.camunda.connector.http.client.model.auth.OAuthAuthentication)
                 request.getAuthentication());
-    var oauthBodyBytes = objectMapper.writeValueAsBytes(
-        Map.of(OAuthConstants.ACCESS_TOKEN, ACCESS_TOKEN));
+    var oauthBodyBytes =
+        objectMapper.writeValueAsBytes(Map.of(OAuthConstants.ACCESS_TOKEN, ACCESS_TOKEN));
     StreamingHttpResponse oauthResult =
         new StreamingHttpResponse(200, null, Map.of(), new ByteArrayInputStream(oauthBodyBytes));
 
@@ -82,10 +82,10 @@ class HttpClientServiceTest extends BaseTest {
         .isEqualTo(
             scopes == null
                 ? Map.of(
-                "audience",
-                "https://dev-test.eu.auth0.com/api/v2/",
-                "grant_type",
-                "client_credentials")
+                    "audience",
+                    "https://dev-test.eu.auth0.com/api/v2/",
+                    "grant_type",
+                    "client_credentials")
                 : Map.of(
                     "audience",
                     "https://dev-test.eu.auth0.com/api/v2/",

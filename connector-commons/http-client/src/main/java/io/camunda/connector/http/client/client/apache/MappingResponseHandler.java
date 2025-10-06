@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.http.client.client.apache;
 
-import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.exception.ConnectorExceptionMapper;
 import io.camunda.connector.http.client.mapper.MappedHttpResponse;
 import io.camunda.connector.http.client.mapper.ResponseMapper;
@@ -27,7 +26,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.Header;
-import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,11 +58,9 @@ public class MappingResponseHandler<T> implements HttpClientResponseHandler<Mapp
 
         T mappedResponse = responseMapper.apply(rawResponse);
         return new MappedHttpResponse<>(code, reason, headers, mappedResponse);
-      } catch (final ConnectorException e) {
-        throw e; // rethrow in case of error status
       } catch (final Exception e) {
         LOGGER.error("Failed to process response: {}", response, e);
-        return new MappedHttpResponse<>(HttpStatus.SC_SERVER_ERROR, e.getMessage(), Map.of(), null);
+        throw ConnectorExceptionMapper.from(e);
       }
     }
     if (HttpStatusHelper.isError(code)) {
