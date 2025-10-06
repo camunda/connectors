@@ -12,10 +12,9 @@ import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import java.util.List;
 
 @AgenticAiRecord
-@JsonDeserialize(
-    builder = A2AClientAgentCardResult.A2AClientAgentCardResultJacksonProxyBuilder.class)
-public record A2AClientAgentCardResult(String name, String description, List<AgentSkill> skills)
-    implements A2AClientResult {
+@JsonDeserialize(builder = A2aAgentCardResult.A2aAgentCardResultJacksonProxyBuilder.class)
+public record A2aAgentCardResult(String name, String description, List<AgentSkill> skills)
+    implements A2aClientResult {
 
   public record AgentSkill(
       String id,
@@ -26,11 +25,10 @@ public record A2AClientAgentCardResult(String name, String description, List<Age
       List<String> inputModes,
       List<String> outputModes) {}
 
-  public static A2AClientAgentCardResultBuilder builder() {
-    return A2AClientAgentCardResultBuilder.builder();
+  public static A2aAgentCardResultBuilder builder() {
+    return A2aAgentCardResultBuilder.builder();
   }
 
   @JsonPOJOBuilder(withPrefix = "")
-  public static class A2AClientAgentCardResultJacksonProxyBuilder
-      extends A2AClientAgentCardResultBuilder {}
+  public static class A2aAgentCardResultJacksonProxyBuilder extends A2aAgentCardResultBuilder {}
 }

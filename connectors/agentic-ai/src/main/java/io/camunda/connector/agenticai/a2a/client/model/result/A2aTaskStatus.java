@@ -8,13 +8,16 @@ package io.camunda.connector.agenticai.a2a.client.model.result;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
-import io.camunda.connector.agenticai.model.message.content.Content;
-import java.util.List;
+import java.time.OffsetDateTime;
+import javax.annotation.Nullable;
 
 @AgenticAiRecord
-public record A2AClientSendMessageResult(String responseId, List<Content> contents, TaskState state)
-    implements A2AClientResult {
+@JsonDeserialize(builder = A2aTaskStatus.A2aTaskStatusJacksonProxyBuilder.class)
+public record A2aTaskStatus(
+    TaskState state, @Nullable A2aMessage message, @Nullable OffsetDateTime timestamp) {
 
   public enum TaskState {
     SUBMITTED("submitted"),
@@ -56,4 +59,11 @@ public record A2AClientSendMessageResult(String responseId, List<Content> conten
       throw new IllegalArgumentException("Unknown state: " + stateStr);
     }
   }
+
+  public static A2aTaskStatusBuilder builder() {
+    return A2aTaskStatusBuilder.builder();
+  }
+
+  @JsonPOJOBuilder(withPrefix = "")
+  public static class A2aTaskStatusJacksonProxyBuilder extends A2aTaskStatusBuilder {}
 }
