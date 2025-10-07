@@ -44,15 +44,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class SendMessageResponseHandlerTest {
+class A2aSendMessageResponseHandlerTest {
 
   @Mock private PartsToContentConverter partsToContentConverter;
 
-  private SendMessageResponseHandlerImpl handler;
+  private A2aSendMessageResponseHandlerImpl handler;
 
   @BeforeEach
   void setUp() {
-    handler = new SendMessageResponseHandlerImpl(partsToContentConverter);
+    handler = new A2aSendMessageResponseHandlerImpl(partsToContentConverter);
   }
 
   @Nested

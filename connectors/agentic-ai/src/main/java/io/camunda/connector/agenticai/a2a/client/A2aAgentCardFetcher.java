@@ -7,10 +7,11 @@
 package io.camunda.connector.agenticai.a2a.client;
 
 import io.a2a.spec.AgentCard;
-import io.camunda.connector.agenticai.a2a.client.model.A2aClientOperationConfiguration.SendMessageOperationConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
+import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aClientRequestData.ConnectionConfiguration;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCardResult;
 
-public interface MessageSender {
-  A2aSendMessageResult sendMessage(
-      SendMessageOperationConfiguration sendMessageOperation, AgentCard agentCard);
+public interface A2aAgentCardFetcher {
+  A2aAgentCardResult fetchAgentCard(ConnectionConfiguration connection);
+
+  AgentCard fetchAgentCardRaw(ConnectionConfiguration connection);
 }

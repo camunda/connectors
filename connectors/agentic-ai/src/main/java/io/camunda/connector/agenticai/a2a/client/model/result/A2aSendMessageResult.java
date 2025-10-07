@@ -14,7 +14,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
   @JsonSubTypes.Type(value = A2aSendMessageResult.A2aMessageResult.class, name = "message"),
   @JsonSubTypes.Type(value = A2aSendMessageResult.A2aTaskResult.class, name = "task")
 })
-public sealed interface A2aSendMessageResult extends A2aClientResult
+public sealed interface A2aSendMessageResult extends A2aResult
     permits A2aSendMessageResult.A2aMessageResult, A2aSendMessageResult.A2aTaskResult {
 
   record A2aMessageResult(A2aMessage message) implements A2aSendMessageResult {}

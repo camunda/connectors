@@ -22,11 +22,11 @@ import io.camunda.connector.agenticai.a2a.client.model.result.A2aTaskStatus;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import java.util.List;
 
-public class SendMessageResponseHandlerImpl implements SendMessageResponseHandler {
+public class A2aSendMessageResponseHandlerImpl implements A2aSendMessageResponseHandler {
 
   private final PartsToContentConverter partsToContentConverter;
 
-  public SendMessageResponseHandlerImpl(PartsToContentConverter partsToContentConverter) {
+  public A2aSendMessageResponseHandlerImpl(PartsToContentConverter partsToContentConverter) {
     this.partsToContentConverter = partsToContentConverter;
   }
 

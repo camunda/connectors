@@ -15,7 +15,7 @@ import io.a2a.spec.A2AClientException;
 import io.a2a.spec.AgentCard;
 import java.util.function.BiConsumer;
 
-public class ClientFactoryImpl implements ClientFactory {
+public class A2aSdkClientFactoryImpl implements A2aSdkClientFactory {
 
   @Override
   public Client buildClient(AgentCard agentCard, BiConsumer<ClientEvent, AgentCard> consumer) {

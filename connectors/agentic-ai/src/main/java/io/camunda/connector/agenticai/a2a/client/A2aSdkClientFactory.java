@@ -11,6 +11,6 @@ import io.a2a.client.ClientEvent;
 import io.a2a.spec.AgentCard;
 import java.util.function.BiConsumer;
 
-public interface ClientFactory {
+public interface A2aSdkClientFactory {
   Client buildClient(AgentCard agentCard, BiConsumer<ClientEvent, AgentCard> consumer);
 }

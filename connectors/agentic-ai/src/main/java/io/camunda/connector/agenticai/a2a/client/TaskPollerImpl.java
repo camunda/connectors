@@ -18,10 +18,11 @@ import java.util.concurrent.TimeoutException;
 
 public class TaskPollerImpl implements TaskPoller {
   private final ScheduledExecutorService scheduler;
-  private final SendMessageResponseHandler sendMessageResponseHandler;
+  private final A2aSendMessageResponseHandler sendMessageResponseHandler;
 
   public TaskPollerImpl(
-      ScheduledExecutorService scheduler, SendMessageResponseHandler sendMessageResponseHandler) {
+      ScheduledExecutorService scheduler,
+      A2aSendMessageResponseHandler sendMessageResponseHandler) {
     this.scheduler = scheduler;
     this.sendMessageResponseHandler = sendMessageResponseHandler;
   }

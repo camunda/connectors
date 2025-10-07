@@ -11,12 +11,12 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import io.a2a.A2A;
 import io.a2a.spec.A2AClientError;
 import io.a2a.spec.AgentCard;
-import io.camunda.connector.agenticai.a2a.client.model.A2aClientRequest.A2aClientRequestData.ConnectionConfiguration;
+import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aClientRequestData.ConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCardResult;
 import java.util.Collections;
 import org.apache.commons.collections4.CollectionUtils;
 
-public class AgentCardFetcherImpl implements AgentCardFetcher {
+public class A2aAgentCardFetcherImpl implements A2aAgentCardFetcher {
 
   // TODO: add caching?
   @Override

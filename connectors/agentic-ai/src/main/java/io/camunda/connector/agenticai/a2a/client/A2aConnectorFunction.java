@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.a2a.client;
 
-import io.camunda.connector.agenticai.a2a.client.model.A2aClientRequest;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aClientResult;
+import io.camunda.connector.agenticai.a2a.client.model.A2aRequest;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2aResult;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -24,7 +24,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
         "Agent-to-Agent (A2A) client, enabling discovering remote agents' Agent Cards as well as invoking remove agents.",
     engineVersion = "^8.9",
     version = 0,
-    inputDataClass = A2aClientRequest.class,
+    inputDataClass = A2aRequest.class,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(
           id = "connection",
@@ -34,17 +34,17 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation")
     },
     icon = "a2a-client.svg")
-public class A2aClientFunction implements OutboundConnectorFunction {
+public class A2aConnectorFunction implements OutboundConnectorFunction {
 
-  private final A2aClientRequestHandler handler;
+  private final A2aRequestHandler handler;
 
-  public A2aClientFunction(A2aClientRequestHandler handler) {
+  public A2aConnectorFunction(A2aRequestHandler handler) {
     this.handler = handler;
   }
 
   @Override
-  public A2aClientResult execute(OutboundConnectorContext context) throws Exception {
-    final A2aClientRequest request = context.bindVariables(A2aClientRequest.class);
+  public A2aResult execute(OutboundConnectorContext context) throws Exception {
+    final A2aRequest request = context.bindVariables(A2aRequest.class);
     return handler.handle(request);
   }
 }

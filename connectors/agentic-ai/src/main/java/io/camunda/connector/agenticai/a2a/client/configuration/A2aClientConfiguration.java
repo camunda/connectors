@@ -7,17 +7,17 @@
 package io.camunda.connector.agenticai.a2a.client.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.a2a.client.A2aClientFunction;
-import io.camunda.connector.agenticai.a2a.client.A2aClientRequestHandler;
-import io.camunda.connector.agenticai.a2a.client.A2aClientRequestHandlerImpl;
-import io.camunda.connector.agenticai.a2a.client.AgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.AgentCardFetcherImpl;
-import io.camunda.connector.agenticai.a2a.client.ClientFactory;
-import io.camunda.connector.agenticai.a2a.client.ClientFactoryImpl;
-import io.camunda.connector.agenticai.a2a.client.MessageSender;
-import io.camunda.connector.agenticai.a2a.client.MessageSenderImpl;
-import io.camunda.connector.agenticai.a2a.client.SendMessageResponseHandler;
-import io.camunda.connector.agenticai.a2a.client.SendMessageResponseHandlerImpl;
+import io.camunda.connector.agenticai.a2a.client.A2aAgentCardFetcher;
+import io.camunda.connector.agenticai.a2a.client.A2aAgentCardFetcherImpl;
+import io.camunda.connector.agenticai.a2a.client.A2aConnectorFunction;
+import io.camunda.connector.agenticai.a2a.client.A2aMessageSender;
+import io.camunda.connector.agenticai.a2a.client.A2aMessageSenderImpl;
+import io.camunda.connector.agenticai.a2a.client.A2aRequestHandler;
+import io.camunda.connector.agenticai.a2a.client.A2aRequestHandlerImpl;
+import io.camunda.connector.agenticai.a2a.client.A2aSdkClientFactory;
+import io.camunda.connector.agenticai.a2a.client.A2aSdkClientFactoryImpl;
+import io.camunda.connector.agenticai.a2a.client.A2aSendMessageResponseHandler;
+import io.camunda.connector.agenticai.a2a.client.A2aSendMessageResponseHandlerImpl;
 import io.camunda.connector.agenticai.a2a.client.TaskPoller;
 import io.camunda.connector.agenticai.a2a.client.TaskPollerImpl;
 import io.camunda.connector.agenticai.a2a.client.convert.DocumentToPartConverter;
@@ -51,9 +51,9 @@ public class A2aClientConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public SendMessageResponseHandler clientEventToContentConverter(
+  public A2aSendMessageResponseHandler a2aSendMessageResponseHandler(
       PartsToContentConverter partsToContentConverter) {
-    return new SendMessageResponseHandlerImpl(partsToContentConverter);
+    return new A2aSendMessageResponseHandlerImpl(partsToContentConverter);
   }
 
   @Bean
@@ -64,43 +64,43 @@ public class A2aClientConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public TaskPoller taskPoller(SendMessageResponseHandler sendMessageResponseHandler) {
+  public TaskPoller taskPoller(A2aSendMessageResponseHandler sendMessageResponseHandler) {
     return new TaskPollerImpl(taskPollerExecutor(), sendMessageResponseHandler);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public AgentCardFetcher agentCardFetcher() {
-    return new AgentCardFetcherImpl();
+  public A2aAgentCardFetcher a2aAgentCardFetcher() {
+    return new A2aAgentCardFetcherImpl();
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public ClientFactory clientFactory() {
-    return new ClientFactoryImpl();
+  public A2aSdkClientFactory sdkClientFactory() {
+    return new A2aSdkClientFactoryImpl();
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public MessageSender messageSender(
+  public A2aMessageSender a2aMessageSender(
       DocumentToPartConverter documentToPartConverter,
-      SendMessageResponseHandler sendMessageResponseHandler,
+      A2aSendMessageResponseHandler sendMessageResponseHandler,
       TaskPoller taskPoller,
-      ClientFactory clientFactory) {
-    return new MessageSenderImpl(
-        documentToPartConverter, sendMessageResponseHandler, taskPoller, clientFactory);
+      A2aSdkClientFactory a2aSdkClientFactory) {
+    return new A2aMessageSenderImpl(
+        documentToPartConverter, sendMessageResponseHandler, taskPoller, a2aSdkClientFactory);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public A2aClientRequestHandler a2aClientHandler(
-      AgentCardFetcher agentCardFetcher, MessageSender messageSender) {
-    return new A2aClientRequestHandlerImpl(agentCardFetcher, messageSender);
+  public A2aRequestHandler a2aRequestHandler(
+      A2aAgentCardFetcher agentCardFetcher, A2aMessageSender a2aMessageSender) {
+    return new A2aRequestHandlerImpl(agentCardFetcher, a2aMessageSender);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public A2aClientFunction a2aClientFunction(A2aClientRequestHandler handler) {
-    return new A2aClientFunction(handler);
+  public A2aConnectorFunction a2aConnectorFunction(A2aRequestHandler handler) {
+    return new A2aConnectorFunction(handler);
   }
 }

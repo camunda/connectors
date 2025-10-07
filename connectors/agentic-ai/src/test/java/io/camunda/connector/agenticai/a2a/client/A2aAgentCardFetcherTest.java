@@ -19,7 +19,7 @@ import io.a2a.spec.AgentCard;
 import io.a2a.spec.AgentInterface;
 import io.a2a.spec.AgentSkill;
 import io.a2a.spec.TransportProtocol;
-import io.camunda.connector.agenticai.a2a.client.model.A2aClientRequest.A2aClientRequestData.ConnectionConfiguration;
+import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aClientRequestData.ConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCardResult;
 import java.util.Collections;
 import java.util.List;
@@ -28,13 +28,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.MockedStatic;
 
-class AgentCardFetcherTest {
+class A2aAgentCardFetcherTest {
 
   public static final String AGENT_URL = "https://a2a.example.com";
   public static final List<String> DEFAULT_INPUT_MODES = List.of("text");
   public static final List<String> DEFAULT_OUTPUT_MODES = List.of("application/json");
 
-  private final AgentCardFetcher agentCardFetcher = new AgentCardFetcherImpl();
+  private final A2aAgentCardFetcher agentCardFetcher = new A2aAgentCardFetcherImpl();
 
   @Test
   void fetchAgentCardWithCustomLocation() {

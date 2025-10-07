@@ -14,7 +14,7 @@ import io.a2a.spec.Message;
 import io.a2a.spec.Part;
 import io.a2a.spec.TextPart;
 import io.camunda.connector.agenticai.a2a.client.convert.DocumentToPartConverter;
-import io.camunda.connector.agenticai.a2a.client.model.A2aClientOperationConfiguration.SendMessageOperationConfiguration;
+import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
 import java.time.Duration;
@@ -28,20 +28,20 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 import org.apache.commons.collections4.CollectionUtils;
 
-public class MessageSenderImpl implements MessageSender {
+public class A2aMessageSenderImpl implements A2aMessageSender {
 
   private static final Duration DEFAULT_POLL_INTERVAL = Duration.ofMillis(500);
 
   private final DocumentToPartConverter documentToPartConverter;
-  private final SendMessageResponseHandler sendMessageResponseHandler;
+  private final A2aSendMessageResponseHandler sendMessageResponseHandler;
   private final TaskPoller taskPoller;
-  private final ClientFactory clientFactory;
+  private final A2aSdkClientFactory clientFactory;
 
-  public MessageSenderImpl(
+  public A2aMessageSenderImpl(
       DocumentToPartConverter documentToPartConverter,
-      SendMessageResponseHandler sendMessageResponseHandler,
+      A2aSendMessageResponseHandler sendMessageResponseHandler,
       TaskPoller taskPoller,
-      ClientFactory clientFactory) {
+      A2aSdkClientFactory clientFactory) {
     this.documentToPartConverter = documentToPartConverter;
     this.sendMessageResponseHandler = sendMessageResponseHandler;
     this.taskPoller = taskPoller;

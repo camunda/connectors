@@ -14,12 +14,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.a2a.spec.AgentCard;
-import io.camunda.connector.agenticai.a2a.client.model.A2aClientOperationConfiguration.FetchAgentCardOperationConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.A2aClientOperationConfiguration.SendMessageOperationConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.A2aClientOperationConfiguration.SendMessageOperationConfiguration.Parameters;
-import io.camunda.connector.agenticai.a2a.client.model.A2aClientRequest;
-import io.camunda.connector.agenticai.a2a.client.model.A2aClientRequest.A2aClientRequestData;
-import io.camunda.connector.agenticai.a2a.client.model.A2aClientRequest.A2aClientRequestData.ConnectionConfiguration;
+import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.FetchAgentCardOperationConfiguration;
+import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration;
+import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration.Parameters;
+import io.camunda.connector.agenticai.a2a.client.model.A2aRequest;
+import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aClientRequestData;
+import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aClientRequestData.ConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCardResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aArtifact;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
@@ -35,11 +35,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class A2aClientRequestHandlerTest {
+class A2aRequestHandlerTest {
 
-  @Mock private AgentCardFetcher agentCardFetcher;
-  @Mock private MessageSender messageSender;
-  @InjectMocks private A2aClientRequestHandlerImpl handler;
+  @Mock private A2aAgentCardFetcher agentCardFetcher;
+  @Mock private A2aMessageSender messageSender;
+  @InjectMocks private A2aRequestHandlerImpl handler;
 
   private static final ConnectionConfiguration CONNECTION =
       new ConnectionConfiguration("https://a2a.example.com", null);
@@ -47,7 +47,7 @@ class A2aClientRequestHandlerTest {
   @Test
   void handleFetchAgentCard() {
     var operation = new FetchAgentCardOperationConfiguration();
-    var request = new A2aClientRequest(new A2aClientRequestData(CONNECTION, operation));
+    var request = new A2aRequest(new A2aClientRequestData(CONNECTION, operation));
 
     var expectedResult = new A2aAgentCardResult("name", "desc", List.of());
     when(agentCardFetcher.fetchAgentCard(CONNECTION)).thenReturn(expectedResult);
@@ -65,7 +65,7 @@ class A2aClientRequestHandlerTest {
     var agentCard = mock(AgentCard.class);
     var operation =
         new SendMessageOperationConfiguration(new Parameters("Hello", null), Duration.ofSeconds(1));
-    var request = new A2aClientRequest(new A2aClientRequestData(CONNECTION, operation));
+    var request = new A2aRequest(new A2aClientRequestData(CONNECTION, operation));
 
     when(agentCardFetcher.fetchAgentCardRaw(CONNECTION)).thenReturn(agentCard);
     var expectedSendResult =

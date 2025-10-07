@@ -6,12 +6,11 @@
  */
 package io.camunda.connector.agenticai.a2a.client;
 
-import io.a2a.client.ClientEvent;
-import io.a2a.spec.Task;
+import io.a2a.spec.AgentCard;
+import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
 
-public interface SendMessageResponseHandler {
-  A2aSendMessageResult handleClientEvent(ClientEvent clientEvent);
-
-  A2aSendMessageResult.A2aTaskResult handleTask(Task task);
+public interface A2aMessageSender {
+  A2aSendMessageResult sendMessage(
+      SendMessageOperationConfiguration sendMessageOperation, AgentCard agentCard);
 }

@@ -29,8 +29,8 @@ import io.a2a.spec.Task;
 import io.a2a.spec.TaskStatus;
 import io.a2a.spec.TextPart;
 import io.camunda.connector.agenticai.a2a.client.convert.DocumentToPartConverter;
-import io.camunda.connector.agenticai.a2a.client.model.A2aClientOperationConfiguration.SendMessageOperationConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.A2aClientOperationConfiguration.SendMessageOperationConfiguration.Parameters;
+import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration;
+import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration.Parameters;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult.A2aMessageResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult.A2aTaskResult;
@@ -55,17 +55,17 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class MessageSenderTest {
+class A2aMessageSenderTest {
 
   private static final String MESSAGE_ID = "message-1";
 
   @Mock private DocumentToPartConverter documentToPartConverter;
-  @Mock private SendMessageResponseHandler sendMessageResponseHandler;
+  @Mock private A2aSendMessageResponseHandler sendMessageResponseHandler;
   @Mock private TaskPoller taskPoller;
-  @Mock private ClientFactory clientFactory;
+  @Mock private A2aSdkClientFactory clientFactory;
   @Mock private Client client;
   @Mock private AgentCard agentCard;
-  @InjectMocks private MessageSenderImpl messageSender;
+  @InjectMocks private A2aMessageSenderImpl messageSender;
 
   private final AtomicReference<BiConsumer<ClientEvent, AgentCard>> consumerRef =
       new AtomicReference<>();
