@@ -4,13 +4,14 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client;
+package io.camunda.connector.agenticai.a2a.client.api;
 
-import io.a2a.client.Client;
 import io.a2a.client.ClientEvent;
-import io.a2a.spec.AgentCard;
-import java.util.function.BiConsumer;
+import io.a2a.spec.Task;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
 
-public interface A2aSdkClientFactory {
-  Client buildClient(AgentCard agentCard, BiConsumer<ClientEvent, AgentCard> consumer);
+public interface A2aSendMessageResponseHandler {
+  A2aSendMessageResult handleClientEvent(ClientEvent clientEvent);
+
+  A2aSendMessageResult.A2aTaskResult handleTask(Task task);
 }

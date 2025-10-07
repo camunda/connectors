@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client;
+package io.camunda.connector.agenticai.a2a.client.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -14,6 +14,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.a2a.spec.AgentCard;
+import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
+import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
 import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.FetchAgentCardOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration.Parameters;

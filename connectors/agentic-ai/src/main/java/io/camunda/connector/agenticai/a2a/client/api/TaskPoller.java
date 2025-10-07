@@ -4,13 +4,14 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client;
+package io.camunda.connector.agenticai.a2a.client.api;
 
-import io.a2a.spec.AgentCard;
-import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration;
+import io.a2a.client.Client;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
+import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 
-public interface A2aMessageSender {
-  A2aSendMessageResult sendMessage(
-      SendMessageOperationConfiguration sendMessageOperation, AgentCard agentCard);
+public interface TaskPoller {
+  CompletableFuture<A2aSendMessageResult> poll(
+      String taskId, Client client, Duration pollInterval, Duration timeout);
 }

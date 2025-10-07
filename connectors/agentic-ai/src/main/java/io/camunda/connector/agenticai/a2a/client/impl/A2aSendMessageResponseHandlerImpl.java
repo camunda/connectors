@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client;
+package io.camunda.connector.agenticai.a2a.client.impl;
 
 import io.a2a.client.ClientEvent;
 import io.a2a.client.MessageEvent;
@@ -13,6 +13,7 @@ import io.a2a.spec.Message;
 import io.a2a.spec.Task;
 import io.a2a.spec.TaskState;
 import io.a2a.spec.TaskStatus;
+import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.client.convert.PartsToContentConverter;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aArtifact;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;

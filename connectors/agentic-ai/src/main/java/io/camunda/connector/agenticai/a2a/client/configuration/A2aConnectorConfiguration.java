@@ -7,23 +7,23 @@
 package io.camunda.connector.agenticai.a2a.client.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.a2a.client.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.A2aAgentCardFetcherImpl;
 import io.camunda.connector.agenticai.a2a.client.A2aConnectorFunction;
-import io.camunda.connector.agenticai.a2a.client.A2aMessageSender;
-import io.camunda.connector.agenticai.a2a.client.A2aMessageSenderImpl;
-import io.camunda.connector.agenticai.a2a.client.A2aRequestHandler;
-import io.camunda.connector.agenticai.a2a.client.A2aRequestHandlerImpl;
-import io.camunda.connector.agenticai.a2a.client.A2aSdkClientFactory;
-import io.camunda.connector.agenticai.a2a.client.A2aSdkClientFactoryImpl;
-import io.camunda.connector.agenticai.a2a.client.A2aSendMessageResponseHandler;
-import io.camunda.connector.agenticai.a2a.client.A2aSendMessageResponseHandlerImpl;
-import io.camunda.connector.agenticai.a2a.client.TaskPoller;
-import io.camunda.connector.agenticai.a2a.client.TaskPollerImpl;
+import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
+import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
+import io.camunda.connector.agenticai.a2a.client.api.A2aRequestHandler;
+import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
+import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
+import io.camunda.connector.agenticai.a2a.client.api.TaskPoller;
 import io.camunda.connector.agenticai.a2a.client.convert.DocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.convert.DocumentToPartConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.convert.PartsToContentConverter;
 import io.camunda.connector.agenticai.a2a.client.convert.PartsToContentConverterImpl;
+import io.camunda.connector.agenticai.a2a.client.impl.A2aAgentCardFetcherImpl;
+import io.camunda.connector.agenticai.a2a.client.impl.A2aMessageSenderImpl;
+import io.camunda.connector.agenticai.a2a.client.impl.A2aRequestHandlerImpl;
+import io.camunda.connector.agenticai.a2a.client.impl.A2aSendMessageResponseHandlerImpl;
+import io.camunda.connector.agenticai.a2a.client.impl.TaskPollerImpl;
+import io.camunda.connector.agenticai.a2a.client.sdk.A2aSdkClientFactoryImpl;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
@@ -35,7 +35,7 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnBooleanProperty(
     value = "camunda.connector.agenticai.a2a.client.enabled",
     matchIfMissing = true)
-public class A2aClientConfiguration {
+public class A2aConnectorConfiguration {
 
   @Bean
   @ConditionalOnMissingBean

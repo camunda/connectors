@@ -5,7 +5,7 @@
  * except in compliance with the proprietary license.
  */
 
-package io.camunda.connector.agenticai.a2a.client;
+package io.camunda.connector.agenticai.a2a.client.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.any;
@@ -19,6 +19,7 @@ import io.a2a.spec.AgentCard;
 import io.a2a.spec.AgentInterface;
 import io.a2a.spec.AgentSkill;
 import io.a2a.spec.TransportProtocol;
+import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aClientRequestData.ConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCardResult;
 import java.util.Collections;

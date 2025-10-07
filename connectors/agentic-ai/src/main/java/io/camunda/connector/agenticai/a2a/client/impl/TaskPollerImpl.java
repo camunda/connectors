@@ -4,10 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client;
+package io.camunda.connector.agenticai.a2a.client.impl;
 
 import io.a2a.client.Client;
 import io.a2a.spec.TaskQueryParams;
+import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
+import io.camunda.connector.agenticai.a2a.client.api.TaskPoller;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
 import java.time.Duration;
 import java.time.Instant;

@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client;
+package io.camunda.connector.agenticai.a2a.client.sdk;
 
 import io.a2a.client.Client;
 import io.a2a.client.ClientEvent;
@@ -13,6 +13,7 @@ import io.a2a.client.transport.jsonrpc.JSONRPCTransport;
 import io.a2a.client.transport.jsonrpc.JSONRPCTransportConfig;
 import io.a2a.spec.A2AClientException;
 import io.a2a.spec.AgentCard;
+import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import java.util.function.BiConsumer;
 
 public class A2aSdkClientFactoryImpl implements A2aSdkClientFactory {

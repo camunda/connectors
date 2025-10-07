@@ -4,13 +4,14 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client;
+package io.camunda.connector.agenticai.a2a.client.impl;
 
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 import io.a2a.A2A;
 import io.a2a.spec.A2AClientError;
 import io.a2a.spec.AgentCard;
+import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aClientRequestData.ConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCardResult;
 import java.util.Collections;
