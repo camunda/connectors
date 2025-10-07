@@ -117,6 +117,23 @@ public record TextractRequestData(
         @NotNull
         boolean analyzeLayout,
     @TemplateProperty(
+            label = "Analyze queries",
+            group = "input",
+            type = TemplateProperty.PropertyType.Boolean,
+            defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+            defaultValue = "true")
+        @NotNull
+        boolean analyzeQueries,
+    @TemplateProperty(
+            label = "Query",
+            group = "input",
+            type = TemplateProperty.PropertyType.String,
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "input.analyzeQueries",
+                    equalsBoolean = TemplateProperty.EqualsBoolean.TRUE))
+        String query,
+    @TemplateProperty(
             group = "advanced",
             label = "Client request token",
             description = "The idempotent token that you use to identify the start request",

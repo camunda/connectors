@@ -204,6 +204,8 @@ public class TextractTestUtils {
           true,
           true,
           true,
+          false,
+          "",
           "token",
           "jobTag",
           "kmsId",
