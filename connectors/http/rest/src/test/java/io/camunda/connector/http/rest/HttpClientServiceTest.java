@@ -16,29 +16,39 @@
  */
 package io.camunda.connector.http.rest;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
-import io.camunda.connector.http.client.authentication.OAuthConstants;
 import io.camunda.connector.http.client.authentication.OAuthService;
 import io.camunda.connector.http.client.client.apache.ApacheRequestFactory;
-import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
+@WireMockTest
 class HttpClientServiceTest extends BaseTest {
+
+  @RegisterExtension
+  static WireMockExtension wm =
+      WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
 
   public static final String ACCESS_TOKEN =
       "{\"access_token\": \"abcd\", \"scope\":\"read:clients\", \"expires_in\":86400,\"token_type\":\"Bearer\"}";
@@ -53,9 +63,24 @@ class HttpClientServiceTest extends BaseTest {
 
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCasesOauth")
-  void checkIfOAuthBearerTokenIsAddedOnTheRequestHeader(final String input) throws Exception {
+  void checkIfOAuthBearerTokenIsAddedOnTheRequestHeader(
+      final String input, final WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+
+    var oauthBodyBytes =
+        objectMapper.writeValueAsBytes(objectMapper.readValue(ACCESS_TOKEN, Object.class));
+
+    stubFor(
+        WireMock.post(urlPathMatching("/oauth"))
+            .willReturn(
+                WireMock.aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(oauthBodyBytes)));
+
+    String formattedInput = String.format(input, wmRuntimeInfo.getHttpBaseUrl() + "/oauth");
+
     // given
-    final var context = getContextBuilderWithSecrets().variables(input).build();
+    final var context = getContextBuilderWithSecrets().variables(formattedInput).build();
     final var httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
     var scopes = ((OAuthAuthentication) (httpJsonRequest.getAuthentication())).scopes();
     var httpService = new HttpService();
@@ -66,13 +91,9 @@ class HttpClientServiceTest extends BaseTest {
         oAuthService.createOAuthRequestFrom(
             (io.camunda.connector.http.client.model.auth.OAuthAuthentication)
                 request.getAuthentication());
-    var oauthBodyBytes =
-        objectMapper.writeValueAsBytes(Map.of(OAuthConstants.ACCESS_TOKEN, ACCESS_TOKEN));
-    StreamingHttpResponse oauthResult =
-        new StreamingHttpResponse(200, null, Map.of(), new ByteArrayInputStream(oauthBodyBytes));
 
     // when
-    String bearerToken = oAuthService.extractTokenFromResponse(oauthResult);
+    String bearerToken = "abcd";
     var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
     // check if the bearer token is correctly added on the header of the main request
