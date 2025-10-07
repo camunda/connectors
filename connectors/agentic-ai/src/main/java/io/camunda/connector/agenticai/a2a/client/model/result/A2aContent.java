@@ -8,25 +8,20 @@ package io.camunda.connector.agenticai.a2a.client.model.result;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
-import java.util.List;
+import io.camunda.connector.agenticai.model.message.content.Content;
 import java.util.Map;
 import javax.annotation.Nullable;
 
 @AgenticAiRecord
-@JsonDeserialize(builder = A2aArtifact.A2aArtifactJacksonProxyBuilder.class)
-public record A2aArtifact(
-    String artifactId,
-    @Nullable String name,
-    @Nullable String description,
-    List<A2aContent> contents,
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata) {
+@JsonDeserialize(builder = A2aContent.A2aContentJacksonProxyBuilder.class)
+public record A2aContent(
+    Content content,
+    @Nullable @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata) {
 
-  public static A2aArtifactBuilder builder() {
-    return A2aArtifactBuilder.builder();
+  public static A2aContentBuilder builder() {
+    return new A2aContentBuilder();
   }
 
-  @JsonPOJOBuilder(withPrefix = "")
-  public static class A2aArtifactJacksonProxyBuilder extends A2aArtifactBuilder {}
+  public static class A2aContentJacksonProxyBuilder extends A2aContentBuilder {}
 }

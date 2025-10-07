@@ -45,8 +45,8 @@ public class A2aConnectorConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public PartsToContentConverter partsToContentConverter(ObjectMapper objectMapper) {
-    return new PartsToContentConverterImpl(objectMapper);
+  public PartsToContentConverter partsToContentConverter() {
+    return new PartsToContentConverterImpl();
   }
 
   @Bean

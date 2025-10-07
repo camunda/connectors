@@ -7,9 +7,9 @@
 package io.camunda.connector.agenticai.a2a.client.convert;
 
 import io.a2a.spec.Part;
-import io.camunda.connector.agenticai.model.message.content.Content;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2aContent;
 import java.util.List;
 
 public interface PartsToContentConverter {
-  List<Content> convert(List<Part<?>> parts);
+  List<A2aContent> convert(List<Part<?>> parts);
 }

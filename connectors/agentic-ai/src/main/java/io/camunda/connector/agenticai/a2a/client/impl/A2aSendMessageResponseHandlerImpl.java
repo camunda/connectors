@@ -16,11 +16,11 @@ import io.a2a.spec.TaskStatus;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.client.convert.PartsToContentConverter;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aArtifact;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2aContent;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTaskStatus;
-import io.camunda.connector.agenticai.model.message.content.Content;
 import java.util.List;
 
 public class A2aSendMessageResponseHandlerImpl implements A2aSendMessageResponseHandler {
@@ -60,7 +60,7 @@ public class A2aSendMessageResponseHandlerImpl implements A2aSendMessageResponse
   }
 
   private A2aMessage buildMessage(Message message) {
-    List<Content> contents = partsToContentConverter.convert(message.getParts());
+    List<A2aContent> contents = partsToContentConverter.convert(message.getParts());
     return A2aMessage.builder()
         .role(A2aMessage.Role.AGENT)
         .messageId(message.getMessageId())

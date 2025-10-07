@@ -11,7 +11,6 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
-import io.camunda.connector.agenticai.model.message.content.Content;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -25,7 +24,7 @@ public record A2aMessage(
     @Nullable String taskId,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<String> referenceTaskIds,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata,
-    List<Content> contents) {
+    List<A2aContent> contents) {
 
   public enum Role {
     USER("user"),
