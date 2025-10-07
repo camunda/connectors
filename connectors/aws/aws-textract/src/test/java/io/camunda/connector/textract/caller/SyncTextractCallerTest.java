@@ -38,6 +38,8 @@ class SyncTextractCallerTest {
             true,
             true,
             true,
+            false,
+            "",
             "token",
             "client-request-token",
             "job-tag",
@@ -75,6 +77,8 @@ class SyncTextractCallerTest {
             false,
             false,
             false,
+            false,
+            null,
             "token",
             "client-request-token",
             "job-tag",
@@ -99,6 +103,7 @@ class SyncTextractCallerTest {
         .isEqualTo(
             new AnalyzeDocumentRequest()
                 .withFeatureTypes(TABLES.name())
+                .withQueriesConfig(null)
                 .withDocument(
                     new com.amazonaws.services.textract.model.Document()
                         .withBytes(ByteBuffer.wrap(bytes))));

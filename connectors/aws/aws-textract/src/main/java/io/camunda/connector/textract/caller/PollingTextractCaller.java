@@ -28,6 +28,7 @@ public class PollingTextractCaller implements TextractCaller<GetDocumentAnalysis
     final StartDocumentAnalysisRequest startDocReq =
         new StartDocumentAnalysisRequest()
             .withFeatureTypes(this.prepareFeatureTypes(requestData))
+            .withQueriesConfig(prepareQueryConfig(requestData))
             .withDocumentLocation(this.prepareDocumentLocation(requestData));
 
     final StartDocumentAnalysisResult result = textractClient.startDocumentAnalysis(startDocReq);

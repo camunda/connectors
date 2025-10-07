@@ -334,6 +334,37 @@
     },
     "type" : "Boolean"
   }, {
+    "id" : "input.analyzeQueries",
+    "label" : "Analyze queries",
+    "optional" : false,
+    "value" : "=true",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "static",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.analyzeQueries",
+      "type" : "zeebe:input"
+    },
+    "type" : "Boolean"
+  }, {
+    "id" : "input.query",
+    "label" : "Query",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.query",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "input.analyzeQueries",
+      "equals" : "=true",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "input.outputConfigS3Bucket",
     "label" : "Output S3 bucket",
     "description" : "The name of the bucket your output will go to",
