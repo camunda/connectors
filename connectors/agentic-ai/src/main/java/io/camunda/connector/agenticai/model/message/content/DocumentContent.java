@@ -7,10 +7,14 @@
 package io.camunda.connector.agenticai.model.message.content;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.camunda.connector.api.document.Document;
+import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record DocumentContent(Document document) implements Content {
+public record DocumentContent(
+    Document document, @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
+    implements Content {
   public DocumentContent {
     if (document == null) {
       throw new IllegalArgumentException("Document cannot be null");
@@ -18,6 +22,6 @@ public record DocumentContent(Document document) implements Content {
   }
 
   public static DocumentContent documentContent(Document document) {
-    return new DocumentContent(document);
+    return new DocumentContent(document, null);
   }
 }

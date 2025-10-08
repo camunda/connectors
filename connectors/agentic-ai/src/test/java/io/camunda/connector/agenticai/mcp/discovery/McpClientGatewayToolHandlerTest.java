@@ -239,7 +239,8 @@ class McpClientGatewayToolHandlerTest {
       var agentContext =
           AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of("mcp1", "mcp2"));
       var mcpCallToolResult =
-          new McpClientCallToolResult("tool1", List.of(new TextContent("Tool result")), false);
+          new McpClientCallToolResult(
+              "tool1", List.of(TextContent.textContent("Tool result")), false);
       var toolCallResults =
           List.of(
               createToolCallResultWithContent("call1", "mcp1", mcpCallToolResult),
@@ -267,7 +268,9 @@ class McpClientGatewayToolHandlerTest {
       var mcpCallToolResult =
           new McpClientCallToolResult(
               "tool1",
-              List.of(new TextContent("First content"), new TextContent("Second content")),
+              List.of(
+                  TextContent.textContent("First content"),
+                  TextContent.textContent("Second content")),
               false);
       var toolCallResults =
           List.of(createToolCallResultWithContent("call1", "mcp1", mcpCallToolResult));
@@ -276,7 +279,10 @@ class McpClientGatewayToolHandlerTest {
 
       assertThat(result).hasSize(1);
       assertThat(result.get(0).content())
-          .isEqualTo(List.of(new TextContent("First content"), new TextContent("Second content")));
+          .isEqualTo(
+              List.of(
+                  TextContent.textContent("First content"),
+                  TextContent.textContent("Second content")));
     }
 
     @Test

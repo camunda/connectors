@@ -6,4 +6,4 @@
  */
 package io.camunda.connector.agenticai.a2a.client.model.result;
 
-public interface A2aClientResult {}
+public interface A2aResult {}

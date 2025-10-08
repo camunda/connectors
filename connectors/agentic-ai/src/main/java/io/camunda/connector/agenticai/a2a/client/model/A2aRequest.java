@@ -12,10 +12,10 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-public record A2aClientRequest(@Valid @NotNull A2aClientRequestData data) {
+public record A2aRequest(@Valid @NotNull A2aClientRequestData data) {
   public record A2aClientRequestData(
       @Valid @NotNull ConnectionConfiguration connection,
-      @Valid @NotNull A2aClientOperationConfiguration operation) {
+      @Valid @NotNull A2aOperationConfiguration operation) {
 
     public record ConnectionConfiguration(
         @NotBlank

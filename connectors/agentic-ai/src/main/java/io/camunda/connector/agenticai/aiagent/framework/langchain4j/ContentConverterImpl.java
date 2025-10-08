@@ -14,7 +14,6 @@ import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
-import io.camunda.connector.api.document.Document;
 
 public class ContentConverterImpl implements ContentConverter {
   private final DocumentToContentConverter documentToContentConverter;
@@ -31,10 +30,12 @@ public class ContentConverterImpl implements ContentConverter {
   public dev.langchain4j.data.message.Content convertToContent(Content content)
       throws JsonProcessingException {
     return switch (content) {
-      case TextContent(String text) -> new dev.langchain4j.data.message.TextContent(text);
-      case DocumentContent(Document document) -> documentToContentConverter.convert(document);
-      case ObjectContent(Object objectContent) ->
-          new dev.langchain4j.data.message.TextContent(convertToString(objectContent));
+      case TextContent textContent ->
+          new dev.langchain4j.data.message.TextContent(textContent.text());
+      case DocumentContent documentContent ->
+          documentToContentConverter.convert(documentContent.document());
+      case ObjectContent objectContent ->
+          new dev.langchain4j.data.message.TextContent(convertToString(objectContent.content()));
     };
   }
 

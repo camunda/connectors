@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.model.message.content;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import java.util.Map;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -15,4 +16,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
   @JsonSubTypes.Type(value = DocumentContent.class, name = "document"),
   @JsonSubTypes.Type(value = ObjectContent.class, name = "object")
 })
-public sealed interface Content permits TextContent, DocumentContent, ObjectContent {}
+public sealed interface Content permits TextContent, DocumentContent, ObjectContent {
+  Map<String, Object> metadata();
+}

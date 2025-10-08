@@ -1,0 +1,98 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.a2a.client.configuration;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.a2a.client.A2aConnectorFunction;
+import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
+import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
+import io.camunda.connector.agenticai.a2a.client.api.A2aRequestHandler;
+import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
+import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
+import io.camunda.connector.agenticai.a2a.client.convert.A2APartToContentConverterImpl;
+import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
+import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverterImpl;
+import io.camunda.connector.agenticai.a2a.client.convert.A2aPartToContentConverter;
+import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
+import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverterImpl;
+import io.camunda.connector.agenticai.a2a.client.impl.A2aAgentCardFetcherImpl;
+import io.camunda.connector.agenticai.a2a.client.impl.A2aMessageSenderImpl;
+import io.camunda.connector.agenticai.a2a.client.impl.A2aRequestHandlerImpl;
+import io.camunda.connector.agenticai.a2a.client.impl.A2aSendMessageResponseHandlerImpl;
+import io.camunda.connector.agenticai.a2a.client.sdk.A2aSdkClientFactoryImpl;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+@ConditionalOnBooleanProperty(
+    value = "camunda.connector.agenticai.a2a.client.enabled",
+    matchIfMissing = true)
+public class A2aConnectorConfiguration {
+
+  @Bean
+  @ConditionalOnMissingBean
+  public A2aDocumentToPartConverter a2aDocumentToPartConverter(ObjectMapper objectMapper) {
+    return new A2aDocumentToPartConverterImpl(objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public A2aPartToContentConverter a2aPartsToContentConverter() {
+    return new A2APartToContentConverterImpl();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public A2aSdkObjectConverter a2aSdkObjectConverter(
+      A2aPartToContentConverter partsToContentConverter) {
+    return new A2aSdkObjectConverterImpl(partsToContentConverter);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public A2aSendMessageResponseHandler a2aSendMessageResponseHandler(
+      A2aSdkObjectConverter sdkObjectConverter) {
+    return new A2aSendMessageResponseHandlerImpl(sdkObjectConverter);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public A2aAgentCardFetcher a2aAgentCardFetcher() {
+    return new A2aAgentCardFetcherImpl();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public A2aSdkClientFactory sdkClientFactory() {
+    return new A2aSdkClientFactoryImpl();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public A2aMessageSender a2aMessageSender(
+      A2aDocumentToPartConverter documentToPartConverter,
+      A2aSendMessageResponseHandler sendMessageResponseHandler,
+      A2aSdkClientFactory a2aSdkClientFactory) {
+    return new A2aMessageSenderImpl(
+        documentToPartConverter, sendMessageResponseHandler, a2aSdkClientFactory);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public A2aRequestHandler a2aRequestHandler(
+      A2aAgentCardFetcher agentCardFetcher, A2aMessageSender a2aMessageSender) {
+    return new A2aRequestHandlerImpl(agentCardFetcher, a2aMessageSender);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public A2aConnectorFunction a2aConnectorFunction(A2aRequestHandler handler) {
+    return new A2aConnectorFunction(handler);
+  }
+}

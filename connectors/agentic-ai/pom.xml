@@ -21,7 +21,7 @@
     <version.record-builder>49</version.record-builder>
     <version.groovy>4.0.28</version.groovy>
     <version.gmavenplus-plugin>4.2.1</version.gmavenplus-plugin>
-    <version.a2asdk>0.3.0.Beta1</version.a2asdk>
+    <version.a2asdk>0.3.0.Beta2</version.a2asdk>
   </properties>
 
   <licenses>
@@ -237,7 +237,7 @@
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
             <connector>
-              <connectorClass>io.camunda.connector.agenticai.a2a.client.A2aClientFunction</connectorClass>
+              <connectorClass>io.camunda.connector.agenticai.a2a.client.A2aConnectorFunction</connectorClass>
               <files>
                 <file>
                   <templateId>io.camunda.connectors.agenticai.a2a.client.v0</templateId>

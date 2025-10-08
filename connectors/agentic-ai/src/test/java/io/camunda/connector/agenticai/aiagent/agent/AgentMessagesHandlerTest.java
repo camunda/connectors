@@ -211,8 +211,12 @@ class AgentMessagesHandlerTest {
                   assertThat(userMessage.content())
                       .hasSize(2)
                       .satisfiesExactly(
-                          c -> assertThat(c).isEqualTo(new DocumentContent(documents.get(0))),
-                          c -> assertThat(c).isEqualTo(new DocumentContent(documents.get(1))));
+                          c ->
+                              assertThat(c)
+                                  .isEqualTo(DocumentContent.documentContent(documents.get(0))),
+                          c ->
+                              assertThat(c)
+                                  .isEqualTo(DocumentContent.documentContent(documents.get(1))));
                 });
 
         assertThat(runtimeMemory.allMessages()).containsExactlyElementsOf(addedMessages);
@@ -237,8 +241,12 @@ class AgentMessagesHandlerTest {
                       .hasSize(3)
                       .satisfiesExactly(
                           c -> assertThat(c).isEqualTo(textContent("Tell me a story")),
-                          c -> assertThat(c).isEqualTo(new DocumentContent(documents.get(0))),
-                          c -> assertThat(c).isEqualTo(new DocumentContent(documents.get(1))));
+                          c ->
+                              assertThat(c)
+                                  .isEqualTo(DocumentContent.documentContent(documents.get(0))),
+                          c ->
+                              assertThat(c)
+                                  .isEqualTo(DocumentContent.documentContent(documents.get(1))));
                 });
 
         assertThat(runtimeMemory.allMessages()).containsExactlyElementsOf(addedMessages);

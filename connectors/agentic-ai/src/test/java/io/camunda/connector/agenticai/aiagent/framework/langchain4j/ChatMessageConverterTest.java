@@ -106,7 +106,7 @@ class ChatMessageConverterTest {
   @Test
   void fromUserMessage_withDocumentContent_convertsDocument() throws JsonProcessingException {
     Document document = mock(Document.class);
-    DocumentContent documentContent = new DocumentContent(document);
+    DocumentContent documentContent = DocumentContent.documentContent(document);
 
     UserMessage userMessage =
         UserMessage.builder()
@@ -188,7 +188,7 @@ class ChatMessageConverterTest {
                 List.of(
                     textContent("Content 1"),
                     textContent("Content 2"),
-                    new DocumentContent(mock(Document.class))))
+                    DocumentContent.documentContent(mock(Document.class))))
             .build();
 
     assertThatThrownBy(() -> chatMessageConverter.fromAssistantMessage(assistantMessage))
