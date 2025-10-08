@@ -73,7 +73,7 @@ class A2aRequestHandlerTest {
     var expectedSendResult =
         new A2aSendMessageResult.A2aTaskResult(
             A2aTask.builder()
-                .taskId("task-1")
+                .id("task-1")
                 .contextId("context-1")
                 .status(A2aTaskStatus.builder().state(A2aTaskStatus.TaskState.COMPLETED).build())
                 .artifacts(

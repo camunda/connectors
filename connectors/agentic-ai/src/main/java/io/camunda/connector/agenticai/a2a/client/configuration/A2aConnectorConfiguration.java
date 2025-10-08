@@ -18,6 +18,8 @@ import io.camunda.connector.agenticai.a2a.client.convert.A2APartToContentConvert
 import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aPartToContentConverter;
+import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
+import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.impl.A2aAgentCardFetcherImpl;
 import io.camunda.connector.agenticai.a2a.client.impl.A2aMessageSenderImpl;
 import io.camunda.connector.agenticai.a2a.client.impl.A2aRequestHandlerImpl;
@@ -37,21 +39,28 @@ public class A2aConnectorConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public A2aDocumentToPartConverter documentToPartConverter(ObjectMapper objectMapper) {
+  public A2aDocumentToPartConverter a2aDocumentToPartConverter(ObjectMapper objectMapper) {
     return new A2aDocumentToPartConverterImpl(objectMapper);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public A2aPartToContentConverter partsToContentConverter() {
+  public A2aPartToContentConverter a2aPartsToContentConverter() {
     return new A2APartToContentConverterImpl();
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public A2aSendMessageResponseHandler a2aSendMessageResponseHandler(
+  public A2aSdkObjectConverter a2aSdkObjectConverter(
       A2aPartToContentConverter partsToContentConverter) {
-    return new A2aSendMessageResponseHandlerImpl(partsToContentConverter);
+    return new A2aSdkObjectConverterImpl(partsToContentConverter);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public A2aSendMessageResponseHandler a2aSendMessageResponseHandler(
+      A2aSdkObjectConverter sdkObjectConverter) {
+    return new A2aSendMessageResponseHandlerImpl(sdkObjectConverter);
   }
 
   @Bean

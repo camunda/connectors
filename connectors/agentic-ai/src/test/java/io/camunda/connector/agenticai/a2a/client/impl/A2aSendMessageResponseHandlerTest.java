@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.a2a.client.impl;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -20,18 +19,15 @@ import io.a2a.client.TaskEvent;
 import io.a2a.client.TaskUpdateEvent;
 import io.a2a.spec.Artifact;
 import io.a2a.spec.Message;
-import io.a2a.spec.Part;
 import io.a2a.spec.Task;
 import io.a2a.spec.TaskState;
 import io.a2a.spec.TaskStatus;
 import io.a2a.spec.TextPart;
-import io.camunda.connector.agenticai.a2a.client.convert.A2aPartToContentConverter;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aArtifact;
+import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTaskStatus;
-import io.camunda.connector.agenticai.model.message.content.Content;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,13 +42,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class A2aSendMessageResponseHandlerTest {
 
-  @Mock private A2aPartToContentConverter partsToContentConverter;
+  @Mock private A2aSdkObjectConverter sdkObjectConverter;
 
   private A2aSendMessageResponseHandlerImpl handler;
 
   @BeforeEach
   void setUp() {
-    handler = new A2aSendMessageResponseHandlerImpl(partsToContentConverter);
+    handler = new A2aSendMessageResponseHandlerImpl(sdkObjectConverter);
   }
 
   @Nested
@@ -60,73 +56,31 @@ class A2aSendMessageResponseHandlerTest {
 
     @Test
     void shouldConvertMessageEventToMessageResult() {
-      List<Part<?>> parts = List.of(new TextPart("Hello from agent"));
-      List<Content> contents = List.of(textContent("Hello from agent"));
       Message message =
           new Message.Builder()
               .messageId("msg-123")
               .contextId("ctx-456")
               .role(Message.Role.AGENT)
-              .parts(parts)
+              .parts(List.of(new TextPart("Hello from agent")))
               .build();
       MessageEvent event = new MessageEvent(message);
 
-      when(partsToContentConverter.convert(parts)).thenReturn(contents);
+      A2aMessage expectedMessage =
+          A2aMessage.builder()
+              .messageId("msg-123")
+              .contextId("ctx-456")
+              .role(A2aMessage.Role.AGENT)
+              .contents(List.of(textContent("Hello from agent")))
+              .build();
+      when(sdkObjectConverter.convert(message)).thenReturn(expectedMessage);
 
       A2aSendMessageResult result = handler.handleClientEvent(event);
 
       assertThat(result).isInstanceOf(A2aSendMessageResult.A2aMessageResult.class);
       A2aSendMessageResult.A2aMessageResult messageResult =
           (A2aSendMessageResult.A2aMessageResult) result;
-      A2aMessage resultMessage = messageResult.message();
 
-      A2aMessage expectedMessage =
-          A2aMessage.builder()
-              .messageId("msg-123")
-              .contextId("ctx-456")
-              .role(A2aMessage.Role.AGENT)
-              .contents(contents)
-              .build();
-
-      assertThat(resultMessage).isEqualTo(expectedMessage);
-    }
-
-    @Test
-    void shouldIncludeAllMessageFields() {
-      List<Part<?>> parts = List.of(new TextPart("text"));
-      List<Content> contents = List.of(textContent("text"));
-      Message message =
-          new Message.Builder()
-              .messageId("msg-1")
-              .contextId("ctx-1")
-              .taskId("task-1")
-              .referenceTaskIds(List.of("ref-1", "ref-2"))
-              .metadata(Map.of("key", "value"))
-              .role(Message.Role.AGENT)
-              .parts(parts)
-              .build();
-      MessageEvent event = new MessageEvent(message);
-
-      when(partsToContentConverter.convert(parts)).thenReturn(contents);
-
-      A2aSendMessageResult result = handler.handleClientEvent(event);
-
-      A2aSendMessageResult.A2aMessageResult messageResult =
-          (A2aSendMessageResult.A2aMessageResult) result;
-      A2aMessage resultMessage = messageResult.message();
-
-      A2aMessage expectedMessage =
-          A2aMessage.builder()
-              .messageId("msg-1")
-              .contextId("ctx-1")
-              .taskId("task-1")
-              .referenceTaskIds(List.of("ref-1", "ref-2"))
-              .metadata(Map.of("key", "value"))
-              .role(A2aMessage.Role.AGENT)
-              .contents(contents)
-              .build();
-
-      assertThat(resultMessage).isEqualTo(expectedMessage);
+      assertThat(messageResult.message()).isEqualTo(expectedMessage);
     }
 
     @Test
@@ -134,14 +88,20 @@ class A2aSendMessageResponseHandlerTest {
       Task task = createTask("task-1", "ctx-1", TaskState.COMPLETED);
       TaskEvent event = new TaskEvent(task);
 
+      A2aTask a2aTask =
+          A2aTask.builder()
+              .id("task-1")
+              .contextId("ctx-1")
+              .status(A2aTaskStatus.builder().state(A2aTaskStatus.TaskState.COMPLETED).build())
+              .build();
+      when(sdkObjectConverter.convert(task)).thenReturn(a2aTask);
+
       A2aSendMessageResult result = handler.handleClientEvent(event);
 
       assertThat(result).isInstanceOf(A2aSendMessageResult.A2aTaskResult.class);
       A2aSendMessageResult.A2aTaskResult taskResult = (A2aSendMessageResult.A2aTaskResult) result;
 
-      assertThat(taskResult.task().taskId()).isEqualTo("task-1");
-      assertThat(taskResult.task().contextId()).isEqualTo("ctx-1");
-      assertThat(taskResult.task().status().state()).isEqualTo(A2aTaskStatus.TaskState.COMPLETED);
+      assertThat(taskResult.task()).isEqualTo(a2aTask);
     }
 
     @Test
@@ -165,10 +125,20 @@ class A2aSendMessageResponseHandlerTest {
     void shouldHandleSupportedTaskStates(TaskState taskState) {
       Task task = createTask("task-" + taskState.name(), "ctx-1", taskState);
 
+      A2aTask expectedTask =
+          A2aTask.builder()
+              .id("task-" + taskState.name())
+              .contextId("ctx-1")
+              .status(
+                  A2aTaskStatus.builder()
+                      .state(A2aTaskStatus.TaskState.valueOf(taskState.name()))
+                      .build())
+              .build();
+      when(sdkObjectConverter.convert(task)).thenReturn(expectedTask);
+
       A2aSendMessageResult.A2aTaskResult result = handler.handleTask(task);
 
-      assertThat(result.task().status().state().name()).isEqualTo(taskState.name());
-      assertThat(result.task().taskId()).isEqualTo("task-" + taskState.name());
+      assertThat(result.task()).isEqualTo(expectedTask);
     }
 
     @ParameterizedTest
@@ -181,102 +151,6 @@ class A2aSendMessageResponseHandlerTest {
       assertThatThrownBy(() -> handler.handleTask(task))
           .isInstanceOf(RuntimeException.class)
           .hasMessage("Task status %s is not supported yet.".formatted(taskState.asString()));
-    }
-
-    @Test
-    void shouldIncludeTaskMetadata() {
-      Task task = createTask("task-1", "ctx-1", TaskState.COMPLETED);
-      when(task.getMetadata()).thenReturn(Map.of("meta-key", "meta-value"));
-
-      A2aSendMessageResult.A2aTaskResult result = handler.handleTask(task);
-
-      assertThat(result.task().metadata()).containsEntry("meta-key", "meta-value");
-    }
-
-    @Test
-    void shouldIncludeStatusTimestamp() {
-      Task task = createTask("task-1", "ctx-1", TaskState.COMPLETED);
-      OffsetDateTime timestamp = OffsetDateTime.now();
-      TaskStatus status = task.getStatus();
-      when(status.timestamp()).thenReturn(timestamp);
-
-      A2aSendMessageResult.A2aTaskResult result = handler.handleTask(task);
-
-      assertThat(result.task().status().timestamp()).isEqualTo(timestamp);
-    }
-
-    @Test
-    void shouldConvertTaskArtifacts() {
-      Task task = createTask("task-1", "ctx-1", TaskState.COMPLETED);
-      List<Part<?>> parts = List.of(new TextPart("artifact content"));
-      List<Content> contents = List.of(textContent("artifact content"));
-
-      Artifact artifact = mock(Artifact.class);
-      when(artifact.artifactId()).thenReturn("art-1");
-      when(artifact.name()).thenReturn("result.txt");
-      when(artifact.description()).thenReturn("Task result");
-      when(artifact.metadata()).thenReturn(Map.of("type", "text"));
-      when(artifact.parts()).thenReturn(parts);
-      when(task.getArtifacts()).thenReturn(List.of(artifact));
-
-      when(partsToContentConverter.convert(parts)).thenReturn(contents);
-
-      A2aSendMessageResult.A2aTaskResult result = handler.handleTask(task);
-
-      A2aArtifact expectedArtifact =
-          A2aArtifact.builder()
-              .artifactId("art-1")
-              .name("result.txt")
-              .description("Task result")
-              .metadata(Map.of("type", "text"))
-              .contents(contents)
-              .build();
-      assertThat(result.task().artifacts())
-          .satisfiesExactly(a2aArtifact -> assertThat(a2aArtifact).isEqualTo(expectedArtifact));
-    }
-
-    @Test
-    void shouldHandleMultipleArtifacts() {
-      Task task = createTask("task-1", "ctx-1", TaskState.COMPLETED);
-
-      Artifact artifact1 = createArtifact("art-1", "file1.txt");
-      Artifact artifact2 = createArtifact("art-2", "file2.txt");
-      when(task.getArtifacts()).thenReturn(List.of(artifact1, artifact2));
-
-      List<Content> contents = List.of(textContent("content"));
-      when(partsToContentConverter.convert(anyList())).thenReturn(contents);
-
-      A2aSendMessageResult.A2aTaskResult result = handler.handleTask(task);
-
-      assertThat(result.task().artifacts()).hasSize(2);
-      assertThat(result.task().artifacts().get(0).artifactId()).isEqualTo("art-1");
-      assertThat(result.task().artifacts().get(1).artifactId()).isEqualTo("art-2");
-    }
-
-    @Test
-    void shouldIncludeStatusMessage() {
-      Task task = createTask("task-1", "ctx-1", TaskState.COMPLETED);
-      TaskStatus status = task.getStatus();
-
-      List<Part<?>> messageParts = List.of(new TextPart("Status update"));
-      List<Content> messageContents = List.of(textContent("Status update"));
-
-      Message statusMessage =
-          new Message.Builder()
-              .messageId("status-msg-1")
-              .contextId("ctx-1")
-              .role(Message.Role.AGENT)
-              .parts(messageParts)
-              .build();
-
-      when(status.message()).thenReturn(statusMessage);
-      when(partsToContentConverter.convert(messageParts)).thenReturn(messageContents);
-
-      A2aSendMessageResult.A2aTaskResult result = handler.handleTask(task);
-
-      assertThat(result.task().status().message()).isNotNull();
-      assertThat(result.task().status().message().messageId()).isEqualTo("status-msg-1");
-      assertThat(result.task().status().message().contents()).isEqualTo(messageContents);
     }
   }
 

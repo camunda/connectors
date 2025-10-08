@@ -232,7 +232,7 @@ class A2aMessageSenderTest {
 
   private A2aTaskResult taskResult(String taskId, TaskState state) {
     var status = A2aTaskStatus.builder().state(state).build();
-    var task = A2aTask.builder().taskId(taskId).contextId("ctx-123").status(status).build();
+    var task = A2aTask.builder().id(taskId).contextId("ctx-123").status(status).build();
     return new A2aTaskResult(task);
   }
 

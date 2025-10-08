@@ -82,7 +82,7 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
         Duration timeSpent = Duration.between(startTime, Instant.now());
         Duration updatedTimeout = sendMessageOperation.timeout().minus(timeSpent);
         return taskPoller
-            .poll(task.taskId(), client, DEFAULT_POLL_INTERVAL, updatedTimeout)
+            .poll(task.id(), client, DEFAULT_POLL_INTERVAL, updatedTimeout)
             .get(updatedTimeout.toMillis(), TimeUnit.MILLISECONDS);
       }
       return result;

@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 
-class A2APartToContentConverterTest {
+class A2aPartToContentConverterTest {
 
   private final A2APartToContentConverterImpl converter = new A2APartToContentConverterImpl();
 
