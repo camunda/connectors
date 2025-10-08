@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.http.base;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
@@ -13,12 +14,14 @@ import io.camunda.connector.http.base.model.auth.AuthenticationMapper;
 import io.camunda.connector.http.client.client.HttpClient;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.client.model.HttpClientRequest;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 
 public class HttpService {
 
   private static final HttpClient HTTP_CLIENT = new CustomApacheHttpClient();
+  private static final ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
 
-  public HttpCommonResult executeConnectorRequest(HttpCommonRequest request) {
+    public HttpCommonResult executeConnectorRequest(HttpCommonRequest request) {
     return executeConnectorRequest(request, null);
   }
 
@@ -26,7 +29,7 @@ public class HttpService {
       final HttpCommonRequest request, final DocumentFactory documentFactory) {
     HttpClientRequest httpClientRequest = mapToHttpClientRequest(request);
     HttpCommonResultMapper responseHandler =
-        new HttpCommonResultMapper(documentFactory, request.isStoreResponse());
+        new HttpCommonResultMapper(documentFactory, request.isStoreResponse(), OBJECT_MAPPER);
     return HTTP_CLIENT.execute(httpClientRequest, responseHandler).mappedEntity();
   }
 
