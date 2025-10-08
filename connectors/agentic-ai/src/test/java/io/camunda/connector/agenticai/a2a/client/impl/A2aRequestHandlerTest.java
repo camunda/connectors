@@ -87,13 +87,13 @@ class A2aRequestHandlerTest {
                                     A2aContent.builder().content(new TextContent("ok")).build()))
                             .build()))
                 .build());
-    when(messageSender.sendMessage(operation, agentCard)).thenReturn(expectedSendResult);
+    when(messageSender.sendMessage(agentCard, operation)).thenReturn(expectedSendResult);
 
     var result = handler.handle(request);
 
     assertThat(result).isSameAs(expectedSendResult);
     verify(agentCardFetcher).fetchAgentCardRaw(CONNECTION);
-    verify(messageSender).sendMessage(operation, agentCard);
+    verify(messageSender).sendMessage(agentCard, operation);
     verify(agentCardFetcher, never()).fetchAgentCard(CONNECTION);
   }
 }

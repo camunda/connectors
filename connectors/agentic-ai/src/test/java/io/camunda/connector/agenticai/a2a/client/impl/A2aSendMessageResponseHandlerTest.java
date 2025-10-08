@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.a2a.client.impl;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -25,7 +25,7 @@ import io.a2a.spec.Task;
 import io.a2a.spec.TaskState;
 import io.a2a.spec.TaskStatus;
 import io.a2a.spec.TextPart;
-import io.camunda.connector.agenticai.a2a.client.convert.PartsToContentConverter;
+import io.camunda.connector.agenticai.a2a.client.convert.A2aPartToContentConverter;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aArtifact;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aContent;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
@@ -46,7 +46,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class A2aSendMessageResponseHandlerTest {
 
-  @Mock private PartsToContentConverter partsToContentConverter;
+  @Mock private A2aPartToContentConverter partsToContentConverter;
 
   private A2aSendMessageResponseHandlerImpl handler;
 
@@ -152,7 +152,7 @@ class A2aSendMessageResponseHandlerTest {
 
       assertThatThrownBy(() -> handler.handleClientEvent(unsupportedEvent))
           .isInstanceOf(RuntimeException.class)
-          .hasMessage("Only message events and completed tasks are supported in the response yet.");
+          .hasMessage("Only message and task events are supported in the response.");
     }
   }
 
@@ -248,7 +248,7 @@ class A2aSendMessageResponseHandlerTest {
 
       List<A2aContent> contents =
           List.of(A2aContent.builder().content(textContent("content")).build());
-      when(partsToContentConverter.convert(any())).thenReturn(contents);
+      when(partsToContentConverter.convert(anyList())).thenReturn(contents);
 
       A2aSendMessageResult.A2aTaskResult result = handler.handleTask(task);
 

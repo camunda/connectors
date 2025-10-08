@@ -35,7 +35,7 @@ import org.apache.hc.core5.http.ContentType;
  *
  * <p>Note: audio and video content types are currently not supported.
  */
-public class DocumentToPartConverterImpl implements DocumentToPartConverter {
+public class A2aDocumentToPartConverterImpl implements A2aDocumentToPartConverter {
 
   private final ObjectMapper objectMapper;
 
@@ -50,7 +50,7 @@ public class DocumentToPartConverterImpl implements DocumentToPartConverter {
           ContentType.IMAGE_GIF,
           ContentType.IMAGE_WEBP);
 
-  public DocumentToPartConverterImpl(ObjectMapper objectMapper) {
+  public A2aDocumentToPartConverterImpl(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
   }
 

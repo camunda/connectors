@@ -12,5 +12,5 @@ import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResu
 
 public interface A2aMessageSender {
   A2aSendMessageResult sendMessage(
-      SendMessageOperationConfiguration sendMessageOperation, AgentCard agentCard);
+      AgentCard agentCard, SendMessageOperationConfiguration sendMessageOperation);
 }

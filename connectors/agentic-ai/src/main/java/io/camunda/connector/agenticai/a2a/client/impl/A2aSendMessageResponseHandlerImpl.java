@@ -14,7 +14,7 @@ import io.a2a.spec.Task;
 import io.a2a.spec.TaskState;
 import io.a2a.spec.TaskStatus;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
-import io.camunda.connector.agenticai.a2a.client.convert.PartsToContentConverter;
+import io.camunda.connector.agenticai.a2a.client.convert.A2aPartToContentConverter;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aArtifact;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aContent;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
@@ -25,9 +25,9 @@ import java.util.List;
 
 public class A2aSendMessageResponseHandlerImpl implements A2aSendMessageResponseHandler {
 
-  private final PartsToContentConverter partsToContentConverter;
+  private final A2aPartToContentConverter partsToContentConverter;
 
-  public A2aSendMessageResponseHandlerImpl(PartsToContentConverter partsToContentConverter) {
+  public A2aSendMessageResponseHandlerImpl(A2aPartToContentConverter partsToContentConverter) {
     this.partsToContentConverter = partsToContentConverter;
   }
 
@@ -43,8 +43,7 @@ public class A2aSendMessageResponseHandlerImpl implements A2aSendMessageResponse
         return handleTask(task);
       }
       default ->
-          throw new RuntimeException(
-              "Only message events and completed tasks are supported in the response yet.");
+          throw new RuntimeException("Only message and task events are supported in the response.");
     }
   }
 

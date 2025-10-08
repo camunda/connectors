@@ -23,9 +23,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 
-class PartsToContentConverterTest {
+class A2APartToContentConverterTest {
 
-  private final PartsToContentConverterImpl converter = new PartsToContentConverterImpl();
+  private final A2APartToContentConverterImpl converter = new A2APartToContentConverterImpl();
 
   @ParameterizedTest
   @NullAndEmptySource
@@ -37,15 +37,11 @@ class PartsToContentConverterTest {
   void convertTextPartToTextContent() {
     TextPart textPart = new TextPart("Hello, world!");
 
-    var result = converter.convert(List.of(textPart));
+    var result = converter.convert(textPart);
 
-    assertThat(result)
-        .satisfiesExactly(
-            a2aContent -> {
-              assertThat(a2aContent.content()).isInstanceOf(TextContent.class);
-              assertThat(((TextContent) a2aContent.content()).text()).isEqualTo("Hello, world!");
-              assertThat(a2aContent.metadata()).isNull();
-            });
+    assertThat(result.content()).isInstanceOf(TextContent.class);
+    assertThat(((TextContent) result.content()).text()).isEqualTo("Hello, world!");
+    assertThat(result.metadata()).isNull();
   }
 
   @Test
@@ -67,15 +63,11 @@ class PartsToContentConverterTest {
     Map<String, Object> data = Map.of("field1", "value1", "field2", 123);
     DataPart dataPart = new DataPart(data);
 
-    var result = converter.convert(List.of(dataPart));
+    var result = converter.convert(dataPart);
 
-    assertThat(result)
-        .satisfiesExactly(
-            a2aContent -> {
-              assertThat(a2aContent.content()).isInstanceOf(ObjectContent.class);
-              assertThat(((ObjectContent) a2aContent.content()).content()).isEqualTo(data);
-              assertThat(a2aContent.metadata()).isNull();
-            });
+    assertThat(result.content()).isInstanceOf(ObjectContent.class);
+    assertThat(((ObjectContent) result.content()).content()).isEqualTo(data);
+    assertThat(result.metadata()).isNull();
   }
 
   @Test
@@ -123,7 +115,19 @@ class PartsToContentConverterTest {
     FileWithBytes fileWithBytes = new FileWithBytes("application/pdf", "file.pdf", "BASE64DATA==");
     FilePart filePart = new FilePart(fileWithBytes);
 
-    assertThatThrownBy(() -> converter.convert(List.of(filePart)))
+    assertThatThrownBy(() -> converter.convert(filePart))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessage("Only text and data parts are supported in the response yet.");
+  }
+
+  @Test
+  void unsupportedPartTypeThrowsRuntimeExceptionWhenMultipleParts() {
+    TextPart textPart1 = new TextPart("First text");
+    FileWithBytes fileWithBytes = new FileWithBytes("application/pdf", "file.pdf", "BASE64DATA==");
+    FilePart filePart = new FilePart(fileWithBytes);
+    TextPart textPart2 = new TextPart("Second text");
+
+    assertThatThrownBy(() -> converter.convert(List.of(textPart1, filePart, textPart2)))
         .isInstanceOf(RuntimeException.class)
         .hasMessage("Only text and data parts are supported in the response yet.");
   }

@@ -21,7 +21,6 @@ public class A2aSdkClientFactoryImpl implements A2aSdkClientFactory {
   @Override
   public Client buildClient(AgentCard agentCard, BiConsumer<ClientEvent, AgentCard> consumer) {
     try {
-      // Disable streaming for the time being
       return Client.builder(agentCard)
           .clientConfig(new ClientConfig.Builder().setStreaming(false).setPolling(true).build())
           .withTransport(JSONRPCTransport.class, new JSONRPCTransportConfig())

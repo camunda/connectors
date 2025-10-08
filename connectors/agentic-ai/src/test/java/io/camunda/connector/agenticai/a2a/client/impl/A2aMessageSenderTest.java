@@ -12,7 +12,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -31,7 +30,7 @@ import io.a2a.spec.TextPart;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.client.api.TaskPoller;
-import io.camunda.connector.agenticai.a2a.client.convert.DocumentToPartConverter;
+import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration.Parameters;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aContent;
@@ -63,7 +62,7 @@ class A2aMessageSenderTest {
 
   private static final String MESSAGE_ID = "message-1";
 
-  @Mock private DocumentToPartConverter documentToPartConverter;
+  @Mock private A2aDocumentToPartConverter documentToPartConverter;
   @Mock private A2aSendMessageResponseHandler sendMessageResponseHandler;
   @Mock private TaskPoller taskPoller;
   @Mock private A2aSdkClientFactory clientFactory;
@@ -94,7 +93,7 @@ class A2aMessageSenderTest {
 
     mockClientSendMessage(clientEvent);
 
-    var actualResult = messageSender.sendMessage(operation, agentCard);
+    var actualResult = messageSender.sendMessage(agentCard, operation);
 
     assertThat(actualResult).isSameAs(expectedResult);
     verify(taskPoller, never()).poll(anyString(), any(), any(), any());
@@ -124,7 +123,7 @@ class A2aMessageSenderTest {
 
     mockClientSendMessage(clientEvent);
 
-    var actualResult = messageSender.sendMessage(operation, agentCard);
+    var actualResult = messageSender.sendMessage(agentCard, operation);
 
     assertThat(actualResult).isSameAs(expectedFinalResult);
 
@@ -144,7 +143,7 @@ class A2aMessageSenderTest {
     // Do not trigger consumer -> future never completes
     doAnswer(inv -> null).when(client).sendMessage(any());
 
-    assertThatThrownBy(() -> messageSender.sendMessage(operation, agentCard))
+    assertThatThrownBy(() -> messageSender.sendMessage(agentCard, operation))
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining("Timed out waiting for response from agent");
 
@@ -161,7 +160,7 @@ class A2aMessageSenderTest {
 
     mockClientSendMessage(clientEvent);
 
-    assertThatThrownBy(() -> messageSender.sendMessage(operation, agentCard))
+    assertThatThrownBy(() -> messageSender.sendMessage(agentCard, operation))
         .isInstanceOf(RuntimeException.class)
         .hasCauseInstanceOf(IllegalStateException.class)
         .hasRootCauseMessage("boom");
@@ -182,7 +181,8 @@ class A2aMessageSenderTest {
 
     // convert document -> part
     var partFromDocument = new TextPart("document-part");
-    doReturn(partFromDocument).when(documentToPartConverter).convert(document);
+    when(documentToPartConverter.convert(List.of(document)))
+        .thenAnswer(invocation -> List.of(partFromDocument));
 
     ArgumentCaptor<Message> sentMessageCaptor = ArgumentCaptor.forClass(Message.class);
 
@@ -194,7 +194,7 @@ class A2aMessageSenderTest {
         .when(client)
         .sendMessage(sentMessageCaptor.capture());
 
-    var actualResult = messageSender.sendMessage(operation, agentCard);
+    var actualResult = messageSender.sendMessage(agentCard, operation);
 
     assertThat(actualResult).isSameAs(expectedResult);
 
@@ -203,7 +203,6 @@ class A2aMessageSenderTest {
         .satisfiesExactly(
             p -> assertThat(((TextPart) p).getText()).isEqualTo("hello"),
             p -> assertThat(p).isSameAs(partFromDocument));
-    verify(documentToPartConverter).convert(document);
     verify(client).close();
   }
 

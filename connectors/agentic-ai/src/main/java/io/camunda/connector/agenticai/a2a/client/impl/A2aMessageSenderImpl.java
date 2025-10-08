@@ -17,7 +17,7 @@ import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.client.api.TaskPoller;
-import io.camunda.connector.agenticai.a2a.client.convert.DocumentToPartConverter;
+import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
@@ -30,19 +30,18 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
-import org.apache.commons.collections4.CollectionUtils;
 
 public class A2aMessageSenderImpl implements A2aMessageSender {
 
   private static final Duration DEFAULT_POLL_INTERVAL = Duration.ofMillis(500);
 
-  private final DocumentToPartConverter documentToPartConverter;
+  private final A2aDocumentToPartConverter documentToPartConverter;
   private final A2aSendMessageResponseHandler sendMessageResponseHandler;
   private final TaskPoller taskPoller;
   private final A2aSdkClientFactory clientFactory;
 
   public A2aMessageSenderImpl(
-      DocumentToPartConverter documentToPartConverter,
+      A2aDocumentToPartConverter documentToPartConverter,
       A2aSendMessageResponseHandler sendMessageResponseHandler,
       TaskPoller taskPoller,
       A2aSdkClientFactory clientFactory) {
@@ -54,7 +53,7 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
 
   @Override
   public A2aSendMessageResult sendMessage(
-      SendMessageOperationConfiguration sendMessageOperation, AgentCard agentCard) {
+      AgentCard agentCard, SendMessageOperationConfiguration sendMessageOperation) {
     Message message = createMessage(sendMessageOperation);
     CompletableFuture<A2aSendMessageResult> response = new CompletableFuture<>();
     BiConsumer<ClientEvent, AgentCard> consumer =
@@ -100,12 +99,7 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
   private Message createMessage(SendMessageOperationConfiguration sendMessageOperation) {
     List<Part<?>> parts = new ArrayList<>();
     parts.add(new TextPart(sendMessageOperation.params().text()));
-    if (CollectionUtils.isNotEmpty(sendMessageOperation.params().documents())) {
-      for (var document : sendMessageOperation.params().documents()) {
-        parts.add(documentToPartConverter.convert(document));
-      }
-    }
-
+    parts.addAll(documentToPartConverter.convert(sendMessageOperation.params().documents()));
     return new Message.Builder().role(Message.Role.USER).parts(parts).build();
   }
 }

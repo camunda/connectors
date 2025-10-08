@@ -33,7 +33,7 @@ public class A2aRequestHandlerImpl implements A2aRequestHandler {
           agentCardFetcher.fetchAgentCard(request.data().connection());
       case SendMessageOperationConfiguration sendMessageOperation -> {
         AgentCard agentCard = agentCardFetcher.fetchAgentCardRaw(request.data().connection());
-        yield a2aMessageSender.sendMessage(sendMessageOperation, agentCard);
+        yield a2aMessageSender.sendMessage(agentCard, sendMessageOperation);
       }
     };
   }

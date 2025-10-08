@@ -14,6 +14,7 @@ import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResu
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -22,10 +23,8 @@ public class TaskPollerImpl implements TaskPoller {
   private final ScheduledExecutorService scheduler;
   private final A2aSendMessageResponseHandler sendMessageResponseHandler;
 
-  public TaskPollerImpl(
-      ScheduledExecutorService scheduler,
-      A2aSendMessageResponseHandler sendMessageResponseHandler) {
-    this.scheduler = scheduler;
+  public TaskPollerImpl(A2aSendMessageResponseHandler sendMessageResponseHandler) {
+    this.scheduler = Executors.newScheduledThreadPool(2);
     this.sendMessageResponseHandler = sendMessageResponseHandler;
   }
 

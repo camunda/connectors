@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.a2a.client.convert;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -19,6 +20,7 @@ import io.a2a.spec.FileWithBytes;
 import io.a2a.spec.TextPart;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentConversionException;
 import io.camunda.connector.api.document.Document;
+import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
@@ -32,10 +34,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class DocumentToPartConverterTest {
+public class A2aDocumentToPartConverterTest {
 
-  private final DocumentToPartConverter converter =
-      new DocumentToPartConverterImpl(new ObjectMapper());
+  private final A2aDocumentToPartConverter converter =
+      new A2aDocumentToPartConverterImpl(new ObjectMapper());
 
   private static final String TEXT_FILE_CONTENT = "Lorem ipsum dolor sit amet.";
   private static final String DUMMY_B64_VALUE = "dGVzdA==";
@@ -171,5 +173,52 @@ public class DocumentToPartConverterTest {
         .isInstanceOf(DocumentConversionException.class)
         .hasMessage(
             "Unsupported content type 'application/zip' for document with reference '<REF>'");
+  }
+
+  @Test
+  void convertsMultipleDocumentsOfDifferentTypes() {
+    Document textDoc = mock(Document.class, Answers.RETURNS_DEEP_STUBS);
+    Document jsonDoc = mock(Document.class, Answers.RETURNS_DEEP_STUBS);
+    Document imageDoc = mock(Document.class, Answers.RETURNS_DEEP_STUBS);
+
+    when(textDoc.metadata().getContentType()).thenReturn("text/plain");
+    when(textDoc.asByteArray()).thenReturn("Hello World".getBytes());
+
+    var jsonContent =
+        """
+        {"name": "test", "value": 123}
+        """;
+    when(jsonDoc.metadata().getContentType()).thenReturn("application/json");
+    when(jsonDoc.asByteArray()).thenReturn(jsonContent.getBytes());
+
+    when(imageDoc.metadata().getContentType()).thenReturn("image/png");
+    when(imageDoc.asBase64()).thenReturn(DUMMY_B64_VALUE);
+
+    var parts = converter.convert(List.of(textDoc, jsonDoc, imageDoc));
+
+    assertThat(parts)
+        .satisfiesExactly(
+            first -> {
+              assertThat(first).isInstanceOf(TextPart.class);
+              assertThat(((TextPart) first).getText()).isEqualTo("Hello World");
+            },
+            second -> {
+              assertThat(second).isInstanceOf(DataPart.class);
+              assertThat(((DataPart) second).getData())
+                  .isEqualTo(Map.of("name", "test", "value", 123));
+            },
+            third -> {
+              assertThat(third).isInstanceOf(FilePart.class);
+              FilePart filePart = (FilePart) third;
+              assertThat(filePart.getFile().mimeType()).isEqualTo("image/png");
+              assertThat(((FileWithBytes) filePart.getFile()).bytes()).isEqualTo(DUMMY_B64_VALUE);
+            });
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  void convertsEmptyOrNullDocumentListToEmptyList(List<Document> documents) {
+    var parts = converter.convert(documents);
+    assertThat(parts).isEmpty();
   }
 }

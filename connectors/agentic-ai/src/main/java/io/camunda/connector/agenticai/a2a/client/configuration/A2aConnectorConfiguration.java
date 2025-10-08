@@ -14,18 +14,16 @@ import io.camunda.connector.agenticai.a2a.client.api.A2aRequestHandler;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.client.api.TaskPoller;
-import io.camunda.connector.agenticai.a2a.client.convert.DocumentToPartConverter;
-import io.camunda.connector.agenticai.a2a.client.convert.DocumentToPartConverterImpl;
-import io.camunda.connector.agenticai.a2a.client.convert.PartsToContentConverter;
-import io.camunda.connector.agenticai.a2a.client.convert.PartsToContentConverterImpl;
+import io.camunda.connector.agenticai.a2a.client.convert.A2APartToContentConverterImpl;
+import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
+import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverterImpl;
+import io.camunda.connector.agenticai.a2a.client.convert.A2aPartToContentConverter;
 import io.camunda.connector.agenticai.a2a.client.impl.A2aAgentCardFetcherImpl;
 import io.camunda.connector.agenticai.a2a.client.impl.A2aMessageSenderImpl;
 import io.camunda.connector.agenticai.a2a.client.impl.A2aRequestHandlerImpl;
 import io.camunda.connector.agenticai.a2a.client.impl.A2aSendMessageResponseHandlerImpl;
 import io.camunda.connector.agenticai.a2a.client.impl.TaskPollerImpl;
 import io.camunda.connector.agenticai.a2a.client.sdk.A2aSdkClientFactoryImpl;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -39,33 +37,27 @@ public class A2aConnectorConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public DocumentToPartConverter documentToPartConverter(ObjectMapper objectMapper) {
-    return new DocumentToPartConverterImpl(objectMapper);
+  public A2aDocumentToPartConverter documentToPartConverter(ObjectMapper objectMapper) {
+    return new A2aDocumentToPartConverterImpl(objectMapper);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public PartsToContentConverter partsToContentConverter() {
-    return new PartsToContentConverterImpl();
+  public A2aPartToContentConverter partsToContentConverter() {
+    return new A2APartToContentConverterImpl();
   }
 
   @Bean
   @ConditionalOnMissingBean
   public A2aSendMessageResponseHandler a2aSendMessageResponseHandler(
-      PartsToContentConverter partsToContentConverter) {
+      A2aPartToContentConverter partsToContentConverter) {
     return new A2aSendMessageResponseHandlerImpl(partsToContentConverter);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public ScheduledExecutorService taskPollerExecutor() {
-    return Executors.newScheduledThreadPool(2);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
   public TaskPoller taskPoller(A2aSendMessageResponseHandler sendMessageResponseHandler) {
-    return new TaskPollerImpl(taskPollerExecutor(), sendMessageResponseHandler);
+    return new TaskPollerImpl(sendMessageResponseHandler);
   }
 
   @Bean
@@ -83,7 +75,7 @@ public class A2aConnectorConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public A2aMessageSender a2aMessageSender(
-      DocumentToPartConverter documentToPartConverter,
+      A2aDocumentToPartConverter documentToPartConverter,
       A2aSendMessageResponseHandler sendMessageResponseHandler,
       TaskPoller taskPoller,
       A2aSdkClientFactory a2aSdkClientFactory) {
