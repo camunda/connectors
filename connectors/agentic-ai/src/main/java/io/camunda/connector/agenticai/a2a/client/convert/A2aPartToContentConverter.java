@@ -7,14 +7,14 @@
 package io.camunda.connector.agenticai.a2a.client.convert;
 
 import io.a2a.spec.Part;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aContent;
+import io.camunda.connector.agenticai.model.message.content.Content;
 import java.util.List;
 import org.apache.commons.collections4.CollectionUtils;
 
 public interface A2aPartToContentConverter {
-  A2aContent convert(Part<?> part);
+  Content convert(Part<?> part);
 
-  default List<A2aContent> convert(List<Part<?>> parts) {
+  default List<Content> convert(List<Part<?>> parts) {
     if (CollectionUtils.isEmpty(parts)) {
       return List.of();
     }

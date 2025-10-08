@@ -39,8 +39,8 @@ class A2APartToContentConverterTest {
 
     var result = converter.convert(textPart);
 
-    assertThat(result.content()).isInstanceOf(TextContent.class);
-    assertThat(((TextContent) result.content()).text()).isEqualTo("Hello, world!");
+    assertThat(result).isInstanceOf(TextContent.class);
+    assertThat(((TextContent) result).text()).isEqualTo("Hello, world!");
     assertThat(result.metadata()).isNull();
   }
 
@@ -53,8 +53,9 @@ class A2APartToContentConverterTest {
 
     assertThat(result)
         .satisfiesExactly(
-            a2aContent -> {
-              assertThat(a2aContent.metadata()).isEqualTo(metadata);
+            content -> {
+              assertThat(content).isInstanceOf(TextContent.class);
+              assertThat(content.metadata()).isEqualTo(metadata);
             });
   }
 
@@ -65,8 +66,8 @@ class A2APartToContentConverterTest {
 
     var result = converter.convert(dataPart);
 
-    assertThat(result.content()).isInstanceOf(ObjectContent.class);
-    assertThat(((ObjectContent) result.content()).content()).isEqualTo(data);
+    assertThat(result).isInstanceOf(ObjectContent.class);
+    assertThat(((ObjectContent) result).content()).isEqualTo(data);
     assertThat(result.metadata()).isNull();
   }
 
@@ -80,8 +81,9 @@ class A2APartToContentConverterTest {
 
     assertThat(result)
         .satisfiesExactly(
-            a2aContent -> {
-              assertThat(a2aContent.metadata()).isEqualTo(metadata);
+            content -> {
+              assertThat(content).isInstanceOf(ObjectContent.class);
+              assertThat(content.metadata()).isEqualTo(metadata);
             });
   }
 
@@ -97,16 +99,16 @@ class A2APartToContentConverterTest {
     assertThat(result)
         .satisfiesExactly(
             first -> {
-              assertThat(first.content()).isInstanceOf(TextContent.class);
-              assertThat(((TextContent) first.content()).text()).isEqualTo("First text");
+              assertThat(first).isInstanceOf(TextContent.class);
+              assertThat(((TextContent) first).text()).isEqualTo("First text");
             },
             second -> {
-              assertThat(second.content()).isInstanceOf(ObjectContent.class);
-              assertThat(((ObjectContent) second.content()).content()).isEqualTo(data);
+              assertThat(second).isInstanceOf(ObjectContent.class);
+              assertThat(((ObjectContent) second).content()).isEqualTo(data);
             },
             third -> {
-              assertThat(third.content()).isInstanceOf(TextContent.class);
-              assertThat(((TextContent) third.content()).text()).isEqualTo("Second text");
+              assertThat(third).isInstanceOf(TextContent.class);
+              assertThat(((TextContent) third).text()).isEqualTo("Second text");
             });
   }
 

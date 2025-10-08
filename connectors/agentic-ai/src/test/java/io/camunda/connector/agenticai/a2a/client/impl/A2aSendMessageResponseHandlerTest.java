@@ -27,10 +27,10 @@ import io.a2a.spec.TaskStatus;
 import io.a2a.spec.TextPart;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aPartToContentConverter;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aArtifact;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aContent;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTaskStatus;
+import io.camunda.connector.agenticai.model.message.content.Content;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -61,8 +61,7 @@ class A2aSendMessageResponseHandlerTest {
     @Test
     void shouldConvertMessageEventToMessageResult() {
       List<Part<?>> parts = List.of(new TextPart("Hello from agent"));
-      List<A2aContent> contents =
-          List.of(A2aContent.builder().content(textContent("Hello from agent")).build());
+      List<Content> contents = List.of(textContent("Hello from agent"));
       Message message =
           new Message.Builder()
               .messageId("msg-123")
@@ -95,8 +94,7 @@ class A2aSendMessageResponseHandlerTest {
     @Test
     void shouldIncludeAllMessageFields() {
       List<Part<?>> parts = List.of(new TextPart("text"));
-      List<A2aContent> contents =
-          List.of(A2aContent.builder().content(textContent("text")).build());
+      List<Content> contents = List.of(textContent("text"));
       Message message =
           new Message.Builder()
               .messageId("msg-1")
@@ -211,8 +209,7 @@ class A2aSendMessageResponseHandlerTest {
     void shouldConvertTaskArtifacts() {
       Task task = createTask("task-1", "ctx-1", TaskState.COMPLETED);
       List<Part<?>> parts = List.of(new TextPart("artifact content"));
-      List<A2aContent> contents =
-          List.of(A2aContent.builder().content(textContent("artifact content")).build());
+      List<Content> contents = List.of(textContent("artifact content"));
 
       Artifact artifact = mock(Artifact.class);
       when(artifact.artifactId()).thenReturn("art-1");
@@ -246,8 +243,7 @@ class A2aSendMessageResponseHandlerTest {
       Artifact artifact2 = createArtifact("art-2", "file2.txt");
       when(task.getArtifacts()).thenReturn(List.of(artifact1, artifact2));
 
-      List<A2aContent> contents =
-          List.of(A2aContent.builder().content(textContent("content")).build());
+      List<Content> contents = List.of(textContent("content"));
       when(partsToContentConverter.convert(anyList())).thenReturn(contents);
 
       A2aSendMessageResult.A2aTaskResult result = handler.handleTask(task);
@@ -263,8 +259,7 @@ class A2aSendMessageResponseHandlerTest {
       TaskStatus status = task.getStatus();
 
       List<Part<?>> messageParts = List.of(new TextPart("Status update"));
-      List<A2aContent> messageContents =
-          List.of(A2aContent.builder().content(textContent("Status update")).build());
+      List<Content> messageContents = List.of(textContent("Status update"));
 
       Message statusMessage =
           new Message.Builder()

@@ -33,7 +33,6 @@ import io.camunda.connector.agenticai.a2a.client.api.TaskPoller;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration.Parameters;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aContent;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult.A2aMessageResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult.A2aTaskResult;
@@ -226,7 +225,7 @@ class A2aMessageSenderTest {
             .messageId(messageId)
             .role(A2aMessage.Role.AGENT)
             .contextId("ctx-123")
-            .contents(List.of(A2aContent.builder().content(new TextContent("content")).build()))
+            .contents(List.of(new TextContent("content", null)))
             .build();
     return new A2aMessageResult(message);
   }

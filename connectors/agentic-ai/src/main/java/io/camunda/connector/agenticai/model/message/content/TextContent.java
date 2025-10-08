@@ -7,9 +7,13 @@
 package io.camunda.connector.agenticai.model.message.content;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record TextContent(String text) implements Content {
+public record TextContent(
+    String text, @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
+    implements Content {
   public TextContent {
     if (text == null || text.isBlank()) {
       throw new IllegalArgumentException("Text cannot be null or empty");
@@ -17,6 +21,6 @@ public record TextContent(String text) implements Content {
   }
 
   public static TextContent textContent(String text) {
-    return new TextContent(text);
+    return new TextContent(text, null);
   }
 }

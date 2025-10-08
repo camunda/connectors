@@ -134,7 +134,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
 
     // add documents
     Optional.ofNullable(userPrompt.documents()).orElseGet(Collections::emptyList).stream()
-        .map(DocumentContent::new)
+        .map(DocumentContent::documentContent)
         .forEach(content::add);
 
     if (content.isEmpty()) {

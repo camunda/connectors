@@ -24,7 +24,6 @@ import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aClientReque
 import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aClientRequestData.ConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCardResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aArtifact;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aContent;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTaskStatus;
@@ -82,9 +81,7 @@ class A2aRequestHandlerTest {
                         A2aArtifact.builder()
                             .artifactId("artifact-1")
                             .name("artifact1")
-                            .contents(
-                                List.of(
-                                    A2aContent.builder().content(new TextContent("ok")).build()))
+                            .contents(List.of(new TextContent("ok", null)))
                             .build()))
                 .build());
     when(messageSender.sendMessage(agentCard, operation)).thenReturn(expectedSendResult);

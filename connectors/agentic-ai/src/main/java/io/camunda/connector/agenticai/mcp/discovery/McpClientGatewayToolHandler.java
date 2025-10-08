@@ -176,8 +176,8 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
 
     // directly use the string content if the returned content is a single text content
     if (callToolResult.content().size() == 1
-        && callToolResult.content().getFirst() instanceof TextContent(String text)) {
-      toolCallResultBuilder.content(text);
+        && callToolResult.content().getFirst() instanceof TextContent textContent) {
+      toolCallResultBuilder.content(textContent.text());
     } else {
       toolCallResultBuilder.content(callToolResult.content());
     }
