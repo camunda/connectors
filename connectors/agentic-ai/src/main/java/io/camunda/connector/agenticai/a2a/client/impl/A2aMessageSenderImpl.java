@@ -16,13 +16,9 @@ import io.a2a.spec.TextPart;
 import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
-import io.camunda.connector.agenticai.a2a.client.api.TaskPoller;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -33,21 +29,16 @@ import java.util.function.BiConsumer;
 
 public class A2aMessageSenderImpl implements A2aMessageSender {
 
-  private static final Duration DEFAULT_POLL_INTERVAL = Duration.ofMillis(500);
-
   private final A2aDocumentToPartConverter documentToPartConverter;
   private final A2aSendMessageResponseHandler sendMessageResponseHandler;
-  private final TaskPoller taskPoller;
   private final A2aSdkClientFactory clientFactory;
 
   public A2aMessageSenderImpl(
       A2aDocumentToPartConverter documentToPartConverter,
       A2aSendMessageResponseHandler sendMessageResponseHandler,
-      TaskPoller taskPoller,
       A2aSdkClientFactory clientFactory) {
     this.documentToPartConverter = documentToPartConverter;
     this.sendMessageResponseHandler = sendMessageResponseHandler;
-    this.taskPoller = taskPoller;
     this.clientFactory = clientFactory;
   }
 
@@ -74,18 +65,7 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
     }
 
     try {
-      Instant startTime = Instant.now();
-      A2aSendMessageResult result =
-          response.get(sendMessageOperation.timeout().toMillis(), TimeUnit.MILLISECONDS);
-      if (result instanceof A2aSendMessageResult.A2aTaskResult(A2aTask task)
-          && task.status().state().isSubmittedOrWorking()) {
-        Duration timeSpent = Duration.between(startTime, Instant.now());
-        Duration updatedTimeout = sendMessageOperation.timeout().minus(timeSpent);
-        return taskPoller
-            .poll(task.id(), client, DEFAULT_POLL_INTERVAL, updatedTimeout)
-            .get(updatedTimeout.toMillis(), TimeUnit.MILLISECONDS);
-      }
-      return result;
+      return response.get(sendMessageOperation.timeout().toMillis(), TimeUnit.MILLISECONDS);
     } catch (TimeoutException e) {
       // TODO: should be a ConnectorException with a specific error code?
       throw new RuntimeException("Timed out waiting for response from agent.", e);

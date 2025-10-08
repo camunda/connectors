@@ -13,7 +13,6 @@ import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
 import io.camunda.connector.agenticai.a2a.client.api.A2aRequestHandler;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
-import io.camunda.connector.agenticai.a2a.client.api.TaskPoller;
 import io.camunda.connector.agenticai.a2a.client.convert.A2APartToContentConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverterImpl;
@@ -24,7 +23,6 @@ import io.camunda.connector.agenticai.a2a.client.impl.A2aAgentCardFetcherImpl;
 import io.camunda.connector.agenticai.a2a.client.impl.A2aMessageSenderImpl;
 import io.camunda.connector.agenticai.a2a.client.impl.A2aRequestHandlerImpl;
 import io.camunda.connector.agenticai.a2a.client.impl.A2aSendMessageResponseHandlerImpl;
-import io.camunda.connector.agenticai.a2a.client.impl.TaskPollerImpl;
 import io.camunda.connector.agenticai.a2a.client.sdk.A2aSdkClientFactoryImpl;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -65,12 +63,6 @@ public class A2aConnectorConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public TaskPoller taskPoller(A2aSendMessageResponseHandler sendMessageResponseHandler) {
-    return new TaskPollerImpl(sendMessageResponseHandler);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
   public A2aAgentCardFetcher a2aAgentCardFetcher() {
     return new A2aAgentCardFetcherImpl();
   }
@@ -86,10 +78,9 @@ public class A2aConnectorConfiguration {
   public A2aMessageSender a2aMessageSender(
       A2aDocumentToPartConverter documentToPartConverter,
       A2aSendMessageResponseHandler sendMessageResponseHandler,
-      TaskPoller taskPoller,
       A2aSdkClientFactory a2aSdkClientFactory) {
     return new A2aMessageSenderImpl(
-        documentToPartConverter, sendMessageResponseHandler, taskPoller, a2aSdkClientFactory);
+        documentToPartConverter, sendMessageResponseHandler, a2aSdkClientFactory);
   }
 
   @Bean

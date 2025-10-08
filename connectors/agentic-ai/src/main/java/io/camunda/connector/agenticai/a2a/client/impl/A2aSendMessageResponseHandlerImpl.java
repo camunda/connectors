@@ -19,10 +19,10 @@ import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResu
 
 public class A2aSendMessageResponseHandlerImpl implements A2aSendMessageResponseHandler {
 
-  private final A2aSdkObjectConverter messageTaskConverter;
+  private final A2aSdkObjectConverter sdkObjectConverter;
 
-  public A2aSendMessageResponseHandlerImpl(A2aSdkObjectConverter messageTaskConverter) {
-    this.messageTaskConverter = messageTaskConverter;
+  public A2aSendMessageResponseHandlerImpl(A2aSdkObjectConverter sdkObjectConverter) {
+    this.sdkObjectConverter = sdkObjectConverter;
   }
 
   @Override
@@ -30,7 +30,7 @@ public class A2aSendMessageResponseHandlerImpl implements A2aSendMessageResponse
     switch (clientEvent) {
       case MessageEvent messageEvent -> {
         Message message = messageEvent.getMessage();
-        return new A2aSendMessageResult.A2aMessageResult(messageTaskConverter.convert(message));
+        return new A2aSendMessageResult.A2aMessageResult(sdkObjectConverter.convert(message));
       }
       case TaskEvent taskEvent -> {
         Task task = taskEvent.getTask();
@@ -49,6 +49,6 @@ public class A2aSendMessageResponseHandlerImpl implements A2aSendMessageResponse
           "Task status %s is not supported yet.".formatted(status.state().asString()));
     }
 
-    return new A2aSendMessageResult.A2aTaskResult(messageTaskConverter.convert(task));
+    return new A2aSendMessageResult.A2aTaskResult(sdkObjectConverter.convert(task));
   }
 }

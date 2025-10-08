@@ -22,7 +22,7 @@ public class A2aSdkClientFactoryImpl implements A2aSdkClientFactory {
   public Client buildClient(AgentCard agentCard, BiConsumer<ClientEvent, AgentCard> consumer) {
     try {
       return Client.builder(agentCard)
-          .clientConfig(new ClientConfig.Builder().setStreaming(false).setPolling(true).build())
+          .clientConfig(new ClientConfig.Builder().setStreaming(false).setPolling(false).build())
           .withTransport(JSONRPCTransport.class, new JSONRPCTransportConfig())
           .addConsumer(consumer)
           .build();

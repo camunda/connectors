@@ -9,48 +9,35 @@ package io.camunda.connector.agenticai.a2a.client.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.a2a.client.Client;
 import io.a2a.client.ClientEvent;
 import io.a2a.client.MessageEvent;
-import io.a2a.client.TaskEvent;
 import io.a2a.spec.A2AClientException;
 import io.a2a.spec.AgentCard;
 import io.a2a.spec.Message;
-import io.a2a.spec.Task;
-import io.a2a.spec.TaskStatus;
 import io.a2a.spec.TextPart;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
-import io.camunda.connector.agenticai.a2a.client.api.TaskPoller;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration.Parameters;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult.A2aMessageResult;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult.A2aTaskResult;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aTaskStatus;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aTaskStatus.TaskState;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -63,7 +50,6 @@ class A2aMessageSenderTest {
 
   @Mock private A2aDocumentToPartConverter documentToPartConverter;
   @Mock private A2aSendMessageResponseHandler sendMessageResponseHandler;
-  @Mock private TaskPoller taskPoller;
   @Mock private A2aSdkClientFactory clientFactory;
   @Mock private Client client;
   @Mock private AgentCard agentCard;
@@ -83,7 +69,7 @@ class A2aMessageSenderTest {
   }
 
   @Test
-  void shouldReturnImmediateResultWhenCompletedWithoutPolling() throws Exception {
+  void shouldReturnImmediateResultWhenCompleted() throws Exception {
     var operation = newSendMessageOperation(Duration.ofSeconds(1));
 
     MessageEvent clientEvent = newMessageEvent();
@@ -95,47 +81,11 @@ class A2aMessageSenderTest {
     var actualResult = messageSender.sendMessage(agentCard, operation);
 
     assertThat(actualResult).isSameAs(expectedResult);
-    verify(taskPoller, never()).poll(anyString(), any(), any(), any());
-    verify(client).close();
-  }
-
-  @ParameterizedTest
-  @EnumSource(
-      value = TaskState.class,
-      names = {"SUBMITTED", "WORKING"})
-  void shouldPollWhenResultSubmittedOrWorking(TaskState taskState) throws Exception {
-    var taskId = "task-1";
-    var operation = newSendMessageOperation(Duration.ofSeconds(1));
-    var task =
-        new Task.Builder()
-            .contextId("ctx-123")
-            .id(taskId)
-            .status(new TaskStatus(io.a2a.spec.TaskState.valueOf(taskState.name())))
-            .build();
-    var clientEvent = new TaskEvent(task);
-    var submittedResult = taskResult(taskId, taskState);
-    var expectedFinalResult = messageResult(MESSAGE_ID);
-
-    when(sendMessageResponseHandler.handleClientEvent(clientEvent)).thenReturn(submittedResult);
-    when(taskPoller.poll(eq(taskId), eq(client), any(), any()))
-        .thenReturn(CompletableFuture.completedFuture(expectedFinalResult));
-
-    mockClientSendMessage(clientEvent);
-
-    var actualResult = messageSender.sendMessage(agentCard, operation);
-
-    assertThat(actualResult).isSameAs(expectedFinalResult);
-
-    // capture poll interval to assert equals default (500ms)
-    ArgumentCaptor<Duration> pollIntervalCaptor = ArgumentCaptor.forClass(Duration.class);
-    verify(taskPoller)
-        .poll(eq(taskId), eq(client), pollIntervalCaptor.capture(), any(Duration.class));
-    assertThat(pollIntervalCaptor.getValue()).isEqualTo(Duration.ofMillis(500));
     verify(client).close();
   }
 
   @Test
-  void shouldTimeoutWaitingForInitialResponse() throws Exception {
+  void shouldTimeoutWaitingForResponse() throws Exception {
     // very short timeout to keep test fast
     var operation = newSendMessageOperation(Duration.ofMillis(10));
 
@@ -228,12 +178,6 @@ class A2aMessageSenderTest {
             .contents(List.of(new TextContent("content", null)))
             .build();
     return new A2aMessageResult(message);
-  }
-
-  private A2aTaskResult taskResult(String taskId, TaskState state) {
-    var status = A2aTaskStatus.builder().state(state).build();
-    var task = A2aTask.builder().id(taskId).contextId("ctx-123").status(status).build();
-    return new A2aTaskResult(task);
   }
 
   private void mockClientSendMessage(ClientEvent clientEvent) throws A2AClientException {
