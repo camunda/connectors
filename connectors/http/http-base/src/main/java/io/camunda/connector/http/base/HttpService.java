@@ -21,7 +21,7 @@ public class HttpService {
   private static final HttpClient HTTP_CLIENT = new CustomApacheHttpClient();
   private static final ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
 
-    public HttpCommonResult executeConnectorRequest(HttpCommonRequest request) {
+  public HttpCommonResult executeConnectorRequest(HttpCommonRequest request) {
     return executeConnectorRequest(request, null);
   }
 
