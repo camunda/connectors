@@ -8,14 +8,15 @@ package io.camunda.connector.http.base;
 
 import static io.camunda.connector.http.client.utils.JsonHelper.isJsonStringValid;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.client.mapper.ResponseMapper;
 import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import io.camunda.connector.http.client.utils.HeadersHelper;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -34,10 +35,13 @@ public class HttpCommonResultMapper implements ResponseMapper<HttpCommonResult> 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpCommonResultMapper.class);
   private final DocumentFactory documentFactory;
   private final boolean isStoreResponseSelected;
+  private final ObjectMapper objectMapper;
 
-  public HttpCommonResultMapper(DocumentFactory documentFactory, boolean isStoreResponseSelected) {
+  public HttpCommonResultMapper(
+      DocumentFactory documentFactory, boolean isStoreResponseSelected, ObjectMapper objectMapper) {
     this.documentFactory = documentFactory;
     this.isStoreResponseSelected = isStoreResponseSelected;
+    this.objectMapper = objectMapper;
   }
 
   @Override
@@ -45,23 +49,14 @@ public class HttpCommonResultMapper implements ResponseMapper<HttpCommonResult> 
     if (isStoreResponseSelected) {
       return storeDocument(streamingHttpResponse);
     } else {
-      try { // stream is closed by the http client
-        byte[] bytes =
-            streamingHttpResponse.body() != null
-                ? streamingHttpResponse.body().readAllBytes()
-                : null;
-        Object body = deserializeBody(bytes);
-        Map<String, Object> headers = HeadersHelper.flattenHeaders(streamingHttpResponse.headers());
-        return new HttpCommonResult(
-            streamingHttpResponse.status(), headers, body, streamingHttpResponse.reason(), null);
-      } catch (IOException e) {
-        LOGGER.error("Failed to read response body: {}", e.getMessage(), e);
-        throw new RuntimeException("Failed to read response body: " + e.getMessage(), e);
-      }
+      Object body = deserializeBody(streamingHttpResponse.body());
+      Map<String, Object> headers = HeadersHelper.flattenHeaders(streamingHttpResponse.headers());
+      return new HttpCommonResult(
+          streamingHttpResponse.status(), headers, body, streamingHttpResponse.reason(), null);
     }
   }
 
-  private String getContentType(Map<String, List<String>> headers) {
+  private static String getContentType(Map<String, List<String>> headers) {
     return HeadersHelper.getHeaderIgnoreCase(headers, HttpHeaders.CONTENT_TYPE);
   }
 
@@ -84,20 +79,35 @@ public class HttpCommonResultMapper implements ResponseMapper<HttpCommonResult> 
   }
 
   /**
+   * Deserializes the body from the input stream. Tries to parse the body as JSON, if it fails,
+   * returns the body as a string.
+   *
+   * @param bodyInputStream the input stream of the response body
+   * @return the deserialized body
+   */
+  private Object deserializeBody(InputStream bodyInputStream) {
+    if (bodyInputStream == null) return null;
+    else {
+      try (bodyInputStream) {
+        return deserializeBody(bodyInputStream.readAllBytes());
+      } catch (IOException e) {
+        LOGGER.error("Failed to read response body: {}", e.getMessage(), e);
+        throw new RuntimeException("Failed to read response body: " + e.getMessage(), e);
+      }
+    }
+  }
+
+  /**
    * Extracts the body from the response content. Tries to parse the body as JSON, if it fails,
    * returns the body as a string.
    *
    * @param content the response content
    */
   private Object deserializeBody(byte[] content) throws IOException {
-    String bodyString = null;
-    if (content != null) {
-      bodyString = new String(content, StandardCharsets.UTF_8);
-    }
-
+    String bodyString = new String(content, StandardCharsets.UTF_8);
     if (StringUtils.isNotBlank(bodyString)) {
       return isJsonStringValid(bodyString)
-          ? ConnectorsObjectMapperSupplier.getCopy().readValue(bodyString, Object.class)
+          ? objectMapper.readValue(bodyString, Object.class)
           : bodyString;
     }
     return null;
