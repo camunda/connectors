@@ -50,6 +50,9 @@ public class A2aSdkObjectConverterImpl implements A2aSdkObjectConverter {
   }
 
   private List<A2aArtifact> convertArtifacts(Task task) {
+    if (task.getArtifacts() == null) {
+      return List.of();
+    }
     return task.getArtifacts().stream()
         .map(
             artifact ->
