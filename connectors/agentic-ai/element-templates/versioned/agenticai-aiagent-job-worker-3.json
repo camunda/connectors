@@ -1,6 +1,6 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "AI Agent Process",
+  "name" : "AI Agent Subprocess",
   "id" : "io.camunda.connectors.agenticai.aiagent.jobworker.v1",
   "description" : "Processes user requests with an integrated, customizable toolbox and services for dynamic workflows.",
   "metadata" : {

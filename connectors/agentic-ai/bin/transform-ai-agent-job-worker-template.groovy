@@ -57,8 +57,8 @@ if (outputFilePath.exists() && !isHybrid) {
 
 // Update template metadata
 json.id = "io.camunda.connectors.agenticai.aiagent.jobworker.v1"
-json.name = "AI Agent Process"
-json.description = "Processes user requests with an integrated, customizable toolbox and services for dynamic workflows."
+json.name = "AI Agent Subprocess"
+json.description = "Run a multi-step AI reasoning loop with dynamic tool selection"
 
 if (isHybrid) {
     json.id += "-hybrid"
