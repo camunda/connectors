@@ -79,7 +79,7 @@ public final class ConverseData implements RequestData {
       feel = Property.FeelMode.optional,
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "data.temperature"))
-  private Float temperature = 0.5f;
+  private Float temperature;
 
   @TemplateProperty(
       label = "top P",
@@ -88,7 +88,7 @@ public final class ConverseData implements RequestData {
       feel = Property.FeelMode.optional,
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "data.topP"))
-  private Float topP = 0.9f;
+  private Float topP;
 
   @TemplateProperty(
       label = "documents",
