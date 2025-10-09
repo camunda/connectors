@@ -17,7 +17,7 @@ import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
-import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration;
+import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
 import java.util.ArrayList;
 import java.util.List;

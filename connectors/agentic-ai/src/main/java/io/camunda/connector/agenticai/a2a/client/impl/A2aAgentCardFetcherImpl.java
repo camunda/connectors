@@ -12,7 +12,7 @@ import io.a2a.A2A;
 import io.a2a.spec.A2AClientError;
 import io.a2a.spec.AgentCard;
 import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aClientRequestData.ConnectionConfiguration;
+import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aRequestData.ConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCardResult;
 import java.util.Collections;
 import org.apache.commons.collections4.CollectionUtils;
