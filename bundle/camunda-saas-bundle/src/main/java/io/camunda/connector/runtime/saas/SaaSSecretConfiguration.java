@@ -58,7 +58,7 @@ public class SaaSSecretConfiguration {
 
   public SecretProvider getInternalSecretProvider() {
     if (useAwsSecretProvider && Objects.equals(clusterProvider, "aws")) {
-      return new AwsSecretProvider(clusterId, secretsNamePrefix);
+      return new AwsSecretProvider(clusterId, secretsInternalNamePrefix);
     }
     return new GcpSecretProvider(clusterId, secretsProjectId, secretsInternalNamePrefix);
   }
