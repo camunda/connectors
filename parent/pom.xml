@@ -70,7 +70,7 @@ limitations under the License.</license.inlineheader>
     <nexus.release.repository>https://artifacts.camunda.com/artifactory/connectors/</nexus.release.repository>
 
     <!-- Camunda internal libraries -->
-    <version.camunda>8.8.0-rc3</version.camunda>
+    <version.camunda>8.8.0-rc4</version.camunda>
     <version.feel-engine>1.19.3</version.feel-engine>
 
     <!-- Third party dependencies -->
