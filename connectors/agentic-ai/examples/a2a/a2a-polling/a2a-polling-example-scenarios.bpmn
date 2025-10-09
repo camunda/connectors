@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_07hxf1i" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.40.0-rc.1-dev" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+  <bpmn:process id="A2A_Polling_Example_Scenarios" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_1ncwvzq</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:callActivity id="A2A_sync_complete_message" name="A2A sync complete with message">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="A2A_Polling_Example" propagateAllChildVariables="false" propagateAllParentVariables="false" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=&#34;COMPLETE_MESSAGE Hello&#34;" target="messageText" />
+          <zeebe:output source="=toolCallResult" target="syncMessageResult" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_12rspgk</bpmn:incoming>
+      <bpmn:outgoing>Flow_02r3gmy</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:sequenceFlow id="Flow_1ncwvzq" sourceRef="StartEvent_1" targetRef="Gateway_0wy5que" />
+    <bpmn:endEvent id="Event_0drhw5s">
+      <bpmn:incoming>Flow_0e6qkgl</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_02r3gmy" sourceRef="A2A_sync_complete_message" targetRef="Gateway_039k591" />
+    <bpmn:sequenceFlow id="Flow_12rspgk" sourceRef="Gateway_0wy5que" targetRef="A2A_sync_complete_message" />
+    <bpmn:sequenceFlow id="Flow_0e6qkgl" sourceRef="Gateway_039k591" targetRef="Event_0drhw5s" />
+    <bpmn:parallelGateway id="Gateway_039k591">
+      <bpmn:incoming>Flow_02r3gmy</bpmn:incoming>
+      <bpmn:incoming>Flow_1fs7c5d</bpmn:incoming>
+      <bpmn:incoming>Flow_0etzkjj</bpmn:incoming>
+      <bpmn:outgoing>Flow_0e6qkgl</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:parallelGateway id="Gateway_0wy5que">
+      <bpmn:incoming>Flow_1ncwvzq</bpmn:incoming>
+      <bpmn:outgoing>Flow_12rspgk</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1o5yd32</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1qo597l</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:callActivity id="A2A_sync_complete_task" name="A2A sync complete with task">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="A2A_Polling_Example" propagateAllChildVariables="false" propagateAllParentVariables="false" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=&#34;COMPLETE_TASK Hello&#34;" target="messageText" />
+          <zeebe:output source="=toolCallResult" target="syncTaskResult" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1o5yd32</bpmn:incoming>
+      <bpmn:outgoing>Flow_1fs7c5d</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:callActivity id="A2A_async_complete_task" name="A2A async complete with task">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="A2A_Polling_Example" propagateAllChildVariables="false" propagateAllParentVariables="false" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=&#34;Hello&#34;" target="messageText" />
+          <zeebe:output source="=toolCallResult" target="asyncTaskResult" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1qo597l</bpmn:incoming>
+      <bpmn:outgoing>Flow_0etzkjj</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:sequenceFlow id="Flow_1o5yd32" sourceRef="Gateway_0wy5que" targetRef="A2A_sync_complete_task" />
+    <bpmn:sequenceFlow id="Flow_1qo597l" sourceRef="Gateway_0wy5que" targetRef="A2A_async_complete_task" />
+    <bpmn:sequenceFlow id="Flow_1fs7c5d" sourceRef="A2A_sync_complete_task" targetRef="Gateway_039k591" />
+    <bpmn:sequenceFlow id="Flow_0etzkjj" sourceRef="A2A_async_complete_task" targetRef="Gateway_039k591" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="A2A_Polling_Example_Scenarios">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="192" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_141nkjs_di" bpmnElement="A2A_sync_complete_message">
+        <dc:Bounds x="350" y="60" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0drhw5s_di" bpmnElement="Event_0drhw5s">
+        <dc:Bounds x="632" y="192" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1ardczy_di" bpmnElement="Gateway_039k591">
+        <dc:Bounds x="505" y="185" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1y06ofx_di" bpmnElement="Gateway_0wy5que">
+        <dc:Bounds x="245" y="185" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0x8wiuo" bpmnElement="A2A_sync_complete_task">
+        <dc:Bounds x="350" y="170" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0p1r70s" bpmnElement="A2A_async_complete_task">
+        <dc:Bounds x="350" y="280" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1ncwvzq_di" bpmnElement="Flow_1ncwvzq">
+        <di:waypoint x="188" y="210" />
+        <di:waypoint x="245" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_02r3gmy_di" bpmnElement="Flow_02r3gmy">
+        <di:waypoint x="450" y="100" />
+        <di:waypoint x="530" y="100" />
+        <di:waypoint x="530" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12rspgk_di" bpmnElement="Flow_12rspgk">
+        <di:waypoint x="270" y="185" />
+        <di:waypoint x="270" y="100" />
+        <di:waypoint x="350" y="100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0e6qkgl_di" bpmnElement="Flow_0e6qkgl">
+        <di:waypoint x="555" y="210" />
+        <di:waypoint x="632" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1o5yd32_di" bpmnElement="Flow_1o5yd32">
+        <di:waypoint x="295" y="210" />
+        <di:waypoint x="350" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1qo597l_di" bpmnElement="Flow_1qo597l">
+        <di:waypoint x="270" y="235" />
+        <di:waypoint x="270" y="320" />
+        <di:waypoint x="350" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1fs7c5d_di" bpmnElement="Flow_1fs7c5d">
+        <di:waypoint x="450" y="210" />
+        <di:waypoint x="505" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0etzkjj_di" bpmnElement="Flow_0etzkjj">
+        <di:waypoint x="450" y="320" />
+        <di:waypoint x="530" y="320" />
+        <di:waypoint x="530" y="235" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
