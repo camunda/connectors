@@ -28,7 +28,6 @@ import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConver
 import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration.Parameters;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult.A2aMessageResult;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import java.time.Duration;
@@ -169,15 +168,13 @@ class A2aMessageSenderTest {
     return new MessageEvent(message);
   }
 
-  private A2aMessageResult messageResult(String messageId) {
-    var message =
-        A2aMessage.builder()
-            .messageId(messageId)
-            .role(A2aMessage.Role.AGENT)
-            .contextId("ctx-123")
-            .contents(List.of(new TextContent("content", null)))
-            .build();
-    return new A2aMessageResult(message);
+  private A2aMessage messageResult(String messageId) {
+    return A2aMessage.builder()
+        .messageId(messageId)
+        .role(A2aMessage.Role.AGENT)
+        .contextId("ctx-123")
+        .contents(List.of(new TextContent("content", null)))
+        .build();
   }
 
   private void mockClientSendMessage(ClientEvent clientEvent) throws A2AClientException {

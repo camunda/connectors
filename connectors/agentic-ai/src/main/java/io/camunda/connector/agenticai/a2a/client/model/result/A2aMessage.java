@@ -25,7 +25,8 @@ public record A2aMessage(
     @Nullable String taskId,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<String> referenceTaskIds,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata,
-    List<Content> contents) {
+    List<Content> contents)
+    implements A2aSendMessageResult {
 
   public enum Role {
     USER("user"),

@@ -17,7 +17,6 @@ import io.a2a.client.ClientEvent;
 import io.a2a.client.MessageEvent;
 import io.a2a.client.TaskEvent;
 import io.a2a.client.TaskUpdateEvent;
-import io.a2a.spec.Artifact;
 import io.a2a.spec.Message;
 import io.a2a.spec.Task;
 import io.a2a.spec.TaskState;
@@ -76,11 +75,8 @@ class A2aSendMessageResponseHandlerTest {
 
       A2aSendMessageResult result = handler.handleClientEvent(event);
 
-      assertThat(result).isInstanceOf(A2aSendMessageResult.A2aMessageResult.class);
-      A2aSendMessageResult.A2aMessageResult messageResult =
-          (A2aSendMessageResult.A2aMessageResult) result;
-
-      assertThat(messageResult.message()).isEqualTo(expectedMessage);
+      assertThat(result).isInstanceOf(A2aMessage.class);
+      assertThat(result).isEqualTo(expectedMessage);
     }
 
     @Test
@@ -98,10 +94,8 @@ class A2aSendMessageResponseHandlerTest {
 
       A2aSendMessageResult result = handler.handleClientEvent(event);
 
-      assertThat(result).isInstanceOf(A2aSendMessageResult.A2aTaskResult.class);
-      A2aSendMessageResult.A2aTaskResult taskResult = (A2aSendMessageResult.A2aTaskResult) result;
-
-      assertThat(taskResult.task()).isEqualTo(a2aTask);
+      assertThat(result).isInstanceOf(A2aTask.class);
+      assertThat(result).isEqualTo(a2aTask);
     }
 
     @Test
@@ -136,9 +130,9 @@ class A2aSendMessageResponseHandlerTest {
               .build();
       when(sdkObjectConverter.convert(task)).thenReturn(expectedTask);
 
-      A2aSendMessageResult.A2aTaskResult result = handler.handleTask(task);
+      A2aTask result = handler.handleTask(task);
 
-      assertThat(result.task()).isEqualTo(expectedTask);
+      assertThat(result).isEqualTo(expectedTask);
     }
 
     @ParameterizedTest
@@ -168,13 +162,5 @@ class A2aSendMessageResponseHandlerTest {
     lenient().when(task.getArtifacts()).thenReturn(List.of());
 
     return task;
-  }
-
-  private Artifact createArtifact(String id, String name) {
-    Artifact artifact = mock(Artifact.class);
-    when(artifact.artifactId()).thenReturn(id);
-    when(artifact.name()).thenReturn(name);
-    when(artifact.parts()).thenReturn(List.of(new TextPart("content")));
-    return artifact;
   }
 }

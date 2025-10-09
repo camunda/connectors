@@ -20,7 +20,8 @@ public record A2aTask(
     String contextId,
     A2aTaskStatus status,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata,
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<A2aArtifact> artifacts) {
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<A2aArtifact> artifacts)
+    implements A2aSendMessageResult {
 
   public static A2aTaskBuilder builder() {
     return A2aTaskBuilder.builder();

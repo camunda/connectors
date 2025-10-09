@@ -44,7 +44,7 @@ public class A2aConnectorFunction implements OutboundConnectorFunction {
   }
 
   @Override
-  public A2aResult execute(OutboundConnectorContext context) throws Exception {
+  public A2aResult execute(OutboundConnectorContext context) {
     final A2aRequest request = context.bindVariables(A2aRequest.class);
     return handler.handle(request);
   }

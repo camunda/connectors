@@ -16,6 +16,7 @@ import io.a2a.spec.TaskStatus;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
 
 public class A2aSendMessageResponseHandlerImpl implements A2aSendMessageResponseHandler {
 
@@ -30,7 +31,7 @@ public class A2aSendMessageResponseHandlerImpl implements A2aSendMessageResponse
     switch (clientEvent) {
       case MessageEvent messageEvent -> {
         Message message = messageEvent.getMessage();
-        return new A2aSendMessageResult.A2aMessageResult(sdkObjectConverter.convert(message));
+        return sdkObjectConverter.convert(message);
       }
       case TaskEvent taskEvent -> {
         Task task = taskEvent.getTask();
@@ -42,13 +43,13 @@ public class A2aSendMessageResponseHandlerImpl implements A2aSendMessageResponse
   }
 
   @Override
-  public A2aSendMessageResult.A2aTaskResult handleTask(Task task) {
+  public A2aTask handleTask(Task task) {
     TaskStatus status = task.getStatus();
     if (status.state() == TaskState.INPUT_REQUIRED || status.state() == TaskState.AUTH_REQUIRED) {
       throw new RuntimeException(
           "Task status %s is not supported yet.".formatted(status.state().asString()));
     }
 
-    return new A2aSendMessageResult.A2aTaskResult(sdkObjectConverter.convert(task));
+    return sdkObjectConverter.convert(task);
   }
 }
