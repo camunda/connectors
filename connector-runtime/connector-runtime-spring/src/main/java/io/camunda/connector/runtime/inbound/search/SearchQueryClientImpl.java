@@ -73,7 +73,7 @@ public class SearchQueryClientImpl implements SearchQueryClient {
     final var query =
         camundaClient
             .newVariableSearchRequest()
-            .filter(v -> v.processInstanceKey(processInstanceKey).scopeKey(processInstanceKey));
+            .filter(v -> v.processInstanceKey(processInstanceKey));
     if (variablePaginationIndex != null) {
       query.page(p -> p.limit(limit).after(variablePaginationIndex));
     } else {
