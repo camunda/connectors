@@ -56,7 +56,6 @@ public class A2aClientPollingExecutable
 
   @Override
   public void activate(final InboundIntermediateConnectorContext context) {
-    LOG.info("Activating A2A polling client");
     processInstancesFetcherTask =
         new ProcessInstancesFetcherTask(
             context, SharedExecutorService.getInstance(), clientFactory, objectConverter);
@@ -65,7 +64,6 @@ public class A2aClientPollingExecutable
 
   @Override
   public void deactivate() {
-    LOG.info("Deactivating A2A polling client");
     processInstancesFetcherTask.stop();
   }
 }
