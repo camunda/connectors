@@ -26,9 +26,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PollA2aTaskStateTask implements Runnable, AutoCloseable {
+/**
+ * Task responsible for polling a specific A2A task ID for a given process instance. Started and
+ * managed from {@link A2aProcessInstancesFetcherTask}
+ */
+public class A2aTaskPollingTask implements Runnable, AutoCloseable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(PollA2aTaskStateTask.class);
+  private static final Logger LOG = LoggerFactory.getLogger(A2aTaskPollingTask.class);
 
   private final InboundIntermediateConnectorContext context;
   private final ProcessInstanceContext processInstanceContext;
@@ -40,7 +44,7 @@ public class PollA2aTaskStateTask implements Runnable, AutoCloseable {
   private AgentCard agentCard;
   private Client client;
 
-  public PollA2aTaskStateTask(
+  public A2aTaskPollingTask(
       final InboundIntermediateConnectorContext context,
       final ProcessInstanceContext processInstanceContext,
       final A2aPollingRequest pollingRequest,
