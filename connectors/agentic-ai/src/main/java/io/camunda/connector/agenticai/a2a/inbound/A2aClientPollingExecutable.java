@@ -10,14 +10,12 @@ import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRequest;
 import io.camunda.connector.agenticai.a2a.inbound.service.SharedExecutorService;
-import io.camunda.connector.agenticai.a2a.inbound.task.ProcessInstancesFetcherTask;
+import io.camunda.connector.agenticai.a2a.inbound.task.A2aProcessInstancesFetcherTask;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.a2a.polling.v0",
@@ -42,11 +40,9 @@ import org.slf4j.LoggerFactory;
 public class A2aClientPollingExecutable
     implements InboundConnectorExecutable<InboundIntermediateConnectorContext> {
 
-  private static final Logger LOG = LoggerFactory.getLogger(A2aClientPollingExecutable.class);
-
   private final A2aSdkClientFactory clientFactory;
   private final A2aSdkObjectConverter objectConverter;
-  private ProcessInstancesFetcherTask processInstancesFetcherTask;
+  private A2aProcessInstancesFetcherTask processInstancesFetcherTask;
 
   public A2aClientPollingExecutable(
       final A2aSdkClientFactory clientFactory, final A2aSdkObjectConverter objectConverter) {
@@ -57,7 +53,7 @@ public class A2aClientPollingExecutable
   @Override
   public void activate(final InboundIntermediateConnectorContext context) {
     processInstancesFetcherTask =
-        new ProcessInstancesFetcherTask(
+        new A2aProcessInstancesFetcherTask(
             context, SharedExecutorService.getInstance(), clientFactory, objectConverter);
     processInstancesFetcherTask.start();
   }

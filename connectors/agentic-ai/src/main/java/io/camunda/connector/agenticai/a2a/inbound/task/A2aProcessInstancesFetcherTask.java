@@ -24,12 +24,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ProcessInstanceFetcherTask is responsible for handling A2A polling operations. Each instance of
- * this class is used for one flowNode and manages polling across all its corresponding
- * processInstances.
+ * Responsible for handling A2A polling operations. Each instance of this class is used for one
+ * flowNode and manages polling across all its corresponding processInstances.
  */
-public class ProcessInstancesFetcherTask implements Runnable {
-  private static final Logger LOGGER = LoggerFactory.getLogger(ProcessInstancesFetcherTask.class);
+public class A2aProcessInstancesFetcherTask implements Runnable {
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(A2aProcessInstancesFetcherTask.class);
 
   private final InboundIntermediateConnectorContext context;
   private final SharedExecutorService executorService;
@@ -39,7 +39,7 @@ public class ProcessInstancesFetcherTask implements Runnable {
   private final ConcurrentHashMap<String, ScheduledPoll> runningPollTasks;
   private ScheduledFuture<?> mainTaskFuture;
 
-  public ProcessInstancesFetcherTask(
+  public A2aProcessInstancesFetcherTask(
       final InboundIntermediateConnectorContext context,
       final SharedExecutorService executorService,
       final A2aSdkClientFactory clientFactory,
@@ -87,7 +87,7 @@ public class ProcessInstancesFetcherTask implements Runnable {
         taskKey,
         (key) -> {
           final var task =
-              new PollA2aTaskStateTask(
+              new A2aTaskPollingTask(
                   context, processInstanceContext, pollingRequest, clientFactory, objectConverter);
           final var future =
               this.executorService
@@ -128,7 +128,7 @@ public class ProcessInstancesFetcherTask implements Runnable {
     runningPollTasks.clear();
   }
 
-  private record ScheduledPoll(PollA2aTaskStateTask task, ScheduledFuture<?> future) {
+  private record ScheduledPoll(A2aTaskPollingTask task, ScheduledFuture<?> future) {
     public void cancel() {
       future.cancel(true);
       task.close();
