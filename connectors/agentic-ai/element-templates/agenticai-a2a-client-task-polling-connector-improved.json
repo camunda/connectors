@@ -1,8 +1,8 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "A2A Client Polling Intermediate Catch Event Connector MANUAL",
-  "id" : "io.camunda.connectors.agenticai.a2a.polling.manual.v0",
-  "description" : "Agent-to-Agent (A2A) polling client MANUAL.",
+  "name" : "A2A Client Task Polling Intermediate Catch Event Connector (improved)",
+  "id" : "io.camunda.connectors.agenticai.a2a.polling.task.improved.v0",
+  "description" : "Agent-to-Agent (A2A) task polling client.",
   "metadata" : {
     "keywords" : [ ]
   },
@@ -44,7 +44,7 @@
     "label" : "Output mapping"
   } ],
   "properties" : [ {
-    "value" : "io.camunda.agenticai:a2aclient:polling:0",
+    "value" : "io.camunda.agenticai:a2aclient:polling:task:0",
     "binding" : {
       "name" : "inbound.type",
       "type" : "zeebe:property"
@@ -91,9 +91,8 @@
       "type" : "zeebe:input"
     },
     "type" : "String"
-  },  {
+  }, {
     "id" : "data.taskId",
-    "label" : "Task ID",
     "value" : "=inputTaskId",
     "binding" : {
       "name" : "data.taskId",
@@ -130,12 +129,12 @@
     "optional" : true,
     "feel" : "required",
     "group" : "activation",
-    "value": "=not(list contains([\"submitted\", \"working\"], status.state))",
     "binding" : {
       "name" : "activationCondition",
       "type" : "zeebe:property"
     },
-    "type" : "String"
+    "type" : "String",
+    "value" : "=not(list contains([\"submitted\", \"working\"], status.state))"
   }, {
     "id" : "correlationKeyProcess",
     "label" : "Correlation key (process)",
@@ -145,12 +144,12 @@
     },
     "feel" : "required",
     "group" : "correlation",
-    "value": "=inputTaskId",
     "binding" : {
       "name" : "correlationKey",
       "type" : "bpmn:Message#zeebe:subscription#property"
     },
-    "type" : "String"
+    "type" : "String",
+    "value" : "=inputTaskId"
   }, {
     "id" : "correlationKeyPayload",
     "label" : "Correlation key (payload)",
@@ -160,12 +159,12 @@
     },
     "feel" : "required",
     "group" : "correlation",
-    "value" : "=id",
     "binding" : {
       "name" : "correlationKeyExpression",
       "type" : "zeebe:property"
     },
-    "type" : "String"
+    "type" : "String",
+    "value" : "=id"
   }, {
     "id" : "messageIdExpression",
     "label" : "Message ID expression",
