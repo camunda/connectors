@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.a2a.inbound.task;
 
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
-import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRequest;
+import io.camunda.connector.agenticai.a2a.inbound.model.A2aTaskPollingRequest;
 import io.camunda.connector.agenticai.a2a.inbound.service.A2aTaskPollingExecutorService;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
@@ -32,7 +32,7 @@ public class A2aProcessInstancesFetcherTask implements Runnable {
   private final A2aTaskPollingExecutorService executorService;
   private final A2aSdkClientFactory clientFactory;
   private final A2aSdkObjectConverter objectConverter;
-  private final A2aPollingRequest pollingRequest;
+  private final A2aTaskPollingRequest pollingRequest;
   private final ConcurrentHashMap<String, ScheduledPoll> runningPollTasks;
   private ScheduledFuture<?> mainTaskFuture;
 
@@ -44,7 +44,7 @@ public class A2aProcessInstancesFetcherTask implements Runnable {
     this.context = context;
     this.executorService = executorService;
     this.clientFactory = clientFactory;
-    this.pollingRequest = context.bindProperties(A2aPollingRequest.class);
+    this.pollingRequest = context.bindProperties(A2aTaskPollingRequest.class);
     this.objectConverter = objectConverter;
     this.runningPollTasks = new ConcurrentHashMap<>();
   }

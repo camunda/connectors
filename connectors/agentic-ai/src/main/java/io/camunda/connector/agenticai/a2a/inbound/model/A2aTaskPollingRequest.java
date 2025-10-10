@@ -17,8 +17,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 
-public record A2aPollingRequest(@Valid @NotNull A2aPollingRequestData data) {
-  public record A2aPollingRequestData(
+public record A2aTaskPollingRequest(@Valid @NotNull A2aTaskPollingRequestData data) {
+  public record A2aTaskPollingRequestData(
       @Valid @NotNull ConnectionConfiguration connection,
       @NotBlank
           @TemplateProperty(
@@ -50,7 +50,7 @@ public record A2aPollingRequest(@Valid @NotNull A2aPollingRequestData data) {
           @FEEL
           Duration taskPollingInterval) {
 
-    public A2aPollingRequestData {
+    public A2aTaskPollingRequestData {
       if (processPollingInterval == null) {
         processPollingInterval = Duration.ofSeconds(5);
       }

@@ -16,7 +16,7 @@ import jakarta.validation.constraints.NotNull;
  * annotation on the taskId will resolve the actual task ID from the element instance variables at
  * runtime.
  */
-public record A2aPollingElementInstanceRequest(
-    @Valid @NotNull A2aPollingElementInstanceRequestData data) {
-  public record A2aPollingElementInstanceRequestData(@NotBlank @FEEL String taskId) {}
+public record A2aTaskPollingElementInstanceRequest(
+    @Valid @NotNull A2aTaskPollingElementInstanceRequestData data) {
+  public record A2aTaskPollingElementInstanceRequestData(@NotBlank @FEEL String taskId) {}
 }
