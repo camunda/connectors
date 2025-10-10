@@ -18,10 +18,10 @@ import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @ElementTemplate(
-    id = "io.camunda.connectors.agenticai.a2a.polling.v0",
+    id = "io.camunda.connectors.agenticai.a2a.polling.task.v0",
     version = 0,
-    name = "A2A Client Polling Connector (experimental)",
-    description = "Agent-to-Agent (A2A) polling client.",
+    name = "A2A Client Task Polling Connector (experimental)",
+    description = "Agent-to-Agent (A2A) task polling client.",
     icon = "a2a-client.svg",
     engineVersion = "^8.9",
     inputDataClass = A2aTaskPollingRequest.class,
@@ -34,9 +34,11 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       @ElementTemplate.ConnectorElementType(
           appliesTo = {BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT},
           elementType = BpmnType.INTERMEDIATE_CATCH_EVENT,
-          templateNameOverride = "A2A Client Polling Intermediate Catch Event Connector")
+          templateNameOverride = "A2A Client Task Polling Intermediate Catch Event Connector")
     })
-@InboundConnector(name = "A2A Polling Connector", type = "io.camunda.agenticai:a2aclient:polling:0")
+@InboundConnector(
+    name = "A2A Polling Connector",
+    type = "io.camunda.agenticai:a2aclient:polling:task:0")
 public class A2aTaskPollingExecutable
     implements InboundConnectorExecutable<InboundIntermediateConnectorContext> {
 
