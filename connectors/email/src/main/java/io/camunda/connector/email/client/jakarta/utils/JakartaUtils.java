@@ -7,6 +7,8 @@
 package io.camunda.connector.email.client.jakarta.utils;
 
 import io.camunda.connector.email.authentication.Authentication;
+import io.camunda.connector.email.authentication.NoAuthentication;
+import io.camunda.connector.email.authentication.OAuthAuthentication;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
 import io.camunda.connector.email.client.jakarta.models.Email;
 import io.camunda.connector.email.client.jakarta.models.EmailAttachment;
@@ -19,6 +21,10 @@ import io.camunda.connector.email.config.SmtpConfig;
 import io.camunda.connector.email.outbound.protocols.actions.SortFieldImap;
 import io.camunda.connector.email.outbound.protocols.actions.SortFieldPop3;
 import io.camunda.connector.email.outbound.protocols.actions.SortOrder;
+import io.camunda.connector.http.client.authentication.OAuthService;
+import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
+import io.camunda.connector.http.client.model.HttpClientRequest;
+import io.camunda.connector.http.client.model.HttpClientResult;
 import jakarta.mail.*;
 import jakarta.mail.internet.ContentType;
 import jakarta.mail.internet.MimeMultipart;
@@ -38,12 +44,12 @@ public class JakartaUtils {
   private static final Logger LOGGER = LoggerFactory.getLogger(JakartaUtils.class);
   private static final String REGEX_PATH_SPLITTER = "[./]";
 
-  public Session createSession(Configuration configuration) {
+  public Session createSession(Configuration configuration, Authentication authentication) {
     return Session.getInstance(
         switch (configuration) {
-          case ImapConfig imap -> createProperties(imap);
-          case Pop3Config pop3 -> createProperties(pop3);
-          case SmtpConfig smtp -> createProperties(smtp);
+          case ImapConfig imap -> createProperties(imap, authentication);
+          case Pop3Config pop3 -> createProperties(pop3, authentication);
+          case SmtpConfig smtp -> createProperties(smtp, authentication);
         });
   }
 
@@ -51,6 +57,10 @@ public class JakartaUtils {
     switch (authentication) {
       case SimpleAuthentication simpleAuthentication ->
           store.connect(simpleAuthentication.username(), simpleAuthentication.password());
+      case NoAuthentication noAuthentication ->
+          throw new MessagingException("No authentication is not yet supported");
+      case OAuthAuthentication oAuthAuthentication ->
+          throw new MessagingException("OAuth2 authentication is not yet supported");
     }
   }
 
@@ -59,6 +69,27 @@ public class JakartaUtils {
     switch (authentication) {
       case SimpleAuthentication simpleAuthentication ->
           transport.connect(simpleAuthentication.username(), simpleAuthentication.password());
+      case NoAuthentication noAuthentication ->
+          throw new MessagingException("No authentication is not yet supported");
+      case OAuthAuthentication oAuthAuthentication -> {
+        var oAuth =
+            new io.camunda.connector.http.client.model.auth.OAuthAuthentication(
+                oAuthAuthentication.oauthTokenEndpoint(),
+                oAuthAuthentication.clientId(),
+                oAuthAuthentication.clientSecret(),
+                oAuthAuthentication.audience(),
+                oAuthAuthentication.clientAuthentication(),
+                oAuthAuthentication.scopes());
+        var service = new OAuthService();
+        service.createOAuthRequestFrom(oAuth);
+
+        HttpClientRequest oAuthRequest = service.createOAuthRequestFrom(oAuth);
+        HttpClientResult response =
+            new CustomApacheHttpClient()
+                .execute(oAuthRequest); // TODO only use http-client from this?
+        var token = service.extractTokenFromResponse(response.body());
+        transport.connect(oAuthAuthentication.username(), token);
+      }
     }
   }
 
@@ -78,7 +109,7 @@ public class JakartaUtils {
     }
   }
 
-  private Properties createProperties(SmtpConfig smtp) {
+  private Properties createProperties(SmtpConfig smtp, Authentication authentication) {
     Properties properties = new Properties();
     properties.put("mail.transport.protocol", "smtp");
     properties.put("mail.smtp.host", smtp.smtpHost().trim());
@@ -89,10 +120,15 @@ public class JakartaUtils {
       case TLS -> properties.put("mail.smtp.starttls.enable", true);
       case SSL -> properties.put("mail.smtp.ssl.enable", true);
     }
+    if (authentication instanceof OAuthAuthentication) {
+      properties.put("mail.smtp.auth.mechanisms", "XOAUTH2");
+      properties.put("mail.smtp.auth.login.disable", "true");
+      properties.put("mail.smtp.auth.plain.disable", "true");
+    }
     return properties;
   }
 
-  private Properties createProperties(Pop3Config pop3) {
+  private Properties createProperties(Pop3Config pop3, Authentication authentication) {
     Properties properties = new Properties();
 
     switch (pop3.pop3CryptographicProtocol()) {
@@ -117,10 +153,17 @@ public class JakartaUtils {
         properties.put("mail.pop3s.ssl.enable", true);
       }
     }
+
+    if (authentication instanceof OAuthAuthentication) {
+      properties.put("mail.pop3.auth.mechanisms", "XOAUTH2");
+      properties.put("mail.pop3.auth.login.disable", "true");
+      properties.put("mail.pop3.auth.plain.disable", "true");
+    }
+
     return properties;
   }
 
-  private Properties createProperties(ImapConfig imap) {
+  private Properties createProperties(ImapConfig imap, Authentication authentication) {
     Properties properties = new Properties();
 
     switch (imap.imapCryptographicProtocol()) {
@@ -147,6 +190,12 @@ public class JakartaUtils {
         properties.put("mail.imaps.ssl.enable", true);
         properties.put("mail.imaps.timeout", "10000");
       }
+    }
+
+    if (authentication instanceof OAuthAuthentication) {
+      properties.put("mail.imap.auth.mechanisms", "XOAUTH2");
+      properties.put("mail.imap.auth.login.disable", "true");
+      properties.put("mail.imap.auth.plain.disable", "true");
     }
     return properties;
   }
@@ -181,8 +230,9 @@ public class JakartaUtils {
             .map(strings -> String.join(String.valueOf(separator), strings))
             .orElseThrow(() -> new MessagingException("No folder has been set"));
     Folder folder = store.getFolder(formattedPath);
-    if (!folder.exists())
+    if (!folder.exists()) {
       throw new MessagingException("Folder " + formattedPath + " does not exist");
+    }
     return folder;
   }
 
@@ -331,7 +381,9 @@ public class JakartaUtils {
               .map(strings -> String.join(String.valueOf(separator), strings))
               .orElseThrow(() -> new RuntimeException("No folder has been set"));
       Folder targetImapFolder = store.getFolder(targetFolderFormatted);
-      if (!targetImapFolder.exists()) targetImapFolder.create(Folder.HOLDS_MESSAGES);
+      if (!targetImapFolder.exists()) {
+        targetImapFolder.create(Folder.HOLDS_MESSAGES);
+      }
       targetImapFolder.open(Folder.READ_WRITE);
       imapFolder.copyMessages(new Message[] {message}, targetImapFolder);
       this.markAsDeleted(message);

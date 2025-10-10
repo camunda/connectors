@@ -1,13 +1,13 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Email Connector",
-  "id" : "io.camunda.connectors.email.v1-hybrid",
+  "name" : "Email Connector",
+  "id" : "io.camunda.connectors.email.v1",
   "description" : "Execute email requests",
   "metadata" : {
     "keywords" : [ "send emails", "list emails", "search emails", "delete emails", "read emails", "move emails" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/",
-  "version" : 4,
+  "version" : 3,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -17,12 +17,9 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.8"
+    "camunda" : "^8.6"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
@@ -81,14 +78,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda:email:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "authentication.type",
     "label" : "Authentication",
@@ -149,25 +144,6 @@
       "type" : "simple"
     },
     "tooltip" : "Enter the password associated with your email account. Keep your password secure and do not share it with others.",
-    "type" : "String"
-  }, {
-    "id" : "authentication.username",
-    "label" : "Username",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.username",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "oauth-client-credentials-flow",
-      "type" : "simple"
-    },
     "type" : "String"
   }, {
     "id" : "authentication.oauthTokenEndpoint",
@@ -1380,7 +1356,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "4",
+    "value" : "3",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

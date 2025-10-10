@@ -109,7 +109,7 @@ class JakartaExecutorTest {
     when(session.getProperties()).thenReturn(new Properties());
     when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(smtpSendEmail);
-    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
     when(smtpSendEmail.to()).thenReturn(List.of("to"));
     when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
     when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
@@ -165,7 +165,7 @@ class JakartaExecutorTest {
     when(session.getProperties()).thenReturn(new Properties());
     when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(smtpSendEmail);
-    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
     when(smtpSendEmail.to()).thenReturn(List.of("to"));
     when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
     when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
@@ -221,7 +221,7 @@ class JakartaExecutorTest {
     when(session.getProperties()).thenReturn(new Properties());
     when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(smtpSendEmail);
-    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
     when(smtpSendEmail.to()).thenReturn(List.of("to"));
     when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
     when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
@@ -280,7 +280,7 @@ class JakartaExecutorTest {
     when(session.getProperties()).thenReturn(new Properties());
     when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(smtpSendEmail);
-    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
     when(smtpSendEmail.to()).thenReturn(List.of("to"));
     when(smtpSendEmail.cc()).thenReturn(List.of("cc"));
     when(smtpSendEmail.bcc()).thenReturn(List.of("bcc"));
@@ -349,7 +349,7 @@ class JakartaExecutorTest {
     when(session.getProperties()).thenReturn(new Properties());
     when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(smtpSendEmail);
-    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
     when(smtpSendEmail.to()).thenReturn(List.of("to"));
     when(smtpSendEmail.headers()).thenReturn(Map.of("test", "header1"));
     when(smtpSendEmail.from()).thenReturn("myself");
@@ -414,7 +414,7 @@ class JakartaExecutorTest {
     when(session.getStore()).thenReturn(store);
     when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(pop3ListEmails);
-    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
     when(sessionFactory.createBodylessEmail(any()))
         .thenReturn(
             new Email(
@@ -474,7 +474,7 @@ class JakartaExecutorTest {
     when(session.getStore()).thenReturn(store);
     when(emailRequest.data()).thenReturn(protocol);
     when(protocol.getProtocolAction()).thenReturn(imapListEmails);
-    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
     when(sessionFactory.createBodylessEmail(any()))
         .thenReturn(
             new Email(
@@ -514,7 +514,7 @@ class JakartaExecutorTest {
     POP3Folder pop3Folder = mock(POP3Folder.class);
     Message message = mock(Message.class);
 
-    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
     when(simpleAuthentication.username()).thenReturn("user");
@@ -571,7 +571,7 @@ class JakartaExecutorTest {
     Folder folder = mock(Folder.class);
     Message message = mock(Message.class);
 
-    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
     when(simpleAuthentication.username()).thenReturn("user");
@@ -628,7 +628,7 @@ class JakartaExecutorTest {
     POP3Folder pop3Folder = mock(POP3Folder.class);
     Message message = mock(Message.class);
 
-    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
     when(simpleAuthentication.username()).thenReturn("user");
@@ -672,7 +672,7 @@ class JakartaExecutorTest {
     Folder folder = mock(Folder.class);
     Message message = mock(Message.class);
 
-    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
     when(simpleAuthentication.username()).thenReturn("user");
@@ -716,7 +716,7 @@ class JakartaExecutorTest {
     POP3Folder pop3Folder = mock(POP3Folder.class);
     Message message = mock(Message.class);
 
-    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
     when(simpleAuthentication.username()).thenReturn("user");
@@ -774,7 +774,7 @@ class JakartaExecutorTest {
     Folder folder = mock(Folder.class);
     Message message = mock(Message.class);
 
-    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
     when(simpleAuthentication.username()).thenReturn("user");
@@ -834,7 +834,7 @@ class JakartaExecutorTest {
     Folder targetFolder = mock(Folder.class);
     Message message = mock(Message.class);
 
-    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
     when(simpleAuthentication.username()).thenReturn("user");
@@ -892,7 +892,7 @@ class JakartaExecutorTest {
     SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
     Protocol protocol = mock(Imap.class);
     Session session = mock(Session.class);
-    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
     when(simpleAuthentication.username()).thenReturn("user");
@@ -951,7 +951,7 @@ class JakartaExecutorTest {
     SimpleAuthentication simpleAuthentication = mock(SimpleAuthentication.class);
     Protocol protocol = mock(Imap.class);
     Session session = mock(Session.class);
-    when(sessionFactory.createSession(any())).thenReturn(session);
+    when(sessionFactory.createSession(any(), any())).thenReturn(session);
 
     // Authentication
     when(simpleAuthentication.username()).thenReturn("user");

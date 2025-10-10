@@ -7,7 +7,7 @@
     "keywords" : [ "email received" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email",
-  "version" : 2,
+  "version" : 3,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -18,7 +18,7 @@
     "eventDefinition" : "bpmn:MessageEventDefinition"
   },
   "engines" : {
-    "camunda" : "^8.6"
+    "camunda" : "^8.8"
   },
   "groups" : [ {
     "id" : "authentication",
@@ -71,6 +71,12 @@
     "choices" : [ {
       "name" : "Simple",
       "value" : "simple"
+    }, {
+      "name" : "OAuth 2.0",
+      "value" : "oauth-client-credentials-flow"
+    }, {
+      "name" : "None",
+      "value" : "noAuth"
     } ]
   }, {
     "id" : "authentication.simpleAuthenticationUsername",
@@ -109,6 +115,143 @@
       "type" : "simple"
     },
     "tooltip" : "Enter the password associated with your email account. Keep your password secure and do not share it with others.",
+    "type" : "String"
+  }, {
+    "id" : "authentication.username",
+    "label" : "Username",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.username",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "oauth-client-credentials-flow",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.oauthTokenEndpoint",
+    "label" : "OAuth 2.0 token endpoint",
+    "description" : "The OAuth token endpoint",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+        "message" : "Must be a http(s) URL"
+      }
+    },
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.oauthTokenEndpoint",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "oauth-client-credentials-flow",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.clientId",
+    "label" : "Client ID",
+    "description" : "Your application's client ID from the OAuth client",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.clientId",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "oauth-client-credentials-flow",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.clientSecret",
+    "label" : "Client secret",
+    "description" : "Your application's client secret from the OAuth client",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.clientSecret",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "oauth-client-credentials-flow",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.audience",
+    "label" : "Audience",
+    "description" : "The unique identifier of the target API you want to access",
+    "optional" : true,
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.audience",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "oauth-client-credentials-flow",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.clientAuthentication",
+    "label" : "Client authentication",
+    "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.clientAuthentication",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "oauth-client-credentials-flow",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Send client credentials in body",
+      "value" : "credentialsBody"
+    }, {
+      "name" : "Send as Basic Auth header",
+      "value" : "basicAuthHeader"
+    } ]
+  }, {
+    "id" : "authentication.scopes",
+    "label" : "Scopes",
+    "description" : "The scopes which you want to request authorization for (e.g.read:contacts)",
+    "optional" : true,
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.scopes",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "oauth-client-credentials-flow",
+      "type" : "simple"
+    },
     "type" : "String"
   }, {
     "id" : "data.imapHost",
