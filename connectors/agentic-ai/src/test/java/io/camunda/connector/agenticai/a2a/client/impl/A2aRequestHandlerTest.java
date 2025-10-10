@@ -24,7 +24,6 @@ import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aClientReque
 import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aClientRequestData.ConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCardResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aArtifact;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTaskStatus;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
@@ -71,19 +70,18 @@ class A2aRequestHandlerTest {
 
     when(agentCardFetcher.fetchAgentCardRaw(CONNECTION)).thenReturn(agentCard);
     var expectedSendResult =
-        new A2aSendMessageResult.A2aTaskResult(
-            A2aTask.builder()
-                .id("task-1")
-                .contextId("context-1")
-                .status(A2aTaskStatus.builder().state(A2aTaskStatus.TaskState.COMPLETED).build())
-                .artifacts(
-                    List.of(
-                        A2aArtifact.builder()
-                            .artifactId("artifact-1")
-                            .name("artifact1")
-                            .contents(List.of(new TextContent("ok", null)))
-                            .build()))
-                .build());
+        A2aTask.builder()
+            .id("task-1")
+            .contextId("context-1")
+            .status(A2aTaskStatus.builder().state(A2aTaskStatus.TaskState.COMPLETED).build())
+            .artifacts(
+                List.of(
+                    A2aArtifact.builder()
+                        .artifactId("artifact-1")
+                        .name("artifact1")
+                        .contents(List.of(new TextContent("ok", null)))
+                        .build()))
+            .build();
     when(messageSender.sendMessage(agentCard, operation)).thenReturn(expectedSendResult);
 
     var result = handler.handle(request);

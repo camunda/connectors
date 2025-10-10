@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.client.model.result;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -25,7 +26,15 @@ public record A2aMessage(
     @Nullable String taskId,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<String> referenceTaskIds,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata,
-    List<Content> contents) {
+    List<Content> contents)
+    implements A2aSendMessageResult {
+
+  public static final String MESSAGE = "message";
+
+  @JsonGetter
+  public String kind() {
+    return MESSAGE;
+  }
 
   public enum Role {
     USER("user"),

@@ -9,9 +9,10 @@ package io.camunda.connector.agenticai.a2a.client.api;
 import io.a2a.client.ClientEvent;
 import io.a2a.spec.Task;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
 
 public interface A2aSendMessageResponseHandler {
   A2aSendMessageResult handleClientEvent(ClientEvent clientEvent);
 
-  A2aSendMessageResult.A2aTaskResult handleTask(Task task);
+  A2aTask handleTask(Task task);
 }

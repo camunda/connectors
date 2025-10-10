@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.client.model.result;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
@@ -20,7 +21,15 @@ public record A2aTask(
     String contextId,
     A2aTaskStatus status,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata,
-    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<A2aArtifact> artifacts) {
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) List<A2aArtifact> artifacts)
+    implements A2aSendMessageResult {
+
+  public static final String TASK = "task";
+
+  @JsonGetter
+  public String kind() {
+    return TASK;
+  }
 
   public static A2aTaskBuilder builder() {
     return A2aTaskBuilder.builder();
