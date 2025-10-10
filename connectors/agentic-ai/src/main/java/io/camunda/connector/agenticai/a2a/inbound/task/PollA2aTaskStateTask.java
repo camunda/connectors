@@ -9,14 +9,14 @@ package io.camunda.connector.agenticai.a2a.inbound.task;
 import io.a2a.A2A;
 import io.a2a.client.Client;
 import io.a2a.spec.A2AClientError;
-import io.a2a.spec.A2AClientException;
 import io.a2a.spec.AgentCard;
-import io.a2a.spec.Task;
 import io.a2a.spec.TaskQueryParams;
+import io.a2a.spec.TaskState;
+import io.a2a.spec.TaskStatus;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
+import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingElementInstanceRequest;
 import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRequest;
-import io.camunda.connector.agenticai.a2a.inbound.model.A2aProcessInstanceRequest;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.inbound.Severity;
@@ -28,14 +28,16 @@ import org.slf4j.LoggerFactory;
 
 public class PollA2aTaskStateTask implements Runnable, AutoCloseable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(PollA2aTaskStateTask.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(PollA2aTaskStateTask.class);
 
   private final InboundIntermediateConnectorContext context;
   private final ProcessInstanceContext processInstanceContext;
   private final A2aPollingRequest pollingRequest;
   private final A2aSdkClientFactory clientFactory;
   private final A2aSdkObjectConverter objectConverter;
-  private AgentCard agentCard = null;
+
+  private String taskId;
+  private AgentCard agentCard;
   private Client client;
 
   public PollA2aTaskStateTask(
@@ -43,7 +45,7 @@ public class PollA2aTaskStateTask implements Runnable, AutoCloseable {
       final ProcessInstanceContext processInstanceContext,
       final A2aPollingRequest pollingRequest,
       final A2aSdkClientFactory clientFactory,
-      A2aSdkObjectConverter objectConverter) {
+      final A2aSdkObjectConverter objectConverter) {
     this.context = context;
     this.processInstanceContext = processInstanceContext;
     this.pollingRequest = pollingRequest;
@@ -53,72 +55,80 @@ public class PollA2aTaskStateTask implements Runnable, AutoCloseable {
 
   @Override
   public void run() {
-    // process instance configuration with resolved task ID from process variables (binds FEEL
-    // expression to process variable data)
-    final var processInstanceConfig = processInstanceContext.bind(A2aProcessInstanceRequest.class);
-    LOG.info("Polling A2A task {} status...", processInstanceConfig.data().taskId());
+    final var taskId = getTaskId();
+    if (taskId == null) {
+      return;
+    }
 
     final var client = getClient();
     if (client == null) {
       return;
     }
 
-    try {
-      final var task = client.getTask(new TaskQueryParams(processInstanceConfig.data().taskId()));
-      LOG.info("TASK STATUS: {}", task.getStatus());
+    LOG.debug("Polling A2A task {}", taskId);
 
-      if (canCorrelate(task)) {
-        final var convertedTask = objectConverter.convert(task);
-        processInstanceContext.correlate(convertedTask);
-      }
-    } catch (A2AClientException e) {
-      LOG.error("Failed to poll A2A task status", e);
+    try {
+      final var task = client.getTask(new TaskQueryParams(taskId));
+      LOG.debug(
+          "A2A task {} state: {}",
+          taskId,
+          Optional.ofNullable(task.getStatus())
+              .map(TaskStatus::state)
+              .map(TaskState::asString)
+              .orElse(null));
+
+      final var convertedTask = objectConverter.convert(task);
+      processInstanceContext.correlate(convertedTask);
+    } catch (Exception e) {
+      LOG.error("Failed to poll A2A task %s".formatted(taskId), e);
       this.context.log(
           activity ->
               activity
                   .withSeverity(Severity.ERROR)
                   .withTag("a2a-polling")
-                  .withMessage("Failed to poll A2A task status: " + e.getMessage()));
+                  .withMessage("Failed to poll A2A task %s: %s".formatted(taskId, e.getMessage())));
     }
   }
 
-  @Override
-  public void close() {
-    if (this.client != null) {
-      this.client.close();
+  private synchronized String getTaskId() {
+    if (this.taskId == null) {
+      try {
+        // resolves the actual task ID from process variables
+        final var elementInstanceRequest =
+            processInstanceContext.bind(A2aPollingElementInstanceRequest.class);
+        this.taskId = elementInstanceRequest.data().taskId();
+      } catch (Exception e) {
+        LOG.debug("Failed to resolve A2A Task ID", e);
+        this.context.log(
+            activity ->
+                activity
+                    .withSeverity(Severity.ERROR)
+                    .withTag("a2a-polling-config")
+                    .withMessage("Error resolving A2A task ID: " + e.getMessage()));
+      }
     }
-  }
 
-  private boolean canCorrelate(Task task) {
-    final var state = task.getStatus().state();
-    return switch (state) {
-      case SUBMITTED, WORKING:
-        LOG.info("Task is still in progress...");
-        yield false;
-      case AUTH_REQUIRED:
-        LOG.warn("Task requires authorization");
-        yield true;
-      case INPUT_REQUIRED:
-        LOG.warn("Task requires input");
-        yield true;
-      default:
-        if (state.isFinal()) {
-          yield true;
-        } else {
-          LOG.error("Unhandled non-final task state: {}", state);
-          throw new RuntimeException("Unhandled non-final task state: " + state);
-        }
-    };
+    return this.taskId;
   }
 
   private synchronized Client getClient() {
     if (this.client == null) {
-      final var agentCard = getAgentCard();
-      if (agentCard == null) {
-        return null;
-      }
+      try {
+        final var agentCard = getAgentCard();
+        if (agentCard == null) {
+          return null;
+        }
 
-      this.client = clientFactory.buildClient(agentCard, (event, ignore) -> {});
+        this.client = clientFactory.buildClient(agentCard, (event, ignore) -> {});
+      } catch (Exception e) {
+        LOG.error("Failed to create A2A client", e);
+        this.context.log(
+            activity ->
+                activity
+                    .withSeverity(Severity.ERROR)
+                    .withTag("a2a-polling-client")
+                    .withMessage("Failed to create A2A client: " + e.getMessage()));
+      }
     }
 
     return this.client;
@@ -147,5 +157,12 @@ public class PollA2aTaskStateTask implements Runnable, AutoCloseable {
     }
 
     return this.agentCard;
+  }
+
+  @Override
+  public void close() {
+    if (this.client != null) {
+      this.client.close();
+    }
   }
 }
