@@ -9,17 +9,14 @@ package io.camunda.connector.agenticai.a2a.inbound.task;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRequest;
-import io.camunda.connector.agenticai.a2a.inbound.service.SharedExecutorService;
+import io.camunda.connector.agenticai.a2a.inbound.service.A2aTaskPollingExecutorService;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +29,7 @@ public class A2aProcessInstancesFetcherTask implements Runnable {
       LoggerFactory.getLogger(A2aProcessInstancesFetcherTask.class);
 
   private final InboundIntermediateConnectorContext context;
-  private final SharedExecutorService executorService;
+  private final A2aTaskPollingExecutorService executorService;
   private final A2aSdkClientFactory clientFactory;
   private final A2aSdkObjectConverter objectConverter;
   private final A2aPollingRequest pollingRequest;
@@ -41,7 +38,7 @@ public class A2aProcessInstancesFetcherTask implements Runnable {
 
   public A2aProcessInstancesFetcherTask(
       final InboundIntermediateConnectorContext context,
-      final SharedExecutorService executorService,
+      final A2aTaskPollingExecutorService executorService,
       final A2aSdkClientFactory clientFactory,
       A2aSdkObjectConverter objectConverter) {
     this.context = context;
@@ -89,14 +86,10 @@ public class A2aProcessInstancesFetcherTask implements Runnable {
           final var task =
               new A2aTaskPollingTask(
                   context, processInstanceContext, pollingRequest, clientFactory, objectConverter);
+
           final var future =
-              this.executorService
-                  .getExecutorService()
-                  .scheduleWithFixedDelay(
-                      task,
-                      0,
-                      pollingRequest.data().taskPollingInterval().toMillis(),
-                      TimeUnit.MILLISECONDS);
+              this.executorService.scheduleWithFixedDelay(
+                  task, pollingRequest.data().taskPollingInterval());
 
           return new ScheduledPoll(task, future);
         });
@@ -108,15 +101,8 @@ public class A2aProcessInstancesFetcherTask implements Runnable {
 
   public void start() {
     mainTaskFuture =
-        executorService
-            .getExecutorService()
-            .scheduleWithFixedDelay(
-                this,
-                0,
-                Optional.ofNullable(pollingRequest.data().processPollingInterval())
-                    .orElse(Duration.ofSeconds(5))
-                    .toMillis(),
-                TimeUnit.MILLISECONDS);
+        executorService.scheduleWithFixedDelay(
+            this, pollingRequest.data().processPollingInterval());
   }
 
   public void stop() {
