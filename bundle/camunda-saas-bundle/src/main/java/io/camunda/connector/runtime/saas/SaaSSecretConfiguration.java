@@ -50,17 +50,17 @@ public class SaaSSecretConfiguration {
   @Value("${camunda.saas.secrets.useAwsSecretProvider:false}")
   private boolean useAwsSecretProvider;
 
+  private AbstractSecretProvider secretProvider;
   private AbstractSecretProvider internalSecretProvider;
 
   @Bean
   public SecretProvider getSecretProvider() {
     if (useAwsSecretProvider && Objects.equals(clusterProvider, "aws")) {
-      internalSecretProvider = new AwsSecretProvider(clusterId, secretsNamePrefix);
+      secretProvider = new AwsSecretProvider(clusterId, secretsNamePrefix);
     } else {
-      internalSecretProvider =
-          new GcpSecretProvider(clusterId, secretsProjectId, secretsNamePrefix);
+      secretProvider = new GcpSecretProvider(clusterId, secretsProjectId, secretsNamePrefix);
     }
-    return internalSecretProvider;
+    return secretProvider;
   }
 
   public SecretProvider getInternalSecretProvider() {
@@ -76,5 +76,6 @@ public class SaaSSecretConfiguration {
   @PreDestroy
   public void shutdown() throws Exception {
     internalSecretProvider.close();
+    secretProvider.close();
   }
 }

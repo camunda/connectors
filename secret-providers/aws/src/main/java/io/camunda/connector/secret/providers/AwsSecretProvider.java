@@ -65,6 +65,7 @@ public class AwsSecretProvider extends AbstractSecretProvider implements AutoClo
     }
   }
 
+  @Override
   public void close() {
     if (secretsClient != null) {
       secretsClient.close();
