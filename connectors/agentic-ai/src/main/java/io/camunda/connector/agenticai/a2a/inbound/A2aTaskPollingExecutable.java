@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.a2a.inbound;
 
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
-import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRequest;
+import io.camunda.connector.agenticai.a2a.inbound.model.A2aTaskPollingRequest;
 import io.camunda.connector.agenticai.a2a.inbound.service.A2aTaskPollingExecutorService;
 import io.camunda.connector.agenticai.a2a.inbound.task.A2aProcessInstancesFetcherTask;
 import io.camunda.connector.api.annotation.InboundConnector;
@@ -24,7 +24,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     description = "Agent-to-Agent (A2A) polling client.",
     icon = "a2a-client.svg",
     engineVersion = "^8.9",
-    inputDataClass = A2aPollingRequest.class,
+    inputDataClass = A2aTaskPollingRequest.class,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "connection", label = "Connection"),
       @ElementTemplate.PropertyGroup(id = "task", label = "Task"),
@@ -37,7 +37,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
           templateNameOverride = "A2A Client Polling Intermediate Catch Event Connector")
     })
 @InboundConnector(name = "A2A Polling Connector", type = "io.camunda.agenticai:a2aclient:polling:0")
-public class A2aClientPollingExecutable
+public class A2aTaskPollingExecutable
     implements InboundConnectorExecutable<InboundIntermediateConnectorContext> {
 
   private final A2aTaskPollingExecutorService executorService;
@@ -45,7 +45,7 @@ public class A2aClientPollingExecutable
   private final A2aSdkObjectConverter objectConverter;
   private A2aProcessInstancesFetcherTask processInstancesFetcherTask;
 
-  public A2aClientPollingExecutable(
+  public A2aTaskPollingExecutable(
       final A2aTaskPollingExecutorService executorService,
       final A2aSdkClientFactory clientFactory,
       final A2aSdkObjectConverter objectConverter) {

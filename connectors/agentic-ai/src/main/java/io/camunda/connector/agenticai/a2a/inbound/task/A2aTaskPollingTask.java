@@ -15,8 +15,8 @@ import io.a2a.spec.TaskState;
 import io.a2a.spec.TaskStatus;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
-import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingElementInstanceRequest;
-import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRequest;
+import io.camunda.connector.agenticai.a2a.inbound.model.A2aTaskPollingElementInstanceRequest;
+import io.camunda.connector.agenticai.a2a.inbound.model.A2aTaskPollingRequest;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.inbound.Severity;
@@ -36,7 +36,7 @@ public class A2aTaskPollingTask implements Runnable, AutoCloseable {
 
   private final InboundIntermediateConnectorContext context;
   private final ProcessInstanceContext processInstanceContext;
-  private final A2aPollingRequest pollingRequest;
+  private final A2aTaskPollingRequest pollingRequest;
   private final A2aSdkClientFactory clientFactory;
   private final A2aSdkObjectConverter objectConverter;
 
@@ -47,7 +47,7 @@ public class A2aTaskPollingTask implements Runnable, AutoCloseable {
   public A2aTaskPollingTask(
       final InboundIntermediateConnectorContext context,
       final ProcessInstanceContext processInstanceContext,
-      final A2aPollingRequest pollingRequest,
+      final A2aTaskPollingRequest pollingRequest,
       final A2aSdkClientFactory clientFactory,
       final A2aSdkObjectConverter objectConverter) {
     this.context = context;
@@ -99,7 +99,7 @@ public class A2aTaskPollingTask implements Runnable, AutoCloseable {
       try {
         // resolves the actual task ID from process variables
         final var elementInstanceRequest =
-            processInstanceContext.bind(A2aPollingElementInstanceRequest.class);
+            processInstanceContext.bind(A2aTaskPollingElementInstanceRequest.class);
         this.taskId = elementInstanceRequest.data().taskId();
       } catch (Exception e) {
         LOG.debug("Failed to resolve A2A Task ID", e);

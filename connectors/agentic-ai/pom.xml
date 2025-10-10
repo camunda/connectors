@@ -258,7 +258,7 @@
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
             <connector>
-              <connectorClass>io.camunda.connector.agenticai.a2a.inbound.A2aClientPollingExecutable</connectorClass>
+              <connectorClass>io.camunda.connector.agenticai.a2a.inbound.A2aTaskPollingExecutable</connectorClass>
               <files>
                 <file>
                   <templateId>io.camunda.connectors.agenticai.a2a.polling.v0</templateId>

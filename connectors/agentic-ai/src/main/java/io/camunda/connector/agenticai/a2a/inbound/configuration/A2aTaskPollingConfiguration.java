@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.a2a.inbound.configuration;
 
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
-import io.camunda.connector.agenticai.a2a.inbound.A2aClientPollingExecutable;
+import io.camunda.connector.agenticai.a2a.inbound.A2aTaskPollingExecutable;
 import io.camunda.connector.agenticai.a2a.inbound.service.A2aTaskPollingExecutorService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -19,25 +19,25 @@ import org.springframework.context.annotation.Scope;
 
 @Configuration
 @ConditionalOnBooleanProperty(
-    value = "camunda.connector.agenticai.a2a.client.polling.enabled",
+    value = "camunda.connector.agenticai.a2a.client.polling.task.enabled",
     matchIfMissing = true)
-@EnableConfigurationProperties(A2aClientPollingConfigurationProperties.class)
-public class A2aClientPollingConfiguration {
+@EnableConfigurationProperties(A2aTaskPollingConfigurationProperties.class)
+public class A2aTaskPollingConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
   public A2aTaskPollingExecutorService a2aTaskPollingExecutorService(
-      A2aClientPollingConfigurationProperties config) {
+      A2aTaskPollingConfigurationProperties config) {
     return new A2aTaskPollingExecutorService(config.threadPoolSize());
   }
 
   @Bean
   @Scope("prototype")
   @ConditionalOnMissingBean
-  public A2aClientPollingExecutable a2AClientPollingExecutable(
+  public A2aTaskPollingExecutable a2ATaskPollingExecutable(
       A2aTaskPollingExecutorService executorService,
       A2aSdkClientFactory clientFactory,
       A2aSdkObjectConverter objectConverter) {
-    return new A2aClientPollingExecutable(executorService, clientFactory, objectConverter);
+    return new A2aTaskPollingExecutable(executorService, clientFactory, objectConverter);
   }
 }
