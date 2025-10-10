@@ -9,10 +9,13 @@ package io.camunda.connector.agenticai.a2a.client;
 import io.camunda.connector.agenticai.a2a.client.api.A2aRequestHandler;
 import io.camunda.connector.agenticai.a2a.client.model.A2aRequest;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aResult;
+import io.camunda.connector.agenticai.a2a.discovery.A2aGatewayToolHandler;
+import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
 @OutboundConnector(
     name = "A2A Client",
@@ -22,7 +25,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     id = "io.camunda.connectors.agenticai.a2a.client.v0",
     name = "A2A Client (experimental)",
     description =
-        "Agent-to-Agent (A2A) client, enabling discovering remote agents' Agent Cards as well as invoking remove agents.",
+        "Agent-to-Agent (A2A) client, enabling discovering remote agents' Agent Cards as well as sending messages to remove agents.",
     engineVersion = "^8.9",
     version = 0,
     inputDataClass = A2aRequest.class,
@@ -32,7 +35,21 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
           label = "HTTP Connection",
           tooltip =
               "Configure the HTTP connection to the remote A2A server for retrieving the Agent Card. Setting authentication headers is not supported yet."),
+      @ElementTemplate.PropertyGroup(
+          id = "connectorMode",
+          label = "Connector mode",
+          tooltip =
+              "Select how this connector is used. When the connector is used as an AI agent tool, select the <code>AI Agent tool</code> mode."),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation")
+    },
+    extensionProperties = {
+      @ElementTemplate.ExtensionProperty(
+          name = GatewayToolDefinitionResolver.GATEWAY_TYPE_EXTENSION,
+          value = A2aGatewayToolHandler.GATEWAY_TYPE,
+          condition =
+              @TemplateProperty.PropertyCondition(
+                  property = "data.connectorMode.type",
+                  equals = "aiAgentTool"))
     },
     icon = "a2a-client.svg")
 public class A2aConnectorFunction implements OutboundConnectorFunction {

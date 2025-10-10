@@ -50,8 +50,8 @@ public class A2aConnectorConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public A2aSdkObjectConverter a2aSdkObjectConverter(
-      A2aPartToContentConverter partsToContentConverter) {
-    return new A2aSdkObjectConverterImpl(partsToContentConverter);
+      A2aPartToContentConverter partToContentConverter) {
+    return new A2aSdkObjectConverterImpl(partToContentConverter);
   }
 
   @Bean

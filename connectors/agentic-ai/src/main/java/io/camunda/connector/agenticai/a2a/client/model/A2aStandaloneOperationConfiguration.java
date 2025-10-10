@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.a2a.client.model;
 
-import static io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.FetchAgentCardOperationConfiguration.FETCH_AGENT_CARD_ID;
-import static io.camunda.connector.agenticai.a2a.client.model.A2aOperationConfiguration.SendMessageOperationConfiguration.SEND_MESSAGE_ID;
+import static io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration.FETCH_AGENT_CARD_ID;
+import static io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration.SEND_MESSAGE_ID;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -26,10 +26,10 @@ import java.util.List;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
   @JsonSubTypes.Type(
-      value = A2aOperationConfiguration.FetchAgentCardOperationConfiguration.class,
+      value = A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration.class,
       name = FETCH_AGENT_CARD_ID),
   @JsonSubTypes.Type(
-      value = A2aOperationConfiguration.SendMessageOperationConfiguration.class,
+      value = A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration.class,
       name = SEND_MESSAGE_ID)
 })
 @TemplateDiscriminatorProperty(
@@ -38,12 +38,12 @@ import java.util.List;
     name = "type",
     description = "The type of operation to perform.",
     defaultValue = FETCH_AGENT_CARD_ID)
-public sealed interface A2aOperationConfiguration
-    permits A2aOperationConfiguration.FetchAgentCardOperationConfiguration,
-        A2aOperationConfiguration.SendMessageOperationConfiguration {
+public sealed interface A2aStandaloneOperationConfiguration
+    permits A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration,
+        A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration {
 
   @TemplateSubType(id = FETCH_AGENT_CARD_ID, label = "Fetch Agent Card")
-  record FetchAgentCardOperationConfiguration() implements A2aOperationConfiguration {
+  record FetchAgentCardOperationConfiguration() implements A2aStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String FETCH_AGENT_CARD_ID = "fetchAgentCard";
@@ -59,7 +59,7 @@ public sealed interface A2aOperationConfiguration
                   "How long to wait for the remote agent response as ISO-8601 duration (example: <code>PT1M</code>).",
               defaultValue = "PT1M")
           Duration timeout)
-      implements A2aOperationConfiguration {
+      implements A2aStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String SEND_MESSAGE_ID = "sendMessage";
