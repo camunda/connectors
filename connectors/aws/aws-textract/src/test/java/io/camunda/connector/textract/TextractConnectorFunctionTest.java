@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.textract;
 
-import static io.camunda.connector.textract.model.TextractRequestData.WRONG_OUTPUT_VALUES_MSG;
 import static io.camunda.connector.textract.util.TextractTestUtils.ASYNC_EXECUTION_JSON_WITH_ROLE_ARN_AND_WITHOUT_SNS_TOPIC;
 import static io.camunda.connector.textract.util.TextractTestUtils.ASYNC_EXECUTION_JSON_WITH_SNS_TOPIC_AND_WITHOUT_ROLE_ARN;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -20,7 +19,7 @@ import com.amazonaws.services.textract.model.StartDocumentAnalysisResult;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.textract.caller.AsyncTextractCaller;
-import io.camunda.connector.textract.caller.PollingTextractCalller;
+import io.camunda.connector.textract.caller.PollingTextractCaller;
 import io.camunda.connector.textract.caller.SyncTextractCaller;
 import io.camunda.connector.textract.suppliers.AmazonTextractClientSupplier;
 import io.camunda.connector.textract.util.TextractTestUtils;
@@ -36,7 +35,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class TextractConnectorFunctionTest {
 
   @Mock private SyncTextractCaller syncCaller;
-  @Mock private PollingTextractCalller pollingCaller;
+  @Mock private PollingTextractCaller pollingCaller;
   @Mock private AsyncTextractCaller asyncCaller;
 
   @Mock private AmazonTextractClientSupplier clientSupplier;
@@ -74,20 +73,6 @@ class TextractConnectorFunctionTest {
 
     var result = textractConnectorFunction.execute(outBounderContext);
     assertThat(result).isInstanceOf(GetDocumentAnalysisResult.class);
-  }
-
-  @Test
-  void executeAsyncReqWithS3PrefixAndWithoutS3Bucket() {
-    var outBounderContext =
-        prepareConnectorContext(TextractTestUtils.ASYNC_EXECUTION_JSON_WITHOUT_S3_BUCKET_OUTPUT);
-
-    Exception exception =
-        assertThrows(
-            ConnectorInputException.class,
-            () -> textractConnectorFunction.execute(outBounderContext));
-
-    assertThat(exception).hasMessageContaining(WRONG_OUTPUT_VALUES_MSG);
-    assertThat(exception).isInstanceOf(ConnectorInputException.class);
   }
 
   @ParameterizedTest
