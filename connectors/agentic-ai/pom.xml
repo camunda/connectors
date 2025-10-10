@@ -325,6 +325,28 @@
               </properties>
             </configuration>
           </execution>
+          <execution>
+            <id>transform-a2a-inbound-task-polling-connector-template</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/transform-a2a-inbound-connector-template.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>sourceFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-a2a-client-task-polling-connector.json</value>
+                </property>
+                <property>
+                  <name>outputFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-a2a-client-task-polling-connector-improved.json</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
         </executions>
         <dependencies>
           <dependency>
