@@ -88,10 +88,13 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
    *
    * @param processInstanceKey The unique identifier for the active process instance to retrieve
    *     variables of.
-   * @return A map containing the variables associated with the active process instance.
+   * @param elementInstanceKey The unique identifier for the active element instance to retrieve
+   *     variables of.
+   * @return A map containing the variables associated with the active process and element instance.
    * @throws RuntimeException If an error occurs during the fetch operation.
    */
-  public Map<String, Object> fetchVariablesByProcessInstanceKey(final Long processInstanceKey) {
+  public Map<String, Object> fetchVariablesByProcessInstanceKey(
+      final Long processInstanceKey, final Long elementInstanceKey) {
     fetchVariablesLock.lock();
     try {
       String variablePaginationIndex = null;
@@ -99,7 +102,8 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
       Map<String, Object> processVariables = new HashMap<>();
       do {
         searchResult =
-            searchQueryClient.queryVariables(processInstanceKey, variablePaginationIndex);
+            searchQueryClient.queryVariables(
+                processInstanceKey, elementInstanceKey, variablePaginationIndex);
         String newPaginationIdx = searchResult.page().endCursor();
         if (searchResult.items() != null) {
           processVariables.putAll(

@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.inbound.search;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 
@@ -114,6 +115,7 @@ class ProcessInstanceClientImplTest {
 
     // Given
     Long processInstanceKey = 456L;
+    Long elementInstanceKey = 789L;
 
     Variable variable1 = createVariable("12345", "var1", "value1");
     Variable variable2 = createVariable("67890", "var2", "value2");
@@ -121,13 +123,14 @@ class ProcessInstanceClientImplTest {
     SearchResponse<Variable> variableSearchResult = createSearchResult(variable1, variable2);
     SearchResponse<Variable> variableEmptySearchResult = createEmptySearchResult();
 
-    when(searchQueryClient.queryVariables(anyLong(), any()))
+    when(searchQueryClient.queryVariables(eq(processInstanceKey), eq(elementInstanceKey), any()))
         .thenReturn(variableSearchResult)
         .thenReturn(variableEmptySearchResult);
 
     // When
     Map<String, Object> result =
-        processInstanceClient.fetchVariablesByProcessInstanceKey(processInstanceKey);
+        processInstanceClient.fetchVariablesByProcessInstanceKey(
+            processInstanceKey, elementInstanceKey);
 
     // Then
     assertThat(result.size()).isEqualTo(2);
