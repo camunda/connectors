@@ -342,7 +342,7 @@
                 </property>
                 <property>
                   <name>outputFile</name>
-                  <value>${project.basedir}/element-templates/agenticai-a2a-client-task-polling-connector-improved.json</value>
+                  <value>${project.basedir}/element-templates/agenticai-a2a-client-task-polling-connector.json</value>
                 </property>
               </properties>
             </configuration>

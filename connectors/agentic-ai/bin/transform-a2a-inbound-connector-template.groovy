@@ -45,10 +45,6 @@ if (outputFilePath.exists()) {
     }
 }
 
-// Update template metadata
-json.id = json.id.replace(".v0", ".improved.v0")
-json.name = json.name + " (improved)"
-
 // Transform properties
 def updatedProperties = []
 json.properties.each { property ->
