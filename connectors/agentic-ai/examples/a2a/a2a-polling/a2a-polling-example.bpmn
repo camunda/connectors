@@ -42,7 +42,7 @@
           <zeebe:property name="data.historyLength" value="3" />
           <zeebe:property name="data.processPollingInterval" value="PT5S" />
           <zeebe:property name="data.taskPollingInterval" value="PT10S" />
-          <zeebe:property name="activationCondition" value="=not(list contains([&#34;submitted&#34;, &#34;working&#34;], status.state))" />
+          <zeebe:property name="activationCondition" value="=if kind = &#34;task&#34; then&#10;  is defined(status.state) and not(list contains([&#34;submitted&#34;, &#34;working&#34;], status.state))&#10;else&#10;  true" />
           <zeebe:property name="correlationKeyExpression" value="=if kind = &#34;message&#34; then&#10;  &#34;msg-&#34; + messageId&#10;else&#10;  &#34;task-&#34; + id" />
           <zeebe:property name="deduplicationModeManualFlag" value="false" />
           <zeebe:property name="deduplicationMode" value="AUTO" />
@@ -52,14 +52,14 @@
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_1w81qig</bpmn:incoming>
       <bpmn:outgoing>Flow_1ogwbnu</bpmn:outgoing>
-      <bpmn:messageEventDefinition id="MessageEventDefinition_1ot9gnz" messageRef="Message_0reppsx" />
+      <bpmn:messageEventDefinition id="MessageEventDefinition_16yw1r6" messageRef="Message_1r5o6o0" />
     </bpmn:intermediateCatchEvent>
     <bpmn:textAnnotation id="TextAnnotation_1f96g7y">
       <bpmn:text>Input: messageText</bpmn:text>
     </bpmn:textAnnotation>
     <bpmn:association id="Association_02h1clh" associationDirection="None" sourceRef="StartEvent" targetRef="TextAnnotation_1f96g7y" />
   </bpmn:process>
-  <bpmn:message id="Message_0reppsx" name="7bf6b185-9c5b-47e6-b890-5d50b267fb11" zeebe:modelerTemplate="io.camunda.connectors.agenticai.a2a.polling.task.improved.v0">
+  <bpmn:message id="Message_1r5o6o0" name="d11ddbd3-bc2e-459b-a2b2-10e7ae244cbc" zeebe:modelerTemplate="io.camunda.connectors.agenticai.a2a.polling.task.improved.v0">
     <bpmn:extensionElements>
       <zeebe:subscription correlationKey="=if internal_clientResponse.kind = &#34;message&#34; then&#10;  &#34;msg-&#34; + internal_clientResponse.messageId&#10;else&#10;  &#34;task-&#34; + internal_clientResponse.id" />
     </bpmn:extensionElements>
@@ -78,10 +78,10 @@
       <bpmndi:BPMNShape id="Activity_1bdplfg_di" bpmnElement="Send_A2A_Request">
         <dc:Bounds x="340" y="90" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_0uyynli_di" bpmnElement="Wait_For_Completion">
-        <dc:Bounds x="522" y="112" width="36" height="36" />
+      <bpmndi:BPMNShape id="Event_150vp10_di" bpmnElement="Wait_For_Completion">
+        <dc:Bounds x="512" y="112" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="512" y="155" width="56" height="27" />
+          <dc:Bounds x="502" y="155" width="56" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="TextAnnotation_1f96g7y_di" bpmnElement="TextAnnotation_1f96g7y">
@@ -93,12 +93,12 @@
         <di:waypoint x="340" y="130" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1ogwbnu_di" bpmnElement="Flow_1ogwbnu">
-        <di:waypoint x="558" y="130" />
+        <di:waypoint x="548" y="130" />
         <di:waypoint x="622" y="130" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1w81qig_di" bpmnElement="Flow_1w81qig">
         <di:waypoint x="440" y="130" />
-        <di:waypoint x="522" y="130" />
+        <di:waypoint x="512" y="130" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Association_02h1clh_di" bpmnElement="Association_02h1clh">
         <di:waypoint x="241" y="115" />

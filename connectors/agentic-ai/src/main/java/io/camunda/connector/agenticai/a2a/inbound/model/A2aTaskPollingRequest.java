@@ -34,7 +34,10 @@ public record A2aTaskPollingRequest(@Valid @NotNull A2aTaskPollingRequestData da
               id = "historyLength",
               group = "options",
               label = "History length",
-              type = TemplateProperty.PropertyType.Number)
+              binding = @TemplateProperty.PropertyBinding(name = "historyLength"),
+              feel = Property.FeelMode.optional,
+              defaultValueType = TemplateProperty.DefaultValueType.Number,
+              defaultValue = "3")
           Integer historyLength,
       @JsonSetter(nulls = Nulls.SKIP)
           @TemplateProperty(

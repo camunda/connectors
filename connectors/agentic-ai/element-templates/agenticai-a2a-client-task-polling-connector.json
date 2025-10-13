@@ -98,13 +98,14 @@
     "id" : "data.historyLength",
     "label" : "History length",
     "optional" : false,
-    "feel" : "static",
+    "value" : "3",
+    "feel" : "optional",
     "group" : "options",
     "binding" : {
       "name" : "data.historyLength",
       "type" : "zeebe:property"
     },
-    "type" : "Number"
+    "type" : "String"
   }, {
     "id" : "data.processPollingInterval",
     "label" : "Process polling interval",
