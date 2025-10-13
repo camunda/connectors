@@ -6,22 +6,18 @@
  */
 package io.camunda.connector.agenticai.a2a.discovery;
 
-import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 
 public record A2aToolCallIdentifier(String elementName) {
   public static final String A2A_PREFIX = "A2A_";
-
-  private static final Pattern A2A_TOOL_CALL_PATTERN =
-      Pattern.compile("^" + A2A_PREFIX + "(?<elementName>\\S+)");
 
   public String fullyQualifiedName() {
     return A2A_PREFIX + elementName;
   }
 
   public static boolean isA2aToolCallIdentifier(String toolCallName) {
-    return !StringUtils.isBlank(toolCallName)
-        && A2A_TOOL_CALL_PATTERN.matcher(toolCallName).matches();
+    return StringUtils.length(toolCallName) > A2A_PREFIX.length()
+        && toolCallName.startsWith(A2A_PREFIX);
   }
 
   public static A2aToolCallIdentifier fromToolCallName(String toolCallName) {

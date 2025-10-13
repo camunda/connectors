@@ -74,7 +74,6 @@ class A2aToolCallIdentifierTest {
           arguments("A2A"), // incomplete, missing underscore and name
           arguments(""), // empty
           arguments("A2A element"), // space after prefix
-          arguments("A2A_element tool"), // whitespace in name
           arguments("NotA2A_element")); // wrong prefix
     }
   }
@@ -103,24 +102,12 @@ class A2aToolCallIdentifierTest {
         strings = {
           "A2A_", // missing element name
           "element", // missing prefix
-          "A2A", // incomplete
-          "A2A_element tool", // whitespace in name
-          "A2A_   ", // blank element name
+          "A2A" // incomplete
         })
     void throwsExceptionWhenInvalidToolCallName(String invalidToolCallName) {
       assertThatThrownBy(() -> A2aToolCallIdentifier.fromToolCallName(invalidToolCallName))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessage("Invalid A2A tool call name: '%s'".formatted(invalidToolCallName));
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"", "   ", "\t", "\n"})
-    void throwsExceptionWhenElementNameIsBlank(String blankElementName) {
-      var toolCallName = "A2A_" + blankElementName;
-
-      assertThatThrownBy(() -> A2aToolCallIdentifier.fromToolCallName(toolCallName))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessage("Invalid A2A tool call name: '%s'".formatted(toolCallName));
     }
   }
 
