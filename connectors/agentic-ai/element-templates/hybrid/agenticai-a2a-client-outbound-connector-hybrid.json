@@ -2,7 +2,7 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Hybrid A2A Client (experimental)",
   "id" : "io.camunda.connectors.agenticai.a2a.client.v0-hybrid",
-  "description" : "Agent-to-Agent (A2A) client, enabling discovering remote agents' Agent Cards as well as invoking remove agents.",
+  "description" : "Agent-to-Agent (A2A) client, enabling discovering remote agents' Agent Cards as well as sending messages to remote agents.",
   "metadata" : {
     "keywords" : [ ]
   },
@@ -25,6 +25,10 @@
     "id" : "connection",
     "label" : "HTTP Connection",
     "tooltip" : "Configure the HTTP connection to the remote A2A server for retrieving the Agent Card. Setting authentication headers is not supported yet."
+  }, {
+    "id" : "connectorMode",
+    "label" : "Connector mode",
+    "tooltip" : "Select how this connector is used. When the connector is used as an AI agent tool, select the <code>AI Agent tool</code> mode."
   }, {
     "id" : "operation",
     "label" : "Operation"
@@ -50,6 +54,18 @@
       "type" : "zeebe:taskDefinition"
     },
     "type" : "String"
+  }, {
+    "value" : "a2aClient",
+    "binding" : {
+      "name" : "io.camunda.agenticai.gateway.type",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "data.connectorMode.type",
+      "equals" : "aiAgentTool",
+      "type" : "simple"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "data.connection.url",
     "label" : "A2A server URL",
@@ -78,14 +94,37 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.operation.type",
+    "id" : "data.connectorMode.type",
+    "label" : "Connector mode",
+    "description" : "Select how this connector is used.",
+    "value" : "aiAgentTool",
+    "group" : "connectorMode",
+    "binding" : {
+      "name" : "data.connectorMode.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Standalone",
+      "value" : "standalone"
+    }, {
+      "name" : "AI Agent tool",
+      "value" : "aiAgentTool"
+    } ]
+  }, {
+    "id" : "data.connectorMode.operation.type",
     "label" : "Operation",
     "description" : "The type of operation to perform.",
     "value" : "fetchAgentCard",
     "group" : "operation",
     "binding" : {
-      "name" : "data.operation.type",
+      "name" : "data.connectorMode.operation.type",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode.type",
+      "equals" : "standalone",
+      "type" : "simple"
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -96,7 +135,7 @@
       "value" : "sendMessage"
     } ]
   }, {
-    "id" : "data.operation.params.text",
+    "id" : "data.connectorMode.operation.params.text",
     "label" : "Text",
     "description" : "The text to to be included in the message.",
     "optional" : false,
@@ -106,35 +145,47 @@
     "feel" : "optional",
     "group" : "operation",
     "binding" : {
-      "name" : "data.operation.params.text",
+      "name" : "data.connectorMode.operation.params.text",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "data.operation.type",
-      "equals" : "sendMessage",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.type",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
     },
     "type" : "Text"
   }, {
-    "id" : "data.operation.params.documents",
+    "id" : "data.connectorMode.operation.params.documents",
     "label" : "Documents",
     "description" : "Documents to be included in the message.",
     "optional" : true,
     "feel" : "required",
     "group" : "operation",
     "binding" : {
-      "name" : "data.operation.params.documents",
+      "name" : "data.connectorMode.operation.params.documents",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "data.operation.type",
-      "equals" : "sendMessage",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.type",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
     },
     "tooltip" : "Referenced documents that will be added to the message.",
     "type" : "String"
   }, {
-    "id" : "data.operation.timeout",
+    "id" : "data.connectorMode.operation.timeout",
     "label" : "Response timeout",
     "description" : "How long to wait for the remote agent response as ISO-8601 duration (example: <code>PT1M</code>).",
     "optional" : false,
@@ -142,12 +193,75 @@
     "feel" : "optional",
     "group" : "operation",
     "binding" : {
-      "name" : "data.operation.timeout",
+      "name" : "data.connectorMode.operation.timeout",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "data.operation.type",
-      "equals" : "sendMessage",
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.type",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.connectorMode.toolOperation.operation",
+    "label" : "Operation",
+    "description" : "The action to perform. Possible values are <code>fetchAgentCard</code> and <code>sendMessage</code>.",
+    "optional" : false,
+    "value" : "=toolCall.operation",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.toolOperation.operation",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode.type",
+      "equals" : "aiAgentTool",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.connectorMode.toolOperation.params",
+    "label" : "Parameters",
+    "description" : "The parameters used to build the message that will be sent to the remote agent.",
+    "optional" : true,
+    "value" : "=toolCall.params",
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.toolOperation.params",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode.type",
+      "equals" : "aiAgentTool",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "data.connectorMode.toolOperation.timeout",
+    "label" : "Response timeout",
+    "description" : "How long to wait for the remote agent response as ISO-8601 duration (example: <code>PT1M</code>).",
+    "optional" : false,
+    "value" : "PT1M",
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.toolOperation.timeout",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode.type",
+      "equals" : "aiAgentTool",
       "type" : "simple"
     },
     "type" : "String"

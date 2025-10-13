@@ -4,11 +4,11 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.mcp.discovery.configuration;
+package io.camunda.connector.agenticai.a2a.discovery.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolDefinitionResolver;
-import io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolHandler;
+import io.camunda.connector.agenticai.a2a.discovery.A2aGatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.a2a.discovery.A2aGatewayToolHandler;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -16,18 +16,19 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @ConditionalOnBooleanProperty(
-    value = "camunda.connector.agenticai.mcp.discovery.enabled",
+    value = "camunda.connector.agenticai.a2a.discovery.enabled",
     matchIfMissing = true)
-public class McpDiscoveryConfiguration {
+public class A2aDiscoveryConfiguration {
+
   @Bean
   @ConditionalOnMissingBean
-  public McpClientGatewayToolDefinitionResolver mcpClientGatewayToolDefinitionResolver() {
-    return new McpClientGatewayToolDefinitionResolver();
+  public A2aGatewayToolDefinitionResolver a2aGatewayToolDefinitionResolver() {
+    return new A2aGatewayToolDefinitionResolver();
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public McpClientGatewayToolHandler mcpClientGatewayToolHandler(ObjectMapper objectMapper) {
-    return new McpClientGatewayToolHandler(objectMapper);
+  public A2aGatewayToolHandler a2aGatewayToolHandler(ObjectMapper objectMapper) {
+    return new A2aGatewayToolHandler(objectMapper);
   }
 }

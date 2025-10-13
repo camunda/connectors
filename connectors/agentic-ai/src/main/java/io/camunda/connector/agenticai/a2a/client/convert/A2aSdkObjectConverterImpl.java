@@ -18,15 +18,15 @@ import java.util.List;
 
 public class A2aSdkObjectConverterImpl implements A2aSdkObjectConverter {
 
-  private final A2aPartToContentConverter partsToContentConverter;
+  private final A2aPartToContentConverter partToContentConverter;
 
-  public A2aSdkObjectConverterImpl(A2aPartToContentConverter partsToContentConverter) {
-    this.partsToContentConverter = partsToContentConverter;
+  public A2aSdkObjectConverterImpl(A2aPartToContentConverter partToContentConverter) {
+    this.partToContentConverter = partToContentConverter;
   }
 
   @Override
   public A2aMessage convert(Message message) {
-    List<Content> contents = partsToContentConverter.convert(message.getParts());
+    List<Content> contents = partToContentConverter.convert(message.getParts());
     return A2aMessage.builder()
         .role(A2aMessage.Role.AGENT)
         .messageId(message.getMessageId())
@@ -61,7 +61,7 @@ public class A2aSdkObjectConverterImpl implements A2aSdkObjectConverter {
                     .name(artifact.name())
                     .description(artifact.description())
                     .metadata(artifact.metadata())
-                    .contents(partsToContentConverter.convert(artifact.parts()))
+                    .contents(partToContentConverter.convert(artifact.parts()))
                     .build())
         .toList();
   }
