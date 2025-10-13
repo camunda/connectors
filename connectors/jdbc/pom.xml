@@ -36,7 +36,7 @@
     <dependency>
       <groupId>org.jdbi</groupId>
       <artifactId>jdbi3-core</artifactId>
-      <version>3.49.5</version>
+      <version>3.49.6</version>
     </dependency>
 
     <dependency>
@@ -53,7 +53,7 @@
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.7.7</version>
+      <version>42.7.8</version>
     </dependency>
 
     <!-- Mariadb is used because of an issue with the MySQL ConnectorJ licence (GPL). We're not mentioning Mariadb in our docs -->
