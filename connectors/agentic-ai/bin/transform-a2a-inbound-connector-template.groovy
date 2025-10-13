@@ -52,21 +52,21 @@ json.name = json.name + " (improved)"
 // Transform properties
 def updatedProperties = []
 json.properties.each { property ->
-    if (property.id == "data.taskId") {
-        // change data.taskId text field to be an input mapping mapping to inputTaskId
-        property.id = "taskId"
+    if (property.id == "data.clientResponse") {
+        // change data.taskId text field to be an input mapping mapping to inputClientResponse
+        property.id = "clientResponse"
         property.binding = [
-            name: "inputTaskId",
+            name: "internal_clientResponse",
             type: "zeebe:input"
         ]
         updatedProperties.add(property)
 
         // add a hidden property reading from the input
         updatedProperties.add([
-            id: "data.taskId",
-            value: "=inputTaskId",
+            id: "data.clientResponse",
+            value: "=internal_clientResponse",
             binding: [
-                name: "data.taskId",
+                name: "data.clientResponse",
                 type: "zeebe:property"
             ],
             type: "Hidden"

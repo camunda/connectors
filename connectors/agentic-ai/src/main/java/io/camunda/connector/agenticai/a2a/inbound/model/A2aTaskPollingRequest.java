@@ -15,6 +15,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Duration;
 
 public record A2aTaskPollingRequest(@Valid @NotNull A2aTaskPollingRequestData data) {
@@ -22,13 +23,19 @@ public record A2aTaskPollingRequest(@Valid @NotNull A2aTaskPollingRequestData da
       @Valid @NotNull ConnectionConfiguration connection,
       @NotBlank
           @TemplateProperty(
-              id = "taskId",
-              group = "task",
-              label = "Task ID",
-              binding = @TemplateProperty.PropertyBinding(name = "taskId"),
-              feel = Property.FeelMode.required,
-              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-          String taskId,
+              id = "clientResponse",
+              group = "clientResponse",
+              label = "A2A Client Response",
+              binding = @TemplateProperty.PropertyBinding(name = "clientResponse"),
+              feel = Property.FeelMode.required)
+          String clientResponse,
+      @PositiveOrZero
+          @TemplateProperty(
+              id = "historyLength",
+              group = "options",
+              label = "History length",
+              type = TemplateProperty.PropertyType.Number)
+          Integer historyLength,
       @JsonSetter(nulls = Nulls.SKIP)
           @TemplateProperty(
               id = "processPollingInterval",
@@ -51,6 +58,10 @@ public record A2aTaskPollingRequest(@Valid @NotNull A2aTaskPollingRequestData da
           Duration taskPollingInterval) {
 
     public A2aTaskPollingRequestData {
+      if (historyLength == null) {
+        historyLength = 3;
+      }
+
       if (processPollingInterval == null) {
         processPollingInterval = Duration.ofSeconds(5);
       }

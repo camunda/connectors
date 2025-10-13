@@ -23,8 +23,11 @@
     "id" : "connection",
     "label" : "Connection"
   }, {
-    "id" : "task",
-    "label" : "Task"
+    "id" : "clientResponse",
+    "label" : "Client Response"
+  }, {
+    "id" : "options",
+    "label" : "Options"
   }, {
     "id" : "polling",
     "label" : "Polling"
@@ -78,19 +81,30 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.taskId",
-    "label" : "Task ID",
+    "id" : "data.clientResponse",
+    "label" : "A2A Client Response",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "required",
-    "group" : "task",
+    "group" : "clientResponse",
     "binding" : {
-      "name" : "data.taskId",
+      "name" : "data.clientResponse",
       "type" : "zeebe:property"
     },
     "type" : "String"
+  }, {
+    "id" : "data.historyLength",
+    "label" : "History length",
+    "optional" : false,
+    "feel" : "static",
+    "group" : "options",
+    "binding" : {
+      "name" : "data.historyLength",
+      "type" : "zeebe:property"
+    },
+    "type" : "Number"
   }, {
     "id" : "data.processPollingInterval",
     "label" : "Process polling interval",

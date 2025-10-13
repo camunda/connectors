@@ -18,5 +18,5 @@ import jakarta.validation.constraints.NotNull;
  */
 public record A2aTaskPollingElementInstanceRequest(
     @Valid @NotNull A2aTaskPollingElementInstanceRequestData data) {
-  public record A2aTaskPollingElementInstanceRequestData(@NotBlank @FEEL String taskId) {}
+  public record A2aTaskPollingElementInstanceRequestData(@NotBlank @FEEL String clientResponse) {}
 }
