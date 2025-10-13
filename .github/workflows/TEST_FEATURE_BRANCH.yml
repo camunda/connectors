@@ -78,16 +78,16 @@ jobs:
           path: '**/target/surefire-reports/*.xml'
 
       - name: Lint Dockerfile - connector-runtime
-        uses: hadolint/hadolint-action@v3.2.0
+        uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: connector-runtime/connector-runtime-application/Dockerfile
 
       - name: Lint Dockerfile - SaaS
-        uses: hadolint/hadolint-action@v3.2.0
+        uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: bundle/camunda-saas-bundle/Dockerfile
 
       - name: Lint Dockerfile - default-bundle
-        uses: hadolint/hadolint-action@v3.2.0
+        uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: bundle/default-bundle/Dockerfile
