@@ -18,7 +18,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Duration;
 
-public record A2aTaskPollingRequest(@Valid @NotNull A2aTaskPollingRequestData data) {
+public record A2aPollingRequest(@Valid @NotNull A2aTaskPollingRequestData data) {
   public record A2aTaskPollingRequestData(
       @Valid @NotNull ConnectionConfiguration connection,
       @NotBlank

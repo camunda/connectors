@@ -61,9 +61,9 @@
       "defaultValue": "true"
     },
     {
-      "name": "camunda.connector.agenticai.a2a.client.polling.task.enabled",
+      "name": "camunda.connector.agenticai.a2a.client.polling.enabled",
       "type": "java.lang.Boolean",
-      "description": "Whether to enable/register the A2A task polling inbound connector.",
+      "description": "Whether to enable/register the A2A polling inbound connector.",
       "defaultValue": "true"
     }
   ]

@@ -13,10 +13,10 @@ import jakarta.validation.constraints.NotNull;
 
 /**
  * Request model to map process/element instance variables. When mapping this model, the @FEEL
- * annotation on the taskId will resolve the actual task ID from the element instance variables at
- * runtime.
+ * annotation on the clientResponse will resolve the actual response from the input mapping applied
+ * to the element instance.
  */
-public record A2aTaskPollingElementInstanceRequest(
+public record A2aPollingElementInstanceRequest(
     @Valid @NotNull A2aTaskPollingElementInstanceRequestData data) {
   public record A2aTaskPollingElementInstanceRequestData(@NotBlank @FEEL String clientResponse) {}
 }
