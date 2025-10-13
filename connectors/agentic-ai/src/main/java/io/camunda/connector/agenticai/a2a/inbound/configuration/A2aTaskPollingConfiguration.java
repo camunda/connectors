@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.inbound.configuration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.inbound.A2aTaskPollingExecutable;
@@ -37,7 +38,9 @@ public class A2aTaskPollingConfiguration {
   public A2aTaskPollingExecutable a2ATaskPollingExecutable(
       A2aTaskPollingExecutorService executorService,
       A2aSdkClientFactory clientFactory,
-      A2aSdkObjectConverter objectConverter) {
-    return new A2aTaskPollingExecutable(executorService, clientFactory, objectConverter);
+      A2aSdkObjectConverter objectConverter,
+      ObjectMapper objectMapper) {
+    return new A2aTaskPollingExecutable(
+        executorService, clientFactory, objectConverter, objectMapper);
   }
 }

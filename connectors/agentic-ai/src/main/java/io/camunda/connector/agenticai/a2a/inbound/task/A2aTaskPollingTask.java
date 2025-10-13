@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.inbound.task;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.a2a.A2A;
 import io.a2a.client.Client;
 import io.a2a.spec.A2AClientError;
@@ -15,11 +16,16 @@ import io.a2a.spec.TaskState;
 import io.a2a.spec.TaskStatus;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2aTaskStatus;
 import io.camunda.connector.agenticai.a2a.inbound.model.A2aTaskPollingElementInstanceRequest;
 import io.camunda.connector.agenticai.a2a.inbound.model.A2aTaskPollingRequest;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.inbound.Severity;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
@@ -33,14 +39,16 @@ import org.slf4j.LoggerFactory;
 public class A2aTaskPollingTask implements Runnable, AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(A2aTaskPollingTask.class);
+  private static final List<A2aTaskStatus.TaskState> POLLABLE_TASK_STATES =
+      List.of(A2aTaskStatus.TaskState.SUBMITTED, A2aTaskStatus.TaskState.WORKING);
 
   private final InboundIntermediateConnectorContext context;
   private final ProcessInstanceContext processInstanceContext;
   private final A2aTaskPollingRequest pollingRequest;
   private final A2aSdkClientFactory clientFactory;
   private final A2aSdkObjectConverter objectConverter;
+  private final ObjectMapper objectMapper;
 
-  private String taskId;
   private AgentCard agentCard;
   private Client client;
 
@@ -49,18 +57,43 @@ public class A2aTaskPollingTask implements Runnable, AutoCloseable {
       final ProcessInstanceContext processInstanceContext,
       final A2aTaskPollingRequest pollingRequest,
       final A2aSdkClientFactory clientFactory,
-      final A2aSdkObjectConverter objectConverter) {
+      final A2aSdkObjectConverter objectConverter,
+      final ObjectMapper objectMapper) {
     this.context = context;
     this.processInstanceContext = processInstanceContext;
     this.pollingRequest = pollingRequest;
     this.clientFactory = clientFactory;
     this.objectConverter = objectConverter;
+    this.objectMapper = objectMapper;
   }
 
   @Override
   public void run() {
-    final var taskId = getTaskId();
-    if (taskId == null) {
+    final var clientResponse = getClientResponse();
+    if (clientResponse == null) {
+      return;
+    }
+
+    switch (clientResponse) {
+      case A2aMessage a2aMessage -> handleMessage(a2aMessage);
+      case A2aTask a2aTask -> handleTask(a2aTask);
+    }
+  }
+
+  private void handleMessage(final A2aMessage message) {
+    LOG.debug("A2A message {} does not need polling -> directly correlating", message.messageId());
+    processInstanceContext.correlate(message);
+  }
+
+  private void handleTask(final A2aTask task) {
+    final var taskState = Optional.ofNullable(task.status()).map(A2aTaskStatus::state).orElse(null);
+    final var needsPolling = taskState == null || POLLABLE_TASK_STATES.contains(taskState);
+    if (!needsPolling) {
+      LOG.debug(
+          "A2A task {} in state '{}' does not need polling -> directly correlating",
+          task.id(),
+          taskState.asString());
+      processInstanceContext.correlate(task);
       return;
     }
 
@@ -69,50 +102,50 @@ public class A2aTaskPollingTask implements Runnable, AutoCloseable {
       return;
     }
 
-    LOG.debug("Polling A2A task {}", taskId);
+    LOG.debug("Polling A2A task {} with a max history length of {}", task.id(), pollingRequest.data().historyLength());
 
     try {
-      final var task = client.getTask(new TaskQueryParams(taskId));
+      final var loadedTask =
+          client.getTask(new TaskQueryParams(task.id(), pollingRequest.data().historyLength()));
       LOG.debug(
-          "A2A task {} state: {}",
-          taskId,
-          Optional.ofNullable(task.getStatus())
+          "Loaded A2A task {} with state {}",
+          task.id(),
+          Optional.ofNullable(loadedTask.getStatus())
               .map(TaskStatus::state)
               .map(TaskState::asString)
               .orElse(null));
 
-      final var convertedTask = objectConverter.convert(task);
+      final var convertedTask = objectConverter.convert(loadedTask);
       processInstanceContext.correlate(convertedTask);
     } catch (Exception e) {
-      LOG.error("Failed to poll A2A task %s".formatted(taskId), e);
+      LOG.error("Failed to poll A2A task %s".formatted(task.id()), e);
       this.context.log(
           activity ->
               activity
                   .withSeverity(Severity.ERROR)
                   .withTag("a2a-polling")
-                  .withMessage("Failed to poll A2A task %s: %s".formatted(taskId, e.getMessage())));
+                  .withMessage(
+                      "Failed to poll A2A task %s: %s".formatted(task.id(), e.getMessage())));
     }
   }
 
-  private synchronized String getTaskId() {
-    if (this.taskId == null) {
-      try {
-        // resolves the actual task ID from process variables
-        final var elementInstanceRequest =
-            processInstanceContext.bind(A2aTaskPollingElementInstanceRequest.class);
-        this.taskId = elementInstanceRequest.data().taskId();
-      } catch (Exception e) {
-        LOG.debug("Failed to resolve A2A Task ID", e);
-        this.context.log(
-            activity ->
-                activity
-                    .withSeverity(Severity.ERROR)
-                    .withTag("a2a-polling-config")
-                    .withMessage("Error resolving A2A task ID: " + e.getMessage()));
-      }
+  private A2aSendMessageResult getClientResponse() {
+    try {
+      final var elementInstanceRequest =
+          processInstanceContext.bind(A2aTaskPollingElementInstanceRequest.class);
+      final var clientResponseJson = elementInstanceRequest.data().clientResponse();
+      return objectMapper.readValue(clientResponseJson, A2aSendMessageResult.class);
+    } catch (Exception e) {
+      LOG.debug("Failed to load A2A client response", e);
+      this.context.log(
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withTag("a2a-polling-response")
+                  .withMessage("Error loading A2A client response: " + e.getMessage()));
     }
 
-    return this.taskId;
+    return null;
   }
 
   private synchronized Client getClient() {
