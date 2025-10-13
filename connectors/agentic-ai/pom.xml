@@ -258,11 +258,11 @@
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
             <connector>
-              <connectorClass>io.camunda.connector.agenticai.a2a.inbound.A2aTaskPollingExecutable</connectorClass>
+              <connectorClass>io.camunda.connector.agenticai.a2a.inbound.A2aPollingExecutable</connectorClass>
               <files>
                 <file>
-                  <templateId>io.camunda.connectors.agenticai.a2a.polling.task.v0</templateId>
-                  <templateFileName>agenticai-a2a-client-task-polling-connector.json</templateFileName>
+                  <templateId>io.camunda.connectors.agenticai.a2a.polling.v0</templateId>
+                  <templateFileName>agenticai-a2a-client-polling-connector.json</templateFileName>
                 </file>
               </files>
               <generateHybridTemplates>false</generateHybridTemplates>
@@ -338,11 +338,11 @@
               <properties>
                 <property>
                   <name>sourceFile</name>
-                  <value>${project.basedir}/element-templates/agenticai-a2a-client-task-polling-connector.json</value>
+                  <value>${project.basedir}/element-templates/agenticai-a2a-client-polling-connector.json</value>
                 </property>
                 <property>
                   <name>outputFile</name>
-                  <value>${project.basedir}/element-templates/agenticai-a2a-client-task-polling-connector.json</value>
+                  <value>${project.basedir}/element-templates/agenticai-a2a-client-polling-connector.json</value>
                 </property>
               </properties>
             </configuration>

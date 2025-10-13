@@ -9,9 +9,9 @@ package io.camunda.connector.agenticai.a2a.inbound;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
-import io.camunda.connector.agenticai.a2a.inbound.model.A2aTaskPollingRequest;
-import io.camunda.connector.agenticai.a2a.inbound.service.A2aTaskPollingExecutorService;
-import io.camunda.connector.agenticai.a2a.inbound.task.A2aProcessInstancesFetcherTask;
+import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRequest;
+import io.camunda.connector.agenticai.a2a.inbound.service.A2aPollingExecutorService;
+import io.camunda.connector.agenticai.a2a.inbound.task.A2aPollingProcessInstancesFetcherTask;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
@@ -19,13 +19,14 @@ import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @ElementTemplate(
-    id = "io.camunda.connectors.agenticai.a2a.polling.task.v0",
+    id = "io.camunda.connectors.agenticai.a2a.polling.v0",
     version = 0,
-    name = "A2A Client Task Polling Connector (experimental)",
-    description = "Agent-to-Agent (A2A) task polling client.",
+    name = "A2A Client Polling Intermediate Catch Event Connector (experimental)",
+    description =
+        "Agent-to-Agent (A2A) polling inbound connector. Supports polling asynchronous tasks, but can also directly correlate messages and synchronously completed tasks.",
     icon = "a2a-client.svg",
     engineVersion = "^8.9",
-    inputDataClass = A2aTaskPollingRequest.class,
+    inputDataClass = A2aPollingRequest.class,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "connection", label = "Connection"),
       @ElementTemplate.PropertyGroup(id = "clientResponse", label = "Client Response"),
@@ -35,24 +36,21 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     elementTypes = {
       @ElementTemplate.ConnectorElementType(
           appliesTo = {BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT},
-          elementType = BpmnType.INTERMEDIATE_CATCH_EVENT,
-          templateNameOverride = "A2A Client Task Polling Intermediate Catch Event Connector")
+          elementType = BpmnType.INTERMEDIATE_CATCH_EVENT)
     })
-@InboundConnector(
-    name = "A2A Polling Connector",
-    type = "io.camunda.agenticai:a2aclient:polling:task:0")
-public class A2aTaskPollingExecutable
+@InboundConnector(name = "A2A Polling Connector", type = "io.camunda.agenticai:a2aclient:polling:0")
+public class A2aPollingExecutable
     implements InboundConnectorExecutable<InboundIntermediateConnectorContext> {
 
-  private final A2aTaskPollingExecutorService executorService;
+  private final A2aPollingExecutorService executorService;
   private final A2aSdkClientFactory clientFactory;
   private final A2aSdkObjectConverter objectConverter;
   private final ObjectMapper objectMapper;
 
-  private A2aProcessInstancesFetcherTask processInstancesFetcherTask;
+  private A2aPollingProcessInstancesFetcherTask processInstancesFetcherTask;
 
-  public A2aTaskPollingExecutable(
-      final A2aTaskPollingExecutorService executorService,
+  public A2aPollingExecutable(
+      final A2aPollingExecutorService executorService,
       final A2aSdkClientFactory clientFactory,
       final A2aSdkObjectConverter objectConverter,
       final ObjectMapper objectMapper) {
@@ -65,7 +63,7 @@ public class A2aTaskPollingExecutable
   @Override
   public void activate(final InboundIntermediateConnectorContext context) {
     processInstancesFetcherTask =
-        new A2aProcessInstancesFetcherTask(
+        new A2aPollingProcessInstancesFetcherTask(
             context, executorService, clientFactory, objectConverter, objectMapper);
     processInstancesFetcherTask.start();
   }

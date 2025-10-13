@@ -9,8 +9,8 @@ package io.camunda.connector.agenticai.a2a.inbound.task;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
-import io.camunda.connector.agenticai.a2a.inbound.model.A2aTaskPollingRequest;
-import io.camunda.connector.agenticai.a2a.inbound.service.A2aTaskPollingExecutorService;
+import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRequest;
+import io.camunda.connector.agenticai.a2a.inbound.service.A2aPollingExecutorService;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
@@ -25,22 +25,25 @@ import org.slf4j.LoggerFactory;
  * Responsible for handling A2A polling operations. Each instance of this class is used for one
  * flowNode and manages polling across all its corresponding processInstances.
  */
-public class A2aProcessInstancesFetcherTask implements Runnable {
+public class A2aPollingProcessInstancesFetcherTask implements Runnable {
   private static final Logger LOGGER =
-      LoggerFactory.getLogger(A2aProcessInstancesFetcherTask.class);
+      LoggerFactory.getLogger(A2aPollingProcessInstancesFetcherTask.class);
 
   private final InboundIntermediateConnectorContext context;
-  private final ObjectMapper objectMapper;
-  private final A2aTaskPollingExecutorService executorService;
+  private final A2aPollingExecutorService executorService;
   private final A2aSdkClientFactory clientFactory;
   private final A2aSdkObjectConverter objectConverter;
-  private final A2aTaskPollingRequest pollingRequest;
-  private final ConcurrentHashMap<String, ScheduledPoll> runningPollTasks;
+  private final ObjectMapper objectMapper;
+
+  private final A2aPollingRequest pollingRequest;
+
+  private final ConcurrentHashMap<String, ScheduledPoll> runningPollTasks =
+      new ConcurrentHashMap<>();
   private ScheduledFuture<?> mainTaskFuture;
 
-  public A2aProcessInstancesFetcherTask(
+  public A2aPollingProcessInstancesFetcherTask(
       final InboundIntermediateConnectorContext context,
-      final A2aTaskPollingExecutorService executorService,
+      final A2aPollingExecutorService executorService,
       final A2aSdkClientFactory clientFactory,
       final A2aSdkObjectConverter objectConverter,
       final ObjectMapper objectMapper) {
@@ -48,10 +51,9 @@ public class A2aProcessInstancesFetcherTask implements Runnable {
     this.context = context;
     this.executorService = executorService;
     this.clientFactory = clientFactory;
-    this.pollingRequest = context.bindProperties(A2aTaskPollingRequest.class);
     this.objectConverter = objectConverter;
     this.objectMapper = objectMapper;
-    this.runningPollTasks = new ConcurrentHashMap<>();
+    this.pollingRequest = context.bindProperties(A2aPollingRequest.class);
   }
 
   @Override
@@ -89,7 +91,7 @@ public class A2aProcessInstancesFetcherTask implements Runnable {
         taskKey,
         (key) -> {
           final var task =
-              new A2aTaskPollingTask(
+              new A2aPollingTask(
                   context,
                   processInstanceContext,
                   pollingRequest,
@@ -124,7 +126,7 @@ public class A2aProcessInstancesFetcherTask implements Runnable {
     runningPollTasks.clear();
   }
 
-  private record ScheduledPoll(A2aTaskPollingTask task, ScheduledFuture<?> future) {
+  private record ScheduledPoll(A2aPollingTask task, ScheduledFuture<?> future) {
     public void cancel() {
       future.cancel(true);
       task.close();

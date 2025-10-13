@@ -1,8 +1,8 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "A2A Client Task Polling Intermediate Catch Event Connector",
-  "id" : "io.camunda.connectors.agenticai.a2a.polling.task.v0",
-  "description" : "Agent-to-Agent (A2A) task polling client.",
+  "name" : "A2A Client Polling Intermediate Catch Event Connector (experimental)",
+  "id" : "io.camunda.connectors.agenticai.a2a.polling.v0",
+  "description" : "Agent-to-Agent (A2A) polling inbound connector. Supports polling asynchronous tasks, but can also directly correlate messages and synchronously completed tasks.",
   "metadata" : {
     "keywords" : [ ]
   },
@@ -47,7 +47,7 @@
     "label" : "Output mapping"
   } ],
   "properties" : [ {
-    "value" : "io.camunda.agenticai:a2aclient:polling:task:0",
+    "value" : "io.camunda.agenticai:a2aclient:polling:0",
     "binding" : {
       "name" : "inbound.type",
       "type" : "zeebe:property"

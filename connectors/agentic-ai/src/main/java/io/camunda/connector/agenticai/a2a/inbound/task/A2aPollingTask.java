@@ -20,8 +20,8 @@ import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTaskStatus;
-import io.camunda.connector.agenticai.a2a.inbound.model.A2aTaskPollingElementInstanceRequest;
-import io.camunda.connector.agenticai.a2a.inbound.model.A2aTaskPollingRequest;
+import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingElementInstanceRequest;
+import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRequest;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.inbound.Severity;
@@ -33,18 +33,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Task responsible for polling a specific A2A task ID for a given process instance. Started and
- * managed from {@link A2aProcessInstancesFetcherTask}
+ * Task responsible for polling status for a specific A2A response for a given process instance.
+ * Started and managed from {@link A2aPollingProcessInstancesFetcherTask}
+ *
+ * <p>If the response is a message or an already completed/failed task, it will be directly
+ * correlated without further polling.
  */
-public class A2aTaskPollingTask implements Runnable, AutoCloseable {
+public class A2aPollingTask implements Runnable, AutoCloseable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(A2aTaskPollingTask.class);
+  private static final Logger LOG = LoggerFactory.getLogger(A2aPollingTask.class);
   private static final List<A2aTaskStatus.TaskState> POLLABLE_TASK_STATES =
       List.of(A2aTaskStatus.TaskState.SUBMITTED, A2aTaskStatus.TaskState.WORKING);
 
   private final InboundIntermediateConnectorContext context;
   private final ProcessInstanceContext processInstanceContext;
-  private final A2aTaskPollingRequest pollingRequest;
+  private final A2aPollingRequest pollingRequest;
   private final A2aSdkClientFactory clientFactory;
   private final A2aSdkObjectConverter objectConverter;
   private final ObjectMapper objectMapper;
@@ -52,10 +55,10 @@ public class A2aTaskPollingTask implements Runnable, AutoCloseable {
   private AgentCard agentCard;
   private Client client;
 
-  public A2aTaskPollingTask(
+  public A2aPollingTask(
       final InboundIntermediateConnectorContext context,
       final ProcessInstanceContext processInstanceContext,
-      final A2aTaskPollingRequest pollingRequest,
+      final A2aPollingRequest pollingRequest,
       final A2aSdkClientFactory clientFactory,
       final A2aSdkObjectConverter objectConverter,
       final ObjectMapper objectMapper) {
@@ -75,8 +78,8 @@ public class A2aTaskPollingTask implements Runnable, AutoCloseable {
     }
 
     switch (clientResponse) {
-      case A2aMessage a2aMessage -> handleMessage(a2aMessage);
-      case A2aTask a2aTask -> handleTask(a2aTask);
+      case A2aMessage message -> handleMessage(message);
+      case A2aTask task -> handleTask(task);
     }
   }
 
@@ -135,7 +138,7 @@ public class A2aTaskPollingTask implements Runnable, AutoCloseable {
   private A2aSendMessageResult getClientResponse() {
     try {
       final var elementInstanceRequest =
-          processInstanceContext.bind(A2aTaskPollingElementInstanceRequest.class);
+          processInstanceContext.bind(A2aPollingElementInstanceRequest.class);
       final var clientResponseJson = elementInstanceRequest.data().clientResponse();
       return objectMapper.readValue(clientResponseJson, A2aSendMessageResult.class);
     } catch (Exception e) {

@@ -12,6 +12,5 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.validation.annotation.Validated;
 
 @Validated
-@ConfigurationProperties(prefix = "camunda.connector.agenticai.a2a.client.polling.task")
-public record A2aTaskPollingConfigurationProperties(
-    @Positive @DefaultValue("10") int threadPoolSize) {}
+@ConfigurationProperties(prefix = "camunda.connector.agenticai.a2a.client.polling")
+public record A2aPollingConfigurationProperties(@Positive @DefaultValue("10") int threadPoolSize) {}
