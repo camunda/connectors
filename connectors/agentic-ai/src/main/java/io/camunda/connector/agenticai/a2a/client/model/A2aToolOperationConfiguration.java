@@ -30,7 +30,7 @@ public record A2aToolOperationConfiguration(
             group = "operation",
             label = "Parameters",
             description =
-                "The parameters used to build the message that will be send to the remote agent.",
+                "The parameters used to build the message that will be sent to the remote agent.",
             defaultValue = "=toolCall.params",
             type = TemplateProperty.PropertyType.Text,
             feel = Property.FeelMode.required,
