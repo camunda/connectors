@@ -81,7 +81,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.clientResponse",
+    "id" : "clientResponse",
     "label" : "A2A Client Response",
     "optional" : false,
     "constraints" : {
@@ -90,10 +90,18 @@
     "feel" : "required",
     "group" : "clientResponse",
     "binding" : {
+      "name" : "internal_clientResponse",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.clientResponse",
+    "value" : "=internal_clientResponse",
+    "binding" : {
       "name" : "data.clientResponse",
       "type" : "zeebe:property"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "data.historyLength",
     "label" : "History length",
@@ -140,7 +148,8 @@
       "name" : "activationCondition",
       "type" : "zeebe:property"
     },
-    "type" : "String"
+    "type" : "String",
+    "value" : "=if kind = \"task\" then\n  is defined(status.state) and not(list contains([\"submitted\", \"working\"], status.state))\nelse\n  true"
   }, {
     "id" : "correlationKeyProcess",
     "label" : "Correlation key (process)",
@@ -154,7 +163,8 @@
       "name" : "correlationKey",
       "type" : "bpmn:Message#zeebe:subscription#property"
     },
-    "type" : "String"
+    "type" : "String",
+    "value" : "=if internal_clientResponse.kind = \"message\" then\n  \"msg-\" + internal_clientResponse.messageId\nelse\n  \"task-\" + internal_clientResponse.id"
   }, {
     "id" : "correlationKeyPayload",
     "label" : "Correlation key (payload)",
@@ -168,7 +178,8 @@
       "name" : "correlationKeyExpression",
       "type" : "zeebe:property"
     },
-    "type" : "String"
+    "type" : "String",
+    "value" : "=if kind = \"message\" then\n  \"msg-\" + messageId\nelse\n  \"task-\" + id"
   }, {
     "id" : "messageIdExpression",
     "label" : "Message ID expression",
