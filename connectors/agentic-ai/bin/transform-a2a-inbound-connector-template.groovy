@@ -72,13 +72,19 @@ json.properties.each { property ->
             type: "Hidden"
         ])
     } else if (property.id == "activationCondition") {
-        property.value = "=not(list contains([\"submitted\", \"working\"], status.state))"
+        property.value = "=if kind = \"task\" then\n  is defined(status.state) and not(list contains([\"submitted\", \"working\"], status.state))\nelse\n  true"
         updatedProperties.add(property)
     } else if (property.id == "correlationKeyProcess") {
-        property.value = "=inputTaskId"
+        property.value = "=if internal_clientResponse.kind = \"message\" then\n  \"msg-\" + internal_clientResponse.messageId\nelse\n  \"task-\" + internal_clientResponse.id"
+        //property.type = "Hidden"
+        //property.remove("feel")
+        //property.remove("constraints")
         updatedProperties.add(property)
     } else if (property.id == "correlationKeyPayload") {
-        property.value = "=id"
+        property.value = "=if kind = \"message\" then\n  \"msg-\" + messageId\nelse\n  \"task-\" + id"
+        //property.type = "Hidden"
+        //property.remove("feel")
+        //property.remove("constraints")
         updatedProperties.add(property)
     } else {
         updatedProperties.add(property)

@@ -102,7 +102,10 @@ public class A2aTaskPollingTask implements Runnable, AutoCloseable {
       return;
     }
 
-    LOG.debug("Polling A2A task {} with a max history length of {}", task.id(), pollingRequest.data().historyLength());
+    LOG.debug(
+        "Polling A2A task {} with a max history length of {}",
+        task.id(),
+        pollingRequest.data().historyLength());
 
     try {
       final var loadedTask =
