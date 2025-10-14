@@ -82,7 +82,7 @@ class A2aMessageSenderTest {
     var actualResult = messageSender.sendMessage(agentCard, operation);
 
     assertThat(actualResult).isSameAs(expectedResult);
-    verify(client).close();
+    verify(clientFactory).release(client);
   }
 
   @Test
@@ -97,7 +97,7 @@ class A2aMessageSenderTest {
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining("Timed out waiting for response from agent");
 
-    verify(client).close();
+    verify(clientFactory).release(client);
   }
 
   @Test
@@ -115,7 +115,7 @@ class A2aMessageSenderTest {
         .hasCauseInstanceOf(IllegalStateException.class)
         .hasRootCauseMessage("boom");
 
-    verify(client).close();
+    verify(clientFactory).release(client);
   }
 
   @Test
@@ -154,7 +154,7 @@ class A2aMessageSenderTest {
         .satisfiesExactly(
             p -> assertThat(((TextPart) p).getText()).isEqualTo("hello"),
             p -> assertThat(p).isSameAs(partFromDocument));
-    verify(client).close();
+    verify(clientFactory).release(client);
   }
 
   private SendMessageOperationConfiguration newSendMessageOperation(Duration timeout) {

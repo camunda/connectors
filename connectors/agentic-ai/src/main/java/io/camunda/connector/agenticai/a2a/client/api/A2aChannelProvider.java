@@ -6,15 +6,9 @@
  */
 package io.camunda.connector.agenticai.a2a.client.api;
 
-import io.a2a.client.Client;
-import io.a2a.client.ClientEvent;
-import io.a2a.spec.AgentCard;
-import java.util.function.BiConsumer;
+import io.grpc.ManagedChannel;
 
-public interface A2aSdkClientFactory {
-  Client buildClient(AgentCard agentCard, BiConsumer<ClientEvent, AgentCard> consumer, int historyLength);
-
-  default void release(Client client) {
-    client.close();
-  }
+@FunctionalInterface
+public interface A2aChannelProvider {
+  ManagedChannel create(String target);
 }

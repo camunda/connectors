@@ -61,10 +61,11 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
         clientFactory.buildClient(
             agentCard, consumer, sendMessageOperation.settings().historyLength());
     try {
-      client.sendMessage(message);
-    } catch (A2AClientException e) {
-      throw new RuntimeException(e);
-    }
+      try {
+        client.sendMessage(message);
+      } catch (A2AClientException e) {
+        throw new RuntimeException(e);
+      }
 
     try {
       return response.get(
@@ -75,7 +76,7 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException(e.getCause() != null ? e.getCause() : e);
     } finally {
-      client.close();
+      clientFactory.release(client);
     }
   }
 

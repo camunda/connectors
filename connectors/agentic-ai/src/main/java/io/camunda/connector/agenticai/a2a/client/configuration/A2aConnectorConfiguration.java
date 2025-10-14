@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.a2a.client.configuration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.A2aConnectorFunction;
 import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
+import io.camunda.connector.agenticai.a2a.client.api.A2aChannelProvider;
 import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
 import io.camunda.connector.agenticai.a2a.client.api.A2aRequestHandler;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
@@ -20,10 +21,12 @@ import io.camunda.connector.agenticai.a2a.client.convert.A2aPartToContentConvert
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.impl.A2aAgentCardFetcherImpl;
+import io.camunda.connector.agenticai.a2a.client.impl.A2aChannelProviderImpl;
 import io.camunda.connector.agenticai.a2a.client.impl.A2aMessageSenderImpl;
 import io.camunda.connector.agenticai.a2a.client.impl.A2aRequestHandlerImpl;
 import io.camunda.connector.agenticai.a2a.client.impl.A2aSendMessageResponseHandlerImpl;
 import io.camunda.connector.agenticai.a2a.client.sdk.A2aSdkClientFactoryImpl;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -69,8 +72,15 @@ public class A2aConnectorConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public A2aSdkClientFactory sdkClientFactory() {
-    return new A2aSdkClientFactoryImpl();
+  public A2aChannelProvider a2aChannelProvider(
+      @Value("${a2a.transport.grpc.useTls:true}") boolean useTls) {
+    return new A2aChannelProviderImpl(useTls);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public A2aSdkClientFactory sdkClientFactory(A2aChannelProvider a2aChannelProvider) {
+    return new A2aSdkClientFactoryImpl(a2aChannelProvider);
   }
 
   @Bean
