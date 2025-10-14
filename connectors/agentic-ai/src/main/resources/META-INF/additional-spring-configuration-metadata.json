@@ -53,6 +53,12 @@
       "type": "java.lang.String",
       "description": "The MCP Remote Client framework to use.",
       "defaultValue": "langchain4j"
+    },
+    {
+      "name": "camunda.connector.agenticai.a2a.client.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable/register the A2A Client connectors.",
+      "defaultValue": "true"
     }
   ]
 }

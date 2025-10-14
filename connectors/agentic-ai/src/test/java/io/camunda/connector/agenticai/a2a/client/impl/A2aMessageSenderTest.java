@@ -16,20 +16,20 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.a2a.client.Client;
 import io.a2a.client.ClientEvent;
 import io.a2a.client.MessageEvent;
 import io.a2a.spec.A2AClientException;
 import io.a2a.spec.AgentCard;
 import io.a2a.spec.Message;
 import io.a2a.spec.TextPart;
-import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
+import io.camunda.connector.agenticai.a2a.client.api.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.model.A2aCommonSendMessageConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration.Parameters;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
+import io.camunda.connector.agenticai.a2a.client.sdk.A2aClient;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import java.time.Duration;
@@ -46,16 +46,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class A2aMessageSenderTest {
-
   private static final String MESSAGE_ID = "message-1";
-
   @Mock private A2aDocumentToPartConverter documentToPartConverter;
   @Mock private A2aSendMessageResponseHandler sendMessageResponseHandler;
-  @Mock private A2aSdkClientFactory clientFactory;
-  @Mock private Client client;
+  @Mock private A2aClientFactory clientFactory;
+  @Mock private A2aClient a2aClient;
   @Mock private AgentCard agentCard;
   @InjectMocks private A2aMessageSenderImpl messageSender;
-
   private final AtomicReference<BiConsumer<ClientEvent, AgentCard>> consumerRef =
       new AtomicReference<>();
 
@@ -65,57 +62,46 @@ class A2aMessageSenderTest {
         .thenAnswer(
             inv -> {
               consumerRef.set(inv.getArgument(1));
-              return client;
+              return a2aClient;
             });
   }
 
   @Test
   void shouldReturnImmediateResultWhenCompleted() throws Exception {
     var operation = newSendMessageOperation(Duration.ofSeconds(1));
-
     MessageEvent clientEvent = newMessageEvent();
     var expectedResult = messageResult(MESSAGE_ID);
     when(sendMessageResponseHandler.handleClientEvent(clientEvent)).thenReturn(expectedResult);
-
     mockClientSendMessage(clientEvent);
-
     var actualResult = messageSender.sendMessage(agentCard, operation);
-
     assertThat(actualResult).isSameAs(expectedResult);
-    verify(clientFactory).release(client);
+    verify(a2aClient).close();
   }
 
   @Test
   void shouldTimeoutWaitingForResponse() throws Exception {
     // very short timeout to keep test fast
     var operation = newSendMessageOperation(Duration.ofMillis(10));
-
     // Do not trigger consumer -> future never completes
-    doAnswer(inv -> null).when(client).sendMessage(any());
-
+    doAnswer(inv -> null).when(a2aClient).sendMessage(any());
     assertThatThrownBy(() -> messageSender.sendMessage(agentCard, operation))
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining("Timed out waiting for response from agent");
-
-    verify(clientFactory).release(client);
+    verify(a2aClient).close();
   }
 
   @Test
   void shouldWrapExceptionFromHandler() throws Exception {
     var operation = newSendMessageOperation(Duration.ofSeconds(1));
-
     MessageEvent clientEvent = newMessageEvent();
     when(sendMessageResponseHandler.handleClientEvent(clientEvent))
         .thenThrow(new IllegalStateException("boom"));
-
     mockClientSendMessage(clientEvent);
-
     assertThatThrownBy(() -> messageSender.sendMessage(agentCard, operation))
         .isInstanceOf(RuntimeException.class)
         .hasCauseInstanceOf(IllegalStateException.class)
         .hasRootCauseMessage("boom");
-
-    verify(clientFactory).release(client);
+    verify(a2aClient).close();
   }
 
   @Test
@@ -129,32 +115,26 @@ class A2aMessageSenderTest {
     MessageEvent clientEvent = newMessageEvent();
     var expectedResult = messageResult(MESSAGE_ID);
     when(sendMessageResponseHandler.handleClientEvent(clientEvent)).thenReturn(expectedResult);
-
     // convert document -> part
     var partFromDocument = new TextPart("document-part");
     when(documentToPartConverter.convert(List.of(document)))
         .thenAnswer(invocation -> List.of(partFromDocument));
-
     ArgumentCaptor<Message> sentMessageCaptor = ArgumentCaptor.forClass(Message.class);
-
     doAnswer(
             inv -> {
               consumerRef.get().accept(clientEvent, agentCard);
               return null;
             })
-        .when(client)
+        .when(a2aClient)
         .sendMessage(sentMessageCaptor.capture());
-
     var actualResult = messageSender.sendMessage(agentCard, operation);
-
     assertThat(actualResult).isSameAs(expectedResult);
-
     Message sentMessage = sentMessageCaptor.getValue();
     assertThat(sentMessage.getParts())
         .satisfiesExactly(
             p -> assertThat(((TextPart) p).getText()).isEqualTo("hello"),
             p -> assertThat(p).isSameAs(partFromDocument));
-    verify(clientFactory).release(client);
+    verify(a2aClient).close();
   }
 
   private SendMessageOperationConfiguration newSendMessageOperation(Duration timeout) {
@@ -187,7 +167,7 @@ class A2aMessageSenderTest {
               consumerRef.get().accept(clientEvent, agentCard);
               return null;
             })
-        .when(client)
+        .when(a2aClient)
         .sendMessage(any());
   }
 }

@@ -25,7 +25,7 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 
 class A2aPartToContentConverterTest {
 
-  private final A2APartToContentConverterImpl converter = new A2APartToContentConverterImpl();
+  private final A2aPartToContentConverterImpl converter = new A2aPartToContentConverterImpl();
 
   @ParameterizedTest
   @NullAndEmptySource
