@@ -46,7 +46,7 @@
           <zeebe:property name="correlationKeyExpression" value="=if kind = &#34;message&#34; then&#10;  &#34;msg-&#34; + messageId&#10;else&#10;  &#34;task-&#34; + id" />
           <zeebe:property name="deduplicationModeManualFlag" value="false" />
           <zeebe:property name="deduplicationMode" value="AUTO" />
-          <zeebe:property name="resultVariable" value="toolCallResult" />
+          <zeebe:property name="resultVariable" value="completedClientResponse" />
           <zeebe:property name="resultExpression" value="" />
         </zeebe:properties>
       </bpmn:extensionElements>

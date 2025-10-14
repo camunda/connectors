@@ -1,15 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_07hxf1i" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.40.0-rc.1-dev" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_07hxf1i" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.40.0-rc.2-dev" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
   <bpmn:process id="A2A_Polling_Example_Scenarios" isExecutable="true">
     <bpmn:startEvent id="StartEvent_1">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:output source="=&#34;A2A_Polling_Example&#34;" target="callActivityProcessId" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
       <bpmn:outgoing>Flow_1ncwvzq</bpmn:outgoing>
     </bpmn:startEvent>
     <bpmn:callActivity id="A2A_sync_complete_message" name="A2A sync complete with message">
       <bpmn:extensionElements>
-        <zeebe:calledElement processId="A2A_Polling_Example" propagateAllChildVariables="false" propagateAllParentVariables="false" />
+        <zeebe:calledElement processId="=callActivityProcessId" propagateAllChildVariables="false" propagateAllParentVariables="false" />
         <zeebe:ioMapping>
           <zeebe:input source="=&#34;COMPLETE_MESSAGE Hello&#34;" target="messageText" />
-          <zeebe:output source="=toolCallResult" target="syncMessageResult" />
+          <zeebe:output source="=completedClientResponse" target="syncMessageResult" />
         </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_12rspgk</bpmn:incoming>
@@ -36,10 +41,10 @@
     </bpmn:parallelGateway>
     <bpmn:callActivity id="A2A_sync_complete_task" name="A2A sync complete with task">
       <bpmn:extensionElements>
-        <zeebe:calledElement processId="A2A_Polling_Example" propagateAllChildVariables="false" propagateAllParentVariables="false" />
+        <zeebe:calledElement processId="=callActivityProcessId" propagateAllChildVariables="false" propagateAllParentVariables="false" />
         <zeebe:ioMapping>
           <zeebe:input source="=&#34;COMPLETE_TASK Hello&#34;" target="messageText" />
-          <zeebe:output source="=toolCallResult" target="syncTaskResult" />
+          <zeebe:output source="=completedClientResponse" target="syncTaskResult" />
         </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_1o5yd32</bpmn:incoming>
@@ -47,10 +52,10 @@
     </bpmn:callActivity>
     <bpmn:callActivity id="A2A_async_complete_task" name="A2A async complete with task">
       <bpmn:extensionElements>
-        <zeebe:calledElement processId="A2A_Polling_Example" propagateAllChildVariables="false" propagateAllParentVariables="false" />
+        <zeebe:calledElement processId="=callActivityProcessId" propagateAllChildVariables="false" propagateAllParentVariables="false" />
         <zeebe:ioMapping>
           <zeebe:input source="=&#34;Hello&#34;" target="messageText" />
-          <zeebe:output source="=toolCallResult" target="asyncTaskResult" />
+          <zeebe:output source="=completedClientResponse" target="asyncTaskResult" />
         </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_1qo597l</bpmn:incoming>
