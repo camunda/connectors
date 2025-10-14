@@ -41,7 +41,7 @@
     <bpmn:endEvent id="EndEvent_Task_Sync" name="Task completed synchronously">
       <bpmn:extensionElements>
         <zeebe:ioMapping>
-          <zeebe:output source="=clientResponse" target="toolCallResult" />
+          <zeebe:output source="=clientResponse" target="completedClientResponse" />
         </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_1y8ihr9</bpmn:incoming>
@@ -58,7 +58,7 @@
     <bpmn:endEvent id="EndEvent_Message_Sync" name="Message completed synchronously">
       <bpmn:extensionElements>
         <zeebe:ioMapping>
-          <zeebe:output source="=clientResponse" target="toolCallResult" />
+          <zeebe:output source="=clientResponse" target="completedClientResponse" />
         </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_0loi7ur</bpmn:incoming>
@@ -82,7 +82,7 @@
           <zeebe:property name="correlationKeyExpression" value="=if kind = &#34;message&#34; then&#10;  &#34;msg-&#34; + messageId&#10;else&#10;  &#34;task-&#34; + id" />
           <zeebe:property name="deduplicationModeManualFlag" value="false" />
           <zeebe:property name="deduplicationMode" value="AUTO" />
-          <zeebe:property name="resultVariable" value="" />
+          <zeebe:property name="resultVariable" value="completedClientResponse" />
           <zeebe:property name="resultExpression" value="" />
         </zeebe:properties>
       </bpmn:extensionElements>
