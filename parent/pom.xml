@@ -150,8 +150,9 @@ limitations under the License.</license.inlineheader>
 
     <version.auth0.jwt>4.5.0</version.auth0.jwt>
     <version.auth0.jwks>0.23.0</version.auth0.jwks>
-    
+
     <version.langchain4j>1.3.0</version.langchain4j>
+    <version.apache-tika>3.2.3</version.apache-tika>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.6.2</plugin.version.maven-enforcer-plugin>
@@ -216,6 +217,13 @@ limitations under the License.</license.inlineheader>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-bom</artifactId>
         <version>${version.langchain4j}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.tika</groupId>
+        <artifactId>tika-bom</artifactId>
+        <version>${version.apache-tika}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
