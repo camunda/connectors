@@ -113,6 +113,7 @@ class A2aSdkObjectConverterTest {
       assertThat(result.status().state().name()).isEqualTo(taskState.name());
       assertThat(result.id()).isEqualTo("task-" + taskState.name());
       assertThat(result.contextId()).isEqualTo("ctx-1");
+      assertThat(result.history()).isEmpty();
     }
 
     @Test
@@ -208,6 +209,83 @@ class A2aSdkObjectConverterTest {
       assertThat(result.status().message().messageId()).isEqualTo("status-msg-1");
       assertThat(result.status().message().contents()).isEqualTo(messageContents);
     }
+  }
+
+  @Test
+  void shouldConvertSingleHistoryMessage() {
+    Task task = createTask("task-h-one", "ctx-h", TaskState.COMPLETED);
+
+    Message historyMessage =
+        new Message.Builder()
+            .messageId("hist-1")
+            .contextId("ctx-h")
+            .taskId(task.getId())
+            .role(Message.Role.USER)
+            .parts(List.of(new TextPart("History one")))
+            .build();
+
+    List<Content> convertedContent = List.of(textContent("History one"));
+    when(partsToContentConverter.convert(historyMessage.getParts())).thenReturn(convertedContent);
+    when(task.getHistory()).thenReturn(List.of(historyMessage));
+
+    A2aTask result = converter.convert(task);
+
+    assertThat(result.history())
+        .satisfiesExactly(
+            message -> {
+              assertThat(message.messageId()).isEqualTo("hist-1");
+              assertThat(message.contextId()).isEqualTo("ctx-h");
+              assertThat(message.taskId()).isEqualTo("task-h-one");
+              assertThat(message.role()).isEqualTo(A2aMessage.Role.USER);
+              assertThat(message.contents()).isEqualTo(convertedContent);
+            });
+  }
+
+  @Test
+  void shouldConvertMultipleHistoryMessagesPreservingOrder() {
+    Task task = createTask("task-h-multi", "ctx-h", TaskState.COMPLETED);
+
+    Message m1 =
+        new Message.Builder()
+            .messageId("hist-1")
+            .contextId("ctx-h")
+            .taskId(task.getId())
+            .role(Message.Role.USER)
+            .parts(List.of(new TextPart("First")))
+            .build();
+    Message m2 =
+        new Message.Builder()
+            .messageId("hist-2")
+            .contextId("ctx-h")
+            .taskId(task.getId())
+            .role(Message.Role.AGENT)
+            .parts(List.of(new TextPart("Second")))
+            .metadata(Map.of("type", "text"))
+            .build();
+
+    when(partsToContentConverter.convert(m1.getParts())).thenReturn(List.of(textContent("First")));
+    when(partsToContentConverter.convert(m2.getParts())).thenReturn(List.of(textContent("Second")));
+    when(task.getHistory()).thenReturn(List.of(m1, m2));
+
+    A2aTask result = converter.convert(task);
+
+    assertThat(result.history())
+        .satisfiesExactly(
+            message -> {
+              assertThat(message.messageId()).isEqualTo("hist-1");
+              assertThat(message.contextId()).isEqualTo("ctx-h");
+              assertThat(message.taskId()).isEqualTo("task-h-multi");
+              assertThat(message.role()).isEqualTo(A2aMessage.Role.USER);
+              assertThat(message.contents()).isEqualTo(List.of(textContent("First")));
+            },
+            message -> {
+              assertThat(message.messageId()).isEqualTo("hist-2");
+              assertThat(message.contextId()).isEqualTo("ctx-h");
+              assertThat(message.taskId()).isEqualTo("task-h-multi");
+              assertThat(message.role()).isEqualTo(A2aMessage.Role.AGENT);
+              assertThat(message.metadata()).containsEntry("type", "text");
+              assertThat(message.contents()).isEqualTo(List.of(textContent("Second")));
+            });
   }
 
   private Task createTask(String taskId, String contextId, TaskState state) {

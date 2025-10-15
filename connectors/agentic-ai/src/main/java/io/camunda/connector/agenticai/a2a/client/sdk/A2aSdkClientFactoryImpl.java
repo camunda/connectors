@@ -19,10 +19,16 @@ import java.util.function.BiConsumer;
 public class A2aSdkClientFactoryImpl implements A2aSdkClientFactory {
 
   @Override
-  public Client buildClient(AgentCard agentCard, BiConsumer<ClientEvent, AgentCard> consumer) {
+  public Client buildClient(
+      AgentCard agentCard, BiConsumer<ClientEvent, AgentCard> consumer, int historyLength) {
     try {
       return Client.builder(agentCard)
-          .clientConfig(new ClientConfig.Builder().setStreaming(false).setPolling(false).build())
+          .clientConfig(
+              new ClientConfig.Builder()
+                  .setStreaming(false)
+                  .setPolling(false)
+                  .setHistoryLength(historyLength)
+                  .build())
           .withTransport(JSONRPCTransport.class, new JSONRPCTransportConfig())
           .addConsumer(consumer)
           .build();

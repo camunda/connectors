@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.a2a.client.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -25,6 +26,7 @@ import io.a2a.spec.TextPart;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
+import io.camunda.connector.agenticai.a2a.client.model.A2aCommonSendMessageConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration.Parameters;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
@@ -59,7 +61,7 @@ class A2aMessageSenderTest {
 
   @BeforeEach
   void setUp() {
-    when(clientFactory.buildClient(eq(agentCard), any()))
+    when(clientFactory.buildClient(eq(agentCard), any(), anyInt()))
         .thenAnswer(
             inv -> {
               consumerRef.set(inv.getArgument(1));
@@ -121,7 +123,8 @@ class A2aMessageSenderTest {
     Document document = mock(Document.class);
     var operation =
         new SendMessageOperationConfiguration(
-            new Parameters("hello", List.of(document)), Duration.ofSeconds(1));
+            new Parameters("hello", List.of(document)),
+            new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
 
     MessageEvent clientEvent = newMessageEvent();
     var expectedResult = messageResult(MESSAGE_ID);
@@ -155,7 +158,8 @@ class A2aMessageSenderTest {
   }
 
   private SendMessageOperationConfiguration newSendMessageOperation(Duration timeout) {
-    return new SendMessageOperationConfiguration(new Parameters("hello", null), timeout);
+    return new SendMessageOperationConfiguration(
+        new Parameters("hello", null), new A2aCommonSendMessageConfiguration(0, timeout));
   }
 
   private MessageEvent newMessageEvent() {

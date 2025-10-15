@@ -9,8 +9,9 @@ package io.camunda.connector.agenticai.a2a.client.model;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import java.time.Duration;
+import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 
 public record A2aToolOperationConfiguration(
@@ -36,10 +37,4 @@ public record A2aToolOperationConfiguration(
             feel = Property.FeelMode.required,
             optional = true)
         Map<String, Object> params,
-    @TemplateProperty(
-            group = "operation",
-            label = "Response timeout",
-            description =
-                "How long to wait for the remote agent response as ISO-8601 duration (example: <code>PT1M</code>).",
-            defaultValue = "PT1M")
-        Duration timeout) {}
+    @Valid @NotNull A2aCommonSendMessageConfiguration sendMessageSettings) {}

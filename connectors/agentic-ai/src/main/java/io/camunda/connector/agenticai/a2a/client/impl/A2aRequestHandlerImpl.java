@@ -68,7 +68,7 @@ public class A2aRequestHandlerImpl implements A2aRequestHandler {
         return new SendMessageOperationConfiguration(
             new SendMessageOperationConfiguration.Parameters(
                 operation.params().get("message").toString(), List.of()),
-            operation.timeout());
+            operation.sendMessageSettings());
       }
       default ->
           throw new IllegalArgumentException(
