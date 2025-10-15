@@ -23,6 +23,10 @@
     </license>
   </licenses>
 
+  <properties>
+    <version.apache-tika>3.2.3</version.apache-tika>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -74,6 +78,26 @@
     <dependency>
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-document-parser-apache-tika</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.tika</groupId>
+          <artifactId>tika-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.tika</groupId>
+          <artifactId>tika-parsers-standard-package</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tika</groupId>
+      <artifactId>tika-core</artifactId>
+      <version>${version.apache-tika}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tika</groupId>
+      <artifactId>tika-parsers-standard-package</artifactId>
+      <version>${version.apache-tika}</version>
     </dependency>
 
     <dependency>
