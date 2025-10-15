@@ -57,7 +57,9 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
           }
         };
 
-    Client client = clientFactory.buildClient(agentCard, consumer);
+    Client client =
+        clientFactory.buildClient(
+            agentCard, consumer, sendMessageOperation.settings().historyLength());
     try {
       client.sendMessage(message);
     } catch (A2AClientException e) {
@@ -65,7 +67,8 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
     }
 
     try {
-      return response.get(sendMessageOperation.timeout().toMillis(), TimeUnit.MILLISECONDS);
+      return response.get(
+          sendMessageOperation.settings().timeout().toMillis(), TimeUnit.MILLISECONDS);
     } catch (TimeoutException e) {
       // TODO: should be a ConnectorException with a specific error code?
       throw new RuntimeException("Timed out waiting for response from agent.", e);

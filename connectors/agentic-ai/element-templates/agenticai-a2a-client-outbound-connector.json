@@ -180,7 +180,31 @@
     "tooltip" : "Referenced documents that will be added to the message.",
     "type" : "String"
   }, {
-    "id" : "data.connectorMode.operation.timeout",
+    "id" : "data.connectorMode.operation.settings.historyLength",
+    "label" : "History length",
+    "description" : "The number of most recent messages from the task's history to retrieve in the response.",
+    "optional" : false,
+    "value" : 3,
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.operation.settings.historyLength",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.type",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Number"
+  }, {
+    "id" : "data.connectorMode.operation.settings.timeout",
     "label" : "Response timeout",
     "description" : "How long to wait for the remote agent response as ISO-8601 duration (example: <code>PT1M</code>).",
     "optional" : false,
@@ -188,7 +212,7 @@
     "feel" : "optional",
     "group" : "operation",
     "binding" : {
-      "name" : "data.connectorMode.operation.timeout",
+      "name" : "data.connectorMode.operation.settings.timeout",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -243,7 +267,25 @@
     },
     "type" : "Text"
   }, {
-    "id" : "data.connectorMode.toolOperation.timeout",
+    "id" : "data.connectorMode.toolOperation.sendMessageSettings.historyLength",
+    "label" : "History length",
+    "description" : "The number of most recent messages from the task's history to retrieve in the response.",
+    "optional" : false,
+    "value" : 3,
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.toolOperation.sendMessageSettings.historyLength",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode.type",
+      "equals" : "aiAgentTool",
+      "type" : "simple"
+    },
+    "type" : "Number"
+  }, {
+    "id" : "data.connectorMode.toolOperation.sendMessageSettings.timeout",
     "label" : "Response timeout",
     "description" : "How long to wait for the remote agent response as ISO-8601 duration (example: <code>PT1M</code>).",
     "optional" : false,
@@ -251,7 +293,7 @@
     "feel" : "optional",
     "group" : "operation",
     "binding" : {
-      "name" : "data.connectorMode.toolOperation.timeout",
+      "name" : "data.connectorMode.toolOperation.sendMessageSettings.timeout",
       "type" : "zeebe:input"
     },
     "condition" : {

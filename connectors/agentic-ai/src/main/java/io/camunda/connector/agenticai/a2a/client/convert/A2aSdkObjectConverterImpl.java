@@ -28,7 +28,8 @@ public class A2aSdkObjectConverterImpl implements A2aSdkObjectConverter {
   public A2aMessage convert(Message message) {
     List<Content> contents = partToContentConverter.convert(message.getParts());
     return A2aMessage.builder()
-        .role(A2aMessage.Role.AGENT)
+        .role(
+            message.getRole() == Message.Role.AGENT ? A2aMessage.Role.AGENT : A2aMessage.Role.USER)
         .messageId(message.getMessageId())
         .contextId(message.getContextId())
         .referenceTaskIds(message.getReferenceTaskIds())
@@ -46,7 +47,15 @@ public class A2aSdkObjectConverterImpl implements A2aSdkObjectConverter {
         .status(convertStatus(task.getStatus()))
         .metadata(task.getMetadata())
         .artifacts(convertArtifacts(task))
+        .history(convertHistory(task.getHistory()))
         .build();
+  }
+
+  private List<A2aMessage> convertHistory(List<Message> history) {
+    if (history == null) {
+      return List.of();
+    }
+    return history.stream().map(this::convert).toList();
   }
 
   private List<A2aArtifact> convertArtifacts(Task task) {

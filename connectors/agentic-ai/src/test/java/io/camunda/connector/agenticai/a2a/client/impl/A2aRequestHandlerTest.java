@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 import io.a2a.spec.AgentCard;
 import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
+import io.camunda.connector.agenticai.a2a.client.model.A2aCommonSendMessageConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aConnectorModeConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aRequest;
 import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aRequestData;
@@ -80,7 +81,8 @@ class A2aRequestHandlerTest {
       var agentCard = mock(AgentCard.class);
       var operation =
           new SendMessageOperationConfiguration(
-              new Parameters("Hello", null), Duration.ofSeconds(1));
+              new Parameters("Hello", null),
+              new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
       var request =
           new A2aRequest(
               new A2aRequestData(
@@ -117,7 +119,10 @@ class A2aRequestHandlerTest {
     @Test
     void handleFetchAgentCard() {
       var operation =
-          new A2aToolOperationConfiguration("fetchAgentCard", null, Duration.ofSeconds(10));
+          new A2aToolOperationConfiguration(
+              "fetchAgentCard",
+              null,
+              new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(10)));
       var request =
           new A2aRequest(
               new A2aRequestData(
@@ -138,7 +143,8 @@ class A2aRequestHandlerTest {
     void handleSendMessage() {
       var params = Map.<String, Object>of("message", "Hello, agent!");
       var timeout = Duration.ofSeconds(45);
-      var operation = new A2aToolOperationConfiguration("sendMessage", params, timeout);
+      var commonConfiguration = new A2aCommonSendMessageConfiguration(10, timeout);
+      var operation = new A2aToolOperationConfiguration("sendMessage", params, commonConfiguration);
       var request =
           new A2aRequest(
               new A2aRequestData(
@@ -167,7 +173,7 @@ class A2aRequestHandlerTest {
       var convertedOperation = opCaptor.getValue();
       assertThat(convertedOperation.params().text()).isEqualTo("Hello, agent!");
       assertThat(convertedOperation.params().documents()).isEqualTo(List.of());
-      assertThat(convertedOperation.timeout()).isEqualTo(timeout);
+      assertThat(convertedOperation.settings()).isEqualTo(commonConfiguration);
 
       verify(agentCardFetcher).fetchAgentCardRaw(CONNECTION);
       verify(agentCardFetcher, never()).fetchAgentCard(CONNECTION);
@@ -175,7 +181,9 @@ class A2aRequestHandlerTest {
 
     @Test
     void throwsWhenMessageParamMissing() {
-      var operation = new A2aToolOperationConfiguration("sendMessage", null, Duration.ofSeconds(1));
+      var operation =
+          new A2aToolOperationConfiguration(
+              "sendMessage", null, new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
       var request =
           new A2aRequest(
               new A2aRequestData(
@@ -188,7 +196,9 @@ class A2aRequestHandlerTest {
 
     @Test
     void throwsWhenUnsupportedOperation() {
-      var operation = new A2aToolOperationConfiguration("unknown", Map.of(), Duration.ofSeconds(1));
+      var operation =
+          new A2aToolOperationConfiguration(
+              "unknown", Map.of(), new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
       var request =
           new A2aRequest(
               new A2aRequestData(

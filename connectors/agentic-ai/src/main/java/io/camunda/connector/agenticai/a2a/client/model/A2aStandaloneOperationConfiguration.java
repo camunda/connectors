@@ -20,7 +20,6 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.time.Duration;
 import java.util.List;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -51,14 +50,7 @@ public sealed interface A2aStandaloneOperationConfiguration
 
   @TemplateSubType(id = SEND_MESSAGE_ID, label = "Send message")
   record SendMessageOperationConfiguration(
-      @Valid @NotNull Parameters params,
-      @TemplateProperty(
-              group = "operation",
-              label = "Response timeout",
-              description =
-                  "How long to wait for the remote agent response as ISO-8601 duration (example: <code>PT1M</code>).",
-              defaultValue = "PT1M")
-          Duration timeout)
+      @Valid @NotNull Parameters params, @Valid @NotNull A2aCommonSendMessageConfiguration settings)
       implements A2aStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
