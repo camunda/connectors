@@ -83,9 +83,7 @@
     "description" : "Document lookup query",
     "optional" : false,
     "constraints" : {
-      "notEmpty" : true,
-      "minLength" : 0,
-      "maxLength" : 200
+      "notEmpty" : true
     },
     "feel" : "optional",
     "group" : "query",
