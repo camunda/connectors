@@ -7,15 +7,14 @@
 package io.camunda.connector.http.polling.task;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
-import io.camunda.connector.http.polling.model.PollingRequest;
+import io.camunda.connector.http.base.model.HttpMethod;
+import io.camunda.connector.http.polling.model.PollingRuntimeProperties;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,13 +40,17 @@ public class HttpRequestTaskTest {
   }
 
   @Test
-  public void shouldExecuteAndCorrelateHttpRequestOnRun() throws Exception {
+  public void shouldExecuteAndCorrelateHttpRequestOnRun() {
     // Given
+    var pollingRuntimeProperties = new PollingRuntimeProperties();
+    pollingRuntimeProperties.setUrl("http://dummyUrl.com");
+    pollingRuntimeProperties.setMethod(HttpMethod.GET);
+
     HttpRequestTask task =
-        new HttpRequestTask(
-            mockHttpService, mockProcessInstanceContext, context, new PollingRequest());
+        new HttpRequestTask(mockHttpService, mockProcessInstanceContext, context);
     when(mockHttpService.executeConnectorRequest(any(HttpCommonRequest.class)))
         .thenReturn(httpCommonResult);
+    when(mockProcessInstanceContext.bind(any())).thenReturn(pollingRuntimeProperties);
 
     // When
     task.run();
@@ -57,13 +60,37 @@ public class HttpRequestTaskTest {
   }
 
   @Test
-  public void shouldHandleExceptionWhileExecutingHttpRequest() throws Exception {
+  public void shouldBindOnlyRuntimeProperties() {
+    var pollingRuntimeProperties = new PollingRuntimeProperties();
+    pollingRuntimeProperties.setUrl("http://dummyUrl.com");
+    pollingRuntimeProperties.setMethod(HttpMethod.GET);
+
+    context = spy(context);
     // Given
     HttpRequestTask task =
-        new HttpRequestTask(
-            mockHttpService, mockProcessInstanceContext, context, new PollingRequest());
+        new HttpRequestTask(mockHttpService, mockProcessInstanceContext, context);
+    when(mockHttpService.executeConnectorRequest(any(HttpCommonRequest.class)))
+        .thenReturn(httpCommonResult);
+    when(mockProcessInstanceContext.bind(any())).thenReturn(pollingRuntimeProperties);
+    // When
+    task.run();
+
+    // Then
+    verify(mockProcessInstanceContext, times(1)).bind(PollingRuntimeProperties.class);
+    verify(mockProcessInstanceContext).correlate(httpCommonResult);
+  }
+
+  @Test
+  public void shouldHandleExceptionWhileExecutingHttpRequest() {
+    // Given
+    var pollingRuntimeProperties = new PollingRuntimeProperties();
+    pollingRuntimeProperties.setUrl("http://dummyUrl.com");
+    pollingRuntimeProperties.setMethod(HttpMethod.GET);
+    HttpRequestTask task =
+        new HttpRequestTask(mockHttpService, mockProcessInstanceContext, context);
     when(mockHttpService.executeConnectorRequest(any(HttpCommonRequest.class)))
         .thenThrow(new RuntimeException("test exception"));
+    when(mockProcessInstanceContext.bind(any())).thenReturn(pollingRuntimeProperties);
 
     // When
     task.run();
