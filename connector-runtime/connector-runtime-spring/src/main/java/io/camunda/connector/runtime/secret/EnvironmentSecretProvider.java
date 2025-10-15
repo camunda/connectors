@@ -46,9 +46,9 @@ public class EnvironmentSecretProvider implements SecretProvider {
                 This is unsafe and will not be supported anymore in future releases.
 
                 Please configure a valid prefix using
-                `camunda.connector.secretprovider.environment.prefix`
+                `camunda.connectors.secretprovider.environment.prefix`
                 or
-                `CAMUNDA_CONNECTOR_SECRETPROVIDER_ENVIRONMENT_PREFIX`.
+                `CAMUNDA_CONNECTORS_SECRETPROVIDER_ENVIRONMENT_PREFIX`.
 
                 If `camunda.connector.secretprovider.environment.enabled` is set to true,
                 a prefix must be configured to avoid breaking changes in the future.
