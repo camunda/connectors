@@ -13,12 +13,10 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.DefaultVa
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 
 @TemplateSubType(label = "Retrieve document", id = RETRIEVE_DOCUMENT_OPERATION)
 public record RetrieveDocumentOperation(
     @NotBlank
-        @Size(max = 200)
         @TemplateProperty(
             group = "query",
             id = "query.query",
