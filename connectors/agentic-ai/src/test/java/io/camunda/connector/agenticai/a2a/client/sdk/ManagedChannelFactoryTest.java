@@ -7,6 +7,8 @@
 package io.camunda.connector.agenticai.a2a.client.sdk;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -25,9 +27,6 @@ import org.mockito.Answers;
 import org.mockito.MockedStatic;
 
 class ManagedChannelFactoryTest {
-
-  public static final int FIRST_SHUTDOWN_TIMEOUT = 5;
-  public static final int SECOND_SHUTDOWN_TIMEOUT = 2;
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
@@ -85,8 +84,10 @@ class ManagedChannelFactoryTest {
 
       staticMock.when(() -> ManagedChannelBuilder.forTarget("target1")).thenReturn(builder);
       when(builder.build()).thenReturn(channel1, channel2);
-      when(channel1.awaitTermination(FIRST_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS)).thenReturn(true);
-      when(channel2.awaitTermination(FIRST_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS)).thenReturn(true);
+      when(channel1.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(true);
+      when(channel1.isTerminated()).thenReturn(true);
+      when(channel2.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(true);
+      when(channel2.isTerminated()).thenReturn(true);
 
       factory.create("target1");
       staticMock.when(() -> ManagedChannelBuilder.forTarget("target2")).thenReturn(builder);
@@ -95,9 +96,9 @@ class ManagedChannelFactoryTest {
       factory.close();
 
       verify(channel1).shutdown();
-      verify(channel1).awaitTermination(FIRST_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS);
+      verify(channel1).awaitTermination(anyLong(), any(TimeUnit.class));
       verify(channel2).shutdown();
-      verify(channel2).awaitTermination(FIRST_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS);
+      verify(channel2).awaitTermination(anyLong(), any(TimeUnit.class));
     }
   }
 
@@ -112,16 +113,15 @@ class ManagedChannelFactoryTest {
 
       staticMock.when(() -> ManagedChannelBuilder.forTarget("target")).thenReturn(builder);
       when(builder.build()).thenReturn(channel);
-      when(channel.awaitTermination(FIRST_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS)).thenReturn(false);
-      when(channel.awaitTermination(SECOND_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS)).thenReturn(true);
+      when(channel.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(false);
+      when(channel.isTerminated()).thenReturn(false);
 
       factory.create("target");
       factory.close();
 
       verify(channel).shutdown();
       verify(channel).shutdownNow();
-      verify(channel).awaitTermination(FIRST_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS);
-      verify(channel).awaitTermination(SECOND_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS);
+      verify(channel).isTerminated();
     }
   }
 
@@ -136,7 +136,7 @@ class ManagedChannelFactoryTest {
 
       staticMock.when(() -> ManagedChannelBuilder.forTarget("target")).thenReturn(builder);
       when(builder.build()).thenReturn(channel);
-      when(channel.awaitTermination(FIRST_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS))
+      when(channel.awaitTermination(anyLong(), any(TimeUnit.class)))
           .thenThrow(new InterruptedException("Test interruption"));
 
       factory.create("target");
@@ -166,8 +166,10 @@ class ManagedChannelFactoryTest {
       staticMock.when(() -> ManagedChannelBuilder.forTarget("target2")).thenReturn(builder);
 
       when(builder.build()).thenReturn(channel1, channel2);
-      when(channel1.awaitTermination(FIRST_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS)).thenReturn(true);
-      when(channel2.awaitTermination(FIRST_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS)).thenReturn(true);
+      when(channel1.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(true);
+      when(channel1.isTerminated()).thenReturn(true);
+      when(channel2.awaitTermination(anyLong(), any(TimeUnit.class))).thenReturn(true);
+      when(channel2.isTerminated()).thenReturn(true);
 
       // First channel throws on shutdown
       doThrow(new RuntimeException("Shutdown failed")).when(channel1).shutdown();
@@ -180,7 +182,7 @@ class ManagedChannelFactoryTest {
 
       verify(channel1).shutdown();
       verify(channel2).shutdown();
-      verify(channel2).awaitTermination(FIRST_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS);
+      verify(channel2).awaitTermination(anyLong(), any(TimeUnit.class));
     }
   }
 

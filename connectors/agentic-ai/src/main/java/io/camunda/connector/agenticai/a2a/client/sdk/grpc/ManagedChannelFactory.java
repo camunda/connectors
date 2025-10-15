@@ -42,12 +42,22 @@ public class ManagedChannelFactory implements AutoCloseable {
 
   @Override
   public void close() {
+    // Initiate shutdown on all channels first (non-blocking)
     for (ManagedChannel channel : createdChannels) {
       try {
         channel.shutdown();
-        if (!channel.awaitTermination(5, TimeUnit.SECONDS)) {
+      } catch (Exception ignored) {
+        // best-effort cleanup
+      }
+    }
+
+    // Give all channels a total of 5 seconds to terminate gracefully
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+    for (ManagedChannel channel : createdChannels) {
+      try {
+        long remaining = deadline - System.nanoTime();
+        if (remaining > 0 && !channel.awaitTermination(remaining, TimeUnit.NANOSECONDS)) {
           channel.shutdownNow();
-          channel.awaitTermination(2, TimeUnit.SECONDS);
         }
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
@@ -56,6 +66,25 @@ public class ManagedChannelFactory implements AutoCloseable {
         // best-effort cleanup
       }
     }
+
+    // Give channels that needed force shutdown another 2 seconds total
+    deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+    for (ManagedChannel channel : createdChannels) {
+      try {
+        if (!channel.isTerminated()) {
+          long remaining = deadline - System.nanoTime();
+          if (remaining > 0) {
+            channel.awaitTermination(remaining, TimeUnit.NANOSECONDS);
+          }
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        // Continue with remaining channels despite interruption
+      } catch (Exception ignored) {
+        // best-effort cleanup
+      }
+    }
+
     createdChannels.clear();
   }
 }
