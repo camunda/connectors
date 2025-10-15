@@ -18,7 +18,7 @@ import io.camunda.connector.model.EmbeddingsVectorDBRequest;
     inputVariables = {"vectorDatabaseConnectorOperation", "embeddingModelProvider", "vectorStore"},
     type = "io.camunda:embeddings-vector-database:1")
 @ElementTemplate(
-    engineVersion = "^8.2",
+    engineVersion = "^8.8",
     id = "io.camunda.connectors.EmbeddingsVectorDB.v1",
     name = "Embeddings Vector DB Outbound Connector",
     description = "Embed and download documents with vector databases",
