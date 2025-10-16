@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.client.document;
+package io.camunda.connector.runtime.core.document;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -49,56 +50,58 @@ public class HttpHeaderFilenameResolverTest {
         Arguments.of(
             Map.of(
                 "Content-Disposition",
-                "attachment; filename=\"report\"",
+                List.of("attachment; filename=\"report\""),
                 "Content-Type",
-                "application/pdf"),
+                List.of("application/pdf")),
             "report.pdf"),
         Arguments.of(
             Map.of(
                 "content-disposition",
-                "attachment; filename=\"report\"",
+                List.of("attachment; filename=\"report\""),
                 "content-type",
-                "application/pdf"),
+                List.of("application/pdf")),
             "report.pdf"),
         Arguments.of(
             Map.of(
                 "CONTENT-DISPOSITION",
-                "attachment; filename=\"report\"",
+                List.of("attachment; filename=\"report\""),
                 "CONTENT-TYPE",
-                "application/pdf"),
+                List.of("application/pdf")),
             "report.pdf"),
         Arguments.of(
             Map.of(
                 "Content-Disposition",
-                "attachment; filename=report",
+                List.of("attachment; filename=report"),
                 "Content-Type",
-                "application/pdf"),
+                List.of("application/pdf")),
             "report.pdf"),
         Arguments.of(
             Map.of(
                 "Content-Disposition",
-                "attachment; filename=report.png",
+                List.of("attachment; filename=report.png"),
                 "Content-Type",
-                "application/pdf"),
+                List.of("application/pdf")),
             "report.png"),
-        Arguments.of(Map.of("Content-Disposition", "attachment; filename=\"report\""), "report"),
         Arguments.of(
-            Map.of("Content-Disposition", "attachment; filename=\"report.pdf\""), "report.pdf"),
-        Arguments.of(Map.of("Content-Type", "text/csv"), defaultUuid.toString() + ".csv"),
+            Map.of("Content-Disposition", List.of("attachment; filename=\"report\"")), "report"),
+        Arguments.of(
+            Map.of("Content-Disposition", List.of("attachment; filename=\"report.pdf\"")),
+            "report.pdf"),
+        Arguments.of(Map.of("Content-Type", List.of("text/csv")), defaultUuid + ".csv"),
         Arguments.of(Map.of(), defaultUuid.toString()),
         Arguments.of(
             Map.of(
                 "Content-Disposition",
-                "attachment; filename=\"report\"",
+                List.of("attachment; filename=\"report\""),
                 "content-type",
-                "image/png"),
+                List.of("image/png")),
             "report.png"),
-        Arguments.of(Map.of("Content-Type", "image/svg+xml"), defaultUuid.toString() + ".svg"));
+        Arguments.of(Map.of("Content-Type", List.of("image/svg+xml")), defaultUuid + ".svg"));
   }
 
   @ParameterizedTest
   @MethodSource("provideHeaders")
-  void testGetFilename(Map<String, Object> headers, String expectedFilename) {
+  void testGetFilename(Map<String, List<String>> headers, String expectedFilename) {
     assertThat(expectedFilename).isEqualTo(HttpHeaderFilenameResolver.getFilename(headers));
   }
 }

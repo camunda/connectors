@@ -9,7 +9,7 @@
       "User-Agent": "http-connector-demo"
     },
     "authentication": {
-      "oauthTokenEndpoint": "https://dev-test.eu.auth0.com/api/v2/",
+      "oauthTokenEndpoint": "%s",
       "scopes": "read:clients",
       "audience": "https://dev-test.eu.auth0.com/api/v2/",
       "clientId": "{{secrets.CLIENT_ID_KEY}}",
@@ -35,7 +35,7 @@
       "User-Agent": "http-connector-demo"
     },
     "authentication": {
-      "oauthTokenEndpoint": "https://dev-test.eu.auth0.com/api/v2/",
+      "oauthTokenEndpoint": "%s",
       "audience": "https://dev-test.eu.auth0.com/api/v2/",
       "clientId": "{{secrets.CLIENT_ID_KEY}}",
       "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}",

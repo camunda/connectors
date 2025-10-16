@@ -14,11 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.client.document;
+package io.camunda.connector.http.client.mapper;
 
-public class DocumentCreationException extends Exception {
+import java.util.List;
+import java.util.Map;
 
-  public DocumentCreationException(String message, Throwable cause) {
-    super(message, cause);
-  }
-}
+/**
+ * An HTTP response where the body is fully read into memory. Normally created by applying a {@link
+ * ResponseMapper} to a {@link StreamingHttpResponse}.
+ *
+ * @see ResponseMappers for common mappers
+ */
+public record MappedHttpResponse<T>(
+    int status, String reason, Map<String, List<String>> headers, T mappedEntity) {}

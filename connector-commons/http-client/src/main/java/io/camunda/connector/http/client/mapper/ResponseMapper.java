@@ -14,11 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.client.client;
+package io.camunda.connector.http.client.mapper;
 
-public class HttpStatusHelper {
+import java.util.function.Function;
 
-  public static boolean isError(int statusCode) {
-    return statusCode >= 400;
-  }
-}
+/**
+ * A function that converts a {@link StreamingHttpResponse} to a desired type. The mapper does not
+ * need to handle closing the response body stream, as it will be closed automatically after the
+ * mapping is done.
+ *
+ * @param <T> the type to map the response to
+ */
+public interface ResponseMapper<T> extends Function<StreamingHttpResponse, T> {}
