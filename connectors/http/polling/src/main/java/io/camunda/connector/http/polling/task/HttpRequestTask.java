@@ -12,7 +12,7 @@ import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
-import io.camunda.connector.http.polling.model.PollingRequest;
+import io.camunda.connector.http.polling.model.PollingRuntimeProperties;
 import io.camunda.connector.http.polling.utils.PollingRequestMapper;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 
@@ -22,41 +22,42 @@ public class HttpRequestTask implements Runnable {
   private final ProcessInstanceContext processInstanceContext;
 
   private final InboundIntermediateConnectorContext context;
-  private final PollingRequest config;
   private final PollingRequestMapper pollingRequestMapper =
       new PollingRequestMapper(ConnectorsObjectMapperSupplier.getCopy());
 
   public HttpRequestTask(
       final HttpService httpService,
       final ProcessInstanceContext processInstanceContext,
-      final InboundIntermediateConnectorContext context,
-      final PollingRequest config) {
+      final InboundIntermediateConnectorContext context) {
     this.httpService = httpService;
     this.processInstanceContext = processInstanceContext;
     this.context = context;
-    this.config = config;
   }
 
   @Override
   public void run() {
     try {
+      PollingRuntimeProperties pollingRuntimeProperties =
+          processInstanceContext.bind(PollingRuntimeProperties.class);
       try {
-        HttpCommonRequest httpCommonRequest = pollingRequestMapper.toHttpCommonRequest(config);
+        HttpCommonRequest httpCommonRequest =
+            pollingRequestMapper.toHttpCommonRequest(pollingRuntimeProperties);
         HttpCommonResult httpResponse = httpService.executeConnectorRequest(httpCommonRequest);
         processInstanceContext.correlate(httpResponse);
         this.context.log(
             activity ->
                 activity
                     .withSeverity(Severity.INFO)
-                    .withTag(config.getMethod().toString())
-                    .withMessage("Polled url: " + config.getUrl()));
+                    .withTag(pollingRuntimeProperties.getMethod().toString())
+                    .withMessage("Polled url: " + pollingRuntimeProperties.getUrl()));
       } catch (Exception e) {
         this.context.log(
             activity ->
                 activity
                     .withSeverity(Severity.ERROR)
-                    .withTag(config.getMethod().toString())
-                    .withMessage("Error executing http request: " + config.getUrl()));
+                    .withTag(pollingRuntimeProperties.getMethod().toString())
+                    .withMessage(
+                        "Error executing http request: " + pollingRuntimeProperties.getUrl()));
       }
     } catch (Exception e) {
       this.context.log(
