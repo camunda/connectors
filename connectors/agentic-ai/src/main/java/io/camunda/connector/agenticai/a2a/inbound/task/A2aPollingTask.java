@@ -8,18 +8,18 @@ package io.camunda.connector.agenticai.a2a.inbound.task;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.a2a.A2A;
-import io.a2a.client.Client;
 import io.a2a.spec.A2AClientError;
 import io.a2a.spec.AgentCard;
 import io.a2a.spec.TaskQueryParams;
 import io.a2a.spec.TaskState;
 import io.a2a.spec.TaskStatus;
-import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
+import io.camunda.connector.agenticai.a2a.client.api.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTaskStatus;
+import io.camunda.connector.agenticai.a2a.client.sdk.A2aClient;
 import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRuntimeProperties;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
@@ -46,17 +46,17 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
 
   private final InboundIntermediateConnectorContext context;
   private final ProcessInstanceContext processInstanceContext;
-  private final A2aSdkClientFactory clientFactory;
+  private final A2aClientFactory clientFactory;
   private final A2aSdkObjectConverter objectConverter;
   private final ObjectMapper objectMapper;
 
   private AgentCard agentCard;
-  private Client client;
+  private A2aClient client;
 
   public A2aPollingTask(
       final InboundIntermediateConnectorContext context,
       final ProcessInstanceContext processInstanceContext,
-      final A2aSdkClientFactory clientFactory,
+      final A2aClientFactory clientFactory,
       final A2aSdkObjectConverter objectConverter,
       final ObjectMapper objectMapper) {
     this.context = context;
@@ -170,7 +170,7 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
     return null;
   }
 
-  private synchronized Client getClient(final A2aPollingRuntimeProperties runtimeProperties) {
+  private synchronized A2aClient getClient(final A2aPollingRuntimeProperties runtimeProperties) {
     if (this.client == null) {
       try {
         final var agentCard = getAgentCard(runtimeProperties);
