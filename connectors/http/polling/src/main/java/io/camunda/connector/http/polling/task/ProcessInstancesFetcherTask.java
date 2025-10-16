@@ -10,7 +10,7 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.http.base.HttpService;
-import io.camunda.connector.http.polling.model.PollingRequest;
+import io.camunda.connector.http.polling.model.PollingActivationProperties;
 import io.camunda.connector.http.polling.service.SharedExecutorService;
 import java.util.List;
 import java.util.Map;
@@ -31,14 +31,14 @@ public class ProcessInstancesFetcherTask implements Runnable {
   private final InboundIntermediateConnectorContext context;
   private final HttpService httpService;
   private final SharedExecutorService executorService;
-  private final PollingRequest config;
+  private final PollingActivationProperties config;
   private final ConcurrentHashMap<String, ScheduledFuture<?>> runningHttpRequestTaskIds;
 
   public ProcessInstancesFetcherTask(
       final InboundIntermediateConnectorContext context,
       final HttpService httpService,
       final SharedExecutorService executorService) {
-    this.config = context.bindProperties(PollingRequest.class);
+    this.config = context.bindProperties(PollingActivationProperties.class);
     this.context = context;
     this.httpService = httpService;
     this.executorService = executorService;
@@ -79,7 +79,7 @@ public class ProcessInstancesFetcherTask implements Runnable {
     runningHttpRequestTaskIds.computeIfAbsent(
         taskKey,
         (key) -> {
-          var task = new HttpRequestTask(httpService, processInstanceContext, context, config);
+          var task = new HttpRequestTask(httpService, processInstanceContext, context);
           return this.executorService
               .getExecutorService()
               .scheduleWithFixedDelay(

@@ -73,7 +73,8 @@ public class PollingIntervalConfigurationTest {
   @MethodSource("httpRequestIntervalTestCases")
   public void testGetHttpRequestInterval(String value, long expected) {
     inboundConnectorContext.getProperties().put("httpRequestInterval", value);
-    PollingRequest intervals = inboundConnectorContext.bindProperties(PollingRequest.class);
+    PollingActivationProperties intervals =
+        inboundConnectorContext.bindProperties(PollingActivationProperties.class);
     long interval = intervals.getHttpRequestInterval().toMillis();
     assertThat(interval).isEqualTo(expected);
   }
@@ -82,7 +83,8 @@ public class PollingIntervalConfigurationTest {
   @MethodSource("processPollingIntervalTestCases")
   public void testGetProcessPollingInterval(String value, long expected) {
     inboundConnectorContext.getProperties().put("processPollingInterval", value);
-    PollingRequest intervals = inboundConnectorContext.bindProperties(PollingRequest.class);
+    PollingActivationProperties intervals =
+        inboundConnectorContext.bindProperties(PollingActivationProperties.class);
     long interval = intervals.getProcessPollingInterval().toMillis();
     assertThat(interval).isEqualTo(expected);
   }

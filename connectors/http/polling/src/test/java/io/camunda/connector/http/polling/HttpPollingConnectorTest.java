@@ -8,13 +8,11 @@ package io.camunda.connector.http.polling;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.http.base.HttpService;
-import io.camunda.connector.http.polling.model.PollingRequest;
+import io.camunda.connector.http.polling.model.PollingActivationProperties;
 import io.camunda.connector.http.polling.service.SharedExecutorService;
 import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
 import java.util.concurrent.ScheduledExecutorService;
@@ -39,7 +37,7 @@ public class HttpPollingConnectorTest {
   @BeforeEach
   public void setUp() {
     httpPollingConnector = new HttpPollingConnector(httpService, executorService);
-    when(context.bindProperties(any())).thenReturn(new PollingRequest());
+    when(context.bindProperties(any())).thenReturn(new PollingActivationProperties());
     when(executorService.getExecutorService()).thenReturn(mockScheduledExecutorService);
   }
 

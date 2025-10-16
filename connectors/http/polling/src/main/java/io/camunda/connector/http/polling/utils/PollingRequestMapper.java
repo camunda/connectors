@@ -8,7 +8,7 @@ package io.camunda.connector.http.polling.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
-import io.camunda.connector.http.polling.model.PollingRequest;
+import io.camunda.connector.http.polling.model.PollingRuntimeProperties;
 
 public class PollingRequestMapper {
   private final ObjectMapper objectMapper;
@@ -17,17 +17,18 @@ public class PollingRequestMapper {
     this.objectMapper = objectMapper;
   }
 
-  public HttpCommonRequest toHttpCommonRequest(PollingRequest pollingRequest) {
+  public HttpCommonRequest toHttpCommonRequest(PollingRuntimeProperties pollingRuntimeProperties) {
     HttpCommonRequest httpCommonRequest = new HttpCommonRequest();
-    httpCommonRequest.setMethod(pollingRequest.getMethod());
-    httpCommonRequest.setUrl(pollingRequest.getUrl());
-    httpCommonRequest.setHeaders(pollingRequest.getHeaders());
-    httpCommonRequest.setQueryParameters(pollingRequest.getQueryParameters());
-    httpCommonRequest.setBody(pollingRequest.getBody());
-    httpCommonRequest.setAuthentication(pollingRequest.getAuthentication());
-    httpCommonRequest.setConnectionTimeoutInSeconds(pollingRequest.getConnectionTimeoutInSeconds());
-    httpCommonRequest.setReadTimeoutInSeconds(pollingRequest.getReadTimeoutInSeconds());
-    httpCommonRequest.setSkipEncoding(pollingRequest.getSkipEncoding());
+    httpCommonRequest.setMethod(pollingRuntimeProperties.getMethod());
+    httpCommonRequest.setUrl(pollingRuntimeProperties.getUrl());
+    httpCommonRequest.setHeaders(pollingRuntimeProperties.getHeaders());
+    httpCommonRequest.setQueryParameters(pollingRuntimeProperties.getQueryParameters());
+    httpCommonRequest.setBody(pollingRuntimeProperties.getBody());
+    httpCommonRequest.setAuthentication(pollingRuntimeProperties.getAuthentication());
+    httpCommonRequest.setConnectionTimeoutInSeconds(
+        pollingRuntimeProperties.getConnectionTimeoutInSeconds());
+    httpCommonRequest.setReadTimeoutInSeconds(pollingRuntimeProperties.getReadTimeoutInSeconds());
+    httpCommonRequest.setSkipEncoding(pollingRuntimeProperties.getSkipEncoding());
     return httpCommonRequest;
   }
 }
