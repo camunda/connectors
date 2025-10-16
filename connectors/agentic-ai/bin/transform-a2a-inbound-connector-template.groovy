@@ -50,7 +50,7 @@ def updatedProperties = []
 json.properties.each { property ->
     if (property.id == "data.clientResponse") {
         // change data.taskId text field to be an input mapping mapping to inputClientResponse
-        property.id = "clientResponse"
+        property.id = "internal_clientResponse"
         property.binding = [
             name: "internal_clientResponse",
             type: "zeebe:input"
