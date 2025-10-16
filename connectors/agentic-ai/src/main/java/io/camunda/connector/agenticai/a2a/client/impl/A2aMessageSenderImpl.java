@@ -6,15 +6,13 @@
  */
 package io.camunda.connector.agenticai.a2a.client.impl;
 
-import io.a2a.client.Client;
 import io.a2a.client.ClientEvent;
-import io.a2a.spec.A2AClientException;
 import io.a2a.spec.AgentCard;
 import io.a2a.spec.Message;
 import io.a2a.spec.Part;
 import io.a2a.spec.TextPart;
+import io.camunda.connector.agenticai.a2a.client.api.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
-import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
@@ -28,15 +26,14 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 
 public class A2aMessageSenderImpl implements A2aMessageSender {
-
   private final A2aDocumentToPartConverter documentToPartConverter;
   private final A2aSendMessageResponseHandler sendMessageResponseHandler;
-  private final A2aSdkClientFactory clientFactory;
+  private final A2aClientFactory clientFactory;
 
   public A2aMessageSenderImpl(
       A2aDocumentToPartConverter documentToPartConverter,
       A2aSendMessageResponseHandler sendMessageResponseHandler,
-      A2aSdkClientFactory clientFactory) {
+      A2aClientFactory clientFactory) {
     this.documentToPartConverter = documentToPartConverter;
     this.sendMessageResponseHandler = sendMessageResponseHandler;
     this.clientFactory = clientFactory;
@@ -56,26 +53,20 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
             response.completeExceptionally(e);
           }
         };
-
-    Client client =
+    try (var a2aClient =
         clientFactory.buildClient(
-            agentCard, consumer, sendMessageOperation.settings().historyLength());
-    try {
-      client.sendMessage(message);
-    } catch (A2AClientException e) {
-      throw new RuntimeException(e);
-    }
+            agentCard, consumer, sendMessageOperation.settings().historyLength())) {
+      a2aClient.sendMessage(message);
 
-    try {
-      return response.get(
-          sendMessageOperation.settings().timeout().toMillis(), TimeUnit.MILLISECONDS);
-    } catch (TimeoutException e) {
-      // TODO: should be a ConnectorException with a specific error code?
-      throw new RuntimeException("Timed out waiting for response from agent.", e);
-    } catch (InterruptedException | ExecutionException e) {
-      throw new RuntimeException(e.getCause() != null ? e.getCause() : e);
-    } finally {
-      client.close();
+      try {
+        return response.get(
+            sendMessageOperation.settings().timeout().toMillis(), TimeUnit.MILLISECONDS);
+      } catch (TimeoutException e) {
+        // TODO: should be a ConnectorException with a specific error code?
+        throw new RuntimeException("Timed out waiting for response from agent.", e);
+      } catch (InterruptedException | ExecutionException e) {
+        throw new RuntimeException(e.getCause() != null ? e.getCause() : e);
+      }
     }
   }
 

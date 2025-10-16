@@ -13,7 +13,7 @@ import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 
-public class A2APartToContentConverterImpl implements A2aPartToContentConverter {
+public class A2aPartToContentConverterImpl implements A2aPartToContentConverter {
 
   @Override
   public Content convert(Part<?> part) {
