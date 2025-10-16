@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.a2a.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
+import io.camunda.connector.agenticai.a2a.client.api.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRequest;
 import io.camunda.connector.agenticai.a2a.inbound.service.A2aPollingExecutorService;
@@ -43,7 +43,7 @@ public class A2aPollingExecutable
     implements InboundConnectorExecutable<InboundIntermediateConnectorContext> {
 
   private final A2aPollingExecutorService executorService;
-  private final A2aSdkClientFactory clientFactory;
+  private final A2aClientFactory clientFactory;
   private final A2aSdkObjectConverter objectConverter;
   private final ObjectMapper objectMapper;
 
@@ -51,7 +51,7 @@ public class A2aPollingExecutable
 
   public A2aPollingExecutable(
       final A2aPollingExecutorService executorService,
-      final A2aSdkClientFactory clientFactory,
+      final A2aClientFactory clientFactory,
       final A2aSdkObjectConverter objectConverter,
       final ObjectMapper objectMapper) {
     this.executorService = executorService;

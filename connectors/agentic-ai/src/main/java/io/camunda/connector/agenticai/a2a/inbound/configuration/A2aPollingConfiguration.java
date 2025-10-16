@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.a2a.inbound.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
+import io.camunda.connector.agenticai.a2a.client.api.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.inbound.A2aPollingExecutable;
 import io.camunda.connector.agenticai.a2a.inbound.service.A2aPollingExecutorService;
@@ -37,7 +37,7 @@ public class A2aPollingConfiguration {
   @ConditionalOnMissingBean
   public A2aPollingExecutable a2APollingExecutable(
       A2aPollingExecutorService executorService,
-      A2aSdkClientFactory clientFactory,
+      A2aClientFactory clientFactory,
       A2aSdkObjectConverter objectConverter,
       ObjectMapper objectMapper) {
     return new A2aPollingExecutable(executorService, clientFactory, objectConverter, objectMapper);
