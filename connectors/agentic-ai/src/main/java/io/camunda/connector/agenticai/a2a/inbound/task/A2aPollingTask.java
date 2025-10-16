@@ -20,8 +20,7 @@ import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTaskStatus;
-import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingElementInstanceRequest;
-import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRequest;
+import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRuntimeProperties;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.inbound.Severity;
@@ -47,7 +46,6 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
 
   private final InboundIntermediateConnectorContext context;
   private final ProcessInstanceContext processInstanceContext;
-  private final A2aPollingRequest pollingRequest;
   private final A2aSdkClientFactory clientFactory;
   private final A2aSdkObjectConverter objectConverter;
   private final ObjectMapper objectMapper;
@@ -58,13 +56,11 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
   public A2aPollingTask(
       final InboundIntermediateConnectorContext context,
       final ProcessInstanceContext processInstanceContext,
-      final A2aPollingRequest pollingRequest,
       final A2aSdkClientFactory clientFactory,
       final A2aSdkObjectConverter objectConverter,
       final ObjectMapper objectMapper) {
     this.context = context;
     this.processInstanceContext = processInstanceContext;
-    this.pollingRequest = pollingRequest;
     this.clientFactory = clientFactory;
     this.objectConverter = objectConverter;
     this.objectMapper = objectMapper;
@@ -72,14 +68,19 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
 
   @Override
   public void run() {
-    final var clientResponse = getClientResponse();
+    final var runtimeProperties = bindRuntimeProperties();
+    if (runtimeProperties == null) {
+      return;
+    }
+
+    final var clientResponse = getClientResponse(runtimeProperties);
     if (clientResponse == null) {
       return;
     }
 
     switch (clientResponse) {
       case A2aMessage message -> handleMessage(message);
-      case A2aTask task -> handleTask(task);
+      case A2aTask task -> handleTask(runtimeProperties, task);
     }
   }
 
@@ -88,7 +89,7 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
     processInstanceContext.correlate(message);
   }
 
-  private void handleTask(final A2aTask task) {
+  private void handleTask(final A2aPollingRuntimeProperties runtimeProperties, final A2aTask task) {
     final var taskState = Optional.ofNullable(task.status()).map(A2aTaskStatus::state).orElse(null);
     final var needsPolling = taskState == null || POLLABLE_TASK_STATES.contains(taskState);
     if (!needsPolling) {
@@ -100,7 +101,7 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
       return;
     }
 
-    final var client = getClient();
+    final var client = getClient(runtimeProperties);
     if (client == null) {
       return;
     }
@@ -108,11 +109,11 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
     LOG.debug(
         "Polling A2A task {} with a max history length of {}",
         task.id(),
-        pollingRequest.data().historyLength());
+        runtimeProperties.data().historyLength());
 
     try {
       final var loadedTask =
-          client.getTask(new TaskQueryParams(task.id(), pollingRequest.data().historyLength()));
+          client.getTask(new TaskQueryParams(task.id(), runtimeProperties.data().historyLength()));
       LOG.debug(
           "Loaded A2A task {} with state {}",
           task.id(),
@@ -135,11 +136,26 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
     }
   }
 
-  private A2aSendMessageResult getClientResponse() {
+  private A2aPollingRuntimeProperties bindRuntimeProperties() {
     try {
-      final var elementInstanceRequest =
-          processInstanceContext.bind(A2aPollingElementInstanceRequest.class);
-      final var clientResponseJson = elementInstanceRequest.data().clientResponse();
+      return processInstanceContext.bind(A2aPollingRuntimeProperties.class);
+    } catch (Exception e) {
+      LOG.error("Failed to bind A2A polling runtime properties", e);
+      this.context.log(
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withTag("a2a-polling-runtime-properties")
+                  .withMessage("Failed to bind A2A polling runtime properties: " + e.getMessage()));
+    }
+
+    return null;
+  }
+
+  private A2aSendMessageResult getClientResponse(
+      final A2aPollingRuntimeProperties runtimeProperties) {
+    try {
+      final var clientResponseJson = runtimeProperties.data().clientResponse();
       return objectMapper.readValue(clientResponseJson, A2aSendMessageResult.class);
     } catch (Exception e) {
       LOG.debug("Failed to load A2A client response", e);
@@ -154,15 +170,17 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
     return null;
   }
 
-  private synchronized Client getClient() {
+  private synchronized Client getClient(final A2aPollingRuntimeProperties runtimeProperties) {
     if (this.client == null) {
       try {
-        final var agentCard = getAgentCard();
+        final var agentCard = getAgentCard(runtimeProperties);
         if (agentCard == null) {
           return null;
         }
 
-        this.client = clientFactory.buildClient(agentCard, (event, ignore) -> {});
+        this.client =
+            clientFactory.buildClient(
+                agentCard, (event, ignore) -> {}, runtimeProperties.data().historyLength());
       } catch (Exception e) {
         LOG.error("Failed to create A2A client", e);
         this.context.log(
@@ -177,10 +195,10 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
     return this.client;
   }
 
-  private synchronized AgentCard getAgentCard() {
+  private synchronized AgentCard getAgentCard(final A2aPollingRuntimeProperties runtimeProperties) {
     if (this.agentCard == null) {
       try {
-        final var connection = pollingRequest.data().connection();
+        final var connection = runtimeProperties.data().connection();
         this.agentCard =
             A2A.getAgentCard(
                 connection.url(),

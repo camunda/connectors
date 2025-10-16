@@ -81,7 +81,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "clientResponse",
+    "id" : "internal_clientResponse",
     "label" : "A2A Client Response",
     "optional" : false,
     "constraints" : {
@@ -128,8 +128,9 @@
   }, {
     "id" : "data.taskPollingInterval",
     "label" : "Task polling interval",
+    "description" : "The delay between A2A task polling requests, defined as ISO 8601 durations format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
     "optional" : false,
-    "value" : "PT10S",
+    "value" : "PT30S",
     "feel" : "optional",
     "group" : "polling",
     "binding" : {

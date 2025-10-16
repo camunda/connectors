@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.a2a.inbound.task;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
-import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRequest;
+import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingActivationProperties;
 import io.camunda.connector.agenticai.a2a.inbound.service.A2aPollingExecutorService;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
@@ -35,7 +35,7 @@ public class A2aPollingProcessInstancesFetcherTask implements Runnable {
   private final A2aSdkObjectConverter objectConverter;
   private final ObjectMapper objectMapper;
 
-  private final A2aPollingRequest pollingRequest;
+  private final A2aPollingActivationProperties activationProperties;
 
   private final ConcurrentHashMap<String, ScheduledPoll> runningPollTasks =
       new ConcurrentHashMap<>();
@@ -53,7 +53,7 @@ public class A2aPollingProcessInstancesFetcherTask implements Runnable {
     this.clientFactory = clientFactory;
     this.objectConverter = objectConverter;
     this.objectMapper = objectMapper;
-    this.pollingRequest = context.bindProperties(A2aPollingRequest.class);
+    this.activationProperties = context.bindProperties(A2aPollingActivationProperties.class);
   }
 
   @Override
@@ -92,16 +92,11 @@ public class A2aPollingProcessInstancesFetcherTask implements Runnable {
         (key) -> {
           final var task =
               new A2aPollingTask(
-                  context,
-                  processInstanceContext,
-                  pollingRequest,
-                  clientFactory,
-                  objectConverter,
-                  objectMapper);
+                  context, processInstanceContext, clientFactory, objectConverter, objectMapper);
 
           final var future =
               this.executorService.scheduleWithFixedDelay(
-                  task, pollingRequest.data().taskPollingInterval());
+                  task, activationProperties.data().taskPollingInterval());
 
           return new ScheduledPoll(task, future);
         });
@@ -114,7 +109,7 @@ public class A2aPollingProcessInstancesFetcherTask implements Runnable {
   public void start() {
     mainTaskFuture =
         executorService.scheduleWithFixedDelay(
-            this, pollingRequest.data().processPollingInterval());
+            this, activationProperties.data().processPollingInterval());
   }
 
   public void stop() {
