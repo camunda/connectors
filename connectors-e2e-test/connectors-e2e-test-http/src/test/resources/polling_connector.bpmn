@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_18hfxoy" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.36.1" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.7.0">
+  <bpmn:process id="Process_1maitvl" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_09ygi4c</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="Event_02m8p79">
+      <bpmn:incoming>Flow_158ujw9</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_158ujw9" sourceRef="Event_1ivumax" targetRef="Event_02m8p79" />
+    <bpmn:sequenceFlow id="Flow_09ygi4c" sourceRef="StartEvent_1" targetRef="Event_1ivumax" />
+    <bpmn:intermediateCatchEvent id="Event_1ivumax" zeebe:modelerTemplate="io.camunda.connectors.http.Polling" zeebe:modelerTemplateVersion="3" zeebe:modelerTemplateIcon="data:image/svg+xml;utf8,%3C%3Fxml version=&#39;1.0&#39;%3F%3E%3Csvg width=&#39;18&#39; height=&#39;18&#39; xmlns=&#39;http://www.w3.org/2000/svg&#39; xmlns:svg=&#39;http://www.w3.org/2000/svg&#39;%3E%3Cg class=&#39;layer&#39;%3E%3Ctitle%3ELayer 1%3C/title%3E%3Cpath d=&#39;m17.03,9c0,4.45 -3.6,8.05 -8.05,8.05c-4.45,0 -8.05,-3.6 -8.05,-8.05c0,-4.45 3.6,-8.05 8.05,-8.05c4.45,0 8.05,3.6 8.05,8.05z&#39; fill=&#39;%23505562&#39; id=&#39;svg_1&#39;/%3E%3Cpath d=&#39;m4.93,14.16l1.85,-10.45l3.36,0c1.05,0 1.84,0.27 2.37,0.81c0.54,0.53 0.8,1.21 0.8,2.06c0,0.86 -0.24,1.58 -0.73,2.13c-0.47,0.55 -1.12,0.93 -1.95,1.14l-0.48,0.09l-0.53,0.03l-0.6,0.05l-1.79,0l-0.73,4.14l-1.58,0zm2.57,-5.57l1.74,0c0.76,0 1.35,-0.17 1.78,-0.5c0.44,-0.35 0.65,-0.82 0.65,-1.42c0,-0.48 -0.15,-0.85 -0.44,-1.12c-0.3,-0.28 -0.77,-0.42 -1.42,-0.42l-1.7,0l-0.61,3.46z&#39; fill=&#39;white&#39; id=&#39;svg_2&#39;/%3E%3C/g%3E%3C/svg%3E">
+      <bpmn:extensionElements>
+        <zeebe:properties>
+          <zeebe:property name="inbound.type" value="io.camunda:http-polling:1" />
+          <zeebe:property name="authentication.type" value="noAuth" />
+          <zeebe:property name="method" value="get" />
+          <zeebe:property name="url" value="URL_SET" />
+          <zeebe:property name="httpRequestInterval" value="PT2S" />
+          <zeebe:property name="processPollingInterval" value="PT2S" />
+          <zeebe:property name="correlationKeyExpression" value="CORRELATION_KEY_EXPRESSION" />
+          <zeebe:property name="connectionTimeoutInSeconds" value="20" />
+          <zeebe:property name="resultExpression" value="RESULT_EXPRESSION" />
+        </zeebe:properties>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_09ygi4c</bpmn:incoming>
+      <bpmn:outgoing>Flow_158ujw9</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_09f29xh" messageRef="Message_1tyao0k" />
+    </bpmn:intermediateCatchEvent>
+  </bpmn:process>
+  <bpmn:message id="Message_1tyao0k" name="0cb4d411-0259-41cd-baaa-768e9569870e" zeebe:modelerTemplate="io.camunda.connectors.http.Polling">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="CORRELATION_KEY_PROCESS" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1maitvl">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="82" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_02m8p79_di" bpmnElement="Event_02m8p79">
+        <dc:Bounds x="412" y="82" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1xv7kvu_di" bpmnElement="Event_1ivumax">
+        <dc:Bounds x="332" y="82" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_158ujw9_di" bpmnElement="Flow_158ujw9">
+        <di:waypoint x="368" y="100" />
+        <di:waypoint x="412" y="100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_09ygi4c_di" bpmnElement="Flow_09ygi4c">
+        <di:waypoint x="188" y="100" />
+        <di:waypoint x="332" y="100" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
