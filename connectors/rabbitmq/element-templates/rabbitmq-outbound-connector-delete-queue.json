@@ -1,0 +1,266 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "RabbitMQ Delete Queue Connector",
+  "id": "13c4808d-1f35-4ec0-a5b6-33ffb1b6a67d",
+  "version": 1760479805031,
+  "description": "Delete a queue on RabbitMQ",
+  "icon": {
+    "contents": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxOCcgaGVpZ2h0PScxOCcgdmlld0JveD0nLTcuNSAwIDI3MSAyNzEnIHByZXNlcnZlQXNwZWN0UmF0aW89J3hNaWRZTWlkJz4NCiAgICA8cGF0aCBkPSdNMjQ1LjQ0IDEwOC4zMDhoLTg1LjA5YTcuNzM4IDcuNzM4IDAgMCAxLTcuNzM1LTcuNzM0di04OC42OEMxNTIuNjE1IDUuMzI3IDE0Ny4yOSAwIDE0MC43MjYgMGgtMzAuMzc1Yy02LjU2OCAwLTExLjg5IDUuMzI3LTExLjg5IDExLjg5NHY4OC4xNDNjMCA0LjU3My0zLjY5NyA4LjI5LTguMjcgOC4zMWwtMjcuODg1LjEzM2MtNC42MTIuMDI1LTguMzU5LTMuNzE3LTguMzUtOC4zMjVsLjE3My04OC4yNDFDNTQuMTQ0IDUuMzM3IDQ4LjgxNyAwIDQyLjI0IDBIMTEuODlDNS4zMjEgMCAwIDUuMzI3IDAgMTEuODk0VjI2MC4yMWMwIDUuODM0IDQuNzI2IDEwLjU2IDEwLjU1NSAxMC41NkgyNDUuNDRjNS44MzQgMCAxMC41Ni00LjcyNiAxMC41Ni0xMC41NlYxMTguODY4YzAtNS44MzQtNC43MjYtMTAuNTYtMTAuNTYtMTAuNTZ6bS0zOS45MDIgOTMuMjMzYzAgNy42NDUtNi4xOTggMTMuODQ0LTEzLjg0MyAxMy44NDRIMTY3LjY5Yy03LjY0NiAwLTEzLjg0NC02LjE5OS0xMy44NDQtMTMuODQ0di0yNC4wMDVjMC03LjY0NiA2LjE5OC0xMy44NDQgMTMuODQ0LTEzLjg0NGgyNC4wMDVjNy42NDUgMCAxMy44NDMgNi4xOTggMTMuODQzIDEzLjg0NHYyNC4wMDV6Jw0KICAgICAgICAgIGZpbGw9JyNGNjAnLz4NCjwvc3ZnPg=="
+  },
+  "metadata": {
+    "keywords": [
+      "rabbitmq",
+      "delete",
+      "queue"
+    ]
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound",
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "engines": {
+    "camunda": "^8.3"
+  },
+  "groups": [
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "routing",
+      "label": "Routing"
+    },
+    {
+      "id": "connector",
+      "label": "Connector"
+    },
+    {
+      "id": "output",
+      "label": "Output mapping"
+    }
+  ],
+  "properties": [
+    {
+      "value": "io.camunda:connector-rabbitmq-delete:1",
+      "binding": {
+        "property": "type",
+        "type": "zeebe:taskDefinition"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "authentication.authType",
+      "label": "Connection type",
+      "value": "uri",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.authType",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "URI",
+          "value": "uri"
+        },
+        {
+          "name": "Username/Password",
+          "value": "credentials"
+        }
+      ]
+    },
+    {
+      "id": "authentication.uri",
+      "label": "URI",
+      "description": "URI should contain username, password, host name, port number, and virtual host",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "^(=|(amqps?://|secrets|\\{\\{).*$)",
+          "message": "Must start with amqp(s):// or contain a secret reference"
+        }
+      },
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.uri",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.authType",
+        "equals": "uri",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "authentication.userName",
+      "label": "Username",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.userName",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.authType",
+        "equals": "credentials",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "authentication.password",
+      "label": "Password",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.password",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.authType",
+        "equals": "credentials",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "routing.queueName",
+      "label": "Queue name",
+      "description": "Name of the queue to delete (for example: process.{instanceKey})",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "routing",
+      "binding": {
+        "name": "routing.queueName",
+        "type": "zeebe:input"
+      },
+      "type": "String"
+    },
+    {
+      "id": "routing.ifUnused",
+      "label": "If unused",
+      "description": "Delete only if the queue has no consumers",
+      "optional": true,
+      "value": "false",
+      "group": "routing",
+      "binding": {
+        "name": "routing.ifUnused",
+        "type": "zeebe:input"
+      },
+      "type": "String"
+    },
+    {
+      "id": "routing.ifEmpty",
+      "label": "If empty",
+      "description": "Delete only if the queue has no messages",
+      "optional": true,
+      "value": "false",
+      "group": "routing",
+      "binding": {
+        "name": "routing.ifEmpty",
+        "type": "zeebe:input"
+      },
+      "type": "String"
+    },
+    {
+      "id": "routing.virtualHost",
+      "label": "Virtual host",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "routing",
+      "binding": {
+        "name": "routing.virtualHost",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.authType",
+        "equals": "credentials",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "routing.hostName",
+      "label": "Host name",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "routing",
+      "binding": {
+        "name": "routing.hostName",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.authType",
+        "equals": "credentials",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "routing.port",
+      "label": "Port",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "routing",
+      "binding": {
+        "name": "routing.port",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "authentication.authType",
+        "equals": "credentials",
+        "type": "simple"
+      },
+      "type": "String"
+    },
+    {
+      "id": "resultVariable",
+      "label": "Result variable",
+      "description": "Name of variable to store the response in",
+      "group": "output",
+      "binding": {
+        "key": "resultVariable",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "String"
+    },
+    {
+      "id": "resultExpression",
+      "label": "Result expression",
+      "description": "Expression to map the response into process variables",
+      "feel": "required",
+      "group": "output",
+      "binding": {
+        "key": "resultExpression",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Text"
+    }
+  ]
+}
