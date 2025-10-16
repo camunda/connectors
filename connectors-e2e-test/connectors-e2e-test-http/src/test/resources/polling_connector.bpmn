@@ -20,6 +20,7 @@
           <zeebe:property name="processPollingInterval" value="PT2S" />
           <zeebe:property name="correlationKeyExpression" value="CORRELATION_KEY_EXPRESSION" />
           <zeebe:property name="connectionTimeoutInSeconds" value="20" />
+          <zeebe:property name="resultExpression" value="RESULT_EXPRESSION" />
         </zeebe:properties>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_09ygi4c</bpmn:incoming>

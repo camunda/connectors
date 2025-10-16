@@ -20,6 +20,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static io.camunda.connector.e2e.BpmnFile.Replace.replace;
 import static io.camunda.connector.e2e.BpmnFile.replace;
+import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
@@ -66,45 +67,13 @@ public class PollingConnectorTests {
   }
 
   @Test
-  void shouldPollFromMockAndTerminate() {
-
-    wm.stubFor(
-        get(urlEqualTo("/mock"))
-            .willReturn(
-                aResponse()
-                    .withHeader("Content-Type", "application/json")
-                    .withBody("{\"success\":true}")
-                    .withStatus(200)));
-
-    var mockUrl = "http://localhost:" + wm.getPort() + "/mock";
-
-    var model =
-        replace(
-            "polling_connector.bpmn",
-            replace("URL_SET", mockUrl),
-            replace("CORRELATION_KEY_EXPRESSION", "=body.success"),
-            replace("CORRELATION_KEY_PROCESS", "=&#34;true&#34;"));
-
-    when(processDef.getProcessDefinitionKey()).thenReturn(1L);
-    when(processDef.getTenantId())
-        .thenReturn(camundaClient.getConfiguration().getDefaultTenantId());
-    when(processDef.getProcessDefinitionId())
-        .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
-
-    var bpmnTest = ZeebeTest.with(camundaClient).deploy(model).createInstance();
-
-    bpmnTest.waitForProcessCompletion();
-  }
-
-  @Test
   void shouldResolveFeelExpressionInUrlAndTerminate() {
-
     wm.stubFor(
         get(urlEqualTo("/mock"))
             .willReturn(
                 aResponse()
                     .withHeader("Content-Type", "application/json")
-                    .withBody("{\"success\": \"true\"}")
+                    .withBody("{\"orderId\": \"1234\", \"successfulOrder\": \"true\"}")
                     .withStatus(200)));
 
     var mockUrl = "=&#34;http://localhost:" + wm.getPort() + "/&#34; + myVar";
@@ -113,8 +82,10 @@ public class PollingConnectorTests {
         replace(
             "polling_connector.bpmn",
             replace("URL_SET", mockUrl),
-            replace("CORRELATION_KEY_EXPRESSION", "=body.success"),
-            replace("CORRELATION_KEY_PROCESS", "=&#34;true&#34;"));
+            replace("CORRELATION_KEY_EXPRESSION", "=body.orderId"),
+            replace("CORRELATION_KEY_PROCESS", "=orderId"),
+            replace(
+                "RESULT_EXPRESSION", "={ &#34;isOrderSuccessful&#34; : body.successfulOrder  }"));
 
     when(processDef.getProcessDefinitionKey()).thenReturn(2L);
     when(processDef.getTenantId())
@@ -123,8 +94,11 @@ public class PollingConnectorTests {
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
 
     var bpmnTest =
-        ZeebeTest.with(camundaClient).deploy(model).createInstance(Map.of("myVar", "mock"));
+        ZeebeTest.with(camundaClient)
+            .deploy(model)
+            .createInstance(Map.of("myVar", "mock", "orderId", "1234"));
 
     bpmnTest.waitForProcessCompletion();
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("isOrderSuccessful", "true");
   }
 }
