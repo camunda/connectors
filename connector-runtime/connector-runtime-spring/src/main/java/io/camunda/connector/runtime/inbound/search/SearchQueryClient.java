@@ -30,7 +30,8 @@ public interface SearchQueryClient {
   SearchResponse<ElementInstance> queryActiveFlowNodes(
       long processDefinitionKey, String elementId, String paginationIndex);
 
-  SearchResponse<Variable> queryVariables(long processInstanceKey, String variablePaginationIndex);
+  SearchResponse<Variable> queryVariables(
+      long processInstanceKey, long elementInstanceKey, String variablePaginationIndex);
 
   BpmnModelInstance getProcessModel(long processDefinitionKey);
 }
