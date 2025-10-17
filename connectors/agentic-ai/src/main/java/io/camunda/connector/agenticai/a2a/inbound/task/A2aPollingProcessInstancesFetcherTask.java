@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.a2a.inbound.task;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.api.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingActivationProperties;
@@ -31,6 +32,7 @@ public class A2aPollingProcessInstancesFetcherTask implements Runnable {
 
   private final InboundIntermediateConnectorContext context;
   private final A2aPollingExecutorService executorService;
+  private final A2aAgentCardFetcher agentCardFetcher;
   private final A2aClientFactory clientFactory;
   private final A2aSdkObjectConverter objectConverter;
   private final ObjectMapper objectMapper;
@@ -44,12 +46,14 @@ public class A2aPollingProcessInstancesFetcherTask implements Runnable {
   public A2aPollingProcessInstancesFetcherTask(
       final InboundIntermediateConnectorContext context,
       final A2aPollingExecutorService executorService,
+      final A2aAgentCardFetcher agentCardFetcher,
       final A2aClientFactory clientFactory,
       final A2aSdkObjectConverter objectConverter,
       final ObjectMapper objectMapper) {
 
     this.context = context;
     this.executorService = executorService;
+    this.agentCardFetcher = agentCardFetcher;
     this.clientFactory = clientFactory;
     this.objectConverter = objectConverter;
     this.objectMapper = objectMapper;
@@ -92,7 +96,12 @@ public class A2aPollingProcessInstancesFetcherTask implements Runnable {
         (key) -> {
           final var task =
               new A2aPollingTask(
-                  context, processInstanceContext, clientFactory, objectConverter, objectMapper);
+                  context,
+                  processInstanceContext,
+                  agentCardFetcher,
+                  clientFactory,
+                  objectConverter,
+                  objectMapper);
 
           final var future =
               this.executorService.scheduleWithFixedDelay(

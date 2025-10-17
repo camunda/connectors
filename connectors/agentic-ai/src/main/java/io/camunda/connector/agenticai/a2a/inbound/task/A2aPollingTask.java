@@ -7,12 +7,11 @@
 package io.camunda.connector.agenticai.a2a.inbound.task;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.a2a.A2A;
-import io.a2a.spec.A2AClientError;
 import io.a2a.spec.AgentCard;
 import io.a2a.spec.TaskQueryParams;
 import io.a2a.spec.TaskState;
 import io.a2a.spec.TaskStatus;
+import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.api.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
@@ -25,9 +24,7 @@ import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.inbound.Severity;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +43,7 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
 
   private final InboundIntermediateConnectorContext context;
   private final ProcessInstanceContext processInstanceContext;
+  private final A2aAgentCardFetcher agentCardFetcher;
   private final A2aClientFactory clientFactory;
   private final A2aSdkObjectConverter objectConverter;
   private final ObjectMapper objectMapper;
@@ -56,11 +54,13 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
   public A2aPollingTask(
       final InboundIntermediateConnectorContext context,
       final ProcessInstanceContext processInstanceContext,
+      final A2aAgentCardFetcher agentCardFetcher,
       final A2aClientFactory clientFactory,
       final A2aSdkObjectConverter objectConverter,
       final ObjectMapper objectMapper) {
     this.context = context;
     this.processInstanceContext = processInstanceContext;
+    this.agentCardFetcher = agentCardFetcher;
     this.clientFactory = clientFactory;
     this.objectConverter = objectConverter;
     this.objectMapper = objectMapper;
@@ -199,14 +199,8 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
     if (this.agentCard == null) {
       try {
         final var connection = runtimeProperties.data().connection();
-        this.agentCard =
-            A2A.getAgentCard(
-                connection.url(),
-                Optional.ofNullable(connection.agentCardLocation())
-                    .filter(StringUtils::isNotBlank)
-                    .orElse(null),
-                Map.of());
-      } catch (A2AClientError e) {
+        this.agentCard = agentCardFetcher.fetchAgentCardRaw(connection);
+      } catch (Exception e) {
         LOG.error("Failed to load A2A Agent Card", e);
         this.context.log(
             activity ->

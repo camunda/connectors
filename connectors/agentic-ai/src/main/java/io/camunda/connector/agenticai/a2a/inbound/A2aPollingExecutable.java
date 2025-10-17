@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.a2a.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.api.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRequest;
@@ -43,6 +44,7 @@ public class A2aPollingExecutable
     implements InboundConnectorExecutable<InboundIntermediateConnectorContext> {
 
   private final A2aPollingExecutorService executorService;
+  private final A2aAgentCardFetcher agentCardFetcher;
   private final A2aClientFactory clientFactory;
   private final A2aSdkObjectConverter objectConverter;
   private final ObjectMapper objectMapper;
@@ -51,10 +53,12 @@ public class A2aPollingExecutable
 
   public A2aPollingExecutable(
       final A2aPollingExecutorService executorService,
+      final A2aAgentCardFetcher agentCardFetcher,
       final A2aClientFactory clientFactory,
       final A2aSdkObjectConverter objectConverter,
       final ObjectMapper objectMapper) {
     this.executorService = executorService;
+    this.agentCardFetcher = agentCardFetcher;
     this.clientFactory = clientFactory;
     this.objectConverter = objectConverter;
     this.objectMapper = objectMapper;
@@ -64,7 +68,12 @@ public class A2aPollingExecutable
   public void activate(final InboundIntermediateConnectorContext context) {
     processInstancesFetcherTask =
         new A2aPollingProcessInstancesFetcherTask(
-            context, executorService, clientFactory, objectConverter, objectMapper);
+            context,
+            executorService,
+            agentCardFetcher,
+            clientFactory,
+            objectConverter,
+            objectMapper);
     processInstancesFetcherTask.start();
   }
 
