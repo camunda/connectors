@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.a2a.inbound.task;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.a2a.spec.AgentCard;
 import io.a2a.spec.TaskQueryParams;
 import io.a2a.spec.TaskState;
 import io.a2a.spec.TaskStatus;
@@ -48,7 +47,6 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
   private final A2aSdkObjectConverter objectConverter;
   private final ObjectMapper objectMapper;
 
-  private AgentCard agentCard;
   private A2aClient client;
 
   public A2aPollingTask(
@@ -173,11 +171,8 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
   private synchronized A2aClient getClient(final A2aPollingRuntimeProperties runtimeProperties) {
     if (this.client == null) {
       try {
-        final var agentCard = getAgentCard(runtimeProperties);
-        if (agentCard == null) {
-          return null;
-        }
-
+        final var agentCard =
+            agentCardFetcher.fetchAgentCardRaw(runtimeProperties.data().connection());
         this.client =
             clientFactory.buildClient(
                 agentCard, (event, ignore) -> {}, runtimeProperties.data().historyLength());
@@ -193,25 +188,6 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
     }
 
     return this.client;
-  }
-
-  private synchronized AgentCard getAgentCard(final A2aPollingRuntimeProperties runtimeProperties) {
-    if (this.agentCard == null) {
-      try {
-        final var connection = runtimeProperties.data().connection();
-        this.agentCard = agentCardFetcher.fetchAgentCardRaw(connection);
-      } catch (Exception e) {
-        LOG.error("Failed to load A2A Agent Card", e);
-        this.context.log(
-            activity ->
-                activity
-                    .withSeverity(Severity.ERROR)
-                    .withTag("a2a-polling-agent-card")
-                    .withMessage("Failed to load A2A Agent Card: " + e.getMessage()));
-      }
-    }
-
-    return this.agentCard;
   }
 
   @Override
