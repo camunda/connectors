@@ -16,6 +16,7 @@ import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
 import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
 import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
+import dev.langchain4j.model.chat.request.json.JsonNullSchema;
 import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonReferenceSchema;
@@ -367,6 +368,54 @@ class JsonSchemaElementModuleTest {
                             });
                   });
           assertThat(schema.required()).containsExactly("myItems");
+          assertThat(schema.additionalProperties()).isNull();
+        });
+  }
+
+  @Test
+  void shouldHandleSchemaIncludingNullSchema() throws Exception {
+    String json =
+        """
+        {
+          "type": "object",
+          "properties": {
+            "myProperty": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "My nullable property"
+            }
+          },
+          "required": [
+            "myProperty"
+          ]
+        }
+        """;
+
+    assertSchemaSerializationAndDeserialization(
+        json,
+        schema -> {
+          assertThat(schema.properties()).containsKey("myProperty");
+          assertThat(schema.properties().get("myProperty"))
+              .asInstanceOf(InstanceOfAssertFactories.type(JsonAnyOfSchema.class))
+              .satisfies(
+                  anyOfSchema -> {
+                    assertThat(anyOfSchema.anyOf())
+                        .hasSize(2)
+                        .satisfiesExactly(
+                            stringSchema ->
+                                assertThat(stringSchema).isInstanceOf(JsonStringSchema.class),
+                            nullSchema ->
+                                assertThat(nullSchema).isInstanceOf(JsonNullSchema.class));
+
+                    assertThat(anyOfSchema.description()).isEqualTo("My nullable property");
+                  });
+          assertThat(schema.required()).containsExactly("myProperty");
           assertThat(schema.additionalProperties()).isNull();
         });
   }

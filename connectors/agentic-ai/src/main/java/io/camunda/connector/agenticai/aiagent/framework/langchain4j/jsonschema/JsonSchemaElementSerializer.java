@@ -19,6 +19,7 @@ import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_TYPE;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_ARRAY;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_BOOLEAN;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_INTEGER;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_NULL;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_NUMBER;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_OBJECT;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_STRING;
@@ -31,6 +32,7 @@ import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
 import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
 import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
+import dev.langchain4j.model.chat.request.json.JsonNullSchema;
 import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonReferenceSchema;
@@ -52,6 +54,7 @@ public class JsonSchemaElementSerializer extends JsonSerializer<JsonSchemaElemen
       case JsonNumberSchema numberSchema -> serializeNumberSchema(numberSchema, gen);
       case JsonIntegerSchema integerSchema -> serializeIntegerSchema(integerSchema, gen);
       case JsonBooleanSchema booleanSchema -> serializeBooleanSchema(booleanSchema, gen);
+      case JsonNullSchema ignored -> serializeNullSchema(gen);
       case JsonReferenceSchema referenceSchema -> serializeReferenceSchema(referenceSchema, gen);
       case JsonArraySchema arraySchema -> serializeArraySchema(arraySchema, gen);
       case JsonAnyOfSchema anyOfSchema -> serializeAnyOfSchema(anyOfSchema, gen);
@@ -167,6 +170,12 @@ public class JsonSchemaElementSerializer extends JsonSerializer<JsonSchemaElemen
       gen.writeStringField(PROPERTY_DESCRIPTION, schema.description());
     }
 
+    gen.writeEndObject();
+  }
+
+  private void serializeNullSchema(JsonGenerator gen) throws IOException {
+    gen.writeStartObject();
+    gen.writeStringField(PROPERTY_TYPE, TYPE_NULL);
     gen.writeEndObject();
   }
 
