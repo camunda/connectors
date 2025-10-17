@@ -17,7 +17,8 @@ import javax.annotation.Nullable;
 @AgenticAiRecord
 @JsonDeserialize(builder = A2aTaskStatus.A2aTaskStatusJacksonProxyBuilder.class)
 public record A2aTaskStatus(
-    TaskState state, @Nullable A2aMessage message, @Nullable OffsetDateTime timestamp) {
+    TaskState state, @Nullable A2aMessage message, @Nullable OffsetDateTime timestamp)
+    implements A2aTaskStatusBuilder.With {
 
   public enum TaskState {
     SUBMITTED("submitted"),

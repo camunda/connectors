@@ -23,7 +23,7 @@ public record A2aTask(
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<A2aArtifact> artifacts,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) List<A2aMessage> history)
-    implements A2aSendMessageResult {
+    implements A2aSendMessageResult, A2aTaskBuilder.With {
 
   public static final String TASK = "task";
 
