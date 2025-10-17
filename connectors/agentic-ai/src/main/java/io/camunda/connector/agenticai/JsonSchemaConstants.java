@@ -15,6 +15,7 @@ public abstract class JsonSchemaConstants {
   public static final String TYPE_INTEGER = "integer";
   public static final String TYPE_BOOLEAN = "boolean";
   public static final String TYPE_ARRAY = "array";
+  public static final String TYPE_NULL = "null";
 
   public static final String PROPERTY_TYPE = "type";
   public static final String PROPERTY_DESCRIPTION = "description";

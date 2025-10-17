@@ -19,6 +19,7 @@ import static io.camunda.connector.agenticai.JsonSchemaConstants.PROPERTY_TYPE;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_ARRAY;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_BOOLEAN;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_INTEGER;
+import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_NULL;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_NUMBER;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_OBJECT;
 import static io.camunda.connector.agenticai.JsonSchemaConstants.TYPE_STRING;
@@ -36,6 +37,7 @@ import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
 import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
 import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
+import dev.langchain4j.model.chat.request.json.JsonNullSchema;
 import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonReferenceSchema;
@@ -76,6 +78,7 @@ public class JsonSchemaElementDeserializer extends JsonDeserializer<JsonSchemaEl
       case TYPE_INTEGER -> createIntegerSchema(node);
       case TYPE_BOOLEAN -> createBooleanSchema(node);
       case TYPE_ARRAY -> createArraySchema(node, objectMapper);
+      case TYPE_NULL -> new JsonNullSchema();
       case null, default ->
           throw new IllegalArgumentException(
               "Unknown JSON schema element type '%s'".formatted(nodeType));
