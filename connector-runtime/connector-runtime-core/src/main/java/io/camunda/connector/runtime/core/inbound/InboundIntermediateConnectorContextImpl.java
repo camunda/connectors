@@ -81,7 +81,7 @@ public class InboundIntermediateConnectorContextImpl
     Supplier<Map<String, Object>> variableSupplier =
         () ->
             processInstanceClient.fetchVariablesByProcessInstanceKey(
-                elementInstance.getProcessInstanceKey());
+                elementInstance.getProcessInstanceKey(), elementInstance.getElementInstanceKey());
 
     return new DefaultProcessInstanceContext(
         this,
