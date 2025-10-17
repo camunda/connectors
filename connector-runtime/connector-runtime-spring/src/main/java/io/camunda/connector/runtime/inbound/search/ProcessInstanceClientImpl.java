@@ -59,6 +59,7 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
    * @return A list of active {@link io.camunda.client.api.search.response.ElementInstance} objects.
    * @throws RuntimeException If an error occurs during the fetch operation.
    */
+  @Override
   public List<ElementInstance> fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
       final Long processDefinitionKey, final String elementId) {
     fetchActiveProcessLock.lock();
@@ -93,6 +94,7 @@ public class ProcessInstanceClientImpl implements ProcessInstanceClient {
    * @return A map containing the variables associated with the active process and element instance.
    * @throws RuntimeException If an error occurs during the fetch operation.
    */
+  @Override
   public Map<String, Object> fetchVariablesByProcessInstanceKey(
       final Long processInstanceKey, final Long elementInstanceKey) {
     fetchVariablesLock.lock();
