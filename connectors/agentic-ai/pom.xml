@@ -19,7 +19,7 @@
 
   <properties>
     <version.record-builder>49</version.record-builder>
-    <version.groovy>4.0.28</version.groovy>
+    <version.groovy>4.0.29</version.groovy>
     <version.gmavenplus-plugin>4.2.1</version.gmavenplus-plugin>
     <version.a2asdk>0.3.0.Beta2</version.a2asdk>
   </properties>
@@ -74,13 +74,13 @@
     <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java-util</artifactId>
-        <version>4.32.1</version>
+        <version>4.33.0</version>
     </dependency>
 
     <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
-        <version>4.32.1</version>
+        <version>4.33.0</version>
     </dependency>
 
     <dependency>
