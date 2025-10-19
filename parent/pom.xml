@@ -88,15 +88,15 @@ limitations under the License.</license.inlineheader>
 
     <version.spring-boot>3.5.6</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>5.13.6</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.5.19</version.logback>
+    <version.logback>1.5.20</version.logback>
 
     <version.aws-java-sdk>1.12.792</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.35.5</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.35.10</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.792</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.35.5</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.35.10</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.35.5</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.35.10</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.3</version.localstack>
 
@@ -104,10 +104,10 @@ limitations under the License.</license.inlineheader>
 
     <version.google-http-client>1.45.2</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20250910-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20251013-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
-    <version.google-auth-library-oauth2-http>1.39.1</version.google-auth-library-oauth2-http>
-    <version.google-api-services-docs>v1-rev20250925-2.0.0</version.google-api-services-docs>
+    <version.google-auth-library-oauth2-http>1.40.0</version.google-auth-library-oauth2-http>
+    <version.google-api-services-docs>v1-rev20251013-2.0.0</version.google-api-services-docs>
     <version.google-api-services-sheets>v4-rev20250616-2.0.0</version.google-api-services-sheets>
     <version.google-libraries-bom>26.70.0</version.google-libraries-bom>
     <version.google-cloud-storage>2.58.1</version.google-cloud-storage>
@@ -116,7 +116,7 @@ limitations under the License.</license.inlineheader>
     <version.httpcore>4.4.16</version.httpcore>
     <version.httpcore5>5.3.6</version.httpcore5>
     <version.httpclient5>5.5.1</version.httpclient5>
-    <version.pdfbox>3.0.5</version.pdfbox>
+    <version.pdfbox>3.0.6</version.pdfbox>
     <version.collections4>4.5.0</version.collections4>
 
     <version.commons-io>2.20.0</version.commons-io>
@@ -125,7 +125,7 @@ limitations under the License.</license.inlineheader>
     <version.kafka-clients>3.9.1</version.kafka-clients>
 
     <version.microsoft-graph>6.54.0</version.microsoft-graph>
-    <version.azure-identity>1.18.0</version.azure-identity>
+    <version.azure-identity>1.18.1</version.azure-identity>
 
     <version.bouncycastle>1.82</version.bouncycastle>
     <version.box-sdk>4.16.4</version.box-sdk>
@@ -149,7 +149,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.6.2</plugin.version.maven-enforcer-plugin>
-    <plugin.version.maven-exec-plugin>3.6.1</plugin.version.maven-exec-plugin>
+    <plugin.version.maven-exec-plugin>3.6.2</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.1.4</plugin.version.maven-install-plugin>
     <plugin.version.license>4.6</plugin.version.license>
     <plugin.version.license.codehaus>2.7.0</plugin.version.license.codehaus>
@@ -512,7 +512,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java-util</artifactId>
-        <version>4.32.1</version>
+        <version>4.33.0</version>
       </dependency>
 
       <dependency>
