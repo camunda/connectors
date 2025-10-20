@@ -48,7 +48,9 @@ public interface ProcessInstanceClient {
    * Fetches the variables associated with a given active process instance identified by its key.
    *
    * @param processInstanceKey The unique identifier for the active process instance.
+   * @param elementInstanceKey The unique identifier for the active element instance.
    * @return A {@link Map} containing the variables associated with the active process instance.
    */
-  Map<String, Object> fetchVariablesByProcessInstanceKey(final Long processInstanceKey);
+  Map<String, Object> fetchVariablesByProcessInstanceKey(
+      final Long processInstanceKey, final Long elementInstanceKey);
 }
