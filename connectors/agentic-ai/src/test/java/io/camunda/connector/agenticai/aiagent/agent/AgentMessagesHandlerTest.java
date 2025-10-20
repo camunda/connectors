@@ -35,6 +35,8 @@ import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
+import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposerImpl;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
@@ -74,10 +76,12 @@ class AgentMessagesHandlerTest {
 
   private AgentMessagesHandler messagesHandler;
   private RuntimeMemory runtimeMemory;
+  private SystemPromptComposer systemPromptComposer;
 
   @BeforeEach
   void setUp() {
-    messagesHandler = new AgentMessagesHandlerImpl(gatewayToolHandlers);
+    systemPromptComposer = new SystemPromptComposerImpl(List.of());
+    messagesHandler = new AgentMessagesHandlerImpl(gatewayToolHandlers, systemPromptComposer);
     runtimeMemory = spy(new DefaultRuntimeMemory());
   }
 
