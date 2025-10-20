@@ -10,12 +10,17 @@ import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.assista
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.systemMessage;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.exception.ModelNotFoundException;
+import dev.langchain4j.exception.UnresolvedModelServerException;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
@@ -37,6 +42,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfig
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -133,6 +139,48 @@ class Langchain4JAiFrameworkAdapterTest {
     final var chatRequest = chatRequestCaptor.getValue();
     assertThat(chatRequest.messages()).containsExactlyElementsOf(L4J_MESSAGES);
     assertThat(chatRequest.toolSpecifications()).containsExactlyElementsOf(L4J_TOOL_SPECIFICATIONS);
+  }
+
+  @Test
+  void wrapsUnderlyingExceptionsInConnectorException() {
+    reset(chatModel, chatResponse, chatMessageConverter);
+    when(chatMessageConverter.map(runtimeMemory.filteredMessages())).thenReturn(L4J_MESSAGES);
+
+    final var cause = new ModelNotFoundException("Model 'dummy' was not found");
+    doThrow(cause).when(chatModel).chat(any(ChatRequest.class));
+
+    assertThatThrownBy(
+            () ->
+                adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            ex -> {
+              assertThat(ex.getErrorCode()).isEqualTo("FAILED_MODEL_CALL");
+              assertThat(ex.getMessage())
+                  .isEqualTo("Model call failed: Model 'dummy' was not found");
+              assertThat(ex.getCause()).isEqualTo(cause);
+            });
+  }
+
+  @Test
+  void usesExceptionClassIfNoMessageIncludedInException() {
+    reset(chatModel, chatResponse, chatMessageConverter);
+    when(chatMessageConverter.map(runtimeMemory.filteredMessages())).thenReturn(L4J_MESSAGES);
+
+    final var cause = new UnresolvedModelServerException((String) null);
+    doThrow(cause).when(chatModel).chat(any(ChatRequest.class));
+
+    assertThatThrownBy(
+            () ->
+                adapter.executeChatRequest(createExecutionContext(), AGENT_CONTEXT, runtimeMemory))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            ex -> {
+              assertThat(ex.getErrorCode()).isEqualTo("FAILED_MODEL_CALL");
+              assertThat(ex.getMessage())
+                  .isEqualTo("Model call failed: UnresolvedModelServerException");
+              assertThat(ex.getCause()).isEqualTo(cause);
+            });
   }
 
   @Test

@@ -6,12 +6,15 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
+import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_MODEL_CALL;
+
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
@@ -22,6 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.api.error.ConnectorException;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 
@@ -58,7 +62,7 @@ public class Langchain4JAiFrameworkAdapter
     configureResponseFormat(chatRequestBuilder, executionContext.response());
 
     final ChatModel chatModel = chatModelFactory.createChatModel(executionContext.provider());
-    final ChatResponse chatResponse = chatModel.chat(chatRequestBuilder.build());
+    final ChatResponse chatResponse = doChat(chatModel, chatRequestBuilder);
     final AssistantMessage assistantMessage = chatMessageConverter.toAssistantMessage(chatResponse);
 
     final var updatedAgentContext =
@@ -105,7 +109,21 @@ public class Langchain4JAiFrameworkAdapter
     return null;
   }
 
-  private AgentMetrics.TokenUsage tokenUsage(dev.langchain4j.model.output.TokenUsage tokenUsage) {
+  private ChatResponse doChat(ChatModel chatModel, ChatRequest.Builder chatRequestBuilder) {
+    try {
+      return chatModel.chat(chatRequestBuilder.build());
+    } catch (Exception e) {
+      final var message =
+          Optional.ofNullable(e.getMessage())
+              .filter(StringUtils::isNotBlank)
+              .orElseGet(() -> e.getClass().getSimpleName());
+
+      throw new ConnectorException(
+          ERROR_CODE_FAILED_MODEL_CALL, "Model call failed: %s".formatted(message), e);
+    }
+  }
+
+  private AgentMetrics.TokenUsage tokenUsage(TokenUsage tokenUsage) {
     if (tokenUsage == null) {
       return AgentMetrics.TokenUsage.empty();
     }
