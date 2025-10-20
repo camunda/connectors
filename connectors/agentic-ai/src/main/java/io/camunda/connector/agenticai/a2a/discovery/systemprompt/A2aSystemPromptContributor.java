@@ -28,7 +28,7 @@ import org.springframework.util.StreamUtils;
 public class A2aSystemPromptContributor implements SystemPromptContributor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(A2aSystemPromptContributor.class);
-  private static final String A2A_PROTOCOL_RESOURCE = "a2a/a2a_system_prompt.md";
+  private static final String A2A_PROTOCOL_RESOURCE = "a2a/a2a-system-prompt.md";
   public static final int ORDER = 100;
 
   private final String a2aInstructions;
@@ -74,7 +74,7 @@ public class A2aSystemPromptContributor implements SystemPromptContributor {
           "Failed to load A2A protocol instructions from {}: {}",
           A2A_PROTOCOL_RESOURCE,
           e.getMessage());
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 }

@@ -11,7 +11,12 @@ import static io.camunda.connector.agenticai.util.ObjectMapperConstants.STRING_O
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aArtifact;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
@@ -22,6 +27,8 @@ import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -143,21 +150,6 @@ class A2aGatewayToolHandlerTest {
 
       var result = handler.handleToolDiscoveryResults(agentContext, toolDiscoveryResults);
 
-      Map<String, Object> expectedSchema =
-          Map.of(
-              "type",
-              "object",
-              "properties",
-              Map.of(
-                  "message",
-                  Map.of(
-                      "type",
-                      "string",
-                      "description",
-                      "The instruction or the follow-up message to send to the agent.")),
-              "required",
-              List.of("message"));
-
       assertThat(result).hasSize(1);
       assertThat(result)
           .satisfiesExactly(
@@ -166,7 +158,15 @@ class A2aGatewayToolHandlerTest {
                 // description contains JSON string of the map; parse and compare
                 var parsed = readDescriptionAsMap(toolDefinition.description());
                 assertThat(parsed).isEqualTo(content);
-                assertThat(toolDefinition.inputSchema()).isEqualTo(expectedSchema);
+                assertThat(toolDefinition.inputSchema())
+                    .satisfies(
+                        schema -> {
+                          assertThat(schema).containsOnlyKeys("type", "properties", "required");
+                          assertThat(schema).containsEntry("required", List.of("text"));
+                          //noinspection unchecked
+                          assertThat((Map<String, Object>) schema.get("properties"))
+                              .containsOnlyKeys("text", "contextId", "taskId", "referenceTaskIds");
+                        });
               });
     }
 
@@ -353,6 +353,37 @@ class A2aGatewayToolHandlerTest {
     }
   }
 
+  @SuppressWarnings("unchecked")
+  @Nested
+  class ResourceLoading {
+
+    @Test
+    void shouldThrowIllegalStateExceptionWhenResourceLoadingFails() throws IOException {
+      ObjectMapper mockMapper = mock(ObjectMapper.class);
+      when(mockMapper.readValue(any(InputStream.class), any(TypeReference.class)))
+          .thenThrow(new IOException("Simulated resource loading failure"));
+
+      assertThatThrownBy(() -> new A2aGatewayToolHandler(mockMapper))
+          .isInstanceOf(IllegalStateException.class)
+          .hasCauseInstanceOf(IOException.class)
+          .cause()
+          .hasMessageContaining("Simulated resource loading failure");
+    }
+
+    @Test
+    void shouldThrowIllegalStateExceptionWhenJsonIsInvalid() throws IOException {
+      ObjectMapper mockMapper = mock(ObjectMapper.class);
+      when(mockMapper.readValue(any(InputStream.class), any(TypeReference.class)))
+          .thenThrow(new JsonParseException(null, "Invalid JSON"));
+
+      assertThatThrownBy(() -> new A2aGatewayToolHandler(mockMapper))
+          .isInstanceOf(IllegalStateException.class)
+          .hasCauseInstanceOf(JsonParseException.class)
+          .cause()
+          .hasMessageContaining("Invalid JSON");
+    }
+  }
+
   private GatewayToolDefinition createGatewayToolDefinition(String type, String name) {
     return GatewayToolDefinition.builder()
         .type(type)
@@ -373,10 +404,8 @@ class A2aGatewayToolHandlerTest {
   private Map<String, Object> readDescriptionAsMap(String description) {
     try {
       assertThat(description).startsWith("This tool allows interaction");
-      assertThat(description).endsWith(A2aGatewayToolHandler.TOOL_CALL_RESULT_EXPLANATION);
-      final var startOfJson = description.indexOf("---") + 3;
-      final var endOfJson = description.lastIndexOf("---");
-      final var descriptionJson = description.substring(startOfJson, endOfJson).trim();
+      final var startOfJson = description.indexOf("\n") + 1;
+      final var descriptionJson = description.substring(startOfJson).trim();
       return objectMapper.readValue(descriptionJson, STRING_OBJECT_MAP_TYPE_REFERENCE);
     } catch (Exception e) {
       throw new RuntimeException("Failed to parse tool description JSON", e);

@@ -135,16 +135,14 @@ class A2aSendMessageResponseHandlerTest {
       assertThat(result).isEqualTo(expectedTask);
     }
 
-    @ParameterizedTest
-    @EnumSource(
-        value = TaskState.class,
-        names = {"INPUT_REQUIRED", "AUTH_REQUIRED"})
-    void shouldThrowForNotSupportedStates(TaskState taskState) {
-      Task task = createTask("task-input", "ctx-1", taskState);
+    @Test
+    void shouldThrowForNotSupportedState() {
+      Task task = createTask("task-input", "ctx-1", TaskState.AUTH_REQUIRED);
 
       assertThatThrownBy(() -> handler.handleTask(task))
           .isInstanceOf(RuntimeException.class)
-          .hasMessage("Task status %s is not supported yet.".formatted(taskState.asString()));
+          .hasMessage(
+              "Task status %s is not supported yet.".formatted(TaskState.AUTH_REQUIRED.asString()));
     }
   }
 

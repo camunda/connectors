@@ -18,7 +18,6 @@ import static org.mockito.Mockito.when;
 
 import io.a2a.client.ClientEvent;
 import io.a2a.client.MessageEvent;
-import io.a2a.spec.A2AClientException;
 import io.a2a.spec.AgentCard;
 import io.a2a.spec.Message;
 import io.a2a.spec.TextPart;
@@ -26,8 +25,8 @@ import io.camunda.connector.agenticai.a2a.client.api.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.model.A2aCommonSendMessageConfiguration;
+import io.camunda.connector.agenticai.a2a.client.model.A2aSendMessageOperationParametersBuilder;
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration.Parameters;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.sdk.A2aClient;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
@@ -39,6 +38,10 @@ import java.util.function.BiConsumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EmptySource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -67,19 +70,20 @@ class A2aMessageSenderTest {
   }
 
   @Test
-  void shouldReturnImmediateResultWhenCompleted() throws Exception {
+  void shouldReturnImmediateResultWhenCompleted() {
     var operation = newSendMessageOperation(Duration.ofSeconds(1));
     MessageEvent clientEvent = newMessageEvent();
     var expectedResult = messageResult(MESSAGE_ID);
     when(sendMessageResponseHandler.handleClientEvent(clientEvent)).thenReturn(expectedResult);
     mockClientSendMessage(clientEvent);
+
     var actualResult = messageSender.sendMessage(agentCard, operation);
     assertThat(actualResult).isSameAs(expectedResult);
     verify(a2aClient).close();
   }
 
   @Test
-  void shouldTimeoutWaitingForResponse() throws Exception {
+  void shouldTimeoutWaitingForResponse() {
     // very short timeout to keep test fast
     var operation = newSendMessageOperation(Duration.ofMillis(10));
     // Do not trigger consumer -> future never completes
@@ -91,7 +95,7 @@ class A2aMessageSenderTest {
   }
 
   @Test
-  void shouldWrapExceptionFromHandler() throws Exception {
+  void shouldWrapExceptionFromHandler() {
     var operation = newSendMessageOperation(Duration.ofSeconds(1));
     MessageEvent clientEvent = newMessageEvent();
     when(sendMessageResponseHandler.handleClientEvent(clientEvent))
@@ -105,11 +109,14 @@ class A2aMessageSenderTest {
   }
 
   @Test
-  void shouldConvertDocumentsAndIncludePartsInMessage() throws Exception {
+  void shouldConvertDocumentsAndIncludePartsInMessage() {
     Document document = mock(Document.class);
     var operation =
         new SendMessageOperationConfiguration(
-            new Parameters("hello", List.of(document)),
+            A2aSendMessageOperationParametersBuilder.builder()
+                .text("hello")
+                .documents(List.of(document))
+                .build(),
             new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
 
     MessageEvent clientEvent = newMessageEvent();
@@ -120,13 +127,8 @@ class A2aMessageSenderTest {
     when(documentToPartConverter.convert(List.of(document)))
         .thenAnswer(invocation -> List.of(partFromDocument));
     ArgumentCaptor<Message> sentMessageCaptor = ArgumentCaptor.forClass(Message.class);
-    doAnswer(
-            inv -> {
-              consumerRef.get().accept(clientEvent, agentCard);
-              return null;
-            })
-        .when(a2aClient)
-        .sendMessage(sentMessageCaptor.capture());
+    mockClientSendMessage(clientEvent, sentMessageCaptor);
+
     var actualResult = messageSender.sendMessage(agentCard, operation);
     assertThat(actualResult).isSameAs(expectedResult);
     Message sentMessage = sentMessageCaptor.getValue();
@@ -137,9 +139,178 @@ class A2aMessageSenderTest {
     verify(a2aClient).close();
   }
 
+  @Test
+  void shouldIncludeContextIdWhenProvided() {
+    var operation =
+        new SendMessageOperationConfiguration(
+            A2aSendMessageOperationParametersBuilder.builder()
+                .text("hello")
+                .contextId("ctx-456")
+                .build(),
+            new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
+
+    MessageEvent clientEvent = newMessageEvent();
+    var expectedResult = messageResult(MESSAGE_ID);
+    when(sendMessageResponseHandler.handleClientEvent(clientEvent)).thenReturn(expectedResult);
+    ArgumentCaptor<Message> sentMessageCaptor = ArgumentCaptor.forClass(Message.class);
+    mockClientSendMessage(clientEvent, sentMessageCaptor);
+
+    messageSender.sendMessage(agentCard, operation);
+
+    Message sentMessage = sentMessageCaptor.getValue();
+    assertThat(sentMessage.getContextId()).isEqualTo("ctx-456");
+    verify(a2aClient).close();
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(strings = {"", "  ", "\t"})
+  void shouldNotIncludeContextIdWhenNullOrBlank(String contextId) {
+    var operation =
+        new SendMessageOperationConfiguration(
+            A2aSendMessageOperationParametersBuilder.builder()
+                .text("hello")
+                .contextId(contextId)
+                .build(),
+            new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
+
+    MessageEvent clientEvent = newMessageEvent();
+    var expectedResult = messageResult(MESSAGE_ID);
+    when(sendMessageResponseHandler.handleClientEvent(clientEvent)).thenReturn(expectedResult);
+    ArgumentCaptor<Message> sentMessageCaptor = ArgumentCaptor.forClass(Message.class);
+    mockClientSendMessage(clientEvent, sentMessageCaptor);
+
+    messageSender.sendMessage(agentCard, operation);
+
+    Message sentMessage = sentMessageCaptor.getValue();
+    assertThat(sentMessage.getContextId()).isNull();
+    verify(a2aClient).close();
+  }
+
+  @Test
+  void shouldIncludeTaskIdWhenProvided() {
+    var operation =
+        new SendMessageOperationConfiguration(
+            A2aSendMessageOperationParametersBuilder.builder()
+                .text("hello")
+                .taskId("task-789")
+                .build(),
+            new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
+
+    MessageEvent clientEvent = newMessageEvent();
+    var expectedResult = messageResult(MESSAGE_ID);
+    when(sendMessageResponseHandler.handleClientEvent(clientEvent)).thenReturn(expectedResult);
+    ArgumentCaptor<Message> sentMessageCaptor = ArgumentCaptor.forClass(Message.class);
+    mockClientSendMessage(clientEvent, sentMessageCaptor);
+
+    messageSender.sendMessage(agentCard, operation);
+
+    Message sentMessage = sentMessageCaptor.getValue();
+    assertThat(sentMessage.getTaskId()).isEqualTo("task-789");
+    verify(a2aClient).close();
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(strings = {"", " ", "\t"})
+  void shouldNotIncludeTaskIdWhenNullOrBlank(String taskId) {
+    var operation =
+        new SendMessageOperationConfiguration(
+            A2aSendMessageOperationParametersBuilder.builder().text("hello").taskId(taskId).build(),
+            new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
+
+    MessageEvent clientEvent = newMessageEvent();
+    var expectedResult = messageResult(MESSAGE_ID);
+    when(sendMessageResponseHandler.handleClientEvent(clientEvent)).thenReturn(expectedResult);
+    ArgumentCaptor<Message> sentMessageCaptor = ArgumentCaptor.forClass(Message.class);
+    mockClientSendMessage(clientEvent, sentMessageCaptor);
+
+    messageSender.sendMessage(agentCard, operation);
+
+    Message sentMessage = sentMessageCaptor.getValue();
+    assertThat(sentMessage.getTaskId()).isNull();
+    verify(a2aClient).close();
+  }
+
+  @Test
+  void shouldIncludeReferenceTaskIdsWhenProvided() {
+    var operation =
+        new SendMessageOperationConfiguration(
+            A2aSendMessageOperationParametersBuilder.builder()
+                .text("hello")
+                .referenceTaskIds(List.of("ref-task-1", "ref-task-2"))
+                .build(),
+            new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
+
+    MessageEvent clientEvent = newMessageEvent();
+    var expectedResult = messageResult(MESSAGE_ID);
+    when(sendMessageResponseHandler.handleClientEvent(clientEvent)).thenReturn(expectedResult);
+    ArgumentCaptor<Message> sentMessageCaptor = ArgumentCaptor.forClass(Message.class);
+    mockClientSendMessage(clientEvent, sentMessageCaptor);
+
+    messageSender.sendMessage(agentCard, operation);
+
+    Message sentMessage = sentMessageCaptor.getValue();
+    assertThat(sentMessage.getReferenceTaskIds()).containsExactly("ref-task-1", "ref-task-2");
+    verify(a2aClient).close();
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @EmptySource
+  void shouldNotIncludeReferenceTaskIdsWhenNullOrEmpty(List<String> referenceTaskIds) {
+    var operation =
+        new SendMessageOperationConfiguration(
+            A2aSendMessageOperationParametersBuilder.builder()
+                .text("hello")
+                .referenceTaskIds(referenceTaskIds)
+                .build(),
+            new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
+
+    MessageEvent clientEvent = newMessageEvent();
+    var expectedResult = messageResult(MESSAGE_ID);
+    when(sendMessageResponseHandler.handleClientEvent(clientEvent)).thenReturn(expectedResult);
+    ArgumentCaptor<Message> sentMessageCaptor = ArgumentCaptor.forClass(Message.class);
+    mockClientSendMessage(clientEvent, sentMessageCaptor);
+
+    messageSender.sendMessage(agentCard, operation);
+
+    Message sentMessage = sentMessageCaptor.getValue();
+    assertThat(sentMessage.getReferenceTaskIds()).isNull();
+    verify(a2aClient).close();
+  }
+
+  @Test
+  void shouldIncludeAllOptionalFieldsWhenProvided() {
+    var operation =
+        new SendMessageOperationConfiguration(
+            A2aSendMessageOperationParametersBuilder.builder()
+                .text("hello")
+                .contextId("ctx-999")
+                .taskId("task-888")
+                .referenceTaskIds(List.of("ref-1", "ref-2", "ref-3"))
+                .build(),
+            new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
+
+    MessageEvent clientEvent = newMessageEvent();
+    var expectedResult = messageResult(MESSAGE_ID);
+    when(sendMessageResponseHandler.handleClientEvent(clientEvent)).thenReturn(expectedResult);
+    ArgumentCaptor<Message> sentMessageCaptor = ArgumentCaptor.forClass(Message.class);
+    mockClientSendMessage(clientEvent, sentMessageCaptor);
+
+    messageSender.sendMessage(agentCard, operation);
+
+    Message sentMessage = sentMessageCaptor.getValue();
+    assertThat(sentMessage.getContextId()).isEqualTo("ctx-999");
+    assertThat(sentMessage.getTaskId()).isEqualTo("task-888");
+    assertThat(sentMessage.getReferenceTaskIds()).containsExactly("ref-1", "ref-2", "ref-3");
+    verify(a2aClient).close();
+  }
+
   private SendMessageOperationConfiguration newSendMessageOperation(Duration timeout) {
     return new SendMessageOperationConfiguration(
-        new Parameters("hello", null), new A2aCommonSendMessageConfiguration(0, timeout));
+        A2aSendMessageOperationParametersBuilder.builder().text("hello").build(),
+        new A2aCommonSendMessageConfiguration(0, timeout));
   }
 
   private MessageEvent newMessageEvent() {
@@ -161,13 +332,18 @@ class A2aMessageSenderTest {
         .build();
   }
 
-  private void mockClientSendMessage(ClientEvent clientEvent) throws A2AClientException {
+  private void mockClientSendMessage(
+      ClientEvent clientEvent, ArgumentCaptor<Message> sentMessageCaptor) {
     doAnswer(
             inv -> {
               consumerRef.get().accept(clientEvent, agentCard);
               return null;
             })
         .when(a2aClient)
-        .sendMessage(any());
+        .sendMessage(sentMessageCaptor != null ? sentMessageCaptor.capture() : any());
+  }
+
+  private void mockClientSendMessage(ClientEvent clientEvent) {
+    mockClientSendMessage(clientEvent, null);
   }
 }

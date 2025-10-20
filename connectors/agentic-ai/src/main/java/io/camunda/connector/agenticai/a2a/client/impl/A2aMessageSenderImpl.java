@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.a2a.client.api.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
+import io.camunda.connector.agenticai.a2a.client.model.A2aSendMessageOperationParameters;
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
 import java.util.ArrayList;
@@ -24,6 +25,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class A2aMessageSenderImpl implements A2aMessageSender {
   private final A2aDocumentToPartConverter documentToPartConverter;
@@ -72,8 +75,24 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
 
   private Message createMessage(SendMessageOperationConfiguration sendMessageOperation) {
     List<Part<?>> parts = new ArrayList<>();
-    parts.add(new TextPart(sendMessageOperation.params().text()));
-    parts.addAll(documentToPartConverter.convert(sendMessageOperation.params().documents()));
-    return new Message.Builder().role(Message.Role.USER).parts(parts).build();
+    A2aSendMessageOperationParameters parameters = sendMessageOperation.params();
+    parts.add(new TextPart(parameters.text()));
+    parts.addAll(documentToPartConverter.convert(parameters.documents()));
+
+    Message.Builder builder = new Message.Builder().role(Message.Role.USER).parts(parts);
+
+    if (StringUtils.isNotBlank(parameters.contextId())) {
+      builder.contextId(parameters.contextId());
+    }
+
+    if (StringUtils.isNotBlank(parameters.taskId())) {
+      builder.taskId(parameters.taskId());
+    }
+
+    if (CollectionUtils.isNotEmpty(parameters.referenceTaskIds())) {
+      builder.referenceTaskIds(parameters.referenceTaskIds());
+    }
+
+    return builder.build();
   }
 }
