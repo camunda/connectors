@@ -16,6 +16,7 @@ import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -45,9 +46,11 @@ import io.camunda.connector.agenticai.a2a.client.model.result.A2aTaskStatus.Task
 import io.camunda.connector.agenticai.a2a.client.sdk.A2aClient;
 import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRuntimeProperties;
 import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRuntimeProperties.A2aPollingRuntimePropertiesData;
+import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.ActivityBuilder;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.inbound.Severity;
 import java.time.OffsetDateTime;
@@ -232,19 +235,17 @@ class A2aPollingTaskTest {
 
   @Test
   void directlyCorrelatesCompletedTask() throws JsonProcessingException {
+    final var successfulActivationCheckResult =
+        new ActivationCheckResult.Success.CanActivate(mock(ProcessElement.class));
+    when(context.canActivate(any(A2aTask.class))).thenReturn(successfulActivationCheckResult);
+
     when(processInstanceContext.bind(A2aPollingRuntimeProperties.class))
         .thenReturn(runtimeProperties(objectMapper.writeValueAsString(COMPLETED_TASK)));
 
     pollingTask.run();
 
-    verify(processInstanceContext)
-        .correlate(
-            assertArg(
-                arg ->
-                    assertThat(arg)
-                        .usingRecursiveComparison()
-                        .ignoringFieldsOfTypes(OffsetDateTime.class)
-                        .isEqualTo(COMPLETED_TASK)));
+    verify(context).canActivate(taskArgumentMatcher(COMPLETED_TASK));
+    verify(processInstanceContext).correlate(taskArgumentMatcher(COMPLETED_TASK));
     verifyNoInteractions(agentCardFetcher, clientFactory);
   }
 
@@ -372,5 +373,14 @@ class A2aPollingTaskTest {
   private static A2aPollingRuntimeProperties runtimeProperties(String clientResponse) {
     return new A2aPollingRuntimeProperties(
         new A2aPollingRuntimePropertiesData(CONNECTION, clientResponse, 3));
+  }
+
+  private A2aTask taskArgumentMatcher(final A2aTask expectedTask) {
+    return assertArg(
+        arg ->
+            assertThat(arg)
+                .usingRecursiveComparison()
+                .ignoringFieldsOfTypes(OffsetDateTime.class)
+                .isEqualTo(expectedTask));
   }
 }

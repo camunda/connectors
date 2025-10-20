@@ -19,10 +19,10 @@ import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTaskStatus;
 import io.camunda.connector.agenticai.a2a.client.sdk.A2aClient;
 import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRuntimeProperties;
+import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.inbound.Severity;
-import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,8 +37,6 @@ import org.slf4j.LoggerFactory;
 public class A2aPollingTask implements Runnable, AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(A2aPollingTask.class);
-  private static final List<A2aTaskStatus.TaskState> POLLABLE_TASK_STATES =
-      List.of(A2aTaskStatus.TaskState.SUBMITTED, A2aTaskStatus.TaskState.WORKING);
 
   private final InboundIntermediateConnectorContext context;
   private final ProcessInstanceContext processInstanceContext;
@@ -88,13 +86,14 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
   }
 
   private void handleTask(final A2aPollingRuntimeProperties runtimeProperties, final A2aTask task) {
-    final var taskState = Optional.ofNullable(task.status()).map(A2aTaskStatus::state).orElse(null);
-    final var needsPolling = taskState == null || POLLABLE_TASK_STATES.contains(taskState);
-    if (!needsPolling) {
+    if (context.canActivate(task) instanceof ActivationCheckResult.Success) {
       LOG.debug(
           "A2A task {} in state '{}' does not need polling -> directly correlating",
           task.id(),
-          taskState.asString());
+          Optional.ofNullable(task.status())
+              .map(A2aTaskStatus::state)
+              .map(A2aTaskStatus.TaskState::asString)
+              .orElse(null));
       processInstanceContext.correlate(task);
       return;
     }
