@@ -24,6 +24,8 @@ public record A2aPollingRuntimeProperties(@Valid @NotNull A2aPollingRuntimePrope
               id = "clientResponse",
               group = "clientResponse",
               label = "A2A Client Response",
+              description =
+                  "The response returned by the A2A client connector. Should contain either a task or a message.",
               binding = @TemplateProperty.PropertyBinding(name = "clientResponse"),
               feel = Property.FeelMode.required)
           String clientResponse,
@@ -33,6 +35,8 @@ public record A2aPollingRuntimeProperties(@Valid @NotNull A2aPollingRuntimePrope
               id = "historyLength",
               group = "options",
               label = "History length",
+              description =
+                  "The number of messages to return as part of the history when polling a task.",
               binding = @TemplateProperty.PropertyBinding(name = "historyLength"),
               feel = Property.FeelMode.optional,
               defaultValueType = TemplateProperty.DefaultValueType.Number,

@@ -27,10 +27,12 @@
     "label" : "Client Response"
   }, {
     "id" : "options",
-    "label" : "Options"
+    "label" : "Options",
+    "openByDefault" : false
   }, {
     "id" : "polling",
-    "label" : "Polling"
+    "label" : "Polling",
+    "openByDefault" : false
   }, {
     "id" : "activation",
     "label" : "Activation"
@@ -83,6 +85,7 @@
   }, {
     "id" : "internal_clientResponse",
     "label" : "A2A Client Response",
+    "description" : "The response returned by the A2A client connector. Should contain either a task or a message.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -105,6 +108,7 @@
   }, {
     "id" : "data.historyLength",
     "label" : "History length",
+    "description" : "The number of messages to return as part of the history when polling a task.",
     "optional" : false,
     "value" : "3",
     "feel" : "optional",

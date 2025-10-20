@@ -31,8 +31,8 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "connection", label = "Connection"),
       @ElementTemplate.PropertyGroup(id = "clientResponse", label = "Client Response"),
-      @ElementTemplate.PropertyGroup(id = "options", label = "Options"),
-      @ElementTemplate.PropertyGroup(id = "polling", label = "Polling"),
+      @ElementTemplate.PropertyGroup(id = "options", label = "Options", openByDefault = false),
+      @ElementTemplate.PropertyGroup(id = "polling", label = "Polling", openByDefault = false),
     },
     elementTypes = {
       @ElementTemplate.ConnectorElementType(
