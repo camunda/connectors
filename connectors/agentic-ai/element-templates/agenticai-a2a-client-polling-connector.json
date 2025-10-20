@@ -155,31 +155,23 @@
     "id" : "correlationKeyProcess",
     "label" : "Correlation key (process)",
     "description" : "Sets up the correlation key from process variables",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
     "group" : "correlation",
     "binding" : {
       "name" : "correlationKey",
       "type" : "bpmn:Message#zeebe:subscription#property"
     },
-    "type" : "String",
+    "type" : "Hidden",
     "value" : "=if internal_clientResponse.kind = \"message\" then\n  \"msg-\" + internal_clientResponse.messageId\nelse\n  \"task-\" + internal_clientResponse.id"
   }, {
     "id" : "correlationKeyPayload",
     "label" : "Correlation key (payload)",
     "description" : "Extracts the correlation key from the incoming message payload",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
     "group" : "correlation",
     "binding" : {
       "name" : "correlationKeyExpression",
       "type" : "zeebe:property"
     },
-    "type" : "String",
+    "type" : "Hidden",
     "value" : "=if kind = \"message\" then\n  \"msg-\" + messageId\nelse\n  \"task-\" + id"
   }, {
     "id" : "messageIdExpression",

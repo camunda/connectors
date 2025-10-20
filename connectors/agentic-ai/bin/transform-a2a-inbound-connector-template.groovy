@@ -72,15 +72,15 @@ json.properties.each { property ->
         updatedProperties.add(property)
     } else if (property.id == "correlationKeyProcess") {
         property.value = "=if internal_clientResponse.kind = \"message\" then\n  \"msg-\" + internal_clientResponse.messageId\nelse\n  \"task-\" + internal_clientResponse.id"
-        //property.type = "Hidden"
-        //property.remove("feel")
-        //property.remove("constraints")
+        property.type = "Hidden"
+        property.remove("feel")
+        property.remove("constraints")
         updatedProperties.add(property)
     } else if (property.id == "correlationKeyPayload") {
         property.value = "=if kind = \"message\" then\n  \"msg-\" + messageId\nelse\n  \"task-\" + id"
-        //property.type = "Hidden"
-        //property.remove("feel")
-        //property.remove("constraints")
+        property.type = "Hidden"
+        property.remove("feel")
+        property.remove("constraints")
         updatedProperties.add(property)
     } else {
         updatedProperties.add(property)
