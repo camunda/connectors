@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.SystemPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
+import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
@@ -46,9 +47,12 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
   private static final Logger LOGGER = LoggerFactory.getLogger(AgentMessagesHandlerImpl.class);
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
+  private final SystemPromptComposer systemPromptComposer;
 
-  public AgentMessagesHandlerImpl(GatewayToolHandlerRegistry gatewayToolHandlers) {
+  public AgentMessagesHandlerImpl(
+      GatewayToolHandlerRegistry gatewayToolHandlers, SystemPromptComposer systemPromptComposer) {
     this.gatewayToolHandlers = gatewayToolHandlers;
+    this.systemPromptComposer = systemPromptComposer;
   }
 
   @Override
@@ -57,11 +61,13 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
       AgentContext agentContext,
       RuntimeMemory memory,
       SystemPromptConfiguration systemPrompt) {
-    final var systemPromptText = systemPrompt.prompt();
-    if (StringUtils.isNotBlank(systemPromptText)) {
+    final var composedSystemPrompt =
+        systemPromptComposer.composeSystemPrompt(executionContext, agentContext, systemPrompt);
+
+    if (StringUtils.isNotBlank(composedSystemPrompt)) {
       // memory will take care of replacing any existing system message if already present
       memory.addMessage(
-          SystemMessage.builder().content(singleTextContent(systemPromptText)).build());
+          SystemMessage.builder().content(singleTextContent(composedSystemPrompt)).build());
     }
   }
 

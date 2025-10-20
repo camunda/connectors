@@ -47,6 +47,9 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSt
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
+import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
+import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposerImpl;
+import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptContributor;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
@@ -185,9 +188,16 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public SystemPromptComposer aiAgentSystemPromptComposer(
+      List<SystemPromptContributor> contributors) {
+    return new SystemPromptComposerImpl(contributors);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AgentMessagesHandler aiAgentMessagesHandler(
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentMessagesHandlerImpl(gatewayToolHandlers);
+      GatewayToolHandlerRegistry gatewayToolHandlers, SystemPromptComposer systemPromptComposer) {
+    return new AgentMessagesHandlerImpl(gatewayToolHandlers, systemPromptComposer);
   }
 
   @Bean
