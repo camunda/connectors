@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.a2a.discovery.configuration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.discovery.A2aGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.a2a.discovery.A2aGatewayToolHandler;
+import io.camunda.connector.agenticai.a2a.discovery.systemprompt.A2aSystemPromptContributor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -30,5 +31,11 @@ public class A2aDiscoveryConfiguration {
   @ConditionalOnMissingBean
   public A2aGatewayToolHandler a2aGatewayToolHandler(ObjectMapper objectMapper) {
     return new A2aGatewayToolHandler(objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public A2aSystemPromptContributor a2aSystemPromptContributor() {
+    return new A2aSystemPromptContributor();
   }
 }

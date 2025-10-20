@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.a2a.client.convert.A2aPartToContentConvert
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.discovery.A2aGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.a2a.discovery.A2aGatewayToolHandler;
+import io.camunda.connector.agenticai.a2a.discovery.systemprompt.A2aSystemPromptContributor;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -87,6 +88,7 @@ public class A2aAutoConfigurationTest {
               assertDoesNotHaveAnyBeansOf(context, A2A_CLIENT_BEANS);
               assertThat(context).doesNotHaveBean(A2aGatewayToolDefinitionResolver.class);
               assertThat(context).doesNotHaveBean(A2aGatewayToolHandler.class);
+              assertThat(context).doesNotHaveBean(A2aSystemPromptContributor.class);
             });
   }
 }
