@@ -1,4 +1,5 @@
 [
   "io.camunda.connector.IdpExtractionOutBoundTemplate.v1",
-  "io.camunda.connectors.agenticai.a2a.client.v0"
+  "io.camunda.connectors.agenticai.a2a.client.v0",
+  "io.camunda.connectors.agenticai.a2a.polling.v0"
 ]
