@@ -416,7 +416,6 @@ jobs:
             connectors-bundle-templates-${{ github.event.release.tag_name }}.tar.gz
             connectors-bundle-templates-${{ github.event.release.tag_name }}.zip
 
-
   helm-deploy:
     needs: [ setup, docker-release ]
     name: Run Helm Integration Tests
@@ -425,3 +424,67 @@ jobs:
     with:
       connectors-version: ${{ github.event.release.tag_name }}
       release-branch: ${{ needs.setup.outputs.releaseBranch }}
+
+  # Creates releases in FOSSA portal and publishes attribution/SBOM reports.
+  # This job runs only after all release artifacts are successfully published.
+  # Conditions:
+  # - Only runs for release tags
+  # - Skips release candidates (rc, alpha)
+  # - Depends on successful completion of all previous release jobs 
+  # - Waits for FOSSA scan completion (triggered by CHECK-LICENSES.yml on tag push)
+  fossa_release:
+    name: Create FOSSA releases and generate attribution/SBOM reports
+    needs:
+      - setup
+      - maven-release
+      - docker-release
+      - bundle-and-build-changelog
+      - helm-deploy
+    runs-on: ubuntu-latest
+
+    # Only run for proper releases (not RC, not alpha) AND all previous jobs succeeded
+    if: |
+      needs.setup.outputs.tagType == 'NORMAL' &&
+      needs.setup.result == 'success' &&
+      needs.maven-release.result == 'success' &&
+      needs.docker-release.result == 'success' &&
+      needs.bundle-and-build-changelog.result == 'success' &&
+      needs.helm-deploy.result == 'success'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common FOSSA_API_KEY;
+      - name: Get FOSSA context
+        id: fossa-context
+        uses: camunda/infra-global-github-actions/fossa/info@ec4caca36050ad1b7fee536facf95bc02515ddc6
+      - name: Wait for FOSSA scan completion
+        uses: camunda/infra-global-github-actions/fossa/wait-for-scan@infra-gh-854-publish-sboms
+        with:
+          fossa-api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
+          branch: ${{ steps.fossa-context.outputs.head-ref }}
+          project-id: "custom+50756/camunda/connectors"
+          revision-id: ${{ steps.fossa-context.outputs.head-revision }}
+      - name: Create FOSSA releases and generate reports
+        uses: camunda/infra-global-github-actions/fossa/release@infra-gh-854-publish-sboms
+        with:
+          fossa-api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
+          branch: ${{ steps.fossa-context.outputs.head-ref }}
+          project-id: "custom+50756/camunda/connectors"
+          attribution-release-group-id: "4945"
+          sbom-release-group-id: "4946"
+          release-number: ${{ github.event.release.tag_name }}
+          revision-id: ${{ steps.fossa-context.outputs.head-revision }}
+          attribution-format: "TXT"
+          sbom-format: "CYCLONEDX_JSON"
