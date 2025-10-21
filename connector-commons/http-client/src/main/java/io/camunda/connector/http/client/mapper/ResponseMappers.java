@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.http.client.utils.EnvVarHelper;
 import io.camunda.connector.http.client.utils.JsonHelper;
 import java.io.IOException;
 import java.util.function.Supplier;
@@ -50,7 +51,12 @@ public final class ResponseMappers {
     return (response) -> null;
   }
 
-  private static final int MAX_IN_MEMORY_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
+  /**
+   * The maximum size of the response body to read into memory, in bytes. If the response body
+   * exceeds this size, an exception will be thrown.
+   */
+  private static final int MAX_IN_MEMORY_BODY_SIZE = EnvVarHelper.getMaxInMemoryBodySize();
+
   private static final String ERROR_MESSAGE_TOO_LARGE =
       "Response body exceeds maximum in-memory size of " + MAX_IN_MEMORY_BODY_SIZE + " bytes";
 
