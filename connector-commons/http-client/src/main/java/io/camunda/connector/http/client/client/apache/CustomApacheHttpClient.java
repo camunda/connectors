@@ -56,7 +56,7 @@ public class CustomApacheHttpClient implements HttpClient {
                 request.getConnectionTimeoutInSeconds(), request.getReadTimeoutInSeconds()),
             new ProxyAwareHttpClient.ProxyContext(scheme, host))) {
 
-      var apacheResponseHandler = new MappingResponseHandler<>(responseMapper);
+      var apacheResponseHandler = new CustomResponseHandler<>(responseMapper);
       return client.execute(apacheRequest, apacheResponseHandler);
     } catch (ClientProtocolException e) {
       throw new ConnectorException(

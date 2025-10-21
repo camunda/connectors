@@ -20,8 +20,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * An HTTP response where the body is fully read into memory. Normally created by applying a {@link
- * ResponseMapper} to a {@link StreamingHttpResponse}.
+ * An object containing the context of an HTTP response after it has been mapped to a specific type.
+ * This includes the status code, reason phrase, headers, and the mapped entity.
  *
  * @see ResponseMappers for common mappers
  */

@@ -33,13 +33,13 @@ import org.apache.hc.core5.http.message.BasicClassicHttpResponse;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.junit.jupiter.api.Test;
 
-public class MappingResponseHandlerTest {
+public class CustomResponseHandlerTest {
 
   @Test
   public void shouldHandleJsonResponse() {
     // given
-    MappingResponseHandler<JsonNode> handler =
-        new MappingResponseHandler<>(
+    CustomResponseHandler<JsonNode> handler =
+        new CustomResponseHandler<>(
             ResponseMappers.asJsonNode(HttpClientObjectMapperSupplier::getCopy));
 
     ClassicHttpResponse response = new BasicClassicHttpResponse(200);
@@ -62,8 +62,7 @@ public class MappingResponseHandlerTest {
   @Test
   public void shouldHandleTextResponse() {
     // given
-    MappingResponseHandler<String> handler =
-        new MappingResponseHandler<>(ResponseMappers.asString());
+    CustomResponseHandler<String> handler = new CustomResponseHandler<>(ResponseMappers.asString());
     ClassicHttpResponse response = new BasicClassicHttpResponse(200);
     Header[] headers = new Header[] {new BasicHeader("Content-Type", "text/plain")};
     response.setHeaders(headers);
@@ -83,7 +82,7 @@ public class MappingResponseHandlerTest {
   @Test
   public void shouldHandleErrorResponse() {
     // given
-    MappingResponseHandler<Void> handler = new MappingResponseHandler<>((response) -> null);
+    CustomResponseHandler<Void> handler = new CustomResponseHandler<>((response) -> null);
     ClassicHttpResponse response = new BasicClassicHttpResponse(500);
     StringEntity entity = new StringEntity("Internal Server Error: something went wrong");
     response.setEntity(entity);

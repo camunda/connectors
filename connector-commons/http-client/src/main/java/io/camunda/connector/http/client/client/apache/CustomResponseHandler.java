@@ -30,21 +30,21 @@ import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MappingResponseHandler<T> implements HttpClientResponseHandler<MappedHttpResponse<T>> {
+public class CustomResponseHandler<T> implements HttpClientResponseHandler<MappedHttpResponse<T>> {
 
   private final ResponseMapper<T> responseMapper;
 
-  public MappingResponseHandler(ResponseMapper<T> responseMapper) {
+  public CustomResponseHandler(ResponseMapper<T> responseMapper) {
     this.responseMapper = responseMapper;
   }
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(MappingResponseHandler.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(CustomResponseHandler.class);
 
   @Override
   public MappedHttpResponse<T> handleResponse(ClassicHttpResponse response) {
     int code = response.getCode();
     String reason = response.getReasonPhrase();
-    Map<String, List<String>> headers = MappingResponseHandler.formatHeaders(response.getHeaders());
+    Map<String, List<String>> headers = formatHeaders(response.getHeaders());
 
     if (response.getEntity() != null) {
 

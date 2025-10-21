@@ -28,9 +28,9 @@ public class HttpService {
   public HttpCommonResult executeConnectorRequest(
       final HttpCommonRequest request, final DocumentFactory documentFactory) {
     HttpClientRequest httpClientRequest = mapToHttpClientRequest(request);
-    HttpCommonResultMapper responseHandler =
+    HttpCommonResultMapper responseMapper =
         new HttpCommonResultMapper(documentFactory, request.isStoreResponse(), OBJECT_MAPPER);
-    return HTTP_CLIENT.execute(httpClientRequest, responseHandler).mappedEntity();
+    return HTTP_CLIENT.execute(httpClientRequest, responseMapper).mappedEntity();
   }
 
   public HttpClientRequest mapToHttpClientRequest(HttpCommonRequest request) {
