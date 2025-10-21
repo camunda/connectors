@@ -16,25 +16,10 @@
  */
 package io.camunda.connector.http.client.mapper;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
 /** An HTTP response where the body is represented as a stream. */
 public record StreamingHttpResponse(
-    int status, String reason, Map<String, List<String>> headers, InputStream body)
-    implements Closeable {
-
-  @Override
-  public void close() {
-    if (body != null) {
-      try {
-        body.close();
-      } catch (IOException e) {
-        throw new RuntimeException("Failed to close response body stream", e);
-      }
-    }
-  }
-}
+    int status, String reason, Map<String, List<String>> headers, InputStream body) {}
