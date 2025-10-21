@@ -41,7 +41,7 @@ public class ConnectorExceptionMapperTest {
     assertThat(exception.getMessage()).isEqualTo("[no reason]");
     var response = new HashMap<>();
     response.put("headers", null);
-    response.put("body", "[no body]");
+    response.put("body", null);
     assertThat(exception.getErrorVariables()).containsEntry("response", response);
   }
 
@@ -59,7 +59,7 @@ public class ConnectorExceptionMapperTest {
     assertThat(exception.getMessage()).isEqualTo("Custom reason");
     var response = new HashMap<>();
     response.put("headers", null);
-    response.put("body", "[no body]");
+    response.put("body", null);
     assertThat(exception.getErrorVariables()).containsEntry("response", response);
   }
 
@@ -82,7 +82,7 @@ public class ConnectorExceptionMapperTest {
     assertThat(exception.getMessage()).isEqualTo("[no reason]");
     var response = new HashMap<>();
     response.put("headers", Map.of("Content-Type", "text/plain", "X-Custom", "value"));
-    response.put("body", "[no body]");
+    response.put("body", null);
     assertThat(exception.getErrorVariables()).containsEntry("response", response);
   }
 

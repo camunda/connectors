@@ -39,7 +39,7 @@ public class ConnectorExceptionMapper {
     String status = String.valueOf(result.status());
     String reason = Optional.ofNullable(result.reason()).orElse("[no reason]");
     Map<String, List<String>> headers = result.headers();
-    Object body = "[no body]";
+    Object body = null;
 
     try (InputStream bodyStream = result.body()) {
       if (bodyStream != null) {
