@@ -37,9 +37,7 @@ public class SaaSConfiguration {
   @Value("${camunda.saas.secrets.prefix:connector-secrets}")
   private String secretsNamePrefix;
 
-  /**
-   * Internal prefix used for M2M tokens
-   */
+  /** Internal prefix used for M2M tokens */
   @Value("${camunda.saas.secrets.internalPrefix:internal-connector-secrets}")
   private String secretsInternalNamePrefix;
 
