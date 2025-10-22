@@ -54,6 +54,21 @@
       <bpmn:outgoing>Flow_10hibj6</bpmn:outgoing>
     </bpmn:receiveTask>
     <bpmn:sequenceFlow id="Flow_10hibj6" sourceRef="Wait_For_Completion" targetRef="EndEvent_Async" />
+    <bpmn:boundaryEvent id="TimerBoundaryEvent" attachedToRef="Wait_For_Completion">
+      <bpmn:outgoing>Flow_10n8abt</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_0ohpulx">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT1M</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="Event_03qzgbb" name="Polling timed out">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:output source="={&#34;error&#34;: &#34;Polling timed out&#34;}" target="completedClientResponse" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_10n8abt</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_10n8abt" sourceRef="TimerBoundaryEvent" targetRef="Event_03qzgbb" />
     <bpmn:textAnnotation id="TextAnnotation_1f96g7y">
       <bpmn:text>Input: messageText</bpmn:text>
     </bpmn:textAnnotation>
@@ -82,6 +97,15 @@
         <dc:Bounds x="500" y="90" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_03qzgbb_di" bpmnElement="Event_03qzgbb">
+        <dc:Bounds x="672" y="232" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="649" y="275" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1ekhdla_di" bpmnElement="TimerBoundaryEvent">
+        <dc:Bounds x="552" y="152" width="36" height="36" />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="TextAnnotation_1f96g7y_di" bpmnElement="TextAnnotation_1f96g7y">
         <dc:Bounds x="160" y="50" width="100" height="41" />
         <bpmndi:BPMNLabel />
@@ -101,6 +125,11 @@
       <bpmndi:BPMNEdge id="Flow_10hibj6_di" bpmnElement="Flow_10hibj6">
         <di:waypoint x="600" y="130" />
         <di:waypoint x="672" y="130" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10n8abt_di" bpmnElement="Flow_10n8abt">
+        <di:waypoint x="570" y="188" />
+        <di:waypoint x="570" y="250" />
+        <di:waypoint x="672" y="250" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
