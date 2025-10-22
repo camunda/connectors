@@ -425,13 +425,12 @@ jobs:
       connectors-version: ${{ github.event.release.tag_name }}
       release-branch: ${{ needs.setup.outputs.releaseBranch }}
 
-  # Creates releases in FOSSA portal and publishes attribution/SBOM reports.
-  # This job runs only after all release artifacts are successfully published.
+  # This job waits for the FOSSA scan (triggered by CHECK_LICENSES.yml)
+  # to complete, then creates releases in FOSSA and generates attribution/SBOM reports.
   # Conditions:
   # - Only runs for release tags
   # - Skips release candidates (rc, alpha)
   # - Depends on successful completion of all previous release jobs 
-  # - Waits for FOSSA scan completion (triggered by CHECK-LICENSES.yml on tag push)
   fossa_release:
     name: Create FOSSA releases and generate attribution/SBOM reports
     needs:
@@ -468,22 +467,22 @@ jobs:
             secret/data/products/connectors/ci/common FOSSA_API_KEY;
       - name: Get FOSSA context
         id: fossa-context
-        uses: camunda/infra-global-github-actions/fossa/info@ec4caca36050ad1b7fee536facf95bc02515ddc6
+        uses: camunda/infra-global-github-actions/fossa/info@3be9c0625ab9879b87b483d48d1bddfde496c70b
       - name: Wait for FOSSA scan completion
-        uses: camunda/infra-global-github-actions/fossa/wait-for-scan@infra-gh-854-publish-sboms
+        uses: camunda/infra-global-github-actions/fossa/wait-for-scan@3be9c0625ab9879b87b483d48d1bddfde496c70b
         with:
           fossa-api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           branch: ${{ steps.fossa-context.outputs.head-ref }}
           project-id: "custom+50756/camunda/connectors"
           revision-id: ${{ steps.fossa-context.outputs.head-revision }}
       - name: Create FOSSA releases and generate reports
-        uses: camunda/infra-global-github-actions/fossa/release@infra-gh-854-publish-sboms
+        uses: camunda/infra-global-github-actions/fossa/release@3be9c0625ab9879b87b483d48d1bddfde496c70b
         with:
           fossa-api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           branch: ${{ steps.fossa-context.outputs.head-ref }}
           project-id: "custom+50756/camunda/connectors"
-          attribution-release-group-id: "4945"
-          sbom-release-group-id: "4946"
+          attribution-release-group-id: "4945" # https://app.fossa.com/projects/group/4945
+          sbom-release-group-id: "4946"        # https://app.fossa.com/projects/group/4946 
           release-number: ${{ github.event.release.tag_name }}
           revision-id: ${{ steps.fossa-context.outputs.head-revision }}
           attribution-format: "TXT"
