@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractSecretProvider implements SecretProvider {
+public abstract class AbstractSecretProvider implements SecretProvider, AutoCloseable {
 
   /** Secrets used as fallback if SecretProvider is loaded via SPI */
   public static final String SECRETS_PROJECT_ENV_NAME = "SECRETS_PROJECT_ID";

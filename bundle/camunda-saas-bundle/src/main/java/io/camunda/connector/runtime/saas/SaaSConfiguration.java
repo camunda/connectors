@@ -17,9 +17,11 @@
 package io.camunda.connector.runtime.saas;
 
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.secret.providers.AbstractSecretProvider;
 import io.camunda.connector.secret.providers.AwsSecretProvider;
 import io.camunda.connector.secret.providers.GcpSecretProvider;
 import java.util.Objects;
+import javax.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,7 +37,9 @@ public class SaaSConfiguration {
   @Value("${camunda.saas.secrets.prefix:connector-secrets}")
   private String secretsNamePrefix;
 
-  /** Internal prefix used for M2M tokens */
+  /**
+   * Internal prefix used for M2M tokens
+   */
   @Value("${camunda.saas.secrets.internalPrefix:internal-connector-secrets}")
   private String secretsInternalNamePrefix;
 
@@ -48,18 +52,32 @@ public class SaaSConfiguration {
   @Value("${camunda.saas.secrets.useAwsSecretProvider:false}")
   private boolean useAwsSecretProvider;
 
+  private AbstractSecretProvider secretProvider;
+  private AbstractSecretProvider internalSecretProvider;
+
   @Bean
   public SecretProvider getSecretProvider() {
     if (useAwsSecretProvider && Objects.equals(clusterProvider, "aws")) {
-      return new AwsSecretProvider(clusterId, secretsNamePrefix);
+      secretProvider = new AwsSecretProvider(clusterId, secretsNamePrefix);
+    } else {
+      secretProvider = new GcpSecretProvider(clusterId, secretsProjectId, secretsNamePrefix);
     }
-    return new GcpSecretProvider(clusterId, secretsProjectId, secretsNamePrefix);
+    return secretProvider;
   }
 
   public SecretProvider getInternalSecretProvider() {
     if (useAwsSecretProvider && Objects.equals(clusterProvider, "aws")) {
-      return new AwsSecretProvider(clusterId, secretsNamePrefix);
+      internalSecretProvider = new AwsSecretProvider(clusterId, secretsInternalNamePrefix);
+    } else {
+      internalSecretProvider =
+          new GcpSecretProvider(clusterId, secretsProjectId, secretsInternalNamePrefix);
     }
-    return new GcpSecretProvider(clusterId, secretsProjectId, secretsInternalNamePrefix);
+    return internalSecretProvider;
+  }
+
+  @PreDestroy
+  public void shutdown() throws Exception {
+    internalSecretProvider.close();
+    secretProvider.close();
   }
 }
