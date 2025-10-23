@@ -425,12 +425,9 @@ jobs:
       connectors-version: ${{ github.event.release.tag_name }}
       release-branch: ${{ needs.setup.outputs.releaseBranch }}
 
-  # This job waits for the FOSSA scan (triggered by CHECK_LICENSES.yml)
-  # to complete, then creates releases in FOSSA and generates attribution/SBOM reports.
-  # Conditions:
-  # - Only runs for release tags
-  # - Skips release candidates (rc, alpha)
-  # - Depends on successful completion of all previous release jobs 
+  # This job waits for the FOSSA scan (triggered by CHECK_LICENSES.yml) to complete,
+  # then creates releases in FOSSA and generates attribution/SBOM reports.
+  # Runs on all releases (including RC and alpha) after successful completion of all release jobs.
   fossa_release:
     name: Create FOSSA releases and generate attribution/SBOM reports
     needs:
@@ -441,9 +438,7 @@ jobs:
       - helm-deploy
     runs-on: ubuntu-latest
 
-    # Only run for proper releases (not RC, not alpha) AND all previous jobs succeeded
     if: |
-      needs.setup.outputs.tagType == 'NORMAL' &&
       needs.setup.result == 'success' &&
       needs.maven-release.result == 'success' &&
       needs.docker-release.result == 'success' &&
@@ -451,7 +446,7 @@ jobs:
       needs.helm-deploy.result == 'success'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.release.tag_name }}
       - name: Import Secrets
