@@ -9,6 +9,8 @@ package io.camunda.connector.agenticai.a2a.client.sdk;
 import io.a2a.client.Client;
 import io.a2a.spec.A2AClientException;
 import io.a2a.spec.Message;
+import io.a2a.spec.Task;
+import io.a2a.spec.TaskQueryParams;
 import io.camunda.connector.agenticai.a2a.client.sdk.grpc.ManagedChannelFactory;
 
 public class A2aClient implements AutoCloseable {
@@ -23,6 +25,14 @@ public class A2aClient implements AutoCloseable {
   public void sendMessage(Message message) {
     try {
       sdkClient.sendMessage(message);
+    } catch (A2AClientException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public Task getTask(TaskQueryParams request) {
+    try {
+      return sdkClient.getTask(request);
     } catch (A2AClientException e) {
       throw new RuntimeException(e);
     }

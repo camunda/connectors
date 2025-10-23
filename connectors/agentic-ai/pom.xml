@@ -257,6 +257,25 @@
               <generateHybridTemplates>true</generateHybridTemplates>
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.agenticai.a2a.inbound.A2aPollingExecutable</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.agenticai.a2a.polling.intermediate.v0</templateId>
+                  <templateFileName>agenticai-a2a-client-polling-inbound-connector-intermediate.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.agenticai.a2a.polling.receive.v0</templateId>
+                  <templateFileName>agenticai-a2a-client-polling-inbound-connector-receive.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>false</generateHybridTemplates>
+              <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
+              <features>
+                <ACKNOWLEDGEMENT_STRATEGY_SELECTION>false</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
+                <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>
+              </features>
+            </connector>
           </connectors>
           <versionHistoryEnabled>true</versionHistoryEnabled>
         </configuration>
@@ -306,6 +325,50 @@
                 <property>
                   <name>outputFile</name>
                   <value>${project.basedir}/element-templates/hybrid/agenticai-aiagent-job-worker-hybrid.json</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+          <execution>
+            <id>transform-a2a-polling-inbound-connector-intermediate-template</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/transform-a2a-inbound-connector-template.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>sourceFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-a2a-client-polling-inbound-connector-intermediate.json</value>
+                </property>
+                <property>
+                  <name>outputFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-a2a-client-polling-inbound-connector-intermediate.json</value>
+                </property>
+              </properties>
+            </configuration>
+          </execution>
+          <execution>
+            <id>transform-a2a-polling-inbound-connector-receive-template</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <scripts>
+                <script>file:///${project.basedir}/bin/transform-a2a-inbound-connector-template.groovy</script>
+              </scripts>
+              <properties>
+                <property>
+                  <name>sourceFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-a2a-client-polling-inbound-connector-receive.json</value>
+                </property>
+                <property>
+                  <name>outputFile</name>
+                  <value>${project.basedir}/element-templates/agenticai-a2a-client-polling-inbound-connector-receive.json</value>
                 </property>
               </properties>
             </configuration>
