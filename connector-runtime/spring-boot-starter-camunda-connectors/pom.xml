@@ -47,7 +47,6 @@
     <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>identity-spring-boot-autoconfigure</artifactId>
-      <version>8.6.15</version>
       <exclusions>
         <exclusion>
           <groupId>org.apache.logging.log4j</groupId>

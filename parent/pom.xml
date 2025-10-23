@@ -73,6 +73,7 @@ limitations under the License.</license.inlineheader>
     <version.zeebe>8.6.28</version.zeebe>
     <version.feel-engine>1.19.3</version.feel-engine>
     <version.spring-zeebe>8.5.22</version.spring-zeebe>
+    <version.identity>8.6.20</version.identity>
 
     <!-- Third party dependencies -->
 
@@ -307,6 +308,12 @@ limitations under the License.</license.inlineheader>
         <groupId>org.camunda.feel</groupId>
         <artifactId>feel-engine</artifactId>
         <version>${version.feel-engine}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.camunda</groupId>
+        <artifactId>identity-spring-boot-autoconfigure</artifactId>
+        <version>${version.identity}</version>
       </dependency>
 
       <!-- Third party dependencies -->
