@@ -75,7 +75,8 @@ public class HttpServiceDocumentTest {
                           throw new RuntimeException("Cannot create document");
                         }
                       }))
-          .hasMessage("Error while executing an HTTP request: Failed to create document: Cannot create document");
+          .hasMessage(
+              "Error while executing an HTTP request: Failed to create document: Cannot create document");
       var documents = store.getDocuments();
       assertThat(documents).isEmpty();
     }
