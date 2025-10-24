@@ -14,7 +14,7 @@
   <packaging>jar</packaging>
 
   <properties>
-    <version.jdbi>3.49.5</version.jdbi>
+    <version.jdbi>3.49.6</version.jdbi>
   </properties>
 
   <licenses>
@@ -56,7 +56,7 @@
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
       <artifactId>mssql-jdbc</artifactId>
-      <version>12.10.1.jre11</version>
+      <version>12.10.2.jre11</version>
     </dependency>
 
     <dependency>
