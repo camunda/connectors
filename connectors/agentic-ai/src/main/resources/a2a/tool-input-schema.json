@@ -6,39 +6,15 @@
       "description": "The request or the follow-up message to send to the agent."
     },
     "taskId": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
+      "type": "string",
       "description": "The ID of the task this message is part of. ONLY include if continuing an existing task (e.g., input-required); otherwise OMIT."
     },
     "contextId": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
+      "type": "string",
       "description": "The context ID for this message, used to group related interactions. OMIT on first message; include on subsequent messages."
     },
     "referenceTaskIds": {
-      "anyOf": [
-        {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        {
-          "type": "null"
-        }
-      ],
+      "type": "array",
       "description": "A list of other task IDs that this message references for additional context."
     }
   },
