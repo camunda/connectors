@@ -11,16 +11,11 @@ import static io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOpera
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.util.List;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -50,31 +45,11 @@ public sealed interface A2aStandaloneOperationConfiguration
 
   @TemplateSubType(id = SEND_MESSAGE_ID, label = "Send message")
   record SendMessageOperationConfiguration(
-      @Valid @NotNull Parameters params, @Valid @NotNull A2aCommonSendMessageConfiguration settings)
+      @Valid @NotNull A2aSendMessageOperationParameters params,
+      @Valid @NotNull A2aCommonSendMessageConfiguration settings)
       implements A2aStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String SEND_MESSAGE_ID = "sendMessage";
-
-    public record Parameters(
-        @NotBlank
-            @FEEL
-            @TemplateProperty(
-                group = "operation",
-                label = "Text",
-                description = "The text to to be included in the message.",
-                type = TemplateProperty.PropertyType.Text,
-                feel = Property.FeelMode.optional)
-            String text,
-        @FEEL
-            @TemplateProperty(
-                group = "operation",
-                label = "Documents",
-                description = "Documents to be included in the message.",
-                // TODO: add link to documentation
-                tooltip = "Referenced documents that will be added to the message.",
-                feel = Property.FeelMode.required,
-                optional = true)
-            List<Document> documents) {}
   }
 }

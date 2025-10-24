@@ -15,6 +15,8 @@ import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -37,7 +39,8 @@ public sealed interface A2aConnectorModeConfiguration
 
   @TemplateSubType(id = AI_AGENT_TOOL_ID, label = "AI Agent tool")
   record ToolModeConfiguration(
-      @NestedProperties(group = "operation") A2aToolOperationConfiguration toolOperation)
+      @NestedProperties(group = "operation") @Valid @NotNull
+          A2aToolOperationConfiguration toolOperation)
       implements A2aConnectorModeConfiguration {
 
     @TemplateProperty(ignore = true)
@@ -46,7 +49,8 @@ public sealed interface A2aConnectorModeConfiguration
 
   @TemplateSubType(id = STANDALONE_ID, label = "Standalone")
   record StandaloneModeConfiguration(
-      @NestedProperties(group = "operation") A2aStandaloneOperationConfiguration operation)
+      @NestedProperties(group = "operation") @Valid @NotNull
+          A2aStandaloneOperationConfiguration operation)
       implements A2aConnectorModeConfiguration {
 
     @TemplateProperty(ignore = true)

@@ -21,50 +21,30 @@ import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ClassPathResource;
 
 public class A2aGatewayToolHandler implements GatewayToolHandler {
-  public static final String GATEWAY_TYPE = "a2aClient";
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(A2aGatewayToolHandler.class);
+
+  public static final String GATEWAY_TYPE = "a2aClient";
   public static final String PROPERTY_A2A_CLIENTS = "a2aClients";
   public static final String A2A_PREFIX = "A2A_";
   private static final String A2A_TOOLS_DISCOVERY_PREFIX = A2A_PREFIX + "fetchAgentCard_";
-  private static final String TOOL_INPUT_JSON_SCHEMA =
-      """
-          {
-            "type": "object",
-            "properties": {
-              "message": {
-                "type": "string",
-                "description": "The instruction or the follow-up message to send to the agent."
-              }
-            },
-            "required": ["message"]
-          }
-          """;
-  public static final String TOOL_CALL_RESULT_EXPLANATION =
-      """
-      You can obtain the result of the tool call by inspecting the 'contents' property or properties as follows:
-      If the 'kind' property in the result is 'message', the 'contents' property contains the message contents.
-      If the 'kind' property is 'task', then the 'artifacts' contain the contents.
-      Look inside 'status' for the task status. Only when the status is 'completed' the task is finished and the artifacts are available.
-      If 'message' is present inside 'status', it contains information about the current state of the task.
-      """
-          .strip();
+  private static final String TOOL_INPUT_JSON_SCHEMA_RESOURCE = "a2a/tool-input-schema.json";
 
   private final ObjectMapper objectMapper;
   private final Map<String, Object> toolInputSchema;
 
   public A2aGatewayToolHandler(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
-    try {
-      this.toolInputSchema =
-          objectMapper.readValue(TOOL_INPUT_JSON_SCHEMA, STRING_OBJECT_MAP_TYPE_REFERENCE);
-    } catch (JsonProcessingException e) {
-      throw new IllegalStateException(e);
-    }
+    this.toolInputSchema = loadToolInputSchema();
   }
 
   @Override
@@ -208,20 +188,26 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
   private String createToolDefinitionDescription(ToolCallResult toolCallResult) {
     try {
       String agentCard = objectMapper.writeValueAsString(toolCallResult.content());
-      return """
-        This tool allows interaction with the remote agent represented by the following agent card:
-        ---
-        %s
-        ---
-        %s
-        """
-          .strip()
-          .formatted(agentCard, TOOL_CALL_RESULT_EXPLANATION);
+      return "This tool allows interaction with the remote A2A agent represented by the following agent card:\n%s"
+          .formatted(agentCard);
     } catch (JsonProcessingException e) {
       throw new ConnectorException(
           "Failed to serialize A2A client tool description for tool %s: %s"
               .formatted(toolCallResult.name(), toolCallResult.content()),
           e);
+    }
+  }
+
+  private Map<String, Object> loadToolInputSchema() {
+    try {
+      ClassPathResource resource = new ClassPathResource(TOOL_INPUT_JSON_SCHEMA_RESOURCE);
+      return objectMapper.readValue(resource.getInputStream(), STRING_OBJECT_MAP_TYPE_REFERENCE);
+    } catch (IOException e) {
+      LOGGER.error(
+          "Failed to load A2A tool input schema from {}: {}",
+          TOOL_INPUT_JSON_SCHEMA_RESOURCE,
+          e.getMessage());
+      throw new IllegalStateException(e);
     }
   }
 }

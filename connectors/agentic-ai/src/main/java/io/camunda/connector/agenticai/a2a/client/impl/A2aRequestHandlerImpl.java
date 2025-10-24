@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.client.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.a2a.spec.AgentCard;
 import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
@@ -13,22 +14,27 @@ import io.camunda.connector.agenticai.a2a.client.api.A2aRequestHandler;
 import io.camunda.connector.agenticai.a2a.client.model.A2aConnectorModeConfiguration.StandaloneModeConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aConnectorModeConfiguration.ToolModeConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aRequest;
+import io.camunda.connector.agenticai.a2a.client.model.A2aSendMessageOperationParameters;
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aToolOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aResult;
-import java.util.List;
+import org.apache.commons.collections4.MapUtils;
 
 public class A2aRequestHandlerImpl implements A2aRequestHandler {
 
   private final A2aAgentCardFetcher agentCardFetcher;
   private final A2aMessageSender a2aMessageSender;
+  private final ObjectMapper objectMapper;
 
   public A2aRequestHandlerImpl(
-      A2aAgentCardFetcher agentCardFetcher, A2aMessageSender a2aMessageSender) {
+      A2aAgentCardFetcher agentCardFetcher,
+      A2aMessageSender a2aMessageSender,
+      ObjectMapper objectMapper) {
     this.agentCardFetcher = agentCardFetcher;
     this.a2aMessageSender = a2aMessageSender;
+    this.objectMapper = objectMapper;
   }
 
   @Override
@@ -60,15 +66,14 @@ public class A2aRequestHandlerImpl implements A2aRequestHandler {
         return new FetchAgentCardOperationConfiguration();
       }
       case SendMessageOperationConfiguration.SEND_MESSAGE_ID -> {
-        if (operation.params() == null || !operation.params().containsKey("message")) {
+        if (MapUtils.isEmpty(operation.params())) {
           throw new IllegalArgumentException(
-              "The 'message' parameter is required for the '%s' operation."
+              "'params' cannot be null or empty for operation: '%s'"
                   .formatted(operation.operation()));
         }
-        return new SendMessageOperationConfiguration(
-            new SendMessageOperationConfiguration.Parameters(
-                operation.params().get("message").toString(), List.of()),
-            operation.sendMessageSettings());
+        final var parameters =
+            objectMapper.convertValue(operation.params(), A2aSendMessageOperationParameters.class);
+        return new SendMessageOperationConfiguration(parameters, operation.sendMessageSettings());
       }
       default ->
           throw new IllegalArgumentException(

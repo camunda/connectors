@@ -87,8 +87,10 @@ public class A2aConnectorConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public A2aRequestHandler a2aRequestHandler(
-      A2aAgentCardFetcher agentCardFetcher, A2aMessageSender a2aMessageSender) {
-    return new A2aRequestHandlerImpl(agentCardFetcher, a2aMessageSender);
+      A2aAgentCardFetcher agentCardFetcher,
+      A2aMessageSender a2aMessageSender,
+      ObjectMapper objectMapper) {
+    return new A2aRequestHandlerImpl(agentCardFetcher, a2aMessageSender, objectMapper);
   }
 
   @Bean

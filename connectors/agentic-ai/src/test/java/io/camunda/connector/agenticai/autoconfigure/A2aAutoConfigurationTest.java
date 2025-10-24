@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.autoconfigure;
 
 import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAssertions.assertDoesNotHaveAnyBeansOf;
 import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAssertions.assertHasAllBeansOf;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.a2a.client.A2aConnectorFunction;
 import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
@@ -21,6 +20,7 @@ import io.camunda.connector.agenticai.a2a.client.convert.A2aPartToContentConvert
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.discovery.A2aGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.a2a.discovery.A2aGatewayToolHandler;
+import io.camunda.connector.agenticai.a2a.discovery.systemprompt.A2aSystemPromptContributor;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -39,6 +39,12 @@ public class A2aAutoConfigurationTest {
           A2aRequestHandler.class,
           A2aConnectorFunction.class);
 
+  private static final List<Class<?>> A2A_DISCOVERY_BEANS =
+      List.of(
+          A2aGatewayToolDefinitionResolver.class,
+          A2aGatewayToolHandler.class,
+          A2aSystemPromptContributor.class);
+
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
           .withUserConfiguration(TestConfig.class)
@@ -46,22 +52,14 @@ public class A2aAutoConfigurationTest {
 
   @Test
   void enablesA2aDiscoveryByDefault() {
-    contextRunner.run(
-        context -> {
-          assertThat(context).hasSingleBean(A2aGatewayToolDefinitionResolver.class);
-          assertThat(context).hasSingleBean(A2aGatewayToolHandler.class);
-        });
+    contextRunner.run(context -> assertHasAllBeansOf(context, A2A_DISCOVERY_BEANS));
   }
 
   @Test
   void disablesA2aDiscoveryIfConfigured() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.a2a.discovery.enabled=false")
-        .run(
-            context -> {
-              assertThat(context).doesNotHaveBean(A2aGatewayToolDefinitionResolver.class);
-              assertThat(context).doesNotHaveBean(A2aGatewayToolHandler.class);
-            });
+        .run(context -> assertDoesNotHaveAnyBeansOf(context, A2A_DISCOVERY_BEANS));
   }
 
   @Test
@@ -85,8 +83,7 @@ public class A2aAutoConfigurationTest {
         .run(
             context -> {
               assertDoesNotHaveAnyBeansOf(context, A2A_CLIENT_BEANS);
-              assertThat(context).doesNotHaveBean(A2aGatewayToolDefinitionResolver.class);
-              assertThat(context).doesNotHaveBean(A2aGatewayToolHandler.class);
+              assertDoesNotHaveAnyBeansOf(context, A2A_DISCOVERY_BEANS);
             });
   }
 }
