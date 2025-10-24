@@ -15,7 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.util.StreamUtils;
 
 /**
@@ -28,13 +28,12 @@ import org.springframework.util.StreamUtils;
 public class A2aSystemPromptContributor implements SystemPromptContributor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(A2aSystemPromptContributor.class);
-  private static final String A2A_PROTOCOL_RESOURCE = "a2a/a2a-system-prompt.md";
   public static final int ORDER = 100;
 
   private final String a2aInstructions;
 
-  public A2aSystemPromptContributor() {
-    this.a2aInstructions = loadA2aInstructions();
+  public A2aSystemPromptContributor(Resource systemPromptResource) {
+    this.a2aInstructions = loadA2aInstructions(systemPromptResource);
   }
 
   @Override
@@ -63,16 +62,16 @@ public class A2aSystemPromptContributor implements SystemPromptContributor {
     return ORDER;
   }
 
-  private String loadA2aInstructions() {
+  private String loadA2aInstructions(Resource systemPromptResource) {
     try {
-      ClassPathResource resource = new ClassPathResource(A2A_PROTOCOL_RESOURCE);
-      String content = StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
-      LOGGER.debug("Loaded A2A protocol instructions from {}", A2A_PROTOCOL_RESOURCE);
+      String content =
+          StreamUtils.copyToString(systemPromptResource.getInputStream(), StandardCharsets.UTF_8);
+      LOGGER.debug("Loaded A2A protocol instructions from {}", systemPromptResource);
       return content;
     } catch (IOException e) {
       LOGGER.error(
           "Failed to load A2A protocol instructions from {}: {}",
-          A2A_PROTOCOL_RESOURCE,
+          systemPromptResource,
           e.getMessage());
       throw new IllegalStateException(e);
     }

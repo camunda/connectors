@@ -188,7 +188,7 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
   private String createToolDefinitionDescription(ToolCallResult toolCallResult) {
     try {
       String agentCard = objectMapper.writeValueAsString(toolCallResult.content());
-      return "This tool allows interaction with the remote agent represented by the following agent card:\n%s"
+      return "This tool allows interaction with the remote A2A agent represented by the following agent card:\n%s"
           .formatted(agentCard);
     } catch (JsonProcessingException e) {
       throw new ConnectorException(

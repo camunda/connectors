@@ -8,17 +8,13 @@ package io.camunda.connector.agenticai.a2a.discovery.systemprompt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.a2a.discovery.A2aGatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
+import java.io.FileNotFoundException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -26,14 +22,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.MockedStatic;
-import org.springframework.util.StreamUtils;
+import org.springframework.core.io.ClassPathResource;
 
 class A2aSystemPromptContributorTest {
 
   @Test
   void shouldContributeWhenA2aToolsPresent() {
-    A2aSystemPromptContributor contributor = new A2aSystemPromptContributor();
+    A2aSystemPromptContributor contributor = newA2aSystemPromptContributor();
 
     AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
     AgentContext agentContext = mock(AgentContext.class);
@@ -50,7 +45,7 @@ class A2aSystemPromptContributorTest {
   @ParameterizedTest
   @MethodSource("noA2aToolsPropertiesProvider")
   void shouldNotContributeWhenNoA2aTools(Map<String, Object> properties) {
-    A2aSystemPromptContributor contributor = new A2aSystemPromptContributor();
+    A2aSystemPromptContributor contributor = newA2aSystemPromptContributor();
 
     AgentExecutionContext executionContext = mock(AgentExecutionContext.class);
     AgentContext agentContext = mock(AgentContext.class);
@@ -72,22 +67,20 @@ class A2aSystemPromptContributorTest {
 
   @Test
   void shouldHaveCorrectOrder() {
-    A2aSystemPromptContributor contributor = new A2aSystemPromptContributor();
+    A2aSystemPromptContributor contributor = newA2aSystemPromptContributor();
 
     assertThat(contributor.getOrder()).isEqualTo(100);
   }
 
   @Test
   void shouldThrowIllegalStateExceptionWhenResourceLoadingFails() {
-    try (MockedStatic<StreamUtils> streamUtilsMock = mockStatic(StreamUtils.class)) {
-      streamUtilsMock
-          .when(() -> StreamUtils.copyToString(any(InputStream.class), any(Charset.class)))
-          .thenThrow(new IOException("Simulated resource loading failure"));
+    assertThatThrownBy(
+            () -> new A2aSystemPromptContributor(new ClassPathResource("some/nonexistent/path.md")))
+        .isInstanceOf(IllegalStateException.class)
+        .hasCauseInstanceOf(FileNotFoundException.class);
+  }
 
-      assertThatThrownBy(A2aSystemPromptContributor::new)
-          .isInstanceOf(IllegalStateException.class)
-          .hasCauseInstanceOf(IOException.class)
-          .hasMessageContaining("Simulated resource loading failure");
-    }
+  private static A2aSystemPromptContributor newA2aSystemPromptContributor() {
+    return new A2aSystemPromptContributor(new ClassPathResource("a2a/a2a-system-prompt.md"));
   }
 }
