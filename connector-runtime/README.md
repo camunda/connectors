@@ -53,7 +53,7 @@ For example:
 ```xml
   <dependencies>
     <dependency>
-      <groupId>io.camunda</groupId>
+      <groupId>io.camunda.connector</groupId>
       <artifactId>spring-boot-starter-camunda-connectors</artifactId>
       <version>${version.spring-zeebe}</version>
     </dependency>
