@@ -89,7 +89,7 @@ public class InboundRecoveringTest extends BaseEmailTest {
       proxyImap.cutConnection();
 
       await()
-          .atMost(6, TimeUnit.SECONDS)
+          .atMost(5, TimeUnit.SECONDS)
           .untilAsserted(
               () ->
                   // We want to check health was down for at least 1 times
