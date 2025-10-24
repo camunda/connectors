@@ -10,7 +10,6 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -83,31 +82,32 @@ public class ImapServerProxy implements AutoCloseable {
     }
   }
 
-  private void pipeClientToServer(InputStream in, OutputStream out) {
-    try (out) {
+  private void pipeClientToServer(
+      InputStream byteReceivedFromClient, OutputStream byteToSendToServer) {
+    try (byteToSendToServer) {
       byte[] buf = new byte[8192];
       int n;
-      while ((n = in.read(buf)) >= 0) {
-        out.write(buf, 0, n);
-        out.flush();
+      // If successMode is false, our stop piping data to the server, simulating a server not
+      // responding
+      while ((n = byteReceivedFromClient.read(buf)) >= 0) {
+        byteToSendToServer.write(buf, 0, n);
+        byteToSendToServer.flush();
         if (!successMode.get()) {
-          out.write("\r\n".getBytes());
-          out.write("* BYE [ALERT] Proxy in failure mode\r\n".getBytes(StandardCharsets.US_ASCII));
-          out.flush();
-          break;
+          return;
         }
       }
     } catch (Exception ignored) {
     }
   }
 
-  private void pipeServerToClient(InputStream in, OutputStream out) {
-    try (out) {
+  private void pipeServerToClient(
+      InputStream byteReceivedFromServer, OutputStream byteToSendToClient) {
+    try (byteToSendToClient) {
       byte[] buf = new byte[8192];
       int n;
-      while ((n = in.read(buf)) >= 0) {
-        out.write(buf, 0, n);
-        out.flush();
+      while ((n = byteReceivedFromServer.read(buf)) >= 0) {
+        byteToSendToClient.write(buf, 0, n);
+        byteToSendToClient.flush();
       }
     } catch (Exception ignored) {
     }
