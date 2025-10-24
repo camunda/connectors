@@ -16,33 +16,23 @@
  */
 package io.camunda.connector.http.client.client;
 
-import io.camunda.connector.http.client.ExecutionEnvironment;
+import io.camunda.connector.http.client.mapper.HttpResponse;
+import io.camunda.connector.http.client.mapper.ResponseMapper;
+import io.camunda.connector.http.client.mapper.ResponseMappers;
 import io.camunda.connector.http.client.model.HttpClientRequest;
-import io.camunda.connector.http.client.model.HttpClientResult;
-import javax.annotation.Nullable;
 
 public interface HttpClient {
 
   /**
-   * Executes the given {@link HttpClientRequest} and returns the result as a {@link
-   * HttpClientResult}.
+   * Executes the given {@link HttpClientRequest} and maps the response body using the provided
+   * {@code bodyMapper} function. The response is automatically closed after the mapping is done to
+   * prevent resource leaks.
    *
    * @param request the {@link HttpClientRequest} to execute
-   * @param executionEnvironment the {@link ExecutionEnvironment} to use for the execution.
-   * @return the result of the request as a {@link HttpClientResult}
+   * @param responseMapper a function that maps the response to the desired type
+   * @param <T> the type of the mapped body
+   * @return the result of the request with the mapped body
+   * @see ResponseMappers for common body mappers
    */
-  HttpClientResult execute(
-      HttpClientRequest request, @Nullable ExecutionEnvironment executionEnvironment);
-
-  /**
-   * Executes the given {@link HttpClientRequest} and returns the result as a {@link
-   * HttpClientResult}.
-   *
-   * @param request the {@link HttpClientRequest} to execute
-   * @return the result of the request as a {@link HttpClientResult}
-   * @see #execute(HttpClientRequest, ExecutionEnvironment)
-   */
-  default HttpClientResult execute(HttpClientRequest request) {
-    return execute(request, null);
-  }
+  <T> HttpResponse<T> execute(HttpClientRequest request, ResponseMapper<T> responseMapper);
 }

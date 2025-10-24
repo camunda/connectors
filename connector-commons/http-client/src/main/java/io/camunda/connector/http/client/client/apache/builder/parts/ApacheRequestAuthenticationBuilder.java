@@ -18,12 +18,13 @@ package io.camunda.connector.http.client.client.apache.builder.parts;
 
 import static org.apache.hc.core5.http.HttpHeaders.AUTHORIZATION;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.authentication.Base64Helper;
 import io.camunda.connector.http.client.authentication.OAuthService;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.client.model.HttpClientRequest;
-import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.client.model.auth.ApiKeyAuthentication;
 import io.camunda.connector.http.client.model.auth.BasicAuthentication;
 import io.camunda.connector.http.client.model.auth.BearerAuthentication;
@@ -35,6 +36,7 @@ public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuil
 
   private static final String BEARER = "Bearer %s";
   private final OAuthService oAuthService = new OAuthService();
+  private final ObjectMapper objectMapper = HttpClientObjectMapperSupplier.getCopy();
 
   @Override
   public void build(ClassicRequestBuilder builder, HttpClientRequest request) {
@@ -67,7 +69,8 @@ public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuil
 
   String fetchOAuthToken(OAuthAuthentication authentication) {
     HttpClientRequest oAuthRequest = oAuthService.createOAuthRequestFrom(authentication);
-    HttpClientResult response = new CustomApacheHttpClient().execute(oAuthRequest);
-    return oAuthService.extractTokenFromResponse(response.body());
+    return new CustomApacheHttpClient()
+        .execute(oAuthRequest, oAuthService::extractTokenFromResponse)
+        .entity();
   }
 }

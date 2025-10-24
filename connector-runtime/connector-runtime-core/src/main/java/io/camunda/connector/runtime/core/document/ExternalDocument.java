@@ -20,9 +20,8 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
-import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
-import io.camunda.connector.http.client.document.HttpHeaderFilenameResolver;
-import io.camunda.connector.http.client.model.HttpClientResult;
+import io.camunda.connector.http.client.mapper.HttpResponse;
+import io.camunda.connector.http.client.utils.HeadersHelper;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,19 +38,19 @@ public class ExternalDocument implements Document {
   private final String url;
   private final String name;
   private transient DocumentMetadata metadata;
-  Function<String, HttpClientResult> downloadDocument;
-  private HttpClientResult result = null;
+  Function<String, HttpResponse<byte[]>> downloadDocument;
+  private HttpResponse<byte[]> result = null;
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ExternalDocument.class);
 
   public ExternalDocument(
-      String url, String name, Function<String, HttpClientResult> downloadDocument) {
+      String url, String name, Function<String, HttpResponse<byte[]>> downloadDocument) {
     this.url = url;
     this.name = name;
     this.downloadDocument = downloadDocument;
   }
 
-  private HttpClientResult getResult() {
+  private HttpResponse<byte[]> getResult() {
     if (result == null) {
       this.result = downloadDocument.apply(url);
       LOGGER.debug(
@@ -69,10 +68,8 @@ public class ExternalDocument implements Document {
         new DocumentMetadata() {
           @Override
           public String getContentType() {
-            Object contentType =
-                CustomApacheHttpClient.getHeaderIgnoreCase(
-                    getResult().headers(), HttpHeaders.CONTENT_TYPE);
-            return contentType != null ? contentType.toString() : null;
+            return HeadersHelper.getHeaderIgnoreCase(
+                getResult().headers(), HttpHeaders.CONTENT_TYPE);
           }
 
           @Override
@@ -83,7 +80,7 @@ public class ExternalDocument implements Document {
           @Override
           public Long getSize() {
             try {
-              return CustomApacheHttpClient.getHeaderIgnoreCase(
+              return HeadersHelper.getHeaderIgnoreCase(
                           getResult().headers(), HttpHeaders.CONTENT_LENGTH)
                       instanceof String sizeStr
                   ? Long.parseLong(sizeStr)
@@ -127,9 +124,8 @@ public class ExternalDocument implements Document {
 
   @Override
   public InputStream asInputStream() {
-    Object resultBody = getResult().body();
-    byte[] bytes = resultBody instanceof byte[] b ? b : ((String) resultBody).getBytes();
-    return new ByteArrayInputStream(bytes);
+    byte[] resultBody = getResult().entity();
+    return new ByteArrayInputStream(resultBody);
   }
 
   @Override

@@ -14,33 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.document;
+package io.camunda.connector.http.client.mapper;
 
-import java.io.InputStream;
+import java.util.List;
+import java.util.Map;
 
 /**
- * Represents a uniform document (file) object that can be passed between connectors and used in the
- * FEEL engine.
+ * An object containing the context of an HTTP response after it has been mapped to a specific type.
+ * This includes the status code, reason phrase, headers, and the mapped entity.
+ *
+ * @see ResponseMappers for common mappers
  */
-public interface Document {
-
-  /**
-   * Domain-specific metadata that can be attached to the document. When a file is consumed by a
-   * connector as input, the metadata originates from the
-   */
-  DocumentMetadata metadata();
-
-  String asBase64();
-
-  /**
-   * Provides the document content as an InputStream. The caller is responsible for closing the
-   * stream after use.
-   */
-  InputStream asInputStream();
-
-  byte[] asByteArray();
-
-  DocumentReference reference();
-
-  String generateLink(DocumentLinkParameters parameters);
-}
+public record HttpResponse<T>(
+    int status, String reason, Map<String, List<String>> headers, T entity) {}

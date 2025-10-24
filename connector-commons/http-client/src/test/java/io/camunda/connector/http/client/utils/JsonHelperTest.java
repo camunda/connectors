@@ -18,11 +18,6 @@ package io.camunda.connector.http.client.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeType;
-import java.util.HashMap;
-import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -44,6 +39,26 @@ public class JsonHelperTest {
     public void shouldReturnFalse_whenJsonIsInvalid() {
       // given
       String jsonString = "{\"key\": \"value\"";
+      // when
+      boolean result = JsonHelper.isJsonStringValid(jsonString);
+      // then
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void shouldReturnFalse_whenJsonIsEmpty() {
+      // given
+      String jsonString = "";
+      // when
+      boolean result = JsonHelper.isJsonStringValid(jsonString);
+      // then
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void shouldReturnFalse_whenJsonIsNull() {
+      // given
+      String jsonString = null;
       // when
       boolean result = JsonHelper.isJsonStringValid(jsonString);
       // then
@@ -88,122 +103,6 @@ public class JsonHelperTest {
       boolean result = JsonHelper.isJsonStringValid(jsonString);
       // then
       assertThat(result).isTrue();
-    }
-  }
-
-  @Nested
-  class IsJsonValidTests {
-    @Test
-    public void shouldReturnTrue_whenJsonIsValid() throws JsonProcessingException {
-      // given
-      String jsonString = "{\"key\": \"value\"}";
-      // when
-      boolean result = JsonHelper.isJsonValid(jsonString);
-      // then
-      assertThat(result).isTrue();
-    }
-
-    @Test
-    public void shouldReturnFalse_whenJsonIsInvalid() throws JsonProcessingException {
-      // given
-      String jsonString = "{\"key\": \"value\"";
-      // when
-      boolean result = JsonHelper.isJsonValid(jsonString);
-      // then
-      assertThat(result).isFalse();
-    }
-
-    @Test
-    public void shouldReturnFalse_whenJsonIsInvalidMissingBrackets()
-        throws JsonProcessingException {
-      // given
-      String jsonString = "key: value";
-      // when
-      boolean result = JsonHelper.isJsonValid(jsonString);
-      // then
-      assertThat(result).isFalse();
-    }
-
-    @Test
-    public void shouldReturnTrue_whenJsonContainsNull() throws JsonProcessingException {
-      // given
-      String jsonString = "{\"key\": null}";
-      // when
-      boolean result = JsonHelper.isJsonValid(jsonString);
-      // then
-      assertThat(result).isTrue();
-    }
-
-    @Test
-    public void shouldReturnTrue_whenJsonContainsArrayOfObjects() throws JsonProcessingException {
-      // given
-      String jsonString = "[{\"key\": \"value\"}]";
-      // when
-      boolean result = JsonHelper.isJsonValid(jsonString);
-      // then
-      assertThat(result).isTrue();
-    }
-
-    @Test
-    public void shouldReturnTrue_whenJsonContainsArrayOfStrings() throws JsonProcessingException {
-      // given
-      String jsonString = "[\"value\"]";
-      // when
-      boolean result = JsonHelper.isJsonValid(jsonString);
-      // then
-      assertThat(result).isTrue();
-    }
-  }
-
-  @Nested
-  class GetAsJsonElementTests {
-
-    @Test
-    public void shouldReturnStringJsonNode_whenStringParameter() throws JsonProcessingException {
-      // given
-      String input = "hello";
-      // when
-      JsonNode jsonElement = JsonHelper.getAsJsonElement(input);
-      // then
-      assertThat(jsonElement).isNull();
-    }
-
-    @Test
-    public void shouldReturnObjectJsonNode_whenStringObjectParameter()
-        throws JsonProcessingException {
-      // given
-      String input = "{\"key\": \"value\"}";
-      // when
-      JsonNode jsonElement = JsonHelper.getAsJsonElement(input);
-      // then
-      assertThat(jsonElement).isNotNull();
-      // assert Class in TextNode
-      assertThat(jsonElement.getNodeType()).isEqualTo(JsonNodeType.OBJECT);
-    }
-
-    @Test
-    public void shouldReturnNull_whenNullParameter() throws JsonProcessingException {
-      // given
-      String input = null;
-      // when
-      JsonNode jsonElement = JsonHelper.getAsJsonElement(input);
-      // then
-      assertThat(jsonElement).isNull();
-    }
-
-    @Test
-    public void shouldReturnObjectJsonNode_whenMapParameter() throws JsonProcessingException {
-      // given
-      Map<String, String> input = new HashMap<>(Map.of("key", "value"));
-      input.put("key2", null);
-      // when
-      JsonNode jsonElement = JsonHelper.getAsJsonElement(input);
-      // then
-      assertThat(jsonElement).isNotNull();
-      // assert Class in ObjectNode
-      assertThat(jsonElement.getNodeType()).isEqualTo(JsonNodeType.OBJECT);
-      assertThat(jsonElement.get("key").asText()).isEqualTo("value");
-      assertThat(jsonElement.get("key2").isNull()).isTrue();
     }
   }
 }

@@ -22,9 +22,11 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
-import io.camunda.connector.http.client.HttpClientService;
+import io.camunda.connector.http.client.client.HttpClient;
+import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
+import io.camunda.connector.http.client.mapper.HttpResponse;
+import io.camunda.connector.http.client.mapper.ResponseMappers;
 import io.camunda.connector.http.client.model.HttpClientRequest;
-import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.client.model.HttpMethod;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import java.util.function.Function;
@@ -32,20 +34,18 @@ import java.util.function.Function;
 public class DocumentFactoryImpl implements DocumentFactory {
 
   private final CamundaDocumentStore documentStore;
-  private final HttpClientService httpClientService;
-  private final Function<String, HttpClientResult> downloadDocument;
+  private final HttpClient httpClient;
+  private final Function<String, HttpResponse<byte[]>> downloadDocument;
 
   public DocumentFactoryImpl(CamundaDocumentStore documentStore) {
     this.documentStore = documentStore;
-    this.httpClientService = new HttpClientService();
+    this.httpClient = new CustomApacheHttpClient();
     this.downloadDocument =
         url -> {
           HttpClientRequest req = new HttpClientRequest();
           req.setMethod(HttpMethod.GET);
           req.setUrl(url);
-          req.setStoreResponse(false);
-          req.setShouldReturnRawBody(true);
-          return this.httpClientService.executeConnectorRequest(req);
+          return this.httpClient.execute(req, ResponseMappers.asByteArray());
         };
   }
 

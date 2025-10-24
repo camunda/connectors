@@ -18,25 +18,60 @@ package io.camunda.connector.http.client.exception;
 
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
-import io.camunda.connector.http.client.model.HttpClientResult;
+import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
+import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
+import io.camunda.connector.http.client.utils.HeadersHelper;
+import io.camunda.connector.http.client.utils.JsonHelper;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConnectorExceptionMapper {
 
-  public static ConnectorException from(HttpClientResult result) {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ConnectorExceptionMapper.class);
+
+  public static ConnectorException from(StreamingHttpResponse result) {
     String status = String.valueOf(result.status());
     String reason = Optional.ofNullable(result.reason()).orElse("[no reason]");
-    Map<String, Object> headers = result.headers();
-    Object body = result.body();
+    Map<String, List<String>> headers = result.headers();
+    Object body = null;
+
+    try (InputStream bodyStream = result.body()) {
+      if (bodyStream != null) {
+        var bodyString = new String(bodyStream.readAllBytes());
+        if (JsonHelper.isJsonStringValid(bodyString)) {
+          body = HttpClientObjectMapperSupplier.getCopy().readValue(bodyString, Map.class);
+        } else {
+          body = bodyString;
+        }
+      }
+    } catch (IOException e) {
+      LOGGER.error("Failed to read response body for error mapping", e);
+    }
+
     Map<String, Object> response = new HashMap<>();
-    response.put("headers", headers);
+    response.put("headers", HeadersHelper.flattenHeaders(headers));
     response.put("body", body);
     return new ConnectorExceptionBuilder()
         .errorCode(status)
         .message(reason)
         .errorVariables(Map.of("response", response))
+        .build();
+  }
+
+  public static ConnectorException from(Throwable e) {
+    if (e instanceof ConnectorException) {
+      return (ConnectorException) e;
+    }
+    return new ConnectorExceptionBuilder()
+        .errorCode("500")
+        .message("Error while executing an HTTP request: " + e.getMessage())
+        .cause(e)
         .build();
   }
 }

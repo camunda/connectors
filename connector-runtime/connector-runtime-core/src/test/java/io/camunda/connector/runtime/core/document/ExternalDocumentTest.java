@@ -22,12 +22,15 @@ import static org.mockito.Mockito.*;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
-import io.camunda.connector.http.client.HttpClientService;
+import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
+import io.camunda.connector.http.client.mapper.HttpResponse;
+import io.camunda.connector.http.client.mapper.ResponseMapper;
+import io.camunda.connector.http.client.mapper.ResponseMappers;
 import io.camunda.connector.http.client.model.HttpClientRequest;
-import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.client.model.HttpMethod;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -41,15 +44,14 @@ import org.mockito.Mockito;
 
 class ExternalDocumentTest {
 
-  private HttpClientService httpClientService;
-  private HttpClientResult httpClientResult;
-  Function<String, HttpClientResult> downloadDocument =
+  private CustomApacheHttpClient httpClientService;
+  private HttpResponse<byte[]> httpClientResult;
+  Function<String, HttpResponse<byte[]>> downloadDocument =
       url -> {
         HttpClientRequest req = new HttpClientRequest();
         req.setMethod(HttpMethod.GET);
         req.setUrl(url);
-        req.setStoreResponse(false);
-        return httpClientService.executeConnectorRequest(req);
+        return httpClientService.execute(req, ResponseMappers.asByteArray());
       };
 
   private ExternalDocument document;
@@ -73,21 +75,22 @@ class ExternalDocumentTest {
 
   @BeforeEach
   void setup() {
-    httpClientService = mock(HttpClientService.class);
-    httpClientResult = mock(HttpClientResult.class);
+    httpClientService = mock(CustomApacheHttpClient.class);
+    httpClientResult = mock(HttpResponse.class);
     document = new ExternalDocument(URL, NAME, downloadDocument);
     documentWithoutName = new ExternalDocument(URL, null, downloadDocument);
   }
 
   @Test
   void metadata_shouldReturnContentTypeAndSize() {
-    when(httpClientService.executeConnectorRequest(any())).thenReturn(httpClientResult);
-    when(httpClientResult.body()).thenReturn("abc");
+    when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class)))
+        .thenReturn(httpClientResult);
+    when(httpClientResult.entity()).thenReturn("abc".getBytes());
     when(httpClientResult.headers())
         .thenReturn(
             Map.of(
-                "content-type", "application/json",
-                "content-length", "123"));
+                "content-type", List.of("application/json"),
+                "content-length", List.of("123")));
 
     DocumentMetadata meta = document.metadata();
 
@@ -97,8 +100,9 @@ class ExternalDocumentTest {
 
   @Test
   void metadata_shouldFallbackOnInvalidSize() {
-    when(httpClientService.executeConnectorRequest(any())).thenReturn(httpClientResult);
-    when(httpClientResult.body()).thenReturn("abc");
+    when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class)))
+        .thenReturn(httpClientResult);
+    when(httpClientResult.entity()).thenReturn("abc".getBytes());
 
     DocumentMetadata meta = document.metadata();
 
@@ -110,8 +114,9 @@ class ExternalDocumentTest {
   void asInputStream_shouldReturnStreamOfStringBody() throws Exception {
     String svg =
         "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1\" height=\"1\"><rect width=\"1\" height=\"1\"/></svg>\n";
-    when(httpClientService.executeConnectorRequest(any())).thenReturn(httpClientResult);
-    when(httpClientResult.body()).thenReturn(svg);
+    when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class)))
+        .thenReturn(httpClientResult);
+    when(httpClientResult.entity()).thenReturn(svg.getBytes());
     Document document = new ExternalDocument(URL, NAME, downloadDocument);
 
     try (InputStream is = document.asInputStream()) {
@@ -125,8 +130,9 @@ class ExternalDocumentTest {
     var pdf =
         Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("testpdf.pdf"))
             .readAllBytes();
-    when(httpClientService.executeConnectorRequest(any())).thenReturn(httpClientResult);
-    when(httpClientResult.body()).thenReturn(pdf);
+    when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class)))
+        .thenReturn(httpClientResult);
+    when(httpClientResult.entity()).thenReturn(pdf);
     Document document = new ExternalDocument(URL, NAME, downloadDocument);
 
     try (InputStream is = document.asInputStream()) {
@@ -145,13 +151,14 @@ class ExternalDocumentTest {
 
   @Test
   void reference_shouldReturnFilenameFromHeader() {
-    when(httpClientService.executeConnectorRequest(any())).thenReturn(httpClientResult);
-    when(httpClientResult.body()).thenReturn("abc");
+    when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class)))
+        .thenReturn(httpClientResult);
+    when(httpClientResult.entity()).thenReturn("abc".getBytes());
     when(httpClientResult.headers())
         .thenReturn(
             Map.of(
-                "content-type", "application/json",
-                "content-disposition", "filename=test"));
+                "content-type", List.of("application/json"),
+                "content-disposition", List.of("filename=test")));
 
     DocumentMetadata meta = documentWithoutName.metadata();
     assertThat(meta.getFileName()).isEqualTo("test.json");

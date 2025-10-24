@@ -14,8 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.client.model;
+package io.camunda.connector.http.client.mapper;
 
+import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 
-public record ErrorResponse(String errorCode, String error, Map<String, Object> errorVariables) {}
+/** An HTTP response where the body is represented as a stream. */
+public record StreamingHttpResponse(
+    int status, String reason, Map<String, List<String>> headers, InputStream body) {}

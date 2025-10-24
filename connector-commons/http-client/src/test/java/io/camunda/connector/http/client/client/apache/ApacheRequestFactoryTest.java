@@ -25,8 +25,9 @@ import static org.mockito.Mockito.*;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.authentication.Base64Helper;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
+import io.camunda.connector.http.client.mapper.HttpResponse;
+import io.camunda.connector.http.client.mapper.ResponseMapper;
 import io.camunda.connector.http.client.model.HttpClientRequest;
-import io.camunda.connector.http.client.model.HttpClientResult;
 import io.camunda.connector.http.client.model.HttpMethod;
 import io.camunda.connector.http.client.model.auth.ApiKeyAuthentication;
 import io.camunda.connector.http.client.model.auth.ApiKeyLocation;
@@ -107,7 +108,8 @@ public class ApacheRequestFactoryTest {
     @Test
     public void shouldSetOAuthAuthentication_whenProvided() throws Exception {
       // given request with oauth authentication
-      HttpClientResult result = new HttpClientResult(200, null, "{\"access_token\":\"token\"}");
+      var token = "token";
+      var response = new HttpResponse<>(200, null, Map.of(), token);
       HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setUrl("theurl");
@@ -118,7 +120,8 @@ public class ApacheRequestFactoryTest {
           mockConstruction(
               CustomApacheHttpClient.class,
               (mock, context) ->
-                  when(mock.execute(any(HttpClientRequest.class))).thenReturn(result))) {
+                  when(mock.execute(any(HttpClientRequest.class), any(ResponseMapper.class)))
+                      .thenReturn(response))) {
         // when
         ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
