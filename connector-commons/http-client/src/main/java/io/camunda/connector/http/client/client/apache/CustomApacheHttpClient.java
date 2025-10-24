@@ -21,7 +21,7 @@ import io.camunda.connector.http.client.blocklist.DefaultHttpBlocklistManager;
 import io.camunda.connector.http.client.blocklist.HttpBlockListManager;
 import io.camunda.connector.http.client.client.HttpClient;
 import io.camunda.connector.http.client.client.apache.proxy.ProxyAwareHttpClient;
-import io.camunda.connector.http.client.mapper.MappedHttpResponse;
+import io.camunda.connector.http.client.mapper.HttpResponse;
 import io.camunda.connector.http.client.mapper.ResponseMapper;
 import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import io.camunda.connector.http.client.model.HttpClientRequest;
@@ -42,8 +42,7 @@ public class CustomApacheHttpClient implements HttpClient {
    * @return the {@link StreamingHttpResponse} containing the response details
    */
   @Override
-  public <T> MappedHttpResponse<T> execute(
-      HttpClientRequest request, ResponseMapper<T> responseMapper) {
+  public <T> HttpResponse<T> execute(HttpClientRequest request, ResponseMapper<T> responseMapper) {
     // Will throw ConnectorInputException if URL is blocked
     httpBlocklistManager.validateUrlAgainstBlocklist(request.getUrl());
     var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);

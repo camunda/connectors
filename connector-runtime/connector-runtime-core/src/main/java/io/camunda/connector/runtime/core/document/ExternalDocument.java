@@ -20,7 +20,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentLinkParameters;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
-import io.camunda.connector.http.client.mapper.MappedHttpResponse;
+import io.camunda.connector.http.client.mapper.HttpResponse;
 import io.camunda.connector.http.client.utils.HeadersHelper;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -38,19 +38,19 @@ public class ExternalDocument implements Document {
   private final String url;
   private final String name;
   private transient DocumentMetadata metadata;
-  Function<String, MappedHttpResponse<byte[]>> downloadDocument;
-  private MappedHttpResponse<byte[]> result = null;
+  Function<String, HttpResponse<byte[]>> downloadDocument;
+  private HttpResponse<byte[]> result = null;
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ExternalDocument.class);
 
   public ExternalDocument(
-      String url, String name, Function<String, MappedHttpResponse<byte[]>> downloadDocument) {
+      String url, String name, Function<String, HttpResponse<byte[]>> downloadDocument) {
     this.url = url;
     this.name = name;
     this.downloadDocument = downloadDocument;
   }
 
-  private MappedHttpResponse<byte[]> getResult() {
+  private HttpResponse<byte[]> getResult() {
     if (result == null) {
       this.result = downloadDocument.apply(url);
       LOGGER.debug(
@@ -124,7 +124,7 @@ public class ExternalDocument implements Document {
 
   @Override
   public InputStream asInputStream() {
-    byte[] resultBody = getResult().mappedEntity();
+    byte[] resultBody = getResult().entity();
     return new ByteArrayInputStream(resultBody);
   }
 

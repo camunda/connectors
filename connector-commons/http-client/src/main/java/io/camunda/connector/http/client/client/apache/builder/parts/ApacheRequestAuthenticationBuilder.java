@@ -71,6 +71,6 @@ public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuil
     HttpClientRequest oAuthRequest = oAuthService.createOAuthRequestFrom(authentication);
     return new CustomApacheHttpClient()
         .execute(oAuthRequest, oAuthService::extractTokenFromResponse)
-        .mappedEntity();
+        .entity();
   }
 }

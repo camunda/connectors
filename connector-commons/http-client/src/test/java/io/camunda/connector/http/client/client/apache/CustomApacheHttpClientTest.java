@@ -32,7 +32,7 @@ import com.github.tomakehurst.wiremock.matching.MultipartValuePatternBuilder;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
-import io.camunda.connector.http.client.mapper.MappedHttpResponse;
+import io.camunda.connector.http.client.mapper.HttpResponse;
 import io.camunda.connector.http.client.mapper.ResponseMappers;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpMethod;
@@ -140,7 +140,7 @@ public class CustomApacheHttpClientTest {
       var response = httpClient.execute(request, ResponseMappers.asString());
       assertThat(response).isNotNull();
       assertThat(response.status()).isEqualTo(200);
-      assertThat(response.mappedEntity()).isEqualTo("Hello, world!");
+      assertThat(response.entity()).isEqualTo("Hello, world!");
       assertThat(response.headers().get("Via").getFirst()).contains("squid");
       proxy.verify(getRequestedFor(urlEqualTo("/protected")));
     }
@@ -176,13 +176,13 @@ public class CustomApacheHttpClientTest {
                       HttpClientRequest request = new HttpClientRequest();
                       request.setMethod(HttpMethod.GET);
                       request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, path));
-                      MappedHttpResponse<String> result =
+                      HttpResponse<String> result =
                           httpClient.execute(
                               request, // http://host.testcontainers.internal:33029/protected
                               ResponseMappers.asString());
                       assertThat(result).isNotNull();
                       assertThat(result.status()).isEqualTo(200);
-                      assertThat(result.mappedEntity()).isEqualTo("Hello, world!");
+                      assertThat(result.entity()).isEqualTo("Hello, world!");
                       assertThat(result.headers().get("Via")).asString().contains("squid");
                       proxy.verify(getRequestedFor(urlEqualTo(path)));
                     });
@@ -280,10 +280,10 @@ public class CustomApacheHttpClientTest {
       HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/path"));
-      MappedHttpResponse<String> result = httpClient.execute(request, ResponseMappers.asString());
+      HttpResponse<String> result = httpClient.execute(request, ResponseMappers.asString());
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      assertThat(result.mappedEntity()).isEqualTo("Hello, world!");
+      assertThat(result.entity()).isEqualTo("Hello, world!");
       assertThat(result.headers().get("Via")).asString().contains("squid");
       proxy.verify(getRequestedFor(urlEqualTo("/path")));
     }
@@ -297,11 +297,11 @@ public class CustomApacheHttpClientTest {
       HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.POST);
       request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/path"));
-      MappedHttpResponse<JsonNode> result =
+      HttpResponse<JsonNode> result =
           httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(201);
-      var bodyMap = objectMapper.convertValue(result.mappedEntity(), Map.class);
+      var bodyMap = objectMapper.convertValue(result.entity(), Map.class);
       assertThat(bodyMap).isEqualTo(Map.of("key1", "value1"));
       assertThat(result.headers().get("Via")).asString().contains("squid");
       proxy.verify(postRequestedFor(urlEqualTo("/path")));
@@ -316,11 +316,11 @@ public class CustomApacheHttpClientTest {
       HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.PUT);
       request.setUrl(getWireMockBaseUrlWithPath(wmRuntimeInfo, "/path"));
-      MappedHttpResponse<JsonNode> result =
+      HttpResponse<JsonNode> result =
           httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      var bodyMap = objectMapper.convertValue(result.mappedEntity(), Map.class);
+      var bodyMap = objectMapper.convertValue(result.entity(), Map.class);
       assertThat(bodyMap).isEqualTo(Map.of("key1", "value1"));
       assertThat(result.headers().get("Via")).asString().contains("squid");
       proxy.verify(putRequestedFor(urlEqualTo("/path")));
@@ -458,7 +458,7 @@ public class CustomApacheHttpClientTest {
       var result = httpClient.execute(request, ResponseMappers.asString());
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(200);
-      assertThat(result.mappedEntity()).isNull();
+      assertThat(result.entity()).isNull();
     }
 
     @Test
@@ -482,7 +482,7 @@ public class CustomApacheHttpClientTest {
       HttpClientRequest request = new HttpClientRequest();
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
       request.setMethod(HttpMethod.GET);
-      String result = httpClient.execute(request, ResponseMappers.asString()).mappedEntity();
+      String result = httpClient.execute(request, ResponseMappers.asString()).entity();
       assertThat(result).isEqualTo("Hello, world!");
     }
 
@@ -503,7 +503,7 @@ public class CustomApacheHttpClientTest {
       request.setMethod(HttpMethod.GET);
       request.setHeaders(Map.of("Accept", "application/json"));
       var result = httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
-      var body = result.mappedEntity();
+      var body = result.entity();
       assertThat(body.get("name").asText()).isEqualTo("John");
       assertThat(body.get("age").asInt()).isEqualTo(30);
       assertThat(body.get("message").isNull()).isTrue();
@@ -519,7 +519,7 @@ public class CustomApacheHttpClientTest {
       request.setMethod(HttpMethod.POST);
       request.setHeaders(Map.of("Accept", acceptHeader));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
-      String result = httpClient.execute(request, ResponseMappers.asString()).mappedEntity();
+      String result = httpClient.execute(request, ResponseMappers.asString()).entity();
       assertThat(result).isEqualTo("\"Hello, world\"");
     }
 
@@ -541,7 +541,7 @@ public class CustomApacheHttpClientTest {
       request.setMethod(method);
       request.setQueryParameters(Map.of("format", "xml"));
       request.setHeaders(Map.of("Accept", "application/xml"));
-      String result = httpClient.execute(request, ResponseMappers.asString()).mappedEntity();
+      String result = httpClient.execute(request, ResponseMappers.asString()).entity();
       assertThat(result).isEqualTo(xml);
     }
 
@@ -794,7 +794,7 @@ public class CustomApacheHttpClientTest {
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path/id");
       var result = httpClient.execute(request, ResponseMappers.asVoid());
       assertThat(result).isNotNull();
-      assertThat(result.mappedEntity()).isNull();
+      assertThat(result.entity()).isNull();
       assertThat(result.status()).isEqualTo(204);
     }
   }
@@ -864,7 +864,7 @@ public class CustomApacheHttpClientTest {
       request.setMethod(HttpMethod.PUT);
       request.setHeaders(Map.of(HttpHeaders.CONTENT_TYPE, ContentType.TEXT_PLAIN.getMimeType()));
       request.setBody("Hello, world!");
-      String result = httpClient.execute(request, ResponseMappers.asString()).mappedEntity();
+      String result = httpClient.execute(request, ResponseMappers.asString()).entity();
       assertThat(result).isEqualTo("Hello, world updated!");
     }
 
@@ -878,7 +878,7 @@ public class CustomApacheHttpClientTest {
       request.setMethod(HttpMethod.PUT);
       request.setHeaders(Map.of(HttpHeaders.CONTENT_TYPE, ContentType.TEXT_PLAIN.getMimeType()));
       request.setBody(123);
-      String result = httpClient.execute(request, ResponseMappers.asString()).mappedEntity();
+      String result = httpClient.execute(request, ResponseMappers.asString()).entity();
       assertThat(result).isEqualTo("123");
     }
   }
@@ -905,7 +905,7 @@ public class CustomApacheHttpClientTest {
       request.setAuthentication(new BasicAuthentication("user", "password"));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
       var result = httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
-      var body = result.mappedEntity();
+      var body = result.entity();
       assertThat(body.get("name").asText()).isEqualTo("John");
       assertThat(body.get("age").asInt()).isEqualTo(30);
       assertThat(body.get("message").isNull()).isTrue();
@@ -948,7 +948,7 @@ public class CustomApacheHttpClientTest {
       request.setAuthentication(new BearerAuthentication("token"));
       request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
       var result = httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
-      var body = result.mappedEntity();
+      var body = result.entity();
 
       assertThat(body.get("name").asText()).isEqualTo("John");
       assertThat(body.get("age").asInt()).isEqualTo(30);
@@ -975,7 +975,7 @@ public class CustomApacheHttpClientTest {
       request.setAuthentication(
           new ApiKeyAuthentication(ApiKeyLocation.HEADERS, "theName", "theValue"));
       var result = httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
-      var body = result.mappedEntity();
+      var body = result.entity();
 
       assertThat(body.get("name").asText()).isEqualTo("John");
       assertThat(body.get("age").asInt()).isEqualTo(30);
@@ -1002,7 +1002,7 @@ public class CustomApacheHttpClientTest {
       request.setAuthentication(
           new ApiKeyAuthentication(ApiKeyLocation.QUERY, "theName", "theValue"));
       var result = httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
-      var body = result.mappedEntity();
+      var body = result.entity();
 
       assertThat(body.get("name").asText()).isEqualTo("John");
       assertThat(body.get("age").asInt()).isEqualTo(30);
@@ -1037,7 +1037,7 @@ public class CustomApacheHttpClientTest {
               credentialsLocation,
               "read:resource"));
       var result = httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
-      var body = result.mappedEntity();
+      var body = result.entity();
       assertThat(body.get("name").asText()).isEqualTo("John");
       assertThat(body.get("age").asInt()).isEqualTo(30);
       assertThat(body.get("message").isNull()).isTrue();

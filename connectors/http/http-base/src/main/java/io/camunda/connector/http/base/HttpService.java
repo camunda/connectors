@@ -30,7 +30,7 @@ public class HttpService {
     HttpClientRequest httpClientRequest = mapToHttpClientRequest(request);
     HttpCommonResultMapper responseMapper =
         new HttpCommonResultMapper(documentFactory, request.isStoreResponse(), OBJECT_MAPPER);
-    return HTTP_CLIENT.execute(httpClientRequest, responseMapper).mappedEntity();
+    return HTTP_CLIENT.execute(httpClientRequest, responseMapper).entity();
   }
 
   public HttpClientRequest mapToHttpClientRequest(HttpCommonRequest request) {

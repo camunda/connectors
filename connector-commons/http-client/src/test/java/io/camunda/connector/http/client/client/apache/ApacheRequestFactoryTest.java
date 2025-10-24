@@ -25,7 +25,7 @@ import static org.mockito.Mockito.*;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.authentication.Base64Helper;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
-import io.camunda.connector.http.client.mapper.MappedHttpResponse;
+import io.camunda.connector.http.client.mapper.HttpResponse;
 import io.camunda.connector.http.client.mapper.ResponseMapper;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpMethod;
@@ -109,7 +109,7 @@ public class ApacheRequestFactoryTest {
     public void shouldSetOAuthAuthentication_whenProvided() throws Exception {
       // given request with oauth authentication
       var token = "token";
-      var response = new MappedHttpResponse<>(200, null, Map.of(), token);
+      var response = new HttpResponse<>(200, null, Map.of(), token);
       HttpClientRequest request = new HttpClientRequest();
       request.setMethod(HttpMethod.GET);
       request.setUrl("theurl");

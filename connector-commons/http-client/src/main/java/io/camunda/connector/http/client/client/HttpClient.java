@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.http.client.client;
 
-import io.camunda.connector.http.client.mapper.MappedHttpResponse;
+import io.camunda.connector.http.client.mapper.HttpResponse;
 import io.camunda.connector.http.client.mapper.ResponseMapper;
 import io.camunda.connector.http.client.mapper.ResponseMappers;
 import io.camunda.connector.http.client.model.HttpClientRequest;
@@ -34,5 +34,5 @@ public interface HttpClient {
    * @return the result of the request with the mapped body
    * @see ResponseMappers for common body mappers
    */
-  <T> MappedHttpResponse<T> execute(HttpClientRequest request, ResponseMapper<T> responseMapper);
+  <T> HttpResponse<T> execute(HttpClientRequest request, ResponseMapper<T> responseMapper);
 }

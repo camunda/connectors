@@ -24,7 +24,7 @@ import io.camunda.connector.api.document.DocumentReference.CamundaDocumentRefere
 import io.camunda.connector.api.document.DocumentReference.ExternalDocumentReference;
 import io.camunda.connector.http.client.client.HttpClient;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
-import io.camunda.connector.http.client.mapper.MappedHttpResponse;
+import io.camunda.connector.http.client.mapper.HttpResponse;
 import io.camunda.connector.http.client.mapper.ResponseMappers;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.model.HttpMethod;
@@ -35,7 +35,7 @@ public class DocumentFactoryImpl implements DocumentFactory {
 
   private final CamundaDocumentStore documentStore;
   private final HttpClient httpClient;
-  private final Function<String, MappedHttpResponse<byte[]>> downloadDocument;
+  private final Function<String, HttpResponse<byte[]>> downloadDocument;
 
   public DocumentFactoryImpl(CamundaDocumentStore documentStore) {
     this.documentStore = documentStore;

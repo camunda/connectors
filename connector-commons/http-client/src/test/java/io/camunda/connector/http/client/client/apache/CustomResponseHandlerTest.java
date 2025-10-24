@@ -22,7 +22,7 @@ import static org.junit.Assert.assertThrows;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
-import io.camunda.connector.http.client.mapper.MappedHttpResponse;
+import io.camunda.connector.http.client.mapper.HttpResponse;
 import io.camunda.connector.http.client.mapper.ResponseMappers;
 import java.util.List;
 import java.util.function.Supplier;
@@ -49,12 +49,12 @@ public class CustomResponseHandlerTest {
     response.setEntity(entity);
 
     // when
-    MappedHttpResponse<JsonNode> result = handler.handleResponse(response);
+    HttpResponse<JsonNode> result = handler.handleResponse(response);
 
     // then
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(200);
-    assertThat(result.mappedEntity().get("key").asText()).isEqualTo("value");
+    assertThat(result.entity().get("key").asText()).isEqualTo("value");
     assertThat(result.headers()).hasSize(1);
     assertThat(result.headers()).containsEntry("Content-Type", List.of("application/json"));
   }
@@ -69,12 +69,12 @@ public class CustomResponseHandlerTest {
     response.setEntity(new StringEntity("text"));
 
     // when
-    MappedHttpResponse<String> result = handler.handleResponse(response);
+    HttpResponse<String> result = handler.handleResponse(response);
 
     // then
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(200);
-    assertThat(result.mappedEntity()).isEqualTo("text");
+    assertThat(result.entity()).isEqualTo("text");
     assertThat(result.headers()).hasSize(1);
     assertThat(result.headers()).containsEntry("Content-Type", List.of("text/plain"));
   }
@@ -88,7 +88,7 @@ public class CustomResponseHandlerTest {
     response.setEntity(entity);
 
     // when
-    Supplier<MappedHttpResponse<Void>> resultSupplier = () -> handler.handleResponse(response);
+    Supplier<HttpResponse<Void>> resultSupplier = () -> handler.handleResponse(response);
 
     ConnectorException connectorException =
         assertThrows(ConnectorException.class, resultSupplier::get);

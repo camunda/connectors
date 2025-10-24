@@ -17,7 +17,7 @@
 package io.camunda.connector.http.client.client.apache;
 
 import io.camunda.connector.http.client.exception.ConnectorExceptionMapper;
-import io.camunda.connector.http.client.mapper.MappedHttpResponse;
+import io.camunda.connector.http.client.mapper.HttpResponse;
 import io.camunda.connector.http.client.mapper.ResponseMapper;
 import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import io.camunda.connector.http.client.utils.HttpStatusHelper;
@@ -30,7 +30,7 @@ import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CustomResponseHandler<T> implements HttpClientResponseHandler<MappedHttpResponse<T>> {
+public class CustomResponseHandler<T> implements HttpClientResponseHandler<HttpResponse<T>> {
 
   private final ResponseMapper<T> responseMapper;
 
@@ -41,7 +41,7 @@ public class CustomResponseHandler<T> implements HttpClientResponseHandler<Mappe
   private static final Logger LOGGER = LoggerFactory.getLogger(CustomResponseHandler.class);
 
   @Override
-  public MappedHttpResponse<T> handleResponse(ClassicHttpResponse response) {
+  public HttpResponse<T> handleResponse(ClassicHttpResponse response) {
     int code = response.getCode();
     String reason = response.getReasonPhrase();
     Map<String, List<String>> headers = formatHeaders(response.getHeaders());
@@ -57,7 +57,7 @@ public class CustomResponseHandler<T> implements HttpClientResponseHandler<Mappe
         }
 
         T mappedResponse = responseMapper.apply(rawResponse);
-        return new MappedHttpResponse<>(code, reason, headers, mappedResponse);
+        return new HttpResponse<>(code, reason, headers, mappedResponse);
       } catch (final Exception e) {
         LOGGER.error("Failed to process response: {}", response, e);
         throw ConnectorExceptionMapper.from(e);
@@ -67,7 +67,7 @@ public class CustomResponseHandler<T> implements HttpClientResponseHandler<Mappe
       StreamingHttpResponse rawResponse = new StreamingHttpResponse(code, reason, headers, null);
       throw ConnectorExceptionMapper.from(rawResponse);
     }
-    return new MappedHttpResponse<>(code, reason, headers, null);
+    return new HttpResponse<>(code, reason, headers, null);
   }
 
   private static Map<String, List<String>> formatHeaders(Header[] headersArray) {

@@ -25,5 +25,5 @@ import java.util.Map;
  *
  * @see ResponseMappers for common mappers
  */
-public record MappedHttpResponse<T>(
-    int status, String reason, Map<String, List<String>> headers, T mappedEntity) {}
+public record HttpResponse<T>(
+    int status, String reason, Map<String, List<String>> headers, T entity) {}

@@ -23,7 +23,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
-import io.camunda.connector.http.client.mapper.MappedHttpResponse;
+import io.camunda.connector.http.client.mapper.HttpResponse;
 import io.camunda.connector.http.client.mapper.ResponseMapper;
 import io.camunda.connector.http.client.mapper.ResponseMappers;
 import io.camunda.connector.http.client.model.HttpClientRequest;
@@ -45,8 +45,8 @@ import org.mockito.Mockito;
 class ExternalDocumentTest {
 
   private CustomApacheHttpClient httpClientService;
-  private MappedHttpResponse<byte[]> httpClientResult;
-  Function<String, MappedHttpResponse<byte[]>> downloadDocument =
+  private HttpResponse<byte[]> httpClientResult;
+  Function<String, HttpResponse<byte[]>> downloadDocument =
       url -> {
         HttpClientRequest req = new HttpClientRequest();
         req.setMethod(HttpMethod.GET);
@@ -76,7 +76,7 @@ class ExternalDocumentTest {
   @BeforeEach
   void setup() {
     httpClientService = mock(CustomApacheHttpClient.class);
-    httpClientResult = mock(MappedHttpResponse.class);
+    httpClientResult = mock(HttpResponse.class);
     document = new ExternalDocument(URL, NAME, downloadDocument);
     documentWithoutName = new ExternalDocument(URL, null, downloadDocument);
   }
@@ -85,7 +85,7 @@ class ExternalDocumentTest {
   void metadata_shouldReturnContentTypeAndSize() {
     when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class)))
         .thenReturn(httpClientResult);
-    when(httpClientResult.mappedEntity()).thenReturn("abc".getBytes());
+    when(httpClientResult.entity()).thenReturn("abc".getBytes());
     when(httpClientResult.headers())
         .thenReturn(
             Map.of(
@@ -102,7 +102,7 @@ class ExternalDocumentTest {
   void metadata_shouldFallbackOnInvalidSize() {
     when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class)))
         .thenReturn(httpClientResult);
-    when(httpClientResult.mappedEntity()).thenReturn("abc".getBytes());
+    when(httpClientResult.entity()).thenReturn("abc".getBytes());
 
     DocumentMetadata meta = document.metadata();
 
@@ -116,7 +116,7 @@ class ExternalDocumentTest {
         "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1\" height=\"1\"><rect width=\"1\" height=\"1\"/></svg>\n";
     when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class)))
         .thenReturn(httpClientResult);
-    when(httpClientResult.mappedEntity()).thenReturn(svg.getBytes());
+    when(httpClientResult.entity()).thenReturn(svg.getBytes());
     Document document = new ExternalDocument(URL, NAME, downloadDocument);
 
     try (InputStream is = document.asInputStream()) {
@@ -132,7 +132,7 @@ class ExternalDocumentTest {
             .readAllBytes();
     when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class)))
         .thenReturn(httpClientResult);
-    when(httpClientResult.mappedEntity()).thenReturn(pdf);
+    when(httpClientResult.entity()).thenReturn(pdf);
     Document document = new ExternalDocument(URL, NAME, downloadDocument);
 
     try (InputStream is = document.asInputStream()) {
@@ -153,7 +153,7 @@ class ExternalDocumentTest {
   void reference_shouldReturnFilenameFromHeader() {
     when(httpClientService.execute(any(HttpClientRequest.class), any(ResponseMapper.class)))
         .thenReturn(httpClientResult);
-    when(httpClientResult.mappedEntity()).thenReturn("abc".getBytes());
+    when(httpClientResult.entity()).thenReturn("abc".getBytes());
     when(httpClientResult.headers())
         .thenReturn(
             Map.of(
