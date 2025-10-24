@@ -94,19 +94,6 @@
       "changelogUrl": "https://github.com/camunda/infra-global-github-actions/compare/{{currentDigest}}..{{newDigest}}"
     },
     {
-      "description": "No further Spring-Zeebe (community) updates on 8.5 due to broken compatibility",
-      "matchManagers": [
-        "maven"
-      ],
-      "matchBaseBranches": [
-        "release/8.5"
-      ],
-      "enabled": false,
-      "matchPackageNames": [
-        "io.camunda.spring{/,}**"
-      ]
-    },
-    {
       "description": "Exclude dev.langchain4j artifacts >= 1.4.0",
       "matchManagers": [
         "maven"
