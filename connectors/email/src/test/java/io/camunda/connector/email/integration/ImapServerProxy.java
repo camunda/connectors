@@ -108,6 +108,9 @@ public class ImapServerProxy implements AutoCloseable {
       while ((n = byteReceivedFromServer.read(buf)) >= 0) {
         byteToSendToClient.write(buf, 0, n);
         byteToSendToClient.flush();
+        if (!successMode.get()) {
+          return;
+        }
       }
     } catch (Exception ignored) {
     }
