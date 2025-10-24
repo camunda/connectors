@@ -47,15 +47,15 @@ public final class ResponseMappers {
     return (response) -> asJson(response, objectMapperSupplier.get());
   }
 
-  public static <T> ResponseMapper<T> asJsonObject(
+  public static <T> ResponseMapper<T> asObject(
       Supplier<ObjectMapper> objectMapperSupplier, Class<T> valueType) {
     return (response) -> {
-      var jsonNode = asJson(response, objectMapperSupplier.get());
+      var mapper = objectMapperSupplier.get();
       try {
-        return objectMapperSupplier.get().treeToValue(jsonNode, valueType);
-      } catch (JsonProcessingException e) {
+        return mapper.readValue(asString(response), valueType);
+      } catch (IOException e) {
         throw new ConnectorException(
-            "Failed to map JSON to type " + valueType.getSimpleName() + ": " + jsonNode, e);
+            "Failed to map response body to type " + valueType.getSimpleName(), e);
       }
     };
   }
