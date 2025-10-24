@@ -306,7 +306,8 @@ public class HttpServiceTest {
     Assertions.assertThat(e).isNotNull();
     Assertions.assertThat(e.getErrorCode()).isEqualTo("500");
     Assertions.assertThat(e.getMessage())
-        .isEqualTo("Failed to create document: Document creation failed");
+        .isEqualTo(
+            "Error while executing an HTTP request: Failed to create document: Document creation failed");
   }
 
   @Test

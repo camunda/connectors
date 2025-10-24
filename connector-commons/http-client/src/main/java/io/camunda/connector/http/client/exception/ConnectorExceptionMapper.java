@@ -70,7 +70,7 @@ public class ConnectorExceptionMapper {
     }
     return new ConnectorExceptionBuilder()
         .errorCode("500")
-        .message(e.getMessage())
+        .message("Error while executing an HTTP request: " + e.getMessage())
         .cause(e)
         .build();
   }
