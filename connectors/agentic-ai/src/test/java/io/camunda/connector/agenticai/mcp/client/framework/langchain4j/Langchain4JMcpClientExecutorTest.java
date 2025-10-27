@@ -202,7 +202,7 @@ class Langchain4JMcpClientExecutorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"", " "})
-    void returnsDefaultResponseText_whenResponseIsBlanc(String resultText) {
+    void returnsDefaultResponseText_whenResponseIsBlank(String resultText) {
       final var operation =
           McpClientCallToolOperation.create("test-tool", Map.of("arg1", "value1"));
 
