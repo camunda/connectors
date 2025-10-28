@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResu
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTaskStatus;
 import io.camunda.connector.agenticai.a2a.client.sdk.A2aClient;
+import io.camunda.connector.agenticai.a2a.client.sdk.A2aClientConfigBuilder;
 import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRuntimeProperties;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
@@ -172,9 +173,11 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
       try {
         final var agentCard =
             agentCardFetcher.fetchAgentCardRaw(runtimeProperties.data().connection());
-        this.client =
-            clientFactory.buildClient(
-                agentCard, (event, ignore) -> {}, runtimeProperties.data().historyLength());
+        final var a2aClientConfig =
+            A2aClientConfigBuilder.builder()
+                .historyLength(runtimeProperties.data().historyLength())
+                .build();
+        this.client = clientFactory.buildClient(agentCard, (event, ignore) -> {}, a2aClientConfig);
       } catch (Exception e) {
         LOG.error("Failed to create A2A client", e);
         this.context.log(
