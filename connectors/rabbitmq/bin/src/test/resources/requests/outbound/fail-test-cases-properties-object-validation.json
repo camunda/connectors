@@ -1,0 +1,62 @@
+[
+  {
+    "contentTypes": "Wrong Field name",
+    "contentEncoding": "UTF-8",
+    "headers": {},
+    "deliveryMode": null,
+    "priority": 9,
+    "correlationId": null,
+    "replyTo": null,
+    "expiration": null,
+    "messageId": "1234",
+    "userId": "14",
+    "appId": 123456,
+    "clusterId": "ClusterId"
+  },
+  {
+    "contentType": "json",
+    "Encoding": "UTF-8",
+    "headers": {},
+    "deliveryMode": null,
+    "priority": 9,
+    "correlationId": null,
+    "replyTo": null,
+    "expiration": null,
+    "messageId": "1234",
+    "userId": "14",
+    "appId": 123456,
+    "clusterId": "ClusterId"
+  },
+  {
+    "contentType": "json",
+    "contentEncoding": "UTF-8",
+    "myHeaders": {},
+    "deliveryMode": null,
+    "priority": 9,
+    "correlationId": null,
+    "replyTo": null,
+    "expiration": null,
+    "messageId": "1234",
+    "userId": "14",
+    "appId": 123456,
+    "clusterId": "ClusterId"
+  },
+  {
+    "contentType": "json",
+    "properties": "UTF-8"
+  },
+  {
+    "contentType": "json",
+    "contentEncoding": "UTF-8",
+    "headers": {},
+    "deliveryMode": null,
+    "myCustomField": 9,
+    "correlationId": null,
+    "replyTo": null,
+    "expiration": null,
+    "messageId": "1234",
+    "userId": "14",
+    "appId": 123456,
+    "clusterId": "ClusterId"
+  }
+]

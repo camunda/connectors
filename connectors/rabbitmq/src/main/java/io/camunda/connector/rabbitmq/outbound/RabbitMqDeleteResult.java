@@ -1,50 +1,41 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
 package io.camunda.connector.rabbitmq.outbound;
 
 public class RabbitMqDeleteResult {
+  private String statusResult;
+  private String message;
 
-  private String status;
-  private String errorMessage;
+  public String getStatusResult() {
+    return statusResult;
+  }
 
-  public RabbitMqDeleteResult() {}
+  public void setStatusResult(String statusResult) {
+    this.statusResult = statusResult;
+  }
 
-  public RabbitMqDeleteResult(final String status, final String errorMessage) {
-    this.status = status;
-    this.errorMessage = errorMessage;
+  public String getMessage() {
+    return message;
+  }
+
+  public void setMessage(String message) {
+    this.message = message;
+  }
+
+  public RabbitMqDeleteResult(final String statusResult, final String message) {
+    this.statusResult = statusResult;
+    this.message = message;
   }
 
   public static RabbitMqDeleteResult success() {
-    return new RabbitMqDeleteResult("success", null);
+    return new RabbitMqDeleteResult("SUCCESS", "Queue operation completed successfully");
   }
 
-  public static RabbitMqDeleteResult failure(final String message) {
-    return new RabbitMqDeleteResult("failure", message);
-  }
-
-  public String getStatus() {
-    return status;
-  }
-
-  public void setStatus(final String status) {
-    this.status = status;
-  }
-
-  public String getErrorMessage() {
-    return errorMessage;
-  }
-
-  public void setErrorMessage(final String errorMessage) {
-    this.errorMessage = errorMessage;
-  }
-
-  @Override
-  public String toString() {
-    return "RabbitMqDeleteResult{"
-        + "status='"
-        + status
-        + '\''
-        + ", errorMessage='"
-        + errorMessage
-        + '\''
-        + '}';
+  public static RabbitMqDeleteResult failure(String errorMessage) {
+    return new RabbitMqDeleteResult("FAILURE", errorMessage);
   }
 }

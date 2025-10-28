@@ -7,6 +7,7 @@
 package io.camunda.connector.rabbitmq.outbound.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.rabbitmq.common.model.CredentialsAuthentication;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
 import io.camunda.connector.rabbitmq.common.model.UriAuthentication;
@@ -15,9 +16,15 @@ import jakarta.validation.constraints.AssertFalse;
 import jakarta.validation.constraints.NotNull;
 
 public record RabbitMqRequest(
+    @TemplateProperty(
+            id = "operationType",
+            label = "Operation Type",
+            description = "Select the desired RabbitMQ operation.")
+        @NotNull
+        String operationType,
     @Valid @NotNull RabbitMqAuthentication authentication,
     @Valid @NotNull RabbitMqOutboundRouting routing,
-    @Valid @NotNull RabbitMqMessage message) {
+    @Valid RabbitMqMessage message) {
 
   @JsonIgnore
   @AssertFalse

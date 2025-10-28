@@ -1,32 +1,19 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "RabbitMQ Delete Queue Connector",
-  "id": "13c4808d-1f35-4ec0-a5b6-33ffb1b6a67d",
-  "version": 1760479805031,
-  "description": "Delete a queue on RabbitMQ",
-  "icon": {
-    "contents": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxOCcgaGVpZ2h0PScxOCcgdmlld0JveD0nLTcuNSAwIDI3MSAyNzEnIHByZXNlcnZlQXNwZWN0UmF0aW89J3hNaWRZTWlkJz4NCiAgICA8cGF0aCBkPSdNMjQ1LjQ0IDEwOC4zMDhoLTg1LjA5YTcuNzM4IDcuNzM4IDAgMCAxLTcuNzM1LTcuNzM0di04OC42OEMxNTIuNjE1IDUuMzI3IDE0Ny4yOSAwIDE0MC43MjYgMGgtMzAuMzc1Yy02LjU2OCAwLTExLjg5IDUuMzI3LTExLjg5IDExLjg5NHY4OC4xNDNjMCA0LjU3My0zLjY5NyA4LjI5LTguMjcgOC4zMWwtMjcuODg1LjEzM2MtNC42MTIuMDI1LTguMzU5LTMuNzE3LTguMzUtOC4zMjVsLjE3My04OC4yNDFDNTQuMTQ0IDUuMzM3IDQ4LjgxNyAwIDQyLjI0IDBIMTEuODlDNS4zMjEgMCAwIDUuMzI3IDAgMTEuODk0VjI2MC4yMWMwIDUuODM0IDQuNzI2IDEwLjU2IDEwLjU1NSAxMC41NkgyNDUuNDRjNS44MzQgMCAxMC41Ni00LjcyNiAxMC41Ni0xMC41NlYxMTguODY4YzAtNS44MzQtNC43MjYtMTAuNTYtMTAuNTYtMTAuNTZ6bS0zOS45MDIgOTMuMjMzYzAgNy42NDUtNi4xOTggMTMuODQ0LTEzLjg0MyAxMy44NDRIMTY3LjY5Yy03LjY0NiAwLTEzLjg0NC02LjE5OS0xMy44NDQtMTMuODQ0di0yNC4wMDVjMC03LjY0NiA2LjE5OC0xMy44NDQgMTMuODQ0LTEzLjg0NGgyNC4wMDVjNy42NDUgMCAxMy44NDMgNi4xOTggMTMuODQzIDEzLjg0NHYyNC4wMDV6Jw0KICAgICAgICAgIGZpbGw9JyNGNjAnLz4NCjwvc3ZnPg=="
-  },
-  "metadata": {
-    "keywords": [
-      "rabbitmq",
-      "delete",
-      "queue"
-    ]
-  },
-  "appliesTo": [
-    "bpmn:Task"
-  ],
+  "name": "RabbitMQ Outbound Connector",
+  "id": "io.camunda.connectors.RabbitMQ.v1",
+  "description": "Send message to RabbitMQ",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound",
+  "version": 5,
   "category": {
     "id": "connectors",
     "name": "Connectors"
   },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
   "elementType": {
     "value": "bpmn:ServiceTask"
-  },
-  "engines": {
-    "camunda": "^8.3"
   },
   "groups": [
     {
@@ -38,17 +25,25 @@
       "label": "Routing"
     },
     {
-      "id": "connector",
-      "label": "Connector"
+      "id": "message",
+      "label": "Message"
     },
     {
       "id": "output",
       "label": "Output mapping"
+    },
+    {
+      "id": "error",
+      "label": "Error handling"
+    },
+    {
+      "id": "retries",
+      "label": "Retries"
     }
   ],
   "properties": [
     {
-      "value": "io.camunda:connector-rabbitmq-delete:1",
+      "value": "io.camunda:connector-rabbitmq:1",
       "binding": {
         "property": "type",
         "type": "zeebe:taskDefinition"
@@ -142,42 +137,33 @@
       "type": "String"
     },
     {
-      "id": "routing.queueName",
-      "label": "Queue name",
-      "description": "Name of the queue to delete (for example: process.{instanceKey})",
+      "id": "routing.exchange",
+      "label": "Exchange",
+      "description": "Topic exchange: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
       "optional": false,
       "constraints": {
         "notEmpty": true
       },
+      "feel": "optional",
       "group": "routing",
       "binding": {
-        "name": "routing.queueName",
+        "name": "routing.exchange",
         "type": "zeebe:input"
       },
       "type": "String"
     },
     {
-      "id": "routing.ifUnused",
-      "label": "If unused",
-      "description": "Delete only if the queue has no consumers",
-      "optional": true,
-      "value": "false",
-      "group": "routing",
-      "binding": {
-        "name": "routing.ifUnused",
-        "type": "zeebe:input"
+      "id": "routing.routingKey",
+      "label": "Routing key",
+      "description": "Routing key: a binding is a \"link\" that was set up to bind a queue to an exchange. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
       },
-      "type": "String"
-    },
-    {
-      "id": "routing.ifEmpty",
-      "label": "If empty",
-      "description": "Delete only if the queue has no messages",
-      "optional": true,
-      "value": "false",
+      "feel": "optional",
       "group": "routing",
       "binding": {
-        "name": "routing.ifEmpty",
+        "name": "routing.routingKey",
         "type": "zeebe:input"
       },
       "type": "String"
@@ -185,10 +171,12 @@
     {
       "id": "routing.virtualHost",
       "label": "Virtual host",
+      "description": "Virtual name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
       "optional": false,
       "constraints": {
         "notEmpty": true
       },
+      "feel": "optional",
       "group": "routing",
       "binding": {
         "name": "routing.virtualHost",
@@ -204,10 +192,12 @@
     {
       "id": "routing.hostName",
       "label": "Host name",
+      "description": "Host name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
       "optional": false,
       "constraints": {
         "notEmpty": true
       },
+      "feel": "optional",
       "group": "routing",
       "binding": {
         "name": "routing.hostName",
@@ -223,10 +213,12 @@
     {
       "id": "routing.port",
       "label": "Port",
+      "description": "Port: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
       "optional": false,
       "constraints": {
         "notEmpty": true
       },
+      "feel": "optional",
       "group": "routing",
       "binding": {
         "name": "routing.port",
@@ -238,6 +230,36 @@
         "type": "simple"
       },
       "type": "String"
+    },
+    {
+      "id": "message.properties",
+      "label": "Properties",
+      "description": "Properties for the message, routing headers, etc",
+      "optional": true,
+      "value": "={}",
+      "feel": "required",
+      "group": "message",
+      "binding": {
+        "name": "message.properties",
+        "type": "zeebe:input"
+      },
+      "type": "Text"
+    },
+    {
+      "id": "message.body",
+      "label": "Message",
+      "description": "Data to send to RabbitMQ",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "message",
+      "binding": {
+        "name": "message.body",
+        "type": "zeebe:input"
+      },
+      "type": "Text"
     },
     {
       "id": "resultVariable",
@@ -261,6 +283,50 @@
         "type": "zeebe:taskHeader"
       },
       "type": "Text"
+    },
+    {
+      "id": "errorExpression",
+      "label": "Error expression",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+      "feel": "required",
+      "group": "error",
+      "binding": {
+        "key": "errorExpression",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Text"
+    },
+    {
+      "id": "retryCount",
+      "label": "Retries",
+      "description": "Number of retries",
+      "value": "3",
+      "feel": "optional",
+      "group": "retries",
+      "binding": {
+        "property": "retries",
+        "type": "zeebe:taskDefinition"
+      },
+      "type": "String"
+    },
+    {
+      "id": "retryBackoff",
+      "label": "Retry backoff",
+      "description": "ISO-8601 duration to wait between retries",
+      "value": "PT0S",
+      "feel": "optional",
+      "group": "retries",
+      "binding": {
+        "key": "retryBackoff",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "String"
     }
-  ]
+  ],
+  "icon": {
+    "contents": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxOCcgaGVpZ2h0PScxOCcgdmlld0JveD0nLTcuNSAwIDI3MSAyNzEnIHByZXNlcnZlQXNwZWN0UmF0aW89J3hNaWRZTWlkJz4KICAgIDxwYXRoIGQ9J00yNDUuNDQgMTA4LjMwOGgtODUuMDlhNy43MzggNy43MzggMCAwIDEtNy43MzUtNy43MzR2LTg4LjY4QzE1Mi42MTUgNS4zMjcgMTQ3LjI5IDAgMTQwLjcyNiAwaC0zMC4zNzVjLTYuNTY4IDAtMTEuODkgNS4zMjctMTEuODkgMTEuODk0djg4LjE0M2MwIDQuNTczLTMuNjk3IDguMjktOC4yNyA4LjMxbC0yNy44ODUuMTMzYy00LjYxMi4wMjUtOC4zNTktMy43MTctOC4zNS04LjMyNWwuMTczLTg4LjI0MUM1NC4xNDQgNS4zMzcgNDguODE3IDAgNDIuMjQgMEgxMS44OUM1LjMyMSAwIDAgNS4zMjcgMCAxMS44OTRWMjYwLjIxYzAgNS44MzQgNC43MjYgMTAuNTYgMTAuNTU1IDEwLjU2SDI0NS40NGM1LjgzNCAwIDEwLjU2LTQuNzI2IDEwLjU2LTEwLjU2VjExOC44NjhjMC01LjgzNC00LjcyNi0xMC41Ni0xMC41Ni0xMC41NnptLTM5LjkwMiA5My4yMzNjMCA3LjY0NS02LjE5OCAxMy44NDQtMTMuODQzIDEzLjg0NEgxNjcuNjljLTcuNjQ2IDAtMTMuODQ0LTYuMTk5LTEzLjg0NC0xMy44NDR2LTI0LjAwNWMwLTcuNjQ2IDYuMTk4LTEzLjg0NCAxMy44NDQtMTMuODQ0aDI0LjAwNWM3LjY0NSAwIDEzLjg0MyA2LjE5OCAxMy44NDMgMTMuODQ0djI0LjAwNXonCiAgICAgICAgICBmaWxsPScjRjYwJy8+Cjwvc3ZnPg=="
+  },
+  "engines": {
+    "camunda": "^8.5"
+  }
 }

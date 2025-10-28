@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-parent</artifactId>
-    <version>8.8.0</version>
+    <version>8.9.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -55,7 +55,7 @@
         <version>${project.version}</version>
         <configuration>
           <connectors>
-            <!--<connector>
+            <connector>
               <connectorClass>io.camunda.connector.rabbitmq.outbound.RabbitMqFunction</connectorClass>
               <files>
                 <file>
@@ -64,7 +64,7 @@
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
-            </connector> -->
+            </connector>
             <connector>
               <connectorClass>io.camunda.connector.rabbitmq.inbound.RabbitMqExecutable</connectorClass>
               <files>
