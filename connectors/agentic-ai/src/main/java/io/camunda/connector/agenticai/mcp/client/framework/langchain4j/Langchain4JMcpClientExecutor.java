@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.mcp.client.McpClient;
+import dev.langchain4j.service.tool.ToolExecutionResult;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
@@ -114,6 +115,7 @@ public class Langchain4JMcpClientExecutor {
 
       final var normalizedResult =
           Optional.ofNullable(result)
+              .map(ToolExecutionResult::resultText)
               .filter(StringUtils::isNotBlank)
               .orElse(ToolCallResult.CONTENT_NO_RESULT);
 

@@ -9,7 +9,6 @@ package io.camunda.connector.embeddingstore;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -19,14 +18,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.azure.core.credential.TokenCredential;
-import com.azure.cosmos.CosmosClientBuilder;
-import com.azure.cosmos.models.CosmosContainerProperties;
 import com.azure.cosmos.models.CosmosVectorDataType;
 import com.azure.cosmos.models.CosmosVectorDistanceFunction;
 import com.azure.cosmos.models.CosmosVectorEmbeddingPolicy;
 import com.azure.cosmos.models.CosmosVectorIndexType;
 import com.azure.cosmos.models.IncludedPath;
 import com.azure.cosmos.models.IndexingMode;
+import com.azure.cosmos.models.IndexingPolicy;
+import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.azure.cosmos.nosql.AzureCosmosDbNoSqlEmbeddingStore;
 import dev.langchain4j.store.embedding.azure.search.AzureAiSearchEmbeddingStore;
@@ -127,79 +126,69 @@ class DefaultEmbeddingStoreFactoryTest {
     private void testAzureCosmosDbNoSqlEmbeddingStoreCreation(
         AzureCosmosDbNoSqlVectorStore vectorStore, EmbeddingModel mockModel) {
       var builder = spy(AzureCosmosDbNoSqlEmbeddingStore.builder());
-      try (var mockedConstruction = Mockito.mockConstruction(CosmosClientBuilder.class)) {
-        try (var mockStore =
-            mockStatic(AzureCosmosDbNoSqlEmbeddingStore.class, Answers.CALLS_REAL_METHODS)) {
-          mockStore.when(AzureCosmosDbNoSqlEmbeddingStore::builder).thenReturn(builder);
+      try (var mockStore =
+          mockStatic(AzureCosmosDbNoSqlEmbeddingStore.class, Answers.CALLS_REAL_METHODS)) {
+        mockStore.when(AzureCosmosDbNoSqlEmbeddingStore::builder).thenReturn(builder);
 
-          doReturn(mock(AzureCosmosDbNoSqlEmbeddingStore.class)).when(builder).build();
-          ArgumentCaptor<CosmosVectorEmbeddingPolicy> embeddingPolicyCaptor =
-              ArgumentCaptor.forClass(CosmosVectorEmbeddingPolicy.class);
+        AzureCosmosDbNoSqlEmbeddingStore builtMockStore =
+            mock(AzureCosmosDbNoSqlEmbeddingStore.class);
+        doReturn(builtMockStore).when(builder).build();
+        ArgumentCaptor<CosmosVectorEmbeddingPolicy> embeddingPolicyCaptor =
+            ArgumentCaptor.forClass(CosmosVectorEmbeddingPolicy.class);
 
-          factory.initializeVectorStore(vectorStore, mockModel, null);
-          verify(builder).build();
+        ClosableEmbeddingStore<TextSegment> embeddingStore =
+            factory.initializeVectorStore(vectorStore, mockModel, null);
+        verify(builder).build();
 
-          CosmosClientBuilder cosmosClientBuilder = mockedConstruction.constructed().getFirst();
-          verifyCosmosClientBuilder(vectorStore, cosmosClientBuilder);
+        verify(builder).endpoint(vectorStore.azureCosmosDbNoSql().endpoint());
+        verify(builder).databaseName(vectorStore.azureCosmosDbNoSql().databaseName());
+        verify(builder).containerName(vectorStore.azureCosmosDbNoSql().containerName());
 
-          verify(builder).cosmosClient(any());
-          verify(builder).databaseName(vectorStore.azureCosmosDbNoSql().databaseName());
-          verify(builder).containerName(vectorStore.azureCosmosDbNoSql().containerName());
+        verify(builder).cosmosVectorEmbeddingPolicy(embeddingPolicyCaptor.capture());
+        assertThat(embeddingPolicyCaptor.getValue().getVectorEmbeddings().size()).isEqualTo(1);
+        var embedding = embeddingPolicyCaptor.getValue().getVectorEmbeddings().getFirst();
+        assertThat(embedding.getPath())
+            .isEqualTo(AzureVectorStoreFactory.COSMOS_DB_VECTOR_EMBEDDING_PATH);
+        assertThat(embedding.getDataType()).isEqualTo(CosmosVectorDataType.FLOAT32);
+        assertThat(embedding.getEmbeddingDimensions()).isEqualTo(mockModel.dimension());
+        assertThat(embedding.getDistanceFunction()).isEqualTo(CosmosVectorDistanceFunction.COSINE);
 
-          verify(builder).cosmosVectorEmbeddingPolicy(embeddingPolicyCaptor.capture());
-          assertThat(embeddingPolicyCaptor.getValue().getVectorEmbeddings().size()).isEqualTo(1);
-          var embedding = embeddingPolicyCaptor.getValue().getVectorEmbeddings().getFirst();
-          assertThat(embedding.getPath())
-              .isEqualTo(AzureVectorStoreFactory.COSMOS_DB_VECTOR_EMBEDDING_PATH);
-          assertThat(embedding.getDataType()).isEqualTo(CosmosVectorDataType.FLOAT32);
-          assertThat(embedding.getEmbeddingDimensions()).isEqualTo(mockModel.dimension());
-          assertThat(embedding.getDistanceFunction())
-              .isEqualTo(CosmosVectorDistanceFunction.COSINE);
+        ArgumentCaptor<IndexingPolicy> indexingPolicyCaptor =
+            ArgumentCaptor.forClass(IndexingPolicy.class);
+        verify(builder).indexingPolicy(indexingPolicyCaptor.capture());
+        var indexingPolicy = indexingPolicyCaptor.getValue();
+        assertThat(indexingPolicy.getIndexingMode()).isEqualTo(IndexingMode.CONSISTENT);
+        assertThat(indexingPolicy.getIncludedPaths())
+            .extracting(IncludedPath::getPath)
+            .containsExactly("/*");
+        // Verify vector index spec is set up
+        assertThat(indexingPolicy.getVectorIndexes()).hasSize(1);
+        var vectorIndex = indexingPolicy.getVectorIndexes().getFirst();
+        assertThat(vectorIndex.getPath())
+            .isEqualTo(AzureVectorStoreFactory.COSMOS_DB_VECTOR_EMBEDDING_PATH);
+        assertThat(vectorIndex.getType()).isEqualTo(CosmosVectorIndexType.FLAT.toString());
 
-          verify(builder)
-              .cosmosVectorIndexes(
-                  assertArg(
-                      (vectorIndexes) -> {
-                        assertThat(vectorIndexes).hasSize(1);
-                        var vectorIndex = vectorIndexes.getFirst();
-                        assertThat(vectorIndex.getPath())
-                            .isEqualTo(AzureVectorStoreFactory.COSMOS_DB_VECTOR_EMBEDDING_PATH);
-                        assertThat(vectorIndex.getType())
-                            .isEqualTo(CosmosVectorIndexType.FLAT.toString());
-                      }));
+        verify(builder).partitionKeyPath(AzureVectorStoreFactory.COSMOS_DB_PARTITION_KEY_PATH);
+        verify(builder)
+            .searchQueryType(
+                dev.langchain4j.store.embedding.azure.cosmos.nosql.AzureCosmosDBSearchQueryType
+                    .VECTOR);
 
-          ArgumentCaptor<CosmosContainerProperties> containerPropertiesCaptor =
-              ArgumentCaptor.forClass(CosmosContainerProperties.class);
-          verify(builder).containerProperties(containerPropertiesCaptor.capture());
-
-          var containerProperties = containerPropertiesCaptor.getValue();
-          assertThat(containerProperties.getId())
-              .isEqualTo(vectorStore.azureCosmosDbNoSql().containerName());
-          assertThat(containerProperties.getPartitionKeyDefinition().getPaths())
-              .containsExactly(AzureVectorStoreFactory.COSMOS_DB_PARTITION_KEY_PATH);
-          assertThat(containerProperties.getIndexingPolicy().getIndexingMode())
-              .isEqualTo(IndexingMode.CONSISTENT);
-          assertThat(containerProperties.getIndexingPolicy().getIncludedPaths())
-              .extracting(IncludedPath::getPath)
-              .containsExactly("/*");
+        // Verify authentication set on the builder
+        switch (vectorStore.azureCosmosDbNoSql().authentication()) {
+          case AzureAuthentication.AzureApiKeyAuthentication(String apiKey) -> {
+            verify(builder).apiKey(apiKey);
+            verify(builder, never()).tokenCredential(any(TokenCredential.class));
+          }
+          case AzureAuthentication.AzureClientCredentialsAuthentication ignored -> {
+            verify(builder).tokenCredential(any(TokenCredential.class));
+            verify(builder, never()).apiKey(anyString());
+          }
         }
-      }
-    }
 
-    private static void verifyCosmosClientBuilder(
-        AzureCosmosDbNoSqlVectorStore vectorStore, CosmosClientBuilder cosmosClientBuilder) {
-      verify(cosmosClientBuilder).endpoint(vectorStore.azureCosmosDbNoSql().endpoint());
-      verify(cosmosClientBuilder).consistencyLevel(com.azure.cosmos.ConsistencyLevel.STRONG);
-      verify(cosmosClientBuilder).contentResponseOnWriteEnabled(true);
-      switch (vectorStore.azureCosmosDbNoSql().authentication()) {
-        case AzureAuthentication.AzureApiKeyAuthentication(String apiKey) -> {
-          verify(cosmosClientBuilder).key(apiKey);
-          verify(cosmosClientBuilder, never()).credential(any(TokenCredential.class));
-        }
-        case AzureAuthentication.AzureClientCredentialsAuthentication ignored -> {
-          verify(cosmosClientBuilder).credential(any(TokenCredential.class));
-          verify(cosmosClientBuilder, never()).key(anyString());
-        }
+        // Verify closeable store closes the underlying store
+        embeddingStore.close();
+        verify(builtMockStore).close();
       }
     }
   }
