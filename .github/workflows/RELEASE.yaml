@@ -73,7 +73,7 @@ jobs:
 
       - name: Upload detailed surefire reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: surefire-reports
           path: '**/target/surefire-reports/*.xml'
@@ -104,7 +104,7 @@ jobs:
           RELEASE_BRANCH: ${{ needs.setup.outputs.releaseBranch }}
 
       - name: Upload repository
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: repository
           path: .
@@ -174,7 +174,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download repository
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: repository
 
@@ -260,7 +260,7 @@ jobs:
     name: Perform the docker release
     steps:
       - name: Download repository
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: repository
 
@@ -383,7 +383,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download repository
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: repository
 
