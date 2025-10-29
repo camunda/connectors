@@ -8,7 +8,6 @@ package io.camunda.connector.rabbitmq.outbound.model;
 
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import jakarta.validation.constraints.NotNull;
 
 public record RabbitMqMessage(
     @TemplateProperty(
@@ -19,8 +18,8 @@ public record RabbitMqMessage(
             type = TemplateProperty.PropertyType.Text,
             description = "Properties for the message, routing headers, etc")
         Object properties,
-    @NotNull
-        @TemplateProperty(
+    // @NotNull
+    @TemplateProperty(
             group = "message",
             label = "Message",
             type = TemplateProperty.PropertyType.Text,
