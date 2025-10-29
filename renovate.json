@@ -92,16 +92,6 @@
         "digest"
       ],
       "changelogUrl": "https://github.com/camunda/infra-global-github-actions/compare/{{currentDigest}}..{{newDigest}}"
-    },
-    {
-      "description": "Exclude dev.langchain4j artifacts >= 1.4.0",
-      "matchManagers": [
-        "maven"
-      ],
-      "allowedVersions": "< 1.4.0",
-      "matchPackageNames": [
-        "dev.langchain4j:{/,}**"
-      ]
     }
   ],
   "baseBranchPatterns": [
