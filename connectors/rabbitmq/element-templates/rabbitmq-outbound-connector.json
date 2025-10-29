@@ -1,13 +1,13 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "RabbitMQ Outbound Connector",
-  "id" : "io.camunda.connectors.RabbitMQ.v1",
-  "description" : "Send message to RabbitMQ",
+  "name" : "RabbitMQ Outbound Connector Manager",
+  "id" : "io.camunda.connectors.RabbitMQ.v2",
+  "description" : "Send message and delete queue in RabbitMQ",
   "metadata" : {
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound",
-  "version" : 6,
+  "version" : 7,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -22,6 +22,9 @@
   "groups" : [ {
     "id" : "authentication",
     "label" : "Authentication"
+  },{
+	 "id": "operation",
+	 "label": "Operation Type"
   }, {
     "id" : "routing",
     "label" : "Routing"
@@ -128,6 +131,27 @@
     },
     "type" : "String"
   }, {
+	  "id": "operationType",
+	  "label": "Operation Type",
+	  "description": "Select the desired RabbitMQ operation.",
+	  "value": "sendMessage",
+	  "group": "operation",
+	  "binding": {
+	    "name": "operationType",
+	    "type": "zeebe:input"
+	  },
+	  "type": "Dropdown",
+	  "choices": [
+	    {
+	      "name": "Send Message",
+	      "value": "sendMessage"
+	    },
+	    {
+	      "name": "Delete Queue",
+	      "value": "deleteQueue"
+	    }
+	  ]
+	}, {
     "id" : "routing.exchange",
     "label" : "Exchange",
     "description" : "Topic exchange: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
@@ -141,6 +165,11 @@
       "name" : "routing.exchange",
       "type" : "zeebe:input"
     },
+	  "condition": {
+	    "property": "operationType",
+	    "equals": "sendMessage",
+	    "type": "simple"
+	  },
     "type" : "String"
   }, {
     "id" : "routing.routingKey",
@@ -229,6 +258,11 @@
       "name" : "message.properties",
       "type" : "zeebe:input"
     },
+	  "condition": {
+	    "property": "operationType",
+	    "equals": "sendMessage",
+	    "type": "simple"
+	  },
     "type" : "Text"
   }, {
     "id" : "message.body",
@@ -244,12 +278,17 @@
       "name" : "message.body",
       "type" : "zeebe:input"
     },
+	  "condition": {
+	    "property": "operationType",
+	    "equals": "sendMessage",
+	    "type": "simple"
+	  },
     "type" : "Text"
   }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "6",
+    "value" : "7",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
