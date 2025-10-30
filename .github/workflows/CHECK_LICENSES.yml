@@ -1,7 +1,7 @@
 name: Check Licenses
 
 on:
-  pull_request:
+  pull_request_target:
     types:
       - opened
       - reopened
@@ -14,12 +14,23 @@ on:
       - '*'
 
 jobs:
+  authorize:
+    environment:
+      ${{ github.event_name == 'pull_request_target' &&
+      github.event.pull_request.head.repo.full_name != github.repository &&
+      'external' || 'internal' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: true
+
   analyze:
     name: Analyze dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
       # Import FOSSA_API_KEY and other secrets from Vault
       - name: Import secrets
         id: secrets
