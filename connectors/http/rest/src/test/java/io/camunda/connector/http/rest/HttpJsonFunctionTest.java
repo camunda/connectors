@@ -98,7 +98,7 @@ public class HttpJsonFunctionTest extends BaseTest {
     // then
     assertThat(exceptionThrown)
         .isInstanceOf(ConnectorInputException.class)
-        .hasMessageContaining("zzzzzzzzzzzzzzzzzzzzzzz");
+        .hasMessageContaining("ValidationException");
   }
 
   @Test
