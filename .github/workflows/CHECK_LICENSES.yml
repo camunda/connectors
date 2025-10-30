@@ -1,7 +1,7 @@
 name: Check Licenses
 
 on:
-  pull_request:
+  pull_request_target:
     types:
       - opened
       - reopened
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: true
-        
+
   analyze:
     name: Analyze dependencies
     runs-on: ubuntu-latest
