@@ -28,6 +28,7 @@ import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "endpoint", label = "HTTP Polling configuration"),
+      @ElementTemplate.PropertyGroup(id = "payload", label = "Payload"),
       @ElementTemplate.PropertyGroup(id = "interval", label = "HTTP Polling Interval"),
       @ElementTemplate.PropertyGroup(id = "timeout", label = "Connection timeout"),
     },

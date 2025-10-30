@@ -27,6 +27,9 @@
     "id" : "endpoint",
     "label" : "HTTP Polling configuration"
   }, {
+    "id" : "payload",
+    "label" : "Payload"
+  }, {
     "id" : "interval",
     "label" : "HTTP Polling Interval"
   }, {
@@ -396,6 +399,23 @@
       "type" : "zeebe:property"
     },
     "type" : "Hidden"
+  }, {
+    "id" : "body",
+    "label" : "Request body",
+    "description" : "Payload to send with the request",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "payload",
+    "binding" : {
+      "name" : "body",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "method",
+      "oneOf" : [ "POST", "PUT", "PATCH" ],
+      "type" : "simple"
+    },
+    "type" : "Text"
   }, {
     "id" : "httpRequestInterval",
     "label" : "Http request interval",
