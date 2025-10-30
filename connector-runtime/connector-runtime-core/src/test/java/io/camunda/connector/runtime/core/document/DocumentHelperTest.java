@@ -42,6 +42,8 @@ public class DocumentHelperTest {
 
   @Test
   public void shouldReturnBody_whenMapInputWithoutDocumentAndWithNullValues() {
+
+    throw new RuntimeException("oops");
     // given
     DocumentHelper documentHelper = new DocumentHelper();
     Map<String, Object> input = new HashMap<>();
