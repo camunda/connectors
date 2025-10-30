@@ -12,10 +12,6 @@ on:
       - release/*
     tags:
       - '*'
-  pull_request:
-    types:
-      - opened
-      - synchronize
 
 jobs:
   analyze:
