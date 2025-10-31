@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.client.model;
 
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
@@ -19,6 +20,7 @@ public record A2aRequest(@Valid @NotNull A2aRequest.A2aRequestData data) {
 
     public record ConnectionConfiguration(
         @NotBlank
+            @FEEL
             @TemplateProperty(
                 group = "connection",
                 label = "A2A server URL",

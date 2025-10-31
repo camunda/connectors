@@ -48,6 +48,7 @@ import io.camunda.connector.e2e.agenticai.assertj.ToolExecutionRequestEqualsPred
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -84,6 +85,7 @@ abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
         testProcess,
         elementTemplateModifier,
         responseText,
+        Map.of(),
         assertToolSpecifications,
         agentResponseAssertions);
   }
@@ -92,11 +94,13 @@ abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
       Resource process,
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
       String responseText,
+      Map<String, Object> extraProcessVariables,
       boolean assertToolSpecifications,
       ThrowingConsumer<AgentResponse> agentResponseAssertions)
       throws Exception {
     final var testSetup =
-        setupBasicTestWithoutFeedbackLoop(process, elementTemplateModifier, responseText);
+        setupBasicTestWithoutFeedbackLoop(
+            process, elementTemplateModifier, responseText, extraProcessVariables);
 
     final var zeebeTest = testSetup.getRight();
     zeebeTest.waitForProcessCompletion();
@@ -120,7 +124,8 @@ abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
   protected Pair<List<ChatMessage>, ZeebeTest> setupBasicTestWithoutFeedbackLoop(
       Resource process,
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
-      String responseText)
+      String responseText,
+      Map<String, Object> extraProcessVariables)
       throws Exception {
     final var initialUserPrompt = "Write a haiku about the sea";
     final var expectedConversation =
@@ -142,11 +147,12 @@ abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
                 .build(),
             userSatisfiedFeedback()));
 
-    final var zeebeTest =
-        createProcessInstance(
-            process,
-            elementTemplateModifier,
-            Map.of("action", "executeAgent", "userPrompt", initialUserPrompt));
+    final var processVariables =
+        new HashMap<>(
+            Map.<String, Object>of("action", "executeAgent", "userPrompt", initialUserPrompt));
+    processVariables.putAll(extraProcessVariables);
+
+    final var zeebeTest = createProcessInstance(process, elementTemplateModifier, processVariables);
 
     return Pair.of(expectedConversation, zeebeTest);
   }

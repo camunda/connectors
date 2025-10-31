@@ -27,6 +27,7 @@ import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -229,7 +230,8 @@ public class L4JAiAgentConnectorResponseHandlingTests extends BaseL4JAiAgentConn
           setupBasicTestWithoutFeedbackLoop(
               testProcess,
               elementTemplate -> elementTemplate.property("data.response.format.type", "json"),
-              HAIKU_TEXT);
+              HAIKU_TEXT,
+              Map.of());
       setup.getRight().waitForActiveIncidents();
 
       assertIncident(

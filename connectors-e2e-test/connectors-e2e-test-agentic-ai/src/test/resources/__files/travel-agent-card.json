@@ -1,0 +1,30 @@
+{
+  "name": "Travel agent",
+  "description": "Helps with travel bookings",
+  "url": "%s/travel-agent",
+  "version": "1.0.0",
+  "documentationUrl": "http://example.com/docs",
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true,
+    "stateTransitionHistory": true
+  },
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "skills": [
+    {
+      "id": "hotel-booking",
+      "name": "Hotel Booking",
+      "description": "Book a hotel room",
+      "tags": [
+        "booking",
+        "hotel"
+      ],
+      "examples": [
+        "Book a single room",
+        "Book a double room"
+      ]
+    }
+  ],
+  "protocolVersion": "0.3.0"
+}
