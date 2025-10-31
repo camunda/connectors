@@ -47,6 +47,10 @@
             <groupId>dev.failsafe</groupId>
             <artifactId>failsafe</artifactId>
         </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>http-client</artifactId>
+      </dependency>
     </dependencies>
 
     <build>

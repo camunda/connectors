@@ -10,15 +10,17 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 
-@JsonTypeInfo(
-    use = JsonTypeInfo.Id.NAME,
-    property = "type",
-    defaultImpl = SimpleAuthentication.class)
-@JsonSubTypes({@JsonSubTypes.Type(value = SimpleAuthentication.class, name = "simple")})
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@JsonSubTypes({
+  @JsonSubTypes.Type(value = SimpleAuthentication.class, name = SimpleAuthentication.TYPE),
+  @JsonSubTypes.Type(value = XOAuthAuthentication.class, name = XOAuthAuthentication.TYPE),
+  @JsonSubTypes.Type(value = NoAuthentication.class, name = NoAuthentication.TYPE)
+})
 @TemplateDiscriminatorProperty(
     label = "Authentication",
     group = "authentication",
     name = "type",
     defaultValue = "simple",
-    description = "Specify the Email authentication strategy.")
-public sealed interface Authentication permits SimpleAuthentication {}
+    description = "Specify the Email authentication strategy. None is only supported for SMTP.")
+public sealed interface Authentication
+    permits SimpleAuthentication, XOAuthAuthentication, NoAuthentication {}
