@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConver
 import io.camunda.connector.agenticai.a2a.client.model.A2aSendMessageOperationParameters;
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
+import io.camunda.connector.agenticai.a2a.client.sdk.A2aClientConfig;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -58,7 +59,7 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
         };
     try (var a2aClient =
         clientFactory.buildClient(
-            agentCard, consumer, sendMessageOperation.settings().historyLength())) {
+            agentCard, consumer, A2aClientConfig.from(sendMessageOperation.settings()))) {
       a2aClient.sendMessage(message);
 
       try {

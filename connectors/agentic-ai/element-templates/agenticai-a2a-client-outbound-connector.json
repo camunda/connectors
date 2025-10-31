@@ -275,6 +275,30 @@
     },
     "type" : "Number"
   }, {
+    "id" : "data.connectorMode.operation.settings.supportPolling",
+    "label" : "Support polling",
+    "description" : "Whether to enable polling for the remote agent's response instead of waiting for it synchronously.",
+    "optional" : true,
+    "value" : false,
+    "feel" : "static",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.operation.settings.supportPolling",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.type",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Boolean"
+  }, {
     "id" : "data.connectorMode.operation.settings.timeout",
     "label" : "Response timeout",
     "description" : "How long to wait for the remote agent response as ISO-8601 duration (example: <code>PT1M</code>).",
@@ -355,6 +379,24 @@
       "type" : "simple"
     },
     "type" : "Number"
+  }, {
+    "id" : "data.connectorMode.toolOperation.sendMessageSettings.supportPolling",
+    "label" : "Support polling",
+    "description" : "Whether to enable polling for the remote agent's response instead of waiting for it synchronously.",
+    "optional" : true,
+    "value" : false,
+    "feel" : "static",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.toolOperation.sendMessageSettings.supportPolling",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode.type",
+      "equals" : "aiAgentTool",
+      "type" : "simple"
+    },
+    "type" : "Boolean"
   }, {
     "id" : "data.connectorMode.toolOperation.sendMessageSettings.timeout",
     "label" : "Response timeout",

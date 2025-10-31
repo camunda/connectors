@@ -11,7 +11,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -44,6 +43,7 @@ import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTaskStatus;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTaskStatus.TaskState;
 import io.camunda.connector.agenticai.a2a.client.sdk.A2aClient;
+import io.camunda.connector.agenticai.a2a.client.sdk.A2aClientConfig;
 import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRuntimeProperties;
 import io.camunda.connector.agenticai.a2a.inbound.model.A2aPollingRuntimeProperties.A2aPollingRuntimePropertiesData;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
@@ -280,7 +280,7 @@ class A2aPollingTaskTest {
         .thenReturn(runtimeProperties(objectMapper.writeValueAsString(WORKING_TASK)));
 
     when(agentCardFetcher.fetchAgentCardRaw(CONNECTION)).thenReturn(agentCard);
-    when(clientFactory.buildClient(eq(agentCard), any(), eq(3)))
+    when(clientFactory.buildClient(eq(agentCard), any(), eq(a2aClientConfig())))
         .thenThrow(new RuntimeException("Creating client failed"));
 
     pollingTask.run();
@@ -304,7 +304,7 @@ class A2aPollingTaskTest {
         .thenReturn(runtimeProperties(objectMapper.writeValueAsString(WORKING_TASK)));
 
     when(agentCardFetcher.fetchAgentCardRaw(CONNECTION)).thenReturn(agentCard);
-    when(clientFactory.buildClient(eq(agentCard), any(), eq(3))).thenReturn(client);
+    when(clientFactory.buildClient(eq(agentCard), any(), eq(a2aClientConfig()))).thenReturn(client);
     when(client.getTask(new TaskQueryParams(WORKING_TASK.id(), 3)))
         .thenThrow(new RuntimeException("Fetching task failed"));
 
@@ -327,7 +327,7 @@ class A2aPollingTaskTest {
         .thenReturn(runtimeProperties(objectMapper.writeValueAsString(WORKING_TASK)));
 
     when(agentCardFetcher.fetchAgentCardRaw(CONNECTION)).thenReturn(agentCard);
-    when(clientFactory.buildClient(eq(agentCard), any(), eq(3))).thenReturn(client);
+    when(clientFactory.buildClient(eq(agentCard), any(), eq(a2aClientConfig()))).thenReturn(client);
     when(client.getTask(new TaskQueryParams(WORKING_TASK.id(), 3))).thenReturn(COMPLETED_A2A_TASK);
 
     pollingTask.run();
@@ -342,14 +342,14 @@ class A2aPollingTaskTest {
         .thenReturn(runtimeProperties(objectMapper.writeValueAsString(WORKING_TASK)));
 
     when(agentCardFetcher.fetchAgentCardRaw(CONNECTION)).thenReturn(agentCard);
-    when(clientFactory.buildClient(eq(agentCard), any(), eq(3))).thenReturn(client);
+    when(clientFactory.buildClient(eq(agentCard), any(), eq(a2aClientConfig()))).thenReturn(client);
     when(client.getTask(new TaskQueryParams(WORKING_TASK.id(), 3))).thenReturn(WORKING_A2A_TASK);
 
     pollingTask.run();
     pollingTask.run();
 
     verify(agentCardFetcher, times(1)).fetchAgentCardRaw(any(ConnectionConfiguration.class));
-    verify(clientFactory, times(1)).buildClient(any(AgentCard.class), any(), anyInt());
+    verify(clientFactory, times(1)).buildClient(any(AgentCard.class), any(), any());
     verify(client, times(2)).getTask(any(TaskQueryParams.class));
 
     verify(processInstanceContext, times(2))
@@ -357,7 +357,7 @@ class A2aPollingTaskTest {
   }
 
   @Test
-  void canCloseWithoutInitializedClient() throws JsonProcessingException {
+  void canCloseWithoutInitializedClient() {
     assertThatCode(() -> pollingTask.close()).doesNotThrowAnyException();
     verifyNoInteractions(client);
   }
@@ -368,6 +368,10 @@ class A2aPollingTaskTest {
 
     pollingTask.close();
     verify(client).close();
+  }
+
+  private static A2aClientConfig a2aClientConfig() {
+    return new A2aClientConfig(3, null);
   }
 
   private static A2aPollingRuntimeProperties runtimeProperties(String clientResponse) {

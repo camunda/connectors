@@ -35,7 +35,7 @@ public class A2aClientFactoryImpl implements A2aClientFactory {
 
   @Override
   public A2aClient buildClient(
-      AgentCard agentCard, BiConsumer<ClientEvent, AgentCard> consumer, int historyLength) {
+      AgentCard agentCard, BiConsumer<ClientEvent, AgentCard> consumer, A2aClientConfig config) {
     // Create a channel factory that will create and track gRPC channels
     final ManagedChannelFactory managedChannelFactory =
         new ManagedChannelFactory(transportConfiguration.grpc().useTls());
@@ -47,8 +47,8 @@ public class A2aClientFactoryImpl implements A2aClientFactory {
               .clientConfig(
                   new ClientConfig.Builder()
                       .setStreaming(false)
-                      .setPolling(false)
-                      .setHistoryLength(historyLength)
+                      .setPolling(Boolean.TRUE.equals(config.supportPolling()))
+                      .setHistoryLength(config.historyLength())
                       .build())
               .addConsumer(consumer)
               .withTransport(JSONRPCTransport.class, jsonrpcTransportConfig)

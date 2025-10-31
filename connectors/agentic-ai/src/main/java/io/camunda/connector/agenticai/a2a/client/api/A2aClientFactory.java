@@ -9,9 +9,10 @@ package io.camunda.connector.agenticai.a2a.client.api;
 import io.a2a.client.ClientEvent;
 import io.a2a.spec.AgentCard;
 import io.camunda.connector.agenticai.a2a.client.sdk.A2aClient;
+import io.camunda.connector.agenticai.a2a.client.sdk.A2aClientConfig;
 import java.util.function.BiConsumer;
 
 public interface A2aClientFactory {
   A2aClient buildClient(
-      AgentCard agentCard, BiConsumer<ClientEvent, AgentCard> consumer, int historyLength);
+      AgentCard agentCard, BiConsumer<ClientEvent, AgentCard> consumer, A2aClientConfig config);
 }

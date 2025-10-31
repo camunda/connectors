@@ -91,7 +91,7 @@ class A2aRequestHandlerTest {
       var operation =
           new SendMessageOperationConfiguration(
               A2aSendMessageOperationParametersBuilder.builder().text("Hello").build(),
-              new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
+              sendMessageConfiguration(1, 1));
       var request =
           new A2aRequest(
               new A2aRequestData(
@@ -129,9 +129,7 @@ class A2aRequestHandlerTest {
     void handleFetchAgentCard() {
       var operation =
           new A2aToolOperationConfiguration(
-              "fetchAgentCard",
-              null,
-              new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(10)));
+              "fetchAgentCard", null, sendMessageConfiguration(1, 10));
       var request =
           new A2aRequest(
               new A2aRequestData(
@@ -151,8 +149,7 @@ class A2aRequestHandlerTest {
     @Test
     void handleSendMessage() {
       var params = Map.<String, Object>of("text", "Hello, agent!");
-      var timeout = Duration.ofSeconds(45);
-      var commonConfiguration = new A2aCommonSendMessageConfiguration(10, timeout);
+      var commonConfiguration = sendMessageConfiguration(10, 45);
       var operation = new A2aToolOperationConfiguration("sendMessage", params, commonConfiguration);
       var request =
           new A2aRequest(
@@ -203,8 +200,9 @@ class A2aRequestHandlerTest {
               "task-456",
               "referenceTaskIds",
               List.of("ref-1", "ref-2"));
-      var commonConfiguration = new A2aCommonSendMessageConfiguration(10, Duration.ofSeconds(30));
-      var operation = new A2aToolOperationConfiguration("sendMessage", params, commonConfiguration);
+      var operation =
+          new A2aToolOperationConfiguration(
+              "sendMessage", params, sendMessageConfiguration(10, 30));
       var request =
           new A2aRequest(
               new A2aRequestData(
@@ -242,10 +240,7 @@ class A2aRequestHandlerTest {
     @EmptySource
     void throwsWhenMessageParamsNullOrEmpty(Map<String, Object> params) {
       var operation =
-          new A2aToolOperationConfiguration(
-              "sendMessage",
-              params,
-              new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
+          new A2aToolOperationConfiguration("sendMessage", params, sendMessageConfiguration(1, 1));
       var request =
           new A2aRequest(
               new A2aRequestData(
@@ -259,8 +254,7 @@ class A2aRequestHandlerTest {
     @Test
     void throwsWhenUnsupportedOperation() {
       var operation =
-          new A2aToolOperationConfiguration(
-              "unknown", Map.of(), new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
+          new A2aToolOperationConfiguration("unknown", Map.of(), sendMessageConfiguration(1, 1));
       var request =
           new A2aRequest(
               new A2aRequestData(
@@ -270,5 +264,11 @@ class A2aRequestHandlerTest {
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessage("Unsupported operation: 'unknown'");
     }
+  }
+
+  private static A2aCommonSendMessageConfiguration sendMessageConfiguration(
+      int historyLength, int durationSeconds) {
+    return new A2aCommonSendMessageConfiguration(
+        historyLength, false, Duration.ofSeconds(durationSeconds));
   }
 }
