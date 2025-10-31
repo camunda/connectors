@@ -1,7 +1,7 @@
 name: Check Licenses
 
 on:
-  pull_request_target:
+  pull_request:
     types:
       - opened
       - reopened
@@ -13,19 +13,24 @@ on:
     tags:
       - '*'
 
+permissions:
+  contents: read
+
 jobs:
-  authorize:
-    environment:
-      ${{ github.event_name == 'pull_request_target' &&
-      github.event.pull_request.head.repo.full_name != github.repository &&
-      'external' || 'internal' }}
+  fork-guard:
+    name: Skip if external fork
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
     steps:
-      - run: true
+      - name: Explain skip in logs
+        run: |
+          echo "🛑 External fork; skipping license/secrets-dependent checks."
+          echo "Push to a branch in the main repository to run full CI."
 
   analyze:
     name: Analyze dependencies
     runs-on: ubuntu-latest
+    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || github.event_name == 'push' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
