@@ -47,6 +47,16 @@
             <groupId>dev.failsafe</groupId>
             <artifactId>failsafe</artifactId>
         </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>http-client</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>org.wiremock</groupId>
+        <artifactId>wiremock-standalone</artifactId>
+        <version>${version.wiremock}</version>
+        <scope>test</scope>
+      </dependency>
     </dependencies>
 
     <build>

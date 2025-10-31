@@ -8,7 +8,7 @@ package io.camunda.connector.email.authentication;
 
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 
 @TemplateSubType(id = "simple", label = "Simple")
 public record SimpleAuthentication(
@@ -18,7 +18,7 @@ public record SimpleAuthentication(
             tooltip =
                 "Enter your full email address (e.g., user@example.com) or the username provided by your email service. This is used to authenticate your access to the mail server.",
             id = "simpleAuthenticationUsername")
-        @NotBlank
+        @NotEmpty
         String username,
     @TemplateProperty(
             group = "authentication",
@@ -26,6 +26,9 @@ public record SimpleAuthentication(
             tooltip =
                 "Enter the password associated with your email account. Keep your password secure and do not share it with others.",
             id = "simpleAuthenticationPassword")
-        @NotBlank
+        @NotEmpty
         String password)
-    implements Authentication {}
+    implements Authentication {
+  @TemplateProperty(ignore = true)
+  public static final String TYPE = "simple";
+}

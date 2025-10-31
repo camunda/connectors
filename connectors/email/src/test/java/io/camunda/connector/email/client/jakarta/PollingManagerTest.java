@@ -77,7 +77,7 @@ class PollingManagerTest {
         .thenReturn(new CorrelationResult.Success.ProcessInstanceCreated(null, null, null));
     when(emailInboundConnectorProperties.authentication()).thenReturn(authentication);
     when(emailInboundConnectorProperties.data()).thenReturn(emailListenerConfig);
-    when(jakartaUtils.createSession(any())).thenReturn(session);
+    when(jakartaUtils.createSession(any(), any())).thenReturn(session);
     when(jakartaUtils.findImapFolder(any(), any())).thenReturn(folder);
     when(session.getStore()).thenReturn(store);
     when(emailListenerConfig.pollingConfig()).thenReturn(pollUnseen);

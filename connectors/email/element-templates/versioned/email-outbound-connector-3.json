@@ -1,13 +1,13 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Email Connector",
-  "id" : "io.camunda.connectors.email.v1-hybrid",
+  "name" : "Email Connector",
+  "id" : "io.camunda.connectors.email.v1",
   "description" : "Execute email requests",
   "metadata" : {
     "keywords" : [ "send emails", "list emails", "search emails", "delete emails", "read emails", "move emails" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/",
-  "version" : 4,
+  "version" : 3,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -17,12 +17,9 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.9"
+    "camunda" : "^8.6"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
@@ -81,18 +78,16 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda:email:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "authentication.type",
     "label" : "Authentication",
-    "description" : "Specify the Email authentication strategy. None is only supported for SMTP.",
+    "description" : "Specify the Email authentication strategy.",
     "value" : "simple",
     "group" : "authentication",
     "binding" : {
@@ -103,12 +98,6 @@
     "choices" : [ {
       "name" : "Simple",
       "value" : "simple"
-    }, {
-      "name" : "OAuth 2.0",
-      "value" : "xoauth-user-credentials-flow"
-    }, {
-      "name" : "None",
-      "value" : "noAuth"
     } ]
   }, {
     "id" : "authentication.simpleAuthenticationUsername",
@@ -149,120 +138,6 @@
       "type" : "simple"
     },
     "tooltip" : "Enter the password associated with your email account. Keep your password secure and do not share it with others.",
-    "type" : "String"
-  }, {
-    "id" : "authentication.username",
-    "label" : "E-Mail Address",
-    "description" : "The mail address e-mails should used for readign or writing mails",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.username",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "xoauth-user-credentials-flow",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "authentication.refreshToken",
-    "label" : "Refresh token",
-    "description" : "The refresh token used to obtain new access tokens. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/#authentication\">documentation</a> for detailed explanation",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.refreshToken",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "xoauth-user-credentials-flow",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "authentication.clientId",
-    "label" : "Client id",
-    "description" : "The client id used to obtain new access tokens. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/#authentication\">documentation</a> for detailed explanation",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.clientId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "xoauth-user-credentials-flow",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "authentication.clientSecret",
-    "label" : "Client secret",
-    "description" : "The client secret used to obtain new access tokens. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/#authentication\">documentation</a> for detailed explanation",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.clientSecret",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "xoauth-user-credentials-flow",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "authentication.tokenEndpoint",
-    "label" : "Token endpoint",
-    "description" : "The token endpoint used to obtain new access tokens. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/#authentication\">documentation</a> for detailed explanation",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.tokenEndpoint",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "xoauth-user-credentials-flow",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "authentication.scope",
-    "label" : "Scope",
-    "description" : "The scopes of the requested tokens. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/#authentication\">documentation</a> for detailed explanation",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.scope",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.type",
-      "equals" : "xoauth-user-credentials-flow",
-      "type" : "simple"
-    },
     "type" : "String"
   }, {
     "id" : "protocol",
@@ -1351,7 +1226,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "4",
+    "value" : "3",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
