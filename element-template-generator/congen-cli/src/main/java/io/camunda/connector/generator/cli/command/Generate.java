@@ -21,12 +21,13 @@ import static io.camunda.connector.generator.cli.ReturnCodes.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.*;
+import com.networknt.schema.Error;
+import com.networknt.schema.dialect.Dialects;
+import com.networknt.schema.resource.SchemaLoader.Builder;
 import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import io.camunda.connector.generator.cli.GeneratorServiceLoader;
 import io.camunda.connector.generator.dsl.ElementTemplate;
-import java.net.URI;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
@@ -35,10 +36,12 @@ import picocli.CommandLine.ParentCommand;
 @Command(name = "generate")
 public class Generate implements Callable<Integer> {
 
-  static final JsonSchema jsonSchema =
-      JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
+  static final Schema jsonSchema =
+      SchemaRegistry.withDialect(
+              Dialects.getDraft202012(),
+              builder -> builder.schemaLoader(Builder::fetchRemoteResources))
           .getSchema(
-              URI.create(
+              SchemaLocation.of(
                   "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json"));
 
   private static final ObjectMapper mapper = new ObjectMapper();
@@ -97,10 +100,10 @@ public class Generate implements Callable<Integer> {
       } else {
         resultString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(templates);
       }
-      Set<ValidationMessage> errors = jsonSchema.validate(resultString, InputFormat.JSON);
+      List<Error> errors = jsonSchema.validate(resultString, InputFormat.JSON);
       if (!errors.isEmpty()) {
         System.err.println("Validation failed:");
-        for (ValidationMessage error : errors) {
+        for (Error error : errors) {
           System.err.println(error.getMessage());
         }
         return JSON_SCHEMA_VALIDATION_FAILED.getCode();
