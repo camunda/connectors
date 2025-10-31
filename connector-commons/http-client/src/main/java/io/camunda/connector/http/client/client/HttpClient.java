@@ -35,4 +35,7 @@ public interface HttpClient {
    * @see ResponseMappers for common body mappers
    */
   <T> HttpResponse<T> execute(HttpClientRequest request, ResponseMapper<T> responseMapper);
+
+
+
 }
