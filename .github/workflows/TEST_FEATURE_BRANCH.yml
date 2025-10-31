@@ -1,7 +1,7 @@
 name: Test branch
 
 on:
-  pull_request_target:
+  pull_request:
     types:
       - opened
       - synchronize
@@ -13,37 +13,19 @@ on:
   merge_group:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
-  authorize:
-    environment:
-      ${{ github.event_name == 'pull_request_target' &&
-      github.event.pull_request.head.repo.full_name != github.repository &&
-      'external' || 'internal' }}
-    runs-on: ubuntu-latest
-    steps:
-      - run: true
-
-
-  run-tests:
+  test-branch:
+    # skip pull_request trigger for internal branches (only use for forks)
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
 
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
-
-      - name: Import Secrets
-        id: secrets
-        uses: hashicorp/vault-action@v3.4.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          exportEnv: false # we rely on step outputs, no need for environment variables
-          secrets: |
-            secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_LDAP_USER;
-            secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_LDAP_PASSWORD;
 
       - name: Restore cache
         uses: actions/cache@v4
@@ -57,20 +39,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
-
-      # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
-
-      - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@v4.0.0
-        with:
-          githubServer: false
-          servers: |
-            [{
-               "id": "camunda-nexus",
-               "username": "${{ steps.secrets.outputs.CI_LDAP_USER }}",
-               "password": "${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}"
-             }]
-          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
       - uses: actions/setup-node@v6
         with:
