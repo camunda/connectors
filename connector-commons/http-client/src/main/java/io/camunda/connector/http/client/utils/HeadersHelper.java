@@ -32,9 +32,20 @@ public class HeadersHelper {
   }
 
   /**
-   * Flattens headers to the format Map<String, Object> where value can be either a String or a List
-   * of Strings. If a header has multiple values, the list is preserved, otherwise the single value
-   * is returned as a String.
+   * Flattens HTTP headers into a {@code Map<String, Object>} where each entry maps a header name to
+   * either a single {@code String} value or a {@code List<String>} of values.
+   *
+   * <p>Rules:
+   *
+   * <ul>
+   *   <li>If the header has no values, the value is {@code ""} (empty string).
+   *   <li>If the header has exactly one value, the value is that {@code String}.
+   *   <li>If the header has multiple values, the value is the original {@code List<String>}.
+   * </ul>
+   *
+   * @param headers the original headers as {@code Map<String, List<String>>}; may be {@code null}
+   * @return a flattened {@code Map<String, Object>} following the rules above, or {@code null} if
+   *     {@code headers} is {@code null}
    */
   public static Map<String, Object> flattenHeaders(Map<String, List<String>> headers) {
     if (headers == null) {
