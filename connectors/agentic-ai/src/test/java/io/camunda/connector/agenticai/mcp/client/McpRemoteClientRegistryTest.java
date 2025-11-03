@@ -21,15 +21,20 @@ import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfigurationProperties.ClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfigurationProperties.ClientConfiguration.ClientCacheConfiguration;
-import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest.McpRemoteClientRequestData.HttpConnectionConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientConnection;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientConnection;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -49,16 +54,36 @@ class McpRemoteClientRegistryTest {
   private static final McpRemoteClientIdentifier CLIENT_ID =
       new McpRemoteClientIdentifier(PROCESS_DEFINITION_KEY, ELEMENT_ID);
 
+  private static final String STREAMABLE_HTTP_URL = "http://localhost:123456/mcp";
   private static final String SSE_URL = "http://localhost:123456/sse";
   private static final Map<String, String> HTTP_HEADERS = Map.of("Authorization", "dummy");
   private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(12);
 
-  private static final HttpConnectionConfiguration HTTP_CONFIG =
-      new HttpConnectionConfiguration(SSE_URL, HTTP_HEADERS, HTTP_TIMEOUT);
+  private static final StreamableHttpMcpRemoteClientTransportConfiguration
+      STREAMABLE_HTTP_TRANSPORT_CONFIG =
+          new StreamableHttpMcpRemoteClientTransportConfiguration(
+              new StreamableHttpMcpRemoteClientConnection(
+                  STREAMABLE_HTTP_URL, HTTP_HEADERS, HTTP_TIMEOUT));
 
-  private static final McpClientConfiguration EXPECTED_CLIENT_CONFIGURATION =
+  private static final SseHttpMcpRemoteClientTransportConfiguration SSE_TRANSPORT_CONFIG =
+      new SseHttpMcpRemoteClientTransportConfiguration(
+          new SseHttpMcpRemoteClientConnection(SSE_URL, HTTP_HEADERS, HTTP_TIMEOUT));
+
+  private static final McpClientConfiguration EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION =
       new McpClientConfiguration(
           true,
+          null,
+          new StreamableHttpMcpClientTransportConfiguration(
+              STREAMABLE_HTTP_URL, HTTP_HEADERS, HTTP_TIMEOUT, true, false),
+          null,
+          null,
+          null,
+          null);
+
+  private static final McpClientConfiguration EXPECTED_SSE_CLIENT_CONFIGURATION =
+      new McpClientConfiguration(
+          true,
+          null,
           null,
           new SseHttpMcpClientTransportConfiguration(
               SSE_URL, HTTP_HEADERS, HTTP_TIMEOUT, true, false),
@@ -70,13 +95,26 @@ class McpRemoteClientRegistryTest {
   @Mock private McpClient client;
 
   @Test
-  void createsRemoteMcpClient() {
+  void createsStreamableHttpRemoteMcpClient() {
     final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
 
-    when(clientFactory.createClient(CLIENT_ID.toString(), EXPECTED_CLIENT_CONFIGURATION))
+    when(clientFactory.createClient(
+            CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
         .thenReturn(client);
 
-    final var resolvedClient = registry.getClient(CLIENT_ID, HTTP_CONFIG);
+    final var resolvedClient = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG);
+
+    assertThat(resolvedClient).isNotNull().isSameAs(this.client);
+  }
+
+  @Test
+  void createsSseRemoteMcpClient() {
+    final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
+
+    when(clientFactory.createClient(CLIENT_ID.toString(), EXPECTED_SSE_CLIENT_CONFIGURATION))
+        .thenReturn(client);
+
+    final var resolvedClient = registry.getClient(CLIENT_ID, SSE_TRANSPORT_CONFIG);
 
     assertThat(resolvedClient).isNotNull().isSameAs(this.client);
   }
@@ -85,11 +123,12 @@ class McpRemoteClientRegistryTest {
   void returnsCachedValue() {
     final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
 
-    when(clientFactory.createClient(CLIENT_ID.toString(), EXPECTED_CLIENT_CONFIGURATION))
+    when(clientFactory.createClient(
+            CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
         .thenReturn(client);
 
-    final var resolvedClient1 = registry.getClient(CLIENT_ID, HTTP_CONFIG);
-    final var resolvedClient2 = registry.getClient(CLIENT_ID, HTTP_CONFIG);
+    final var resolvedClient1 = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG);
+    final var resolvedClient2 = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG);
 
     assertThat(resolvedClient1).isNotNull().isSameAs(client).isSameAs(resolvedClient2);
   }
@@ -105,12 +144,13 @@ class McpRemoteClientRegistryTest {
             clientFactory);
     final var client2 = mock(McpClient.class);
 
-    when(clientFactory.createClient(CLIENT_ID.toString(), EXPECTED_CLIENT_CONFIGURATION))
+    when(clientFactory.createClient(
+            CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
         .thenReturn(client, client2);
 
-    final var resolvedClient1 = registry.getClient(CLIENT_ID, HTTP_CONFIG);
+    final var resolvedClient1 = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG);
     Thread.sleep(Duration.ofMillis(10));
-    final var resolvedClient2 = registry.getClient(CLIENT_ID, HTTP_CONFIG);
+    final var resolvedClient2 = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG);
 
     assertThat(resolvedClient1).isNotNull().isSameAs(client).isNotSameAs(resolvedClient2);
     assertThat(resolvedClient2).isNotNull().isSameAs(client2);
@@ -136,7 +176,7 @@ class McpRemoteClientRegistryTest {
                 i ->
                     registry.getClient(
                         new McpRemoteClientIdentifier(PROCESS_DEFINITION_KEY, "client-" + i),
-                        HTTP_CONFIG))
+                        STREAMABLE_HTTP_TRANSPORT_CONFIG))
             .toList();
 
     assertThat(resolvedClients).hasSize(5).containsExactlyElementsOf(mockClients);
@@ -158,9 +198,10 @@ class McpRemoteClientRegistryTest {
       mockedTicker.when(Ticker::systemTicker).thenReturn(fakeTicker);
 
       final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
-      when(clientFactory.createClient(CLIENT_ID.toString(), EXPECTED_CLIENT_CONFIGURATION))
+      when(clientFactory.createClient(
+              CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
           .thenReturn(client);
-      final var resolvedClient = registry.getClient(CLIENT_ID, HTTP_CONFIG);
+      final var resolvedClient = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG);
 
       fakeTicker.advance(Duration.ofMinutes(10).plusSeconds(1)); // exceed cache expiration time
       getCache(registry).cleanUp();
@@ -172,10 +213,11 @@ class McpRemoteClientRegistryTest {
   @Test
   void closesClientsOnClose() throws Exception {
     try (final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory)) {
-      when(clientFactory.createClient(CLIENT_ID.toString(), EXPECTED_CLIENT_CONFIGURATION))
+      when(clientFactory.createClient(
+              CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
           .thenReturn(client);
 
-      final var resolvedClient = registry.getClient(CLIENT_ID, HTTP_CONFIG);
+      final var resolvedClient = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG);
 
       assertThat(resolvedClient).isNotNull().isSameAs(client);
     }
@@ -192,9 +234,9 @@ class McpRemoteClientRegistryTest {
   }
 
   @SuppressWarnings("unchecked")
-  private Cache<McpRemoteClientIdentifier, McpClient> getCache(
+  private Cache<@NonNull McpRemoteClientIdentifier, McpClient> getCache(
       McpRemoteClientRegistry<McpClient> registry) {
-    return (Cache<McpRemoteClientIdentifier, McpClient>)
+    return (Cache<@NonNull McpRemoteClientIdentifier, McpClient>)
         ReflectionTestUtils.getField(registry, "cache");
   }
 

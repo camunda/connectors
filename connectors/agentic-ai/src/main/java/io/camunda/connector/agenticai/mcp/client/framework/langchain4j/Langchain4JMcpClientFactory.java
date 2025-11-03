@@ -10,18 +10,23 @@ import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.transport.McpTransport;
 import dev.langchain4j.mcp.client.transport.http.HttpMcpTransport;
+import dev.langchain4j.mcp.client.transport.http.StreamableHttpMcpTransport;
 import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientTransportConfiguration;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
+import org.jspecify.annotations.NonNull;
 
 public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> {
 
   @Override
   public McpClient createClient(String clientId, McpClientConfiguration config) {
-    final var transport = createTransport(config.stdio() != null ? config.stdio() : config.sse());
+    final var transport = createTransport(resolveTransportConfiguration(clientId, config));
     final var builder = new DefaultMcpClient.Builder().key(clientId).transport(transport);
 
     Optional.ofNullable(config.initializationTimeout()).map(builder::initializationTimeout);
@@ -31,8 +36,29 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
     return builder.build();
   }
 
-  private McpTransport createTransport(
-      McpClientConfigurationProperties.McpClientTransportConfiguration transportConfig) {
+  private McpClientTransportConfiguration resolveTransportConfiguration(
+      String clientId, @NonNull McpClientConfiguration config) {
+    final var configuredTransports =
+        Stream.of(config.stdio(), config.http(), config.sse()).filter(Objects::nonNull).toList();
+
+    if (configuredTransports.size() == 1) {
+      return configuredTransports.getFirst();
+    }
+
+    if (configuredTransports.isEmpty()) {
+      throw new IllegalArgumentException(
+          "Missing transport configuration for MCP client '%s'".formatted(clientId));
+    } else {
+      final var configuredTypes =
+          configuredTransports.stream().map(McpClientTransportConfiguration::type).toList();
+
+      throw new IllegalArgumentException(
+          "Ambiguous configuration for MCP client '%s'. Multiple transports %s are configured."
+              .formatted(clientId, configuredTypes));
+    }
+  }
+
+  private McpTransport createTransport(McpClientTransportConfiguration transportConfig) {
     return switch (transportConfig) {
       case McpClientConfigurationProperties.StdioMcpClientTransportConfiguration stdio -> {
         final var commandParts = new ArrayList<String>();
@@ -45,6 +71,16 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
             .logEvents(stdio.logEvents())
             .build();
       }
+
+      case McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration http ->
+          new StreamableHttpMcpTransport.Builder()
+              .url(http.url())
+              .timeout(http.timeout())
+              .customHeaders(http.headers())
+              .logRequests(http.logRequests())
+              .logResponses(http.logResponses())
+              .build();
+
       case McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration sse ->
           new HttpMcpTransport.Builder()
               .sseUrl(sse.url())

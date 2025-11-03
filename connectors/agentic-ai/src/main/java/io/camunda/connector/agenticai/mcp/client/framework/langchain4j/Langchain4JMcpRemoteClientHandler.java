@@ -46,7 +46,7 @@ public class Langchain4JMcpRemoteClientHandler implements McpRemoteClientHandler
 
     LOGGER.debug("MCP({}): Handling operation '{}' on remote client", clientId, operation.method());
 
-    final var client = remoteClientRegistry.getClient(clientId, request.data().connection());
+    final var client = remoteClientRegistry.getClient(clientId, request.data().transport());
 
     return clientExecutor.execute(client, operation, toolNameFilter);
   }

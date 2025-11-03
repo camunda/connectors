@@ -30,9 +30,9 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     defaultResultVariable = "toolCallResult",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(
-          id = "connection",
-          label = "HTTP Connection",
-          tooltip = "Configure the HTTP/SSE connection to the remote MCP server."),
+          id = "transport",
+          label = "Transport",
+          tooltip = "Configure the connection to the remote MCP server."),
       @ElementTemplate.PropertyGroup(id = "tools", label = "Tools"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation")
     },

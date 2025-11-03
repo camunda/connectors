@@ -22,9 +22,9 @@
     "id" : "taskDefinitionType",
     "label" : "Task definition type"
   }, {
-    "id" : "connection",
-    "label" : "HTTP Connection",
-    "tooltip" : "Configure the HTTP/SSE connection to the remote MCP server."
+    "id" : "transport",
+    "label" : "Transport",
+    "tooltip" : "Configure the connection to the remote MCP server."
   }, {
     "id" : "tools",
     "label" : "Tools"
@@ -61,41 +61,127 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "data.connection.sseUrl",
-    "label" : "SSE URL",
-    "description" : "SSE URL to connect to the MCP server. Typically ends with <code>/sse</code>.",
+    "id" : "data.transport.type",
+    "label" : "Type",
+    "description" : "Specify the MCP transport type.",
+    "value" : "http",
+    "group" : "transport",
+    "binding" : {
+      "name" : "data.transport.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Streamable HTTP",
+      "value" : "http"
+    }, {
+      "name" : "SSE",
+      "value" : "sse"
+    } ]
+  }, {
+    "id" : "data.transport.http.url",
+    "label" : "URL",
+    "description" : "URL to connect to the MCP server. Typically ends with <code>/mcp</code>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "connection",
+    "group" : "transport",
     "binding" : {
-      "name" : "data.connection.sseUrl",
+      "name" : "data.transport.http.url",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.transport.type",
+      "equals" : "http",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "data.connection.headers",
+    "id" : "data.transport.http.headers",
     "label" : "HTTP headers",
     "description" : "Map of HTTP headers to add to the request.",
     "optional" : true,
     "feel" : "required",
-    "group" : "connection",
+    "group" : "transport",
     "binding" : {
-      "name" : "data.connection.headers",
+      "name" : "data.transport.http.headers",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.transport.type",
+      "equals" : "http",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "data.connection.timeout",
+    "id" : "data.transport.http.timeout",
     "label" : "Timeout",
     "description" : "Timeout for individual HTTP requests as ISO-8601 duration (example: <code>PT30S</code>)",
     "optional" : true,
-    "group" : "connection",
+    "group" : "transport",
     "binding" : {
-      "name" : "data.connection.timeout",
+      "name" : "data.transport.http.timeout",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.transport.type",
+      "equals" : "http",
+      "type" : "simple"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "data.transport.sse.url",
+    "label" : "URL",
+    "description" : "URL to connect to the MCP server. Typically ends with <code>/sse</code>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "transport",
+    "binding" : {
+      "name" : "data.transport.sse.url",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.transport.type",
+      "equals" : "sse",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.sse.headers",
+    "label" : "HTTP headers",
+    "description" : "Map of HTTP headers to add to the request.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "transport",
+    "binding" : {
+      "name" : "data.transport.sse.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.transport.type",
+      "equals" : "sse",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.sse.timeout",
+    "label" : "Timeout",
+    "description" : "Timeout for individual HTTP requests as ISO-8601 duration (example: <code>PT30S</code>)",
+    "optional" : true,
+    "group" : "transport",
+    "binding" : {
+      "name" : "data.transport.sse.timeout",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.transport.type",
+      "equals" : "sse",
+      "type" : "simple"
     },
     "type" : "Hidden"
   }, {

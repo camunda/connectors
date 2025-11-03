@@ -6,9 +6,11 @@
  */
 package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
 
+import static io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration.*;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.ArgumentMatchers.eq;
@@ -26,18 +28,21 @@ import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationConfigu
 import io.camunda.connector.agenticai.mcp.client.model.McpClientToolsConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest.McpRemoteClientRequestData;
-import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest.McpRemoteClientRequestData.HttpConnectionConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientConnection;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Answers;
 import org.mockito.Mock;
@@ -51,12 +56,20 @@ class Langchain4JMcpRemoteClientHandlerTest {
   private static final McpRemoteClientIdentifier CLIENT_ID =
       new McpRemoteClientIdentifier(PROCESS_DEFINITION_KEY, ELEMENT_ID);
 
+  private static final String STREAMABLE_HTTP_URL = "http://localhost:123456/mcp";
   private static final String SSE_URL = "http://localhost:123456/sse";
   private static final Map<String, String> HTTP_HEADERS = Map.of("Authorization", "dummy");
   private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(12);
 
-  private static final HttpConnectionConfiguration HTTP_CONFIG =
-      new HttpConnectionConfiguration(SSE_URL, HTTP_HEADERS, HTTP_TIMEOUT);
+  private static final StreamableHttpMcpRemoteClientTransportConfiguration
+      STREAMABLE_HTTP_TRANSPORT_CONFIG =
+          new StreamableHttpMcpRemoteClientTransportConfiguration(
+              new StreamableHttpMcpRemoteClientConnection(
+                  STREAMABLE_HTTP_URL, HTTP_HEADERS, HTTP_TIMEOUT));
+
+  private static final SseHttpMcpRemoteClientTransportConfiguration SSE_TRANSPORT_CONFIG =
+      new SseHttpMcpRemoteClientTransportConfiguration(
+          new SseHttpMcpRemoteClientConnection(SSE_URL, HTTP_HEADERS, HTTP_TIMEOUT));
 
   private static final McpClientOperationConfiguration LIST_TOOLS_OPERATION =
       new McpClientOperationConfiguration("tools/list", Map.of());
@@ -87,12 +100,13 @@ class Langchain4JMcpRemoteClientHandlerTest {
         new Langchain4JMcpRemoteClientHandler(objectMapper, remoteClientRegistry, clientExecutor);
   }
 
-  @Test
-  void handlesListToolsRequest() {
-    final var request = createRequest(LIST_TOOLS_OPERATION);
+  @ParameterizedTest
+  @MethodSource("transports")
+  void handlesListToolsRequest(McpRemoteClientTransportConfiguration transport) {
+    final var request = createRequest(transport, LIST_TOOLS_OPERATION);
     final var expectedResult = new McpClientListToolsResult(List.of());
 
-    when(remoteClientRegistry.getClient(eq(CLIENT_ID), eq(HTTP_CONFIG))).thenReturn(mcpClient);
+    when(remoteClientRegistry.getClient(CLIENT_ID, transport)).thenReturn(mcpClient);
     when(clientExecutor.execute(
             eq(mcpClient),
             assertArg(
@@ -107,15 +121,17 @@ class Langchain4JMcpRemoteClientHandlerTest {
 
   @ParameterizedTest
   @MethodSource("callToolArguments")
-  void handlesCallToolRequest(Map<String, Object> arguments) {
+  void handlesCallToolRequest(
+      McpRemoteClientTransportConfiguration transport, Map<String, Object> arguments) {
     final var request =
         createRequest(
+            transport,
             new McpClientOperationConfiguration(
                 "tools/call", Map.of("name", "test-tool", "arguments", arguments)));
     final var expectedResult =
         new McpClientCallToolResult("test-tool", List.of(textContent("Success")), false);
 
-    when(remoteClientRegistry.getClient(eq(CLIENT_ID), eq(HTTP_CONFIG))).thenReturn(mcpClient);
+    when(remoteClientRegistry.getClient(CLIENT_ID, transport)).thenReturn(mcpClient);
     when(clientExecutor.execute(
             eq(mcpClient),
             assertArg(
@@ -136,46 +152,66 @@ class Langchain4JMcpRemoteClientHandlerTest {
     assertThat(result).isEqualTo(expectedResult);
   }
 
-  @Test
-  void throwsExceptionOnInvalidOperation() {
+  @ParameterizedTest
+  @MethodSource("transports")
+  void throwsExceptionOnInvalidOperation(McpRemoteClientTransportConfiguration transport) {
     assertThatThrownBy(
             () ->
                 handler.handle(
                     context,
-                    createRequest(new McpClientOperationConfiguration("invalid", Map.of()))))
+                    createRequest(
+                        transport, new McpClientOperationConfiguration("invalid", Map.of()))))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Could not resolve type id 'invalid'");
   }
 
-  @Test
-  void throwsExceptionWhenClientCouldNotBeCreated() {
+  @ParameterizedTest
+  @MethodSource("transports")
+  void throwsExceptionWhenClientCouldNotBeCreated(McpRemoteClientTransportConfiguration transport) {
     final var exception = new IllegalArgumentException("Failed to create client");
-    when(remoteClientRegistry.getClient(eq(CLIENT_ID), eq(HTTP_CONFIG))).thenThrow(exception);
+    when(remoteClientRegistry.getClient(CLIENT_ID, transport)).thenThrow(exception);
 
-    assertThatThrownBy(() -> handler.handle(context, createRequest(LIST_TOOLS_OPERATION)))
+    assertThatThrownBy(
+            () -> handler.handle(context, createRequest(transport, LIST_TOOLS_OPERATION)))
         .isEqualTo(exception);
   }
 
-  @Test
-  void throwsExceptionWhenExecutorFails() {
+  @ParameterizedTest
+  @MethodSource("transports")
+  void throwsExceptionWhenExecutorFails(McpRemoteClientTransportConfiguration transport) {
     final var exception = new IllegalArgumentException("Execution error");
 
-    when(remoteClientRegistry.getClient(eq(CLIENT_ID), eq(HTTP_CONFIG))).thenReturn(mcpClient);
+    when(remoteClientRegistry.getClient(CLIENT_ID, transport)).thenReturn(mcpClient);
     when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
         .thenThrow(exception);
 
-    assertThatThrownBy(() -> handler.handle(context, createRequest(LIST_TOOLS_OPERATION)))
+    assertThatThrownBy(
+            () -> handler.handle(context, createRequest(transport, LIST_TOOLS_OPERATION)))
         .isEqualTo(exception);
   }
 
-  private McpRemoteClientRequest createRequest(McpClientOperationConfiguration operation) {
+  private McpRemoteClientRequest createRequest(
+      McpRemoteClientTransportConfiguration transport, McpClientOperationConfiguration operation) {
     return new McpRemoteClientRequest(
-        new McpRemoteClientRequestData(HTTP_CONFIG, EMPTY_FILTER_CONFIGURATION, operation));
+        new McpRemoteClientRequestData(transport, EMPTY_FILTER_CONFIGURATION, operation));
   }
 
-  static Stream<Map<String, Object>> callToolArguments() {
-    return Stream.of(
-        Map.of("arg1", "value1", "arg2", 5),
-        Map.of("nested", Map.of("key", "value"), "array", List.of(1, 2, 3)));
+  static List<McpRemoteClientTransportConfiguration> transports() {
+    return List.of(STREAMABLE_HTTP_TRANSPORT_CONFIG, SSE_TRANSPORT_CONFIG);
+  }
+
+  static List<Arguments> callToolArguments() {
+    List<Arguments> result = new ArrayList<>();
+    transports()
+        .forEach(
+            transport -> {
+              result.add(arguments(transport, Map.of("arg1", "value1", "arg2", 5)));
+              result.add(
+                  arguments(
+                      transport,
+                      Map.of("nested", Map.of("key", "value"), "array", List.of(1, 2, 3))));
+            });
+
+    return result;
   }
 }
