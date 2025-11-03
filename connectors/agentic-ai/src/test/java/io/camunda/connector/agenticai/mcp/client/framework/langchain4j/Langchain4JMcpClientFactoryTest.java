@@ -121,6 +121,7 @@ class Langchain4JMcpClientFactoryTest {
             final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
             verify(transportBuilder).sseUrl(sseConfig.url());
             verify(transportBuilder).timeout(sseConfig.timeout());
+            verify(transportBuilder).customHeaders(sseConfig.headers());
             verify(transportBuilder).logRequests(sseConfig.logRequests());
             verify(transportBuilder).logResponses(sseConfig.logResponses());
 

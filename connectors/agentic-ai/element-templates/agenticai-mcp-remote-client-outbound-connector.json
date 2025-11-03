@@ -21,7 +21,7 @@
   "groups" : [ {
     "id" : "connection",
     "label" : "HTTP Connection",
-    "tooltip" : "Configure the HTTP/SSE connection to the remote MCP server. Setting authentication headers is not supported yet."
+    "tooltip" : "Configure the HTTP/SSE connection to the remote MCP server."
   }, {
     "id" : "tools",
     "label" : "Tools"
@@ -73,14 +73,15 @@
   }, {
     "id" : "data.connection.headers",
     "label" : "HTTP headers",
-    "description" : "Map of HTTP headers to add to the request <strong>(NOT SUPPORTED YET)</strong>.",
+    "description" : "Map of HTTP headers to add to the request.",
     "optional" : true,
+    "feel" : "required",
     "group" : "connection",
     "binding" : {
       "name" : "data.connection.headers",
       "type" : "zeebe:input"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "data.connection.timeout",
     "label" : "Timeout",

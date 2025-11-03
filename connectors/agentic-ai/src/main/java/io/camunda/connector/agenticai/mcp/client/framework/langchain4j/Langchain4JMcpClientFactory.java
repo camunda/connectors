@@ -45,12 +45,13 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
             .logEvents(stdio.logEvents())
             .build();
       }
-      case McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration http ->
+      case McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration sse ->
           new HttpMcpTransport.Builder()
-              .sseUrl(http.url())
-              .timeout(http.timeout())
-              .logRequests(http.logRequests())
-              .logResponses(http.logResponses())
+              .sseUrl(sse.url())
+              .timeout(sse.timeout())
+              .customHeaders(sse.headers())
+              .logRequests(sse.logRequests())
+              .logResponses(sse.logResponses())
               .build();
     };
   }

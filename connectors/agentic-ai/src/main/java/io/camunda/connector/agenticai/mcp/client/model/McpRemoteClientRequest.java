@@ -35,10 +35,8 @@ public record McpRemoteClientRequest(@Valid @NotNull McpRemoteClientRequestData 
         @TemplateProperty(
                 group = "connection",
                 label = "HTTP headers",
-                description =
-                    "Map of HTTP headers to add to the request <strong>(NOT SUPPORTED YET)</strong>.",
-                type = TemplateProperty.PropertyType.Hidden,
-                feel = Property.FeelMode.disabled,
+                description = "Map of HTTP headers to add to the request.",
+                feel = Property.FeelMode.required,
                 optional = true)
             Map<String, String> headers,
         @TemplateProperty(

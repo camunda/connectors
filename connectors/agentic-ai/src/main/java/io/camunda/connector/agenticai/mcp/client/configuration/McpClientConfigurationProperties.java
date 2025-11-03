@@ -44,7 +44,7 @@ public record McpClientConfigurationProperties(
 
   public record SseHttpMcpClientTransportConfiguration(
       @NotBlank String url,
-      @NotNull @DefaultValue Map<String, String> headers, // TODO NOT SUPPORTED YET
+      @NotNull @DefaultValue Map<String, String> headers,
       Duration timeout,
       @DefaultValue("false") boolean logRequests,
       @DefaultValue("false") boolean logResponses)
