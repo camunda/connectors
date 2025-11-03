@@ -18,14 +18,14 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 @OutboundConnector(
     name = "MCP Client",
     inputVariables = {"data"},
-    type = "io.camunda.agenticai:mcpclient:0")
+    type = "io.camunda.agenticai:mcpclient:1")
 @ElementTemplate(
-    id = "io.camunda.connectors.agenticai.mcp.client.v0",
-    name = "MCP Client (experimental)",
+    id = "io.camunda.connectors.agenticai.mcp.client.v1",
+    name = "MCP Client",
     description =
         "MCP (Model Context Protocol) client using MCP connections configured on the connector runtime. Only supports tool operations.",
-    engineVersion = "^8.8",
-    version = 0,
+    engineVersion = "^8.9",
+    version = 1,
     inputDataClass = McpClientRequest.class,
     defaultResultVariable = "toolCallResult",
     propertyGroups = {

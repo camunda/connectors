@@ -1,12 +1,12 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "MCP Client",
-  "id" : "io.camunda.connectors.agenticai.mcp.client.v1",
-  "description" : "MCP (Model Context Protocol) client using MCP connections configured on the connector runtime. Only supports tool operations.",
+  "name" : "MCP Remote Client (experimental)",
+  "id" : "io.camunda.connectors.agenticai.mcp.remoteclient.v0",
+  "description" : "MCP (Model Context Protocol) client, operating on temporary remote connections. Only supports tool operations.",
   "metadata" : {
     "keywords" : [ ]
   },
-  "version" : 1,
+  "version" : 0,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -16,18 +16,18 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.9"
+    "camunda" : "^8.8"
   },
   "groups" : [ {
-    "id" : "client",
-    "label" : "MCP Client"
+    "id" : "connection",
+    "label" : "HTTP Connection",
+    "tooltip" : "Configure the HTTP/SSE connection to the remote MCP server. Setting authentication headers is not supported yet."
   }, {
     "id" : "tools",
     "label" : "Tools"
   }, {
     "id" : "operation",
-    "label" : "Operation",
-    "openByDefault" : false
+    "label" : "Operation"
   }, {
     "id" : "connector",
     "label" : "Connector"
@@ -42,7 +42,7 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "value" : "io.camunda.agenticai:mcpclient:1",
+    "value" : "io.camunda.agenticai:mcpremoteclient:0",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
@@ -56,20 +56,42 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "data.client.clientId",
-    "label" : "Client ID",
-    "description" : "The MCP client ID. This needs to be configured on your connector runtime.",
+    "id" : "data.connection.sseUrl",
+    "label" : "SSE URL",
+    "description" : "SSE URL to connect to the MCP server. Typically ends with <code>/sse</code>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "client",
+    "group" : "connection",
     "binding" : {
-      "name" : "data.client.clientId",
+      "name" : "data.connection.sseUrl",
       "type" : "zeebe:input"
     },
     "type" : "String"
+  }, {
+    "id" : "data.connection.headers",
+    "label" : "HTTP headers",
+    "description" : "Map of HTTP headers to add to the request <strong>(NOT SUPPORTED YET)</strong>.",
+    "optional" : true,
+    "group" : "connection",
+    "binding" : {
+      "name" : "data.connection.headers",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "data.connection.timeout",
+    "label" : "Timeout",
+    "description" : "Timeout for individual HTTP requests as ISO-8601 duration (example: <code>PT30S</code>)",
+    "optional" : true,
+    "group" : "connection",
+    "binding" : {
+      "name" : "data.connection.timeout",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "data.tools.included",
     "label" : "Included tools",
@@ -129,7 +151,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "1",
+    "value" : "0",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -140,7 +162,7 @@
     "id" : "id",
     "label" : "ID",
     "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.agenticai.mcp.client.v1",
+    "value" : "io.camunda.connectors.agenticai.mcp.remoteclient.v0",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateId",
