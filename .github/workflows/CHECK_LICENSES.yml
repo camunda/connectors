@@ -13,9 +13,6 @@ on:
     tags:
       - '*'
 
-permissions:
-  contents: read
-
 jobs:
   fork-guard:
     name: Skip if external fork
