@@ -27,7 +27,7 @@
     ]
   },
   "id": "io.camunda.connectors.HubSpot.v1",
-  "version": 2,
+  "version": 1,
   "documentationRef": "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/hubspot/",
   "category": {
     "id": "connectors",
@@ -755,7 +755,7 @@
         ],
         "type": "simple"
       },
-      "value": "={\n  \"lastname\": \"Doe\",\n  \"firstname\": \"Jane\",\n  \"email\": \"jane.doe@example.com\"\n}"
+      "value": "{\n  \"lastname\": \"Doe\",\n  \"firstname\": \"Jane\",\n  \"email\": \"jane.doe@example.com\"\n}"
     },
     {
       "label": "Company id",
@@ -1511,7 +1511,7 @@
       "group": "input",
       "type": "String",
       "feel": "required",
-      "value": "={\n  \"properties\": {\n    \"name\": \"HubSpot\",\n    \"domain\": \"hubspot.com\"\n  }\n}",
+      "value": "{\n  \"properties\": {\n    \"name\": \"HubSpot\",\n    \"domain\": \"hubspot.com\"\n  }\n}",
       "binding": {
         "type": "zeebe:input",
         "name": "body"
