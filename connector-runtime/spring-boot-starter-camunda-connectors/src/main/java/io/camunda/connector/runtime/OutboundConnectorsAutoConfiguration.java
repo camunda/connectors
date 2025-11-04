@@ -31,14 +31,17 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 
 @AutoConfiguration
 @AutoConfigureBefore(JacksonAutoConfiguration.class)
 @Import(OutboundConnectorRuntimeConfiguration.class)
 public class OutboundConnectorsAutoConfiguration {
 
-  @Bean
-  @ConditionalOnMissingBean
+  @Bean("connectorsObjectMapper")
+  @Primary
+  @ConnectorsObjectMapper
+  @ConditionalOnMissingBean(name = "connectorsObjectMapper")
   public ObjectMapper objectMapper(DocumentFactory documentFactory) {
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
     // default intrinsic function contains a pointer of the copy
