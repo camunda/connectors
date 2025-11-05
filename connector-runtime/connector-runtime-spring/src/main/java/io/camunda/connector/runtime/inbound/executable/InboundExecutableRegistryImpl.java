@@ -42,6 +42,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class InboundExecutableRegistryImpl implements InboundExecutableRegistry {
 
   private static final Logger LOG = LoggerFactory.getLogger(InboundExecutableRegistryImpl.class);
+  private static final String ACTIVATION_FAILURE = "ACTIVATION_FAILURE";
+  private static final String CONNECTOR_NOT_REGISTERED = "CONNECTOR_NOT_REGISTERED";
   final Map<ExecutableId, RegisteredExecutable> executables = new ConcurrentHashMap<>();
   private final BlockingQueue<InboundExecutableEvent> eventQueue;
   private final ExecutorService executorService;
@@ -310,7 +312,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
               id,
               null,
               failed.data().connectorElements(),
-              Health.down(new Error("Activation failure", failed.reason())),
+              Health.down(new Error(ACTIVATION_FAILURE, failed.reason())),
               List.of(),
               null);
       case ConnectorNotRegistered notRegistered ->
@@ -320,7 +322,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
               notRegistered.data().connectorElements(),
               Health.down(
                   new Error(
-                      "Activation failure",
+                      CONNECTOR_NOT_REGISTERED,
                       "Connector " + notRegistered.data().type() + " not registered")),
               List.of(),
               null);
@@ -331,7 +333,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
               invalid.data().connectorElements(),
               Health.down(
                   new Error(
-                      "Activation failure", "Invalid connector definition: " + invalid.reason())),
+                      ACTIVATION_FAILURE, "Invalid connector definition: " + invalid.reason())),
               List.of(),
               null);
       case Cancelled cancelled ->
