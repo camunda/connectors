@@ -141,7 +141,9 @@ public class DefaultOutboundConnectorFactory
     return this.getActiveConfiguration(type)
         .map(this::getCachedInstance)
         .orElseThrow(
-            () -> new RuntimeException("Outbound connector \"" + type + "\" is not registered"));
+            () ->
+                new NoSuchElementException(
+                    "Outbound connector \"" + type + "\" is not registered"));
   }
 
   private OutboundConnectorFunction getCachedInstance(
