@@ -136,7 +136,7 @@ public record TextractRequestData(
     @TemplateProperty(
             group = "advanced",
             label = "Client request token",
-            description = "The idempotent token that you use to identify the start request",
+            description = "The idempotent token that you use to identify the start request.",
             optional = true,
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -147,7 +147,7 @@ public record TextractRequestData(
             group = "advanced",
             label = "Job tag",
             description =
-                "An identifier that you specify that's included in the completion notification published to the Amazon SNS topic",
+                "An identifier that you specify that's included in the completion notification published to the Amazon SNS topic.",
             optional = true,
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -157,7 +157,7 @@ public record TextractRequestData(
     @TemplateProperty(
             group = "advanced",
             label = "KMS key ID",
-            description = "The KMS key used to encrypt the inference results",
+            description = "The KMS key used to encrypt the inference results.",
             optional = true,
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -168,7 +168,7 @@ public record TextractRequestData(
             group = "advanced",
             label = "Notification channel role ARN",
             description =
-                "The Amazon SNS topic role ARN that you want Amazon Textract to publish the completion status of the operation to",
+                "The Amazon SNS topic role ARN that you want Amazon Textract to publish the completion status of the operation to.",
             optional = true,
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -179,7 +179,7 @@ public record TextractRequestData(
             group = "advanced",
             label = "Notification channel SNS topic ARN",
             description =
-                "The Amazon SNS topic ARN that you want Amazon Textract to publish the completion status of the operation to",
+                "The Amazon SNS topic ARN that you want Amazon Textract to publish the completion status of the operation to.",
             optional = true,
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -189,7 +189,7 @@ public record TextractRequestData(
     @TemplateProperty(
             group = "input",
             label = "Output S3 bucket",
-            description = "The name of the bucket your output will go to",
+            description = "The name of the bucket your output will go to.",
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.executionType",
@@ -199,7 +199,7 @@ public record TextractRequestData(
     @TemplateProperty(
             group = "input",
             label = "Output S3 prefix",
-            description = "The prefix of the object key that the output will be saved to",
+            description = "The prefix of the object key that the output will be saved to.",
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.executionType",
@@ -209,7 +209,7 @@ public record TextractRequestData(
 
   @TemplateProperty(ignore = true)
   public static final String WRONG_NOTIFICATION_VALUES_MSG =
-      "Either both notification values role ARN and topic ARN must be filled in or none of them";
+      "Either both notification values role ARN and topic ARN must be filled in or none of them.";
 
   @AssertTrue(message = WRONG_NOTIFICATION_VALUES_MSG)
   public boolean isValidNotificationProperties() {

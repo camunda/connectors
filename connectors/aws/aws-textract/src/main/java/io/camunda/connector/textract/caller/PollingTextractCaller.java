@@ -8,15 +8,20 @@ package io.camunda.connector.textract.caller;
 
 import com.amazonaws.services.textract.AmazonTextract;
 import com.amazonaws.services.textract.model.*;
+import dev.failsafe.Failsafe;
+import dev.failsafe.RetryPolicy;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.textract.model.TextractRequestData;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PollingTextractCaller implements TextractCaller<GetDocumentAnalysisResult> {
+
   public static final int MAX_RESULT = 1000;
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PollingTextractCaller.class);
@@ -62,34 +67,42 @@ public class PollingTextractCaller implements TextractCaller<GetDocumentAnalysis
   private GetDocumentAnalysisResult pollUntilComplete(String jobId, AmazonTextract textractClient)
       throws InterruptedException {
 
-    final long INITIAL_DELAY_MS = 5000;
-    final long MAX_DELAY_MS = 30 * 60 * 1000;
-    final int MAX_RETRIES = 20;
+    final int MAX_RETRIES = 10;
 
-    long delay = INITIAL_DELAY_MS;
+    RetryPolicy<GetDocumentAnalysisResult> retryPolicy =
+        RetryPolicy.<GetDocumentAnalysisResult>builder()
+            .handle(Exception.class)
+            .handleResultIf(Objects::isNull)
+            .withDelay(Duration.ofMinutes(1))
+            .withMaxAttempts(MAX_RETRIES)
+            .onRetry(
+                ev ->
+                    LOGGER.debug(
+                        "Polling Textract job {} attempt {} started.", jobId, ev.getAttemptCount()))
+            .onFailure(
+                ev ->
+                    LOGGER.warn(
+                        "Textract job {} not completed after {} attempts.",
+                        jobId,
+                        ev.getAttemptCount()))
+            .build();
 
-    for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      LOGGER.debug("Polling job {} attempt {} (waiting {}ms)", jobId, attempt, delay);
-      Thread.sleep(delay);
+    return Failsafe.with(retryPolicy)
+        .get(
+            () -> {
+              LOGGER.debug("Textract polling job {} started", jobId);
+              GetDocumentAnalysisResult response =
+                  textractClient.getDocumentAnalysis(
+                      new GetDocumentAnalysisRequest().withJobId(jobId).withMaxResults(MAX_RESULT));
 
-      GetDocumentAnalysisResult response =
-          textractClient.getDocumentAnalysis(
-              new GetDocumentAnalysisRequest().withJobId(jobId).withMaxResults(MAX_RESULT));
+              String status = response.getJobStatus();
 
-      String status = response.getJobStatus();
-
-      if (JobStatus.SUCCEEDED.toString().equals(status)) {
-        LOGGER.info("Job {} succeeded after {} attempts", jobId, attempt);
-        return response;
-      } else if (JobStatus.FAILED.toString().equals(status)) {
-        throw new ConnectorInputException("Textract job failed: " + response);
-      }
-
-      LOGGER.debug("Job {} still in progress ({})", jobId, status);
-      delay = Math.min(delay * 2, MAX_DELAY_MS);
-    }
-
-    throw new ConnectorInputException(
-        "Textract job did not complete after " + MAX_RETRIES + " attempts");
+              if (JobStatus.SUCCEEDED.toString().equals(status)) {
+                return response;
+              } else if (JobStatus.FAILED.toString().equals(status)) {
+                throw new ConnectorInputException("Textract polling job: " + response);
+              }
+              return null;
+            });
   }
 }
