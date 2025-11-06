@@ -25,6 +25,7 @@ import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -38,7 +39,8 @@ import org.springframework.context.annotation.Import;
 public class OutboundConnectorsAutoConfiguration {
 
   @Bean
-  @ConditionalOnMissingBean
+  @Qualifier("connectorObjectMapper")
+  @ConditionalOnMissingBean(name = "connectorObjectMapper")
   public ObjectMapper objectMapper(DocumentFactory documentFactory) {
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
     // default intrinsic function contains a pointer of the copy
