@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCal
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverterImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverterImpl;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -48,14 +49,15 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ContentConverter langchain4JContentConverter(
-      ObjectMapper objectMapper, DocumentToContentConverter documentToContentConverter) {
+      @ConnectorsObjectMapper ObjectMapper objectMapper,
+      DocumentToContentConverter documentToContentConverter) {
     return new ContentConverterImpl(objectMapper, documentToContentConverter);
   }
 
   @Bean
   @ConditionalOnMissingBean
   public ToolCallConverter langchain4JToolCallConverter(
-      ObjectMapper objectMapper, ContentConverter contentConverter) {
+      @ConnectorsObjectMapper ObjectMapper objectMapper, ContentConverter contentConverter) {
     return new ToolCallConverterImpl(objectMapper, contentConverter);
   }
 
@@ -77,7 +79,7 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
   public ChatMessageConverter langchain4JChatMessageConverter(
       ContentConverter contentConverter,
       ToolCallConverter toolCallConverter,
-      ObjectMapper objectMapper) {
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new ChatMessageConverterImpl(contentConverter, toolCallConverter, objectMapper);
   }
 

@@ -18,6 +18,7 @@ import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 
 // TODO: add documentation link when available
 @ElementTemplate(
@@ -65,7 +66,7 @@ public class A2aClientPollingExecutable
       final A2aAgentCardFetcher agentCardFetcher,
       final A2aSdkClientFactory clientFactory,
       final A2aSdkObjectConverter objectConverter,
-      final ObjectMapper objectMapper) {
+      @ConnectorsObjectMapper final ObjectMapper objectMapper) {
     this.executorService = executorService;
     this.agentCardFetcher = agentCardFetcher;
     this.clientFactory = clientFactory;

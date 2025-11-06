@@ -16,11 +16,16 @@
  */
 package io.camunda.connector.runtime;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.inbound.WebhookConnectorConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 
 @AutoConfiguration
 @AutoConfigureBefore(InboundConnectorsAutoConfiguration.class)
@@ -30,4 +35,14 @@ import org.springframework.context.annotation.Import;
     havingValue = "true",
     matchIfMissing = true)
 @Import(WebhookConnectorConfiguration.class)
-public class WebhookConnectorAutoConfiguration {}
+public class WebhookConnectorAutoConfiguration {
+  // TODO: Remove this with the Migration to Jackson 3
+  // This is currently required so that Webhook Endpoint responses are correctly
+  // serialized to JSON (e.g. including document support)
+  @Bean
+  @ConditionalOnMissingBean
+  public MappingJackson2HttpMessageConverter jackson2HttpMessageConverter(
+      @ConnectorsObjectMapper ObjectMapper connectorsMapper) {
+    return new MappingJackson2HttpMessageConverter(connectorsMapper);
+  }
+}
