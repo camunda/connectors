@@ -25,6 +25,7 @@ import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.D
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -60,7 +61,8 @@ public class OutboundConnectorsAutoConfiguration {
   }
 
   @Bean
-  @ConditionalOnMissingBean
+  @ConnectorsObjectMapper
+  @ConditionalOnMissingBean(name = "connectorObjectMapper")
   public ObjectMapper objectMapper(DocumentFactory documentFactory) {
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
     // default intrinsic function contains a pointer of the copy

@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.mcp.client.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.client.McpClientOperationConverter;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,7 +18,8 @@ public class McpClientBaseConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public McpClientOperationConverter mcpClientOperationConverter(ObjectMapper objectMapper) {
+  public McpClientOperationConverter mcpClientOperationConverter(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new McpClientOperationConverter(objectMapper);
   }
 }
