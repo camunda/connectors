@@ -7,6 +7,7 @@
 package io.camunda.connector.email.client.jakarta.utils;
 
 import io.camunda.connector.email.authentication.Authentication;
+import io.camunda.connector.email.authentication.NoAuthentication;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
 import io.camunda.connector.email.client.jakarta.models.Email;
 import io.camunda.connector.email.client.jakarta.models.EmailAttachment;
@@ -38,12 +39,12 @@ public class JakartaUtils {
   private static final Logger LOGGER = LoggerFactory.getLogger(JakartaUtils.class);
   private static final String REGEX_PATH_SPLITTER = "[./]";
 
-  public Session createSession(Configuration configuration) {
+  public Session createSession(Configuration configuration, Authentication authentication) {
     return Session.getInstance(
         switch (configuration) {
-          case ImapConfig imap -> createProperties(imap);
-          case Pop3Config pop3 -> createProperties(pop3);
-          case SmtpConfig smtp -> createProperties(smtp);
+          case ImapConfig imap -> createProperties(imap, authentication);
+          case Pop3Config pop3 -> createProperties(pop3, authentication);
+          case SmtpConfig smtp -> createProperties(smtp, authentication);
         });
   }
 
@@ -51,6 +52,7 @@ public class JakartaUtils {
     switch (authentication) {
       case SimpleAuthentication simpleAuthentication ->
           store.connect(simpleAuthentication.username(), simpleAuthentication.password());
+      case NoAuthentication noAuthentication -> store.connect("", "");
     }
   }
 
@@ -59,6 +61,7 @@ public class JakartaUtils {
     switch (authentication) {
       case SimpleAuthentication simpleAuthentication ->
           transport.connect(simpleAuthentication.username(), simpleAuthentication.password());
+      case NoAuthentication noAuthentication -> transport.connect();
     }
   }
 
@@ -78,7 +81,7 @@ public class JakartaUtils {
     }
   }
 
-  private Properties createProperties(SmtpConfig smtp) {
+  private Properties createProperties(SmtpConfig smtp, Authentication authentication) {
     Properties properties = new Properties();
     properties.put("mail.transport.protocol", "smtp");
     properties.put("mail.smtp.host", smtp.smtpHost().trim());
@@ -89,10 +92,13 @@ public class JakartaUtils {
       case TLS -> properties.put("mail.smtp.starttls.enable", true);
       case SSL -> properties.put("mail.smtp.ssl.enable", true);
     }
+    if (authentication instanceof NoAuthentication) {
+      properties.put("mail.smtp.auth", false);
+    }
     return properties;
   }
 
-  private Properties createProperties(Pop3Config pop3) {
+  private Properties createProperties(Pop3Config pop3, Authentication authentication) {
     Properties properties = new Properties();
 
     switch (pop3.pop3CryptographicProtocol()) {
@@ -117,10 +123,11 @@ public class JakartaUtils {
         properties.put("mail.pop3s.ssl.enable", true);
       }
     }
+
     return properties;
   }
 
-  private Properties createProperties(ImapConfig imap) {
+  private Properties createProperties(ImapConfig imap, Authentication authentication) {
     Properties properties = new Properties();
 
     switch (imap.imapCryptographicProtocol()) {
@@ -181,8 +188,9 @@ public class JakartaUtils {
             .map(strings -> String.join(String.valueOf(separator), strings))
             .orElseThrow(() -> new MessagingException("No folder has been set"));
     Folder folder = store.getFolder(formattedPath);
-    if (!folder.exists())
+    if (!folder.exists()) {
       throw new MessagingException("Folder " + formattedPath + " does not exist");
+    }
     return folder;
   }
 
@@ -331,7 +339,9 @@ public class JakartaUtils {
               .map(strings -> String.join(String.valueOf(separator), strings))
               .orElseThrow(() -> new RuntimeException("No folder has been set"));
       Folder targetImapFolder = store.getFolder(targetFolderFormatted);
-      if (!targetImapFolder.exists()) targetImapFolder.create(Folder.HOLDS_MESSAGES);
+      if (!targetImapFolder.exists()) {
+        targetImapFolder.create(Folder.HOLDS_MESSAGES);
+      }
       targetImapFolder.open(Folder.READ_WRITE);
       imapFolder.copyMessages(new Message[] {message}, targetImapFolder);
       this.markAsDeleted(message);

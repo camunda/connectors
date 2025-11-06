@@ -1,6 +1,7 @@
 [
   {
     "authentication":{
+      "type": "simple",
       "username":"test@camunda.com",
       "password":"password"
     },
@@ -19,6 +20,7 @@
   },
   {
     "authentication":{
+      "type": "simple",
       "username":"test@camunda.com",
       "password":"password"
     },
@@ -38,6 +40,7 @@
   },
   {
     "authentication":{
+      "type": "simple",
       "username":"test@camunda.com",
       "password":"password"
     },
@@ -57,6 +60,7 @@
   },
   {
     "authentication":{
+      "type": "simple",
       "username":"test@camunda.com",
       "password":"password"
     },
@@ -75,6 +79,7 @@
   },
   {
     "authentication":{
+      "type": "simple",
       "username":"test@camunda.com",
       "password":"password"
     },

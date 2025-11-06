@@ -21,7 +21,7 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
     inputVariables = {"authentication", "protocol", "data"},
     type = "io.camunda:email:1")
 @ElementTemplate(
-    engineVersion = "^8.6",
+    engineVersion = "^8.9",
     id = "io.camunda.connectors.email.v1",
     name = "Email Connector",
     description = "Execute email requests",
@@ -36,7 +36,7 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
               "move emails"
             }),
     inputDataClass = EmailRequest.class,
-    version = 3,
+    version = 4,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "protocol", label = "Protocol"),
