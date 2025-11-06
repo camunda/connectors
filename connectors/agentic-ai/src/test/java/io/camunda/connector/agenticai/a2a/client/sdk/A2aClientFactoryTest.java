@@ -166,7 +166,7 @@ class A2aClientFactoryTest {
                     assertThat(clientConfig.isStreaming()).isFalse();
                     assertThat(clientConfig.getHistoryLength()).isEqualTo(5);
                     assertThat(clientConfig.isPolling())
-                        .isEqualTo(Boolean.TRUE.equals(supportPolling));
+                        .isEqualTo(supportPolling == null || supportPolling);
                   }));
 
       assertThat(client).isNotNull();

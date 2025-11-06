@@ -284,7 +284,7 @@
     "label" : "Support polling",
     "description" : "Whether to enable polling for the remote agent's response instead of waiting for it synchronously.",
     "optional" : true,
-    "value" : false,
+    "value" : true,
     "feel" : "static",
     "group" : "operation",
     "binding" : {
@@ -389,7 +389,7 @@
     "label" : "Support polling",
     "description" : "Whether to enable polling for the remote agent's response instead of waiting for it synchronously.",
     "optional" : true,
-    "value" : false,
+    "value" : true,
     "feel" : "static",
     "group" : "operation",
     "binding" : {

@@ -47,7 +47,7 @@ public class A2aClientFactoryImpl implements A2aClientFactory {
               .clientConfig(
                   new ClientConfig.Builder()
                       .setStreaming(false)
-                      .setPolling(Boolean.TRUE.equals(config.supportPolling()))
+                      .setPolling(config.supportPolling() == null || config.supportPolling())
                       .setHistoryLength(config.historyLength())
                       .build())
               .addConsumer(consumer)

@@ -28,7 +28,7 @@ public record A2aCommonSendMessageConfiguration(
             description =
                 "Whether to enable polling for the remote agent's response instead of waiting for it synchronously.",
             defaultValueType = TemplateProperty.DefaultValueType.Boolean,
-            defaultValue = "false",
+            defaultValue = "true",
             optional = true)
         Boolean supportPolling,
     @TemplateProperty(
