@@ -24,7 +24,6 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.runtime.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl;
@@ -36,6 +35,7 @@ import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -45,7 +45,7 @@ public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
   public DefaultOutboundConnectorFactory outboundConnectorConfigurationRegistry(
-      @ConnectorsObjectMapper ObjectMapper mapper,
+      @Qualifier("connectorsObjectMapper") ObjectMapper mapper,
       ValidationProvider validationProvider,
       Environment environment,
       List<OutboundConnectorFunction> functions,
@@ -79,7 +79,7 @@ public class OutboundConnectorRuntimeConfiguration {
       ValidationProvider validationProvider,
       ConnectorsOutboundMetrics outboundMetrics,
       DocumentFactory documentFactory,
-      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+      @Qualifier("connectorsObjectMapper") ObjectMapper objectMapper) {
     return new OutboundConnectorManager(
         jobWorkerManager,
         connectorFactory,

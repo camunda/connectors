@@ -40,7 +40,6 @@ public class OutboundConnectorsAutoConfiguration {
 
   @Bean("connectorsObjectMapper")
   @Primary
-  @ConnectorsObjectMapper
   @ConditionalOnMissingBean(name = "connectorsObjectMapper")
   public ObjectMapper objectMapper(DocumentFactory documentFactory) {
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();

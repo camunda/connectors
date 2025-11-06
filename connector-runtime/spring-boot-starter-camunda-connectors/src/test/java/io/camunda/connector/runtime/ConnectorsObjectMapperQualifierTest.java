@@ -22,15 +22,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 
 /**
- * Test to verify that the @ConnectorsObjectMapper qualifier ensures the connectors ObjectMapper is
- * not accidentally overridden by custom ObjectMapper beans.
+ * Test to verify that the qualified connectors ObjectMapper is correctly picked up even when a
+ * plain unannotated ObjectMapper bean exists. This prevents customers from accidentally breaking
+ * their connectors runtime by defining a custom ObjectMapper bean.
  */
 @SpringBootTest(
     properties = {
@@ -39,70 +40,52 @@ import org.springframework.context.annotation.Import;
     },
     classes = {
       TestConnectorRuntimeApplication.class,
-      ConnectorsObjectMapperQualifierTest.CustomObjectMapperConfig.class
+      ConnectorsObjectMapperQualifierTest.PlainObjectMapperConfig.class
     })
 public class ConnectorsObjectMapperQualifierTest {
 
   @Autowired private ApplicationContext applicationContext;
 
-  @Autowired @ConnectorsObjectMapper private ObjectMapper connectorsObjectMapper;
+  @Autowired
+  @Qualifier("connectorsObjectMapper")
+  private ObjectMapper connectorsObjectMapper;
 
   @Test
   void qualifiedConnectorsObjectMapperIsAvailable() {
     // Verify that the connectors ObjectMapper is available with the qualifier
     assertThat(connectorsObjectMapper).isNotNull();
 
-    // Verify that we can get it using the qualifier from the application context
+    // Verify we can get it from the application context by name
     var qualifiedBean = applicationContext.getBean("connectorsObjectMapper", ObjectMapper.class);
     assertThat(qualifiedBean).isNotNull();
     assertThat(qualifiedBean).isSameAs(connectorsObjectMapper);
   }
 
   @Test
-  void customObjectMapperDoesNotOverrideConnectorsObjectMapper() {
-    // Get the custom ObjectMapper bean (unqualified)
-    var customMapper = applicationContext.getBean("customObjectMapper", ObjectMapper.class);
-    assertThat(customMapper).isNotNull();
+  void connectorsObjectMapperAndPlainObjectMapperAreDifferent() {
+    // Get the plain ObjectMapper (unannotated)
+    var plainMapper = applicationContext.getBean("plainObjectMapper", ObjectMapper.class);
 
-    // Get the connectors ObjectMapper bean (qualified)
-    var connectorsMapper = applicationContext.getBean("connectorsObjectMapper", ObjectMapper.class);
-    assertThat(connectorsMapper).isNotNull();
+    // Verify they are different instances - the key protection this qualifier provides
+    assertThat(connectorsObjectMapper).isNotSameAs(plainMapper);
+  }
 
-    // Verify they are different instances - this is the key test:
-    // A custom ObjectMapper bean should not override the connectors ObjectMapper
-    assertThat(customMapper).isNotSameAs(connectorsMapper);
-
-    // Verify the primary bean is the connectors mapper
+  @Test
+  void connectorsObjectMapperIsMarkedAsPrimary() {
+    // When no qualifier is specified, the connectors ObjectMapper should be used
+    // because it's marked as @Primary
     var primaryMapper = applicationContext.getBean(ObjectMapper.class);
-    assertThat(primaryMapper).isSameAs(connectorsMapper);
+    assertThat(primaryMapper).isSameAs(connectorsObjectMapper);
   }
 
   @TestConfiguration
-  @Import(OutboundConnectorsAutoConfiguration.class)
-  static class CustomObjectMapperConfig {
+  static class PlainObjectMapperConfig {
 
     @Bean
-    public ObjectMapper customObjectMapper() {
-      // Create a custom ObjectMapper with a marker to distinguish it
-      var mapper = new ObjectMapper();
-      mapper.registerModule(
-          new com.fasterxml.jackson.databind.Module() {
-            @Override
-            public String getModuleName() {
-              return "CustomMarker";
-            }
-
-            @Override
-            public com.fasterxml.jackson.core.Version version() {
-              return com.fasterxml.jackson.core.Version.unknownVersion();
-            }
-
-            @Override
-            public void setupModule(SetupContext context) {
-              // No setup needed, this is just a marker
-            }
-          });
-      return mapper;
+    public ObjectMapper plainObjectMapper() {
+      // Create a plain ObjectMapper without connector-specific modules
+      // This simulates a customer defining their own ObjectMapper bean
+      return new ObjectMapper();
     }
   }
 }
