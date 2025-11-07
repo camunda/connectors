@@ -32,7 +32,7 @@ import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessageAlreadyCorrelated;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessagePublished;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.ProcessInstanceCreated;
-import io.camunda.connector.api.secret.SecretContext;
+import io.camunda.connector.api.secret.SecretContext.InboundSecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
@@ -348,7 +348,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
               getSecretHandler(),
               objectMapper,
               properties,
-              new SecretContext(connectorDetails.tenantId()));
+              new InboundSecretContext(connectorDetails.tenantId()));
     }
     return propertiesWithSecrets;
   }

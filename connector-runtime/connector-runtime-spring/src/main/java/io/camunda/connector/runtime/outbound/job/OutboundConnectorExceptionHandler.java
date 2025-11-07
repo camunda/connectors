@@ -22,7 +22,7 @@ import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryException;
-import io.camunda.connector.api.secret.SecretContext;
+import io.camunda.connector.api.secret.SecretContext.OutboundSecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
@@ -73,7 +73,7 @@ public class OutboundConnectorExceptionHandler {
       secrets =
           this.secretProvider.fetchAll(
               SecretUtil.retrieveSecretKeysInInput(job.getVariables()),
-              new SecretContext(job.getTenantId()));
+              new OutboundSecretContext(job.getTenantId(), job.getBpmnProcessId()));
     } catch (Exception ex) {
       LOGGER.error(
           "Initial error for job: {} for tenant: {} can't be displayed because fetching secrets failed: {}",
@@ -170,7 +170,7 @@ public class OutboundConnectorExceptionHandler {
     List<String> secrets =
         this.secretProvider.fetchAll(
             SecretUtil.retrieveSecretKeysInInput(job.getVariables()),
-            new SecretContext(job.getTenantId()));
+            new OutboundSecretContext(job.getTenantId(), job.getBpmnProcessId()));
     Exception newException = new Exception(hideSecretsFromMessage(ex.getMessage(), secrets), ex);
     LOGGER.error(
         "Exception while processing job: {} for tenant: {}, message: {}",
