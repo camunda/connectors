@@ -24,7 +24,7 @@
   </licenses>
 
   <properties>
-    <version.wss4j>3.0.4</version.wss4j>
+    <version.wss4j>3.0.5</version.wss4j>
     <version.xmlsec>4.0.4</version.xmlsec>
     <version.commons-text>1.11.0</version.commons-text>
     <version.commons-lang3>3.19.0</version.commons-lang3>
@@ -82,7 +82,7 @@
     <dependency>
       <groupId>org.apache.wss4j</groupId>
       <artifactId>wss4j-ws-security-common</artifactId>
-      <version>3.0.4</version>
+      <version>3.0.5</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
