@@ -24,7 +24,7 @@
   </licenses>
 
   <properties>
-    <version.wss4j>3.0.4</version.wss4j>
+    <version.wss4j>3.0.5</version.wss4j>
     <version.xmlsec>4.0.4</version.xmlsec>
     <version.zeebe-process-test>8.3.0</version.zeebe-process-test>
     <version.commons-text>1.11.0</version.commons-text>
@@ -83,7 +83,7 @@
     <dependency>
       <groupId>org.apache.wss4j</groupId>
       <artifactId>wss4j-ws-security-common</artifactId>
-      <version>3.0.4</version>
+      <version>3.0.5</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
