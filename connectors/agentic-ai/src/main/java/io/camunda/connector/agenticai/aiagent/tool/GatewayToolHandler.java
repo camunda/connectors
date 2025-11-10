@@ -26,6 +26,13 @@ public interface GatewayToolHandler extends GatewayToolCallTransformer {
   GatewayToolDiscoveryInitiationResult initiateToolDiscovery(
       AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions);
 
+  /**
+   * Determines whether requested tool discovery results are present in the list of tool call
+   * results.
+   */
+  boolean allToolDiscoveryResultsPresent(
+      AgentContext agentContext, List<ToolCallResult> toolCallResults);
+
   /** Defines whether this specific handler is able to handle the given tool call result. */
   boolean handlesToolDiscoveryResult(ToolCallResult toolCallResult);
 

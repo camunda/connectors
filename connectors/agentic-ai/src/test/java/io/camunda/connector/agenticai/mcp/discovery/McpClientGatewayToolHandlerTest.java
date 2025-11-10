@@ -110,6 +110,89 @@ class McpClientGatewayToolHandlerTest {
   }
 
   @Nested
+  class AllToolDiscoveryResultsPresent {
+
+    @Test
+    void returnsTrue_whenAllMcpClientToolDiscoveryResultsPresent() {
+      var agentContext =
+          AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of("mcp1", "mcp2"));
+      var toolCallResults =
+          List.of(
+              ToolCallResult.builder()
+                  .id("MCP_toolsList_mcp1")
+                  .name("mcp1")
+                  .content("result1")
+                  .build(),
+              ToolCallResult.builder()
+                  .id("MCP_toolsList_mcp2")
+                  .name("mcp2")
+                  .content("result2")
+                  .build());
+
+      assertThat(handler.allToolDiscoveryResultsPresent(agentContext, toolCallResults)).isTrue();
+    }
+
+    @Test
+    void returnsFalse_whenSomeMcpClientToolDiscoveryResultsMissing() {
+      var agentContext =
+          AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of("mcp1", "mcp2"));
+      var toolCallResults =
+          List.of(
+              ToolCallResult.builder()
+                  .id("MCP_toolsList_mcp1")
+                  .name("mcp1")
+                  .content("result1")
+                  .build());
+
+      assertThat(handler.allToolDiscoveryResultsPresent(agentContext, toolCallResults)).isFalse();
+    }
+
+    @Test
+    void returnsFalse_whenNoToolCallResultsProvided() {
+      var agentContext =
+          AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of("mcp1", "mcp2"));
+      var toolCallResults = List.<ToolCallResult>of();
+
+      assertThat(handler.allToolDiscoveryResultsPresent(agentContext, toolCallResults)).isFalse();
+    }
+
+    @Test
+    void returnsTrue_whenNoMcpClientsConfigured() {
+      var agentContext = AgentContext.empty();
+      var toolCallResults = List.<ToolCallResult>of();
+
+      assertThat(handler.allToolDiscoveryResultsPresent(agentContext, toolCallResults)).isTrue();
+    }
+
+    @Test
+    void returnsTrue_whenEmptyMcpClientsList() {
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of());
+      var toolCallResults = List.<ToolCallResult>of();
+
+      assertThat(handler.allToolDiscoveryResultsPresent(agentContext, toolCallResults)).isTrue();
+    }
+
+    @Test
+    void ignoresNonDiscoveryToolCallResults() {
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of("mcp1"));
+      var toolCallResults =
+          List.of(
+              ToolCallResult.builder()
+                  .id("MCP_toolsList_mcp1")
+                  .name("mcp1")
+                  .content("result1")
+                  .build(),
+              ToolCallResult.builder()
+                  .id("regular_tool_call")
+                  .name("regular_tool")
+                  .content("result")
+                  .build());
+
+      assertThat(handler.allToolDiscoveryResultsPresent(agentContext, toolCallResults)).isTrue();
+    }
+  }
+
+  @Nested
   class ToolDiscoveryResultHandling {
 
     @ParameterizedTest

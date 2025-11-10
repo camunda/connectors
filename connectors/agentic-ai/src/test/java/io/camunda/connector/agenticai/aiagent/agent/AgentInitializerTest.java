@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaRes
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -331,6 +332,10 @@ class AgentInitializerTest {
       final var expectedToolDefinitions = new ArrayList<>(TOOL_DEFINITIONS);
       expectedToolDefinitions.addAll(RESOLVED_GATEWAY_TOOL_DEFINITIONS);
 
+      when(gatewayToolHandlers.allToolDiscoveryResultsPresent(
+              any(AgentContext.class), eq(GATEWAY_TOOL_DISCOVERY_TOOL_CALL_RESULTS)))
+          .thenReturn(true);
+
       when(gatewayToolHandlers.handleToolDiscoveryResults(
               any(AgentContext.class), eq(GATEWAY_TOOL_DISCOVERY_TOOL_CALL_RESULTS)))
           .thenAnswer(
@@ -371,6 +376,10 @@ class AgentInitializerTest {
 
       when(executionContext.initialToolCallResults()).thenReturn(mergedToolCallResults);
 
+      when(gatewayToolHandlers.allToolDiscoveryResultsPresent(
+              any(AgentContext.class), eq(mergedToolCallResults)))
+          .thenReturn(true);
+
       when(gatewayToolHandlers.handleToolDiscoveryResults(
               any(AgentContext.class), eq(mergedToolCallResults)))
           .thenAnswer(
@@ -398,6 +407,41 @@ class AgentInitializerTest {
 
                 assertThat(res.toolCallResults()).containsExactlyElementsOf(TOOL_CALL_RESULTS);
               });
+    }
+
+    @Test
+    void returnsDiscoveryInProgressWhenNotAllToolDiscoveryResultsPresent() {
+      when(executionContext.initialToolCallResults())
+          .thenReturn(GATEWAY_TOOL_DISCOVERY_TOOL_CALL_RESULTS);
+
+      when(gatewayToolHandlers.allToolDiscoveryResultsPresent(
+              any(AgentContext.class), eq(GATEWAY_TOOL_DISCOVERY_TOOL_CALL_RESULTS)))
+          .thenReturn(false);
+
+      final var result = agentInitializer.initializeAgent(executionContext);
+
+      assertThat(result).isInstanceOf(AgentDiscoveryInProgressInitializationResult.class);
+    }
+
+    @Test
+    void returnsDiscoveryInProgressWithPartialResults() {
+      final var partialToolCallResults =
+          List.of(
+              ToolCallResult.builder()
+                  .id("MCP_toolsList__AnMcpClient")
+                  .name("AnMcpClient")
+                  .content(Map.of("toolDefinitions", RESOLVED_GATEWAY_TOOL_DEFINITIONS))
+                  .build());
+
+      when(executionContext.initialToolCallResults()).thenReturn(partialToolCallResults);
+
+      when(gatewayToolHandlers.allToolDiscoveryResultsPresent(
+              any(AgentContext.class), eq(partialToolCallResults)))
+          .thenReturn(false);
+
+      final var result = agentInitializer.initializeAgent(executionContext);
+
+      assertThat(result).isInstanceOf(AgentDiscoveryInProgressInitializationResult.class);
     }
   }
 }

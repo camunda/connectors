@@ -19,6 +19,9 @@ public interface GatewayToolHandlerRegistry extends GatewayToolCallTransformer {
   GatewayToolDiscoveryInitiationResult initiateToolDiscovery(
       AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions);
 
+  boolean allToolDiscoveryResultsPresent(
+      AgentContext agentContext, List<ToolCallResult> toolCallResults);
+
   GatewayToolDiscoveryResult handleToolDiscoveryResults(
       AgentContext agentContext, List<ToolCallResult> toolCallResults);
 }

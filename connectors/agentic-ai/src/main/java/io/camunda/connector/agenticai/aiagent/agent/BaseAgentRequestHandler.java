@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
@@ -71,6 +72,13 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
             "AI Agent initialization returned direct response including {} tool calls. Completing job without further processing.",
             agentResponse.toolCalls().size());
         yield completeJob(executionContext, agentResponse, null);
+      }
+
+      // discovery still in progress (not all tool call results present)
+      case AgentDiscoveryInProgressInitializationResult ignored -> {
+        LOGGER.debug(
+            "AI Agent initialization tool discovery is still in progress. Completing job without further processing.");
+        yield completeJob(executionContext, null, null);
       }
 
       case AgentContextInitializationResult(

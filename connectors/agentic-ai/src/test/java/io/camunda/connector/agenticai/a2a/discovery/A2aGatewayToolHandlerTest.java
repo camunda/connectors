@@ -123,6 +123,89 @@ class A2aGatewayToolHandlerTest {
   }
 
   @Nested
+  class AllToolDiscoveryResultsPresent {
+
+    @Test
+    void returnsTrue_whenAllA2aClientToolDiscoveryResultsPresent() {
+      var agentContext =
+          AgentContext.empty().withProperty(PROPERTY_A2A_CLIENTS, List.of("a2a1", "a2a2"));
+      var toolCallResults =
+          List.of(
+              ToolCallResult.builder()
+                  .id("A2A_fetchAgentCard_a2a1")
+                  .name("a2a1")
+                  .content("result1")
+                  .build(),
+              ToolCallResult.builder()
+                  .id("A2A_fetchAgentCard_a2a2")
+                  .name("a2a2")
+                  .content("result2")
+                  .build());
+
+      assertThat(handler.allToolDiscoveryResultsPresent(agentContext, toolCallResults)).isTrue();
+    }
+
+    @Test
+    void returnsFalse_whenSomeA2aClientToolDiscoveryResultsMissing() {
+      var agentContext =
+          AgentContext.empty().withProperty(PROPERTY_A2A_CLIENTS, List.of("a2a1", "a2a2"));
+      var toolCallResults =
+          List.of(
+              ToolCallResult.builder()
+                  .id("A2A_fetchAgentCard_a2a1")
+                  .name("a2a1")
+                  .content("result1")
+                  .build());
+
+      assertThat(handler.allToolDiscoveryResultsPresent(agentContext, toolCallResults)).isFalse();
+    }
+
+    @Test
+    void returnsFalse_whenNoToolCallResultsProvided() {
+      var agentContext =
+          AgentContext.empty().withProperty(PROPERTY_A2A_CLIENTS, List.of("a2a1", "a2a2"));
+      var toolCallResults = List.<ToolCallResult>of();
+
+      assertThat(handler.allToolDiscoveryResultsPresent(agentContext, toolCallResults)).isFalse();
+    }
+
+    @Test
+    void returnsTrue_whenNoA2aClientsConfigured() {
+      var agentContext = AgentContext.empty();
+      var toolCallResults = List.<ToolCallResult>of();
+
+      assertThat(handler.allToolDiscoveryResultsPresent(agentContext, toolCallResults)).isTrue();
+    }
+
+    @Test
+    void returnsTrue_whenEmptyA2aClientsList() {
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_A2A_CLIENTS, List.of());
+      var toolCallResults = List.<ToolCallResult>of();
+
+      assertThat(handler.allToolDiscoveryResultsPresent(agentContext, toolCallResults)).isTrue();
+    }
+
+    @Test
+    void ignoresNonDiscoveryToolCallResults() {
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_A2A_CLIENTS, List.of("a2a1"));
+      var toolCallResults =
+          List.of(
+              ToolCallResult.builder()
+                  .id("A2A_fetchAgentCard_a2a1")
+                  .name("a2a1")
+                  .content("result1")
+                  .build(),
+              ToolCallResult.builder()
+                  .id("regular_tool_call")
+                  .name("regular_tool")
+                  .content("result")
+                  .build());
+
+      assertThat(handler.allToolDiscoveryResultsPresent(agentContext, toolCallResults)).isTrue();
+    }
+  }
+
+  @Nested
   class ToolDiscoveryResultHandling {
 
     @ParameterizedTest

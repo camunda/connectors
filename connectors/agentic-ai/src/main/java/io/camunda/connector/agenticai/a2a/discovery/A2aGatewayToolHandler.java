@@ -24,6 +24,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,6 +84,30 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
             .toList();
 
     return new GatewayToolDiscoveryInitiationResult(updatedAgentContext, discoveryToolCalls);
+  }
+
+  @Override
+  public boolean allToolDiscoveryResultsPresent(
+      AgentContext agentContext, List<ToolCallResult> toolCallResults) {
+    final var a2aClientIds = getA2aClientIds(agentContext);
+    if (a2aClientIds.isEmpty()) {
+      return true;
+    }
+
+    final var toolCallResultIds =
+        toolCallResults.stream().map(ToolCallResult::id).collect(Collectors.toSet());
+    final var missingToolDiscoveryResults =
+        a2aClientIds.stream()
+            .filter(clientId -> !toolCallResultIds.contains(A2A_TOOLS_DISCOVERY_PREFIX + clientId))
+            .toList();
+
+    if (!missingToolDiscoveryResults.isEmpty()) {
+      LOGGER.debug(
+          "Missing A2A client tool discovery results for clients: {}", missingToolDiscoveryResults);
+      return false;
+    }
+
+    return true;
   }
 
   @Override
@@ -152,20 +177,22 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
   public List<ToolCallResult> transformToolCallResults(
       AgentContext agentContext, List<ToolCallResult> toolCallResults) {
 
-    // noinspection unchecked
-    final var a2aClients =
-        (List<String>) agentContext.properties().getOrDefault(PROPERTY_A2A_CLIENTS, List.of());
-
+    final var a2aClientIds = getA2aClientIds(agentContext);
     return toolCallResults.stream()
         .map(
             toolCallResult -> {
-              if (!a2aClients.contains(toolCallResult.name())) {
+              if (!a2aClientIds.contains(toolCallResult.name())) {
                 return toolCallResult;
               }
 
               return toolCallResultFromA2aSendMessage(toolCallResult);
             })
         .toList();
+  }
+
+  @SuppressWarnings("unchecked")
+  private List<String> getA2aClientIds(AgentContext agentContext) {
+    return (List<String>) agentContext.properties().getOrDefault(PROPERTY_A2A_CLIENTS, List.of());
   }
 
   private ToolCallResult toolCallResultFromA2aSendMessage(ToolCallResult toolCallResult) {

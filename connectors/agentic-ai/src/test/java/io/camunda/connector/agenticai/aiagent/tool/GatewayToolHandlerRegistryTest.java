@@ -199,6 +199,54 @@ class GatewayToolHandlerRegistryTest {
     }
 
     @Nested
+    class AllToolDiscoveryResultsPresent {
+
+      private static final List<ToolCallResult> TOOL_CALL_RESULTS =
+          List.of(
+              ToolCallResult.builder().id("result1").name("tool1").content("content1").build(),
+              ToolCallResult.builder().id("result2").name("tool2").content("content2").build());
+
+      @Test
+      void returnsTrue_whenAllHandlersReturnTrue() {
+        when(handlerA.allToolDiscoveryResultsPresent(AGENT_CONTEXT, TOOL_CALL_RESULTS))
+            .thenReturn(true);
+        when(handlerB.allToolDiscoveryResultsPresent(AGENT_CONTEXT, TOOL_CALL_RESULTS))
+            .thenReturn(true);
+
+        assertThat(registry.allToolDiscoveryResultsPresent(AGENT_CONTEXT, TOOL_CALL_RESULTS))
+            .isTrue();
+      }
+
+      @Test
+      void returnsFalse_whenAnyHandlerReturnsFalse() {
+        when(handlerA.allToolDiscoveryResultsPresent(AGENT_CONTEXT, TOOL_CALL_RESULTS))
+            .thenReturn(true);
+        when(handlerB.allToolDiscoveryResultsPresent(AGENT_CONTEXT, TOOL_CALL_RESULTS))
+            .thenReturn(false);
+
+        assertThat(registry.allToolDiscoveryResultsPresent(AGENT_CONTEXT, TOOL_CALL_RESULTS))
+            .isFalse();
+      }
+
+      @Test
+      void returnsFalse_whenFirstHandlerReturnsFalse() {
+        when(handlerA.allToolDiscoveryResultsPresent(AGENT_CONTEXT, TOOL_CALL_RESULTS))
+            .thenReturn(false);
+
+        assertThat(registry.allToolDiscoveryResultsPresent(AGENT_CONTEXT, TOOL_CALL_RESULTS))
+            .isFalse();
+      }
+
+      @Test
+      void returnsTrue_whenNoHandlersAreRegistered() {
+        final var emptyRegistry = new GatewayToolHandlerRegistryImpl();
+
+        assertThat(emptyRegistry.allToolDiscoveryResultsPresent(AGENT_CONTEXT, TOOL_CALL_RESULTS))
+            .isTrue();
+      }
+    }
+
+    @Nested
     class HandleToolDiscoveryResults {
 
       @Test
