@@ -20,9 +20,11 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAI
 import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_MCP_TOOL_SPECIFICATIONS;
 import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -143,6 +145,8 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
     verify(aMcpClient).listTools();
     verify(aRemoteMcpClient).listTools();
     verify(filesystemMcpClient).listTools();
+
+    verify(chatModel, times(1)).chat(any(ChatRequest.class));
   }
 
   @Test
@@ -258,6 +262,8 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
                   JSONAssert.assertEquals(
                       "{\"paramC1\": \"someOtherValue\"}", toolExecutionRequest.arguments(), true);
                 }));
+
+    verify(chatModel, times(3)).chat(any(ChatRequest.class));
   }
 
   @Override
