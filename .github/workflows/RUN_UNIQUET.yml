@@ -31,10 +31,10 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: single-file-element-template
-          commit-message: "others(element-template): single element template file"
+          commit-message: "other(element-template): single element template file"
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           base: main
-          title: "others(element-template): single element template file generation"
+          title: "other(element-template): single element template file generation"
           labels: "no milestone"
           body: |
             This PR sets the new single element template file containing all necessary references.
