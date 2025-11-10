@@ -42,8 +42,8 @@ public class JakartaUtils {
   public Session createSession(Configuration configuration, Authentication authentication) {
     return Session.getInstance(
         switch (configuration) {
-          case ImapConfig imap -> createProperties(imap, authentication);
-          case Pop3Config pop3 -> createProperties(pop3, authentication);
+          case ImapConfig imap -> createProperties(imap);
+          case Pop3Config pop3 -> createProperties(pop3);
           case SmtpConfig smtp -> createProperties(smtp, authentication);
         });
   }
@@ -98,7 +98,7 @@ public class JakartaUtils {
     return properties;
   }
 
-  private Properties createProperties(Pop3Config pop3, Authentication authentication) {
+  private Properties createProperties(Pop3Config pop3) {
     Properties properties = new Properties();
 
     switch (pop3.pop3CryptographicProtocol()) {
@@ -127,7 +127,7 @@ public class JakartaUtils {
     return properties;
   }
 
-  private Properties createProperties(ImapConfig imap, Authentication authentication) {
+  private Properties createProperties(ImapConfig imap) {
     Properties properties = new Properties();
 
     switch (imap.imapCryptographicProtocol()) {

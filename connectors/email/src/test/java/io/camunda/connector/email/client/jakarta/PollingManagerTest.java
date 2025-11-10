@@ -12,7 +12,7 @@ import static org.mockito.Mockito.*;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.email.authentication.Authentication;
+import io.camunda.connector.email.authentication.InboundAuthentication;
 import io.camunda.connector.email.authentication.SimpleAuthentication;
 import io.camunda.connector.email.client.jakarta.inbound.PollingManager;
 import io.camunda.connector.email.client.jakarta.utils.JakartaUtils;
@@ -40,7 +40,7 @@ class PollingManagerTest {
     InboundConnectorContext connectorContext = mock(InboundConnectorContext.class);
     EmailInboundConnectorProperties emailInboundConnectorProperties =
         mock(EmailInboundConnectorProperties.class);
-    Authentication authentication = mock(SimpleAuthentication.class);
+    InboundAuthentication authentication = mock(SimpleAuthentication.class);
     Folder folder = mock(Folder.class);
     Session session = mock(Session.class);
     Store store = mock(Store.class);

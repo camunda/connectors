@@ -10,7 +10,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @TemplateSubType(id = NoAuthentication.TYPE, label = "None")
-public record NoAuthentication() implements Authentication {
+public record NoAuthentication() implements OutboundAuthentication {
   @TemplateProperty(ignore = true)
   public static final String TYPE = "noAuth";
 }

@@ -48,7 +48,7 @@ class NoAuthenticationTest {
   @Test
   void shouldDeserializeFromJson() throws Exception {
     String json = "{\"type\":\"noAuth\"}";
-    Authentication auth = objectMapper.readValue(json, Authentication.class);
+    OutboundAuthentication auth = objectMapper.readValue(json, OutboundAuthentication.class);
     assertInstanceOf(NoAuthentication.class, auth);
   }
 
@@ -108,8 +108,6 @@ class NoAuthenticationTest {
   void shouldConnectTransportWithoutCredentials() throws MessagingException {
     // Given
     NoAuthentication noAuth = new NoAuthentication();
-    SmtpConfig smtpConfig = new SmtpConfig("localhost", 25, CryptographicProtocol.NONE);
-    Session session = jakartaUtils.createSession(smtpConfig, noAuth);
     Transport transport = mock(Transport.class);
 
     // When

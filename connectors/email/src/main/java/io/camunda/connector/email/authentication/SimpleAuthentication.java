@@ -28,7 +28,7 @@ public record SimpleAuthentication(
             id = "simpleAuthenticationPassword")
         @NotEmpty
         String password)
-    implements Authentication {
+    implements OutboundAuthentication, InboundAuthentication {
   @TemplateProperty(ignore = true)
   public static final String TYPE = "simple";
 }
