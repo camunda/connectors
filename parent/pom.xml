@@ -70,7 +70,7 @@ limitations under the License.</license.inlineheader>
     <nexus.release.repository>https://artifacts.camunda.com/artifactory/connectors/</nexus.release.repository>
 
     <!-- Camunda internal libraries -->
-    <version.camunda>8.8.2</version.camunda>
+    <version.camunda>8.8.3</version.camunda>
     <version.feel-engine>1.19.3</version.feel-engine>
 
     <!-- Third party dependencies -->
@@ -80,11 +80,11 @@ limitations under the License.</license.inlineheader>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.20.0</version.mockito>
-    <version.junit-jupiter>6.0.0</version.junit-jupiter>
+    <version.junit-jupiter>6.0.1</version.junit-jupiter>
     <version.assertj>3.27.6</version.assertj>
-    <version.jackson-bom>2.20.0</version.jackson-bom>
-    <version.jackson-datatype-jsr310>2.20.0</version.jackson-datatype-jsr310>
-    <version.hibernate-validator>9.0.1.Final</version.hibernate-validator>
+    <version.jackson-bom>2.20.1</version.jackson-bom>
+    <version.jackson-datatype-jsr310>2.20.1</version.jackson-datatype-jsr310>
+    <version.hibernate-validator>9.1.0.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.failsafe>3.3.2</version.failsafe>
 
@@ -93,12 +93,12 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.20</version.logback>
 
     <version.aws-java-sdk>1.12.793</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.36.3</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.38.2</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.793</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.36.3</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.38.2</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.36.3</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.38.2</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.3</version.localstack>
 
@@ -109,10 +109,10 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-drive>v3-rev20251019-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.40.0</version.google-auth-library-oauth2-http>
-    <version.google-api-services-docs>v1-rev20251013-2.0.0</version.google-api-services-docs>
+    <version.google-api-services-docs>v1-rev20251022-2.0.0</version.google-api-services-docs>
     <version.google-libraries-bom>26.71.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20250616-2.0.0</version.google-api-services-sheets>
-    <version.google-cloud-storage>2.59.0</version.google-cloud-storage>
+    <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <version.gson-extras>3.3.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
@@ -121,12 +121,12 @@ limitations under the License.</license.inlineheader>
     <version.pdfbox>3.0.6</version.pdfbox>
     <version.collections4>4.5.0</version.collections4>
 
-    <version.commons-io>2.20.0</version.commons-io>
+    <version.commons-io>2.21.0</version.commons-io>
     <version.commons-codec>1.16.1</version.commons-codec>
 
     <version.kafka-clients>4.1.0</version.kafka-clients>
 
-    <version.microsoft-graph>6.55.0</version.microsoft-graph>
+    <version.microsoft-graph>6.56.0</version.microsoft-graph>
     <version.azure-identity>1.18.1</version.azure-identity>
 
     <version.bouncycastle>1.82</version.bouncycastle>
@@ -134,14 +134,14 @@ limitations under the License.</license.inlineheader>
 
     <version.sendGrid>4.10.3</version.sendGrid>
 
-    <version.slack>1.45.4</version.slack>
+    <version.slack>1.46.0</version.slack>
 
     <version.testcontainers>1.21.3</version.testcontainers>
     <version.awaitility>4.3.0</version.awaitility>
-    <version.json-path>2.9.0</version.json-path>
+    <version.json-path>2.10.0</version.json-path>
 
     <version.snappy-java>1.1.10.8</version.snappy-java>
-    <version.commons-codec>1.19.0</version.commons-codec>
+    <version.commons-codec>1.20.0</version.commons-codec>
     <version.guava>33.5.0-jre</version.guava>
     <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
 
@@ -545,7 +545,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.nimbusds</groupId>
         <artifactId>nimbus-jose-jwt</artifactId>
-        <version>10.5</version>
+        <version>10.6</version>
       </dependency>
 
       <!-- Fixes CWE-835 -->
