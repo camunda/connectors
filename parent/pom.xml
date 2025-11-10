@@ -92,7 +92,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.20</version.logback>
 
     <version.aws-java-sdk>1.12.793</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.37.3</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.38.2</version.software-aws-java-sdk>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
 
@@ -115,12 +115,12 @@ limitations under the License.</license.inlineheader>
     <version.httpcore5>5.3.6</version.httpcore5>
     <version.httpclient5>5.5.1</version.httpclient5>
 
-    <version.commons-io>2.20.0</version.commons-io>
+    <version.commons-io>2.21.0</version.commons-io>
     <version.commons-codec>1.16.1</version.commons-codec>
 
     <version.kafka-clients>3.9.1</version.kafka-clients>
 
-    <version.microsoft-graph>6.55.0</version.microsoft-graph>
+    <version.microsoft-graph>6.56.0</version.microsoft-graph>
     <version.azure-identity>1.18.1</version.azure-identity>
 
     <version.bouncycastle>1.82</version.bouncycastle>
@@ -133,7 +133,7 @@ limitations under the License.</license.inlineheader>
     <version.json-path>2.10.0</version.json-path>
 
     <version.snappy-java>1.1.10.8</version.snappy-java>
-    <version.commons-codec>1.19.0</version.commons-codec>
+    <version.commons-codec>1.20.0</version.commons-codec>
     <version.guava>33.5.0-jre</version.guava>
     <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
 
