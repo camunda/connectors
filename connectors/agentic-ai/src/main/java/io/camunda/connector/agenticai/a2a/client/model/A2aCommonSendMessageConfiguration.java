@@ -24,6 +24,15 @@ public record A2aCommonSendMessageConfiguration(
         Integer historyLength,
     @TemplateProperty(
             group = "operation",
+            label = "Support polling",
+            description =
+                "Whether to enable polling for the remote agent's response instead of waiting for it synchronously.",
+            defaultValueType = TemplateProperty.DefaultValueType.Boolean,
+            defaultValue = "true",
+            optional = true)
+        Boolean supportPolling,
+    @TemplateProperty(
+            group = "operation",
             label = "Response timeout",
             description =
                 "How long to wait for the remote agent response as ISO-8601 duration (example: <code>PT1M</code>).",
