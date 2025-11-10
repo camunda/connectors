@@ -138,7 +138,7 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
     // update memory with user messages/tool call responses
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
-          "Adding user messages including {} tool call results for the following tool call results: {}",
+          "Adding user messages including the following {} tool call results: {}",
           toolCallResults.size(),
           toolCallResults.stream().map(tcr -> Pair.of(tcr.id(), tcr.name())).toList());
     }
