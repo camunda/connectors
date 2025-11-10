@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.a2a.client.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -61,7 +61,7 @@ class A2aMessageSenderTest {
 
   @BeforeEach
   void setUp() {
-    when(clientFactory.buildClient(eq(agentCard), any(), anyInt()))
+    when(clientFactory.buildClient(eq(agentCard), any(), any()))
         .thenAnswer(
             inv -> {
               consumerRef.set(inv.getArgument(1));
@@ -79,6 +79,31 @@ class A2aMessageSenderTest {
 
     var actualResult = messageSender.sendMessage(agentCard, operation);
     assertThat(actualResult).isSameAs(expectedResult);
+    verify(a2aClient).close();
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(booleans = {true, false})
+  void shouldPassSupportPollingFlagToClientFactory(Boolean supportPolling) {
+    var operation =
+        new SendMessageOperationConfiguration(
+            A2aSendMessageOperationParametersBuilder.builder().text("hello").build(),
+            new A2aCommonSendMessageConfiguration(0, supportPolling, Duration.ofSeconds(1)));
+
+    MessageEvent clientEvent = newMessageEvent();
+    var expectedResult = messageResult(MESSAGE_ID);
+    when(sendMessageResponseHandler.handleClientEvent(clientEvent)).thenReturn(expectedResult);
+    mockClientSendMessage(clientEvent);
+
+    messageSender.sendMessage(agentCard, operation);
+
+    //noinspection resource
+    verify(clientFactory)
+        .buildClient(
+            eq(agentCard),
+            any(),
+            assertArg(config -> assertThat(config.supportPolling()).isEqualTo(supportPolling)));
     verify(a2aClient).close();
   }
 
@@ -117,7 +142,7 @@ class A2aMessageSenderTest {
                 .text("hello")
                 .documents(List.of(document))
                 .build(),
-            new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
+            sendMessageSettings());
 
     MessageEvent clientEvent = newMessageEvent();
     var expectedResult = messageResult(MESSAGE_ID);
@@ -147,7 +172,7 @@ class A2aMessageSenderTest {
                 .text("hello")
                 .contextId("ctx-456")
                 .build(),
-            new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
+            sendMessageSettings());
 
     MessageEvent clientEvent = newMessageEvent();
     var expectedResult = messageResult(MESSAGE_ID);
@@ -172,7 +197,7 @@ class A2aMessageSenderTest {
                 .text("hello")
                 .contextId(contextId)
                 .build(),
-            new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
+            sendMessageSettings());
 
     MessageEvent clientEvent = newMessageEvent();
     var expectedResult = messageResult(MESSAGE_ID);
@@ -195,7 +220,7 @@ class A2aMessageSenderTest {
                 .text("hello")
                 .taskId("task-789")
                 .build(),
-            new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
+            sendMessageSettings());
 
     MessageEvent clientEvent = newMessageEvent();
     var expectedResult = messageResult(MESSAGE_ID);
@@ -217,7 +242,7 @@ class A2aMessageSenderTest {
     var operation =
         new SendMessageOperationConfiguration(
             A2aSendMessageOperationParametersBuilder.builder().text("hello").taskId(taskId).build(),
-            new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
+            sendMessageSettings());
 
     MessageEvent clientEvent = newMessageEvent();
     var expectedResult = messageResult(MESSAGE_ID);
@@ -240,7 +265,7 @@ class A2aMessageSenderTest {
                 .text("hello")
                 .referenceTaskIds(List.of("ref-task-1", "ref-task-2"))
                 .build(),
-            new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
+            sendMessageSettings());
 
     MessageEvent clientEvent = newMessageEvent();
     var expectedResult = messageResult(MESSAGE_ID);
@@ -265,7 +290,7 @@ class A2aMessageSenderTest {
                 .text("hello")
                 .referenceTaskIds(referenceTaskIds)
                 .build(),
-            new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
+            sendMessageSettings());
 
     MessageEvent clientEvent = newMessageEvent();
     var expectedResult = messageResult(MESSAGE_ID);
@@ -290,7 +315,7 @@ class A2aMessageSenderTest {
                 .taskId("task-888")
                 .referenceTaskIds(List.of("ref-1", "ref-2", "ref-3"))
                 .build(),
-            new A2aCommonSendMessageConfiguration(1, Duration.ofSeconds(1)));
+            sendMessageSettings());
 
     MessageEvent clientEvent = newMessageEvent();
     var expectedResult = messageResult(MESSAGE_ID);
@@ -307,10 +332,14 @@ class A2aMessageSenderTest {
     verify(a2aClient).close();
   }
 
+  private static A2aCommonSendMessageConfiguration sendMessageSettings() {
+    return new A2aCommonSendMessageConfiguration(1, null, Duration.ofSeconds(1));
+  }
+
   private SendMessageOperationConfiguration newSendMessageOperation(Duration timeout) {
     return new SendMessageOperationConfiguration(
         A2aSendMessageOperationParametersBuilder.builder().text("hello").build(),
-        new A2aCommonSendMessageConfiguration(0, timeout));
+        new A2aCommonSendMessageConfiguration(0, null, timeout));
   }
 
   private MessageEvent newMessageEvent() {
