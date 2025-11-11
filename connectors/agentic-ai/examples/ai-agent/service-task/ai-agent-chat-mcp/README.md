@@ -38,6 +38,14 @@ camunda:
               sse:
                 # replace with the URL returned by the OpenMemory MCP link UI
                 url: http://localhost:8765/mcp/openmemory/sse/<your-client-id>
+
+            # Remote Streamable HTTP MCP server example
+            # fetch:
+            #  enabled: true
+            #  http:
+            #    url: https://remote.mcpservers.org/fetch/mcp
+            #    headers:
+            #      X-Dummy: dummy-value
 ```
 
 ## Example Usage
