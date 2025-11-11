@@ -25,7 +25,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     description =
         "MCP (Model Context Protocol) client, operating on temporary remote connections. Only supports tool operations.",
     engineVersion = "^8.9",
-    version = 1,
+    version = 2,
     inputDataClass = McpRemoteClientRequest.class,
     defaultResultVariable = "toolCallResult",
     propertyGroups = {
