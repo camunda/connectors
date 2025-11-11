@@ -27,7 +27,9 @@ import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest.McpClientRequestData;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest.McpClientRequestData.ClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientToolsConfiguration;
-import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.StandaloneModeConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -35,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -74,71 +77,11 @@ class Langchain4JMcpClientHandlerTest {
   }
 
   @Test
-  void handlesListToolsRequest() {
-    final var request = createRequest(LIST_TOOLS_OPERATION);
-    final var expectedResult = new McpClientListToolsResult(List.of());
-
-    when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
-    when(clientExecutor.execute(
-            eq(mcpClient),
-            assertArg(
-                operation -> assertThat(operation).isInstanceOf(McpClientListToolsOperation.class)),
-            eq(EMPTY_FILTER)))
-        .thenReturn(expectedResult);
-
-    final var result = handler.handle(context, request);
-
-    assertThat(result).isEqualTo(expectedResult);
-  }
-
-  @ParameterizedTest
-  @MethodSource("callToolArguments")
-  void handlesCallToolRequest(Map<String, Object> arguments) {
-    final var request =
-        createRequest(
-            new McpClientOperationConfiguration(
-                "tools/call", Map.of("name", "test-tool", "arguments", arguments)));
-    final var expectedResult =
-        new McpClientCallToolResult("test-tool", List.of(textContent("Success")), false);
-
-    when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
-    when(clientExecutor.execute(
-            eq(mcpClient),
-            assertArg(
-                operation ->
-                    assertThat(operation)
-                        .isInstanceOfSatisfying(
-                            McpClientCallToolOperation.class,
-                            op -> {
-                              assertThat(op.params().name()).isEqualTo("test-tool");
-                              assertThat(op.params().arguments())
-                                  .containsExactlyEntriesOf(arguments);
-                            })),
-            eq(EMPTY_FILTER)))
-        .thenReturn(expectedResult);
-
-    final var result = handler.handle(context, request);
-
-    assertThat(result).isEqualTo(expectedResult);
-  }
-
-  @Test
-  void throwsExceptionOnInvalidOperation() {
-    assertThatThrownBy(
-            () ->
-                handler.handle(
-                    context,
-                    createRequest(new McpClientOperationConfiguration("invalid", Map.of()))))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Could not resolve type id 'invalid'");
-  }
-
-  @Test
   void throwsExceptionWhenClientIsNotFound() {
     final var exception = new IllegalArgumentException("Client not found: non-existent-client");
     when(clientRegistry.getClient(CLIENT_ID)).thenThrow(exception);
 
-    assertThatThrownBy(() -> handler.handle(context, createRequest(LIST_TOOLS_OPERATION)))
+    assertThatThrownBy(() -> handler.handle(context, createToolModeRequest(LIST_TOOLS_OPERATION)))
         .isEqualTo(exception);
   }
 
@@ -150,14 +93,173 @@ class Langchain4JMcpClientHandlerTest {
     when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
         .thenThrow(exception);
 
-    assertThatThrownBy(() -> handler.handle(context, createRequest(LIST_TOOLS_OPERATION)))
+    assertThatThrownBy(() -> handler.handle(context, createToolModeRequest(LIST_TOOLS_OPERATION)))
         .isEqualTo(exception);
   }
 
-  private McpClientRequest createRequest(McpClientOperationConfiguration operation) {
-    final var mode = new McpConnectorModeConfiguration.ToolModeConfiguration(operation);
+  @Nested
+  class ToolModeTests {
+
+    @Test
+    void handlesListToolsRequest() {
+      final var request = createToolModeRequest(LIST_TOOLS_OPERATION);
+      final var expectedResult = new McpClientListToolsResult(List.of());
+
+      when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(
+                  operation ->
+                      assertThat(operation).isInstanceOf(McpClientListToolsOperation.class)),
+              eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHandlerTest#callToolArguments")
+    void handlesCallToolRequest(Map<String, Object> arguments) {
+      final var request =
+          createToolModeRequest(
+              new McpClientOperationConfiguration(
+                  "tools/call", Map.of("name", "test-tool", "arguments", arguments)));
+      final var expectedResult =
+          new McpClientCallToolResult("test-tool", List.of(textContent("Success")), false);
+
+      when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(
+                  operation ->
+                      assertThat(operation)
+                          .isInstanceOfSatisfying(
+                              McpClientCallToolOperation.class,
+                              op -> {
+                                assertThat(op.params().name()).isEqualTo("test-tool");
+                                assertThat(op.params().arguments())
+                                    .containsExactlyEntriesOf(arguments);
+                              })),
+              eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @Test
+    void throwsExceptionOnInvalidOperation() {
+      assertThatThrownBy(
+              () ->
+                  handler.handle(
+                      context,
+                      createToolModeRequest(
+                          new McpClientOperationConfiguration("invalid", Map.of()))))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Could not resolve type id 'invalid'");
+    }
+  }
+
+  @Nested
+  class StandaloneModeTests {
+    @Test
+    void handlesListToolsRequest() {
+      final var request =
+          createStandaloneModeRequest(
+              new McpStandaloneOperationConfiguration.ListToolsOperationConfiguration());
+      final var expectedResult = new McpClientListToolsResult(List.of());
+
+      when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(
+                  operation ->
+                      assertThat(operation).isInstanceOf(McpClientListToolsOperation.class)),
+              eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHandlerTest#callToolArguments")
+    void handlesCallToolRequest(Map<String, Object> arguments) {
+      final var request =
+          createStandaloneModeRequest(
+              new McpStandaloneOperationConfiguration.CallToolOperationConfiguration(
+                  "test-tool", arguments));
+      final var expectedResult =
+          new McpClientCallToolResult("test-tool", List.of(textContent("Success")), false);
+
+      when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(
+                  operation ->
+                      assertThat(operation)
+                          .isInstanceOfSatisfying(
+                              McpClientCallToolOperation.class,
+                              op -> {
+                                assertThat(op.params().name()).isEqualTo("test-tool");
+                                assertThat(op.params().arguments())
+                                    .containsExactlyEntriesOf(arguments);
+                              })),
+              eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @Test
+    void handlesCallToolRequestWithNullArguments() {
+      final var request =
+          createStandaloneModeRequest(
+              new McpStandaloneOperationConfiguration.CallToolOperationConfiguration(
+                  "test-tool", null));
+      final var expectedResult =
+          new McpClientCallToolResult("test-tool", List.of(textContent("Success")), false);
+
+      when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(
+                  operation ->
+                      assertThat(operation)
+                          .isInstanceOfSatisfying(
+                              McpClientCallToolOperation.class,
+                              op -> {
+                                assertThat(op.params().name()).isEqualTo("test-tool");
+                                assertThat(op.params().arguments()).isNull();
+                              })),
+              eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
+  }
+
+  private McpClientRequest createToolModeRequest(McpClientOperationConfiguration operation) {
     return new McpClientRequest(
-        new McpClientRequestData(CLIENT_CONFIG, mode, EMPTY_FILTER_CONFIGURATION));
+        new McpClientRequestData(
+            CLIENT_CONFIG, new ToolModeConfiguration(operation), EMPTY_FILTER_CONFIGURATION));
+  }
+
+  private McpClientRequest createStandaloneModeRequest(
+      McpStandaloneOperationConfiguration operation) {
+    return new McpClientRequest(
+        new McpClientRequestData(
+            CLIENT_CONFIG, new StandaloneModeConfiguration(operation), EMPTY_FILTER_CONFIGURATION));
   }
 
   static Stream<Map<String, Object>> callToolArguments() {
