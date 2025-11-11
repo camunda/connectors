@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
+import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -102,6 +103,10 @@ public class AgentInitializerImpl implements AgentInitializer {
 
   private AgentInitializationResult handleToolDiscoveryResults(
       AgentContext agentContext, List<ToolCallResult> toolCallResults) {
+    if (!gatewayToolHandlers.allToolDiscoveryResultsPresent(agentContext, toolCallResults)) {
+      return new AgentDiscoveryInProgressInitializationResult();
+    }
+
     final var gatewayToolDiscoveryResult =
         gatewayToolHandlers.handleToolDiscoveryResults(agentContext, toolCallResults);
 

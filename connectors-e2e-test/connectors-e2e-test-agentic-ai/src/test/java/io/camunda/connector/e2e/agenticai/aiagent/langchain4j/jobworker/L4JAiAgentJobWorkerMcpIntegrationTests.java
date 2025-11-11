@@ -20,9 +20,11 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAI
 import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_MCP_TOOL_SPECIFICATIONS;
 import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +35,7 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.mcp.client.McpClient;
+import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
@@ -41,10 +44,12 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest.McpRemoteClientRequestData.HttpConnectionConfiguration;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,10 +75,17 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
 
   @Mock private McpClient aMcpClient;
   @Mock private McpClient aRemoteMcpClient;
+  @Mock private McpClient anotherRemoteMcpClient;
   @Mock private McpClient filesystemMcpClient;
 
   @Captor private ArgumentCaptor<ToolExecutionRequest> aMcpClientToolExecutionRequestCaptor;
   @Captor private ArgumentCaptor<ToolExecutionRequest> aRemoteMcpClientToolExecutionRequestCaptor;
+
+  @Captor
+  private ArgumentCaptor<ToolExecutionRequest> anotherRemoteMcpClientToolExecutionRequestCaptor;
+
+  private final Map<String, HttpConnectionConfiguration> requestedRemoteMcpClients =
+      new LinkedHashMap<>();
 
   @BeforeEach
   void mockMcpClients() {
@@ -81,6 +93,7 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
     when(aMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
 
     when(aRemoteMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
+    when(anotherRemoteMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
 
     when(filesystemMcpClient.key()).thenReturn("filesystem");
     when(filesystemMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
@@ -89,22 +102,30 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
     doReturn(aMcpClient).when(mcpClientRegistry).getClient("a-mcp-client");
     doReturn(filesystemMcpClient).when(mcpClientRegistry).getClient("filesystem");
 
-    // remote MCP client configured only on the process
+    // remote MCP clients configured only on the process
+    requestedRemoteMcpClients.clear();
     doAnswer(
             i -> {
               final McpRemoteClientIdentifier clientId = i.getArgument(0);
-              when(aRemoteMcpClient.key()).thenReturn(clientId.toString());
-              return aRemoteMcpClient;
+              final HttpConnectionConfiguration connection = i.getArgument(1);
+              requestedRemoteMcpClients.put(clientId.elementId(), connection);
+
+              return switch (clientId.elementId()) {
+                case "A_Remote_MCP_Client" -> {
+                  when(aRemoteMcpClient.key()).thenReturn(clientId.toString());
+                  yield aRemoteMcpClient;
+                }
+                case "Another_Remote_MCP_Client" -> {
+                  when(anotherRemoteMcpClient.key()).thenReturn(clientId.toString());
+                  yield anotherRemoteMcpClient;
+                }
+                default ->
+                    throw new IllegalArgumentException(
+                        "Unexpected remote MCP client ID: " + clientId.elementId());
+              };
             })
         .when(remoteMcpClientRegistry)
-        .getClient(
-            assertArg(
-                clientId -> assertThat(clientId.elementId()).isEqualTo("A_Remote_MCP_Client")),
-            assertArg(
-                connection -> {
-                  assertThat(connection.sseUrl()).isEqualTo("http://localhost:1234/sse");
-                  assertThat(connection.timeout()).isNull();
-                }));
+        .getClient(any(McpRemoteClientIdentifier.class), any(HttpConnectionConfiguration.class));
   }
 
   @Override
@@ -134,6 +155,7 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
             // MCP tool discovery start
             "A_MCP_Client",
             "A_Remote_MCP_Client",
+            "Another_Remote_MCP_Client",
             "Filesystem_MCP_Flow",
             // MCP tool discovery end
 
@@ -141,7 +163,25 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
 
     verify(aMcpClient).listTools();
     verify(aRemoteMcpClient).listTools();
+    verify(anotherRemoteMcpClient).listTools();
     verify(filesystemMcpClient).listTools();
+
+    verify(chatModel, times(1)).chat(any(ChatRequest.class));
+
+    assertThat(requestedRemoteMcpClients)
+        .hasSize(2)
+        .hasEntrySatisfying(
+            "A_Remote_MCP_Client",
+            connection -> {
+              assertThat(connection.sseUrl()).isEqualTo("http://localhost:1234/sse");
+              assertThat(connection.timeout()).isNull();
+            })
+        .hasEntrySatisfying(
+            "Another_Remote_MCP_Client",
+            connection -> {
+              assertThat(connection.sseUrl()).isEqualTo("http://localhost:2345/sse");
+              assertThat(connection.timeout()).isNull();
+            });
   }
 
   @Test
@@ -150,6 +190,9 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
         .thenReturn("A MCP Client result");
     when(aRemoteMcpClient.executeTool(aRemoteMcpClientToolExecutionRequestCaptor.capture()))
         .thenReturn("A Remote MCP Client result");
+    when(anotherRemoteMcpClient.executeTool(
+            anotherRemoteMcpClientToolExecutionRequestCaptor.capture()))
+        .thenReturn("Another Remote MCP Client result");
 
     final var initialUserPrompt = "Explore some of your MCP tools!";
     final var expectedConversation =
@@ -158,7 +201,7 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
                 "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
             new UserMessage(initialUserPrompt),
             new AiMessage(
-                "The user asked me to call some of my MCP tools. I will call MCP_A_MCP_Client___toolA and MCP_A_Remote_MCP_Client___toolC as they look interesting to me.",
+                "The user asked me to call some of my MCP tools. I will call MCP_A_MCP_Client___toolA, MCP_A_Remote_MCP_Client___toolC, and MCP_Another_Remote_MCP_Client___toolA as they look interesting to me.",
                 List.of(
                     ToolExecutionRequest.builder()
                         .id("aaa111")
@@ -169,16 +212,26 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
                         .id("ccc222")
                         .name("MCP_A_Remote_MCP_Client___toolC")
                         .arguments("{\"paramC1\": \"someOtherValue\"}")
+                        .build(),
+                    ToolExecutionRequest.builder()
+                        .id("aaa333")
+                        .name("MCP_Another_Remote_MCP_Client___toolA")
+                        .arguments("{\"paramA1\": \"someValue2\", \"paramA2\": 6}")
                         .build())),
             new ToolExecutionResultMessage(
                 "aaa111", "MCP_A_MCP_Client___toolA", "A MCP Client result"),
             new ToolExecutionResultMessage(
                 "ccc222", "MCP_A_Remote_MCP_Client___toolC", "A Remote MCP Client result"),
+            new ToolExecutionResultMessage(
+                "aaa333",
+                "MCP_Another_Remote_MCP_Client___toolA",
+                "Another Remote MCP Client result"),
             new AiMessage(
                 """
                       I called some of my MCP tools and got the following results:
                       MCP_A_MCP_Client___toolA: A MCP Client result
-                      MCP_A_Remote_MCP_Client___toolC: A Remote MCP Client result"""),
+                      MCP_A_Remote_MCP_Client___toolC: A Remote MCP Client result
+                      MCP_Another_Remote_MCP_Client___toolA: Another Remote MCP Client result"""),
             new UserMessage("Ok thanks, anything else?"),
             new AiMessage("No."));
 
@@ -199,7 +252,7 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
                         .finishReason(FinishReason.STOP)
                         .tokenUsage(new TokenUsage(100, 200))
                         .build())
-                .aiMessage((AiMessage) expectedConversation.get(5))
+                .aiMessage((AiMessage) expectedConversation.get(6))
                 .build(),
             userFollowUpFeedback("Ok thanks, anything else?")),
         ChatInteraction.of(
@@ -209,7 +262,7 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
                         .finishReason(FinishReason.STOP)
                         .tokenUsage(new TokenUsage(11, 22))
                         .build())
-                .aiMessage((AiMessage) expectedConversation.get(7))
+                .aiMessage((AiMessage) expectedConversation.get(8))
                 .build(),
             userSatisfiedFeedback()));
 
@@ -236,6 +289,7 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
 
     verify(aMcpClient).listTools();
     verify(aRemoteMcpClient).listTools();
+    verify(anotherRemoteMcpClient).listTools();
     verify(filesystemMcpClient).listTools();
 
     verify(aMcpClient)
@@ -256,5 +310,17 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
                   JSONAssert.assertEquals(
                       "{\"paramC1\": \"someOtherValue\"}", toolExecutionRequest.arguments(), true);
                 }));
+    verify(anotherRemoteMcpClient)
+        .executeTool(
+            assertArg(
+                toolExecutionRequest -> {
+                  assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
+                  JSONAssert.assertEquals(
+                      "{\"paramA1\": \"someValue2\", \"paramA2\": 6}",
+                      toolExecutionRequest.arguments(),
+                      true);
+                }));
+
+    verify(chatModel, times(3)).chat(any(ChatRequest.class));
   }
 }

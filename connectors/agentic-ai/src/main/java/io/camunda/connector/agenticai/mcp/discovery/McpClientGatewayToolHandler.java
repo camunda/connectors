@@ -25,9 +25,15 @@ import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class McpClientGatewayToolHandler implements GatewayToolHandler {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(McpClientGatewayToolHandler.class);
+
   public static final String GATEWAY_TYPE = "mcpClient";
 
   public static final String PROPERTY_MCP_CLIENTS = "mcpClients";
@@ -74,6 +80,30 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
             .toList();
 
     return new GatewayToolDiscoveryInitiationResult(updatedAgentContext, discoveryToolCalls);
+  }
+
+  @Override
+  public boolean allToolDiscoveryResultsPresent(
+      AgentContext agentContext, List<ToolCallResult> toolCallResults) {
+    final var mcpClientIds = getMcpClientIds(agentContext);
+    if (mcpClientIds.isEmpty()) {
+      return true;
+    }
+
+    final var toolCallResultIds =
+        toolCallResults.stream().map(ToolCallResult::id).collect(Collectors.toSet());
+    final var missingToolDiscoveryResults =
+        mcpClientIds.stream()
+            .filter(clientId -> !toolCallResultIds.contains(MCP_TOOLS_DISCOVERY_PREFIX + clientId))
+            .toList();
+
+    if (!missingToolDiscoveryResults.isEmpty()) {
+      LOGGER.debug(
+          "Missing MCP client tool discovery results for clients: {}", missingToolDiscoveryResults);
+      return false;
+    }
+
+    return true;
   }
 
   @Override
@@ -150,20 +180,22 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
   public List<ToolCallResult> transformToolCallResults(
       AgentContext agentContext, List<ToolCallResult> toolCallResults) {
 
-    // noinspection unchecked
-    final var mcpClients =
-        (List<String>) agentContext.properties().getOrDefault(PROPERTY_MCP_CLIENTS, List.of());
-
+    final var mcpClientIds = getMcpClientIds(agentContext);
     return toolCallResults.stream()
         .map(
             toolCallResult -> {
-              if (!mcpClients.contains(toolCallResult.name())) {
+              if (!mcpClientIds.contains(toolCallResult.name())) {
                 return toolCallResult;
               }
 
               return toolCallResultFromMcpToolCall(toolCallResult);
             })
         .toList();
+  }
+
+  @SuppressWarnings("unchecked")
+  private List<String> getMcpClientIds(AgentContext agentContext) {
+    return (List<String>) agentContext.properties().getOrDefault(PROPERTY_MCP_CLIENTS, List.of());
   }
 
   private ToolCallResult toolCallResultFromMcpToolCall(ToolCallResult toolCallResult) {

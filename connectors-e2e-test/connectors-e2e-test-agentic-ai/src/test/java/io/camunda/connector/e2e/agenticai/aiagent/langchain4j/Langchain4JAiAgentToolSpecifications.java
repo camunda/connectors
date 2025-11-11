@@ -163,6 +163,23 @@ public interface Langchain4JAiAgentToolSpecifications {
                       .build())
               .build(),
           ToolSpecification.builder()
+              .name("MCP_Another_Remote_MCP_Client___toolA")
+              .description("The first tool")
+              .parameters(
+                  JsonObjectSchema.builder()
+                      .addStringProperty("paramA1", "The first parameter")
+                      .addNumberProperty("paramA2", "The second parameter")
+                      .build())
+              .build(),
+          ToolSpecification.builder()
+              .name("MCP_Another_Remote_MCP_Client___toolC")
+              .description("The third tool")
+              .parameters(
+                  JsonObjectSchema.builder()
+                      .addStringProperty("paramC1", "The first parameter")
+                      .build())
+              .build(),
+          ToolSpecification.builder()
               .name("MCP_Filesystem_MCP_Flow___toolA")
               .description("The first tool")
               .parameters(
