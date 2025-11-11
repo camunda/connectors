@@ -31,8 +31,8 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ProblemException;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
+import io.camunda.client.protocol.rest.JobResult;
 import io.camunda.client.protocol.rest.JobResultActivateElement;
-import io.camunda.client.protocol.rest.JobResultAdHocSubProcess;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -167,7 +167,7 @@ class AiAgentJobWorkerHandlerTest {
           assertThat(request.getResult())
               .isNotNull()
               .isInstanceOfSatisfying(
-                  JobResultAdHocSubProcess.class,
+                  JobResult.class,
                   adHoc -> {
                     assertThat(adHoc.getIsCompletionConditionFulfilled()).isFalse();
                     assertThat(adHoc.getIsCancelRemainingInstances()).isFalse();
@@ -197,7 +197,7 @@ class AiAgentJobWorkerHandlerTest {
           assertThat(request.getResult())
               .isNotNull()
               .isInstanceOfSatisfying(
-                  JobResultAdHocSubProcess.class,
+                  JobResult.class,
                   adHoc -> {
                     assertThat(adHoc.getIsCompletionConditionFulfilled()).isTrue();
                     assertThat(adHoc.getIsCancelRemainingInstances())
@@ -234,7 +234,7 @@ class AiAgentJobWorkerHandlerTest {
           assertThat(request.getResult())
               .isNotNull()
               .isInstanceOfSatisfying(
-                  JobResultAdHocSubProcess.class,
+                  JobResult.class,
                   adHoc -> {
                     assertThat(adHoc.getIsCompletionConditionFulfilled()).isFalse();
                     assertThat(adHoc.getIsCancelRemainingInstances())

@@ -19,9 +19,12 @@ package io.camunda.connector.runtime.outbound.lifecycle;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.annotation.value.JobWorkerValue;
-import io.camunda.client.api.worker.JobHandler;
+import io.camunda.client.annotation.value.JobWorkerValue.SourceAware;
+import io.camunda.client.annotation.value.JobWorkerValue.SourceAware.FromAnnotation;
 import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
+import io.camunda.client.jobhandling.JobHandlerFactory;
 import io.camunda.client.jobhandling.JobWorkerManager;
+import io.camunda.client.jobhandling.ManagedJobWorker;
 import io.camunda.client.lifecycle.CamundaClientLifecycleAware;
 import io.camunda.client.metrics.DefaultNoopMetricsRecorder;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -83,37 +86,39 @@ public class OutboundConnectorManager implements CamundaClientLifecycleAware {
 
   @Override
   public void onStop(CamundaClient client) {
-    jobWorkerManager.closeAllOpenWorkers();
+    jobWorkerManager.closeAllJobWorkers(this);
   }
 
   private void openWorkerForOutboundConnector(
       CamundaClient client, OutboundConnectorConfiguration connector) {
-    JobWorkerValue zeebeWorkerValue = new JobWorkerValue();
-    zeebeWorkerValue.setName(connector.name());
-    zeebeWorkerValue.setType(connector.type());
-    zeebeWorkerValue.setFetchVariables(Arrays.asList(connector.inputVariables()));
+    JobWorkerValue jobWorkerValue = new JobWorkerValue();
+    jobWorkerValue.setName(new FromAnnotation<>(connector.name()));
+    jobWorkerValue.setType(new FromAnnotation<>(connector.type()));
+    jobWorkerValue.setFetchVariables(
+        Arrays.stream(connector.inputVariables())
+            .map(FromAnnotation::new)
+            .map(fa -> (SourceAware<String>) fa)
+            .toList());
 
     if (connector.timeout() != null) {
-      zeebeWorkerValue.setTimeout(Duration.ofMillis(connector.timeout()));
+      jobWorkerValue.setTimeout(new FromAnnotation<>(Duration.ofMillis(connector.timeout())));
     }
-
-    // The runtime will handle the completion of the job
-    zeebeWorkerValue.setAutoComplete(false);
 
     OutboundConnectorFunction connectorFunction = connectorFactory.getInstance(connector.type());
     LOG.trace("Opening worker for connector {}", connector.name());
 
-    JobHandler connectorJobHandler =
-        new SpringConnectorJobHandler(
-            outboundMetrics,
-            commandExceptionHandlingStrategy,
-            secretProviderAggregator,
-            validationProvider,
-            documentFactory,
-            objectMapper,
-            connectorFunction,
-            new DefaultNoopMetricsRecorder());
-
-    jobWorkerManager.openWorker(client, zeebeWorkerValue, connectorJobHandler);
+    JobHandlerFactory jobHandlerFactory =
+        ctx ->
+            new SpringConnectorJobHandler(
+                outboundMetrics,
+                commandExceptionHandlingStrategy,
+                secretProviderAggregator,
+                validationProvider,
+                documentFactory,
+                objectMapper,
+                connectorFunction,
+                new DefaultNoopMetricsRecorder());
+    jobWorkerManager.createJobWorker(
+        client, new ManagedJobWorker(jobWorkerValue, jobHandlerFactory), this);
   }
 }

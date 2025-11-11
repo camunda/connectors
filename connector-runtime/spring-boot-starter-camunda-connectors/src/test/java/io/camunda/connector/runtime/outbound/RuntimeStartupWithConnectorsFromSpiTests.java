@@ -16,14 +16,12 @@
  */
 package io.camunda.connector.runtime.outbound;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-import io.camunda.client.annotation.value.JobWorkerValue;
 import io.camunda.client.jobhandling.JobWorkerManager;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -42,7 +40,6 @@ class RuntimeStartupWithConnectorsFromSpiTests {
 
   @Test
   public void httpConnectorLoadedViaSpi() {
-    Optional<JobWorkerValue> httpjson = jobWorkerManager.findJobWorkerConfigByName("TEST");
-    assertTrue(httpjson.isPresent());
+    assertDoesNotThrow(() -> jobWorkerManager.getJobWorker("TEST"));
   }
 }

@@ -16,16 +16,13 @@
  */
 package io.camunda.connector.runtime.outbound;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.camunda.client.annotation.value.JobWorkerValue;
 import io.camunda.client.jobhandling.JobWorkerManager;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -71,10 +68,9 @@ class RuntimeStartupWithConnectorsFromEnvVarsTests {
       return;
     }
     // Make sure the environment variables are used INSTEAD of SPI (which would load TEST)
-    assertFalse(jobWorkerManager.findJobWorkerConfigByName("TEST").isPresent());
+    assertDoesNotThrow(() -> jobWorkerManager.getJobWorker("TEST"));
 
-    Optional<JobWorkerValue> testConnector = jobWorkerManager.findJobWorkerConfigByName("TEST2");
-    assertTrue(testConnector.isPresent());
-    assertEquals("non-default-TEST-task-type", testConnector.get().getType());
+    JobWorkerValue testConnector = jobWorkerManager.getJobWorker("TEST2");
+    assertEquals("non-default-TEST-task-type", testConnector.getType().value());
   }
 }

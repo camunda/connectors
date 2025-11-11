@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.jobworker;
 
 import io.camunda.client.annotation.customizer.JobWorkerValueCustomizer;
 import io.camunda.client.annotation.value.JobWorkerValue;
+import io.camunda.client.annotation.value.JobWorkerValue.SourceAware.FromOverrideProperty;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import java.time.Duration;
@@ -32,13 +33,18 @@ public class AiAgentJobWorkerValueCustomizer implements JobWorkerValueCustomizer
 
   @Override
   public void customize(JobWorkerValue jobWorkerValue) {
-    if (!AiAgentJobWorker.JOB_WORKER_NAME.equals(jobWorkerValue.getName())) {
+    if (!AiAgentJobWorker.JOB_WORKER_NAME.equals(jobWorkerValue.getName().value())) {
       return;
     }
 
     final var overrides =
-        new ConnectorConfigurationOverrides(jobWorkerValue.getName(), environment::getProperty);
-    overrides.typeOverride().ifPresent(jobWorkerValue::setType);
-    overrides.timeoutOverride().map(Duration::ofMillis).ifPresent(jobWorkerValue::setTimeout);
+        new ConnectorConfigurationOverrides(
+            jobWorkerValue.getName().value(), environment::getProperty);
+    overrides.typeOverride().map(FromOverrideProperty::new).ifPresent(jobWorkerValue::setType);
+    overrides
+        .timeoutOverride()
+        .map(Duration::ofMillis)
+        .map(FromOverrideProperty::new)
+        .ifPresent(jobWorkerValue::setTimeout);
   }
 }
