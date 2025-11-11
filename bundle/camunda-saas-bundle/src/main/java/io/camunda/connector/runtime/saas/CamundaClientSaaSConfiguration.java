@@ -21,6 +21,7 @@ import io.camunda.client.CredentialsProvider;
 import io.camunda.client.api.JsonMapper;
 import io.camunda.client.impl.oauth.OAuthCredentialsProviderBuilder;
 import io.camunda.client.jobhandling.CamundaClientExecutorService;
+import io.camunda.client.jobhandling.JobExceptionHandlerSupplier;
 import io.camunda.client.spring.configuration.SpringCamundaClientConfiguration;
 import io.camunda.client.spring.properties.CamundaClientProperties;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -68,14 +69,16 @@ public class CamundaClientSaaSConfiguration {
       final JsonMapper jsonMapper,
       final List<ClientInterceptor> interceptors,
       final List<AsyncExecChainHandler> chainHandlers,
-      final CamundaClientExecutorService zeebeClientExecutorService) {
+      final CamundaClientExecutorService zeebeClientExecutorService,
+      final JobExceptionHandlerSupplier jobExceptionHandlerSupplier) {
     return new SpringCamundaClientConfiguration(
         camundaClientProperties,
         jsonMapper,
         interceptors,
         chainHandlers,
         zeebeClientExecutorService,
-        internalConnectorsSecretCredentialsProvider());
+        internalConnectorsSecretCredentialsProvider(),
+        jobExceptionHandlerSupplier);
   }
 
   public CredentialsProvider internalConnectorsSecretCredentialsProvider() {
