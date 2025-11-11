@@ -16,13 +16,13 @@
  */
 package io.camunda.connector.runtime.saas.auth;
 
-import static org.junit.Assert.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.client.CredentialsProvider;
 import io.camunda.connector.runtime.saas.SaaSConnectorRuntimeApplication;
 import io.camunda.connector.runtime.saas.SaaSSecretConfiguration;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
-import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
@@ -52,8 +52,12 @@ public class CustomCredentialsProviderNotUsedTest {
 
   @Test
   public void credentialsProvidedInProperties_customCredentialsProviderNotUsed() {
-    assertThrows(
-        NoSuchBeanDefinitionException.class,
-        () -> applicationContext.getBean("saasCamundaClientConfiguration"));
+    // When client-id and client-secret are provided in properties,
+    // a CredentialsProvider bean should exist (from the Spring Boot starter),
+    // but the custom credentialsProvider bean from our configuration should not be registered
+    assertThat(applicationContext.getBean(CredentialsProvider.class)).isNotNull();
+    // The conditional bean "credentialsProvider" from CamundaClientSaaSConfiguration should not exist
+    var beansWithName = applicationContext.getBeansOfType(CredentialsProvider.class);
+    assertThat(beansWithName).doesNotContainKey("credentialsProvider");
   }
 }
