@@ -16,11 +16,4 @@
  */
 package io.camunda.connector.api.secret;
 
-public sealed interface SecretContext {
-  String tenantId();
-
-  public record OutboundSecretContext(String tenantId, String processDefinitionId)
-      implements SecretContext {}
-
-  public record InboundSecretContext(String tenantId) implements SecretContext {}
-}
+public record SecretContext(String tenantId, String processDefinitionId) {}

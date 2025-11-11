@@ -29,7 +29,7 @@ import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.api.secret.SecretContext.OutboundSecretContext;
+import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
@@ -78,8 +78,7 @@ public class JobHandlerContext extends AbstractConnectorContext
       jsonWithSecrets =
           getSecretHandler()
               .replaceSecrets(
-                  job.getVariables(),
-                  new OutboundSecretContext(job.getTenantId(), job.getBpmnProcessId()));
+                  job.getVariables(), new SecretContext(job.getTenantId(), job.getBpmnProcessId()));
     }
     return jsonWithSecrets;
   }

@@ -18,7 +18,7 @@ package io.camunda.connector.runtime.secret;
 
 import static org.assertj.core.api.Assertions.*;
 
-import io.camunda.connector.api.secret.SecretContext.OutboundSecretContext;
+import io.camunda.connector.api.secret.SecretContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;
 
@@ -49,8 +49,7 @@ public class EnvironmentSecretProviderTest {
     env.setProperty("my-tenant_my-total-secret", "beebop");
     EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, null, true);
     String myTotalSecret =
-        secretProvider.getSecret(
-            "my-total-secret", new OutboundSecretContext("my-tenant", "my-process"));
+        secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant", "my-process"));
     assertThat(myTotalSecret).isEqualTo("beebop");
   }
 
@@ -60,8 +59,7 @@ public class EnvironmentSecretProviderTest {
     env.setProperty("secrets.my-tenant_my-total-secret", "beebop");
     EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, "secrets.", true);
     String myTotalSecret =
-        secretProvider.getSecret(
-            "my-total-secret", new OutboundSecretContext("my-tenant", "my-process"));
+        secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant", "my-process"));
     assertThat(myTotalSecret).isEqualTo("beebop");
   }
 }
