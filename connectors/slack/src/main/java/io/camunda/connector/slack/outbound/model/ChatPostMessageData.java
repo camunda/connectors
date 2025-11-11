@@ -134,7 +134,14 @@ public record ChatPostMessageData(
     if (chatPostMessageResponse.isOk()) {
       return new ChatPostMessageSlackResponse(chatPostMessageResponse);
     } else {
-      throw new RuntimeException(chatPostMessageResponse.getError());
+      String error = chatPostMessageResponse.getError();
+      Object errors = chatPostMessageResponse.getErrors();
+      String errorMessage =
+          (error != null ? error : "Unknown error")
+              + (errors != null
+                  ? " caused by:" + errors.toString()
+                  : "No additional error details");
+      throw new RuntimeException(errorMessage);
     }
   }
 
