@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.client.model.result;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
@@ -15,6 +16,14 @@ import java.util.List;
 @JsonDeserialize(builder = A2aAgentCardResult.A2aAgentCardResultJacksonProxyBuilder.class)
 public record A2aAgentCardResult(String name, String description, List<AgentSkill> skills)
     implements A2aResult {
+
+  public static final String AGENT_CARD = "agentCard";
+
+  @Override
+  @JsonGetter
+  public String kind() {
+    return AGENT_CARD;
+  }
 
   @AgenticAiRecord
   @JsonDeserialize(builder = AgentSkill.AgentSkillJacksonProxyBuilder.class)

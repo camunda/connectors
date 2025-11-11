@@ -6,4 +6,18 @@
  */
 package io.camunda.connector.agenticai.a2a.client.model.result;
 
-public interface A2aResult {}
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    property = "kind",
+    include = JsonTypeInfo.As.EXISTING_PROPERTY)
+@JsonSubTypes({
+  @JsonSubTypes.Type(value = A2aMessage.class, name = "message"),
+  @JsonSubTypes.Type(value = A2aTask.class, name = "task"),
+  @JsonSubTypes.Type(value = A2aAgentCardResult.class, name = "agentCard")
+})
+public interface A2aResult {
+  String kind();
+}

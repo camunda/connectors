@@ -37,6 +37,7 @@ import io.camunda.connector.agenticai.a2a.client.convert.A2aPartToContentConvert
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aRequestData.ConnectionConfiguration;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCardResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aArtifact;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
@@ -220,6 +221,20 @@ class A2aPollingTaskTest {
               assertThat(activity.message())
                   .startsWith("Error loading A2A client response: Unrecognized token 'invalid'");
             });
+  }
+
+  @Test
+  void directlyCorrelatesAgentCard() throws JsonProcessingException {
+    final var agentCard =
+        A2aAgentCardResult.builder().name("agent-name").description("agent-description").build();
+    when(processInstanceContext.bind(A2aPollingRuntimeProperties.class))
+        .thenReturn(runtimeProperties(objectMapper.writeValueAsString(agentCard)));
+
+    pollingTask.run();
+
+    verify(processInstanceContext)
+        .correlate(assertArg(arg -> assertThat(arg).isEqualTo(agentCard)));
+    verifyNoInteractions(agentCardFetcher, clientFactory);
   }
 
   @Test

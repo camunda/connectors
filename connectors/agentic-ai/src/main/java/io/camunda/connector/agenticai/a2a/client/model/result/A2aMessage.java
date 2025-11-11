@@ -31,6 +31,7 @@ public record A2aMessage(
 
   public static final String MESSAGE = "message";
 
+  @Override
   @JsonGetter
   public String kind() {
     return MESSAGE;
