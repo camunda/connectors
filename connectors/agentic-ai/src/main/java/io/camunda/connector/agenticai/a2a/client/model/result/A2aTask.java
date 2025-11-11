@@ -27,6 +27,7 @@ public record A2aTask(
 
   public static final String TASK = "task";
 
+  @Override
   @JsonGetter
   public String kind() {
     return TASK;

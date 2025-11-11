@@ -16,12 +16,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 
 public class A2aPollingExecutorService {
-  private static final Logger LOG = LoggerFactory.getLogger(A2aPollingExecutorService.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(A2aPollingExecutorService.class);
 
   private final ScheduledExecutorService executorService;
 
   public A2aPollingExecutorService(final int threadPoolSize) {
-    LOG.debug(
+    LOGGER.debug(
         "Creating A2A polling executor service with a thread pool size of {}", threadPoolSize);
     this.executorService = Executors.newScheduledThreadPool(threadPoolSize);
   }
@@ -36,7 +36,7 @@ public class A2aPollingExecutorService {
    * Bean#destroyMethod()}) - do not rename.
    */
   public void shutdown() {
-    LOG.debug("Shutting down A2A polling executor service");
+    LOGGER.debug("Shutting down A2A polling executor service");
     executorService.shutdownNow();
   }
 }

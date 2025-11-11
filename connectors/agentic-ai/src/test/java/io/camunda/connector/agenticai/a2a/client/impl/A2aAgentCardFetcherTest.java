@@ -21,7 +21,7 @@ import io.a2a.spec.AgentSkill;
 import io.a2a.spec.TransportProtocol;
 import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aRequestData.ConnectionConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCardResult;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCard;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -124,12 +124,12 @@ class A2aAgentCardFetcherTest {
   }
 
   private void assertAgentCard(
-      A2aAgentCardResult agentCardResult, List<String> inputModes, List<String> outputModes) {
+      A2aAgentCard agentCardResult, List<String> inputModes, List<String> outputModes) {
     assertThat(agentCardResult.name()).isEqualTo("Travel agent");
     assertThat(agentCardResult.description()).isEqualTo("Helps with travel bookings");
     assertThat(agentCardResult.skills())
         .containsExactly(
-            A2aAgentCardResult.AgentSkill.builder()
+            A2aAgentCard.AgentSkill.builder()
                 .id("hotel-booking")
                 .name("Hotel Booking")
                 .description("Book a hotel room")

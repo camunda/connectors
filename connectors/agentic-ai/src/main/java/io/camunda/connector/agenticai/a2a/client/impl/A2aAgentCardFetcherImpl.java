@@ -13,15 +13,16 @@ import io.a2a.spec.A2AClientError;
 import io.a2a.spec.AgentCard;
 import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aRequestData.ConnectionConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCardResult;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCard;
 import java.util.Collections;
+import java.util.UUID;
 import org.apache.commons.collections4.CollectionUtils;
 
 public class A2aAgentCardFetcherImpl implements A2aAgentCardFetcher {
 
   // TODO: add caching?
   @Override
-  public A2aAgentCardResult fetchAgentCard(ConnectionConfiguration connection) {
+  public A2aAgentCard fetchAgentCard(ConnectionConfiguration connection) {
     AgentCard agentCard = fetchAgentCardRaw(connection);
     return convertAgentCard(agentCard);
   }
@@ -37,12 +38,12 @@ public class A2aAgentCardFetcherImpl implements A2aAgentCardFetcher {
     }
   }
 
-  private A2aAgentCardResult convertAgentCard(AgentCard agentCard) {
+  private A2aAgentCard convertAgentCard(AgentCard agentCard) {
     final var agentSkills =
         agentCard.skills().stream()
             .map(
                 skill ->
-                    A2aAgentCardResult.AgentSkill.builder()
+                    A2aAgentCard.AgentSkill.builder()
                         .id(skill.id())
                         .name(skill.name())
                         .description(skill.description())
@@ -58,6 +59,7 @@ public class A2aAgentCardFetcherImpl implements A2aAgentCardFetcher {
                                 : skill.outputModes())
                         .build())
             .toList();
-    return new A2aAgentCardResult(agentCard.name(), agentCard.description(), agentSkills);
+    return new A2aAgentCard(
+        UUID.randomUUID().toString(), agentCard.name(), agentCard.description(), agentSkills);
   }
 }
