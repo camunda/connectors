@@ -15,6 +15,7 @@ import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aRequestData.ConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCardResult;
 import java.util.Collections;
+import java.util.UUID;
 import org.apache.commons.collections4.CollectionUtils;
 
 public class A2aAgentCardFetcherImpl implements A2aAgentCardFetcher {
@@ -58,6 +59,7 @@ public class A2aAgentCardFetcherImpl implements A2aAgentCardFetcher {
                                 : skill.outputModes())
                         .build())
             .toList();
-    return new A2aAgentCardResult(agentCard.name(), agentCard.description(), agentSkills);
+    return new A2aAgentCardResult(
+        UUID.randomUUID().toString(), agentCard.name(), agentCard.description(), agentSkills);
   }
 }

@@ -85,7 +85,7 @@
   }, {
     "id" : "internal_clientResponse",
     "label" : "A2A Client Response",
-    "description" : "The response returned by the A2A client connector. Should contain either a task or a message.",
+    "description" : "The response returned by the A2A client connector. Should contain a task, a message, or an agent card.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -165,7 +165,7 @@
       "type" : "bpmn:Message#zeebe:subscription#property"
     },
     "type" : "Hidden",
-    "value" : "=if internal_clientResponse.kind = \"message\" then\n  \"msg-\" + internal_clientResponse.messageId\nelse\n  \"task-\" + internal_clientResponse.id"
+    "value" : "=if internal_clientResponse.kind = \"message\" then\n  \"msg-\" + internal_clientResponse.messageId\nelse if internal_clientResponse.kind = \"task\" then\n  \"task-\" + internal_clientResponse.id\nelse\n  \"agentCard-\" + internal_clientResponse.id"
   }, {
     "id" : "correlationKeyPayload",
     "label" : "Correlation key (payload)",
@@ -176,7 +176,7 @@
       "type" : "zeebe:property"
     },
     "type" : "Hidden",
-    "value" : "=if kind = \"message\" then\n  \"msg-\" + messageId\nelse\n  \"task-\" + id"
+    "value" : "=if kind = \"message\" then\n  \"msg-\" + messageId\nelse if kind = \"task\" then\n  \"task-\" + id\nelse\n  \"agentCard-\" + id"
   }, {
     "id" : "messageIdExpression",
     "label" : "Message ID expression",

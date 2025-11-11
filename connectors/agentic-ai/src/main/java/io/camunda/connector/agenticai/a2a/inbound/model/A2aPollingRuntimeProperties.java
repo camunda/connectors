@@ -25,7 +25,7 @@ public record A2aPollingRuntimeProperties(@Valid @NotNull A2aPollingRuntimePrope
               group = "clientResponse",
               label = "A2A Client Response",
               description =
-                  "The response returned by the A2A client connector. Should contain either a task or a message.",
+                  "The response returned by the A2A client connector. Should contain a task, a message, or an agent card.",
               binding = @TemplateProperty.PropertyBinding(name = "clientResponse"),
               feel = Property.FeelMode.required)
           String clientResponse,

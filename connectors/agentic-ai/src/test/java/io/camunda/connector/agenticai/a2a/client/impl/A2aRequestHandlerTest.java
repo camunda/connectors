@@ -37,6 +37,7 @@ import io.camunda.connector.agenticai.model.message.content.TextContent;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -74,7 +75,8 @@ class A2aRequestHandlerTest {
                   CONNECTION,
                   new A2aConnectorModeConfiguration.StandaloneModeConfiguration(operation)));
 
-      var expectedResult = new A2aAgentCardResult("name", "desc", List.of());
+      var expectedResult =
+          new A2aAgentCardResult(UUID.randomUUID().toString(), "name", "desc", List.of());
       when(agentCardFetcher.fetchAgentCard(CONNECTION)).thenReturn(expectedResult);
 
       var result = handler.handle(request);
@@ -135,7 +137,8 @@ class A2aRequestHandlerTest {
               new A2aRequestData(
                   CONNECTION, new A2aConnectorModeConfiguration.ToolModeConfiguration(operation)));
 
-      var expectedResult = new A2aAgentCardResult("name", "desc", List.of());
+      var expectedResult =
+          new A2aAgentCardResult(UUID.randomUUID().toString(), "name", "desc", List.of());
       when(agentCardFetcher.fetchAgentCard(CONNECTION)).thenReturn(expectedResult);
 
       var result = handler.handle(request);

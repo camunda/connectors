@@ -14,8 +14,8 @@ import java.util.List;
 
 @AgenticAiRecord
 @JsonDeserialize(builder = A2aAgentCardResult.A2aAgentCardResultJacksonProxyBuilder.class)
-public record A2aAgentCardResult(String name, String description, List<AgentSkill> skills)
-    implements A2aResult {
+public record A2aAgentCardResult(
+    String id, String name, String description, List<AgentSkill> skills) implements A2aResult {
 
   public static final String AGENT_CARD = "agentCard";
 

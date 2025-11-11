@@ -226,7 +226,11 @@ class A2aPollingTaskTest {
   @Test
   void directlyCorrelatesAgentCard() throws JsonProcessingException {
     final var agentCard =
-        A2aAgentCardResult.builder().name("agent-name").description("agent-description").build();
+        A2aAgentCardResult.builder()
+            .id("agent-id")
+            .name("agent-name")
+            .description("agent-description")
+            .build();
     when(processInstanceContext.bind(A2aPollingRuntimeProperties.class))
         .thenReturn(runtimeProperties(objectMapper.writeValueAsString(agentCard)));
 
