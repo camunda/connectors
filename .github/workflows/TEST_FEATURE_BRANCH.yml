@@ -22,11 +22,34 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
+      # Determine internal build:
+      # Internal if repository owner is camunda AND (not a PR from a fork).
+      # For pull_request: !github.event.pull_request.head.repo.fork
+      # For push/merge_group: repository is always base repo if owner matches.
+      # We avoid using secrets for fork pushes because this workflow file exists only in base repo; fork pushes wouldn't have camunda owner.
+      - name: Set internal build flag
+        id: internal
+        run: |
+          if [ "${{ github.repository_owner }}" = "camunda" ]; then
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              if [ "${{ github.event.pull_request.head.repo.fork }}" = "false" ]; then
+                echo "internal=true" >> $GITHUB_OUTPUT
+              else
+                echo "internal=false" >> $GITHUB_OUTPUT
+              fi
+            else
+              echo "internal=true" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "internal=false" >> $GITHUB_OUTPUT
+          fi
+
+      # Restore cache (distinct key for internal vs external to avoid mixing artifacts)
       - name: Restore cache
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ steps.internal.outputs.internal == 'true' && 'internal' || 'external' }}
           restore-keys: |
             ${{ runner.os }}-maven-
 
@@ -42,6 +65,45 @@ jobs:
       - name: Install element templates CLI
         run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
 
+      # Internal-only: fetch Nexus credentials from Vault and create settings.xml with mirror
+      - name: Import Nexus Secrets (internal only)
+        if: ${{ steps.internal.outputs.internal == 'true' }}
+        id: secrets
+        uses: hashicorp/vault-action@v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false # we rely on step outputs, no need for environment variables
+          secrets: |
+            secret/data/products/connectors/ci/common ARTIFACTORY_USR;
+            secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_USR;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_PSW;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC;
+
+      - name: Create internal Maven settings.xml (Nexus mirror)
+        if: ${{ steps.internal.outputs.internal == 'true' }}
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
+               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
+             },
+            {
+               "id": "central",
+               "username": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}",
+               "password": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}"
+             }
+            ]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+
+      # Build
       - name: Build Connectors
         run: mvn --batch-mode clean test -PcheckFormat -Dquickly
 
@@ -80,5 +142,3 @@ jobs:
             exit 1
           fi
         shell: bash
-
-
