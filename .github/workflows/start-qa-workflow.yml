@@ -1,0 +1,39 @@
+name: start-qa-workflow.yml
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  trigger-qa:
+    runs-on: ubuntu-latest
+    if: github.event.label.name == 'qa:required'
+    steps:
+      - name: Generate a GitHub token
+        id: github-token
+        uses: camunda/infra-global-github-actions/generate-github-app-token-from-vault-secrets@main
+        with:
+          github-app-id-vault-key: GITHUB_PREVIEW_ENVIRONMENTS_APP_ID
+          github-app-id-vault-path: secret/data/products/connectors/ci/common
+          github-app-private-key-vault-key: GITHUB_PREVIEW_ENVIRONMENTS_APP_PRIVATE_KEY
+          github-app-private-key-vault-path: secret/data/products/connectors/ci/common
+          vault-auth-method: approle
+          vault-auth-role-id: ${{ secrets.VAULT_ROLE_ID }}
+          vault-auth-secret-id: ${{ secrets.VAULT_SECRET_ID}}
+          vault-url: ${{ secrets.VAULT_ADDR }}
+
+      - name: Trigger webhook start event
+        run: |          
+          curl -X POST             
+            -H "Authorization: Bearer ${{ secrets.START_QA_CAMUNDA_WORKFLOW_API_TOKEN }}"  \
+            -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "event_type": "start-qa-workflow",
+                "repository": "${{ github.event.repository.name }}",
+                "owner": "${{ github.event.repository.owner.login }}",
+                "issueNumber": ${{ github.event.number }},
+                "issueUrl": "${{ github.event.pull_request.html_url }}",
+                "githubToken": "${{ steps.github-token.outputs.token }}"
+            }' \
+          https://bru-2.connectors.camunda.io/8da2f67e-88ab-4b38-9e39-52bb0ea4855f/inbound/a36c3a73-772a-4c2a-bd27-34b30f02cd78
+
