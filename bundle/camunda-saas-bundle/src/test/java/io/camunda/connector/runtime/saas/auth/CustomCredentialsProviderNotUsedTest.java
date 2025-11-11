@@ -56,7 +56,8 @@ public class CustomCredentialsProviderNotUsedTest {
     // a CredentialsProvider bean should exist (from the Spring Boot starter),
     // but the custom credentialsProvider bean from our configuration should not be registered
     assertThat(applicationContext.getBean(CredentialsProvider.class)).isNotNull();
-    // The conditional bean "credentialsProvider" from CamundaClientSaaSConfiguration should not exist
+    // The conditional bean "credentialsProvider" from CamundaClientSaaSConfiguration should not
+    // exist
     var beansWithName = applicationContext.getBeansOfType(CredentialsProvider.class);
     assertThat(beansWithName).doesNotContainKey("credentialsProvider");
   }
