@@ -68,6 +68,13 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
   }
 
   @Override
+  public boolean allToolDiscoveryResultsPresent(
+      final AgentContext agentContext, final List<ToolCallResult> toolCallResults) {
+    return handlers.values().stream()
+        .allMatch(handler -> handler.allToolDiscoveryResultsPresent(agentContext, toolCallResults));
+  }
+
+  @Override
   public GatewayToolDiscoveryResult handleToolDiscoveryResults(
       final AgentContext agentContext, final List<ToolCallResult> toolCallResults) {
     // group tool call results by gateway type - keep non-gateway tool call results in DEFAULT_TYPE

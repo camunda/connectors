@@ -76,6 +76,11 @@
     },
     {
       "type": "mcpClient",
+      "name": "Another_Remote_MCP_Client",
+      "description": "Another Remote MCP Client"
+    },
+    {
+      "type": "mcpClient",
       "name": "Filesystem_MCP_Flow",
       "description": "Filesystem MCP Flow"
     }

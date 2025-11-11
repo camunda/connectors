@@ -13,11 +13,14 @@ import java.util.List;
 
 public sealed interface AgentInitializationResult
     permits AgentInitializationResult.AgentContextInitializationResult,
+        AgentInitializationResult.AgentDiscoveryInProgressInitializationResult,
         AgentInitializationResult.AgentResponseInitializationResult {
 
   record AgentContextInitializationResult(
       AgentContext agentContext, List<ToolCallResult> toolCallResults)
       implements AgentInitializationResult {}
+
+  record AgentDiscoveryInProgressInitializationResult() implements AgentInitializationResult {}
 
   record AgentResponseInitializationResult(AgentResponse agentResponse)
       implements AgentInitializationResult {}
