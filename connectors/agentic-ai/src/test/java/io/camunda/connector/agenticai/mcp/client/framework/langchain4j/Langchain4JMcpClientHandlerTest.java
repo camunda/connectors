@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
+import io.camunda.connector.agenticai.mcp.client.McpClientOperationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
@@ -26,6 +27,7 @@ import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest.McpClientRequestData;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest.McpClientRequestData.ClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientToolsConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -55,6 +57,8 @@ class Langchain4JMcpClientHandlerTest {
       McpToolNameFilter.from(EMPTY_FILTER_CONFIGURATION);
 
   private final ObjectMapper objectMapper = new ObjectMapper();
+  private final McpClientOperationConverter operationConverter =
+      new McpClientOperationConverter(objectMapper);
 
   @Mock private McpClientRegistry<McpClient> clientRegistry;
   @Mock private Langchain4JMcpClientExecutor clientExecutor;
@@ -66,7 +70,7 @@ class Langchain4JMcpClientHandlerTest {
 
   @BeforeEach
   void setUp() {
-    handler = new Langchain4JMcpClientHandler(objectMapper, clientRegistry, clientExecutor);
+    handler = new Langchain4JMcpClientHandler(operationConverter, clientRegistry, clientExecutor);
   }
 
   @Test
@@ -151,8 +155,9 @@ class Langchain4JMcpClientHandlerTest {
   }
 
   private McpClientRequest createRequest(McpClientOperationConfiguration operation) {
+    final var mode = new McpConnectorModeConfiguration.ToolModeConfiguration(operation);
     return new McpClientRequest(
-        new McpClientRequestData(CLIENT_CONFIG, EMPTY_FILTER_CONFIGURATION, operation));
+        new McpClientRequestData(CLIENT_CONFIG, mode, EMPTY_FILTER_CONFIGURATION));
   }
 
   static Stream<Map<String, Object>> callToolArguments() {

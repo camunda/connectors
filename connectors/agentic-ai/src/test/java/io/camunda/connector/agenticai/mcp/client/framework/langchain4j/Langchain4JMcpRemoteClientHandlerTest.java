@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
+import io.camunda.connector.agenticai.mcp.client.McpClientOperationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
 import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
@@ -26,6 +27,7 @@ import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpCli
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientListToolsOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientToolsConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest.McpRemoteClientRequestData;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration;
@@ -80,6 +82,8 @@ class Langchain4JMcpRemoteClientHandlerTest {
       McpToolNameFilter.from(EMPTY_FILTER_CONFIGURATION);
 
   private final ObjectMapper objectMapper = new ObjectMapper();
+  private final McpClientOperationConverter operationConverter =
+      new McpClientOperationConverter(objectMapper);
 
   @Mock private McpRemoteClientRegistry<McpClient> remoteClientRegistry;
   @Mock private Langchain4JMcpClientExecutor clientExecutor;
@@ -97,7 +101,8 @@ class Langchain4JMcpRemoteClientHandlerTest {
     when(context.getJobContext().getElementId()).thenReturn(ELEMENT_ID);
 
     handler =
-        new Langchain4JMcpRemoteClientHandler(objectMapper, remoteClientRegistry, clientExecutor);
+        new Langchain4JMcpRemoteClientHandler(
+            operationConverter, remoteClientRegistry, clientExecutor);
   }
 
   @ParameterizedTest
@@ -193,7 +198,8 @@ class Langchain4JMcpRemoteClientHandlerTest {
   private McpRemoteClientRequest createRequest(
       McpRemoteClientTransportConfiguration transport, McpClientOperationConfiguration operation) {
     return new McpRemoteClientRequest(
-        new McpRemoteClientRequestData(transport, EMPTY_FILTER_CONFIGURATION, operation));
+        new McpRemoteClientRequestData(
+            transport, new ToolModeConfiguration(operation), EMPTY_FILTER_CONFIGURATION));
   }
 
   static List<McpRemoteClientTransportConfiguration> transports() {
