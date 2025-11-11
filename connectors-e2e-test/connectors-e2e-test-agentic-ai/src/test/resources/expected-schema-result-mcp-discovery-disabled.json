@@ -81,6 +81,15 @@
       }
     },
     {
+      "name": "Another_Remote_MCP_Client",
+      "description": "Another Remote MCP Client",
+      "inputSchema": {
+        "properties": {},
+        "type": "object",
+        "required": []
+      }
+    },
+    {
       "name": "Filesystem_MCP_Flow",
       "description": "Filesystem MCP Flow",
       "inputSchema": {
