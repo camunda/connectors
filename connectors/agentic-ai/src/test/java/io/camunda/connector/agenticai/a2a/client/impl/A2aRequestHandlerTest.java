@@ -28,7 +28,7 @@ import io.camunda.connector.agenticai.a2a.client.model.A2aSendMessageOperationPa
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aToolOperationConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCardResult;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCard;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aArtifact;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
@@ -76,7 +76,7 @@ class A2aRequestHandlerTest {
                   new A2aConnectorModeConfiguration.StandaloneModeConfiguration(operation)));
 
       var expectedResult =
-          new A2aAgentCardResult(UUID.randomUUID().toString(), "name", "desc", List.of());
+          new A2aAgentCard(UUID.randomUUID().toString(), "name", "desc", List.of());
       when(agentCardFetcher.fetchAgentCard(CONNECTION)).thenReturn(expectedResult);
 
       var result = handler.handle(request);
@@ -138,7 +138,7 @@ class A2aRequestHandlerTest {
                   CONNECTION, new A2aConnectorModeConfiguration.ToolModeConfiguration(operation)));
 
       var expectedResult =
-          new A2aAgentCardResult(UUID.randomUUID().toString(), "name", "desc", List.of());
+          new A2aAgentCard(UUID.randomUUID().toString(), "name", "desc", List.of());
       when(agentCardFetcher.fetchAgentCard(CONNECTION)).thenReturn(expectedResult);
 
       var result = handler.handle(request);

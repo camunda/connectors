@@ -12,10 +12,15 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import java.util.List;
 
+/**
+ * Represents an Agent Card returned by the A2A client. <code>id</code> is a unique identifier for
+ * the agent card and is used primarily for message correlation by the A2A inbound polling
+ * connector.
+ */
 @AgenticAiRecord
-@JsonDeserialize(builder = A2aAgentCardResult.A2aAgentCardResultJacksonProxyBuilder.class)
-public record A2aAgentCardResult(
-    String id, String name, String description, List<AgentSkill> skills) implements A2aResult {
+@JsonDeserialize(builder = A2aAgentCard.A2aAgentCardJacksonProxyBuilder.class)
+public record A2aAgentCard(String id, String name, String description, List<AgentSkill> skills)
+    implements A2aResult {
 
   public static final String AGENT_CARD = "agentCard";
 
@@ -36,18 +41,18 @@ public record A2aAgentCardResult(
       List<String> inputModes,
       List<String> outputModes) {
 
-    public static A2aAgentCardResultAgentSkillBuilder builder() {
-      return A2aAgentCardResultAgentSkillBuilder.builder();
+    public static A2aAgentCardAgentSkillBuilder builder() {
+      return A2aAgentCardAgentSkillBuilder.builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")
-    public static class AgentSkillJacksonProxyBuilder extends A2aAgentCardResultAgentSkillBuilder {}
+    public static class AgentSkillJacksonProxyBuilder extends A2aAgentCardAgentSkillBuilder {}
   }
 
-  public static A2aAgentCardResultBuilder builder() {
-    return A2aAgentCardResultBuilder.builder();
+  public static A2aAgentCardBuilder builder() {
+    return A2aAgentCardBuilder.builder();
   }
 
   @JsonPOJOBuilder(withPrefix = "")
-  public static class A2aAgentCardResultJacksonProxyBuilder extends A2aAgentCardResultBuilder {}
+  public static class A2aAgentCardJacksonProxyBuilder extends A2aAgentCardBuilder {}
 }

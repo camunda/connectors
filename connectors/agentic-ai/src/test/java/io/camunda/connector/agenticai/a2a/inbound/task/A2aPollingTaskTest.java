@@ -37,7 +37,7 @@ import io.camunda.connector.agenticai.a2a.client.convert.A2aPartToContentConvert
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aRequestData.ConnectionConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCardResult;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCard;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aArtifact;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
@@ -226,7 +226,7 @@ class A2aPollingTaskTest {
   @Test
   void directlyCorrelatesAgentCard() throws JsonProcessingException {
     final var agentCard =
-        A2aAgentCardResult.builder()
+        A2aAgentCard.builder()
             .id("agent-id")
             .name("agent-name")
             .description("agent-description")

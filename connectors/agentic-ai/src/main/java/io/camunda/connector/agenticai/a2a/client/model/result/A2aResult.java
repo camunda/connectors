@@ -16,7 +16,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonSubTypes({
   @JsonSubTypes.Type(value = A2aMessage.class, name = "message"),
   @JsonSubTypes.Type(value = A2aTask.class, name = "task"),
-  @JsonSubTypes.Type(value = A2aAgentCardResult.class, name = "agentCard")
+  @JsonSubTypes.Type(value = A2aAgentCard.class, name = "agentCard")
 })
 public interface A2aResult {
   String kind();

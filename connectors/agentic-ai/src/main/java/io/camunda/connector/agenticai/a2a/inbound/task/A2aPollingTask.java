@@ -13,7 +13,7 @@ import io.a2a.spec.TaskStatus;
 import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.api.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCardResult;
+import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCard;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aResult;
 import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
@@ -77,14 +77,14 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
     }
 
     switch (clientResponse) {
-      case A2aAgentCardResult agentCardResult -> handleAgentCard(agentCardResult);
+      case A2aAgentCard agentCardResult -> handleAgentCard(agentCardResult);
       case A2aMessage message -> handleMessage(message);
       case A2aTask task -> handleTask(runtimeProperties, task);
       default -> throw new IllegalStateException("Unexpected value: " + clientResponse);
     }
   }
 
-  private void handleAgentCard(final A2aAgentCardResult agentCardResult) {
+  private void handleAgentCard(final A2aAgentCard agentCardResult) {
     LOGGER.debug("A2A agent card result does not need polling -> directly correlating");
     processInstanceContext.correlate(agentCardResult);
   }
