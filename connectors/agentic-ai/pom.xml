@@ -247,7 +247,7 @@
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
             <connector>
-              <connectorClass>io.camunda.connector.agenticai.a2a.outbound.A2aOutboundConnectorFunction</connectorClass>
+              <connectorClass>io.camunda.connector.agenticai.a2a.client.outbound.A2aOutboundConnectorFunction</connectorClass>
               <files>
                 <file>
                   <templateId>io.camunda.connectors.agenticai.a2a.client.v0</templateId>
@@ -258,7 +258,7 @@
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
             <connector>
-              <connectorClass>io.camunda.connector.agenticai.a2a.inbound.polling.A2aPollingExecutable</connectorClass>
+              <connectorClass>io.camunda.connector.agenticai.a2a.client.inbound.polling.A2aPollingExecutable</connectorClass>
               <files>
                 <file>
                   <templateId>io.camunda.connectors.agenticai.a2a.polling.intermediate.v0</templateId>

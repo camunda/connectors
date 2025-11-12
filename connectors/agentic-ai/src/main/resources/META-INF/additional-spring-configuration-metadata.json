@@ -55,9 +55,9 @@
       "defaultValue": "langchain4j"
     },
     {
-      "name": "camunda.connector.agenticai.a2a.client.enabled",
+      "name": "camunda.connector.agenticai.a2a.client.outbound.enabled",
       "type": "java.lang.Boolean",
-      "description": "Whether to enable/register the A2A Client connectors.",
+      "description": "Whether to enable/register the A2A Client connector.",
       "defaultValue": "true"
     },
     {
@@ -65,6 +65,12 @@
       "type": "java.lang.Boolean",
       "description": "Whether to enable/register the A2A polling inbound connector.",
       "defaultValue": "true"
+    },
+    {
+      "name": "camunda.connector.agenticai.a2a.client.agenttool.enabled",
+      "type": "java.lang.String",
+      "description": "Whether to enable the A2A Client connector to be used as an AI Agent tool.",
+      "defaultValue": "langchain4j"
     }
   ]
 }
