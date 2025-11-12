@@ -6,12 +6,13 @@
  */
 package io.camunda.connector.agenticai.a2a.agenttool;
 
+import io.camunda.connector.agenticai.a2a.common.A2aConstants;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.TypePropertyBasedGatewayToolDefinitionResolver;
 
 public class A2aGatewayToolDefinitionResolver
     extends TypePropertyBasedGatewayToolDefinitionResolver {
 
   public A2aGatewayToolDefinitionResolver() {
-    super(A2aGatewayToolHandler.GATEWAY_TYPE);
+    super(A2aConstants.A2A_GATEWAY_TYPE);
   }
 }

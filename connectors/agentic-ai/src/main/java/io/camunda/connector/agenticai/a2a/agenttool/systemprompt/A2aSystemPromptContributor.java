@@ -6,7 +6,8 @@
  */
 package io.camunda.connector.agenticai.a2a.agenttool.systemprompt;
 
-import io.camunda.connector.agenticai.a2a.agenttool.A2aGatewayToolHandler;
+import static io.camunda.connector.agenticai.a2a.common.A2aConstants.PROPERTY_A2A_CLIENTS;
+
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptContributor;
@@ -42,9 +43,7 @@ public class A2aSystemPromptContributor implements SystemPromptContributor {
 
     // Only contribute if A2A tools are present in the execution context
     boolean hasA2aTools =
-        agentContext
-                    .properties()
-                    .getOrDefault(A2aGatewayToolHandler.PROPERTY_A2A_CLIENTS, List.of())
+        agentContext.properties().getOrDefault(PROPERTY_A2A_CLIENTS, List.of())
                 instanceof List<?> a2aClients
             && !a2aClients.isEmpty();
 

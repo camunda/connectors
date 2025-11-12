@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.impl;
+package io.camunda.connector.agenticai.a2a.outbound.impl;
 
 import io.a2a.client.ClientEvent;
 import io.a2a.client.MessageEvent;
@@ -13,10 +13,10 @@ import io.a2a.spec.Message;
 import io.a2a.spec.Task;
 import io.a2a.spec.TaskState;
 import io.a2a.spec.TaskStatus;
-import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.common.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.common.model.result.A2aTask;
+import io.camunda.connector.agenticai.a2a.outbound.api.A2aSendMessageResponseHandler;
 
 public class A2aSendMessageResponseHandlerImpl implements A2aSendMessageResponseHandler {
 

@@ -4,10 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.model;
+package io.camunda.connector.agenticai.a2a.outbound.model;
 
-import static io.camunda.connector.agenticai.a2a.client.model.A2aConnectorModeConfiguration.StandaloneModeConfiguration.STANDALONE_ID;
-import static io.camunda.connector.agenticai.a2a.client.model.A2aConnectorModeConfiguration.ToolModeConfiguration.AI_AGENT_TOOL_ID;
+import static io.camunda.connector.agenticai.a2a.outbound.model.A2aConnectorModeConfiguration.StandaloneModeConfiguration.STANDALONE_ID;
+import static io.camunda.connector.agenticai.a2a.outbound.model.A2aConnectorModeConfiguration.ToolModeConfiguration.AI_AGENT_TOOL_ID;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;

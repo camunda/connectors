@@ -4,12 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client;
+package io.camunda.connector.agenticai.a2a.outbound;
 
-import io.camunda.connector.agenticai.a2a.agenttool.A2aGatewayToolHandler;
-import io.camunda.connector.agenticai.a2a.client.api.A2aRequestHandler;
-import io.camunda.connector.agenticai.a2a.client.model.A2aRequest;
+import io.camunda.connector.agenticai.a2a.common.A2aConstants;
 import io.camunda.connector.agenticai.a2a.common.model.result.A2aResult;
+import io.camunda.connector.agenticai.a2a.outbound.api.A2aRequestHandler;
+import io.camunda.connector.agenticai.a2a.outbound.model.A2aRequest;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -45,18 +45,18 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
     extensionProperties = {
       @ElementTemplate.ExtensionProperty(
           name = GatewayToolDefinitionResolver.GATEWAY_TYPE_EXTENSION,
-          value = A2aGatewayToolHandler.GATEWAY_TYPE,
+          value = A2aConstants.A2A_GATEWAY_TYPE,
           condition =
               @TemplateProperty.PropertyCondition(
                   property = "data.connectorMode.type",
                   equals = "aiAgentTool"))
     },
     icon = "a2a-client.svg")
-public class A2aConnectorFunction implements OutboundConnectorFunction {
+public class A2aOutboundConnectorFunction implements OutboundConnectorFunction {
 
   private final A2aRequestHandler handler;
 
-  public A2aConnectorFunction(A2aRequestHandler handler) {
+  public A2aOutboundConnectorFunction(A2aRequestHandler handler) {
     this.handler = handler;
   }
 

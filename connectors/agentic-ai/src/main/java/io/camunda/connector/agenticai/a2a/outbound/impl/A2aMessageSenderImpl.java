@@ -4,22 +4,22 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.impl;
+package io.camunda.connector.agenticai.a2a.outbound.impl;
 
 import io.a2a.client.ClientEvent;
 import io.a2a.spec.AgentCard;
 import io.a2a.spec.Message;
 import io.a2a.spec.Part;
 import io.a2a.spec.TextPart;
-import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
-import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
-import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
-import io.camunda.connector.agenticai.a2a.client.model.A2aCommonSendMessageConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.A2aSendMessageOperationParameters;
-import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.common.api.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.common.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.common.sdk.A2aClientConfig;
+import io.camunda.connector.agenticai.a2a.outbound.api.A2aMessageSender;
+import io.camunda.connector.agenticai.a2a.outbound.api.A2aSendMessageResponseHandler;
+import io.camunda.connector.agenticai.a2a.outbound.convert.A2aDocumentToPartConverter;
+import io.camunda.connector.agenticai.a2a.outbound.model.A2aCommonSendMessageConfiguration;
+import io.camunda.connector.agenticai.a2a.outbound.model.A2aSendMessageOperationParameters;
+import io.camunda.connector.agenticai.a2a.outbound.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;

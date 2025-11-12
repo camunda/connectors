@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.agenttool;
 
+import static io.camunda.connector.agenticai.a2a.common.A2aConstants.A2A_GATEWAY_TYPE;
 import static io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver.GATEWAY_TYPE_EXTENSION;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -63,7 +64,7 @@ class A2aGatewayToolDefinitionResolverTest {
   }
 
   private AdHocToolElement withA2aClientProperty(AdHocToolElement element) {
-    return withGatewayType(element, A2aGatewayToolHandler.GATEWAY_TYPE);
+    return withGatewayType(element, A2A_GATEWAY_TYPE);
   }
 
   private AdHocToolElement withGatewayType(AdHocToolElement element, String gatewayType) {

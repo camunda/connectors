@@ -4,10 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.model;
+package io.camunda.connector.agenticai.a2a.outbound.model;
 
-import static io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration.FETCH_AGENT_CARD_ID;
-import static io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration.SEND_MESSAGE_ID;
+import static io.camunda.connector.agenticai.a2a.outbound.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration.FETCH_AGENT_CARD_ID;
+import static io.camunda.connector.agenticai.a2a.outbound.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration.SEND_MESSAGE_ID;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;

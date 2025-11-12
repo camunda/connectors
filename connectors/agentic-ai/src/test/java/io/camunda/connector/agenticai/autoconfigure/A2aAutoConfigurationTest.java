@@ -12,17 +12,17 @@ import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAss
 import io.camunda.connector.agenticai.a2a.agenttool.A2aGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.a2a.agenttool.A2aGatewayToolHandler;
 import io.camunda.connector.agenticai.a2a.agenttool.systemprompt.A2aSystemPromptContributor;
-import io.camunda.connector.agenticai.a2a.client.A2aConnectorFunction;
-import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
-import io.camunda.connector.agenticai.a2a.client.api.A2aRequestHandler;
-import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
-import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.common.api.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.common.api.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.common.convert.A2aPartToContentConverter;
 import io.camunda.connector.agenticai.a2a.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.inbound.polling.A2aPollingExecutable;
 import io.camunda.connector.agenticai.a2a.inbound.polling.service.A2aPollingExecutorService;
+import io.camunda.connector.agenticai.a2a.outbound.A2aOutboundConnectorFunction;
+import io.camunda.connector.agenticai.a2a.outbound.api.A2aMessageSender;
+import io.camunda.connector.agenticai.a2a.outbound.api.A2aRequestHandler;
+import io.camunda.connector.agenticai.a2a.outbound.api.A2aSendMessageResponseHandler;
+import io.camunda.connector.agenticai.a2a.outbound.convert.A2aDocumentToPartConverter;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -42,7 +42,7 @@ public class A2aAutoConfigurationTest {
           A2aSendMessageResponseHandler.class,
           A2aMessageSender.class,
           A2aRequestHandler.class,
-          A2aConnectorFunction.class);
+          A2aOutboundConnectorFunction.class);
 
   private static final List<Class<?>> A2A_DISCOVERY_BEANS =
       List.of(
@@ -72,7 +72,7 @@ public class A2aAutoConfigurationTest {
   @Test
   void disablesA2aDiscoveryIfConfigured() {
     contextRunner
-        .withPropertyValues("camunda.connector.agenticai.a2a.agenttool.enabled=false")
+        .withPropertyValues("camunda.connector.agenticai.a2a.client.agenttool.enabled=false")
         .run(
             context -> {
               assertDoesNotHaveAnyBeansOf(context, A2A_DISCOVERY_BEANS);
@@ -99,7 +99,7 @@ public class A2aAutoConfigurationTest {
     contextRunner
         .withPropertyValues(
             "camunda.connector.agenticai.a2a.client.enabled=false",
-            "camunda.connector.agenticai.a2a.agenttool.enabled=false",
+            "camunda.connector.agenticai.a2a.client.agenttool.enabled=false",
             "camunda.connector.agenticai.a2a.client.polling.enabled=false")
         .run(
             context -> {

@@ -4,15 +4,13 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.api;
+package io.camunda.connector.agenticai.a2a.outbound.api;
 
-import io.a2a.client.ClientEvent;
-import io.a2a.spec.Task;
+import io.a2a.spec.AgentCard;
 import io.camunda.connector.agenticai.a2a.common.model.result.A2aSendMessageResult;
-import io.camunda.connector.agenticai.a2a.common.model.result.A2aTask;
+import io.camunda.connector.agenticai.a2a.outbound.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 
-public interface A2aSendMessageResponseHandler {
-  A2aSendMessageResult handleClientEvent(ClientEvent clientEvent);
-
-  A2aTask handleTask(Task task);
+public interface A2aMessageSender {
+  A2aSendMessageResult sendMessage(
+      AgentCard agentCard, SendMessageOperationConfiguration sendMessageOperation);
 }

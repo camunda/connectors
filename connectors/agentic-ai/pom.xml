@@ -247,7 +247,7 @@
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
             <connector>
-              <connectorClass>io.camunda.connector.agenticai.a2a.client.A2aConnectorFunction</connectorClass>
+              <connectorClass>io.camunda.connector.agenticai.a2a.outbound.A2aOutboundConnectorFunction</connectorClass>
               <files>
                 <file>
                   <templateId>io.camunda.connectors.agenticai.a2a.client.v0</templateId>

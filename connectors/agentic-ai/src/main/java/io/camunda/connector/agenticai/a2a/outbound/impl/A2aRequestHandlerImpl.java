@@ -4,22 +4,22 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.impl;
+package io.camunda.connector.agenticai.a2a.outbound.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.a2a.spec.AgentCard;
-import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
-import io.camunda.connector.agenticai.a2a.client.api.A2aRequestHandler;
-import io.camunda.connector.agenticai.a2a.client.model.A2aConnectorModeConfiguration.StandaloneModeConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.A2aConnectorModeConfiguration.ToolModeConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.A2aRequest;
-import io.camunda.connector.agenticai.a2a.client.model.A2aSendMessageOperationParameters;
-import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.A2aToolOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.common.api.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.common.model.result.A2aResult;
+import io.camunda.connector.agenticai.a2a.outbound.api.A2aMessageSender;
+import io.camunda.connector.agenticai.a2a.outbound.api.A2aRequestHandler;
+import io.camunda.connector.agenticai.a2a.outbound.model.A2aConnectorModeConfiguration.StandaloneModeConfiguration;
+import io.camunda.connector.agenticai.a2a.outbound.model.A2aConnectorModeConfiguration.ToolModeConfiguration;
+import io.camunda.connector.agenticai.a2a.outbound.model.A2aRequest;
+import io.camunda.connector.agenticai.a2a.outbound.model.A2aSendMessageOperationParameters;
+import io.camunda.connector.agenticai.a2a.outbound.model.A2aStandaloneOperationConfiguration;
+import io.camunda.connector.agenticai.a2a.outbound.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
+import io.camunda.connector.agenticai.a2a.outbound.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
+import io.camunda.connector.agenticai.a2a.outbound.model.A2aToolOperationConfiguration;
 import org.apache.commons.collections4.MapUtils;
 
 public class A2aRequestHandlerImpl implements A2aRequestHandler {

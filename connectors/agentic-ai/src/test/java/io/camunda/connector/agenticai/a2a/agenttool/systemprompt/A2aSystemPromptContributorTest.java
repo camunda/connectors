@@ -6,12 +6,12 @@
  */
 package io.camunda.connector.agenticai.a2a.agenttool.systemprompt;
 
+import static io.camunda.connector.agenticai.a2a.common.A2aConstants.PROPERTY_A2A_CLIENTS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.a2a.agenttool.A2aGatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import java.io.FileNotFoundException;
@@ -34,7 +34,7 @@ class A2aSystemPromptContributorTest {
     AgentContext agentContext = mock(AgentContext.class);
 
     when(agentContext.properties())
-        .thenReturn(Map.of(A2aGatewayToolHandler.PROPERTY_A2A_CLIENTS, List.of("RemoteAgent")));
+        .thenReturn(Map.of(PROPERTY_A2A_CLIENTS, List.of("RemoteAgent")));
 
     String result = contributor.contributeSystemPrompt(executionContext, agentContext);
 
@@ -61,8 +61,8 @@ class A2aSystemPromptContributorTest {
     return Stream.of(
         Arguments.of(Map.of()),
         Arguments.of(Map.of("someOtherProperty", "someValue")),
-        Arguments.of(Map.of(A2aGatewayToolHandler.PROPERTY_A2A_CLIENTS, List.of())),
-        Arguments.of(Map.of(A2aGatewayToolHandler.PROPERTY_A2A_CLIENTS, "NotAListButAString")));
+        Arguments.of(Map.of(PROPERTY_A2A_CLIENTS, List.of())),
+        Arguments.of(Map.of(PROPERTY_A2A_CLIENTS, "NotAListButAString")));
   }
 
   @Test

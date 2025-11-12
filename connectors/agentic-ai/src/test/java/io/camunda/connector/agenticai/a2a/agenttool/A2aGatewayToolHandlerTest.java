@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.agenttool;
 
-import static io.camunda.connector.agenticai.a2a.agenttool.A2aGatewayToolHandler.PROPERTY_A2A_CLIENTS;
+import static io.camunda.connector.agenticai.a2a.common.A2aConstants.PROPERTY_A2A_CLIENTS;
 import static io.camunda.connector.agenticai.util.ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

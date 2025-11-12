@@ -6,13 +6,15 @@
  */
 package io.camunda.connector.agenticai.a2a.agenttool;
 
+import static io.camunda.connector.agenticai.a2a.common.A2aConstants.A2A_GATEWAY_TYPE;
+import static io.camunda.connector.agenticai.a2a.common.A2aConstants.PROPERTY_A2A_CLIENTS;
 import static io.camunda.connector.agenticai.util.ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.common.model.result.A2aSendMessageResult;
+import io.camunda.connector.agenticai.a2a.outbound.model.A2aStandaloneOperationConfiguration;
+import io.camunda.connector.agenticai.a2a.outbound.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
@@ -34,8 +36,6 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(A2aGatewayToolHandler.class);
 
-  public static final String GATEWAY_TYPE = "a2aClient";
-  public static final String PROPERTY_A2A_CLIENTS = "a2aClients";
   public static final String A2A_PREFIX = "A2A_";
   private static final String A2A_TOOLS_DISCOVERY_PREFIX = A2A_PREFIX + "fetchAgentCard_";
   private static final String TOOL_INPUT_JSON_SCHEMA_RESOURCE = "a2a/tool-input-schema.json";
@@ -50,7 +50,7 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
 
   @Override
   public String type() {
-    return GATEWAY_TYPE;
+    return A2A_GATEWAY_TYPE;
   }
 
   @Override
@@ -58,7 +58,7 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
       AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions) {
     final var a2aGatewayToolDefinitions =
         gatewayToolDefinitions.stream()
-            .filter(gatewayToolDefinition -> GATEWAY_TYPE.equals(gatewayToolDefinition.type()))
+            .filter(gatewayToolDefinition -> A2A_GATEWAY_TYPE.equals(gatewayToolDefinition.type()))
             .toList();
 
     // nothing to discover

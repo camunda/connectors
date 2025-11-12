@@ -14,6 +14,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.validation.annotation.Validated;
 
 @Validated
-@ConfigurationProperties(prefix = "camunda.connector.agenticai.a2a.discovery")
-public record A2aDiscoveryConfigurationProperties(
+@ConfigurationProperties(prefix = "camunda.connector.agenticai.a2a.client.agenttool")
+public record A2aAgentToolConfigurationProperties(
     @Valid @NotNull @DefaultValue("classpath:a2a/a2a-system-prompt.md") Resource systemPrompt) {}

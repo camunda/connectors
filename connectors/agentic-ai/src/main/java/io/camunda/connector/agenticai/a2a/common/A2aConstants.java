@@ -4,11 +4,9 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.api;
+package io.camunda.connector.agenticai.a2a.common;
 
-import io.camunda.connector.agenticai.a2a.client.model.A2aRequest;
-import io.camunda.connector.agenticai.a2a.common.model.result.A2aResult;
-
-public interface A2aRequestHandler {
-  A2aResult handle(A2aRequest request);
+public interface A2aConstants {
+  String A2A_GATEWAY_TYPE = "a2aClient";
+  String PROPERTY_A2A_CLIENTS = "a2aClients";
 }

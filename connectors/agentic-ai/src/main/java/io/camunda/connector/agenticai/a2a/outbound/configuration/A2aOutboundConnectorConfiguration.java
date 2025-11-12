@@ -4,22 +4,22 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.configuration;
+package io.camunda.connector.agenticai.a2a.outbound.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.a2a.client.A2aConnectorFunction;
-import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
-import io.camunda.connector.agenticai.a2a.client.api.A2aRequestHandler;
-import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
-import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
-import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverterImpl;
-import io.camunda.connector.agenticai.a2a.client.impl.A2aMessageSenderImpl;
-import io.camunda.connector.agenticai.a2a.client.impl.A2aRequestHandlerImpl;
-import io.camunda.connector.agenticai.a2a.client.impl.A2aSendMessageResponseHandlerImpl;
 import io.camunda.connector.agenticai.a2a.common.api.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.common.api.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.common.configuration.A2aCommonConfiguration;
 import io.camunda.connector.agenticai.a2a.common.convert.A2aSdkObjectConverter;
+import io.camunda.connector.agenticai.a2a.outbound.A2aOutboundConnectorFunction;
+import io.camunda.connector.agenticai.a2a.outbound.api.A2aMessageSender;
+import io.camunda.connector.agenticai.a2a.outbound.api.A2aRequestHandler;
+import io.camunda.connector.agenticai.a2a.outbound.api.A2aSendMessageResponseHandler;
+import io.camunda.connector.agenticai.a2a.outbound.convert.A2aDocumentToPartConverter;
+import io.camunda.connector.agenticai.a2a.outbound.convert.A2aDocumentToPartConverterImpl;
+import io.camunda.connector.agenticai.a2a.outbound.impl.A2aMessageSenderImpl;
+import io.camunda.connector.agenticai.a2a.outbound.impl.A2aRequestHandlerImpl;
+import io.camunda.connector.agenticai.a2a.outbound.impl.A2aSendMessageResponseHandlerImpl;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -31,7 +31,7 @@ import org.springframework.context.annotation.Import;
     value = "camunda.connector.agenticai.a2a.client.enabled",
     matchIfMissing = true)
 @Import(A2aCommonConfiguration.class)
-public class A2aConnectorConfiguration {
+public class A2aOutboundConnectorConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public A2aDocumentToPartConverter a2aDocumentToPartConverter(ObjectMapper objectMapper) {
@@ -66,7 +66,7 @@ public class A2aConnectorConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public A2aConnectorFunction a2aConnectorFunction(A2aRequestHandler handler) {
-    return new A2aConnectorFunction(handler);
+  public A2aOutboundConnectorFunction a2aConnectorFunction(A2aRequestHandler handler) {
+    return new A2aOutboundConnectorFunction(handler);
   }
 }

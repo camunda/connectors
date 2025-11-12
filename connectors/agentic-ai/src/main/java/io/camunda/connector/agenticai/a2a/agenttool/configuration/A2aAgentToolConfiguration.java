@@ -18,10 +18,10 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @ConditionalOnBooleanProperty(
-    value = "camunda.connector.agenticai.a2a.agenttool.enabled",
+    value = "camunda.connector.agenticai.a2a.client.agenttool.enabled",
     matchIfMissing = true)
-@EnableConfigurationProperties(A2aDiscoveryConfigurationProperties.class)
-public class A2aDiscoveryConfiguration {
+@EnableConfigurationProperties(A2aAgentToolConfigurationProperties.class)
+public class A2aAgentToolConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
@@ -38,7 +38,7 @@ public class A2aDiscoveryConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public A2aSystemPromptContributor a2aSystemPromptContributor(
-      A2aDiscoveryConfigurationProperties properties) {
+      A2aAgentToolConfigurationProperties properties) {
     return new A2aSystemPromptContributor(properties.systemPrompt());
   }
 }
