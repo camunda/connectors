@@ -11,14 +11,14 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.textract.caller.AsyncTextractCaller;
-import io.camunda.connector.textract.caller.PollingTextractCalller;
+import io.camunda.connector.textract.caller.PollingTextractCaller;
 import io.camunda.connector.textract.caller.SyncTextractCaller;
 import io.camunda.connector.textract.model.TextractRequest;
 import io.camunda.connector.textract.suppliers.AmazonTextractClientSupplier;
 
 @OutboundConnector(
     name = "AWS Textract",
-    inputVariables = {"authentication", "configuration", "input"},
+    inputVariables = {"authentication", "configuration", "document", "input", "advanced"},
     type = "io.camunda:aws-textract:1")
 @ElementTemplate(
     engineVersion = "^8.6",
@@ -35,11 +35,13 @@ import io.camunda.connector.textract.suppliers.AmazonTextractClientSupplier;
               "ocr"
             }),
     inputDataClass = TextractRequest.class,
-    version = 3,
+    version = 4,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),
-      @ElementTemplate.PropertyGroup(id = "input", label = "Configure input")
+      @ElementTemplate.PropertyGroup(id = "document", label = "Input document"),
+      @ElementTemplate.PropertyGroup(id = "input", label = "Operation configuration"),
+      @ElementTemplate.PropertyGroup(id = "advanced", label = "Advanced configuration")
     },
     documentationRef =
         "https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/amazon-textract/",
@@ -50,21 +52,21 @@ public class TextractConnectorFunction implements OutboundConnectorFunction {
 
   private final SyncTextractCaller syncTextractCaller;
 
-  private final PollingTextractCalller pollingTextractCaller;
+  private final PollingTextractCaller pollingTextractCaller;
 
   private final AsyncTextractCaller asyncTextractCaller;
 
   public TextractConnectorFunction() {
     this.clientSupplier = new AmazonTextractClientSupplier();
     this.syncTextractCaller = new SyncTextractCaller();
-    this.pollingTextractCaller = new PollingTextractCalller();
+    this.pollingTextractCaller = new PollingTextractCaller();
     this.asyncTextractCaller = new AsyncTextractCaller();
   }
 
   public TextractConnectorFunction(
       AmazonTextractClientSupplier clientSupplier,
       SyncTextractCaller syncTextractCaller,
-      PollingTextractCalller pollingTextractCaller,
+      PollingTextractCaller pollingTextractCaller,
       AsyncTextractCaller asyncTextractCaller) {
     this.clientSupplier = clientSupplier;
     this.syncTextractCaller = syncTextractCaller;

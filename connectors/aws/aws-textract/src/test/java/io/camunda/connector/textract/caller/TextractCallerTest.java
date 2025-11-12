@@ -37,23 +37,25 @@ class TextractCallerTest {
   void prepareFeatureTypesAllEnabled() {
     TextractRequestData requestData1 =
         new TextractRequestData(
-            TextractExecutionType.SYNC,
             DocumentLocationType.S3,
             "test-bucket",
             "test-object",
             "1",
+            null,
+            TextractExecutionType.SYNC,
             true,
             true,
             true,
             true,
+            false,
+            "",
             "token",
             "client-request-token",
             "job-tag",
             "notification-channel",
             "role-arn",
             "outputBucket",
-            "prefix",
-            null);
+            "prefix");
     Set<String> featureTypes = textractCaller.prepareFeatureTypes(requestData1);
     assertThat(featureTypes).containsExactlyInAnyOrder("FORMS", "LAYOUT", "SIGNATURES", "TABLES");
   }
@@ -62,23 +64,25 @@ class TextractCallerTest {
   void prepareFeatureTypesNoFeaturesEnabled() {
     TextractRequestData requestData =
         new TextractRequestData(
-            TextractExecutionType.SYNC,
             DocumentLocationType.S3,
             "test-bucket",
             "test-object",
             "1",
+            null,
+            TextractExecutionType.SYNC,
             false,
             false,
             false,
             false,
+            false,
+            "",
             "token",
             "client-request-token",
             "job-tag",
             "notification-channel",
             "role-arn",
             "outputBucket",
-            "prefix",
-            null);
+            "prefix");
 
     Exception exception =
         assertThrows(
@@ -91,23 +95,25 @@ class TextractCallerTest {
   void prepareFeatureTypesOnlyTablesAndLayout() {
     TextractRequestData requestData =
         new TextractRequestData(
-            TextractExecutionType.SYNC,
             DocumentLocationType.S3,
             "test-bucket",
             "test-object",
             "1",
+            null,
+            TextractExecutionType.SYNC,
             true,
             false,
             false,
             true,
+            false,
+            "",
             "token",
             "client-request-token",
             "job-tag",
             "notification-channel",
             "role-arn",
             "outputBucket",
-            "prefix",
-            null);
+            "prefix");
     Set<String> featureTypes = textractCaller.prepareFeatureTypes(requestData);
     assertThat(featureTypes).containsExactlyInAnyOrder("TABLES", "LAYOUT");
   }
