@@ -1,28 +1,25 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid AI Agent Task",
-  "id" : "io.camunda.connectors.agenticai.aiagent.v1-hybrid",
-  "description" : "Execute a single AI-powered action with tool calling capabilities",
+  "name" : "AI Agent Sub-process",
+  "id" : "io.camunda.connectors.agenticai.aiagent.jobworker.v1",
+  "description" : "Run a multi-step AI reasoning loop with dynamic tool selection",
   "metadata" : {
     "keywords" : [ "AI", "AI Agent", "agentic orchestration" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/",
-  "version" : 5,
+  "version" : 4,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:Task" ],
+  "appliesTo" : [ "bpmn:SubProcess" ],
   "elementType" : {
-    "value" : "bpmn:ServiceTask"
+    "value" : "bpmn:AdHocSubProcess"
   },
   "engines" : {
     "camunda" : "^8.8"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "provider",
     "label" : "Model provider",
     "openByDefault" : false
@@ -55,9 +52,13 @@
     "label" : "Limits",
     "openByDefault" : false
   }, {
+    "id" : "events",
+    "label" : "Event handling",
+    "openByDefault" : false
+  }, {
     "id" : "response",
     "label" : "Response",
-    "tooltip" : "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.<br><br>See <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/#response\">documentation</a> for details.",
+    "tooltip" : "Configuration of the model response format and how to map the model response to the connector result.<br><br>Depending on the selection, the model response will be available as <code>response.responseText</code> or <code>response.responseJson</code>.<br><br>See <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-process/#response\">documentation</a> for details.",
     "openByDefault" : false
   }, {
     "id" : "connector",
@@ -73,14 +74,28 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
-    "value" : "io.camunda.agenticai:aiagent:1",
-    "group" : "taskDefinitionType",
+    "value" : "io.camunda.agenticai:aiagent-job-worker:1",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
+  }, {
+    "id" : "outputCollection",
+    "binding" : {
+      "property" : "outputCollection",
+      "type" : "zeebe:adHoc"
+    },
+    "value" : "toolCallResults",
+    "type" : "Hidden"
+  }, {
+    "id" : "outputElement",
+    "binding" : {
+      "property" : "outputElement",
+      "type" : "zeebe:adHoc"
+    },
+    "value" : "={\n  id: toolCall._meta.id,\n  name: toolCall._meta.name,\n  content: toolCallResult\n}",
+    "type" : "Hidden"
   }, {
     "id" : "provider.type",
     "label" : "Provider",
@@ -1109,7 +1124,7 @@
     "id" : "data.systemPrompt.prompt",
     "label" : "System prompt",
     "optional" : false,
-    "value" : "=\"You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitly configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nWrap minimal, inspectable reasoning in *exactly* this XML template:\n\n<thinking>\n<context>…briefly state the customer’s need and current state…</context>\n<reflection>…list candidate tools, justify which you will call next and why…</reflection>\n</thinking>\n\nReveal **no** additional private reasoning outside these tags.\"",
+    "value" : "\"You are **TaskAgent**, a helpful, generic chat agent that can handle a wide variety of customer requests using your own domain knowledge **and** any tools explicitly provided to you at runtime.\n\nIf tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don't guess any tools which were not explicitly configured. If no tool matches the request, try to generate an answer. If you're not able to find a good answer, return with a message stating why you're not able to.\n\nWrap minimal, inspectable reasoning in *exactly* this XML template:\n\n<thinking>\n<context>…briefly state the customer’s need and current state…</context>\n<reflection>…list candidate tools, justify which you will call next and why…</reflection>\n</thinking>\n\nReveal **no** additional private reasoning outside these tags.\"",
     "constraints" : {
       "notEmpty" : true
     },
@@ -1145,50 +1160,20 @@
       "name" : "data.userPrompt.documents",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Referenced documents will be automatically added to the user prompt. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details and supported file types.",
+    "tooltip" : "Referenced documents will be automatically added to the user prompt. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-process/\" target=\"_blank\">See documentation</a> for details and supported file types.",
     "type" : "String"
   }, {
-    "id" : "data.tools.containerElementId",
-    "label" : "Ad-hoc sub-process ID",
-    "description" : "ID of the sub-process that contains the tools the AI agent can use.",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "tools",
-    "binding" : {
-      "name" : "data.tools.containerElementId",
-      "type" : "zeebe:input"
-    },
-    "tooltip" : "Add an ad-hoc sub-process ID to attach the AI agent to the tools. Ensure your process includes a tools feedback loop routing into the ad-hoc sub-process and back to the AI agent connector. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details.",
-    "type" : "String"
-  }, {
-    "id" : "data.tools.toolCallResults",
-    "label" : "Tool call results",
-    "description" : "Tool call results as returned by the sub-process.",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "tools",
-    "binding" : {
-      "name" : "data.tools.toolCallResults",
-      "type" : "zeebe:input"
-    },
-    "tooltip" : "This defines where to handle tool call results returned by the ad-hoc sub-process. Model this as part of your process and route it into the tools feedback loop. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details.",
-    "type" : "Text"
-  }, {
-    "id" : "data.agentContext",
+    "id" : "agentContext",
     "label" : "Agent context",
-    "description" : "Avoid reusing context variables across agents to prevent issues with stale data or tool access.",
+    "description" : "Initial agent context from previous interactions. Avoid reusing context variables across agents to prevent issues with stale data or tool access.",
     "optional" : false,
-    "value" : "=agent.context",
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "required",
     "group" : "memory",
     "binding" : {
-      "name" : "data.context",
+      "name" : "agentContext",
       "type" : "zeebe:input"
     },
-    "tooltip" : "The agent context variable containing all relevant data for the agent to support the feedback loop between user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> variable which is returned from the agent response. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details.",
+    "tooltip" : "The agent context variable containing all relevant data for the agent to support the feedback loop between user requests, tool calls and LLM responses. Make sure this variable points to the <code>context</code> variable which is returned from the agent response. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-process/\" target=\"_blank\">See documentation</a> for details.",
     "type" : "Text"
   }, {
     "id" : "data.memory.storage.type",
@@ -1294,7 +1279,7 @@
       "name" : "data.memory.contextWindowSize",
       "type" : "zeebe:input"
     },
-    "tooltip" : "Use this to limit the number of messages which are sent to the model. The agent will only send the most recent messages up to the configured limit to the LLM. Older messages will be kept in the conversation store, but not sent to the model. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> for details.",
+    "tooltip" : "Use this to limit the number of messages which are sent to the model. The agent will only send the most recent messages up to the configured limit to the LLM. Older messages will be kept in the conversation store, but not sent to the model. <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-process/\" target=\"_blank\">See documentation</a> for details.",
     "type" : "Number"
   }, {
     "id" : "data.limits.maxModelCalls",
@@ -1309,6 +1294,28 @@
       "type" : "zeebe:input"
     },
     "type" : "Number"
+  }, {
+    "id" : "data.events.behavior",
+    "label" : "Event handling behavior",
+    "description" : "Behavior in combination with an event sub-process.",
+    "optional" : false,
+    "value" : "WAIT_FOR_TOOL_CALL_RESULTS",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "events",
+    "binding" : {
+      "name" : "data.events.behavior",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Wait for tool call results",
+      "value" : "WAIT_FOR_TOOL_CALL_RESULTS"
+    }, {
+      "name" : "Interrupt tool calls",
+      "value" : "INTERRUPT_TOOL_CALLS"
+    } ]
   }, {
     "id" : "data.response.format.type",
     "label" : "Response format",
@@ -1395,10 +1402,23 @@
     "tooltip" : "In addition to the text content, the assistant message may include multiple additional content blocks and metadata (such as token usage). The message will be available as <code>response.responseMessage</code>.",
     "type" : "Boolean"
   }, {
+    "id" : "data.response.includeAgentContext",
+    "label" : "Include agent context",
+    "description" : "Include the agent context as part of the result object.",
+    "optional" : true,
+    "feel" : "static",
+    "group" : "response",
+    "binding" : {
+      "name" : "data.response.includeAgentContext",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "Use this option if you need to re-inject the previous agent context into a future agent execution, for example when modeling a user feedback loop between an agent and a user task.",
+    "type" : "Boolean"
+  }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "5",
+    "value" : "4",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -1409,7 +1429,7 @@
     "id" : "id",
     "label" : "ID",
     "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.agenticai.aiagent.v1",
+    "value" : "io.camunda.connectors.agenticai.aiagent.jobworker.v1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateId",
@@ -1423,21 +1443,10 @@
     "value" : "agent",
     "group" : "output",
     "binding" : {
-      "key" : "resultVariable",
-      "type" : "zeebe:taskHeader"
+      "source" : "=agent",
+      "type" : "zeebe:output"
     },
     "type" : "String"
-  }, {
-    "id" : "resultExpression",
-    "label" : "Result expression",
-    "description" : "Expression to map the response into process variables",
-    "feel" : "required",
-    "group" : "output",
-    "binding" : {
-      "key" : "resultExpression",
-      "type" : "zeebe:taskHeader"
-    },
-    "type" : "Text"
   }, {
     "id" : "errorExpression",
     "label" : "Error expression",
