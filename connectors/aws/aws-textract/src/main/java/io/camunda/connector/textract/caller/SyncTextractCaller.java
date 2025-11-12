@@ -30,6 +30,7 @@ public class SyncTextractCaller implements TextractCaller<AnalyzeDocumentResult>
     final AnalyzeDocumentRequest analyzeDocumentRequest =
         new AnalyzeDocumentRequest()
             .withFeatureTypes(prepareFeatureTypes(requestData))
+            .withQueriesConfig(prepareQueryConfig(requestData))
             .withDocument(document);
 
     return textractClient.analyzeDocument(analyzeDocumentRequest);
