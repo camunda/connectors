@@ -8,7 +8,7 @@ package io.camunda.connector.email.outbound.model;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.email.authentication.Authentication;
+import io.camunda.connector.email.authentication.OutboundAuthentication;
 import io.camunda.connector.email.outbound.protocols.Imap;
 import io.camunda.connector.email.outbound.protocols.Pop3;
 import io.camunda.connector.email.outbound.protocols.Protocol;
@@ -20,7 +20,7 @@ import jakarta.validation.constraints.NotNull;
 
 public record EmailRequest(
     @TemplateProperty(group = "authentication", id = "type") @Valid @NotNull
-        Authentication authentication,
+        OutboundAuthentication authentication,
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,
             include = JsonTypeInfo.As.EXTERNAL_PROPERTY,

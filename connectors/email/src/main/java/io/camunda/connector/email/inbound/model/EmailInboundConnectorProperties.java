@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.email.inbound.model;
 
-import io.camunda.connector.email.authentication.Authentication;
+import io.camunda.connector.email.authentication.InboundAuthentication;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
@@ -14,5 +14,5 @@ import jakarta.validation.constraints.NotNull;
 
 public record EmailInboundConnectorProperties(
     @TemplateProperty(group = "authentication", id = "type") @Valid @NotNull
-        Authentication authentication,
+        InboundAuthentication authentication,
     @NestedProperties(addNestedPath = false) @Valid EmailListenerConfig data) {}

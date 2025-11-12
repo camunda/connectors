@@ -6,19 +6,4 @@
  */
 package io.camunda.connector.email.authentication;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
-
-@JsonTypeInfo(
-    use = JsonTypeInfo.Id.NAME,
-    property = "type",
-    defaultImpl = SimpleAuthentication.class)
-@JsonSubTypes({@JsonSubTypes.Type(value = SimpleAuthentication.class, name = "simple")})
-@TemplateDiscriminatorProperty(
-    label = "Authentication",
-    group = "authentication",
-    name = "type",
-    defaultValue = "simple",
-    description = "Specify the Email authentication strategy.")
-public sealed interface Authentication permits SimpleAuthentication {}
+public sealed interface Authentication permits InboundAuthentication, OutboundAuthentication {}
