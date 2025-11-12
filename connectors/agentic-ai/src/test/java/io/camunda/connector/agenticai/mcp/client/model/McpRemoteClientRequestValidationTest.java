@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfigura
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest.McpRemoteClientRequestData;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientConnection;
+import io.camunda.connector.http.base.model.auth.NoAuthentication;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.time.Duration;
@@ -144,7 +145,8 @@ class McpRemoteClientRequestValidationTest {
   void validationFailsWhenTransportUrlIsBlank() {
     final var transport =
         new StreamableHttpMcpRemoteClientTransportConfiguration(
-            new StreamableHttpMcpRemoteClientConnection("", Collections.emptyMap(), null));
+            new StreamableHttpMcpRemoteClientConnection(
+                new NoAuthentication(), "", Collections.emptyMap(), null));
     final var tools = createValidToolsConfiguration();
     final var connectorMode = createValidConnectorMode();
     final var requestData = new McpRemoteClientRequestData(transport, connectorMode, tools);
@@ -181,6 +183,7 @@ class McpRemoteClientRequestValidationTest {
   private StreamableHttpMcpRemoteClientTransportConfiguration createValidTransport() {
     return new StreamableHttpMcpRemoteClientTransportConfiguration(
         new StreamableHttpMcpRemoteClientConnection(
+            new NoAuthentication(),
             "http://localhost:8080/mcp",
             Map.of("Authorization", "Bearer token"),
             Duration.ofSeconds(30)));

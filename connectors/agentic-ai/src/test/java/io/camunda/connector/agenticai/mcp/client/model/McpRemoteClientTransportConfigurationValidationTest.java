@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportC
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientConnection;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientConnection;
+import io.camunda.connector.http.base.model.auth.NoAuthentication;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.time.Duration;
@@ -37,6 +38,7 @@ class McpRemoteClientTransportConfigurationValidationTest {
     final var config =
         new StreamableHttpMcpRemoteClientTransportConfiguration(
             new StreamableHttpMcpRemoteClientConnection(
+                new NoAuthentication(),
                 "http://localhost:8080/mcp",
                 Map.of("Authorization", "Bearer token"),
                 Duration.ofSeconds(30)));
@@ -49,6 +51,7 @@ class McpRemoteClientTransportConfigurationValidationTest {
     final var config =
         new SseHttpMcpRemoteClientTransportConfiguration(
             new SseHttpMcpRemoteClientConnection(
+                new NoAuthentication(),
                 "http://localhost:8080/sse",
                 Map.of("Authorization", "Bearer token"),
                 Duration.ofSeconds(30)));
@@ -61,12 +64,18 @@ class McpRemoteClientTransportConfigurationValidationTest {
     final var streamableHttpConfig =
         new StreamableHttpMcpRemoteClientTransportConfiguration(
             new StreamableHttpMcpRemoteClientConnection(
-                "http://localhost:8080/mcp", Collections.emptyMap(), Duration.ofSeconds(30)));
+                new NoAuthentication(),
+                "http://localhost:8080/mcp",
+                Collections.emptyMap(),
+                Duration.ofSeconds(30)));
 
     final var sseConfig =
         new SseHttpMcpRemoteClientTransportConfiguration(
             new SseHttpMcpRemoteClientConnection(
-                "http://localhost:8080/sse", Collections.emptyMap(), Duration.ofSeconds(30)));
+                new NoAuthentication(),
+                "http://localhost:8080/sse",
+                Collections.emptyMap(),
+                Duration.ofSeconds(30)));
 
     assertThat(validator.validate(streamableHttpConfig)).isEmpty();
     assertThat(validator.validate(sseConfig)).isEmpty();
@@ -77,12 +86,12 @@ class McpRemoteClientTransportConfigurationValidationTest {
     final var streamableHttpConfig =
         new StreamableHttpMcpRemoteClientTransportConfiguration(
             new StreamableHttpMcpRemoteClientConnection(
-                "http://localhost:8080/mcp", null, Duration.ofSeconds(30)));
+                new NoAuthentication(), "http://localhost:8080/mcp", null, Duration.ofSeconds(30)));
 
     final var sseConfig =
         new SseHttpMcpRemoteClientTransportConfiguration(
             new SseHttpMcpRemoteClientConnection(
-                "http://localhost:8080/sse", null, Duration.ofSeconds(30)));
+                new NoAuthentication(), "http://localhost:8080/sse", null, Duration.ofSeconds(30)));
 
     assertThat(validator.validate(streamableHttpConfig)).isEmpty();
     assertThat(validator.validate(sseConfig)).isEmpty();
@@ -93,12 +102,18 @@ class McpRemoteClientTransportConfigurationValidationTest {
     final var streamableHttpConfig =
         new StreamableHttpMcpRemoteClientTransportConfiguration(
             new StreamableHttpMcpRemoteClientConnection(
-                "http://localhost:8080/mcp", Map.of("Authorization", "Bearer token"), null));
+                new NoAuthentication(),
+                "http://localhost:8080/mcp",
+                Map.of("Authorization", "Bearer token"),
+                null));
 
     final var sseConfig =
         new SseHttpMcpRemoteClientTransportConfiguration(
             new SseHttpMcpRemoteClientConnection(
-                "http://localhost:8080/sse", Map.of("Authorization", "Bearer token"), null));
+                new NoAuthentication(),
+                "http://localhost:8080/sse",
+                Map.of("Authorization", "Bearer token"),
+                null));
 
     assertThat(validator.validate(streamableHttpConfig)).isEmpty();
     assertThat(validator.validate(sseConfig)).isEmpty();
@@ -110,7 +125,10 @@ class McpRemoteClientTransportConfigurationValidationTest {
     final var config =
         new StreamableHttpMcpRemoteClientTransportConfiguration(
             new StreamableHttpMcpRemoteClientConnection(
-                url, Map.of("Authorization", "Bearer token"), Duration.ofSeconds(30)));
+                new NoAuthentication(),
+                url,
+                Map.of("Authorization", "Bearer token"),
+                Duration.ofSeconds(30)));
 
     assertThat(validator.validate(config))
         .isNotEmpty()
@@ -124,7 +142,10 @@ class McpRemoteClientTransportConfigurationValidationTest {
     final var config =
         new SseHttpMcpRemoteClientTransportConfiguration(
             new SseHttpMcpRemoteClientConnection(
-                url, Map.of("Authorization", "Bearer token"), Duration.ofSeconds(30)));
+                new NoAuthentication(),
+                url,
+                Map.of("Authorization", "Bearer token"),
+                Duration.ofSeconds(30)));
 
     assertThat(validator.validate(config))
         .isNotEmpty()
@@ -157,7 +178,10 @@ class McpRemoteClientTransportConfigurationValidationTest {
     final var config =
         new StreamableHttpMcpRemoteClientTransportConfiguration(
             new StreamableHttpMcpRemoteClientConnection(
-                null, Map.of("Authorization", "Bearer token"), Duration.ofSeconds(30)));
+                new NoAuthentication(),
+                null,
+                Map.of("Authorization", "Bearer token"),
+                Duration.ofSeconds(30)));
 
     assertThat(validator.validate(config))
         .isNotEmpty()
@@ -170,7 +194,10 @@ class McpRemoteClientTransportConfigurationValidationTest {
     final var config =
         new SseHttpMcpRemoteClientTransportConfiguration(
             new SseHttpMcpRemoteClientConnection(
-                null, Map.of("Authorization", "Bearer token"), Duration.ofSeconds(30)));
+                new NoAuthentication(),
+                null,
+                Map.of("Authorization", "Bearer token"),
+                Duration.ofSeconds(30)));
 
     assertThat(validator.validate(config))
         .isNotEmpty()

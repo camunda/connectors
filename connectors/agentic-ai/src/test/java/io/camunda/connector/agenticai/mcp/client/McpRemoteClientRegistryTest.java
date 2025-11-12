@@ -28,6 +28,7 @@ import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportC
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientConnection;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientConnection;
+import io.camunda.connector.http.base.model.auth.NoAuthentication;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -63,11 +64,12 @@ class McpRemoteClientRegistryTest {
       STREAMABLE_HTTP_TRANSPORT_CONFIG =
           new StreamableHttpMcpRemoteClientTransportConfiguration(
               new StreamableHttpMcpRemoteClientConnection(
-                  STREAMABLE_HTTP_URL, HTTP_HEADERS, HTTP_TIMEOUT));
+                  new NoAuthentication(), STREAMABLE_HTTP_URL, HTTP_HEADERS, HTTP_TIMEOUT));
 
   private static final SseHttpMcpRemoteClientTransportConfiguration SSE_TRANSPORT_CONFIG =
       new SseHttpMcpRemoteClientTransportConfiguration(
-          new SseHttpMcpRemoteClientConnection(SSE_URL, HTTP_HEADERS, HTTP_TIMEOUT));
+          new SseHttpMcpRemoteClientConnection(
+              new NoAuthentication(), SSE_URL, HTTP_HEADERS, HTTP_TIMEOUT));
 
   private static final McpClientConfiguration EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION =
       new McpClientConfiguration(
