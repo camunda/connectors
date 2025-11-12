@@ -53,6 +53,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Answers;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -87,6 +88,8 @@ class Langchain4JMcpRemoteClientHandlerTest {
       McpToolNameFilter.from(EMPTY_FILTER_CONFIGURATION);
 
   private final ObjectMapper objectMapper = new ObjectMapper();
+
+  @Spy
   private final McpClientOperationConverter operationConverter =
       new McpClientOperationConverter(objectMapper);
 
@@ -108,6 +111,19 @@ class Langchain4JMcpRemoteClientHandlerTest {
     handler =
         new Langchain4JMcpRemoteClientHandler(
             operationConverter, remoteClientRegistry, clientExecutor);
+  }
+
+  @ParameterizedTest
+  @MethodSource(
+      "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
+  void throwsExceptionWhenOperationConversionFails(
+      McpRemoteClientTransportConfiguration transport) {
+    final var request = createToolModeRequest(transport, LIST_TOOLS_OPERATION);
+
+    final var exception = new IllegalArgumentException("Failed to convert operation");
+    when(operationConverter.convertOperation(request.data().connectorMode())).thenThrow(exception);
+
+    assertThatThrownBy(() -> handler.handle(context, request)).isEqualTo(exception);
   }
 
   @ParameterizedTest
@@ -139,6 +155,7 @@ class Langchain4JMcpRemoteClientHandlerTest {
 
   @Nested
   class ToolModeTests {
+
     @ParameterizedTest
     @MethodSource(
         "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
@@ -193,24 +210,11 @@ class Langchain4JMcpRemoteClientHandlerTest {
 
       assertThat(result).isEqualTo(expectedResult);
     }
-
-    @ParameterizedTest
-    @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
-    void throwsExceptionOnInvalidOperation(McpRemoteClientTransportConfiguration transport) {
-      assertThatThrownBy(
-              () ->
-                  handler.handle(
-                      context,
-                      createToolModeRequest(
-                          transport, new McpClientOperationConfiguration("invalid", Map.of()))))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("Could not resolve type id 'invalid'");
-    }
   }
 
   @Nested
   class StandaloneModeTests {
+
     @ParameterizedTest
     @MethodSource(
         "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")

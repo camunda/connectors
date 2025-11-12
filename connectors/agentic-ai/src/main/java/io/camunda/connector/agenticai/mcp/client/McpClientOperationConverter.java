@@ -8,10 +8,26 @@ package io.camunda.connector.agenticai.mcp.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
+import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation;
+import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation.McpClientCallToolOperationParams;
+import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientListToolsOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.StandaloneModeConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.CallToolOperationConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListToolsOperationConfiguration;
+import io.camunda.connector.api.error.ConnectorException;
+import java.util.List;
 
 public class McpClientOperationConverter {
+
+  private static final String ERROR_CODE_MCP_CLIENT_UNSUPPORTED_OPERATION =
+      "MCP_CLIENT_UNSUPPORTED_OPERATION";
+  private static final String ERROR_CODE_MCP_CLIENT_INVALID_PARAMS = "MCP_CLIENT_INVALID_PARAMS";
+
+  private static final List<String> SUPPORTED_OPERATIONS =
+      List.of(McpClientListToolsOperation.METHOD, McpClientCallToolOperation.METHOD);
 
   private final ObjectMapper objectMapper;
 
@@ -21,23 +37,48 @@ public class McpClientOperationConverter {
 
   public McpClientOperation convertOperation(McpConnectorModeConfiguration connectorMode) {
     return switch (connectorMode) {
-      case McpConnectorModeConfiguration.ToolModeConfiguration toolMode ->
-          objectMapper.convertValue(toolMode.toolOperation(), McpClientOperation.class);
+      case ToolModeConfiguration toolMode -> convertToolModeOperation(toolMode);
 
-      case McpConnectorModeConfiguration.StandaloneModeConfiguration standaloneMode ->
-          convertStandaloneToOperation(standaloneMode.operation());
+      case StandaloneModeConfiguration standaloneMode ->
+          convertStandaloneModeOperation(standaloneMode.operation());
     };
   }
 
-  private McpClientOperation convertStandaloneToOperation(
+  private McpClientOperation convertToolModeOperation(ToolModeConfiguration toolMode) {
+    final var toolOperation = toolMode.toolOperation();
+
+    return switch (toolOperation.method()) {
+      case McpClientListToolsOperation.METHOD -> new McpClientListToolsOperation();
+
+      case McpClientCallToolOperation.METHOD -> {
+        try {
+          final var params =
+              objectMapper.convertValue(
+                  toolOperation.params(), McpClientCallToolOperationParams.class);
+          yield new McpClientCallToolOperation(params);
+        } catch (Exception e) {
+          throw new ConnectorException(
+              ERROR_CODE_MCP_CLIENT_INVALID_PARAMS,
+              "Unable to convert parameters passed to MCP client: %s".formatted(e.getMessage()));
+        }
+      }
+
+      default ->
+          throw new ConnectorException(
+              ERROR_CODE_MCP_CLIENT_UNSUPPORTED_OPERATION,
+              String.format(
+                  "Unsupported MCP operation '%s'. Supported operations: '%s'",
+                  toolOperation.method(), String.join("', '", SUPPORTED_OPERATIONS)));
+    };
+  }
+
+  private McpClientOperation convertStandaloneModeOperation(
       McpStandaloneOperationConfiguration operation) {
     return switch (operation) {
-      case McpStandaloneOperationConfiguration.ListToolsOperationConfiguration ignored ->
-          new McpClientOperation.McpClientListToolsOperation();
-      case McpStandaloneOperationConfiguration.CallToolOperationConfiguration callTool ->
-          new McpClientOperation.McpClientCallToolOperation(
-              new McpClientOperation.McpClientCallToolOperation.McpClientCallToolOperationParams(
-                  callTool.toolName(), callTool.toolArguments()));
+      case ListToolsOperationConfiguration ignored -> new McpClientListToolsOperation();
+      case CallToolOperationConfiguration callTool ->
+          new McpClientCallToolOperation(
+              new McpClientCallToolOperationParams(callTool.toolName(), callTool.toolArguments()));
     };
   }
 }

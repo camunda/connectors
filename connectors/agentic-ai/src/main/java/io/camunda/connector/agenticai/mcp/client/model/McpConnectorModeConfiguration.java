@@ -11,7 +11,6 @@ import static io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeCo
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -38,9 +37,7 @@ public sealed interface McpConnectorModeConfiguration
         McpConnectorModeConfiguration.ToolModeConfiguration {
 
   @TemplateSubType(id = AI_AGENT_TOOL_ID, label = "AI Agent tool")
-  record ToolModeConfiguration(
-      @NestedProperties(group = "operation") @Valid @NotNull
-          McpClientOperationConfiguration toolOperation)
+  record ToolModeConfiguration(@Valid @NotNull McpClientOperationConfiguration toolOperation)
       implements McpConnectorModeConfiguration {
 
     @TemplateProperty(ignore = true)
@@ -48,9 +45,7 @@ public sealed interface McpConnectorModeConfiguration
   }
 
   @TemplateSubType(id = STANDALONE_ID, label = "Standalone")
-  record StandaloneModeConfiguration(
-      @NestedProperties(group = "operation") @Valid @NotNull
-          McpStandaloneOperationConfiguration operation)
+  record StandaloneModeConfiguration(@Valid @NotNull McpStandaloneOperationConfiguration operation)
       implements McpConnectorModeConfiguration {
 
     @TemplateProperty(ignore = true)

@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation;
@@ -16,6 +17,7 @@ import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfigura
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.CallToolOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListToolsOperationConfiguration;
+import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -33,7 +35,23 @@ class McpClientOperationConverterTest {
   class ToolModeTests {
 
     @Test
-    void convertsListToolsOperationFromToolMode() {
+    void throwsExceptionOnInvalidOperation() {
+      var modeConfiguration =
+          new ToolModeConfiguration(new McpClientOperationConfiguration("invalid", Map.of()));
+
+      assertThatThrownBy(() -> converter.convertOperation(modeConfiguration))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              ex -> {
+                assertThat(ex.getErrorCode()).isEqualTo("MCP_CLIENT_UNSUPPORTED_OPERATION");
+                assertThat(ex)
+                    .hasMessage(
+                        "Unsupported MCP operation 'invalid'. Supported operations: 'tools/list', 'tools/call'");
+              });
+    }
+
+    @Test
+    void convertsListToolsOperation() {
       var modeConfiguration =
           new ToolModeConfiguration(new McpClientOperationConfiguration("tools/list", Map.of()));
 
@@ -43,7 +61,7 @@ class McpClientOperationConverterTest {
     }
 
     @Test
-    void convertsCallToolOperationFromToolMode() {
+    void convertsCallToolOperation() {
       var modeConfiguration =
           new ToolModeConfiguration(
               new McpClientOperationConfiguration(
@@ -96,12 +114,32 @@ class McpClientOperationConverterTest {
                 assertThat(operation.params().arguments()).containsExactlyEntriesOf(arguments);
               });
     }
+
+    @Test
+    void throwsExceptionOnInvalidCallToolOperationParams() {
+      var modeConfiguration =
+          new ToolModeConfiguration(
+              new McpClientOperationConfiguration(
+                  "tools/call", Map.of("name", List.of("foo", "bar"), "something", "else")));
+
+      assertThatThrownBy(() -> converter.convertOperation(modeConfiguration))
+          .isInstanceOfSatisfying(
+              ConnectorException.class,
+              ex -> {
+                assertThat(ex.getErrorCode()).isEqualTo("MCP_CLIENT_INVALID_PARAMS");
+                assertThat(ex)
+                    .hasMessageStartingWith("Unable to convert parameters passed to MCP client:")
+                    .hasMessageContaining(
+                        "Cannot deserialize value of type `java.lang.String` from Array value");
+              });
+    }
   }
 
   @Nested
   class StandaloneModeTests {
+
     @Test
-    void convertsListToolsOperationFromStandaloneMode() {
+    void convertsListToolsOperation() {
       var modeConfiguration =
           new StandaloneModeConfiguration(new ListToolsOperationConfiguration());
 
@@ -111,7 +149,7 @@ class McpClientOperationConverterTest {
     }
 
     @Test
-    void convertsCallToolOperationFromStandaloneMode() {
+    void convertsCallToolOperation() {
       var modeConfiguration =
           new StandaloneModeConfiguration(
               new CallToolOperationConfiguration("test-tool", Map.of("key", "value")));

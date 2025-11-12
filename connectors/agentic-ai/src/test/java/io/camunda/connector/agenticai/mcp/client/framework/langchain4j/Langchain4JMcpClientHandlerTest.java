@@ -43,6 +43,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,6 +61,8 @@ class Langchain4JMcpClientHandlerTest {
       McpToolNameFilter.from(EMPTY_FILTER_CONFIGURATION);
 
   private final ObjectMapper objectMapper = new ObjectMapper();
+
+  @Spy
   private final McpClientOperationConverter operationConverter =
       new McpClientOperationConverter(objectMapper);
 
@@ -74,6 +77,16 @@ class Langchain4JMcpClientHandlerTest {
   @BeforeEach
   void setUp() {
     handler = new Langchain4JMcpClientHandler(operationConverter, clientRegistry, clientExecutor);
+  }
+
+  @Test
+  void throwsExceptionWhenOperationConversionFails() {
+    final var request = createToolModeRequest(LIST_TOOLS_OPERATION);
+
+    final var exception = new IllegalArgumentException("Failed to convert operation");
+    when(operationConverter.convertOperation(request.data().connectorMode())).thenThrow(exception);
+
+    assertThatThrownBy(() -> handler.handle(context, request)).isEqualTo(exception);
   }
 
   @Test
@@ -149,18 +162,6 @@ class Langchain4JMcpClientHandlerTest {
       final var result = handler.handle(context, request);
 
       assertThat(result).isEqualTo(expectedResult);
-    }
-
-    @Test
-    void throwsExceptionOnInvalidOperation() {
-      assertThatThrownBy(
-              () ->
-                  handler.handle(
-                      context,
-                      createToolModeRequest(
-                          new McpClientOperationConfiguration("invalid", Map.of()))))
-          .isInstanceOf(IllegalArgumentException.class)
-          .hasMessageContaining("Could not resolve type id 'invalid'");
     }
   }
 
