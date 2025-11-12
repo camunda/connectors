@@ -9,16 +9,20 @@ package io.camunda.connector.agenticai.mcp.client.configuration.validation;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
+import java.util.stream.Stream;
 
 public class McpClientConfigurationValidator
     implements ConstraintValidator<ValidMcpClientConfiguration, McpClientConfiguration> {
 
   @Override
   public boolean isValid(McpClientConfiguration config, ConstraintValidatorContext cxt) {
-    var stdioConfigured = config.stdio() != null;
-    var sseConfigured = config.sse() != null;
+    final var stdioConfigured = config.stdio() != null;
+    final var httpConfigured = config.http() != null;
+    final var sseConfigured = config.sse() != null;
 
-    // make sure exactly one of the 2 transports is configured
-    return stdioConfigured ^ sseConfigured;
+    final var configuredTransports =
+        Stream.of(stdioConfigured, httpConfigured, sseConfigured).filter(c -> c).count();
+
+    return configuredTransports == 1L;
   }
 }

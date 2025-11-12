@@ -1,12 +1,12 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid MCP Remote Client (experimental)",
-  "id" : "io.camunda.connectors.agenticai.mcp.remoteclient.v0-hybrid",
+  "name" : "Hybrid MCP Remote Client",
+  "id" : "io.camunda.connectors.agenticai.mcp.remoteclient.v1-hybrid",
   "description" : "MCP (Model Context Protocol) client, operating on temporary remote connections. Only supports tool operations.",
   "metadata" : {
     "keywords" : [ ]
   },
-  "version" : 0,
+  "version" : 1,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -16,15 +16,15 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.8"
+    "camunda" : "^8.9"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
     "label" : "Task definition type"
   }, {
-    "id" : "connection",
-    "label" : "HTTP Connection",
-    "tooltip" : "Configure the HTTP/SSE connection to the remote MCP server. Setting authentication headers is not supported yet."
+    "id" : "transport",
+    "label" : "Transport",
+    "tooltip" : "Configure the connection to the remote MCP server."
   }, {
     "id" : "tools",
     "label" : "Tools"
@@ -46,7 +46,7 @@
   } ],
   "properties" : [ {
     "id" : "taskDefinitionType",
-    "value" : "io.camunda.agenticai:mcpremoteclient:0",
+    "value" : "io.camunda.agenticai:mcpremoteclient:1",
     "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
@@ -61,40 +61,127 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "data.connection.sseUrl",
-    "label" : "SSE URL",
-    "description" : "SSE URL to connect to the MCP server. Typically ends with <code>/sse</code>.",
+    "id" : "data.transport.type",
+    "label" : "Type",
+    "description" : "Specify the MCP transport type.",
+    "value" : "http",
+    "group" : "transport",
+    "binding" : {
+      "name" : "data.transport.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Streamable HTTP",
+      "value" : "http"
+    }, {
+      "name" : "SSE",
+      "value" : "sse"
+    } ]
+  }, {
+    "id" : "data.transport.http.url",
+    "label" : "URL",
+    "description" : "URL to connect to the MCP server. Typically ends with <code>/mcp</code>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "connection",
+    "group" : "transport",
     "binding" : {
-      "name" : "data.connection.sseUrl",
+      "name" : "data.transport.http.url",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.transport.type",
+      "equals" : "http",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "data.connection.headers",
+    "id" : "data.transport.http.headers",
     "label" : "HTTP headers",
-    "description" : "Map of HTTP headers to add to the request <strong>(NOT SUPPORTED YET)</strong>.",
+    "description" : "Map of HTTP headers to add to the request.",
     "optional" : true,
-    "group" : "connection",
+    "feel" : "required",
+    "group" : "transport",
     "binding" : {
-      "name" : "data.connection.headers",
+      "name" : "data.transport.http.headers",
       "type" : "zeebe:input"
     },
-    "type" : "Hidden"
+    "condition" : {
+      "property" : "data.transport.type",
+      "equals" : "http",
+      "type" : "simple"
+    },
+    "type" : "String"
   }, {
-    "id" : "data.connection.timeout",
+    "id" : "data.transport.http.timeout",
     "label" : "Timeout",
     "description" : "Timeout for individual HTTP requests as ISO-8601 duration (example: <code>PT30S</code>)",
     "optional" : true,
-    "group" : "connection",
+    "group" : "transport",
     "binding" : {
-      "name" : "data.connection.timeout",
+      "name" : "data.transport.http.timeout",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.transport.type",
+      "equals" : "http",
+      "type" : "simple"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "data.transport.sse.url",
+    "label" : "URL",
+    "description" : "URL to connect to the MCP server. Typically ends with <code>/sse</code>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "transport",
+    "binding" : {
+      "name" : "data.transport.sse.url",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.transport.type",
+      "equals" : "sse",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.sse.headers",
+    "label" : "HTTP headers",
+    "description" : "Map of HTTP headers to add to the request.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "transport",
+    "binding" : {
+      "name" : "data.transport.sse.headers",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.transport.type",
+      "equals" : "sse",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.sse.timeout",
+    "label" : "Timeout",
+    "description" : "Timeout for individual HTTP requests as ISO-8601 duration (example: <code>PT30S</code>)",
+    "optional" : true,
+    "group" : "transport",
+    "binding" : {
+      "name" : "data.transport.sse.timeout",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.transport.type",
+      "equals" : "sse",
+      "type" : "simple"
     },
     "type" : "Hidden"
   }, {
@@ -156,7 +243,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "0",
+    "value" : "1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -167,7 +254,7 @@
     "id" : "id",
     "label" : "ID",
     "description" : "ID of the element template",
-    "value" : "io.camunda.connectors.agenticai.mcp.remoteclient.v0",
+    "value" : "io.camunda.connectors.agenticai.mcp.remoteclient.v1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateId",

@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StdioMcpClientTransportConfiguration;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.time.Duration;
@@ -33,6 +34,9 @@ class McpClientConfigurationValidatorTest {
   private static final StdioMcpClientTransportConfiguration STDIO_CONFIGURATION =
       new StdioMcpClientTransportConfiguration(
           "echo", List.of("hello"), Collections.emptyMap(), false);
+  private static final StreamableHttpMcpClientTransportConfiguration STREAMABLE_HTTP_CONFIGURATION =
+      new StreamableHttpMcpClientTransportConfiguration(
+          "http://localhost:1234/mcp", Collections.emptyMap(), Duration.ofSeconds(5), false, false);
   private static final SseHttpMcpClientTransportConfiguration SSE_CONFIGURATION =
       new SseHttpMcpClientTransportConfiguration(
           "http://localhost:1234/sse", Collections.emptyMap(), Duration.ofSeconds(5), false, false);
@@ -45,36 +49,48 @@ class McpClientConfigurationValidatorTest {
     assertThat(validator.validate(configuration)).isEmpty();
   }
 
-  @Test
-  void validationFailsWhenBothTransportsConfigured() {
-    assertThat(validator.validate(createConfiguration(STDIO_CONFIGURATION, SSE_CONFIGURATION)))
+  @ParameterizedTest
+  @MethodSource("invalidConfigurations")
+  void validationFailsWhenMultipleTransportsConfigured(McpClientConfiguration configuration) {
+    assertThat(validator.validate(configuration))
         .isNotEmpty()
         .extracting(ConstraintViolation::getMessage)
         .containsExactly(
-            "The MCP client needs to be configured with a single transport (either STDIO or SSE)");
+            "The MCP client needs to be configured with a single transport (either STDIO, Streamable HTTP, or SSE)");
   }
 
   @Test
   void validationFailsWhenNoTransportConfigured() {
-    assertThat(validator.validate(createConfiguration(null, null)))
+    assertThat(validator.validate(createConfiguration(null, null, null)))
         .isNotEmpty()
         .extracting(ConstraintViolation::getMessage)
         .containsExactly(
-            "The MCP client needs to be configured with a single transport (either STDIO or SSE)");
+            "The MCP client needs to be configured with a single transport (either STDIO, Streamable HTTP, or SSE)");
   }
 
   static Stream<McpClientConfiguration> validConfigurations() {
     return Stream.of(
-        createConfiguration(STDIO_CONFIGURATION, null),
-        createConfiguration(null, SSE_CONFIGURATION));
+        createConfiguration(STDIO_CONFIGURATION, null, null),
+        createConfiguration(null, STREAMABLE_HTTP_CONFIGURATION, null),
+        createConfiguration(null, null, SSE_CONFIGURATION));
+  }
+
+  static Stream<McpClientConfiguration> invalidConfigurations() {
+    return Stream.of(
+        createConfiguration(STDIO_CONFIGURATION, STREAMABLE_HTTP_CONFIGURATION, SSE_CONFIGURATION),
+        createConfiguration(STDIO_CONFIGURATION, STREAMABLE_HTTP_CONFIGURATION, null),
+        createConfiguration(STDIO_CONFIGURATION, null, SSE_CONFIGURATION),
+        createConfiguration(null, STREAMABLE_HTTP_CONFIGURATION, SSE_CONFIGURATION));
   }
 
   private static McpClientConfiguration createConfiguration(
       StdioMcpClientTransportConfiguration stdioConfig,
+      StreamableHttpMcpClientTransportConfiguration httpConfig,
       SseHttpMcpClientTransportConfiguration sseConfig) {
     return new McpClientConfiguration(
         true,
         stdioConfig,
+        httpConfig,
         sseConfig,
         Duration.ofSeconds(1),
         Duration.ofSeconds(2),

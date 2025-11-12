@@ -6,48 +6,15 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model;
 
-import io.camunda.connector.generator.dsl.Property;
-import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.time.Duration;
-import java.util.Map;
 import org.springframework.lang.Nullable;
 
 public record McpRemoteClientRequest(@Valid @NotNull McpRemoteClientRequestData data) {
   public record McpRemoteClientRequestData(
-      @Valid @NotNull HttpConnectionConfiguration connection,
+      @Valid @NotNull @NestedProperties(group = "transport")
+          McpRemoteClientTransportConfiguration transport,
       @Valid @Nullable McpClientToolsConfiguration tools,
-      @Valid @NotNull McpClientOperationConfiguration operation) {
-
-    public record HttpConnectionConfiguration(
-        @TemplateProperty(
-                group = "connection",
-                label = "SSE URL",
-                description =
-                    "SSE URL to connect to the MCP server. Typically ends with <code>/sse</code>.",
-                type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.optional,
-                constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-            @NotBlank
-            String sseUrl,
-        @TemplateProperty(
-                group = "connection",
-                label = "HTTP headers",
-                description =
-                    "Map of HTTP headers to add to the request <strong>(NOT SUPPORTED YET)</strong>.",
-                type = TemplateProperty.PropertyType.Hidden,
-                feel = Property.FeelMode.disabled,
-                optional = true)
-            Map<String, String> headers,
-        @TemplateProperty(
-                group = "connection",
-                description =
-                    "Timeout for individual HTTP requests as ISO-8601 duration (example: <code>PT30S</code>)",
-                type = TemplateProperty.PropertyType.Hidden,
-                feel = Property.FeelMode.disabled,
-                optional = true)
-            Duration timeout) {}
-  }
+      @Valid @NotNull McpClientOperationConfiguration operation) {}
 }

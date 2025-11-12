@@ -72,8 +72,8 @@
       }
     },
     {
-      "name": "A_Remote_MCP_Client",
-      "description": "A Remote MCP Client",
+      "name": "A_HTTP_Remote_MCP_Client",
+      "description": "A HTTP Remote MCP Client",
       "inputSchema": {
         "properties": {},
         "type": "object",
@@ -81,8 +81,8 @@
       }
     },
     {
-      "name": "Another_Remote_MCP_Client",
-      "description": "Another Remote MCP Client",
+      "name": "A_SSE_Remote_MCP_Client",
+      "description": "A SSE Remote MCP Client",
       "inputSchema": {
         "properties": {},
         "type": "object",

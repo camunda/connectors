@@ -146,7 +146,7 @@ public interface Langchain4JAiAgentToolSpecifications {
                       .build())
               .build(),
           ToolSpecification.builder()
-              .name("MCP_A_Remote_MCP_Client___toolA")
+              .name("MCP_A_HTTP_Remote_MCP_Client___toolA")
               .description("The first tool")
               .parameters(
                   JsonObjectSchema.builder()
@@ -155,7 +155,7 @@ public interface Langchain4JAiAgentToolSpecifications {
                       .build())
               .build(),
           ToolSpecification.builder()
-              .name("MCP_A_Remote_MCP_Client___toolC")
+              .name("MCP_A_HTTP_Remote_MCP_Client___toolC")
               .description("The third tool")
               .parameters(
                   JsonObjectSchema.builder()
@@ -163,7 +163,7 @@ public interface Langchain4JAiAgentToolSpecifications {
                       .build())
               .build(),
           ToolSpecification.builder()
-              .name("MCP_Another_Remote_MCP_Client___toolA")
+              .name("MCP_A_SSE_Remote_MCP_Client___toolA")
               .description("The first tool")
               .parameters(
                   JsonObjectSchema.builder()
@@ -172,7 +172,7 @@ public interface Langchain4JAiAgentToolSpecifications {
                       .build())
               .build(),
           ToolSpecification.builder()
-              .name("MCP_Another_Remote_MCP_Client___toolC")
+              .name("MCP_A_SSE_Remote_MCP_Client___toolC")
               .description("The third tool")
               .parameters(
                   JsonObjectSchema.builder()

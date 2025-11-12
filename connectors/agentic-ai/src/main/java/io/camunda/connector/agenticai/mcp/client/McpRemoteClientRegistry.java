@@ -9,11 +9,14 @@ package io.camunda.connector.agenticai.mcp.client;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Scheduler;
-import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfigurationProperties.ClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfigurationProperties.ClientConfiguration.ClientCacheConfiguration;
-import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest.McpRemoteClientRequestData.HttpConnectionConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,26 +51,46 @@ public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoClo
         .build();
   }
 
-  public C getClient(McpRemoteClientIdentifier clientId, HttpConnectionConfiguration connection) {
+  public C getClient(
+      McpRemoteClientIdentifier clientId, McpRemoteClientTransportConfiguration transport) {
     return this.cache.get(
         clientId,
         key -> {
           LOGGER.info("MCP({}): Creating remote HTTP client", clientId);
           return this.clientFactory.createClient(
-              clientId.toString(), createClientConfiguration(connection));
+              clientId.toString(), createClientConfiguration(transport));
         });
   }
 
-  private McpClientConfiguration createClientConfiguration(HttpConnectionConfiguration connection) {
-    final var sseTransportConfiguration =
-        new McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration(
-            connection.sseUrl(),
-            connection.headers(),
-            connection.timeout(),
-            clientConfig.logRequests(),
-            clientConfig.logResponses());
+  private McpClientConfiguration createClientConfiguration(
+      McpRemoteClientTransportConfiguration transport) {
+    final var builder = McpClientConfiguration.builder().enabled(true);
 
-    return new McpClientConfiguration(true, null, sseTransportConfiguration, null, null, null);
+    switch (transport) {
+      case StreamableHttpMcpRemoteClientTransportConfiguration httpConfig -> {
+        final var httpConnectionConfig = httpConfig.http();
+        builder.http(
+            new StreamableHttpMcpClientTransportConfiguration(
+                httpConnectionConfig.url(),
+                httpConnectionConfig.headers(),
+                httpConnectionConfig.timeout(),
+                clientConfig.logRequests(),
+                clientConfig.logResponses()));
+      }
+
+      case SseHttpMcpRemoteClientTransportConfiguration sseConfig -> {
+        final var sseConnectionConfig = sseConfig.sse();
+        builder.sse(
+            new SseHttpMcpClientTransportConfiguration(
+                sseConnectionConfig.url(),
+                sseConnectionConfig.headers(),
+                sseConnectionConfig.timeout(),
+                clientConfig.logRequests(),
+                clientConfig.logResponses()));
+      }
+    }
+
+    return builder.build();
   }
 
   @Override

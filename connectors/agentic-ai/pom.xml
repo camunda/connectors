@@ -228,7 +228,7 @@
               <connectorClass>io.camunda.connector.agenticai.mcp.client.McpClientFunction</connectorClass>
               <files>
                 <file>
-                  <templateId>io.camunda.connectors.agenticai.mcp.client.v0</templateId>
+                  <templateId>io.camunda.connectors.agenticai.mcp.client.v1</templateId>
                   <templateFileName>agenticai-mcp-client-outbound-connector.json</templateFileName>
                 </file>
               </files>
@@ -239,7 +239,7 @@
               <connectorClass>io.camunda.connector.agenticai.mcp.client.McpRemoteClientFunction</connectorClass>
               <files>
                 <file>
-                  <templateId>io.camunda.connectors.agenticai.mcp.remoteclient.v0</templateId>
+                  <templateId>io.camunda.connectors.agenticai.mcp.remoteclient.v1</templateId>
                   <templateFileName>agenticai-mcp-remote-client-outbound-connector.json</templateFileName>
                 </file>
               </files>
