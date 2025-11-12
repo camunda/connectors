@@ -76,7 +76,7 @@ class McpRemoteClientRegistryTest {
           true,
           null,
           new StreamableHttpMcpClientTransportConfiguration(
-              STREAMABLE_HTTP_URL, HTTP_HEADERS, HTTP_TIMEOUT, true, false),
+              STREAMABLE_HTTP_URL, HTTP_HEADERS, new NoAuthentication(), HTTP_TIMEOUT, true, false),
           null,
           null,
           null,
@@ -88,7 +88,7 @@ class McpRemoteClientRegistryTest {
           null,
           null,
           new SseHttpMcpClientTransportConfiguration(
-              SSE_URL, HTTP_HEADERS, HTTP_TIMEOUT, true, false),
+              SSE_URL, HTTP_HEADERS, new NoAuthentication(), HTTP_TIMEOUT, true, false),
           null,
           null,
           null);

@@ -27,6 +27,7 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigur
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StdioMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration;
+import io.camunda.connector.http.base.model.auth.NoAuthentication;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -335,6 +336,7 @@ class Langchain4JMcpClientFactoryTest {
     return new StreamableHttpMcpClientTransportConfiguration(
         "http://localhost:123456/mcp",
         Map.of("Authorization", "Bearer token"),
+        new NoAuthentication(),
         Duration.ofSeconds(15),
         logRequests,
         logResponses);
@@ -345,6 +347,7 @@ class Langchain4JMcpClientFactoryTest {
     return new SseHttpMcpClientTransportConfiguration(
         "http://localhost:123456/sse",
         Map.of("Authorization", "Bearer token"),
+        new NoAuthentication(),
         Duration.ofSeconds(15),
         logRequests,
         logResponses);

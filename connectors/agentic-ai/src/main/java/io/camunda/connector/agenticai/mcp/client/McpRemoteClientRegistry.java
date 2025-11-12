@@ -73,6 +73,7 @@ public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoClo
             new StreamableHttpMcpClientTransportConfiguration(
                 httpConnectionConfig.url(),
                 httpConnectionConfig.headers(),
+                httpConnectionConfig.authentication(),
                 httpConnectionConfig.timeout(),
                 clientConfig.logRequests(),
                 clientConfig.logResponses()));
@@ -84,6 +85,7 @@ public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoClo
             new SseHttpMcpClientTransportConfiguration(
                 sseConnectionConfig.url(),
                 sseConnectionConfig.headers(),
+                sseConnectionConfig.authentication(),
                 sseConnectionConfig.timeout(),
                 clientConfig.logRequests(),
                 clientConfig.logResponses()));

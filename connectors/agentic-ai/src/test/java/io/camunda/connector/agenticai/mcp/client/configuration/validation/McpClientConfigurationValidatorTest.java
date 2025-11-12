@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigur
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StdioMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration;
+import io.camunda.connector.http.base.model.auth.NoAuthentication;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.time.Duration;
@@ -34,12 +35,24 @@ class McpClientConfigurationValidatorTest {
   private static final StdioMcpClientTransportConfiguration STDIO_CONFIGURATION =
       new StdioMcpClientTransportConfiguration(
           "echo", List.of("hello"), Collections.emptyMap(), false);
+
   private static final StreamableHttpMcpClientTransportConfiguration STREAMABLE_HTTP_CONFIGURATION =
       new StreamableHttpMcpClientTransportConfiguration(
-          "http://localhost:1234/mcp", Collections.emptyMap(), Duration.ofSeconds(5), false, false);
+          "http://localhost:1234/mcp",
+          Collections.emptyMap(),
+          new NoAuthentication(),
+          Duration.ofSeconds(5),
+          false,
+          false);
+
   private static final SseHttpMcpClientTransportConfiguration SSE_CONFIGURATION =
       new SseHttpMcpClientTransportConfiguration(
-          "http://localhost:1234/sse", Collections.emptyMap(), Duration.ofSeconds(5), false, false);
+          "http://localhost:1234/sse",
+          Collections.emptyMap(),
+          new NoAuthentication(),
+          Duration.ofSeconds(5),
+          false,
+          false);
 
   @Autowired private Validator validator;
 

@@ -8,9 +8,11 @@ package io.camunda.connector.agenticai.mcp.client.configuration;
 
 import io.camunda.connector.agenticai.mcp.client.configuration.validation.ValidMcpClientConfiguration;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import io.camunda.connector.http.base.model.auth.Authentication;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -65,7 +67,8 @@ public record McpClientConfigurationProperties(
   public record StreamableHttpMcpClientTransportConfiguration(
       @NotBlank String url,
       @NotNull @DefaultValue Map<String, String> headers,
-      Duration timeout,
+      @Valid Authentication authentication,
+      @PositiveOrZero Duration timeout,
       @DefaultValue("false") boolean logRequests,
       @DefaultValue("false") boolean logResponses)
       implements McpClientTransportConfiguration {
@@ -79,7 +82,8 @@ public record McpClientConfigurationProperties(
   public record SseHttpMcpClientTransportConfiguration(
       @NotBlank String url,
       @NotNull @DefaultValue Map<String, String> headers,
-      Duration timeout,
+      @Valid Authentication authentication,
+      @PositiveOrZero Duration timeout,
       @DefaultValue("false") boolean logRequests,
       @DefaultValue("false") boolean logResponses)
       implements McpClientTransportConfiguration {
