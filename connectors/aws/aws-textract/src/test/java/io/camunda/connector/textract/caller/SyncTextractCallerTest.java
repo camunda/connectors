@@ -28,23 +28,25 @@ class SyncTextractCallerTest {
   void callWithS3DocumentLocation() {
     TextractRequestData requestData =
         new TextractRequestData(
-            TextractExecutionType.SYNC,
             DocumentLocationType.S3,
             "test-bucket",
             "test-object",
             "1",
+            null,
+            TextractExecutionType.SYNC,
             true,
             true,
             true,
             true,
+            false,
+            "",
             "token",
             "client-request-token",
             "job-tag",
             "notification-channel",
             "role-arn",
             "outputBucket",
-            "prefix",
-            null);
+            "prefix");
 
     AmazonTextractClient textractClient = mock(AmazonTextractClient.class);
 
@@ -65,23 +67,25 @@ class SyncTextractCallerTest {
 
     TextractRequestData requestData =
         new TextractRequestData(
-            TextractExecutionType.SYNC,
             DocumentLocationType.UPLOADED,
             null,
             null,
             null,
+            document,
+            TextractExecutionType.SYNC,
             true,
             false,
             false,
             false,
+            false,
+            null,
             "token",
             "client-request-token",
             "job-tag",
             "notification-channel",
             "role-arn",
             "outputBucket",
-            "prefix",
-            document);
+            "prefix");
 
     AmazonTextractClient textractClient = mock(AmazonTextractClient.class);
 
@@ -99,6 +103,7 @@ class SyncTextractCallerTest {
         .isEqualTo(
             new AnalyzeDocumentRequest()
                 .withFeatureTypes(TABLES.name())
+                .withQueriesConfig(null)
                 .withDocument(
                     new com.amazonaws.services.textract.model.Document()
                         .withBytes(ByteBuffer.wrap(bytes))));

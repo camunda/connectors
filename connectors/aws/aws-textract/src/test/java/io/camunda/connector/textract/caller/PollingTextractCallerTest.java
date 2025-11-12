@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.textract.caller;
 
-import static io.camunda.connector.textract.caller.PollingTextractCalller.MAX_RESULT;
+import static io.camunda.connector.textract.caller.PollingTextractCaller.MAX_RESULT;
 import static io.camunda.connector.textract.util.TextractTestUtils.FULL_FILLED_ASYNC_TEXTRACT_DATA;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -17,6 +17,7 @@ import com.amazonaws.services.textract.AmazonTextractAsyncClient;
 import com.amazonaws.services.textract.model.Block;
 import com.amazonaws.services.textract.model.GetDocumentAnalysisRequest;
 import com.amazonaws.services.textract.model.GetDocumentAnalysisResult;
+import com.amazonaws.services.textract.model.JobStatus;
 import com.amazonaws.services.textract.model.StartDocumentAnalysisResult;
 import java.util.List;
 import org.apache.commons.collections4.ListUtils;
@@ -27,7 +28,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class PollingTextractCalllerTest {
+class PollingTextractCallerTest {
 
   @Test
   void callUtilDocumentAnalysisResultNextTokenEqNull() throws Exception {
@@ -55,7 +56,7 @@ class PollingTextractCalllerTest {
             firstRequestResp.getRight().getBlocks(), secondRequestResp.getRight().getBlocks());
 
     GetDocumentAnalysisResult result =
-        new PollingTextractCalller().call(FULL_FILLED_ASYNC_TEXTRACT_DATA, asyncClient);
+        new PollingTextractCaller().call(FULL_FILLED_ASYNC_TEXTRACT_DATA, asyncClient);
 
     verify(asyncClient).getDocumentAnalysis(firstRequestResp.getLeft());
     verify(asyncClient).getDocumentAnalysis(secondRequestResp.getLeft());
@@ -85,13 +86,13 @@ class PollingTextractCalllerTest {
 
     GetDocumentAnalysisResult firstDocResult =
         new GetDocumentAnalysisResult()
-            .withJobStatus("SUCCESS")
+            .withJobStatus(JobStatus.SUCCEEDED.toString())
             .withNextToken(nextToken)
             .withBlocks(List.of(new Block().withText("AAA"), new Block().withText("BBB")));
 
     GetDocumentAnalysisResult secondDocResult =
         new GetDocumentAnalysisResult()
-            .withJobStatus("SUCCESS")
+            .withJobStatus(JobStatus.SUCCEEDED.toString())
             .withNextToken(null)
             .withBlocks(List.of(new Block().withText("CCC"), new Block().withText("DDD")));
 
