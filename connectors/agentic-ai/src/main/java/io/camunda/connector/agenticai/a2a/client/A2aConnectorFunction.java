@@ -6,10 +6,10 @@
  */
 package io.camunda.connector.agenticai.a2a.client;
 
+import io.camunda.connector.agenticai.a2a.agenttool.A2aGatewayToolHandler;
 import io.camunda.connector.agenticai.a2a.client.api.A2aRequestHandler;
 import io.camunda.connector.agenticai.a2a.client.model.A2aRequest;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aResult;
-import io.camunda.connector.agenticai.a2a.discovery.A2aGatewayToolHandler;
+import io.camunda.connector.agenticai.a2a.common.model.result.A2aResult;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;

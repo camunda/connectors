@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.a2a.client.api;
 
 import io.camunda.connector.agenticai.a2a.client.model.A2aRequest;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aResult;
+import io.camunda.connector.agenticai.a2a.common.model.result.A2aResult;
 
 public interface A2aRequestHandler {
   A2aResult handle(A2aRequest request);

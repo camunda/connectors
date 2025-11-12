@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.a2a.client.api;
 
 import io.a2a.spec.AgentCard;
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
+import io.camunda.connector.agenticai.a2a.common.model.result.A2aSendMessageResult;
 
 public interface A2aMessageSender {
   A2aSendMessageResult sendMessage(

@@ -17,22 +17,22 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.a2a.spec.AgentCard;
-import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
 import io.camunda.connector.agenticai.a2a.client.model.A2aCommonSendMessageConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aConnectorModeConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aRequest;
 import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aRequestData;
-import io.camunda.connector.agenticai.a2a.client.model.A2aRequest.A2aRequestData.ConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aSendMessageOperationParametersBuilder;
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aToolOperationConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aAgentCard;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aArtifact;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aMessage;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aTask;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aTaskStatus;
+import io.camunda.connector.agenticai.a2a.common.api.A2aAgentCardFetcher;
+import io.camunda.connector.agenticai.a2a.common.model.A2aConnectionConfiguration;
+import io.camunda.connector.agenticai.a2a.common.model.result.A2aAgentCard;
+import io.camunda.connector.agenticai.a2a.common.model.result.A2aArtifact;
+import io.camunda.connector.agenticai.a2a.common.model.result.A2aMessage;
+import io.camunda.connector.agenticai.a2a.common.model.result.A2aTask;
+import io.camunda.connector.agenticai.a2a.common.model.result.A2aTaskStatus;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import java.time.Duration;
 import java.util.List;
@@ -56,8 +56,8 @@ class A2aRequestHandlerTest {
   @Mock private A2aMessageSender messageSender;
   private A2aRequestHandlerImpl handler;
 
-  private static final ConnectionConfiguration CONNECTION =
-      new ConnectionConfiguration("https://a2a.example.com", null);
+  private static final A2aConnectionConfiguration CONNECTION =
+      new A2aConnectionConfiguration("https://a2a.example.com", null);
 
   @BeforeEach
   void setUp() {

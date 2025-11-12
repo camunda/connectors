@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.a2a.client.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.a2a.spec.AgentCard;
-import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
 import io.camunda.connector.agenticai.a2a.client.api.A2aRequestHandler;
 import io.camunda.connector.agenticai.a2a.client.model.A2aConnectorModeConfiguration.StandaloneModeConfiguration;
@@ -19,7 +18,8 @@ import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationCon
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aToolOperationConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aResult;
+import io.camunda.connector.agenticai.a2a.common.api.A2aAgentCardFetcher;
+import io.camunda.connector.agenticai.a2a.common.model.result.A2aResult;
 import org.apache.commons.collections4.MapUtils;
 
 public class A2aRequestHandlerImpl implements A2aRequestHandler {

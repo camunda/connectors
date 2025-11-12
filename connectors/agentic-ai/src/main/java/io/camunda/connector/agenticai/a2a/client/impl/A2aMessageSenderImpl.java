@@ -11,14 +11,15 @@ import io.a2a.spec.AgentCard;
 import io.a2a.spec.Message;
 import io.a2a.spec.Part;
 import io.a2a.spec.TextPart;
-import io.camunda.connector.agenticai.a2a.client.api.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
+import io.camunda.connector.agenticai.a2a.client.model.A2aCommonSendMessageConfiguration;
 import io.camunda.connector.agenticai.a2a.client.model.A2aSendMessageOperationParameters;
 import io.camunda.connector.agenticai.a2a.client.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
-import io.camunda.connector.agenticai.a2a.client.model.result.A2aSendMessageResult;
-import io.camunda.connector.agenticai.a2a.client.sdk.A2aClientConfig;
+import io.camunda.connector.agenticai.a2a.common.api.A2aClientFactory;
+import io.camunda.connector.agenticai.a2a.common.model.result.A2aSendMessageResult;
+import io.camunda.connector.agenticai.a2a.common.sdk.A2aClientConfig;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -57,14 +58,14 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
             response.completeExceptionally(e);
           }
         };
-    try (var a2aClient =
-        clientFactory.buildClient(
-            agentCard, consumer, A2aClientConfig.from(sendMessageOperation.settings()))) {
+    A2aCommonSendMessageConfiguration settings = sendMessageOperation.settings();
+    A2aClientConfig a2aClientConfig =
+        new A2aClientConfig(settings.historyLength(), settings.supportPolling());
+    try (var a2aClient = clientFactory.buildClient(agentCard, consumer, a2aClientConfig)) {
       a2aClient.sendMessage(message);
 
       try {
-        return response.get(
-            sendMessageOperation.settings().timeout().toMillis(), TimeUnit.MILLISECONDS);
+        return response.get(settings.timeout().toMillis(), TimeUnit.MILLISECONDS);
       } catch (TimeoutException e) {
         // TODO: should be a ConnectorException with a specific error code?
         throw new RuntimeException("Timed out waiting for response from agent.", e);

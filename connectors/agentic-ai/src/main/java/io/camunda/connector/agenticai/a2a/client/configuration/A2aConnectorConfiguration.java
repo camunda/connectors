@@ -8,33 +8,29 @@ package io.camunda.connector.agenticai.a2a.client.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.A2aConnectorFunction;
-import io.camunda.connector.agenticai.a2a.client.api.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.api.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.api.A2aMessageSender;
 import io.camunda.connector.agenticai.a2a.client.api.A2aRequestHandler;
 import io.camunda.connector.agenticai.a2a.client.api.A2aSendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.convert.A2aDocumentToPartConverterImpl;
-import io.camunda.connector.agenticai.a2a.client.convert.A2aPartToContentConverter;
-import io.camunda.connector.agenticai.a2a.client.convert.A2aPartToContentConverterImpl;
-import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverter;
-import io.camunda.connector.agenticai.a2a.client.convert.A2aSdkObjectConverterImpl;
-import io.camunda.connector.agenticai.a2a.client.impl.A2aAgentCardFetcherImpl;
 import io.camunda.connector.agenticai.a2a.client.impl.A2aMessageSenderImpl;
 import io.camunda.connector.agenticai.a2a.client.impl.A2aRequestHandlerImpl;
 import io.camunda.connector.agenticai.a2a.client.impl.A2aSendMessageResponseHandlerImpl;
-import io.camunda.connector.agenticai.a2a.client.sdk.A2aClientFactoryImpl;
+import io.camunda.connector.agenticai.a2a.common.api.A2aAgentCardFetcher;
+import io.camunda.connector.agenticai.a2a.common.api.A2aClientFactory;
+import io.camunda.connector.agenticai.a2a.common.configuration.A2aCommonConfiguration;
+import io.camunda.connector.agenticai.a2a.common.convert.A2aSdkObjectConverter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 @Configuration
 @ConditionalOnBooleanProperty(
     value = "camunda.connector.agenticai.a2a.client.enabled",
     matchIfMissing = true)
-@EnableConfigurationProperties(A2aConnectorConfigurationProperties.class)
+@Import(A2aCommonConfiguration.class)
 public class A2aConnectorConfiguration {
   @Bean
   @ConditionalOnMissingBean
@@ -44,34 +40,9 @@ public class A2aConnectorConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public A2aPartToContentConverter a2aPartsToContentConverter() {
-    return new A2aPartToContentConverterImpl();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public A2aSdkObjectConverter a2aSdkObjectConverter(
-      A2aPartToContentConverter partToContentConverter) {
-    return new A2aSdkObjectConverterImpl(partToContentConverter);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
   public A2aSendMessageResponseHandler a2aSendMessageResponseHandler(
       A2aSdkObjectConverter sdkObjectConverter) {
     return new A2aSendMessageResponseHandlerImpl(sdkObjectConverter);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public A2aAgentCardFetcher a2aAgentCardFetcher() {
-    return new A2aAgentCardFetcherImpl();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public A2aClientFactory sdkClientFactory(A2aConnectorConfigurationProperties properties) {
-    return new A2aClientFactoryImpl(properties.transport());
   }
 
   @Bean
