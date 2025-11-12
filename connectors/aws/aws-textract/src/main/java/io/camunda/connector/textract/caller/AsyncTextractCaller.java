@@ -28,6 +28,7 @@ public class AsyncTextractCaller implements TextractCaller<StartDocumentAnalysis
         new StartDocumentAnalysisRequest()
             .withFeatureTypes(prepareFeatureTypes(requestData))
             .withDocumentLocation(prepareDocumentLocation(requestData))
+            .withQueriesConfig(prepareQueryConfig(requestData))
             .withClientRequestToken(requestData.clientRequestToken())
             .withJobTag(requestData.jobTag())
             .withKMSKeyId(requestData.kmsKeyId());
