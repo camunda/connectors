@@ -7,8 +7,8 @@
 package io.camunda.connector.agenticai.a2a.client.inbound.polling.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.a2a.client.common.api.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.api.A2aClientFactory;
+import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
+import io.camunda.connector.agenticai.a2a.client.common.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aCommonConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.A2aPollingExecutable;

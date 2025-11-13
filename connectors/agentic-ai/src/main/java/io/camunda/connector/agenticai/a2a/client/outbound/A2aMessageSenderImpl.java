@@ -4,18 +4,16 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.outbound.impl;
+package io.camunda.connector.agenticai.a2a.client.outbound;
 
 import io.a2a.client.ClientEvent;
 import io.a2a.spec.AgentCard;
 import io.a2a.spec.Message;
 import io.a2a.spec.Part;
 import io.a2a.spec.TextPart;
-import io.camunda.connector.agenticai.a2a.client.common.api.A2aClientFactory;
+import io.camunda.connector.agenticai.a2a.client.common.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aClientConfig;
-import io.camunda.connector.agenticai.a2a.client.outbound.api.A2aMessageSender;
-import io.camunda.connector.agenticai.a2a.client.outbound.api.A2aSendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.client.outbound.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aSendMessageOperationParameters;

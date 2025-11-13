@@ -6,13 +6,13 @@
  */
 package io.camunda.connector.agenticai.a2a.client.common.configuration;
 
-import io.camunda.connector.agenticai.a2a.client.common.api.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.api.A2aClientFactory;
+import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
+import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcherImpl;
+import io.camunda.connector.agenticai.a2a.client.common.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartToContentConverter;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartToContentConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverterImpl;
-import io.camunda.connector.agenticai.a2a.client.common.impl.A2aAgentCardFetcherImpl;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aClientFactoryImpl;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -25,7 +25,7 @@ public class A2aCommonConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public A2aPartToContentConverter a2aPartsToContentConverter() {
+  public A2aPartToContentConverter a2aPartToContentConverter() {
     return new A2aPartToContentConverterImpl();
   }
 

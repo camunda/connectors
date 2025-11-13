@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.a2a.client.outbound;
 
 import io.camunda.connector.agenticai.a2a.client.common.A2aConstants;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aResult;
-import io.camunda.connector.agenticai.a2a.client.outbound.api.A2aRequestHandler;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aRequest;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.api.annotation.OutboundConnector;

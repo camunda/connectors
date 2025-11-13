@@ -4,14 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.outbound.impl;
+package io.camunda.connector.agenticai.a2a.client.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.a2a.spec.AgentCard;
-import io.camunda.connector.agenticai.a2a.client.common.api.A2aAgentCardFetcher;
+import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aResult;
-import io.camunda.connector.agenticai.a2a.client.outbound.api.A2aMessageSender;
-import io.camunda.connector.agenticai.a2a.client.outbound.api.A2aRequestHandler;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aConnectorModeConfiguration.StandaloneModeConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aConnectorModeConfiguration.ToolModeConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aRequest;

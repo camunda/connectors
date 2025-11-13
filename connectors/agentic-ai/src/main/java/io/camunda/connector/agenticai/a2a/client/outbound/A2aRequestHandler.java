@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.outbound.api;
+package io.camunda.connector.agenticai.a2a.client.outbound;
 
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aResult;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aRequest;

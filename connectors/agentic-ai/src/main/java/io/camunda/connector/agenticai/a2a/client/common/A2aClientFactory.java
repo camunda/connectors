@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.common.api;
+package io.camunda.connector.agenticai.a2a.client.common;
 
 import io.a2a.client.ClientEvent;
 import io.a2a.spec.AgentCard;

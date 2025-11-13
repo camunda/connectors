@@ -7,19 +7,19 @@
 package io.camunda.connector.agenticai.a2a.client.outbound.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.a2a.client.common.api.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.api.A2aClientFactory;
+import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
+import io.camunda.connector.agenticai.a2a.client.common.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aCommonConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
+import io.camunda.connector.agenticai.a2a.client.outbound.A2aMessageSender;
+import io.camunda.connector.agenticai.a2a.client.outbound.A2aMessageSenderImpl;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aOutboundConnectorFunction;
-import io.camunda.connector.agenticai.a2a.client.outbound.api.A2aMessageSender;
-import io.camunda.connector.agenticai.a2a.client.outbound.api.A2aRequestHandler;
-import io.camunda.connector.agenticai.a2a.client.outbound.api.A2aSendMessageResponseHandler;
+import io.camunda.connector.agenticai.a2a.client.outbound.A2aRequestHandler;
+import io.camunda.connector.agenticai.a2a.client.outbound.A2aRequestHandlerImpl;
+import io.camunda.connector.agenticai.a2a.client.outbound.A2aSendMessageResponseHandler;
+import io.camunda.connector.agenticai.a2a.client.outbound.A2aSendMessageResponseHandlerImpl;
 import io.camunda.connector.agenticai.a2a.client.outbound.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.outbound.convert.A2aDocumentToPartConverterImpl;
-import io.camunda.connector.agenticai.a2a.client.outbound.impl.A2aMessageSenderImpl;
-import io.camunda.connector.agenticai.a2a.client.outbound.impl.A2aRequestHandlerImpl;
-import io.camunda.connector.agenticai.a2a.client.outbound.impl.A2aSendMessageResponseHandlerImpl;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;

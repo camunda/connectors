@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.outbound.impl;
+package io.camunda.connector.agenticai.a2a.client.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -17,14 +17,13 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.a2a.spec.AgentCard;
-import io.camunda.connector.agenticai.a2a.client.common.api.A2aAgentCardFetcher;
+import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.common.model.A2aConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aAgentCard;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aArtifact;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
-import io.camunda.connector.agenticai.a2a.client.outbound.api.A2aMessageSender;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aConnectorModeConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aRequest;

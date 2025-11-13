@@ -13,7 +13,7 @@ import static org.mockito.Mockito.*;
 import io.a2a.client.Client;
 import io.a2a.spec.AgentCard;
 import io.a2a.spec.TransportProtocol;
-import io.camunda.connector.agenticai.a2a.client.common.api.A2aClientFactory;
+import io.camunda.connector.agenticai.a2a.client.common.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aCommonConfigurationProperties.TransportConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aCommonConfigurationProperties.TransportConfiguration.GrpcConfiguration;
 import org.junit.jupiter.api.Test;
