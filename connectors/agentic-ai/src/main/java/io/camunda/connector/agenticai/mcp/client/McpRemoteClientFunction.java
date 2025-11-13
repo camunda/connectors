@@ -24,10 +24,10 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
     type = "io.camunda.agenticai:mcpremoteclient:1")
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.mcp.remoteclient.v1",
-    name = "MCP Remote Client",
+    name = "MCP Remote Client (early access)",
     description = "MCP (Model Context Protocol) client, operating on temporary remote connections.",
     engineVersion = "^8.9",
-    version = 2,
+    version = 1,
     inputDataClass = McpRemoteClientRequest.class,
     defaultResultVariable = "toolCallResult",
     propertyGroups = {

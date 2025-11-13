@@ -1,12 +1,12 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid MCP Remote Client",
+  "name" : "Hybrid MCP Remote Client (early access)",
   "id" : "io.camunda.connectors.agenticai.mcp.remoteclient.v1-hybrid",
   "description" : "MCP (Model Context Protocol) client, operating on temporary remote connections.",
   "metadata" : {
     "keywords" : [ ]
   },
-  "version" : 2,
+  "version" : 1,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -353,7 +353,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "2",
+    "value" : "1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
