@@ -8,8 +8,8 @@ package io.camunda.connector.agenticai.a2a.client.inbound.polling;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.model.A2aPollingRequest;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.service.A2aPollingExecutorService;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.task.A2aPollingProcessInstancesFetcherTask;
@@ -53,7 +53,7 @@ public class A2aPollingExecutable
 
   private final A2aPollingExecutorService executorService;
   private final A2aAgentCardFetcher agentCardFetcher;
-  private final A2aClientFactory clientFactory;
+  private final A2aSdkClientFactory clientFactory;
   private final A2aSdkObjectConverter objectConverter;
   private final ObjectMapper objectMapper;
 
@@ -62,7 +62,7 @@ public class A2aPollingExecutable
   public A2aPollingExecutable(
       final A2aPollingExecutorService executorService,
       final A2aAgentCardFetcher agentCardFetcher,
-      final A2aClientFactory clientFactory,
+      final A2aSdkClientFactory clientFactory,
       final A2aSdkObjectConverter objectConverter,
       final ObjectMapper objectMapper) {
     this.executorService = executorService;

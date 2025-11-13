@@ -13,11 +13,11 @@ import io.a2a.spec.Task;
 import io.a2a.spec.TaskQueryParams;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.grpc.ManagedChannelFactory;
 
-public class A2aClient implements AutoCloseable {
+public class A2aSdkClient implements AutoCloseable {
   private final Client sdkClient;
   private final ManagedChannelFactory channelFactory;
 
-  public A2aClient(Client sdkClient, ManagedChannelFactory channelFactory) {
+  public A2aSdkClient(Client sdkClient, ManagedChannelFactory channelFactory) {
     this.sdkClient = sdkClient;
     this.channelFactory = channelFactory;
   }

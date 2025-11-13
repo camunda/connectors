@@ -13,9 +13,9 @@ import io.camunda.connector.agenticai.a2a.client.agenttool.A2aGatewayToolDefinit
 import io.camunda.connector.agenticai.a2a.client.agenttool.A2aGatewayToolHandler;
 import io.camunda.connector.agenticai.a2a.client.agenttool.systemprompt.A2aSystemPromptContributor;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartToContentConverter;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.A2aPollingExecutable;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.service.A2aPollingExecutorService;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aMessageSender;
@@ -34,7 +34,7 @@ public class A2aAutoConfigurationTest {
           A2aPartToContentConverter.class,
           A2aSdkObjectConverter.class,
           A2aAgentCardFetcher.class,
-          A2aClientFactory.class);
+          A2aSdkClientFactory.class);
 
   private static final List<Class<?>> A2A_OUTBOUND_BEANS =
       List.of(

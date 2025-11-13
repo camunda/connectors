@@ -11,15 +11,15 @@ import io.a2a.spec.TaskQueryParams;
 import io.a2a.spec.TaskState;
 import io.a2a.spec.TaskStatus;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aAgentCard;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aResult;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
-import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aClient;
-import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aClientConfigBuilder;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClient;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientConfigBuilder;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.model.A2aPollingRuntimeProperties;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
@@ -43,17 +43,17 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
   private final InboundIntermediateConnectorContext context;
   private final ProcessInstanceContext processInstanceContext;
   private final A2aAgentCardFetcher agentCardFetcher;
-  private final A2aClientFactory clientFactory;
+  private final A2aSdkClientFactory clientFactory;
   private final A2aSdkObjectConverter objectConverter;
   private final ObjectMapper objectMapper;
 
-  private A2aClient client;
+  private A2aSdkClient client;
 
   public A2aPollingTask(
       final InboundIntermediateConnectorContext context,
       final ProcessInstanceContext processInstanceContext,
       final A2aAgentCardFetcher agentCardFetcher,
-      final A2aClientFactory clientFactory,
+      final A2aSdkClientFactory clientFactory,
       final A2aSdkObjectConverter objectConverter,
       final ObjectMapper objectMapper) {
     this.context = context;
@@ -176,13 +176,13 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
     return null;
   }
 
-  private synchronized A2aClient getClient(final A2aPollingRuntimeProperties runtimeProperties) {
+  private synchronized A2aSdkClient getClient(final A2aPollingRuntimeProperties runtimeProperties) {
     if (this.client == null) {
       try {
         final var agentCard =
             agentCardFetcher.fetchAgentCardRaw(runtimeProperties.data().connection());
         final var a2aClientConfig =
-            A2aClientConfigBuilder.builder()
+            A2aSdkClientConfigBuilder.builder()
                 .historyLength(runtimeProperties.data().historyLength())
                 .build();
         this.client = clientFactory.buildClient(agentCard, (event, ignore) -> {}, a2aClientConfig);

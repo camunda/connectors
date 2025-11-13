@@ -8,12 +8,12 @@ package io.camunda.connector.agenticai.a2a.client.common.configuration;
 
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcherImpl;
-import io.camunda.connector.agenticai.a2a.client.common.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartToContentConverter;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartToContentConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverterImpl;
-import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aClientFactoryImpl;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactoryImpl;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -44,7 +44,7 @@ public class A2aCommonConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public A2aClientFactory sdkClientFactory(A2aCommonConfigurationProperties properties) {
-    return new A2aClientFactoryImpl(properties.transport());
+  public A2aSdkClientFactory sdkClientFactory(A2aCommonConfigurationProperties properties) {
+    return new A2aSdkClientFactoryImpl(properties.transport());
   }
 }

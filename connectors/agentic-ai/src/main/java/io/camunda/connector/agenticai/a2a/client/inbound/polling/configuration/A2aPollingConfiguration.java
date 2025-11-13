@@ -8,9 +8,9 @@ package io.camunda.connector.agenticai.a2a.client.inbound.polling.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aCommonConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.A2aPollingExecutable;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.service.A2aPollingExecutorService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
@@ -42,7 +42,7 @@ public class A2aPollingConfiguration {
   public A2aPollingExecutable a2APollingExecutable(
       A2aPollingExecutorService executorService,
       A2aAgentCardFetcher agentCardFetcher,
-      A2aClientFactory clientFactory,
+      A2aSdkClientFactory clientFactory,
       A2aSdkObjectConverter objectConverter,
       ObjectMapper objectMapper) {
     return new A2aPollingExecutable(

@@ -21,13 +21,13 @@ import io.a2a.spec.TaskQueryParams;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.grpc.ManagedChannelFactory;
 import org.junit.jupiter.api.Test;
 
-class A2aClientTest {
+class A2ASdkClientTest {
 
   @Test
   void shouldSendMessageSuccessfully() throws A2AClientException {
     Client sdkClient = mock(Client.class);
     ManagedChannelFactory channelFactory = mock(ManagedChannelFactory.class);
-    A2aClient client = new A2aClient(sdkClient, channelFactory);
+    A2aSdkClient client = new A2aSdkClient(sdkClient, channelFactory);
     Message message = mock(Message.class);
 
     client.sendMessage(message);
@@ -39,7 +39,7 @@ class A2aClientTest {
   void shouldWrapSendMessageA2AClientExceptionInRuntimeException() throws A2AClientException {
     Client sdkClient = mock(Client.class);
     ManagedChannelFactory channelFactory = mock(ManagedChannelFactory.class);
-    A2aClient client = new A2aClient(sdkClient, channelFactory);
+    A2aSdkClient client = new A2aSdkClient(sdkClient, channelFactory);
     Message message = mock(Message.class);
     A2AClientException expectedException = new A2AClientException("Test exception");
 
@@ -54,7 +54,7 @@ class A2aClientTest {
   void shouldGetTaskSuccessfully() throws A2AClientException {
     Client sdkClient = mock(Client.class);
     ManagedChannelFactory channelFactory = mock(ManagedChannelFactory.class);
-    A2aClient client = new A2aClient(sdkClient, channelFactory);
+    A2aSdkClient client = new A2aSdkClient(sdkClient, channelFactory);
 
     final var request = new TaskQueryParams("task-123");
     final var expectedTask = mock(Task.class);
@@ -69,7 +69,7 @@ class A2aClientTest {
   void shouldWrapGetTaskA2AClientExceptionInRuntimeException() throws A2AClientException {
     Client sdkClient = mock(Client.class);
     ManagedChannelFactory channelFactory = mock(ManagedChannelFactory.class);
-    A2aClient client = new A2aClient(sdkClient, channelFactory);
+    A2aSdkClient client = new A2aSdkClient(sdkClient, channelFactory);
 
     final var request = new TaskQueryParams("task-123");
     A2AClientException expectedException = new A2AClientException("Test exception");
@@ -85,7 +85,7 @@ class A2aClientTest {
   void shouldCloseClientAndChannelFactory() throws Exception {
     Client sdkClient = mock(Client.class);
     ManagedChannelFactory channelFactory = mock(ManagedChannelFactory.class);
-    A2aClient client = new A2aClient(sdkClient, channelFactory);
+    A2aSdkClient client = new A2aSdkClient(sdkClient, channelFactory);
 
     client.close();
 
@@ -96,7 +96,7 @@ class A2aClientTest {
   @Test
   void shouldHandleNullClientOnClose() {
     ManagedChannelFactory channelFactory = mock(ManagedChannelFactory.class);
-    A2aClient client = new A2aClient(null, channelFactory);
+    A2aSdkClient client = new A2aSdkClient(null, channelFactory);
 
     client.close();
     verify(channelFactory).close();
@@ -106,7 +106,7 @@ class A2aClientTest {
   void shouldHandleNullChannelFactoryOnClose() throws Exception {
     // given
     Client sdkClient = mock(Client.class);
-    A2aClient client = new A2aClient(sdkClient, null);
+    A2aSdkClient client = new A2aSdkClient(sdkClient, null);
 
     client.close();
     verify(sdkClient).close();
@@ -116,7 +116,7 @@ class A2aClientTest {
   void shouldContinueClosingChannelFactoryEvenIfClientThrows() throws Exception {
     Client sdkClient = mock(Client.class);
     ManagedChannelFactory channelFactory = mock(ManagedChannelFactory.class);
-    A2aClient client = new A2aClient(sdkClient, channelFactory);
+    A2aSdkClient client = new A2aSdkClient(sdkClient, channelFactory);
 
     doThrow(new RuntimeException("Client close failed")).when(sdkClient).close();
 
@@ -129,7 +129,7 @@ class A2aClientTest {
   void shouldHandleExceptionFromChannelFactoryClose() throws Exception {
     Client sdkClient = mock(Client.class);
     ManagedChannelFactory channelFactory = mock(ManagedChannelFactory.class);
-    A2aClient client = new A2aClient(sdkClient, channelFactory);
+    A2aSdkClient client = new A2aSdkClient(sdkClient, channelFactory);
 
     doThrow(new RuntimeException("ChannelFactory close failed")).when(channelFactory).close();
 
@@ -142,7 +142,7 @@ class A2aClientTest {
   void shouldHandleExceptionsFromBothOnClose() throws Exception {
     Client sdkClient = mock(Client.class);
     ManagedChannelFactory channelFactory = mock(ManagedChannelFactory.class);
-    A2aClient client = new A2aClient(sdkClient, channelFactory);
+    A2aSdkClient client = new A2aSdkClient(sdkClient, channelFactory);
 
     doThrow(new RuntimeException("Client close failed")).when(sdkClient).close();
     doThrow(new RuntimeException("ChannelFactory close failed")).when(channelFactory).close();

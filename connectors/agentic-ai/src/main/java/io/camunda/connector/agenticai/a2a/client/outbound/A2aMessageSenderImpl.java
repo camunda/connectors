@@ -11,9 +11,9 @@ import io.a2a.spec.AgentCard;
 import io.a2a.spec.Message;
 import io.a2a.spec.Part;
 import io.a2a.spec.TextPart;
-import io.camunda.connector.agenticai.a2a.client.common.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aSendMessageResult;
-import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aClientConfig;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientConfig;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.outbound.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aSendMessageOperationParameters;
@@ -31,12 +31,12 @@ import org.apache.commons.lang3.StringUtils;
 public class A2aMessageSenderImpl implements A2aMessageSender {
   private final A2aDocumentToPartConverter documentToPartConverter;
   private final A2aSendMessageResponseHandler sendMessageResponseHandler;
-  private final A2aClientFactory clientFactory;
+  private final A2aSdkClientFactory clientFactory;
 
   public A2aMessageSenderImpl(
       A2aDocumentToPartConverter documentToPartConverter,
       A2aSendMessageResponseHandler sendMessageResponseHandler,
-      A2aClientFactory clientFactory) {
+      A2aSdkClientFactory clientFactory) {
     this.documentToPartConverter = documentToPartConverter;
     this.sendMessageResponseHandler = sendMessageResponseHandler;
     this.clientFactory = clientFactory;
@@ -57,9 +57,9 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
           }
         };
     A2aCommonSendMessageConfiguration settings = sendMessageOperation.settings();
-    A2aClientConfig a2aClientConfig =
-        new A2aClientConfig(settings.historyLength(), settings.supportPolling());
-    try (var a2aClient = clientFactory.buildClient(agentCard, consumer, a2aClientConfig)) {
+    A2aSdkClientConfig a2ASdkClientConfig =
+        new A2aSdkClientConfig(settings.historyLength(), settings.supportPolling());
+    try (var a2aClient = clientFactory.buildClient(agentCard, consumer, a2ASdkClientConfig)) {
       a2aClient.sendMessage(message);
 
       try {

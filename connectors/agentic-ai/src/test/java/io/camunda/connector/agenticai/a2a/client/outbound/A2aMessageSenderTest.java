@@ -21,9 +21,9 @@ import io.a2a.client.MessageEvent;
 import io.a2a.spec.AgentCard;
 import io.a2a.spec.Message;
 import io.a2a.spec.TextPart;
-import io.camunda.connector.agenticai.a2a.client.common.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
-import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aClient;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClient;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.outbound.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aSendMessageOperationParametersBuilder;
@@ -51,8 +51,8 @@ class A2aMessageSenderTest {
   private static final String MESSAGE_ID = "message-1";
   @Mock private A2aDocumentToPartConverter documentToPartConverter;
   @Mock private A2aSendMessageResponseHandler sendMessageResponseHandler;
-  @Mock private A2aClientFactory clientFactory;
-  @Mock private A2aClient a2aClient;
+  @Mock private A2aSdkClientFactory clientFactory;
+  @Mock private A2aSdkClient client;
   @Mock private AgentCard agentCard;
   @InjectMocks private A2aMessageSenderImpl messageSender;
   private final AtomicReference<BiConsumer<ClientEvent, AgentCard>> consumerRef =
@@ -64,7 +64,7 @@ class A2aMessageSenderTest {
         .thenAnswer(
             inv -> {
               consumerRef.set(inv.getArgument(1));
-              return a2aClient;
+              return client;
             });
   }
 
@@ -78,7 +78,7 @@ class A2aMessageSenderTest {
 
     var actualResult = messageSender.sendMessage(agentCard, operation);
     assertThat(actualResult).isSameAs(expectedResult);
-    verify(a2aClient).close();
+    verify(client).close();
   }
 
   @ParameterizedTest
@@ -103,7 +103,7 @@ class A2aMessageSenderTest {
             eq(agentCard),
             any(),
             assertArg(config -> assertThat(config.supportPolling()).isEqualTo(supportPolling)));
-    verify(a2aClient).close();
+    verify(client).close();
   }
 
   @Test
@@ -111,11 +111,11 @@ class A2aMessageSenderTest {
     // very short timeout to keep test fast
     var operation = newSendMessageOperation(Duration.ofMillis(10));
     // Do not trigger consumer -> future never completes
-    doAnswer(inv -> null).when(a2aClient).sendMessage(any());
+    doAnswer(inv -> null).when(client).sendMessage(any());
     assertThatThrownBy(() -> messageSender.sendMessage(agentCard, operation))
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining("Timed out waiting for response from agent");
-    verify(a2aClient).close();
+    verify(client).close();
   }
 
   @Test
@@ -129,7 +129,7 @@ class A2aMessageSenderTest {
         .isInstanceOf(RuntimeException.class)
         .hasCauseInstanceOf(IllegalStateException.class)
         .hasRootCauseMessage("boom");
-    verify(a2aClient).close();
+    verify(client).close();
   }
 
   @Test
@@ -160,7 +160,7 @@ class A2aMessageSenderTest {
         .satisfiesExactly(
             p -> assertThat(((TextPart) p).getText()).isEqualTo("hello"),
             p -> assertThat(p).isSameAs(partFromDocument));
-    verify(a2aClient).close();
+    verify(client).close();
   }
 
   @Test
@@ -183,7 +183,7 @@ class A2aMessageSenderTest {
 
     Message sentMessage = sentMessageCaptor.getValue();
     assertThat(sentMessage.getContextId()).isEqualTo("ctx-456");
-    verify(a2aClient).close();
+    verify(client).close();
   }
 
   @ParameterizedTest
@@ -208,7 +208,7 @@ class A2aMessageSenderTest {
 
     Message sentMessage = sentMessageCaptor.getValue();
     assertThat(sentMessage.getContextId()).isNull();
-    verify(a2aClient).close();
+    verify(client).close();
   }
 
   @Test
@@ -231,7 +231,7 @@ class A2aMessageSenderTest {
 
     Message sentMessage = sentMessageCaptor.getValue();
     assertThat(sentMessage.getTaskId()).isEqualTo("task-789");
-    verify(a2aClient).close();
+    verify(client).close();
   }
 
   @ParameterizedTest
@@ -253,7 +253,7 @@ class A2aMessageSenderTest {
 
     Message sentMessage = sentMessageCaptor.getValue();
     assertThat(sentMessage.getTaskId()).isNull();
-    verify(a2aClient).close();
+    verify(client).close();
   }
 
   @Test
@@ -276,7 +276,7 @@ class A2aMessageSenderTest {
 
     Message sentMessage = sentMessageCaptor.getValue();
     assertThat(sentMessage.getReferenceTaskIds()).containsExactly("ref-task-1", "ref-task-2");
-    verify(a2aClient).close();
+    verify(client).close();
   }
 
   @ParameterizedTest
@@ -301,7 +301,7 @@ class A2aMessageSenderTest {
 
     Message sentMessage = sentMessageCaptor.getValue();
     assertThat(sentMessage.getReferenceTaskIds()).isNull();
-    verify(a2aClient).close();
+    verify(client).close();
   }
 
   @Test
@@ -328,7 +328,7 @@ class A2aMessageSenderTest {
     assertThat(sentMessage.getContextId()).isEqualTo("ctx-999");
     assertThat(sentMessage.getTaskId()).isEqualTo("task-888");
     assertThat(sentMessage.getReferenceTaskIds()).containsExactly("ref-1", "ref-2", "ref-3");
-    verify(a2aClient).close();
+    verify(client).close();
   }
 
   private static A2aCommonSendMessageConfiguration sendMessageSettings() {
@@ -367,7 +367,7 @@ class A2aMessageSenderTest {
               consumerRef.get().accept(clientEvent, agentCard);
               return null;
             })
-        .when(a2aClient)
+        .when(client)
         .sendMessage(sentMessageCaptor != null ? sentMessageCaptor.capture() : any());
   }
 

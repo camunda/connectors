@@ -17,25 +17,24 @@ import io.a2a.client.transport.rest.RestTransport;
 import io.a2a.client.transport.rest.RestTransportConfig;
 import io.a2a.spec.A2AClientException;
 import io.a2a.spec.AgentCard;
-import io.camunda.connector.agenticai.a2a.client.common.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aCommonConfigurationProperties.TransportConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.grpc.ManagedChannelFactory;
 import java.util.function.BiConsumer;
 
-public class A2aClientFactoryImpl implements A2aClientFactory {
+public class A2aSdkClientFactoryImpl implements A2aSdkClientFactory {
   private final JSONRPCTransportConfig jsonrpcTransportConfig;
   private final RestTransportConfig restTransportConfig;
   private final TransportConfiguration transportConfiguration;
 
-  public A2aClientFactoryImpl(TransportConfiguration transportConfiguration) {
+  public A2aSdkClientFactoryImpl(TransportConfiguration transportConfiguration) {
     this.transportConfiguration = transportConfiguration;
     this.jsonrpcTransportConfig = new JSONRPCTransportConfig();
     this.restTransportConfig = new RestTransportConfig();
   }
 
   @Override
-  public A2aClient buildClient(
-      AgentCard agentCard, BiConsumer<ClientEvent, AgentCard> consumer, A2aClientConfig config) {
+  public A2aSdkClient buildClient(
+      AgentCard agentCard, BiConsumer<ClientEvent, AgentCard> consumer, A2aSdkClientConfig config) {
     // Create a channel factory that will create and track gRPC channels
     final ManagedChannelFactory managedChannelFactory =
         new ManagedChannelFactory(transportConfiguration.grpc().useTls());
@@ -55,7 +54,7 @@ public class A2aClientFactoryImpl implements A2aClientFactory {
               .withTransport(RestTransport.class, restTransportConfig)
               .withTransport(GrpcTransport.class, grpcTransportConfig)
               .build();
-      return new A2aClient(client, managedChannelFactory);
+      return new A2aSdkClient(client, managedChannelFactory);
     } catch (A2AClientException e) {
       // Ensure cleanup on early failures
       managedChannelFactory.close();

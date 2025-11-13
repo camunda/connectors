@@ -10,4 +10,4 @@ import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import javax.annotation.Nullable;
 
 @AgenticAiRecord
-public record A2aClientConfig(int historyLength, @Nullable Boolean supportPolling) {}
+public record A2aSdkClientConfig(int historyLength, @Nullable Boolean supportPolling) {}

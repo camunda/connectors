@@ -32,7 +32,6 @@ import io.a2a.spec.TaskQueryParams;
 import io.a2a.spec.TaskStatus;
 import io.a2a.spec.TextPart;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartToContentConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverterImpl;
@@ -43,8 +42,9 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus.TaskState;
-import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aClient;
-import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aClientConfig;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClient;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientConfig;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.model.A2aPollingRuntimeProperties;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.model.A2aPollingRuntimeProperties.A2aPollingRuntimePropertiesData;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.task.A2aPollingTask;
@@ -138,8 +138,8 @@ class A2aPollingTaskTest {
   @Mock private ProcessInstanceContext processInstanceContext;
 
   @Mock private A2aAgentCardFetcher agentCardFetcher;
-  @Mock private A2aClientFactory clientFactory;
-  @Mock private A2aClient client;
+  @Mock private A2aSdkClientFactory clientFactory;
+  @Mock private A2aSdkClient client;
 
   private final A2aSdkObjectConverter objectConverter =
       new A2aSdkObjectConverterImpl(new A2aPartToContentConverterImpl());
@@ -390,8 +390,8 @@ class A2aPollingTaskTest {
     verify(client).close();
   }
 
-  private static A2aClientConfig a2aClientConfig() {
-    return new A2aClientConfig(3, null);
+  private static A2aSdkClientConfig a2aClientConfig() {
+    return new A2aSdkClientConfig(3, null);
   }
 
   private static A2aPollingRuntimeProperties runtimeProperties(String clientResponse) {

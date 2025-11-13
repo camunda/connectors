@@ -8,9 +8,9 @@ package io.camunda.connector.agenticai.a2a.client.outbound.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aCommonConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aMessageSender;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aMessageSenderImpl;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aOutboundConnectorFunction;
@@ -50,9 +50,9 @@ public class A2aOutboundConnectorConfiguration {
   public A2aMessageSender a2aMessageSender(
       A2aDocumentToPartConverter documentToPartConverter,
       A2aSendMessageResponseHandler sendMessageResponseHandler,
-      A2aClientFactory a2aClientFactory) {
+      A2aSdkClientFactory a2ASdkClientFactory) {
     return new A2aMessageSenderImpl(
-        documentToPartConverter, sendMessageResponseHandler, a2aClientFactory);
+        documentToPartConverter, sendMessageResponseHandler, a2ASdkClientFactory);
   }
 
   @Bean

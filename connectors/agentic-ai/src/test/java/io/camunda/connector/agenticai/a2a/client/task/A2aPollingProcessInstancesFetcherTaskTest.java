@@ -21,10 +21,10 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.A2aClientFactory;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartToContentConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverterImpl;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.model.A2aPollingActivationProperties;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.model.A2aPollingActivationProperties.A2aPollingActivationPropertiesData;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.service.A2aPollingExecutorService;
@@ -58,7 +58,7 @@ class A2aPollingProcessInstancesFetcherTaskTest {
   @Mock private InboundConnectorDefinition inboundConnectorDefinition;
   @Mock private A2aPollingExecutorService executorService;
   @Mock private A2aAgentCardFetcher agentCardFetcher;
-  @Mock private A2aClientFactory clientFactory;
+  @Mock private A2aSdkClientFactory clientFactory;
   @Mock private ScheduledFuture<?> scheduledFuture;
 
   @Captor private ArgumentCaptor<A2aPollingTask> pollingTaskCaptor;
