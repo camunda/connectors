@@ -10,9 +10,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.a2a.spec.AgentCard;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aResult;
+import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aClientRequest;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aConnectorModeConfiguration.StandaloneModeConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aConnectorModeConfiguration.ToolModeConfiguration;
-import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aRequest;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aSendMessageOperationParameters;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
@@ -20,13 +20,13 @@ import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOpe
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aToolOperationConfiguration;
 import org.apache.commons.collections4.MapUtils;
 
-public class A2aRequestHandlerImpl implements A2aRequestHandler {
+public class A2aClientRequestHandlerImpl implements A2aClientRequestHandler {
 
   private final A2aAgentCardFetcher agentCardFetcher;
   private final A2aMessageSender a2aMessageSender;
   private final ObjectMapper objectMapper;
 
-  public A2aRequestHandlerImpl(
+  public A2aClientRequestHandlerImpl(
       A2aAgentCardFetcher agentCardFetcher,
       A2aMessageSender a2aMessageSender,
       ObjectMapper objectMapper) {
@@ -36,7 +36,7 @@ public class A2aRequestHandlerImpl implements A2aRequestHandler {
   }
 
   @Override
-  public A2aResult handle(A2aRequest request) {
+  public A2aResult handle(A2aClientRequest request) {
     A2aStandaloneOperationConfiguration operation;
     switch (request.data().connectorMode()) {
       case StandaloneModeConfiguration standaloneOperationConfiguration ->

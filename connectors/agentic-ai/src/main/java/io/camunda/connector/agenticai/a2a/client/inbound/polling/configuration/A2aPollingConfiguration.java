@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.a2a.client.inbound.polling.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aCommonConfiguration;
+import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aClientCommonConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.A2aPollingExecutable;
@@ -26,7 +26,7 @@ import org.springframework.context.annotation.Scope;
     value = "camunda.connector.agenticai.a2a.client.polling.enabled",
     matchIfMissing = true)
 @EnableConfigurationProperties(A2aPollingConfigurationProperties.class)
-@Import(A2aCommonConfiguration.class)
+@Import(A2aClientCommonConfiguration.class)
 public class A2aPollingConfiguration {
 
   @Bean

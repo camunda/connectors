@@ -10,7 +10,7 @@ import io.camunda.connector.agenticai.a2a.client.common.model.A2aConnectionConfi
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-public record A2aRequest(@Valid @NotNull A2aRequest.A2aRequestData data) {
+public record A2aClientRequest(@Valid @NotNull A2aClientRequest.A2aRequestData data) {
   public record A2aRequestData(
       @Valid @NotNull A2aConnectionConfiguration connection,
       @Valid @NotNull A2aConnectorModeConfiguration connectorMode) {}

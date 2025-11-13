@@ -20,8 +20,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@EnableConfigurationProperties(A2aCommonConfigurationProperties.class)
-public class A2aCommonConfiguration {
+@EnableConfigurationProperties(A2aClientCommonConfigurationProperties.class)
+public class A2aClientCommonConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
@@ -44,7 +44,8 @@ public class A2aCommonConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public A2aSdkClientFactory sdkClientFactory(A2aCommonConfigurationProperties properties) {
+  public A2aSdkClientFactory a2aSdkClientFactory(
+      A2aClientCommonConfigurationProperties properties) {
     return new A2aSdkClientFactoryImpl(properties.transport());
   }
 }

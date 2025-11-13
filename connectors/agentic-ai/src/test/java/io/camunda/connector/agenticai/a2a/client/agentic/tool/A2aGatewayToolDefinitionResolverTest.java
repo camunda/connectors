@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.agenttool;
+package io.camunda.connector.agenticai.a2a.client.agentic.tool;
 
 import static io.camunda.connector.agenticai.a2a.client.common.A2aConstants.A2A_GATEWAY_TYPE;
 import static io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver.GATEWAY_TYPE_EXTENSION;

@@ -14,7 +14,7 @@ import org.springframework.validation.annotation.Validated;
 
 @Validated
 @ConfigurationProperties(prefix = "camunda.connector.agenticai.a2a.client")
-public record A2aCommonConfigurationProperties(
+public record A2aClientCommonConfigurationProperties(
     @Valid @NotNull @DefaultValue TransportConfiguration transport) {
 
   public record TransportConfiguration(@Valid @NotNull @DefaultValue GrpcConfiguration grpc) {

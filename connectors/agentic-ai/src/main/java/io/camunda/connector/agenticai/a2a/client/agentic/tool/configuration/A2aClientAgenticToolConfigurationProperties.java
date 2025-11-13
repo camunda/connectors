@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.agenttool.configuration;
+package io.camunda.connector.agenticai.a2a.client.agentic.tool.configuration;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -14,6 +14,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.validation.annotation.Validated;
 
 @Validated
-@ConfigurationProperties(prefix = "camunda.connector.agenticai.a2a.client.agenttool")
-public record A2aAgentToolConfigurationProperties(
+@ConfigurationProperties(prefix = "camunda.connector.agenticai.a2a.client.agentic.tool")
+public record A2aClientAgenticToolConfigurationProperties(
     @Valid @NotNull @DefaultValue("classpath:a2a/a2a-system-prompt.md") Resource systemPrompt) {}

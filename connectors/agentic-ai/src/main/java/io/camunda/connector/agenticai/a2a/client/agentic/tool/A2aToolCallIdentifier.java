@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.agenttool;
+package io.camunda.connector.agenticai.a2a.client.agentic.tool;
 
 import org.apache.commons.lang3.StringUtils;
 

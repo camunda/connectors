@@ -17,7 +17,7 @@ import io.a2a.client.transport.rest.RestTransport;
 import io.a2a.client.transport.rest.RestTransportConfig;
 import io.a2a.spec.A2AClientException;
 import io.a2a.spec.AgentCard;
-import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aCommonConfigurationProperties.TransportConfiguration;
+import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aClientCommonConfigurationProperties.TransportConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.grpc.ManagedChannelFactory;
 import java.util.function.BiConsumer;
 

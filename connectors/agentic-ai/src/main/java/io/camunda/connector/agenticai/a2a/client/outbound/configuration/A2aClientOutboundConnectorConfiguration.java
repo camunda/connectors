@@ -8,14 +8,14 @@ package io.camunda.connector.agenticai.a2a.client.outbound.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
-import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aCommonConfiguration;
+import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aClientCommonConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
+import io.camunda.connector.agenticai.a2a.client.outbound.A2aClientOutboundConnectorFunction;
+import io.camunda.connector.agenticai.a2a.client.outbound.A2aClientRequestHandler;
+import io.camunda.connector.agenticai.a2a.client.outbound.A2aClientRequestHandlerImpl;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aMessageSender;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aMessageSenderImpl;
-import io.camunda.connector.agenticai.a2a.client.outbound.A2aOutboundConnectorFunction;
-import io.camunda.connector.agenticai.a2a.client.outbound.A2aRequestHandler;
-import io.camunda.connector.agenticai.a2a.client.outbound.A2aRequestHandlerImpl;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aSendMessageResponseHandler;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aSendMessageResponseHandlerImpl;
 import io.camunda.connector.agenticai.a2a.client.outbound.convert.A2aDocumentToPartConverter;
@@ -30,8 +30,8 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnBooleanProperty(
     value = "camunda.connector.agenticai.a2a.client.outbound.enabled",
     matchIfMissing = true)
-@Import(A2aCommonConfiguration.class)
-public class A2aOutboundConnectorConfiguration {
+@Import(A2aClientCommonConfiguration.class)
+public class A2aClientOutboundConnectorConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public A2aDocumentToPartConverter a2aDocumentToPartConverter(ObjectMapper objectMapper) {
@@ -57,16 +57,17 @@ public class A2aOutboundConnectorConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public A2aRequestHandler a2aRequestHandler(
+  public A2aClientRequestHandler a2aClientRequestHandler(
       A2aAgentCardFetcher agentCardFetcher,
       A2aMessageSender a2aMessageSender,
       ObjectMapper objectMapper) {
-    return new A2aRequestHandlerImpl(agentCardFetcher, a2aMessageSender, objectMapper);
+    return new A2aClientRequestHandlerImpl(agentCardFetcher, a2aMessageSender, objectMapper);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public A2aOutboundConnectorFunction a2aConnectorFunction(A2aRequestHandler handler) {
-    return new A2aOutboundConnectorFunction(handler);
+  public A2aClientOutboundConnectorFunction a2aClientOutboundConnectorFunction(
+      A2aClientRequestHandler handler) {
+    return new A2aClientOutboundConnectorFunction(handler);
   }
 }

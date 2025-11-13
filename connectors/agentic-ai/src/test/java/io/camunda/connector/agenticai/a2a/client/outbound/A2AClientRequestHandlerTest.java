@@ -24,10 +24,10 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aArtifact
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
+import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aClientRequest;
+import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aClientRequest.A2aRequestData;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aConnectorModeConfiguration;
-import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aRequest;
-import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aRequest.A2aRequestData;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aSendMessageOperationParametersBuilder;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
@@ -49,18 +49,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class A2aRequestHandlerTest {
+class A2AClientRequestHandlerTest {
 
   @Mock private A2aAgentCardFetcher agentCardFetcher;
   @Mock private A2aMessageSender messageSender;
-  private A2aRequestHandlerImpl handler;
+  private A2aClientRequestHandlerImpl handler;
 
   private static final A2aConnectionConfiguration CONNECTION =
       new A2aConnectionConfiguration("https://a2a.example.com", null);
 
   @BeforeEach
   void setUp() {
-    handler = new A2aRequestHandlerImpl(agentCardFetcher, messageSender, new ObjectMapper());
+    handler = new A2aClientRequestHandlerImpl(agentCardFetcher, messageSender, new ObjectMapper());
   }
 
   @Nested
@@ -69,7 +69,7 @@ class A2aRequestHandlerTest {
     void handleFetchAgentCard() {
       var operation = new FetchAgentCardOperationConfiguration();
       var request =
-          new A2aRequest(
+          new A2aClientRequest(
               new A2aRequestData(
                   CONNECTION,
                   new A2aConnectorModeConfiguration.StandaloneModeConfiguration(operation)));
@@ -94,7 +94,7 @@ class A2aRequestHandlerTest {
               A2aSendMessageOperationParametersBuilder.builder().text("Hello").build(),
               sendMessageConfiguration(1, 1));
       var request =
-          new A2aRequest(
+          new A2aClientRequest(
               new A2aRequestData(
                   CONNECTION,
                   new A2aConnectorModeConfiguration.StandaloneModeConfiguration(operation)));
@@ -132,7 +132,7 @@ class A2aRequestHandlerTest {
           new A2aToolOperationConfiguration(
               "fetchAgentCard", null, sendMessageConfiguration(1, 10));
       var request =
-          new A2aRequest(
+          new A2aClientRequest(
               new A2aRequestData(
                   CONNECTION, new A2aConnectorModeConfiguration.ToolModeConfiguration(operation)));
 
@@ -154,7 +154,7 @@ class A2aRequestHandlerTest {
       var commonConfiguration = sendMessageConfiguration(10, 45);
       var operation = new A2aToolOperationConfiguration("sendMessage", params, commonConfiguration);
       var request =
-          new A2aRequest(
+          new A2aClientRequest(
               new A2aRequestData(
                   CONNECTION, new A2aConnectorModeConfiguration.ToolModeConfiguration(operation)));
 
@@ -206,7 +206,7 @@ class A2aRequestHandlerTest {
           new A2aToolOperationConfiguration(
               "sendMessage", params, sendMessageConfiguration(10, 30));
       var request =
-          new A2aRequest(
+          new A2aClientRequest(
               new A2aRequestData(
                   CONNECTION, new A2aConnectorModeConfiguration.ToolModeConfiguration(operation)));
 
@@ -244,7 +244,7 @@ class A2aRequestHandlerTest {
       var operation =
           new A2aToolOperationConfiguration("sendMessage", params, sendMessageConfiguration(1, 1));
       var request =
-          new A2aRequest(
+          new A2aClientRequest(
               new A2aRequestData(
                   CONNECTION, new A2aConnectorModeConfiguration.ToolModeConfiguration(operation)));
 
@@ -258,7 +258,7 @@ class A2aRequestHandlerTest {
       var operation =
           new A2aToolOperationConfiguration("unknown", Map.of(), sendMessageConfiguration(1, 1));
       var request =
-          new A2aRequest(
+          new A2aClientRequest(
               new A2aRequestData(
                   CONNECTION, new A2aConnectorModeConfiguration.ToolModeConfiguration(operation)));
 

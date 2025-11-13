@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.a2a.client.outbound;
 
 import io.camunda.connector.agenticai.a2a.client.common.A2aConstants;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aResult;
-import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aRequest;
+import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aClientRequest;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -27,7 +27,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
         "Agent-to-Agent (A2A) client, enabling discovering remote agents' Agent Cards as well as sending messages to remote agents.",
     engineVersion = "^8.9",
     version = 0,
-    inputDataClass = A2aRequest.class,
+    inputDataClass = A2aClientRequest.class,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(
           id = "connection",
@@ -51,17 +51,17 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
                   equals = "aiAgentTool"))
     },
     icon = "a2a-client.svg")
-public class A2aOutboundConnectorFunction implements OutboundConnectorFunction {
+public class A2aClientOutboundConnectorFunction implements OutboundConnectorFunction {
 
-  private final A2aRequestHandler handler;
+  private final A2aClientRequestHandler handler;
 
-  public A2aOutboundConnectorFunction(A2aRequestHandler handler) {
+  public A2aClientOutboundConnectorFunction(A2aClientRequestHandler handler) {
     this.handler = handler;
   }
 
   @Override
   public A2aResult execute(OutboundConnectorContext context) {
-    final A2aRequest request = context.bindVariables(A2aRequest.class);
+    final A2aClientRequest request = context.bindVariables(A2aClientRequest.class);
     return handler.handle(request);
   }
 }

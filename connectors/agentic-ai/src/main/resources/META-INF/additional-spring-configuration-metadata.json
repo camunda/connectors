@@ -67,7 +67,7 @@
       "defaultValue": "true"
     },
     {
-      "name": "camunda.connector.agenticai.a2a.client.agenttool.enabled",
+      "name": "camunda.connector.agenticai.a2a.client.agentic.tool.enabled",
       "type":"java.lang.Boolean",
       "description": "Whether to enable the A2A Client connector to be used as an AI Agent tool.",
       "defaultValue": "true"

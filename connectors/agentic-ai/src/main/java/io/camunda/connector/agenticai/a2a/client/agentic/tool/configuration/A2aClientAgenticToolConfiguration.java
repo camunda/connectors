@@ -4,12 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.agenttool.configuration;
+package io.camunda.connector.agenticai.a2a.client.agentic.tool.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.a2a.client.agenttool.A2aGatewayToolDefinitionResolver;
-import io.camunda.connector.agenticai.a2a.client.agenttool.A2aGatewayToolHandler;
-import io.camunda.connector.agenticai.a2a.client.agenttool.systemprompt.A2aSystemPromptContributor;
+import io.camunda.connector.agenticai.a2a.client.agentic.tool.A2aGatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.a2a.client.agentic.tool.A2aGatewayToolHandler;
+import io.camunda.connector.agenticai.a2a.client.agentic.tool.systemprompt.A2aSystemPromptContributor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -18,10 +18,10 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @ConditionalOnBooleanProperty(
-    value = "camunda.connector.agenticai.a2a.client.agenttool.enabled",
+    value = "camunda.connector.agenticai.a2a.client.agentic.tool.enabled",
     matchIfMissing = true)
-@EnableConfigurationProperties(A2aAgentToolConfigurationProperties.class)
-public class A2aAgentToolConfiguration {
+@EnableConfigurationProperties(A2aClientAgenticToolConfigurationProperties.class)
+public class A2aClientAgenticToolConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
@@ -38,7 +38,7 @@ public class A2aAgentToolConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public A2aSystemPromptContributor a2aSystemPromptContributor(
-      A2aAgentToolConfigurationProperties properties) {
+      A2aClientAgenticToolConfigurationProperties properties) {
     return new A2aSystemPromptContributor(properties.systemPrompt());
   }
 }
