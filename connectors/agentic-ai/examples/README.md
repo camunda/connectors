@@ -13,3 +13,7 @@ This directory contains example projects showcasing the Agentic AI capabilities.
   the [Ad-Hoc Tools Schema Resolver](https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-ad-hoc-tools-schema-resolver/)
   to derive tool descriptions from elements within the ad-hoc sub-process. This can be used in combination with custom
   LLM connectors.
+- [mcp/standalone](mcp/standalone): example project demonstrating how to use MCP clients in standalone mode
+- [a2a/a2a-agent-integration](a2a/a2a-agent-integration): example project demonstrating how to integrate A2A connectors
+  with the AI Agent connector
+- [a2a/a2a-polling](a2a/a2a-polling): example project demonstrating how to use A2A polling connectors

@@ -2,11 +2,11 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "MCP Client",
   "id" : "io.camunda.connectors.agenticai.mcp.client.v1",
-  "description" : "MCP (Model Context Protocol) client using MCP connections configured on the connector runtime. Only supports tool operations.",
+  "description" : "MCP (Model Context Protocol) client using MCP connections configured on the connector runtime.",
   "metadata" : {
     "keywords" : [ ]
   },
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -22,11 +22,15 @@
     "id" : "client",
     "label" : "MCP Client"
   }, {
-    "id" : "tools",
-    "label" : "Tools"
+    "id" : "connectorMode",
+    "label" : "Connector mode",
+    "tooltip" : "Select how this connector is used. When the connector is used as an AI agent tool, select the AI Agent tool mode."
   }, {
     "id" : "operation",
-    "label" : "Operation",
+    "label" : "Operation"
+  }, {
+    "id" : "tools",
+    "label" : "Tools",
     "openByDefault" : false
   }, {
     "id" : "connector",
@@ -54,6 +58,11 @@
       "name" : "io.camunda.agenticai.gateway.type",
       "type" : "zeebe:property"
     },
+    "condition" : {
+      "property" : "data.connectorMode.type",
+      "equals" : "aiAgentTool",
+      "type" : "simple"
+    },
     "type" : "Hidden"
   }, {
     "id" : "data.client.clientId",
@@ -69,6 +78,137 @@
       "name" : "data.client.clientId",
       "type" : "zeebe:input"
     },
+    "type" : "String"
+  }, {
+    "id" : "data.connectorMode.type",
+    "label" : "Connector mode",
+    "description" : "Select how this connector is used.",
+    "value" : "aiAgentTool",
+    "group" : "connectorMode",
+    "binding" : {
+      "name" : "data.connectorMode.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Standalone",
+      "value" : "standalone"
+    }, {
+      "name" : "AI Agent tool",
+      "value" : "aiAgentTool"
+    } ]
+  }, {
+    "id" : "data.connectorMode.operation.type",
+    "label" : "Operation",
+    "description" : "The type of operation to perform.",
+    "value" : "tools/list",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.operation.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode.type",
+      "equals" : "standalone",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "List Tools",
+      "value" : "tools/list"
+    }, {
+      "name" : "Call Tool",
+      "value" : "tools/call"
+    } ]
+  }, {
+    "id" : "data.connectorMode.operation.toolName",
+    "label" : "Tool name",
+    "description" : "The name of the tool to call.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.operation.toolName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.type",
+        "equals" : "tools/call",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.connectorMode.operation.toolArguments",
+    "label" : "Tool arguments",
+    "description" : "The arguments to pass to the tool.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.operation.toolArguments",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.type",
+        "equals" : "tools/call",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.connectorMode.toolOperation.method",
+    "label" : "Method",
+    "description" : "The MCP method to be called, e.g. <code>tools/list</code>.",
+    "optional" : false,
+    "value" : "=toolCall.method",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.toolOperation.method",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode.type",
+      "equals" : "aiAgentTool",
+      "type" : "simple"
+    },
+    "tooltip" : "The method to be called on the MCP server. See the <a href=\"https://modelcontextprotocol.io/specification/2024-11-05/server\">MCP specification</a> for a list of available methods.<br><br>Currently supported:<br><code>tools/list</code>, <code>tools/call</code>",
+    "type" : "String"
+  }, {
+    "id" : "data.connectorMode.toolOperation.params",
+    "label" : "Parameters",
+    "description" : "The parameters to be passed to the MCP method.",
+    "optional" : true,
+    "value" : "=toolCall.params",
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.toolOperation.params",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode.type",
+      "equals" : "aiAgentTool",
+      "type" : "simple"
+    },
+    "tooltip" : "The parameter structure depends on the method being called. See the <a href=\"https://modelcontextprotocol.io/specification/2024-11-05/server/tools#calling-tools\">MCP specification</a> for an example of the parameters for the <code>tools/call</code> method.",
     "type" : "String"
   }, {
     "id" : "data.tools.included",
@@ -95,41 +235,10 @@
     },
     "type" : "Text"
   }, {
-    "id" : "data.operation.method",
-    "label" : "Method",
-    "description" : "The MCP method to be called, e.g. <code>tools/list</code>.",
-    "optional" : false,
-    "value" : "=toolCall.method",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.operation.method",
-      "type" : "zeebe:input"
-    },
-    "tooltip" : "The method to be called on the MCP server. See the <a href=\"https://modelcontextprotocol.io/specification/2024-11-05/server\">MCP specification</a> for a list of available methods.<br><br>Currently supported:<br><code>tools/list</code>, <code>tools/call</code>",
-    "type" : "String"
-  }, {
-    "id" : "data.operation.params",
-    "label" : "Parameters",
-    "description" : "The parameters to be passed to the MCP method.",
-    "optional" : true,
-    "value" : "=toolCall.params",
-    "feel" : "required",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.operation.params",
-      "type" : "zeebe:input"
-    },
-    "tooltip" : "The parameter structure depends on the method being called. See the <a href=\"https://modelcontextprotocol.io/specification/2024-11-05/server/tools#calling-tools\">MCP specification</a> for an example of the parameters for the <code>tools/call</code> method.",
-    "type" : "String"
-  }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "1",
+    "value" : "2",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

@@ -6,10 +6,10 @@
  */
 package io.camunda.connector.agenticai.mcp.client.configuration.langchain4j;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.McpClientHandler;
+import io.camunda.connector.agenticai.mcp.client.McpClientOperationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientExecutor;
@@ -59,9 +59,10 @@ public class McpClientLangchain4JFrameworkConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public McpClientHandler langchain4JMcpClientHandler(
-      ObjectMapper objectMapper,
+      McpClientOperationConverter operationConverter,
       McpClientRegistry<McpClient> mcpClientRegistry,
       Langchain4JMcpClientExecutor mcpClientExecutor) {
-    return new Langchain4JMcpClientHandler(objectMapper, mcpClientRegistry, mcpClientExecutor);
+    return new Langchain4JMcpClientHandler(
+        operationConverter, mcpClientRegistry, mcpClientExecutor);
   }
 }

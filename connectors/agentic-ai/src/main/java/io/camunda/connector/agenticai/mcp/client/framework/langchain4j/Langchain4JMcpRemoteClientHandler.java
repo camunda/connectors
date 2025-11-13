@@ -6,13 +6,12 @@
  */
 package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
+import io.camunda.connector.agenticai.mcp.client.McpClientOperationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientHandler;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
 import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -24,15 +23,15 @@ public class Langchain4JMcpRemoteClientHandler implements McpRemoteClientHandler
   private static final Logger LOGGER =
       LoggerFactory.getLogger(Langchain4JMcpRemoteClientHandler.class);
 
-  private final ObjectMapper objectMapper;
+  private final McpClientOperationConverter operationConverter;
   private final McpRemoteClientRegistry<McpClient> remoteClientRegistry;
   private final Langchain4JMcpClientExecutor clientExecutor;
 
   public Langchain4JMcpRemoteClientHandler(
-      ObjectMapper objectMapper,
+      McpClientOperationConverter operationConverter,
       McpRemoteClientRegistry<McpClient> remoteClientRegistry,
       Langchain4JMcpClientExecutor clientExecutor) {
-    this.objectMapper = objectMapper;
+    this.operationConverter = operationConverter;
     this.remoteClientRegistry = remoteClientRegistry;
     this.clientExecutor = clientExecutor;
   }
@@ -40,8 +39,7 @@ public class Langchain4JMcpRemoteClientHandler implements McpRemoteClientHandler
   @Override
   public McpClientResult handle(OutboundConnectorContext context, McpRemoteClientRequest request) {
     final var clientId = McpRemoteClientIdentifier.from(context);
-    final var operation =
-        objectMapper.convertValue(request.data().operation(), McpClientOperation.class);
+    final var operation = operationConverter.convertOperation(request.data().connectorMode());
     final var toolNameFilter = McpToolNameFilter.from(request.data().tools());
 
     LOGGER.debug("MCP({}): Handling operation '{}' on remote client", clientId, operation.method());

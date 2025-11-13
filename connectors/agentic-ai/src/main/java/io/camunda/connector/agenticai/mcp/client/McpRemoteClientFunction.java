@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.mcp.client;
 
+import static io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration.AI_AGENT_TOOL_ID;
+
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
@@ -14,6 +16,7 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
 @OutboundConnector(
     name = "MCP Remote Client",
@@ -22,10 +25,9 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.mcp.remoteclient.v1",
     name = "MCP Remote Client",
-    description =
-        "MCP (Model Context Protocol) client, operating on temporary remote connections. Only supports tool operations.",
+    description = "MCP (Model Context Protocol) client, operating on temporary remote connections.",
     engineVersion = "^8.9",
-    version = 1,
+    version = 2,
     inputDataClass = McpRemoteClientRequest.class,
     defaultResultVariable = "toolCallResult",
     propertyGroups = {
@@ -33,13 +35,22 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
           id = "transport",
           label = "Transport",
           tooltip = "Configure the connection to the remote MCP server."),
-      @ElementTemplate.PropertyGroup(id = "tools", label = "Tools"),
-      @ElementTemplate.PropertyGroup(id = "operation", label = "Operation")
+      @ElementTemplate.PropertyGroup(
+          id = "connectorMode",
+          label = "Connector mode",
+          tooltip =
+              "Select how this connector is used. When the connector is used as an AI agent tool, select the AI Agent tool mode."),
+      @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
+      @ElementTemplate.PropertyGroup(id = "tools", label = "Tools", openByDefault = false),
     },
     extensionProperties = {
       @ElementTemplate.ExtensionProperty(
           name = GatewayToolDefinitionResolver.GATEWAY_TYPE_EXTENSION,
-          value = McpClientGatewayToolHandler.GATEWAY_TYPE),
+          value = McpClientGatewayToolHandler.GATEWAY_TYPE,
+          condition =
+              @TemplateProperty.PropertyCondition(
+                  property = "data.connectorMode.type",
+                  equals = AI_AGENT_TOOL_ID)),
     },
     icon = "mcp-client.svg")
 public class McpRemoteClientFunction implements OutboundConnectorFunction {
