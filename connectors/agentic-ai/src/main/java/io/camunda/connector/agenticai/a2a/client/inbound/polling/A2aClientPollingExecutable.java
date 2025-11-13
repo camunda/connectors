@@ -48,7 +48,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
           templateNameOverride = "A2A Client Polling Receive Task Connector (experimental)")
     })
 @InboundConnector(name = "A2A Polling Connector", type = "io.camunda.agenticai:a2aclient:polling:0")
-public class A2aPollingExecutable
+public class A2aClientPollingExecutable
     implements InboundConnectorExecutable<InboundIntermediateConnectorContext> {
 
   private final A2aPollingExecutorService executorService;
@@ -59,7 +59,7 @@ public class A2aPollingExecutable
 
   private A2aPollingProcessInstancesFetcherTask processInstancesFetcherTask;
 
-  public A2aPollingExecutable(
+  public A2aClientPollingExecutable(
       final A2aPollingExecutorService executorService,
       final A2aAgentCardFetcher agentCardFetcher,
       final A2aSdkClientFactory clientFactory,

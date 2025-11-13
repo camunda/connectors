@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.a2a.client.task;
+package io.camunda.connector.agenticai.a2a.client.inbound.polling.task;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,8 +28,6 @@ import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.model.A2aPollingActivationProperties;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.model.A2aPollingActivationProperties.A2aPollingActivationPropertiesData;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.service.A2aPollingExecutorService;
-import io.camunda.connector.agenticai.a2a.client.inbound.polling.task.A2aPollingProcessInstancesFetcherTask;
-import io.camunda.connector.agenticai.a2a.client.inbound.polling.task.A2aPollingTask;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;

@@ -16,7 +16,7 @@ import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aPartToContentConverter;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
-import io.camunda.connector.agenticai.a2a.client.inbound.polling.A2aPollingExecutable;
+import io.camunda.connector.agenticai.a2a.client.inbound.polling.A2aClientPollingExecutable;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.service.A2aPollingExecutorService;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aClientOutboundConnectorFunction;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aClientRequestHandler;
@@ -51,7 +51,7 @@ public class A2aAutoConfigurationTest {
           A2aSystemPromptContributor.class);
 
   private static final List<Class<?>> A2A_POLLING_BEANS =
-      List.of(A2aPollingExecutable.class, A2aPollingExecutorService.class);
+      List.of(A2aClientPollingExecutable.class, A2aPollingExecutorService.class);
 
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()

@@ -13,4 +13,5 @@ import org.springframework.validation.annotation.Validated;
 
 @Validated
 @ConfigurationProperties(prefix = "camunda.connector.agenticai.a2a.client.polling")
-public record A2aPollingConfigurationProperties(@Positive @DefaultValue("10") int threadPoolSize) {}
+public record A2aClientPollingConfigurationProperties(
+    @Positive @DefaultValue("10") int threadPoolSize) {}

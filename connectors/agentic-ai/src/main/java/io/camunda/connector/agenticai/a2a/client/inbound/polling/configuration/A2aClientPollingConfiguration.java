@@ -11,7 +11,7 @@ import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aClientCommonConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
-import io.camunda.connector.agenticai.a2a.client.inbound.polling.A2aPollingExecutable;
+import io.camunda.connector.agenticai.a2a.client.inbound.polling.A2aClientPollingExecutable;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.service.A2aPollingExecutorService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -25,27 +25,27 @@ import org.springframework.context.annotation.Scope;
 @ConditionalOnBooleanProperty(
     value = "camunda.connector.agenticai.a2a.client.polling.enabled",
     matchIfMissing = true)
-@EnableConfigurationProperties(A2aPollingConfigurationProperties.class)
+@EnableConfigurationProperties(A2aClientPollingConfigurationProperties.class)
 @Import(A2aClientCommonConfiguration.class)
-public class A2aPollingConfiguration {
+public class A2aClientPollingConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
   public A2aPollingExecutorService a2aPollingExecutorService(
-      A2aPollingConfigurationProperties config) {
+      A2aClientPollingConfigurationProperties config) {
     return new A2aPollingExecutorService(config.threadPoolSize());
   }
 
   @Bean
   @Scope("prototype")
   @ConditionalOnMissingBean
-  public A2aPollingExecutable a2APollingExecutable(
+  public A2aClientPollingExecutable a2aClientPollingExecutable(
       A2aPollingExecutorService executorService,
       A2aAgentCardFetcher agentCardFetcher,
       A2aSdkClientFactory clientFactory,
       A2aSdkObjectConverter objectConverter,
       ObjectMapper objectMapper) {
-    return new A2aPollingExecutable(
+    return new A2aClientPollingExecutable(
         executorService, agentCardFetcher, clientFactory, objectConverter, objectMapper);
   }
 }

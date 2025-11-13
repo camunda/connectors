@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.connector.agenticai.a2a.client.agentic.tool.configuration.A2aClientAgenticToolConfiguration;
-import io.camunda.connector.agenticai.a2a.client.inbound.polling.configuration.A2aPollingConfiguration;
+import io.camunda.connector.agenticai.a2a.client.inbound.polling.configuration.A2aClientPollingConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.configuration.A2aClientOutboundConnectorConfiguration;
 import io.camunda.connector.agenticai.adhoctoolsschema.AdHocToolsSchemaFunction;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.CachingProcessDefinitionAdHocToolElementsResolver;
@@ -86,7 +86,7 @@ import org.springframework.core.env.Environment;
   McpRemoteClientConfiguration.class,
   A2aClientOutboundConnectorConfiguration.class,
   A2aClientAgenticToolConfiguration.class,
-  A2aPollingConfiguration.class
+  A2aClientPollingConfiguration.class
 })
 public class AgenticAiConnectorsAutoConfiguration {
 
