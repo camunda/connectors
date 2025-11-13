@@ -1,12 +1,12 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "MCP Client",
+  "name" : "MCP Client (early access)",
   "id" : "io.camunda.connectors.agenticai.mcp.client.v1",
   "description" : "MCP (Model Context Protocol) client using MCP connections configured on the connector runtime.",
   "metadata" : {
     "keywords" : [ ]
   },
-  "version" : 2,
+  "version" : 1,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -238,7 +238,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "2",
+    "value" : "1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
