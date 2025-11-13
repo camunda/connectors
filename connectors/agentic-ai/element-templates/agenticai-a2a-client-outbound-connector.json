@@ -1,6 +1,6 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "A2A Client (experimental)",
+  "name" : "A2A Client (early access)",
   "id" : "io.camunda.connectors.agenticai.a2a.client.v0",
   "description" : "Agent-to-Agent (A2A) client, enabling discovering remote agents' Agent Cards as well as sending messages to remote agents.",
   "metadata" : {

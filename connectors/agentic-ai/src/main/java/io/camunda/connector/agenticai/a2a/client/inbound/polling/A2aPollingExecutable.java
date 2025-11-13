@@ -22,7 +22,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.a2a.polling.v0",
     version = 0,
-    name = "A2A Client Polling Connector (experimental)",
+    name = "A2A Client Polling Connector (early access)",
     description =
         "Agent-to-Agent (A2A) polling inbound connector. Supports polling asynchronous tasks, but can also directly correlate messages and synchronously completed tasks.",
     icon = "a2a-client.svg",

@@ -23,7 +23,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
     type = "io.camunda.agenticai:a2aclient:0")
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.a2a.client.v0",
-    name = "A2A Client (experimental)",
+    name = "A2A Client (early access)",
     description =
         "Agent-to-Agent (A2A) client, enabling discovering remote agents' Agent Cards as well as sending messages to remote agents.",
     engineVersion = "^8.9",
