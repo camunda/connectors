@@ -20,7 +20,7 @@ import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @ElementTemplate(
-    id = "io.camunda.connectors.agenticai.a2a.polling.v0",
+    id = "io.camunda.connectors.agenticai.a2a.client.polling.v0",
     version = 0,
     name = "A2A Client Polling Connector (early access)",
     description =
@@ -38,14 +38,14 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       @ElementTemplate.ConnectorElementType(
           appliesTo = {BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT},
           elementType = BpmnType.INTERMEDIATE_CATCH_EVENT,
-          templateIdOverride = "io.camunda.connectors.agenticai.a2a.polling.intermediate.v0",
+          templateIdOverride = "io.camunda.connectors.agenticai.a2a.client.polling.intermediate.v0",
           templateNameOverride =
-              "A2A Client Polling Intermediate Catch Event Connector (experimental)"),
+              "A2A Client Polling Intermediate Catch Event Connector (early access)"),
       @ElementTemplate.ConnectorElementType(
           appliesTo = {BpmnType.RECEIVE_TASK},
           elementType = BpmnType.RECEIVE_TASK,
-          templateIdOverride = "io.camunda.connectors.agenticai.a2a.polling.receive.v0",
-          templateNameOverride = "A2A Client Polling Receive Task Connector (experimental)")
+          templateIdOverride = "io.camunda.connectors.agenticai.a2a.client.polling.receive.v0",
+          templateNameOverride = "A2A Client Polling Receive Task Connector (early access)"),
     })
 @InboundConnector(name = "A2A Polling Connector", type = "io.camunda.agenticai:a2aclient:polling:0")
 public class A2aClientPollingExecutable

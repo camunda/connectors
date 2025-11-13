@@ -261,11 +261,11 @@
               <connectorClass>io.camunda.connector.agenticai.a2a.client.inbound.polling.A2aClientPollingExecutable</connectorClass>
               <files>
                 <file>
-                  <templateId>io.camunda.connectors.agenticai.a2a.polling.intermediate.v0</templateId>
+                  <templateId>io.camunda.connectors.agenticai.a2a.client.polling.intermediate.v0</templateId>
                   <templateFileName>agenticai-a2a-client-polling-inbound-connector-intermediate.json</templateFileName>
                 </file>
                 <file>
-                  <templateId>io.camunda.connectors.agenticai.a2a.polling.receive.v0</templateId>
+                  <templateId>io.camunda.connectors.agenticai.a2a.client.polling.receive.v0</templateId>
                   <templateFileName>agenticai-a2a-client-polling-inbound-connector-receive.json</templateFileName>
                 </file>
               </files>
