@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClient;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.outbound.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration;
+import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration.A2aResponseRetrievalMode;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aSendMessageOperationParametersBuilder;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
@@ -34,11 +35,14 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EmptySource;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
@@ -82,13 +86,12 @@ class A2aMessageSenderTest {
   }
 
   @ParameterizedTest
-  @NullSource
-  @ValueSource(booleans = {true, false})
-  void shouldPassSupportPollingFlagToClientFactory(Boolean supportPolling) {
+  @MethodSource("provideBlockingAndPollingModes")
+  void shouldPassBlockingAndPollingModesToClientFactory(A2aResponseRetrievalMode retrievalMode) {
     var operation =
         new SendMessageOperationConfiguration(
             A2aSendMessageOperationParametersBuilder.builder().text("hello").build(),
-            new A2aCommonSendMessageConfiguration(0, supportPolling, Duration.ofSeconds(1)));
+            new A2aCommonSendMessageConfiguration(0, retrievalMode, Duration.ofSeconds(1)));
 
     MessageEvent clientEvent = newMessageEvent();
     var expectedResult = messageResult(MESSAGE_ID);
@@ -102,7 +105,51 @@ class A2aMessageSenderTest {
         .buildClient(
             eq(agentCard),
             any(),
-            assertArg(config -> assertThat(config.supportPolling()).isEqualTo(supportPolling)));
+            assertArg(
+                config -> {
+                  assertThat(config.blocking())
+                      .isEqualTo(retrievalMode instanceof A2aResponseRetrievalMode.Blocking);
+                  assertThat(config.pushNotificationConfig()).isNull();
+                }));
+    verify(client).close();
+  }
+
+  private static Stream<A2aResponseRetrievalMode> provideBlockingAndPollingModes() {
+    return Stream.of(
+        new A2aResponseRetrievalMode.Blocking(), new A2aResponseRetrievalMode.Polling());
+  }
+
+  @ParameterizedTest
+  @EnumSource(A2aResponseRetrievalMode.Notification.AuthorizationType.class)
+  void shouldPassNotificationModeWithAuthSchemeToClientFactory(
+      A2aResponseRetrievalMode.Notification.AuthorizationType authorizationType) {
+    String webhookUrl = "https://example.com/webhook";
+    var retrievalMode = new A2aResponseRetrievalMode.Notification(webhookUrl, authorizationType);
+    var operation =
+        new SendMessageOperationConfiguration(
+            A2aSendMessageOperationParametersBuilder.builder().text("hello").build(),
+            new A2aCommonSendMessageConfiguration(0, retrievalMode, Duration.ofSeconds(1)));
+
+    MessageEvent clientEvent = newMessageEvent();
+    var expectedResult = messageResult(MESSAGE_ID);
+    when(sendMessageResponseHandler.handleClientEvent(clientEvent)).thenReturn(expectedResult);
+    mockClientSendMessage(clientEvent);
+
+    messageSender.sendMessage(agentCard, operation);
+
+    //noinspection resource
+    verify(clientFactory)
+        .buildClient(
+            eq(agentCard),
+            any(),
+            assertArg(
+                config -> {
+                  assertThat(config.blocking()).isFalse();
+                  assertThat(config.pushNotificationConfig()).isNotNull();
+                  assertThat(config.pushNotificationConfig().url()).isEqualTo(webhookUrl);
+                  assertThat(config.pushNotificationConfig().authScheme())
+                      .isEqualTo(authorizationType.toA2aSecurityScheme());
+                }));
     verify(client).close();
   }
 
