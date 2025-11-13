@@ -4,10 +4,11 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.idp.extraction.service;
+package io.camunda.connector.idp.extraction.client.extraction.base;
 
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.idp.extraction.model.StructuredExtractionResponse;
 
-@ExtendWith(MockitoExtension.class)
-public class StructuredServiceTest {}
+public interface MlExtractor {
+  StructuredExtractionResponse runDocumentAnalysis(Document document);
+}

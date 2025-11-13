@@ -6,14 +6,14 @@
  */
 package io.camunda.connector.idp.extraction.service;
 
-import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.idp.extraction.caller.DocumentAiCaller;
-import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
+import io.camunda.connector.idp.extraction.client.extraction.AwsTextrtactExtractionClient;
+import io.camunda.connector.idp.extraction.client.extraction.GcpDocumentAiExtractionClient;
+import io.camunda.connector.idp.extraction.client.extraction.base.MlExtractor;
 import io.camunda.connector.idp.extraction.model.*;
 import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
 import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
-import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
-import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
+import io.camunda.connector.idp.extraction.model.providers.ProviderConfig;
+import io.camunda.connector.idp.extraction.model.providers.gcp.DocumentAiRequestConfiguration;
 import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -22,80 +22,47 @@ import org.slf4j.LoggerFactory;
 public class StructuredService implements ExtractionService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(StructuredService.class);
-  private final PollingTextractCaller pollingTextractCaller;
-  private final DocumentAiCaller documentAiCaller;
-  private final TextractClientSupplier textractClientSupplier;
-  private final S3ClientSupplier s3ClientSupplier;
 
-  public StructuredService() {
-    this.pollingTextractCaller = new PollingTextractCaller();
-    this.documentAiCaller = new DocumentAiCaller();
-    this.textractClientSupplier = new TextractClientSupplier();
-    this.s3ClientSupplier = new S3ClientSupplier();
-  }
-
-  public StructuredService(
-      PollingTextractCaller pollingTextractCaller,
-      DocumentAiCaller documentAiCaller,
-      TextractClientSupplier textractClientSupplier,
-      S3ClientSupplier s3ClientSupplier) {
-    this.pollingTextractCaller = pollingTextractCaller;
-    this.documentAiCaller = documentAiCaller;
-    this.textractClientSupplier = textractClientSupplier;
-    this.s3ClientSupplier = s3ClientSupplier;
-  }
+  public StructuredService() {}
 
   @Override
   public Object extract(ExtractionRequest extractionRequest) {
     final var input = extractionRequest.input();
-    return switch (extractionRequest.baseRequest()) {
-      case AwsProvider aws -> extractUsingTextract(input, aws);
-      case GcpProvider gcp -> extractUsingGcp(input, gcp);
+    long startTime = System.currentTimeMillis();
+    MlExtractor mlExtractor = getMlExtractor(extractionRequest.baseRequest());
+    LOGGER.info("Starting {} document analysis", mlExtractor.getClass().getSimpleName());
+
+    StructuredExtractionResponse results =
+        mlExtractor.runDocumentAnalysis(extractionRequest.input().document());
+    StructuredExtractionResult processedResults = processExtractedData(results, input);
+
+    long endTime = System.currentTimeMillis();
+    LOGGER.info(
+        "{} document analysis took {} ms",
+        mlExtractor.getClass().getSimpleName(),
+        (endTime - startTime));
+    return processedResults;
+  }
+
+  private MlExtractor getMlExtractor(ProviderConfig providerConfig) {
+    return switch (providerConfig) {
+      case AwsProvider aws ->
+          new AwsTextrtactExtractionClient(
+              aws.getAuthentication(), aws.getConfiguration().region(), aws.getS3BucketName());
+      case GcpProvider gcp -> {
+        DocumentAiRequestConfiguration config =
+            (DocumentAiRequestConfiguration) gcp.getConfiguration();
+        yield new GcpDocumentAiExtractionClient(
+            gcp.getAuthentication(),
+            config.getProjectId(),
+            config.getRegion(),
+            config.getProcessorId());
+      }
       default ->
           throw new IllegalStateException(
-              "Unsupported provider for structured extraction: " + extractionRequest.baseRequest());
+              "Unsupported provider for structured extraction: "
+                  + providerConfig.getClass().getSimpleName());
     };
-  }
-
-  private StructuredExtractionResult extractUsingTextract(
-      ExtractionRequestData input, AwsProvider baseRequest) {
-    try {
-      long startTime = System.currentTimeMillis();
-
-      StructuredExtractionResponse results =
-          pollingTextractCaller.extractKeyValuePairsWithConfidence(
-              input.document(),
-              baseRequest.getS3BucketName(),
-              textractClientSupplier.getTextractClient(baseRequest),
-              s3ClientSupplier.getAsyncS3Client(baseRequest));
-
-      StructuredExtractionResult processedResults = processExtractedData(results, input);
-
-      long endTime = System.currentTimeMillis();
-      LOGGER.info("Aws content extraction took {} ms", (endTime - startTime));
-      return processedResults;
-    } catch (Exception e) {
-      LOGGER.error("Document extraction failed: {}", e.getMessage());
-      throw new ConnectorException(e);
-    }
-  }
-
-  private StructuredExtractionResult extractUsingGcp(
-      ExtractionRequestData input, GcpProvider provider) {
-    try {
-      long startTime = System.currentTimeMillis();
-
-      StructuredExtractionResponse results =
-          documentAiCaller.extractKeyValuePairsWithConfidence(input, provider);
-      StructuredExtractionResult processedResults = processExtractedData(results, input);
-
-      long endTime = System.currentTimeMillis();
-      LOGGER.info("Document AI content extraction took {} ms", (endTime - startTime));
-      return processedResults;
-    } catch (Exception e) {
-      LOGGER.error("Document extraction failed: {}", e.getMessage());
-      throw new ConnectorException(e);
-    }
   }
 
   /**

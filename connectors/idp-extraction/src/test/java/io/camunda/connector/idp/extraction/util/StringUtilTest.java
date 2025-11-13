@@ -4,10 +4,11 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.idp.extraction.utils;
+package io.camunda.connector.idp.extraction.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.idp.extraction.utils.StringUtil;
 import org.junit.jupiter.api.Test;
 
 class StringUtilTest {

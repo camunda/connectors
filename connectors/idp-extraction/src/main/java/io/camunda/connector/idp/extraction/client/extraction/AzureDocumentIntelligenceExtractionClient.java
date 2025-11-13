@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.idp.extraction.caller;
+package io.camunda.connector.idp.extraction.client.extraction;
 
 import com.azure.ai.documentintelligence.DocumentIntelligenceClient;
 import com.azure.ai.documentintelligence.DocumentIntelligenceClientBuilder;
@@ -15,35 +15,42 @@ import com.azure.ai.documentintelligence.models.DocumentLine;
 import com.azure.ai.documentintelligence.models.DocumentPage;
 import com.azure.core.credential.AzureKeyCredential;
 import com.azure.core.util.polling.SyncPoller;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentLinkParameters;
-import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
-import io.camunda.connector.idp.extraction.model.providers.AzureProvider;
+import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
 import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AzureDocumentIntelligenceCaller {
+public class AzureDocumentIntelligenceExtractionClient implements TextExtractor, AutoCloseable {
 
   private static final Logger LOGGER =
-      LoggerFactory.getLogger(AzureDocumentIntelligenceCaller.class);
+      LoggerFactory.getLogger(AzureDocumentIntelligenceExtractionClient.class);
+  private final DocumentIntelligenceClient documentIntelligenceClient;
 
-  public String call(ExtractionRequestData input, AzureProvider baseRequest) {
-    LOGGER.debug("Calling Azure Document Intelligence with extraction request data: {}", input);
-
-    DocumentIntelligenceClient documentIntelligenceClient =
+  public AzureDocumentIntelligenceExtractionClient(String endpoint, String apiKey) {
+    documentIntelligenceClient =
         new DocumentIntelligenceClientBuilder()
-            .endpoint(baseRequest.getDocumentIntelligenceConfiguration().getEndpoint())
-            .credential(
-                new AzureKeyCredential(
-                    baseRequest.getDocumentIntelligenceConfiguration().getApiKey()))
+            .endpoint(endpoint)
+            .credential(new AzureKeyCredential(apiKey))
             .buildClient();
+  }
 
+  @Override
+  public void close() {
+    // Azure DocumentIntelligenceClient doesn't require explicit cleanup as it's a synchronous
+    // client
+    // This method is implemented for consistency with other extraction clients
+    LOGGER.debug("AzureDocumentIntelligenceExtractionClient closed");
+  }
+
+  public String extract(Document document) {
     try {
       SyncPoller<AnalyzeOperationDetails, AnalyzeResult> analyzePoller;
 
       try {
         DocumentLinkParameters linkParams = new DocumentLinkParameters(Duration.ofMinutes(2));
-        String documentLink = input.document().generateLink(linkParams);
+        String documentLink = document.generateLink(linkParams);
         // Use the document link for analysis
         analyzePoller =
             documentIntelligenceClient.beginAnalyzeDocument(
@@ -54,7 +61,7 @@ public class AzureDocumentIntelligenceCaller {
         // Fall back to using byte array
         analyzePoller =
             documentIntelligenceClient.beginAnalyzeDocument(
-                "prebuilt-read", new AnalyzeDocumentOptions(input.document().asByteArray()));
+                "prebuilt-read", new AnalyzeDocumentOptions(document.asByteArray()));
       }
 
       // Wait for analysis to complete and get results

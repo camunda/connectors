@@ -10,189 +10,148 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.idp.extraction.caller.AzureAiFoundryCaller;
-import io.camunda.connector.idp.extraction.caller.AzureDocumentIntelligenceCaller;
-import io.camunda.connector.idp.extraction.caller.BedrockCaller;
-import io.camunda.connector.idp.extraction.caller.OpenAiSpecCaller;
-import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
-import io.camunda.connector.idp.extraction.caller.VertexCaller;
+import io.camunda.connector.idp.extraction.client.ai.AzureAiFoundryClient;
+import io.camunda.connector.idp.extraction.client.ai.AzureOpenAiClient;
+import io.camunda.connector.idp.extraction.client.ai.BedrockAiClient;
+import io.camunda.connector.idp.extraction.client.ai.OpenAiClient;
+import io.camunda.connector.idp.extraction.client.ai.VertexAiClient;
+import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
+import io.camunda.connector.idp.extraction.client.extraction.AwsTextrtactExtractionClient;
+import io.camunda.connector.idp.extraction.client.extraction.AzureDocumentIntelligenceExtractionClient;
+import io.camunda.connector.idp.extraction.client.extraction.GcpDocumentAiExtractionClient;
+import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
 import io.camunda.connector.idp.extraction.model.ExtractionRequest;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.ExtractionResult;
+import io.camunda.connector.idp.extraction.model.LlmModel;
 import io.camunda.connector.idp.extraction.model.TaxonomyItem;
 import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
 import io.camunda.connector.idp.extraction.model.providers.AzureProvider;
 import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
 import io.camunda.connector.idp.extraction.model.providers.OpenAiProvider;
-import io.camunda.connector.idp.extraction.supplier.BedrockRuntimeClientSupplier;
-import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
-import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
+import io.camunda.connector.idp.extraction.model.providers.ProviderConfig;
+import io.camunda.connector.idp.extraction.model.providers.gcp.DocumentAiRequestConfiguration;
+import io.camunda.connector.idp.extraction.model.providers.gcp.VertexRequestConfiguration;
 import io.camunda.connector.idp.extraction.utils.StringUtil;
-import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.pdfbox.Loader;
-import org.apache.pdfbox.io.RandomAccessReadBuffer;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.text.PDFTextStripper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class UnstructuredService implements ExtractionService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UnstructuredService.class);
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
-  private final TextractClientSupplier textractClientSupplier;
-
-  private final S3ClientSupplier s3ClientSupplier;
-
-  private final BedrockRuntimeClientSupplier bedrockRuntimeClientSupplier;
-
-  private final PollingTextractCaller pollingTextractCaller;
-
-  private final BedrockCaller bedrockCaller;
-
-  private final ObjectMapper objectMapper;
-
-  private final VertexCaller vertexCaller;
-
-  private final AzureAiFoundryCaller azureAiFoundryCaller;
-
-  private final AzureDocumentIntelligenceCaller azureDocumentIntelligenceCaller;
-
-  private final OpenAiSpecCaller openAiSpecCaller;
-
-  public UnstructuredService() {
-    this.textractClientSupplier = new TextractClientSupplier();
-    this.s3ClientSupplier = new S3ClientSupplier();
-    this.bedrockRuntimeClientSupplier = new BedrockRuntimeClientSupplier();
-    this.pollingTextractCaller = new PollingTextractCaller();
-    this.bedrockCaller = new BedrockCaller();
-    this.vertexCaller = new VertexCaller();
-    this.objectMapper = new ObjectMapper();
-    this.azureAiFoundryCaller = new AzureAiFoundryCaller();
-    this.azureDocumentIntelligenceCaller = new AzureDocumentIntelligenceCaller();
-    this.openAiSpecCaller = new OpenAiSpecCaller();
-  }
-
-  public UnstructuredService(
-      TextractClientSupplier textractClientSupplier,
-      S3ClientSupplier s3ClientSupplier,
-      BedrockRuntimeClientSupplier bedrockRuntimeClientSupplier,
-      PollingTextractCaller pollingTextractCaller,
-      BedrockCaller bedrockCaller,
-      VertexCaller vertexCaller,
-      ObjectMapper objectMapper,
-      AzureAiFoundryCaller azureAiFoundryCaller,
-      AzureDocumentIntelligenceCaller azureDocumentIntelligenceCaller,
-      OpenAiSpecCaller openAiSpecCaller) {
-    this.textractClientSupplier = textractClientSupplier;
-    this.s3ClientSupplier = s3ClientSupplier;
-    this.bedrockRuntimeClientSupplier = bedrockRuntimeClientSupplier;
-    this.pollingTextractCaller = pollingTextractCaller;
-    this.bedrockCaller = bedrockCaller;
-    this.vertexCaller = vertexCaller;
-    this.objectMapper = objectMapper;
-    this.azureAiFoundryCaller = azureAiFoundryCaller;
-    this.azureDocumentIntelligenceCaller = azureDocumentIntelligenceCaller;
-    this.openAiSpecCaller = openAiSpecCaller;
-  }
+  public UnstructuredService() {}
 
   @Override
   public Object extract(ExtractionRequest extractionRequest) {
-    final var input = extractionRequest.input();
-    return switch (extractionRequest.baseRequest()) {
-      case AwsProvider aws -> extractUsingAws(input, aws);
-      case GcpProvider gemini -> extractUsingGcp(input, gemini);
-      case AzureProvider azure -> extractUsingAzure(input, azure);
-      case OpenAiProvider openAiSpec -> extractUsingOpenAiSpec(input, openAiSpec);
-      default ->
-          throw new IllegalStateException("Unexpected value: " + extractionRequest.baseRequest());
+    TextExtractor textExtractor = getTextExtractor(extractionRequest.baseRequest());
+    AiClient aiClient = getAiClient(extractionRequest);
+    LlmModel llmModel = LlmModel.fromId(extractionRequest.input().converseData().modelId());
+
+    String aiResponse;
+    long extractionStartTime = System.currentTimeMillis();
+    LOGGER.info("Starting {} text extraction", textExtractor.getClass().getSimpleName());
+    String extractedText = textExtractor.extract(extractionRequest.input().document());
+    long extractionEndTime = System.currentTimeMillis();
+    LOGGER.info(
+        "{} text extraction took {} ms",
+        textExtractor.getClass().getSimpleName(),
+        (extractionEndTime - extractionStartTime));
+
+    long aiStartTime = System.currentTimeMillis();
+    LOGGER.info("Starting {} conversation", aiClient.getClass().getSimpleName());
+    String userMessageText =
+        llmModel.getMessage(extractedText, extractionRequest.input().taxonomyItems());
+    aiResponse = aiClient.chat(userMessageText);
+    long aiEndTime = System.currentTimeMillis();
+    LOGGER.info(
+        "{} conversation took {} ms",
+        aiClient.getClass().getSimpleName(),
+        (aiEndTime - aiStartTime));
+
+    return new ExtractionResult(
+        buildResponseJsonIfPossible(aiResponse, extractionRequest.input().taxonomyItems()));
+  }
+
+  //  private TextExtractor getTextExtractor(ExtractorConfig extractorConfig) {
+  //    return switch (extractorConfig) {
+  //      case AwsProvider aws ->
+  //          new AwsTextrtactExtractionClient(
+  //              aws.getAuthentication(), aws.getConfiguration().region(), aws.getS3BucketName());
+  //      case AzureProvider azure ->
+  //          new AzureDocumentIntelligenceExtractionClient(
+  //              azure.getDocumentIntelligenceConfiguration().getEndpoint(),
+  //              azure.getDocumentIntelligenceConfiguration().getApiKey());
+  //      case GcpProvider gcp -> {
+  //        DocumentAiRequestConfiguration config =
+  //            (DocumentAiRequestConfiguration) gcp.getConfiguration();
+  //        yield new GcpDocumentAiExtractionClient(
+  //            gcp.getAuthentication(),
+  //            config.getProjectId(),
+  //            config.getRegion(),
+  //            config.getProcessorId());
+  //      }
+  //      case ApachePdfBoxProvider pdfBox -> new PdfBoxExtractionClient();
+  //      case MultimodalExtractorProvider multimodal -> null;
+  //    };
+  //  }
+
+  private TextExtractor getTextExtractor(ProviderConfig providerConfig) {
+    return switch (providerConfig) {
+      case AwsProvider aws ->
+          new AwsTextrtactExtractionClient(
+              aws.getAuthentication(), aws.getConfiguration().region(), aws.getS3BucketName());
+      case AzureProvider azure ->
+          new AzureDocumentIntelligenceExtractionClient(
+              azure.getDocumentIntelligenceConfiguration().getEndpoint(),
+              azure.getDocumentIntelligenceConfiguration().getApiKey());
+      case GcpProvider gcp -> {
+        DocumentAiRequestConfiguration config =
+            (DocumentAiRequestConfiguration) gcp.getConfiguration();
+        yield new GcpDocumentAiExtractionClient(
+            gcp.getAuthentication(),
+            config.getProjectId(),
+            config.getRegion(),
+            config.getProcessorId());
+      }
+      default -> throw new IllegalStateException("Unexpected value: " + providerConfig);
     };
   }
 
-  private ExtractionResult extractUsingGcp(ExtractionRequestData input, GcpProvider baseRequest) {
-    try {
-      long startTime = System.currentTimeMillis();
-      Object result = vertexCaller.generateContent(input, baseRequest);
-      long endTime = System.currentTimeMillis();
-      LOGGER.info("Gemini content extraction took {} ms", (endTime - startTime));
-      return new ExtractionResult(
-          buildResponseJsonIfPossible(result.toString(), input.taxonomyItems()));
-    } catch (Exception e) {
-      LOGGER.error("Document extraction via GCP failed: {}", e.getMessage());
-      throw new ConnectorException(e);
-    }
-  }
-
-  private ExtractionResult extractUsingAws(ExtractionRequestData input, AwsProvider baseRequest) {
-    try {
-      long startTime = System.currentTimeMillis();
-      String extractedText =
-          switch (baseRequest.getExtractionEngineType()) {
-            case AWS_TEXTRACT -> extractTextUsingAwsTextract(input, baseRequest);
-            case APACHE_PDFBOX -> extractTextUsingApachePdf(input);
-          };
-
-      String bedrockResponse =
-          bedrockCaller.call(
-              input,
-              baseRequest.getConfiguration().region(),
-              extractedText,
-              bedrockRuntimeClientSupplier.getBedrockRuntimeClient(baseRequest));
-      long endTime = System.currentTimeMillis();
-      LOGGER.info("Aws content extraction took {} ms", (endTime - startTime));
-      return new ExtractionResult(
-          buildResponseJsonIfPossible(bedrockResponse, input.taxonomyItems()));
-    } catch (Exception e) {
-      LOGGER.error("Document extraction failed: {}", e.getMessage());
-      throw new ConnectorException(e);
-    }
-  }
-
-  private ExtractionResult extractUsingAzure(
-      ExtractionRequestData input, AzureProvider baseRequest) {
-    try {
-      long startTime = System.currentTimeMillis();
-
-      // Extract text using Azure Document Intelligence
-      String extractedText = azureDocumentIntelligenceCaller.call(input, baseRequest);
-
-      // Process the extracted text using Azure AI Foundry
-      String azureResponse = azureAiFoundryCaller.call(input, baseRequest, extractedText);
-
-      long endTime = System.currentTimeMillis();
-      LOGGER.info("Azure content extraction took {} ms", (endTime - startTime));
-
-      return new ExtractionResult(
-          buildResponseJsonIfPossible(azureResponse, input.taxonomyItems()));
-    } catch (Exception e) {
-      LOGGER.error("Document extraction failed: {}", e.getMessage());
-      throw new ConnectorException(e);
-    }
-  }
-
-  private ExtractionResult extractUsingOpenAiSpec(
-      ExtractionRequestData input, OpenAiProvider baseRequest) {
-    try {
-      long startTime = System.currentTimeMillis();
-
-      // Extract text using Apache PDFBox (we can add other text extraction options later)
-      String extractedText = extractTextUsingApachePdf(input);
-
-      // Process the extracted text using OpenAI Spec API
-      String openAiResponse = openAiSpecCaller.call(input, baseRequest, extractedText);
-
-      long endTime = System.currentTimeMillis();
-      LOGGER.info("OpenAI Spec content extraction took {} ms", (endTime - startTime));
-
-      return new ExtractionResult(
-          buildResponseJsonIfPossible(openAiResponse, input.taxonomyItems()));
-    } catch (Exception e) {
-      LOGGER.error("Document extraction via OpenAI Spec failed: {}", e.getMessage());
-      throw new ConnectorException(e);
-    }
+  private AiClient getAiClient(ExtractionRequest extractionRequest) {
+    final var input = (ExtractionRequestData) extractionRequest.input();
+    return switch (extractionRequest.baseRequest()) {
+      case AwsProvider aws ->
+          new BedrockAiClient(aws, aws.getConfiguration().region(), input.converseData());
+      case OpenAiProvider openAi ->
+          new OpenAiClient(
+              openAi.getOpenAiEndpoint(), openAi.getOpenAiHeaders(), input.converseData());
+      case GcpProvider gemini -> {
+        var config = (VertexRequestConfiguration) gemini.getConfiguration();
+        yield new VertexAiClient(
+            gemini.getAuthentication().serviceAccountJson(),
+            config.getProjectId(),
+            config.getRegion(),
+            input.converseData());
+      }
+      case AzureProvider azure -> {
+        if (azure.getAiFoundryConfig().isUsingOpenAI()) {
+          yield new AzureOpenAiClient(
+              azure.getAiFoundryConfig().getEndpoint(),
+              azure.getAiFoundryConfig().getApiKey(),
+              input.converseData());
+        } else {
+          yield new AzureAiFoundryClient(
+              azure.getAiFoundryConfig().getEndpoint(),
+              azure.getAiFoundryConfig().getApiKey(),
+              input.converseData());
+        }
+      }
+    };
   }
 
   private Map<String, Object> buildResponseJsonIfPossible(
@@ -246,23 +205,6 @@ public class UnstructuredService implements ExtractionService {
           String.valueOf(500),
           String.format("Failed to parse the JSON response from LLM: %s", llmResponse),
           e);
-    }
-  }
-
-  private String extractTextUsingAwsTextract(ExtractionRequestData input, AwsProvider baseRequest)
-      throws Exception {
-    return pollingTextractCaller.call(
-        input.document(),
-        baseRequest.getS3BucketName(),
-        textractClientSupplier.getTextractClient(baseRequest),
-        s3ClientSupplier.getAsyncS3Client(baseRequest));
-  }
-
-  private String extractTextUsingApachePdf(ExtractionRequestData input) throws Exception {
-    try (InputStream inputStream = input.document().asInputStream();
-        PDDocument document = Loader.loadPDF(new RandomAccessReadBuffer(inputStream))) {
-      PDFTextStripper pdfStripper = new PDFTextStripper();
-      return pdfStripper.getText(document);
     }
   }
 }

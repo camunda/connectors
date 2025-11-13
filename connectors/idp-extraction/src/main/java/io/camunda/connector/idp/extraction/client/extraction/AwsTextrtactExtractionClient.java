@@ -4,17 +4,21 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.idp.extraction.caller;
+package io.camunda.connector.idp.extraction.client.extraction;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.aws.model.impl.AwsAuthentication;
+import io.camunda.connector.idp.extraction.client.extraction.base.MlExtractor;
+import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
 import io.camunda.connector.idp.extraction.model.Polygon;
 import io.camunda.connector.idp.extraction.model.PolygonPoint;
 import io.camunda.connector.idp.extraction.model.StructuredExtractionResponse;
 import io.camunda.connector.idp.extraction.model.TextractAnalysisTask;
 import io.camunda.connector.idp.extraction.model.TextractTextDetectionTask;
+import io.camunda.connector.idp.extraction.utils.AwsCredentialsProviderSupport;
 import io.camunda.connector.idp.extraction.utils.AwsS3Util;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,81 +30,165 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.textract.TextractClient;
-import software.amazon.awssdk.services.textract.model.*;
+import software.amazon.awssdk.services.textract.model.Block;
+import software.amazon.awssdk.services.textract.model.BlockType;
+import software.amazon.awssdk.services.textract.model.EntityType;
+import software.amazon.awssdk.services.textract.model.FeatureType;
+import software.amazon.awssdk.services.textract.model.GetDocumentAnalysisRequest;
+import software.amazon.awssdk.services.textract.model.GetDocumentAnalysisResponse;
+import software.amazon.awssdk.services.textract.model.GetDocumentTextDetectionRequest;
+import software.amazon.awssdk.services.textract.model.GetDocumentTextDetectionResponse;
+import software.amazon.awssdk.services.textract.model.JobStatus;
+import software.amazon.awssdk.services.textract.model.Point;
+import software.amazon.awssdk.services.textract.model.RelationshipType;
+import software.amazon.awssdk.services.textract.model.S3Object;
+import software.amazon.awssdk.services.textract.model.SelectionStatus;
+import software.amazon.awssdk.services.textract.model.StartDocumentAnalysisRequest;
+import software.amazon.awssdk.services.textract.model.StartDocumentTextDetectionRequest;
 
-public class PollingTextractCaller {
-  public static final long DELAY_BETWEEN_POLLING = 5;
+public class AwsTextrtactExtractionClient implements TextExtractor, MlExtractor, AutoCloseable {
 
-  public static final int MAX_RESULT = 1000;
+  private static final Logger LOGGER = LoggerFactory.getLogger(AwsTextrtactExtractionClient.class);
+  private static final long DELAY_BETWEEN_POLLING = 5;
+  private static final int MAX_RESULT = 1000;
+  private final TextractClient textractClient;
+  private final S3AsyncClient s3AsyncClient;
+  private final String bucketName;
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(PollingTextractCaller.class);
-
-  private enum TextractProcessType {
-    TEXT_DETECTION,
-    DOCUMENT_ANALYSIS
+  public AwsTextrtactExtractionClient(
+      AwsAuthentication authentication, String region, String bucketName) {
+    textractClient =
+        TextractClient.builder()
+            .credentialsProvider(AwsCredentialsProviderSupport.credentialsProvider(authentication))
+            .region(Region.of(region))
+            .build();
+    s3AsyncClient =
+        S3AsyncClient.builder()
+            .credentialsProvider(AwsCredentialsProviderSupport.credentialsProvider(authentication))
+            .region(Region.of(region))
+            .build();
+    this.bucketName = bucketName;
   }
 
-  public String call(
-      Document document,
-      String bucketName,
-      TextractClient textractClient,
-      S3AsyncClient s3AsyncClient)
-      throws Exception {
-
-    List<Block> allBlocks =
-        processDocument(
-            document,
-            bucketName,
-            textractClient,
-            s3AsyncClient,
-            TextractProcessType.TEXT_DETECTION);
-
-    return allBlocks.stream()
-        .filter(block -> block.blockType().equals(BlockType.LINE))
-        .map(Block::text)
-        .collect(Collectors.joining("\n"));
-  }
-
-  public StructuredExtractionResponse extractKeyValuePairsWithConfidence(
-      Document document,
-      String bucketName,
-      TextractClient textractClient,
-      S3AsyncClient s3AsyncClient)
-      throws Exception {
-
-    List<Block> allBlocks =
-        processDocument(
-            document,
-            bucketName,
-            textractClient,
-            s3AsyncClient,
-            TextractProcessType.DOCUMENT_ANALYSIS);
-    return extractDataFromDocument(allBlocks);
-  }
-
-  private List<Block> processDocument(
-      Document document,
-      String bucketName,
-      TextractClient textractClient,
-      S3AsyncClient s3AsyncClient,
-      TextractProcessType processType)
-      throws Exception {
-    S3Object s3Object = AwsS3Util.buildS3ObjectFromDocument(document, bucketName, s3AsyncClient);
-    LOGGER.debug("Starting polling task for {} with document: {}", processType, s3Object.name());
-    List<Block> allBlocks;
-    if (processType == TextractProcessType.DOCUMENT_ANALYSIS) {
-      allBlocks = processDocumentAnalysis(s3Object, textractClient);
-    } else {
-      allBlocks = processTextDetection(s3Object, textractClient);
+  @Override
+  public void close() {
+    if (textractClient != null && s3AsyncClient != null) {
+      try {
+        textractClient.close();
+        s3AsyncClient.close();
+        LOGGER.debug("TextractClient and S3AsyncClient closed successfully");
+      } catch (Exception e) {
+        LOGGER.warn("Error while closing TextractClient/S3AsyncClient", e);
+      }
     }
-    AwsS3Util.deleteS3ObjectFromBucketAsync(s3Object.name(), bucketName, s3AsyncClient);
+  }
+
+  public String extract(Document document) {
+    try {
+      S3Object s3Object = AwsS3Util.buildS3ObjectFromDocument(document, bucketName, s3AsyncClient);
+      LOGGER.debug("Starting polling task for text detection with document: {}", s3Object.name());
+      List<Block> allBlocks = processTextDetection(s3Object);
+      AwsS3Util.deleteS3ObjectFromBucketAsync(s3Object.name(), bucketName, s3AsyncClient);
+      return allBlocks.stream()
+          .filter(block -> block.blockType().equals(BlockType.LINE))
+          .map(Block::text)
+          .collect(Collectors.joining("\n"));
+    } catch (Exception e) {
+      LOGGER.error("Error while processing text detection", e);
+      throw new RuntimeException(e);
+    }
+  }
+
+  public StructuredExtractionResponse runDocumentAnalysis(Document document) {
+    try {
+      S3Object s3Object = AwsS3Util.buildS3ObjectFromDocument(document, bucketName, s3AsyncClient);
+      List<Block> allBlocks = processDocumentAnalysis(s3Object);
+      AwsS3Util.deleteS3ObjectFromBucketAsync(s3Object.name(), bucketName, s3AsyncClient);
+      return extractDataFromDocument(allBlocks);
+    } catch (Exception e) {
+      LOGGER.error("Error while processing text detection", e);
+      throw new RuntimeException(e);
+    }
+  }
+
+  private List<Block> processTextDetection(S3Object s3Object) throws Exception {
+    final StartDocumentTextDetectionRequest startDocumentTextDetectionRequest =
+        StartDocumentTextDetectionRequest.builder()
+            .documentLocation(AwsS3Util.buildDocumentLocation(s3Object))
+            .build();
+
+    String jobId =
+        textractClient.startDocumentTextDetection(startDocumentTextDetectionRequest).jobId();
+
+    List<Block> allBlocks;
+    try (ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor()) {
+      TextractTextDetectionTask firstTask = prepareTextractTextDetectionTask(jobId, textractClient);
+      GetDocumentTextDetectionResponse firstDocumentResult =
+          executeTextDetectionTask(firstTask, 0, executorService);
+
+      List<Block> blocks = firstDocumentResult.blocks();
+      JobStatus jobStatus = firstDocumentResult.jobStatus();
+      String nextToken = firstDocumentResult.nextToken();
+
+      allBlocks = new ArrayList<>(blocks);
+      boolean isAnalysisFinished = jobStatus.equals(JobStatus.SUCCEEDED) && nextToken == null;
+      String currentNextToken = nextToken;
+
+      LOGGER.debug(
+          "Text Detection - Initial status: document={}, jobStatus={}, nextToken present ={}, isAnalysisFinished={}, blocks count={}",
+          s3Object.name(),
+          jobStatus,
+          nextToken != null,
+          isAnalysisFinished,
+          blocks.size());
+
+      while (!isAnalysisFinished) {
+        TextractTextDetectionTask nextTask =
+            prepareTextractTextDetectionTask(jobId, textractClient, currentNextToken);
+        GetDocumentTextDetectionResponse nextDocumentResult =
+            executeTextDetectionTask(nextTask, DELAY_BETWEEN_POLLING, executorService);
+
+        JobStatus newJobStatus = nextDocumentResult.jobStatus();
+        List<Block> nextBlocks = nextDocumentResult.blocks();
+        String statusMessage = nextDocumentResult.statusMessage();
+        String newNextToken = nextDocumentResult.nextToken();
+
+        switch (newJobStatus) {
+          case SUCCEEDED -> {
+            allBlocks.addAll(nextBlocks);
+            isAnalysisFinished = newNextToken == null;
+            currentNextToken = newNextToken;
+            LOGGER.debug(
+                "Text Detection - Status SUCCEEDED: document={}, nextToken present ={}, isAnalysisFinished={}, new blocks count={}, total blocks count={}",
+                s3Object.name(),
+                newNextToken != null,
+                isAnalysisFinished,
+                nextBlocks.size(),
+                allBlocks.size());
+          }
+          case FAILED -> throw new ConnectorException(statusMessage);
+          default -> {
+            allBlocks.addAll(nextBlocks);
+            currentNextToken = newNextToken;
+            LOGGER.debug(
+                "Text Detection - Status {}: document={}, nextToken present ={}, new blocks count={}, total blocks count={}",
+                newJobStatus,
+                s3Object.name(),
+                newNextToken != null,
+                nextBlocks.size(),
+                allBlocks.size());
+          }
+        }
+      }
+    }
+
     return allBlocks;
   }
 
-  private List<Block> processDocumentAnalysis(S3Object s3Object, TextractClient textractClient)
-      throws Exception {
+  private List<Block> processDocumentAnalysis(S3Object s3Object) throws Exception {
     List<FeatureType> featureTypes = new ArrayList<>();
     featureTypes.add(FeatureType.FORMS);
     featureTypes.add(FeatureType.TABLES);
@@ -165,81 +253,6 @@ public class PollingTextractCaller {
             currentNextToken = newNextToken;
             LOGGER.debug(
                 "Document Analysis - Status {}: document={}, nextToken present ={}, new blocks count={}, total blocks count={}",
-                newJobStatus,
-                s3Object.name(),
-                newNextToken != null,
-                nextBlocks.size(),
-                allBlocks.size());
-          }
-        }
-      }
-    }
-
-    return allBlocks;
-  }
-
-  private List<Block> processTextDetection(S3Object s3Object, TextractClient textractClient)
-      throws Exception {
-    final StartDocumentTextDetectionRequest startDocumentTextDetectionRequest =
-        StartDocumentTextDetectionRequest.builder()
-            .documentLocation(AwsS3Util.buildDocumentLocation(s3Object))
-            .build();
-
-    String jobId =
-        textractClient.startDocumentTextDetection(startDocumentTextDetectionRequest).jobId();
-
-    List<Block> allBlocks;
-    try (ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor()) {
-      TextractTextDetectionTask firstTask = prepareTextractTextDetectionTask(jobId, textractClient);
-      GetDocumentTextDetectionResponse firstDocumentResult =
-          executeTextDetectionTask(firstTask, 0, executorService);
-
-      List<Block> blocks = firstDocumentResult.blocks();
-      JobStatus jobStatus = firstDocumentResult.jobStatus();
-      String nextToken = firstDocumentResult.nextToken();
-
-      allBlocks = new ArrayList<>(blocks);
-      boolean isAnalysisFinished = jobStatus.equals(JobStatus.SUCCEEDED) && nextToken == null;
-      String currentNextToken = nextToken;
-
-      LOGGER.debug(
-          "Text Detection - Initial status: document={}, jobStatus={}, nextToken present ={}, isAnalysisFinished={}, blocks count={}",
-          s3Object.name(),
-          jobStatus,
-          nextToken != null,
-          isAnalysisFinished,
-          blocks.size());
-
-      while (!isAnalysisFinished) {
-        TextractTextDetectionTask nextTask =
-            prepareTextractTextDetectionTask(jobId, textractClient, currentNextToken);
-        GetDocumentTextDetectionResponse nextDocumentResult =
-            executeTextDetectionTask(nextTask, DELAY_BETWEEN_POLLING, executorService);
-
-        JobStatus newJobStatus = nextDocumentResult.jobStatus();
-        List<Block> nextBlocks = nextDocumentResult.blocks();
-        String statusMessage = nextDocumentResult.statusMessage();
-        String newNextToken = nextDocumentResult.nextToken();
-
-        switch (newJobStatus) {
-          case SUCCEEDED -> {
-            allBlocks.addAll(nextBlocks);
-            isAnalysisFinished = newNextToken == null;
-            currentNextToken = newNextToken;
-            LOGGER.debug(
-                "Text Detection - Status SUCCEEDED: document={}, nextToken present ={}, isAnalysisFinished={}, new blocks count={}, total blocks count={}",
-                s3Object.name(),
-                newNextToken != null,
-                isAnalysisFinished,
-                nextBlocks.size(),
-                allBlocks.size());
-          }
-          case FAILED -> throw new ConnectorException(statusMessage);
-          default -> {
-            allBlocks.addAll(nextBlocks);
-            currentNextToken = newNextToken;
-            LOGGER.debug(
-                "Text Detection - Status {}: document={}, nextToken present ={}, new blocks count={}, total blocks count={}",
                 newJobStatus,
                 s3Object.name(),
                 newNextToken != null,

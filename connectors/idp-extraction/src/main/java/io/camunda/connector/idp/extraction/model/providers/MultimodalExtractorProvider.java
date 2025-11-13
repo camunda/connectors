@@ -4,10 +4,9 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.idp.extraction.service;
+package io.camunda.connector.idp.extraction.model.providers;
 
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
-@ExtendWith(MockitoExtension.class)
-public class StructuredServiceTest {}
+@TemplateSubType(id = "multimodal", label = "Multimodal text extraction provider")
+public final class MultimodalExtractorProvider implements ExtractorConfig {}

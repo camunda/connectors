@@ -4,21 +4,23 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.idp.extraction.caller;
+package io.camunda.connector.idp.extraction.client.extraction;
 
 import com.google.cloud.documentai.v1.Document;
 import com.google.cloud.documentai.v1.DocumentProcessorServiceClient;
+import com.google.cloud.documentai.v1.DocumentProcessorServiceSettings;
 import com.google.cloud.documentai.v1.NormalizedVertex;
 import com.google.cloud.documentai.v1.ProcessRequest;
 import com.google.cloud.documentai.v1.ProcessResponse;
 import com.google.cloud.documentai.v1.RawDocument;
-import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
+import com.google.protobuf.ByteString;
+import io.camunda.connector.idp.extraction.client.extraction.base.MlExtractor;
+import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
 import io.camunda.connector.idp.extraction.model.Polygon;
 import io.camunda.connector.idp.extraction.model.PolygonPoint;
 import io.camunda.connector.idp.extraction.model.StructuredExtractionResponse;
-import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
-import io.camunda.connector.idp.extraction.model.providers.gcp.DocumentAiRequestConfiguration;
-import io.camunda.connector.idp.extraction.supplier.DocumentAiClientSupplier;
+import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthentication;
+import io.camunda.connector.idp.extraction.utils.GcsUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -28,63 +30,119 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DocumentAiCaller {
+public class GcpDocumentAiExtractionClient implements TextExtractor, MlExtractor, AutoCloseable {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(DocumentAiCaller.class);
-  private final DocumentAiClientSupplier documentAiClientSupplier;
+  private static final Logger LOGGER = LoggerFactory.getLogger(GcpDocumentAiExtractionClient.class);
+  private final DocumentProcessorServiceClient client;
+  private final String projectId;
+  private final String region;
+  private final String processorId;
 
-  public DocumentAiCaller() {
-    this.documentAiClientSupplier = new DocumentAiClientSupplier();
-  }
-
-  public DocumentAiCaller(DocumentAiClientSupplier supplier) {
-    this.documentAiClientSupplier = supplier;
-  }
-
-  public StructuredExtractionResponse extractKeyValuePairsWithConfidence(
-      ExtractionRequestData input, GcpProvider baseRequest) {
+  public GcpDocumentAiExtractionClient(
+      GcpAuthentication authentication, String projectId, String region, String processorId) {
+    this.projectId = projectId;
+    this.region = region;
+    this.processorId = processorId;
     try {
-      // Get DocumentAI client and process the document
-      try (DocumentProcessorServiceClient client =
-          documentAiClientSupplier.getDocumentAiClient(baseRequest.getAuthentication())) {
-        DocumentAiRequestConfiguration requestConfiguration =
-            (DocumentAiRequestConfiguration) baseRequest.getConfiguration();
-        String processorName =
-            String.format(
-                "projects/%s/locations/%s/processors/%s",
-                requestConfiguration.getProjectId(),
-                requestConfiguration.getRegion(),
-                requestConfiguration.getProcessorId());
+      DocumentProcessorServiceSettings settings =
+          DocumentProcessorServiceSettings.newBuilder()
+              .setCredentialsProvider(() -> GcsUtil.getCredentials(authentication))
+              .build();
+      client = DocumentProcessorServiceClient.create(settings);
+    } catch (IOException e) {
+      LOGGER.error("Error while initializing DocumentProcessorServiceClient", e);
+      throw new RuntimeException(e);
+    }
+  }
 
-        ProcessRequest request;
+  @Override
+  public void close() {
+    if (client != null) {
+      try {
+        client.close();
+        LOGGER.debug("DocumentProcessorServiceClient closed successfully");
+      } catch (Exception e) {
+        LOGGER.warn("Error while closing DocumentProcessorServiceClient", e);
+      }
+    }
+  }
 
-        // Use raw document input stream for processing
-        InputStream documentStream = input.document().asInputStream();
+  @Override
+  public String extract(io.camunda.connector.api.document.Document document) {
+    try {
+      String processorName =
+          String.format("projects/%s/locations/%s/processors/%s", projectId, region, processorId);
+
+      // Use raw document input stream for processing with try-with-resources
+      ProcessRequest request;
+      try (InputStream documentStream = document.asInputStream()) {
         request =
             ProcessRequest.newBuilder()
                 .setName(processorName)
                 .setRawDocument(
                     RawDocument.newBuilder()
-                        .setContent(com.google.protobuf.ByteString.readFrom(documentStream))
+                        .setContent(ByteString.readFrom(documentStream))
                         .setMimeType(
-                            input.document().metadata().getContentType() != null
-                                ? input.document().metadata().getContentType()
+                            document.metadata().getContentType() != null
+                                ? document.metadata().getContentType()
                                 : "application/pdf")
                         .build())
                 .build();
-
-        // Process the document
-        ProcessResponse response = client.processDocument(request);
-        Document document = response.getDocument();
-
-        // Extract key-value pairs with confidence scores
-        StructuredExtractionResponse extractionResponse = extractFormFieldsWithConfidence(document);
-        LOGGER.debug(
-            "Document AI extracted {} key-value pairs",
-            extractionResponse.extractedFields().size());
-
-        return extractionResponse;
       }
+
+      // Process the document
+      ProcessResponse response = client.processDocument(request);
+      Document gcpDocument = response.getDocument();
+
+      // Extract plain text from the document (similar to AWS Textract's text detection)
+      String extractedText = gcpDocument.getText();
+      LOGGER.debug("Document AI extracted {} characters of text", extractedText.length());
+
+      return extractedText;
+
+    } catch (IOException e) {
+      LOGGER.error("Error while extracting text from document with Document AI", e);
+      throw new RuntimeException(e);
+    }
+  }
+
+  public StructuredExtractionResponse runDocumentAnalysis(
+      io.camunda.connector.api.document.Document document) {
+    try {
+      // Get DocumentAI client and process the document
+
+      String processorName =
+          String.format("projects/%s/locations/%s/processors/%s", projectId, region, processorId);
+
+      // Use raw document input stream for processing with try-with-resources
+      ProcessRequest request;
+      try (InputStream documentStream = document.asInputStream()) {
+        request =
+            ProcessRequest.newBuilder()
+                .setName(processorName)
+                .setRawDocument(
+                    RawDocument.newBuilder()
+                        .setContent(ByteString.readFrom(documentStream))
+                        .setMimeType(
+                            document.metadata().getContentType() != null
+                                ? document.metadata().getContentType()
+                                : "application/pdf")
+                        .build())
+                .build();
+      }
+
+      // Process the document
+      ProcessResponse response = client.processDocument(request);
+      Document gcpDocument = response.getDocument();
+
+      // Extract key-value pairs with confidence scores
+      StructuredExtractionResponse extractionResponse =
+          extractFormFieldsWithConfidence(gcpDocument);
+      LOGGER.debug(
+          "Document AI extracted {} key-value pairs", extractionResponse.extractedFields().size());
+
+      return extractionResponse;
+
     } catch (IOException e) {
       LOGGER.error("Error while processing document with Document AI", e);
       throw new RuntimeException(e);
