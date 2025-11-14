@@ -37,6 +37,21 @@ public class AuthenticationMapper {
               String scopes) ->
           new io.camunda.connector.http.client.model.auth.OAuthAuthentication(
               oauthTokenEndpoint, clientId, clientSecret, audience, clientAuthentication, scopes);
+      case ClientCertificateAuthentication(
+              String keystorePath,
+              String keystorePassword,
+              String keyPassword,
+              String truststorePath,
+              String truststorePassword) -> {
+        var clientCert =
+            new io.camunda.connector.http.client.model.auth.ClientCertificateAuthentication();
+        clientCert.setKeystorePath(keystorePath);
+        clientCert.setKeystorePassword(keystorePassword);
+        clientCert.setKeyPassword(keyPassword);
+        clientCert.setTruststorePath(truststorePath);
+        clientCert.setTruststorePassword(truststorePassword);
+        yield clientCert;
+      }
       default -> throw new IllegalArgumentException("Unsupported Authentication type");
     };
   }
