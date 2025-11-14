@@ -40,6 +40,8 @@ jobs:
     needs: create-release
     name: Prepare the repository
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       tagType: ${{ steps.prev_version.outputs.release_type }}
       releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
@@ -145,6 +147,9 @@ jobs:
     needs: setup
     name: Version bump documentation links, if this is the first minor release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -202,6 +207,8 @@ jobs:
     needs: setup
     name: Create a maven release
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Download repository
         uses: actions/download-artifact@v6
@@ -288,6 +295,8 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     name: Perform the docker release
+    permissions:
+      contents: read
     steps:
       - name: Download repository
         uses: actions/download-artifact@v6
@@ -411,6 +420,8 @@ jobs:
     needs: setup
     name: Bundle and generate changelogs
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Download repository
         uses: actions/download-artifact@v6
@@ -467,6 +478,8 @@ jobs:
       - bundle-and-build-changelog
       - helm-deploy
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     if: |
       needs.setup.result == 'success' &&
