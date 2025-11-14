@@ -17,7 +17,9 @@ jobs:
   deploy-snapshots:
     name: Deploy snapshot artifacts
     runs-on: ubuntu-latest
-    concurrency: deploy-snapshots
+    concurrency:
+      group: deploy-snapshots-${{ github.ref }}
+      cancel-in-progress: true
     outputs:
       docker_version: ${{ steps.maven_version.outputs.docker_version }}
       branch: ${{ steps.version.outputs.branch }}
