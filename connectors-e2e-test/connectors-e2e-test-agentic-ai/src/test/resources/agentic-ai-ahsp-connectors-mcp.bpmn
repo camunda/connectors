@@ -70,10 +70,11 @@
           <zeebe:taskDefinition type="io.camunda.agenticai:mcpclient:1" retries="3" />
           <zeebe:ioMapping>
             <zeebe:input source="a-mcp-client" target="data.client.clientId" />
+            <zeebe:input source="aiAgentTool" target="data.connectorMode.type" />
+            <zeebe:input source="=toolCall.method" target="data.connectorMode.toolOperation.method" />
+            <zeebe:input source="=toolCall.params" target="data.connectorMode.toolOperation.params" />
             <zeebe:input source="=[&#34;toolA&#34;, &#34;toolB&#34;, &#34;toolC&#34;]" target="data.tools.included" />
             <zeebe:input source="=[&#34;toolB&#34;]" target="data.tools.excluded" />
-            <zeebe:input source="=toolCall.method" target="data.operation.method" />
-            <zeebe:input source="=toolCall.params" target="data.operation.params" />
           </zeebe:ioMapping>
           <zeebe:taskHeaders>
             <zeebe:header key="elementTemplateVersion" value="1" />
@@ -93,10 +94,11 @@
             <zeebe:input source="http" target="data.transport.type" />
             <zeebe:input source="http://localhost:1234/mcp" target="data.transport.http.url" />
             <zeebe:input source="={&#34;X-Dummy&#34;: &#34;HTTP&#34;}" target="data.transport.http.headers" />
+            <zeebe:input source="aiAgentTool" target="data.connectorMode.type" />
+            <zeebe:input source="=toolCall.method" target="data.connectorMode.toolOperation.method" />
+            <zeebe:input source="=toolCall.params" target="data.connectorMode.toolOperation.params" />
             <zeebe:input source="=[&#34;toolA&#34;, &#34;toolB&#34;, &#34;toolC&#34;]" target="data.tools.included" />
             <zeebe:input source="=[&#34;toolB&#34;]" target="data.tools.excluded" />
-            <zeebe:input source="=toolCall.method" target="data.operation.method" />
-            <zeebe:input source="=toolCall.params" target="data.operation.params" />
           </zeebe:ioMapping>
           <zeebe:taskHeaders>
             <zeebe:header key="elementTemplateVersion" value="1" />
@@ -116,10 +118,11 @@
             <zeebe:input source="sse" target="data.transport.type" />
             <zeebe:input source="http://localhost:1234/sse" target="data.transport.sse.url" />
             <zeebe:input source="={&#34;X-Dummy&#34;: &#34;SSE&#34;}" target="data.transport.sse.headers" />
+            <zeebe:input source="aiAgentTool" target="data.connectorMode.type" />
+            <zeebe:input source="=toolCall.method" target="data.connectorMode.toolOperation.method" />
+            <zeebe:input source="=toolCall.params" target="data.connectorMode.toolOperation.params" />
             <zeebe:input source="=[&#34;toolA&#34;, &#34;toolB&#34;, &#34;toolC&#34;]" target="data.tools.included" />
             <zeebe:input source="=[&#34;toolB&#34;]" target="data.tools.excluded" />
-            <zeebe:input source="=toolCall.method" target="data.operation.method" />
-            <zeebe:input source="=toolCall.params" target="data.operation.params" />
           </zeebe:ioMapping>
           <zeebe:taskHeaders>
             <zeebe:header key="elementTemplateVersion" value="1" />
@@ -145,8 +148,9 @@
           <zeebe:taskDefinition type="io.camunda.agenticai:mcpclient:1" retries="3" />
           <zeebe:ioMapping>
             <zeebe:input source="filesystem" target="data.client.clientId" />
-            <zeebe:input source="=toolCall.method" target="data.operation.method" />
-            <zeebe:input source="=toolCall.params" target="data.operation.params" />
+            <zeebe:input source="aiAgentTool" target="data.connectorMode.type" />
+            <zeebe:input source="=toolCall.method" target="data.connectorMode.toolOperation.method" />
+            <zeebe:input source="=toolCall.params" target="data.connectorMode.toolOperation.params" />
           </zeebe:ioMapping>
           <zeebe:taskHeaders>
             <zeebe:header key="elementTemplateVersion" value="1" />

@@ -18,7 +18,7 @@ package io.camunda.connector.runtime.saas.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.client.CamundaClientConfiguration;
+import io.camunda.client.CredentialsProvider;
 import io.camunda.connector.runtime.saas.SaaSConnectorRuntimeApplication;
 import io.camunda.connector.runtime.saas.SaaSSecretConfiguration;
 import org.junit.jupiter.api.Test;
@@ -38,8 +38,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
       "camunda.connector.secretprovider.discovery.enabled=false",
       "camunda.client.auth.token-url=https://weblogin.cloud.dev.ultrawombat.com/token",
       "camunda.client.auth.audience=connectors.dev.ultrawombat.com",
-      "camunda.client.auth.client-id=client-id",
-      "camunda.client.auth.client-secret=client-secret",
+      // NOTE: client-id and client-secret are NOT provided
       "spring.cloud.gcp.parametermanager.enabled=false"
     })
 @ActiveProfiles("test")
@@ -52,6 +51,11 @@ public class CustomCredentialsProviderUsedTest {
 
   @Test
   public void credentialsNotProvidedInProperties_customCredentialsProviderUsed() {
-    assertThat(applicationContext.getBean(CamundaClientConfiguration.class)).isNotNull();
+    // When client-id and client-secret are NOT provided in properties,
+    // our custom credentialsProvider bean should be created
+    assertThat(applicationContext.getBean(CredentialsProvider.class)).isNotNull();
+    var beansWithName = applicationContext.getBeansOfType(CredentialsProvider.class);
+    assertThat(beansWithName).containsKey("customConnectorsCredentialsProvider");
+    assertThat(beansWithName).doesNotContainKey("camundaClientCredentialsProvider");
   }
 }

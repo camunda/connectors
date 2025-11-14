@@ -17,8 +17,8 @@ import org.springframework.lang.Nullable;
 public record McpClientRequest(@Valid @NotNull McpClientRequestData data) {
   public record McpClientRequestData(
       @Valid @NotNull ClientConfiguration client,
-      @Valid @Nullable McpClientToolsConfiguration tools,
-      @Valid @NotNull McpClientOperationConfiguration operation) {
+      @Valid @NotNull McpConnectorModeConfiguration connectorMode,
+      @Valid @Nullable McpClientToolsConfiguration tools) {
 
     public record ClientConfiguration(
         @TemplateProperty(

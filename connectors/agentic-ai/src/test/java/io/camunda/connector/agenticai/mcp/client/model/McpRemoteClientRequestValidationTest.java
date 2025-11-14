@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.mcp.client.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest.McpRemoteClientRequestData;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientConnection;
@@ -42,8 +43,8 @@ class McpRemoteClientRequestValidationTest {
   @Test
   void validationSucceedsWhenToolsConfigurationIsNull() {
     final var transport = createValidTransport();
-    final var operation = createValidOperation();
-    final var requestData = new McpRemoteClientRequestData(transport, null, operation);
+    final var connectorMode = createValidConnectorMode();
+    final var requestData = new McpRemoteClientRequestData(transport, connectorMode, null);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request)).isEmpty();
@@ -53,8 +54,8 @@ class McpRemoteClientRequestValidationTest {
   void validationSucceedsWhenToolsIncludedAndExcludedAreNull() {
     final var transport = createValidTransport();
     final var tools = new McpClientToolsConfiguration(null, null);
-    final var operation = createValidOperation();
-    final var requestData = new McpRemoteClientRequestData(transport, tools, operation);
+    final var connectorMode = createValidConnectorMode();
+    final var requestData = new McpRemoteClientRequestData(transport, connectorMode, tools);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request)).isEmpty();
@@ -64,8 +65,9 @@ class McpRemoteClientRequestValidationTest {
   void validationSucceedsWhenOperationParamsAreNull() {
     final var transport = createValidTransport();
     final var tools = createValidToolsConfiguration();
-    final var operation = new McpClientOperationConfiguration("tools/list", null);
-    final var requestData = new McpRemoteClientRequestData(transport, tools, operation);
+    final var toolOperation = new McpClientOperationConfiguration("tools/list", null);
+    final var connectorMode = new ToolModeConfiguration(toolOperation);
+    final var requestData = new McpRemoteClientRequestData(transport, connectorMode, tools);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request)).isEmpty();
@@ -84,8 +86,8 @@ class McpRemoteClientRequestValidationTest {
   @Test
   void validationFailsWhenTransportIsNull() {
     final var tools = createValidToolsConfiguration();
-    final var operation = createValidOperation();
-    final var requestData = new McpRemoteClientRequestData(null, tools, operation);
+    final var connectorMode = createValidConnectorMode();
+    final var requestData = new McpRemoteClientRequestData(null, connectorMode, tools);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request))
@@ -95,10 +97,10 @@ class McpRemoteClientRequestValidationTest {
   }
 
   @Test
-  void validationFailsWhenOperationIsNull() {
+  void validationFailsWhenConnectorModeIsNull() {
     final var transport = createValidTransport();
     final var tools = createValidToolsConfiguration();
-    final var requestData = new McpRemoteClientRequestData(transport, tools, null);
+    final var requestData = new McpRemoteClientRequestData(transport, null, tools);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request))
@@ -112,8 +114,9 @@ class McpRemoteClientRequestValidationTest {
   void validationFailsWhenOperationMethodIsBlank(String method) {
     final var transport = createValidTransport();
     final var tools = createValidToolsConfiguration();
-    final var operation = new McpClientOperationConfiguration(method, Map.of());
-    final var requestData = new McpRemoteClientRequestData(transport, tools, operation);
+    final var toolOperation = new McpClientOperationConfiguration(method, Map.of());
+    final var connectorMode = new ToolModeConfiguration(toolOperation);
+    final var requestData = new McpRemoteClientRequestData(transport, connectorMode, tools);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request))
@@ -126,8 +129,9 @@ class McpRemoteClientRequestValidationTest {
   void validationFailsWhenOperationMethodIsNull() {
     final var transport = createValidTransport();
     final var tools = createValidToolsConfiguration();
-    final var operation = new McpClientOperationConfiguration(null, Map.of());
-    final var requestData = new McpRemoteClientRequestData(transport, tools, operation);
+    final var toolOperation = new McpClientOperationConfiguration(null, Map.of());
+    final var connectorMode = new ToolModeConfiguration(toolOperation);
+    final var requestData = new McpRemoteClientRequestData(transport, connectorMode, tools);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request))
@@ -142,8 +146,8 @@ class McpRemoteClientRequestValidationTest {
         new StreamableHttpMcpRemoteClientTransportConfiguration(
             new StreamableHttpMcpRemoteClientConnection("", Collections.emptyMap(), null));
     final var tools = createValidToolsConfiguration();
-    final var operation = createValidOperation();
-    final var requestData = new McpRemoteClientRequestData(transport, tools, operation);
+    final var connectorMode = createValidConnectorMode();
+    final var requestData = new McpRemoteClientRequestData(transport, connectorMode, tools);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request))
@@ -156,8 +160,8 @@ class McpRemoteClientRequestValidationTest {
   void validationFailsWhenTransportConnectionIsNull() {
     final var transport = new StreamableHttpMcpRemoteClientTransportConfiguration(null);
     final var tools = createValidToolsConfiguration();
-    final var operation = createValidOperation();
-    final var requestData = new McpRemoteClientRequestData(transport, tools, operation);
+    final var connectorMode = createValidConnectorMode();
+    final var requestData = new McpRemoteClientRequestData(transport, connectorMode, tools);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request))
@@ -169,8 +173,8 @@ class McpRemoteClientRequestValidationTest {
   private McpRemoteClientRequest createValidRequest() {
     final var transport = createValidTransport();
     final var tools = createValidToolsConfiguration();
-    final var operation = createValidOperation();
-    final var requestData = new McpRemoteClientRequestData(transport, tools, operation);
+    final var connectorMode = createValidConnectorMode();
+    final var requestData = new McpRemoteClientRequestData(transport, connectorMode, tools);
     return new McpRemoteClientRequest(requestData);
   }
 
@@ -186,8 +190,10 @@ class McpRemoteClientRequestValidationTest {
     return new McpClientToolsConfiguration(List.of("tool1", "tool2"), List.of("excludedTool"));
   }
 
-  private McpClientOperationConfiguration createValidOperation() {
-    return new McpClientOperationConfiguration(
-        "tools/call", Map.of("name", "tool1", "arguments", Map.of("param", "value")));
+  private McpConnectorModeConfiguration createValidConnectorMode() {
+    final var toolOperation =
+        new McpClientOperationConfiguration(
+            "tools/call", Map.of("name", "tool1", "arguments", Map.of("param", "value")));
+    return new ToolModeConfiguration(toolOperation);
   }
 }

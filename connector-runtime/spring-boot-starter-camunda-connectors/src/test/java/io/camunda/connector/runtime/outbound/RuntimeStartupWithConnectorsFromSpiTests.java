@@ -40,6 +40,6 @@ class RuntimeStartupWithConnectorsFromSpiTests {
 
   @Test
   public void httpConnectorLoadedViaSpi() {
-    assertDoesNotThrow(() -> jobWorkerManager.getJobWorker("TEST"));
+    assertDoesNotThrow(() -> jobWorkerManager.getJobWorker("io.camunda:test-outbound:1"));
   }
 }

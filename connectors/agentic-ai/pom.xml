@@ -247,7 +247,7 @@
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
             <connector>
-              <connectorClass>io.camunda.connector.agenticai.a2a.client.A2aConnectorFunction</connectorClass>
+              <connectorClass>io.camunda.connector.agenticai.a2a.client.outbound.A2aClientOutboundConnectorFunction</connectorClass>
               <files>
                 <file>
                   <templateId>io.camunda.connectors.agenticai.a2a.client.v0</templateId>
@@ -258,14 +258,14 @@
               <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
             </connector>
             <connector>
-              <connectorClass>io.camunda.connector.agenticai.a2a.inbound.A2aPollingExecutable</connectorClass>
+              <connectorClass>io.camunda.connector.agenticai.a2a.client.inbound.polling.A2aClientPollingExecutable</connectorClass>
               <files>
                 <file>
-                  <templateId>io.camunda.connectors.agenticai.a2a.polling.intermediate.v0</templateId>
+                  <templateId>io.camunda.connectors.agenticai.a2a.client.polling.intermediate.v0</templateId>
                   <templateFileName>agenticai-a2a-client-polling-inbound-connector-intermediate.json</templateFileName>
                 </file>
                 <file>
-                  <templateId>io.camunda.connectors.agenticai.a2a.polling.receive.v0</templateId>
+                  <templateId>io.camunda.connectors.agenticai.a2a.client.polling.receive.v0</templateId>
                   <templateFileName>agenticai-a2a-client-polling-inbound-connector-receive.json</templateFileName>
                 </file>
               </files>
