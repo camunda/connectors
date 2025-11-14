@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.gsheets.operation.impl;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -82,7 +80,7 @@ class DeleteWorksheetOperationTest extends BaseTest {
                   new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
 
       List<Request> requests = requestsCaptor.getValue().getRequests();
-      assertThat(requests, hasSize(1));
+      assertEquals(1, requests.size());
       Integer sheetId = requests.get(0).getDeleteSheet().getSheetId();
       assertEquals(WORKSHEET_INDEX, sheetId);
       verify(service.spreadsheets().batchUpdate(anyString(), any()).setFields(any())).execute();

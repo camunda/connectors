@@ -9,7 +9,7 @@ package io.camunda.connector.aws.bedrock.mapper;
 import static io.camunda.connector.aws.bedrock.BaseTest.readData;
 import static io.camunda.connector.aws.bedrock.mapper.DocumentMapper.UNSUPPORTED_DOC_TYPE_MSG;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference;

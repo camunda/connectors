@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.gsheets.operation.impl;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -88,7 +86,7 @@ class DeleteColumnOperationTest extends BaseTest {
                   new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
 
       List<Request> requests = requestsCaptor.getValue().getRequests();
-      assertThat(requests, hasSize(COLUMN_INDEX));
+      assertEquals(COLUMN_INDEX, requests.size());
       DimensionRange range = requests.get(0).getDeleteDimension().getRange();
       assertEquals(WORKSHEET_ID, range.getSheetId());
       assertEquals(COLUMN_INDEX, range.getStartIndex());
@@ -129,7 +127,7 @@ class DeleteColumnOperationTest extends BaseTest {
                   new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
 
       List<Request> requests = requestsCaptor.getValue().getRequests();
-      assertThat(requests, hasSize(COLUMN_INDEX));
+      assertEquals(COLUMN_INDEX, requests.size());
       DimensionRange range = requests.get(0).getDeleteDimension().getRange();
       assertEquals(WORKSHEET_ID, range.getSheetId());
       assertEquals(COLUMN_INDEX, range.getStartIndex());

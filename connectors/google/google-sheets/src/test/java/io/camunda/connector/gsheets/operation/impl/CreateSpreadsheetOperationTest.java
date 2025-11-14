@@ -6,8 +6,7 @@
  */
 package io.camunda.connector.gsheets.operation.impl;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -78,7 +77,7 @@ class CreateSpreadsheetOperationTest extends BaseTest {
                   new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
       mockedDriveUtil.verifyNoInteractions();
 
-      assertThat(resultObject, instanceOf(CreateSpreadSheetResponse.class));
+      assertInstanceOf(CreateSpreadSheetResponse.class, resultObject);
       CreateSpreadSheetResponse operationResult = (CreateSpreadSheetResponse) resultObject;
       AssertionsForClassTypes.assertThat(operationResult.spreadsheetId()).isEqualTo(SPREADSHEET_ID);
       AssertionsForClassTypes.assertThat(operationResult.spreadsheetUrl())
@@ -118,7 +117,7 @@ class CreateSpreadsheetOperationTest extends BaseTest {
                   PARENT,
                   SPREADSHEET_ID));
 
-      assertThat(resultObject, instanceOf(CreateSpreadSheetResponse.class));
+      assertInstanceOf(CreateSpreadSheetResponse.class, resultObject);
       CreateSpreadSheetResponse operationResult = (CreateSpreadSheetResponse) resultObject;
       AssertionsForClassTypes.assertThat(operationResult.spreadsheetId()).isEqualTo(SPREADSHEET_ID);
       AssertionsForClassTypes.assertThat(operationResult.spreadsheetUrl())

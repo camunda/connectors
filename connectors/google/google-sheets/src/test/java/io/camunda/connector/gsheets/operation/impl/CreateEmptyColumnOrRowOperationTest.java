@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.gsheets.operation.impl;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -92,7 +90,7 @@ class CreateEmptyColumnOrRowOperationTest extends BaseTest {
                   new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
 
       List<Request> requests = requestsCaptor.getValue().getRequests();
-      assertThat(requests, hasSize(1));
+      assertEquals(1, requests.size());
       Request request = requests.get(0);
       AppendDimensionRequest appendDimension = request.getAppendDimension();
 
@@ -138,7 +136,7 @@ class CreateEmptyColumnOrRowOperationTest extends BaseTest {
                   new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
 
       List<Request> requests = requestsCaptor.getValue().getRequests();
-      assertThat(requests, hasSize(1));
+      assertEquals(1, requests.size());
       Request request = requests.get(0);
       InsertDimensionRequest insertDimension = request.getInsertDimension();
 

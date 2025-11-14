@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.gsheets.operation.impl;
 
-import static org.hamcrest.MatcherAssert.*;
-import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -82,9 +80,9 @@ class CreateWorksheetOperationTest extends BaseTest {
       Object response =
           new CreateWorksheetOperation(model)
               .execute(new Authentication(AuthenticationType.BEARER, "abc", null, null, null));
-      assertThat(response.getClass(), typeCompatibleWith(SheetProperties.class));
+      assertInstanceOf(SheetProperties.class, response);
       SheetProperties responseTyped = (SheetProperties) response;
-      assertThat(responseTyped.getSheetId(), is(123));
+      assertEquals(123, responseTyped.getSheetId());
 
       // Then
       mockedServiceSupplier.verify(
@@ -93,7 +91,7 @@ class CreateWorksheetOperationTest extends BaseTest {
                   new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
 
       List<Request> requests = requestsCaptor.getValue().getRequests();
-      assertThat(requests, hasSize(1));
+      assertEquals(1, requests.size());
       SheetProperties properties = requests.get(0).getAddSheet().getProperties();
       assertEquals(WORKSHEET_NAME, properties.getTitle());
       assertNull(properties.getIndex());
@@ -131,7 +129,7 @@ class CreateWorksheetOperationTest extends BaseTest {
                   new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
 
       List<Request> requests = requestsCaptor.getValue().getRequests();
-      assertThat(requests, hasSize(1));
+      assertEquals(1, requests.size());
       SheetProperties properties = requests.get(0).getAddSheet().getProperties();
       assertEquals(WORKSHEET_NAME, properties.getTitle());
       assertEquals(WORKSHEET_INDEX, properties.getIndex());

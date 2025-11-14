@@ -6,9 +6,8 @@
  */
 package io.camunda.connector.gsheets.operation.impl;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mockStatic;
@@ -67,7 +66,7 @@ class GetWorksheetDataOperationTest extends BaseTest {
               GoogleSheetsServiceSupplier.getGoogleSheetsService(
                   new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
 
-      assertThat(result, instanceOf(GoogleSheetsResult.class));
+      assertInstanceOf(GoogleSheetsResult.class, result);
       Object data = ((GoogleSheetsResult) result).getResponse();
       assertEquals(values, data);
 

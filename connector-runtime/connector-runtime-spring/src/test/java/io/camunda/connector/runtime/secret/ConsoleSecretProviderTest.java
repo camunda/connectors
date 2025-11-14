@@ -21,7 +21,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.*;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
@@ -85,7 +84,7 @@ public class ConsoleSecretProviderTest {
             .willReturn(ResponseDefinitionBuilder.responseDefinition().withStatus(500)));
 
     // Test the client
-    assertThrows(RuntimeException.class, client::getSecrets);
+    assertThatThrownBy(client::getSecrets).isInstanceOf(RuntimeException.class);
   }
 
   @Test
