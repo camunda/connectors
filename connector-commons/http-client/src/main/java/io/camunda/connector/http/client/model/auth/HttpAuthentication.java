@@ -25,9 +25,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
   @JsonSubTypes.Type(value = NoAuthentication.class, name = NoAuthentication.TYPE),
   @JsonSubTypes.Type(value = OAuthAuthentication.class, name = OAuthAuthentication.TYPE),
   @JsonSubTypes.Type(value = BearerAuthentication.class, name = BearerAuthentication.TYPE),
-  @JsonSubTypes.Type(value = ApiKeyAuthentication.class, name = ApiKeyAuthentication.TYPE),
-  @JsonSubTypes.Type(
-      value = ClientCertificateAuthentication.class,
-      name = ClientCertificateAuthentication.TYPE)
+  @JsonSubTypes.Type(value = ApiKeyAuthentication.class, name = ApiKeyAuthentication.TYPE)
 })
 public interface HttpAuthentication {}
