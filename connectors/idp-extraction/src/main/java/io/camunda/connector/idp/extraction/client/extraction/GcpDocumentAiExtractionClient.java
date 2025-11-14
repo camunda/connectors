@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.idp.extraction.client.extraction;
 
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.documentai.v1.Document;
 import com.google.cloud.documentai.v1.DocumentProcessorServiceClient;
 import com.google.cloud.documentai.v1.DocumentProcessorServiceSettings;
@@ -19,8 +20,6 @@ import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
 import io.camunda.connector.idp.extraction.model.Polygon;
 import io.camunda.connector.idp.extraction.model.PolygonPoint;
 import io.camunda.connector.idp.extraction.model.StructuredExtractionResponse;
-import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthentication;
-import io.camunda.connector.idp.extraction.utils.GcsUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -39,14 +38,14 @@ public class GcpDocumentAiExtractionClient implements TextExtractor, MlExtractor
   private final String processorId;
 
   public GcpDocumentAiExtractionClient(
-      GcpAuthentication authentication, String projectId, String region, String processorId) {
+      GoogleCredentials credentials, String projectId, String region, String processorId) {
     this.projectId = projectId;
     this.region = region;
     this.processorId = processorId;
     try {
       DocumentProcessorServiceSettings settings =
           DocumentProcessorServiceSettings.newBuilder()
-              .setCredentialsProvider(() -> GcsUtil.getCredentials(authentication))
+              .setCredentialsProvider(() -> credentials)
               .build();
       client = DocumentProcessorServiceClient.create(settings);
     } catch (IOException e) {

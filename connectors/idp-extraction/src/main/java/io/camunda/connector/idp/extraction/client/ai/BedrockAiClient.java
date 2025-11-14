@@ -9,17 +9,17 @@ package io.camunda.connector.idp.extraction.client.ai;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
-import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
 import io.camunda.connector.idp.extraction.model.ConverseData;
-import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
 import io.camunda.connector.idp.extraction.utils.AwsLlmModelUtil;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
 public class BedrockAiClient extends AiClient {
 
-  public BedrockAiClient(AwsProvider awsBaseRequest, String region, ConverseData converseData) {
+  public BedrockAiClient(
+      AwsCredentialsProvider credentialsProvider, String region, ConverseData converseData) {
 
     final String modelId =
         AwsLlmModelUtil.supportsCrossRegionInference(region)
@@ -29,7 +29,7 @@ public class BedrockAiClient extends AiClient {
     BedrockRuntimeClient bedrockClient =
         BedrockRuntimeClient.builder()
             .region(Region.of(region))
-            .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(awsBaseRequest))
+            .credentialsProvider(credentialsProvider)
             .build();
 
     ChatRequestParameters parameters =

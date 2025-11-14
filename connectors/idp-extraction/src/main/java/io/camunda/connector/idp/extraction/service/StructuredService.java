@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.idp.extraction.service;
 
+import com.google.auth.oauth2.GoogleCredentials;
 import io.camunda.connector.idp.extraction.client.extraction.AwsTextrtactExtractionClient;
 import io.camunda.connector.idp.extraction.client.extraction.GcpDocumentAiExtractionClient;
 import io.camunda.connector.idp.extraction.client.extraction.base.MlExtractor;
@@ -14,6 +15,7 @@ import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
 import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
 import io.camunda.connector.idp.extraction.model.providers.ProviderConfig;
 import io.camunda.connector.idp.extraction.model.providers.gcp.DocumentAiRequestConfiguration;
+import io.camunda.connector.idp.extraction.utils.GcsUtil;
 import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -52,11 +54,16 @@ public class StructuredService implements ExtractionService {
       case GcpProvider gcp -> {
         DocumentAiRequestConfiguration config =
             (DocumentAiRequestConfiguration) gcp.getConfiguration();
+        GoogleCredentials credentials =
+            GcsUtil.getCredentials(
+                gcp.getAuthentication().authType(),
+                gcp.getAuthentication().bearerToken(),
+                gcp.getAuthentication().serviceAccountJson(),
+                gcp.getAuthentication().oauthClientId(),
+                gcp.getAuthentication().oauthClientSecret(),
+                gcp.getAuthentication().oauthRefreshToken());
         yield new GcpDocumentAiExtractionClient(
-            gcp.getAuthentication(),
-            config.getProjectId(),
-            config.getRegion(),
-            config.getProcessorId());
+            credentials, config.getProjectId(), config.getRegion(), config.getProcessorId());
       }
       default ->
           throw new IllegalStateException(

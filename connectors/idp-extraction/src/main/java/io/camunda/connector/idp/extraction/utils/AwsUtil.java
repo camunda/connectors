@@ -7,6 +7,7 @@
 package io.camunda.connector.idp.extraction.utils;
 
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.aws.model.impl.AwsAuthentication;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
@@ -15,6 +16,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -23,8 +28,26 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.textract.model.DocumentLocation;
 import software.amazon.awssdk.services.textract.model.S3Object;
 
-public class AwsS3Util {
-  private static final Logger LOGGER = LoggerFactory.getLogger(AwsS3Util.class);
+public class AwsUtil {
+  private static final Logger LOGGER = LoggerFactory.getLogger(AwsUtil.class);
+
+  public static AwsCredentialsProvider credentialsProvider(
+      String authType, String accessKey, String secretKey) {
+    if (authType.equals("credentials")) {
+      return StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey));
+    } else {
+      return DefaultCredentialsProvider.create();
+    }
+  }
+
+  public static AwsCredentialsProvider credentialsProvider(AwsAuthentication authentication) {
+    if (authentication instanceof AwsAuthentication.AwsStaticCredentialsAuthentication sca) {
+      return StaticCredentialsProvider.create(
+          AwsBasicCredentials.create(sca.accessKey(), sca.secretKey()));
+    } else {
+      return DefaultCredentialsProvider.create();
+    }
+  }
 
   private static String uploadNewFileFromDocument(
       final Document document, final String bucketName, final S3AsyncClient s3AsyncClient)

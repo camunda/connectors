@@ -151,6 +151,16 @@
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.idp.extraction.ClassificationConnectorFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.idp.classification.v1</templateId>
+                  <templateFileName>idp-classification-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
           </connectors>
           <versionHistoryEnabled>true</versionHistoryEnabled>
           <includeDependencies>

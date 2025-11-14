@@ -10,17 +10,14 @@ import com.google.auth.oauth2.GoogleCredentials;
 import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
 import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
 import io.camunda.connector.idp.extraction.model.ConverseData;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 public class VertexAiClient extends AiClient {
 
   public VertexAiClient(
-      String serviceAccount, String projectId, String location, ConverseData converseData) {
+      GoogleCredentials credentials, String projectId, String location, ConverseData converseData) {
     this.chatModel =
         VertexAiGeminiChatModel.builder()
-            .credentials(getCredentials(serviceAccount))
+            .credentials(credentials)
             .project(projectId)
             .location(location)
             .modelName(converseData.modelId())
@@ -28,15 +25,5 @@ public class VertexAiClient extends AiClient {
             .topP(converseData.topP())
             .responseMimeType("application/json")
             .build();
-  }
-
-  public static GoogleCredentials getCredentials(String serviceAccount) {
-    ByteArrayInputStream credentialsStream =
-        new ByteArrayInputStream(serviceAccount.getBytes(StandardCharsets.UTF_8));
-    try {
-      return GoogleCredentials.fromStream(credentialsStream);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
   }
 }

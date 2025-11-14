@@ -19,7 +19,7 @@ import io.camunda.connector.idp.extraction.model.StructuredExtractionResponse;
 import io.camunda.connector.idp.extraction.model.TextractAnalysisTask;
 import io.camunda.connector.idp.extraction.model.TextractTextDetectionTask;
 import io.camunda.connector.idp.extraction.utils.AwsCredentialsProviderSupport;
-import io.camunda.connector.idp.extraction.utils.AwsS3Util;
+import io.camunda.connector.idp.extraction.utils.AwsUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -88,10 +88,10 @@ public class AwsTextrtactExtractionClient implements TextExtractor, MlExtractor,
 
   public String extract(Document document) {
     try {
-      S3Object s3Object = AwsS3Util.buildS3ObjectFromDocument(document, bucketName, s3AsyncClient);
+      S3Object s3Object = AwsUtil.buildS3ObjectFromDocument(document, bucketName, s3AsyncClient);
       LOGGER.debug("Starting polling task for text detection with document: {}", s3Object.name());
       List<Block> allBlocks = processTextDetection(s3Object);
-      AwsS3Util.deleteS3ObjectFromBucketAsync(s3Object.name(), bucketName, s3AsyncClient);
+      AwsUtil.deleteS3ObjectFromBucketAsync(s3Object.name(), bucketName, s3AsyncClient);
       return allBlocks.stream()
           .filter(block -> block.blockType().equals(BlockType.LINE))
           .map(Block::text)
@@ -104,9 +104,9 @@ public class AwsTextrtactExtractionClient implements TextExtractor, MlExtractor,
 
   public StructuredExtractionResponse runDocumentAnalysis(Document document) {
     try {
-      S3Object s3Object = AwsS3Util.buildS3ObjectFromDocument(document, bucketName, s3AsyncClient);
+      S3Object s3Object = AwsUtil.buildS3ObjectFromDocument(document, bucketName, s3AsyncClient);
       List<Block> allBlocks = processDocumentAnalysis(s3Object);
-      AwsS3Util.deleteS3ObjectFromBucketAsync(s3Object.name(), bucketName, s3AsyncClient);
+      AwsUtil.deleteS3ObjectFromBucketAsync(s3Object.name(), bucketName, s3AsyncClient);
       return extractDataFromDocument(allBlocks);
     } catch (Exception e) {
       LOGGER.error("Error while processing text detection", e);
@@ -117,7 +117,7 @@ public class AwsTextrtactExtractionClient implements TextExtractor, MlExtractor,
   private List<Block> processTextDetection(S3Object s3Object) throws Exception {
     final StartDocumentTextDetectionRequest startDocumentTextDetectionRequest =
         StartDocumentTextDetectionRequest.builder()
-            .documentLocation(AwsS3Util.buildDocumentLocation(s3Object))
+            .documentLocation(AwsUtil.buildDocumentLocation(s3Object))
             .build();
 
     String jobId =
@@ -196,7 +196,7 @@ public class AwsTextrtactExtractionClient implements TextExtractor, MlExtractor,
     final StartDocumentAnalysisRequest startDocumentAnalysisRequest =
         StartDocumentAnalysisRequest.builder()
             .featureTypes(featureTypes)
-            .documentLocation(AwsS3Util.buildDocumentLocation(s3Object))
+            .documentLocation(AwsUtil.buildDocumentLocation(s3Object))
             .build();
 
     String jobId = textractClient.startDocumentAnalysis(startDocumentAnalysisRequest).jobId();

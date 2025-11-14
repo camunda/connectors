@@ -9,6 +9,7 @@ package io.camunda.connector.idp.extraction.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.auth.oauth2.GoogleCredentials;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.idp.extraction.client.ai.AzureAiFoundryClient;
 import io.camunda.connector.idp.extraction.client.ai.AzureOpenAiClient;
@@ -21,7 +22,6 @@ import io.camunda.connector.idp.extraction.client.extraction.AzureDocumentIntell
 import io.camunda.connector.idp.extraction.client.extraction.GcpDocumentAiExtractionClient;
 import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
 import io.camunda.connector.idp.extraction.model.ExtractionRequest;
-import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
 import io.camunda.connector.idp.extraction.model.ExtractionResult;
 import io.camunda.connector.idp.extraction.model.LlmModel;
 import io.camunda.connector.idp.extraction.model.TaxonomyItem;
@@ -32,12 +32,15 @@ import io.camunda.connector.idp.extraction.model.providers.OpenAiProvider;
 import io.camunda.connector.idp.extraction.model.providers.ProviderConfig;
 import io.camunda.connector.idp.extraction.model.providers.gcp.DocumentAiRequestConfiguration;
 import io.camunda.connector.idp.extraction.model.providers.gcp.VertexRequestConfiguration;
+import io.camunda.connector.idp.extraction.utils.AwsUtil;
+import io.camunda.connector.idp.extraction.utils.GcsUtil;
 import io.camunda.connector.idp.extraction.utils.StringUtil;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 public class UnstructuredService implements ExtractionService {
 
@@ -77,29 +80,6 @@ public class UnstructuredService implements ExtractionService {
         buildResponseJsonIfPossible(aiResponse, extractionRequest.input().taxonomyItems()));
   }
 
-  //  private TextExtractor getTextExtractor(ExtractorConfig extractorConfig) {
-  //    return switch (extractorConfig) {
-  //      case AwsProvider aws ->
-  //          new AwsTextrtactExtractionClient(
-  //              aws.getAuthentication(), aws.getConfiguration().region(), aws.getS3BucketName());
-  //      case AzureProvider azure ->
-  //          new AzureDocumentIntelligenceExtractionClient(
-  //              azure.getDocumentIntelligenceConfiguration().getEndpoint(),
-  //              azure.getDocumentIntelligenceConfiguration().getApiKey());
-  //      case GcpProvider gcp -> {
-  //        DocumentAiRequestConfiguration config =
-  //            (DocumentAiRequestConfiguration) gcp.getConfiguration();
-  //        yield new GcpDocumentAiExtractionClient(
-  //            gcp.getAuthentication(),
-  //            config.getProjectId(),
-  //            config.getRegion(),
-  //            config.getProcessorId());
-  //      }
-  //      case ApachePdfBoxProvider pdfBox -> new PdfBoxExtractionClient();
-  //      case MultimodalExtractorProvider multimodal -> null;
-  //    };
-  //  }
-
   private TextExtractor getTextExtractor(ProviderConfig providerConfig) {
     return switch (providerConfig) {
       case AwsProvider aws ->
@@ -112,31 +92,45 @@ public class UnstructuredService implements ExtractionService {
       case GcpProvider gcp -> {
         DocumentAiRequestConfiguration config =
             (DocumentAiRequestConfiguration) gcp.getConfiguration();
+        GoogleCredentials credentials =
+            GcsUtil.getCredentials(
+                gcp.getAuthentication().authType(),
+                gcp.getAuthentication().bearerToken(),
+                gcp.getAuthentication().serviceAccountJson(),
+                gcp.getAuthentication().oauthClientId(),
+                gcp.getAuthentication().oauthClientSecret(),
+                gcp.getAuthentication().oauthRefreshToken());
         yield new GcpDocumentAiExtractionClient(
-            gcp.getAuthentication(),
-            config.getProjectId(),
-            config.getRegion(),
-            config.getProcessorId());
+            credentials, config.getProjectId(), config.getRegion(), config.getProcessorId());
       }
       default -> throw new IllegalStateException("Unexpected value: " + providerConfig);
     };
   }
 
   private AiClient getAiClient(ExtractionRequest extractionRequest) {
-    final var input = (ExtractionRequestData) extractionRequest.input();
+    final var input = extractionRequest.input();
     return switch (extractionRequest.baseRequest()) {
-      case AwsProvider aws ->
-          new BedrockAiClient(aws, aws.getConfiguration().region(), input.converseData());
+      case AwsProvider aws -> {
+        AwsCredentialsProvider credentialsProvider =
+            AwsUtil.credentialsProvider(aws.getAuthentication());
+        yield new BedrockAiClient(
+            credentialsProvider, aws.getConfiguration().region(), input.converseData());
+      }
       case OpenAiProvider openAi ->
           new OpenAiClient(
               openAi.getOpenAiEndpoint(), openAi.getOpenAiHeaders(), input.converseData());
       case GcpProvider gemini -> {
         var config = (VertexRequestConfiguration) gemini.getConfiguration();
+        GoogleCredentials credentials =
+            GcsUtil.getCredentials(
+                gemini.getAuthentication().authType(),
+                gemini.getAuthentication().bearerToken(),
+                gemini.getAuthentication().serviceAccountJson(),
+                gemini.getAuthentication().oauthClientId(),
+                gemini.getAuthentication().oauthClientSecret(),
+                gemini.getAuthentication().oauthRefreshToken());
         yield new VertexAiClient(
-            gemini.getAuthentication().serviceAccountJson(),
-            config.getProjectId(),
-            config.getRegion(),
-            input.converseData());
+            credentials, config.getProjectId(), config.getRegion(), input.converseData());
       }
       case AzureProvider azure -> {
         if (azure.getAiFoundryConfig().isUsingOpenAI()) {

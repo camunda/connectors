@@ -143,6 +143,29 @@ public enum LlmModel {
     }
   }
 
+  public static String getFormatSystemPrompt() {
+    return """
+            %s
+
+            Respond in this JSON format, without any preamble:
+            {
+                "documentType": "<one of the listed document types>",
+                "confidence": "<HIGH or LOW>",
+                "reasoning": "<1-2 sentences on the reasoning behind your choice and confidence level."
+            }
+      """;
+  }
+
+  public static String getClasssificationSystemPromptWithUnknownOption() {
+    return """
+            %s
+
+            If you are confident the document does not match any of the listed document types,
+            you may classify it as a different type that better represents the document.
+
+      """;
+  }
+
   private static String getCommonSystemInstruction() {
     return """
             You will receive extracted text from a PDF document. This text will be between the <DOCUMENT_TEXT> tags.
