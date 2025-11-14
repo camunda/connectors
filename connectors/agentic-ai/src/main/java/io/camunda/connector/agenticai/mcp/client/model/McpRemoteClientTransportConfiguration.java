@@ -8,12 +8,12 @@ package io.camunda.connector.agenticai.mcp.client.model;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.mcp.client.model.auth.Authentication;
+import io.camunda.connector.agenticai.mcp.client.model.auth.NoAuthentication;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
-import io.camunda.connector.http.base.model.auth.Authentication;
-import io.camunda.connector.http.base.model.auth.NoAuthentication;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

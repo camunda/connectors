@@ -27,7 +27,7 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigur
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StdioMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration;
-import io.camunda.connector.http.base.model.auth.NoAuthentication;
+import io.camunda.connector.agenticai.mcp.client.model.auth.NoAuthentication;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;

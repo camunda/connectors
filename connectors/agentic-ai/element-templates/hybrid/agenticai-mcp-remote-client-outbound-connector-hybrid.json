@@ -230,39 +230,6 @@
       "value" : "oauth-client-credentials-flow"
     } ]
   }, {
-    "id" : "data.transport.http.authentication.apiKeyLocation",
-    "label" : "Api key location",
-    "description" : "Choose type: Send API key in header or as query parameter.",
-    "optional" : false,
-    "value" : "headers",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "authentication",
-    "binding" : {
-      "name" : "data.transport.http.authentication.apiKeyLocation",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.transport.http.authentication.type",
-        "equals" : "apiKey",
-        "type" : "simple"
-      }, {
-        "property" : "data.transport.type",
-        "equals" : "http",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Headers",
-      "value" : "headers"
-    }, {
-      "name" : "Query parameters",
-      "value" : "query"
-    } ]
-  }, {
     "id" : "data.transport.http.authentication.name",
     "label" : "API key name",
     "optional" : false,
@@ -578,39 +545,6 @@
     }, {
       "name" : "OAuth 2.0",
       "value" : "oauth-client-credentials-flow"
-    } ]
-  }, {
-    "id" : "data.transport.sse.authentication.apiKeyLocation",
-    "label" : "Api key location",
-    "description" : "Choose type: Send API key in header or as query parameter.",
-    "optional" : false,
-    "value" : "headers",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "authentication",
-    "binding" : {
-      "name" : "data.transport.sse.authentication.apiKeyLocation",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.transport.sse.authentication.type",
-        "equals" : "apiKey",
-        "type" : "simple"
-      }, {
-        "property" : "data.transport.type",
-        "equals" : "sse",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Headers",
-      "value" : "headers"
-    }, {
-      "name" : "Query parameters",
-      "value" : "query"
     } ]
   }, {
     "id" : "data.transport.sse.authentication.name",

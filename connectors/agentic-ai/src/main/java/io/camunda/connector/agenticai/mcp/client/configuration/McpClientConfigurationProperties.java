@@ -7,8 +7,8 @@
 package io.camunda.connector.agenticai.mcp.client.configuration;
 
 import io.camunda.connector.agenticai.mcp.client.configuration.validation.ValidMcpClientConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.auth.Authentication;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
-import io.camunda.connector.http.base.model.auth.Authentication;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

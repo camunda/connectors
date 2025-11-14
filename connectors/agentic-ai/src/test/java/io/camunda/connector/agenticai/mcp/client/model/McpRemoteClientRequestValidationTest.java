@@ -12,7 +12,7 @@ import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfigura
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest.McpRemoteClientRequestData;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientConnection;
-import io.camunda.connector.http.base.model.auth.NoAuthentication;
+import io.camunda.connector.agenticai.mcp.client.model.auth.NoAuthentication;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.time.Duration;
