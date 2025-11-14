@@ -61,7 +61,7 @@ public class InboundConnectorDetailsUtil {
             .distinct()
             .count()
         > 1) {
-      throw new IllegalArgumentException("All elements in a group must have the same tenant ID");
+      throw new IllegalArgumentException("All elements in a group must have the same process definition ID");
     }
     return elements.getFirst().element().bpmnProcessId();
   }
