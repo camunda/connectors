@@ -843,6 +843,18 @@ limitations under the License.</license.inlineheader>
         <plugin>
           <artifactId>maven-dependency-plugin</artifactId>
           <version>3.9.0</version>
+          <executions>
+            <execution>
+              <id>analyze-dependencies</id>
+              <goals>
+                <goal>analyze-only</goal>
+              </goals>
+              <phase>process-test-classes</phase>
+              <configuration>
+                <failOnWarning>true</failOnWarning>
+              </configuration>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
