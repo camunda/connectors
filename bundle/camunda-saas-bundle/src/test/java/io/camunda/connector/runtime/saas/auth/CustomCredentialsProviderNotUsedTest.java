@@ -59,6 +59,7 @@ public class CustomCredentialsProviderNotUsedTest {
     // The conditional bean "credentialsProvider" from CamundaClientSaaSConfiguration should not
     // exist
     var beansWithName = applicationContext.getBeansOfType(CredentialsProvider.class);
-    assertThat(beansWithName).doesNotContainKey("customCredentialsProvider");
+    assertThat(beansWithName).doesNotContainKey("customConnectorsCredentialsProvider");
+    assertThat(beansWithName).containsKey("camundaClientCredentialsProvider");
   }
 }

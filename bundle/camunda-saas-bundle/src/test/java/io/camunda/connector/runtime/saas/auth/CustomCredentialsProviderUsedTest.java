@@ -55,6 +55,7 @@ public class CustomCredentialsProviderUsedTest {
     // our custom credentialsProvider bean should be created
     assertThat(applicationContext.getBean(CredentialsProvider.class)).isNotNull();
     var beansWithName = applicationContext.getBeansOfType(CredentialsProvider.class);
-    assertThat(beansWithName).containsKey("customCredentialsProvider");
+      assertThat(beansWithName).containsKey("customConnectorsCredentialsProvider");
+      assertThat(beansWithName).doesNotContainKey("camundaClientCredentialsProvider");
   }
 }
