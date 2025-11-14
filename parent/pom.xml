@@ -849,7 +849,7 @@ limitations under the License.</license.inlineheader>
               <goals>
                 <goal>analyze-only</goal>
               </goals>
-              <phase>verify</phase>
+              <phase>process-test-classes</phase>
               <configuration>
                 <failOnWarning>true</failOnWarning>
               </configuration>
