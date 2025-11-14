@@ -53,7 +53,7 @@ public class CamundaClientSaaSConfiguration {
 
   @Bean
   @Conditional(AuthPropertiesNotPresentCondition.class)
-  public CredentialsProvider credentialsProvider() {
+  public CredentialsProvider customCredentialsProvider() {
     final var builder = new OAuthCredentialsProviderBuilder();
     builder.clientId(internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID, null));
     builder.clientSecret(internalSecretProvider.getSecret(SECRET_NAME_SECRET, null));
