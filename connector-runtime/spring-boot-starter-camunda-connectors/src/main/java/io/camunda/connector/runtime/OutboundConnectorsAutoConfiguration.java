@@ -23,7 +23,6 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
-import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
@@ -76,8 +75,6 @@ public class OutboundConnectorsAutoConfiguration {
     // pointer of the object mapper
     // we are overloading
     return copy.registerModules(
-        jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(),
-        new JacksonModuleDocumentSerializer());
+        jacksonModuleDocumentDeserializer, new JacksonModuleDocumentSerializer());
   }
 }
