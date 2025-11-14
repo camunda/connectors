@@ -136,7 +136,7 @@ limitations under the License.</license.inlineheader>
 
     <version.slack>1.46.0</version.slack>
 
-    <version.testcontainers>1.21.3</version.testcontainers>
+    <version.testcontainers>2.0.2</version.testcontainers>
     <version.awaitility>4.3.0</version.awaitility>
     <version.json-path>2.10.0</version.json-path>
 
@@ -628,7 +628,7 @@ limitations under the License.</license.inlineheader>
       </dependency>
       <dependency>
         <groupId>org.testcontainers</groupId>
-        <artifactId>junit-jupiter</artifactId>
+        <artifactId>testcontainers-junit-jupiter</artifactId>
         <version>${version.testcontainers}</version>
       </dependency>
       <dependency>
