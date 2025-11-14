@@ -16,8 +16,12 @@
  */
 package io.camunda.connector.http.client.client.apache.proxy;
 
+import io.camunda.connector.http.client.client.apache.MtlsSSLContextBuilder;
+import io.camunda.connector.http.client.model.auth.ClientCertificateAuthentication;
+import io.camunda.connector.http.client.model.auth.HttpAuthentication;
 import java.io.Closeable;
 import java.io.IOException;
+import javax.net.ssl.SSLContext;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
@@ -40,6 +44,7 @@ public class ProxyAwareHttpClient implements Closeable {
   private final ProxyHandler proxyHandler = new ProxyHandler();
   private final TimeoutConfiguration timeoutConfiguration;
   private final ProxyContext proxyContext;
+  private final HttpAuthentication authentication;
   private final CloseableHttpClient client;
 
   public record TimeoutConfiguration(int connectionTimeoutInSeconds, int readTimeoutInSeconds) {}
@@ -48,8 +53,16 @@ public class ProxyAwareHttpClient implements Closeable {
 
   public ProxyAwareHttpClient(
       TimeoutConfiguration timeoutConfiguration, ProxyContext proxyContext) {
+    this(timeoutConfiguration, proxyContext, null);
+  }
+
+  public ProxyAwareHttpClient(
+      TimeoutConfiguration timeoutConfiguration,
+      ProxyContext proxyContext,
+      HttpAuthentication authentication) {
     this.timeoutConfiguration = timeoutConfiguration;
     this.proxyContext = proxyContext;
+    this.authentication = authentication;
     this.client = createClient();
   }
 
@@ -69,6 +82,7 @@ public class ProxyAwareHttpClient implements Closeable {
     var builder = createHttpClientBuilder();
 
     setProxyIfConfigured(proxyContext, builder);
+    setMtlsIfConfigured(builder);
 
     builder
         .setDefaultRequestConfig(getRequestTimeoutConfig(timeoutConfiguration))
@@ -95,21 +109,54 @@ public class ProxyAwareHttpClient implements Closeable {
             });
   }
 
+  private void setMtlsIfConfigured(HttpClientBuilder builder) {
+    if (authentication instanceof ClientCertificateAuthentication certAuth) {
+      LOG.debug("Configuring mTLS authentication");
+      SSLContext sslContext = MtlsSSLContextBuilder.buildSSLContext(certAuth);
+      builder.setConnectionManager(createConnectionManager(sslContext));
+    }
+  }
+
   private HttpClientBuilder createHttpClientBuilder() {
+    if (authentication instanceof ClientCertificateAuthentication) {
+      // Don't set connection manager here if mTLS is configured,
+      // it will be set in setMtlsIfConfigured
+      return HttpClients.custom().disableRedirectHandling();
+    }
     return HttpClients.custom()
         .setConnectionManager(createConnectionManager())
         .disableRedirectHandling();
   }
 
   private PoolingHttpClientConnectionManager createConnectionManager() {
-    PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-    connectionManager.setMaxTotal(Integer.MAX_VALUE);
-    connectionManager.setDefaultMaxPerRoute(Integer.MAX_VALUE);
+    return createConnectionManager(null);
+  }
 
-    // Socket config
-    connectionManager.setDefaultSocketConfig(SocketConfig.custom().setSoKeepAlive(true).build());
-
-    return connectionManager;
+  private PoolingHttpClientConnectionManager createConnectionManager(SSLContext sslContext) {
+    if (sslContext != null) {
+      // For mTLS, we need to create a registry with our custom SSL socket factory
+      var sslSocketFactory =
+          new org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory(sslContext);
+      var socketFactoryRegistry =
+          org.apache.hc.core5.http.config.RegistryBuilder
+              .<org.apache.hc.client5.http.socket.ConnectionSocketFactory>create()
+              .register("https", sslSocketFactory)
+              .register(
+                  "http",
+                  org.apache.hc.client5.http.socket.PlainConnectionSocketFactory.getSocketFactory())
+              .build();
+      var connectionManager = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
+      connectionManager.setMaxTotal(Integer.MAX_VALUE);
+      connectionManager.setDefaultMaxPerRoute(Integer.MAX_VALUE);
+      connectionManager.setDefaultSocketConfig(SocketConfig.custom().setSoKeepAlive(true).build());
+      return connectionManager;
+    } else {
+      var connectionManager = new PoolingHttpClientConnectionManager();
+      connectionManager.setMaxTotal(Integer.MAX_VALUE);
+      connectionManager.setDefaultMaxPerRoute(Integer.MAX_VALUE);
+      connectionManager.setDefaultSocketConfig(SocketConfig.custom().setSoKeepAlive(true).build());
+      return connectionManager;
+    }
   }
 
   private RequestConfig getRequestTimeoutConfig(TimeoutConfiguration timeoutConfiguration) {
