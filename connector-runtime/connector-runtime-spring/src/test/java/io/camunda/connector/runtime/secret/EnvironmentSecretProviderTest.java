@@ -49,7 +49,7 @@ public class EnvironmentSecretProviderTest {
     env.setProperty("my-tenant_my-total-secret", "beebop");
     EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, null, true);
     String myTotalSecret =
-        secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant"));
+        secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant", "my-process"));
     assertThat(myTotalSecret).isEqualTo("beebop");
   }
 
@@ -59,7 +59,7 @@ public class EnvironmentSecretProviderTest {
     env.setProperty("secrets.my-tenant_my-total-secret", "beebop");
     EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, "secrets.", true);
     String myTotalSecret =
-        secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant"));
+        secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant", "my-process"));
     assertThat(myTotalSecret).isEqualTo("beebop");
   }
 }
