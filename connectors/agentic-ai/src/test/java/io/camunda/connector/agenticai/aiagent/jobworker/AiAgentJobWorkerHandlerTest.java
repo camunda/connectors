@@ -31,6 +31,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ProblemException;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
+import io.camunda.client.metrics.MicrometerMetricsRecorder;
 import io.camunda.client.protocol.rest.JobResult;
 import io.camunda.client.protocol.rest.JobResultActivateElement;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
@@ -45,7 +46,6 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
-import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.net.URI;
@@ -125,7 +125,7 @@ class AiAgentJobWorkerHandlerTest {
         new OutboundConnectorExceptionHandler(secretProvider);
     final var connectorResultHandler =
         new ConnectorResultHandler(ConnectorsObjectMapperSupplier.getCopy());
-    final var connectorsOutboundMetrics = new ConnectorsOutboundMetrics(new SimpleMeterRegistry());
+    final var metricsRecorder = new MicrometerMetricsRecorder(new SimpleMeterRegistry());
 
     handler =
         new AiAgentJobWorkerHandlerImpl(
@@ -134,7 +134,7 @@ class AiAgentJobWorkerHandlerTest {
             exceptionHandlingStrategy,
             outboundConnectorExceptionHandler,
             connectorResultHandler,
-            connectorsOutboundMetrics);
+            metricsRecorder);
 
     stubFor(post(urlPathEqualTo("/v2/jobs/123456/completion")).willReturn(jsonResponse("{}", 200)));
     stubFor(

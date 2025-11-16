@@ -16,8 +16,8 @@
  */
 package io.camunda.connector.runtime.inbound;
 
+import io.camunda.client.metrics.DefaultNoopMetricsRecorder;
 import io.camunda.client.metrics.MetricsRecorder;
-import io.camunda.client.metrics.SimpleMetricsRecorder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -28,6 +28,6 @@ public class InboundConnectorTestConfiguration {
   @Bean
   @Primary
   public MetricsRecorder metricsRecorder() {
-    return new SimpleMetricsRecorder();
+    return new DefaultNoopMetricsRecorder();
   }
 }
