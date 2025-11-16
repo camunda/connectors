@@ -37,7 +37,7 @@ import io.camunda.client.api.command.FailJobCommandStep1;
 import io.camunda.client.api.worker.BackoffSupplier;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.jobhandling.DefaultCommandExceptionHandlingStrategy;
-import io.camunda.client.metrics.DefaultNoopMetricsRecorder;
+import io.camunda.client.metrics.MicrometerMetricsRecorder;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
@@ -50,7 +50,6 @@ import io.camunda.connector.runtime.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.TestValidation;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
-import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -86,7 +85,7 @@ class SpringConnectorJobHandlerTest {
       protected static SpringConnectorJobHandler newConnectorJobHandler(
           OutboundConnectorFunction call, SecretProviderAggregator secretProviderAggregator) {
         return new SpringConnectorJobHandler(
-            new ConnectorsOutboundMetrics(new SimpleMeterRegistry()),
+            new MicrometerMetricsRecorder(new SimpleMeterRegistry()),
             new DefaultCommandExceptionHandlingStrategy(
                 BackoffSupplier.newBackoffBuilder().build(),
                 Executors.newSingleThreadScheduledExecutor()),
@@ -94,8 +93,7 @@ class SpringConnectorJobHandlerTest {
             new DefaultValidationProvider(),
             mock(DocumentFactory.class),
             TestObjectMapperSupplier.INSTANCE,
-            call,
-            new DefaultNoopMetricsRecorder());
+            call);
       }
 
       protected static SpringConnectorJobHandler newConnectorJobHandler(
