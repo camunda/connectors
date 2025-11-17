@@ -38,6 +38,10 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>element-template-generator-core</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-identity</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
