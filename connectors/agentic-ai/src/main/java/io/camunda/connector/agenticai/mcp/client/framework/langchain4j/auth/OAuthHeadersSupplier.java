@@ -16,6 +16,7 @@ import io.camunda.connector.http.client.client.HttpClient;
 import io.camunda.connector.http.client.mapper.ResponseMappers;
 import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import io.camunda.connector.http.client.model.HttpClientRequest;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -29,13 +30,14 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OAuthHeadersSupplier.class);
 
-  public static final Duration DEFAULT_EXPIRY = Duration.ofMinutes(5);
-  public static final String ERROR_CODE_INVALID_OAUTH_RESPONSE = "INVALID_OAUTH_RESPONSE";
+  private static final Duration DEFAULT_EXPIRY = Duration.ofMinutes(5);
+  private static final String ERROR_CODE_INVALID_OAUTH_RESPONSE = "INVALID_OAUTH_RESPONSE";
 
   private final OAuthService oAuthService;
   private final HttpClient httpClient;
   private final ObjectMapper objectMapper;
   private final OAuthAuthentication config;
+  private final Clock clock;
 
   private TokenResponse tokenResponse;
 
@@ -44,15 +46,25 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
       HttpClient httpClient,
       ObjectMapper objectMapper,
       OAuthAuthentication config) {
+    this(oAuthService, httpClient, objectMapper, Clock.systemUTC(), config);
+  }
+
+  OAuthHeadersSupplier(
+      OAuthService oAuthService,
+      HttpClient httpClient,
+      ObjectMapper objectMapper,
+      Clock clock,
+      OAuthAuthentication config) {
     this.oAuthService = oAuthService;
     this.httpClient = httpClient;
     this.objectMapper = objectMapper;
     this.config = config;
+    this.clock = clock;
   }
 
   @Override
   public Map<String, String> get() {
-    if (tokenResponse == null || tokenResponse.isExpired()) {
+    if (tokenResponse == null || tokenResponse.isExpired(clock)) {
       LOGGER.debug(
           "Fetching MCP client OAuth token from token endpoint: {}", config.oauthTokenEndpoint());
       tokenResponse = fetchOAuthToken();
@@ -76,10 +88,13 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
     try {
       return httpClient.execute(oAuthRequest, this::extractTokenFromResponse).entity();
     } catch (ConnectorException e) {
+      final var errorResponseBody = getErrorResponseBody(e);
+
       throw new ConnectorException(
           e.getErrorCode(),
-          "MCP client authentication failed: %s. Body: %s"
-              .formatted(e.getMessage(), getErrorResponseBody(e)),
+          "MCP client authentication failed: %s%s"
+              .formatted(
+                  e.getMessage(), errorResponseBody != null ? " - " + errorResponseBody : ""),
           e);
     }
   }
@@ -112,11 +127,16 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
             .map(Duration::ofSeconds)
             .orElse(DEFAULT_EXPIRY);
 
-    return new TokenResponse(accessToken, Instant.now().plus(expiresIn));
+    return new TokenResponse(accessToken, clock.instant().plus(expiresIn));
   }
 
   private Object getErrorResponseBody(ConnectorException exception) {
-    Object response = exception.getErrorVariables().get("response");
+    final var errorVariables = exception.getErrorVariables();
+    if (errorVariables == null) {
+      return null;
+    }
+
+    Object response = errorVariables.get("response");
     if (response instanceof Map<?, ?> responseMap) {
       return responseMap.get("body");
     }
@@ -125,8 +145,8 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
   }
 
   private record TokenResponse(String accessToken, Instant expiresAt) {
-    boolean isExpired() {
-      return Instant.now().isAfter(expiresAt);
+    boolean isExpired(Clock clock) {
+      return clock.instant().isAfter(expiresAt);
     }
 
     @Override
