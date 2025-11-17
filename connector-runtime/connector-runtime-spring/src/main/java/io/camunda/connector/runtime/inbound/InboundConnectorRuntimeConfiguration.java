@@ -47,6 +47,7 @@ import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -79,7 +80,7 @@ public class InboundConnectorRuntimeConfiguration {
   public InboundCorrelationHandler inboundCorrelationHandler(
       final CamundaClient camundaClient,
       final FeelEngineWrapper feelEngine,
-      final ObjectMapper objectMapper,
+      @Qualifier("connectorObjectMapper") final ObjectMapper objectMapper,
       final ConnectorsInboundMetrics connectorsInboundMetrics) {
     return new MeteredInboundCorrelationHandler(
         camundaClient, feelEngine, objectMapper, messageTtl, connectorsInboundMetrics);
@@ -87,7 +88,7 @@ public class InboundConnectorRuntimeConfiguration {
 
   @Bean
   public InboundConnectorContextFactory springInboundConnectorContextFactory(
-      ObjectMapper mapper,
+      @Qualifier("connectorObjectMapper") ObjectMapper mapper,
       InboundCorrelationHandler correlationHandler,
       SecretProviderAggregator secretProviderAggregator,
       @Autowired(required = false) ValidationProvider validationProvider,
