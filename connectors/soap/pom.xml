@@ -27,7 +27,7 @@
     <version.wss4j>3.0.5</version.wss4j>
     <version.xmlsec>4.0.4</version.xmlsec>
     <version.commons-text>1.11.0</version.commons-text>
-    <version.commons-lang3>3.19.0</version.commons-lang3>
+    <version.commons-lang3>3.20.0</version.commons-lang3>
     <version.spring-boot>3.5.7</version.spring-boot>
   </properties>
 
