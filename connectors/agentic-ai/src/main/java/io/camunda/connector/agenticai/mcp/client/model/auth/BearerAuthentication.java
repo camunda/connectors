@@ -10,6 +10,7 @@ import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 @TemplateSubType(id = BearerAuthentication.TYPE, label = "Bearer token")
 public record BearerAuthentication(
@@ -19,4 +20,9 @@ public record BearerAuthentication(
 
   @TemplateProperty(ignore = true)
   public static final String TYPE = "bearer";
+
+  @Override
+  public String toString() {
+    return new ToStringBuilder(this).append("token", "REDACTED").toString();
+  }
 }

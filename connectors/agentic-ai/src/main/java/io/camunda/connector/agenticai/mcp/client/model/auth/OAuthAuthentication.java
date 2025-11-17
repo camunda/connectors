@@ -14,6 +14,7 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 @TemplateSubType(
     id = io.camunda.connector.http.client.model.auth.OAuthAuthentication.TYPE,
@@ -78,4 +79,16 @@ public record OAuthAuthentication(
 
   @TemplateProperty(ignore = true)
   public static final String GRANT_TYPE = "client_credentials";
+
+  @Override
+  public String toString() {
+    return new ToStringBuilder(this)
+        .append("oauthTokenEndpoint", oauthTokenEndpoint)
+        .append("clientId", "REDACTED")
+        .append("clientSecret", "REDACTED")
+        .append("audience", audience)
+        .append("clientAuthentication", clientAuthentication)
+        .append("scopes", scopes)
+        .toString();
+  }
 }

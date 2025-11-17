@@ -11,6 +11,7 @@ import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotEmpty;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @TemplateSubType(id = BasicAuthentication.TYPE, label = "Basic")
@@ -25,4 +26,12 @@ public record BasicAuthentication(
 
   @TemplateProperty(ignore = true)
   public static final String TYPE = "basic";
+
+  @Override
+  public String toString() {
+    return new ToStringBuilder(this)
+        .append("username", "REDACTED")
+        .append("password", "REDACTED")
+        .toString();
+  }
 }
