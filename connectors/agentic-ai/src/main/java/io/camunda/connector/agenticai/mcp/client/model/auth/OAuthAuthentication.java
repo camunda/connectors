@@ -13,6 +13,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyT
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
@@ -50,23 +51,22 @@ public record OAuthAuthentication(
             description = "The unique identifier of the target API you want to access",
             optional = true)
         String audience,
-    @FEEL
-        @NotEmpty
+    @NotNull
         @TemplateProperty(
             group = "authentication",
             type = PropertyType.Dropdown,
             choices = {
               @DropdownPropertyChoice(
-                  value = OAuthConstants.CREDENTIALS_BODY,
-                  label = "Send client credentials in body"),
+                  value = "BASIC_AUTH_HEADER",
+                  label = "Send as Basic Auth header"),
               @DropdownPropertyChoice(
-                  value = OAuthConstants.BASIC_AUTH_HEADER,
-                  label = "Send as Basic Auth header")
+                  value = "CREDENTIALS_BODY",
+                  label = "Send client credentials in body")
             },
-            defaultValue = OAuthConstants.BASIC_AUTH_HEADER,
+            defaultValue = "BASIC_AUTH_HEADER",
             description =
                 "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body")
-        String clientAuthentication,
+        ClientAuthenticationMethod clientAuthentication,
     @TemplateProperty(
             group = "authentication",
             description =
@@ -78,9 +78,24 @@ public record OAuthAuthentication(
   @TemplateProperty(ignore = true)
   public static final String TYPE = "oauth-client-credentials-flow";
 
+  public enum ClientAuthenticationMethod {
+    BASIC_AUTH_HEADER(OAuthConstants.BASIC_AUTH_HEADER),
+    CREDENTIALS_BODY(OAuthConstants.CREDENTIALS_BODY);
+
+    private final String oauthConstant;
+
+    ClientAuthenticationMethod(String oauthConstant) {
+      this.oauthConstant = oauthConstant;
+    }
+
+    public String oauthConstant() {
+      return oauthConstant;
+    }
+  }
+
   public OAuthAuthentication {
-    if (clientAuthentication == null || clientAuthentication.isBlank()) {
-      clientAuthentication = OAuthConstants.BASIC_AUTH_HEADER;
+    if (clientAuthentication == null) {
+      clientAuthentication = ClientAuthenticationMethod.BASIC_AUTH_HEADER;
     }
   }
 

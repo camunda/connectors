@@ -406,7 +406,7 @@
     "label" : "Client authentication",
     "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
     "optional" : false,
-    "value" : "basicAuthHeader",
+    "value" : "BASIC_AUTH_HEADER",
     "constraints" : {
       "notEmpty" : true
     },
@@ -428,11 +428,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Send client credentials in body",
-      "value" : "credentialsBody"
-    }, {
       "name" : "Send as Basic Auth header",
-      "value" : "basicAuthHeader"
+      "value" : "BASIC_AUTH_HEADER"
+    }, {
+      "name" : "Send client credentials in body",
+      "value" : "CREDENTIALS_BODY"
     } ]
   }, {
     "id" : "data.transport.http.authentication.scopes",
@@ -671,7 +671,7 @@
     "label" : "Client authentication",
     "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
     "optional" : false,
-    "value" : "basicAuthHeader",
+    "value" : "BASIC_AUTH_HEADER",
     "constraints" : {
       "notEmpty" : true
     },
@@ -693,11 +693,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Send client credentials in body",
-      "value" : "credentialsBody"
-    }, {
       "name" : "Send as Basic Auth header",
-      "value" : "basicAuthHeader"
+      "value" : "BASIC_AUTH_HEADER"
+    }, {
+      "name" : "Send client credentials in body",
+      "value" : "CREDENTIALS_BODY"
     } ]
   }, {
     "id" : "data.transport.sse.authentication.scopes",

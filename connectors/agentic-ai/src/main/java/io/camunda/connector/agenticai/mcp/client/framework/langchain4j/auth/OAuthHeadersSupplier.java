@@ -70,7 +70,7 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
                 config.clientId(),
                 config.clientSecret(),
                 config.audience(),
-                config.clientAuthentication(),
+                config.clientAuthentication().oauthConstant(),
                 config.scopes()));
 
     try {
