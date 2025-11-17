@@ -46,7 +46,7 @@ public class OutboundConnectorsAutoConfiguration {
   @Bean
   public CamundaClientExecutorService camundaClientExecutorService(
       @Autowired(required = false) MeterRegistry meterRegistry) {
-    ThreadFactory factory = Thread.ofVirtual().name("virtual-", 0).factory();
+    ThreadFactory factory = Thread.ofVirtual().name("job-worker-virtual-", 0).factory();
     var vThreadExecutor = Executors.newThreadPerTaskExecutor(factory);
     var scheduler = Executors.newSingleThreadScheduledExecutor();
     return new MeteredCamundaClientExecutorService(
