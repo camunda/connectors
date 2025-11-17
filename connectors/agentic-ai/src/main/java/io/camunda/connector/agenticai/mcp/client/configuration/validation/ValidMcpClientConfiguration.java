@@ -19,8 +19,7 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ValidMcpClientConfiguration {
-  String message() default
-      "The MCP client needs to be configured with a single transport (either STDIO, Streamable HTTP, or SSE)";
+  String message() default "MCP client transport configuration is missing for the configured type";
 
   Class<?>[] groups() default {};
 

@@ -7,8 +7,6 @@
 package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doReturn;
@@ -23,22 +21,21 @@ import dev.langchain4j.mcp.client.transport.McpTransport;
 import dev.langchain4j.mcp.client.transport.http.HttpMcpTransport;
 import dev.langchain4j.mcp.client.transport.http.StreamableHttpMcpTransport;
 import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration.AuthenticationType;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration.McpClientType;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StdioMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration;
-import io.camunda.connector.agenticai.mcp.client.model.auth.NoAuthentication;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.MockedConstruction;
@@ -48,6 +45,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class Langchain4JMcpClientFactoryTest {
 
   private static final String CLIENT_ID = "test-client-id";
+
+  private static final AuthenticationConfiguration NO_AUTHENTICATION =
+      AuthenticationConfiguration.builder().type(AuthenticationType.NONE).build();
 
   @Mock private DefaultMcpClient mcpClient;
   @Mock private StdioMcpTransport stdioMcpTransport;
@@ -70,7 +70,8 @@ class Langchain4JMcpClientFactoryTest {
                 createStdioMcpClientTransportConfiguration(List.of("arg1", "arg2"), logEvents);
             final var client =
                 factory.createClient(
-                    CLIENT_ID, createMcpClientConfiguration(stdioConfig, null, null));
+                    CLIENT_ID,
+                    createMcpClientConfiguration(McpClientType.STDIO, stdioConfig, null, null));
 
             assertThat(client).isEqualTo(mcpClient);
 
@@ -97,7 +98,8 @@ class Langchain4JMcpClientFactoryTest {
             final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of(), false);
             final var client =
                 factory.createClient(
-                    CLIENT_ID, createMcpClientConfiguration(stdioConfig, null, null));
+                    CLIENT_ID,
+                    createMcpClientConfiguration(McpClientType.STDIO, stdioConfig, null, null));
 
             assertThat(client).isEqualTo(mcpClient);
 
@@ -127,7 +129,8 @@ class Langchain4JMcpClientFactoryTest {
             final var client =
                 factory.createClient(
                     CLIENT_ID,
-                    createMcpClientConfiguration(null, streamableHttpTransportConfig, null));
+                    createMcpClientConfiguration(
+                        McpClientType.HTTP, null, streamableHttpTransportConfig, null));
 
             assertThat(client).isEqualTo(mcpClient);
 
@@ -158,7 +161,8 @@ class Langchain4JMcpClientFactoryTest {
                 createSseHttpMcpClientTransportConfiguration(logRequests, logResponses);
             final var client =
                 factory.createClient(
-                    CLIENT_ID, createMcpClientConfiguration(null, null, sseConfig));
+                    CLIENT_ID,
+                    createMcpClientConfiguration(McpClientType.SSE, null, null, sseConfig));
 
             assertThat(client).isEqualTo(mcpClient);
 
@@ -176,91 +180,6 @@ class Langchain4JMcpClientFactoryTest {
   }
 
   @Test
-  void throwsExceptionWhenNoTransportIsConfigured() {
-    withMockedMcpClientBuilder(
-        mockedMcpClientConstruction -> {
-          try (MockedConstruction<StdioMcpTransport.Builder> mockedStdioTransportBuilder =
-                  mockConstruction(
-                      StdioMcpTransport.Builder.class,
-                      withSettings().defaultAnswer(CALLS_REAL_METHODS),
-                      (mock, context) -> doReturn(stdioMcpTransport).when(mock).build());
-              MockedConstruction<StreamableHttpMcpTransport.Builder>
-                  mockedStreamableHttpTransportBuilder =
-                      mockConstruction(
-                          StreamableHttpMcpTransport.Builder.class,
-                          withSettings().defaultAnswer(CALLS_REAL_METHODS),
-                          (mock, context) ->
-                              doReturn(streamableHttpMcpTransport).when(mock).build());
-              MockedConstruction<HttpMcpTransport.Builder> mockedSseTransportBuilder =
-                  mockConstruction(
-                      HttpMcpTransport.Builder.class,
-                      withSettings().defaultAnswer(CALLS_REAL_METHODS),
-                      (mock, context) -> doReturn(sseMcpTransport).when(mock).build())) {
-
-            assertThatThrownBy(
-                    () ->
-                        factory.createClient(
-                            CLIENT_ID, createMcpClientConfiguration(null, null, null)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Missing transport configuration for MCP client 'test-client-id'");
-
-            assertThat(mockedStdioTransportBuilder.constructed()).isEmpty();
-            assertThat(mockedStreamableHttpTransportBuilder.constructed()).isEmpty();
-            assertThat(mockedSseTransportBuilder.constructed()).isEmpty();
-          }
-        });
-  }
-
-  @ParameterizedTest
-  @MethodSource("multipleTransports")
-  void throwsExceptionWhenMultipleTransportsAreConfigured(
-      McpClientConfiguration configuration, String expectedTypes) {
-    withMockedMcpClientBuilder(
-        mockedMcpClientConstruction -> {
-          try (MockedConstruction<StdioMcpTransport.Builder> mockedStdioTransportBuilder =
-                  mockConstruction(
-                      StdioMcpTransport.Builder.class,
-                      withSettings().defaultAnswer(CALLS_REAL_METHODS),
-                      (mock, context) -> doReturn(stdioMcpTransport).when(mock).build());
-              MockedConstruction<StreamableHttpMcpTransport.Builder>
-                  mockedStreamableHttpTransportBuilder =
-                      mockConstruction(
-                          StreamableHttpMcpTransport.Builder.class,
-                          withSettings().defaultAnswer(CALLS_REAL_METHODS),
-                          (mock, context) ->
-                              doReturn(streamableHttpMcpTransport).when(mock).build());
-              MockedConstruction<HttpMcpTransport.Builder> mockedSseTransportBuilder =
-                  mockConstruction(
-                      HttpMcpTransport.Builder.class,
-                      withSettings().defaultAnswer(CALLS_REAL_METHODS),
-                      (mock, context) -> doReturn(sseMcpTransport).when(mock).build())) {
-
-            assertThatThrownBy(() -> factory.createClient(CLIENT_ID, configuration))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage(
-                    "Ambiguous configuration for MCP client 'test-client-id'. Multiple transports %s are configured."
-                        .formatted(expectedTypes));
-
-            assertThat(mockedStdioTransportBuilder.constructed()).isEmpty();
-            assertThat(mockedStreamableHttpTransportBuilder.constructed()).isEmpty();
-            assertThat(mockedSseTransportBuilder.constructed()).isEmpty();
-          }
-        });
-  }
-
-  static Stream<Arguments> multipleTransports() {
-    final var stdio = createStdioMcpClientTransportConfiguration(List.of(), false);
-    final var http = createStreamableHttpMcpClientTransportConfiguration(false, false);
-    final var sse = createSseHttpMcpClientTransportConfiguration(false, false);
-
-    return Stream.of(
-        arguments(createMcpClientConfiguration(stdio, http, sse), "[stdio, http, sse]"),
-        arguments(createMcpClientConfiguration(stdio, null, sse), "[stdio, sse]"),
-        arguments(createMcpClientConfiguration(stdio, http, null), "[stdio, http]"),
-        arguments(createMcpClientConfiguration(null, http, sse), "[http, sse]"));
-  }
-
-  @Test
   void doesNotApplyTimeoutsAndReconnectIntervalIfNull() {
     withMockedMcpClientBuilder(
         mockedMcpClientConstruction -> {
@@ -273,7 +192,8 @@ class Langchain4JMcpClientFactoryTest {
             final var client =
                 factory.createClient(
                     CLIENT_ID,
-                    new McpClientConfiguration(true, stdioConfig, null, null, null, null, null));
+                    new McpClientConfiguration(
+                        true, McpClientType.STDIO, stdioConfig, null, null, null, null, null));
 
             assertThat(client).isEqualTo(mcpClient);
 
@@ -311,11 +231,13 @@ class Langchain4JMcpClientFactoryTest {
   }
 
   private static McpClientConfiguration createMcpClientConfiguration(
+      McpClientType type,
       StdioMcpClientTransportConfiguration stdioConfig,
       StreamableHttpMcpClientTransportConfiguration httpConfig,
       SseHttpMcpClientTransportConfiguration sseConfig) {
     return new McpClientConfiguration(
         true,
+        type,
         stdioConfig,
         httpConfig,
         sseConfig,
@@ -336,7 +258,7 @@ class Langchain4JMcpClientFactoryTest {
     return new StreamableHttpMcpClientTransportConfiguration(
         "http://localhost:123456/mcp",
         Map.of("Authorization", "Bearer token"),
-        new NoAuthentication(),
+        NO_AUTHENTICATION,
         Duration.ofSeconds(15),
         logRequests,
         logResponses);
@@ -347,7 +269,7 @@ class Langchain4JMcpClientFactoryTest {
     return new SseHttpMcpClientTransportConfiguration(
         "http://localhost:123456/sse",
         Map.of("Authorization", "Bearer token"),
-        new NoAuthentication(),
+        NO_AUTHENTICATION,
         Duration.ofSeconds(15),
         logRequests,
         logResponses);

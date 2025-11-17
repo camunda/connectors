@@ -22,9 +22,6 @@ public class AuthenticationMapper {
           new io.camunda.connector.http.client.model.auth.BasicAuthentication(username, password);
       case BearerAuthentication(String token) ->
           new io.camunda.connector.http.client.model.auth.BearerAuthentication(token);
-      case ApiKeyAuthentication(String name, String value) ->
-          new io.camunda.connector.http.client.model.auth.ApiKeyAuthentication(
-              ApiKeyLocation.HEADERS, name, value);
       case OAuthAuthentication(
               String oauthTokenEndpoint,
               String clientId,

@@ -17,16 +17,13 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigur
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientTransportConfiguration;
 import java.util.ArrayList;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Stream;
-import org.jspecify.annotations.NonNull;
 
 public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> {
 
   @Override
   public McpClient createClient(String clientId, McpClientConfiguration config) {
-    final var transport = createTransport(resolveTransportConfiguration(clientId, config));
+    final var transport = createTransport(config.transport());
     final var builder = new DefaultMcpClient.Builder().key(clientId).transport(transport);
 
     Optional.ofNullable(config.initializationTimeout()).map(builder::initializationTimeout);
@@ -34,28 +31,6 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
     Optional.ofNullable(config.reconnectInterval()).map(builder::reconnectInterval);
 
     return builder.build();
-  }
-
-  private McpClientTransportConfiguration resolveTransportConfiguration(
-      String clientId, @NonNull McpClientConfiguration config) {
-    final var configuredTransports =
-        Stream.of(config.stdio(), config.http(), config.sse()).filter(Objects::nonNull).toList();
-
-    if (configuredTransports.size() == 1) {
-      return configuredTransports.getFirst();
-    }
-
-    if (configuredTransports.isEmpty()) {
-      throw new IllegalArgumentException(
-          "Missing transport configuration for MCP client '%s'".formatted(clientId));
-    } else {
-      final var configuredTypes =
-          configuredTransports.stream().map(McpClientTransportConfiguration::type).toList();
-
-      throw new IllegalArgumentException(
-          "Ambiguous configuration for MCP client '%s'. Multiple transports %s are configured."
-              .formatted(clientId, configuredTypes));
-    }
   }
 
   private McpTransport createTransport(McpClientTransportConfiguration transportConfig) {

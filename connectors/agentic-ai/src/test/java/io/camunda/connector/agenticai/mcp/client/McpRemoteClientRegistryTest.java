@@ -19,7 +19,9 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Ticker;
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration.McpClientType;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfigurationProperties.ClientConfiguration;
@@ -60,6 +62,11 @@ class McpRemoteClientRegistryTest {
   private static final Map<String, String> HTTP_HEADERS = Map.of("Authorization", "dummy");
   private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(12);
 
+  private static final AuthenticationConfiguration NO_AUTHENTICATION =
+      AuthenticationConfiguration.builder()
+          .type(AuthenticationConfiguration.AuthenticationType.NONE)
+          .build();
+
   private static final StreamableHttpMcpRemoteClientTransportConfiguration
       STREAMABLE_HTTP_TRANSPORT_CONFIG =
           new StreamableHttpMcpRemoteClientTransportConfiguration(
@@ -74,9 +81,10 @@ class McpRemoteClientRegistryTest {
   private static final McpClientConfiguration EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION =
       new McpClientConfiguration(
           true,
+          McpClientType.HTTP,
           null,
           new StreamableHttpMcpClientTransportConfiguration(
-              STREAMABLE_HTTP_URL, HTTP_HEADERS, new NoAuthentication(), HTTP_TIMEOUT, true, false),
+              STREAMABLE_HTTP_URL, HTTP_HEADERS, NO_AUTHENTICATION, HTTP_TIMEOUT, true, false),
           null,
           null,
           null,
@@ -85,10 +93,11 @@ class McpRemoteClientRegistryTest {
   private static final McpClientConfiguration EXPECTED_SSE_CLIENT_CONFIGURATION =
       new McpClientConfiguration(
           true,
+          McpClientType.SSE,
           null,
           null,
           new SseHttpMcpClientTransportConfiguration(
-              SSE_URL, HTTP_HEADERS, new NoAuthentication(), HTTP_TIMEOUT, true, false),
+              SSE_URL, HTTP_HEADERS, NO_AUTHENTICATION, HTTP_TIMEOUT, true, false),
           null,
           null,
           null);

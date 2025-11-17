@@ -9,11 +9,11 @@ package io.camunda.connector.agenticai.mcp.client.model.auth;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 
 @TemplateSubType(id = BearerAuthentication.TYPE, label = "Bearer token")
 public record BearerAuthentication(
-    @FEEL @NotEmpty @TemplateProperty(group = "authentication", label = "Bearer token")
+    @FEEL @NotBlank @TemplateProperty(group = "authentication", label = "Bearer token")
         String token)
     implements Authentication {
 

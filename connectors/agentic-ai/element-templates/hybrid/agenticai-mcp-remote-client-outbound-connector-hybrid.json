@@ -214,8 +214,8 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "API key",
-      "value" : "apiKey"
+      "name" : "None",
+      "value" : "noAuth"
     }, {
       "name" : "Basic",
       "value" : "basic"
@@ -223,62 +223,9 @@
       "name" : "Bearer token",
       "value" : "bearer"
     }, {
-      "name" : "None",
-      "value" : "noAuth"
-    }, {
       "name" : "OAuth 2.0",
       "value" : "oauth-client-credentials-flow"
     } ]
-  }, {
-    "id" : "data.transport.http.authentication.name",
-    "label" : "API key name",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "data.transport.http.authentication.name",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.transport.http.authentication.type",
-        "equals" : "apiKey",
-        "type" : "simple"
-      }, {
-        "property" : "data.transport.type",
-        "equals" : "http",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "data.transport.http.authentication.value",
-    "label" : "API key value",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "data.transport.http.authentication.value",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.transport.http.authentication.type",
-        "equals" : "apiKey",
-        "type" : "simple"
-      }, {
-        "property" : "data.transport.type",
-        "equals" : "http",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
   }, {
     "id" : "data.transport.http.authentication.username",
     "label" : "Username",
@@ -531,8 +478,8 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "API key",
-      "value" : "apiKey"
+      "name" : "None",
+      "value" : "noAuth"
     }, {
       "name" : "Basic",
       "value" : "basic"
@@ -540,62 +487,9 @@
       "name" : "Bearer token",
       "value" : "bearer"
     }, {
-      "name" : "None",
-      "value" : "noAuth"
-    }, {
       "name" : "OAuth 2.0",
       "value" : "oauth-client-credentials-flow"
     } ]
-  }, {
-    "id" : "data.transport.sse.authentication.name",
-    "label" : "API key name",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "data.transport.sse.authentication.name",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.transport.sse.authentication.type",
-        "equals" : "apiKey",
-        "type" : "simple"
-      }, {
-        "property" : "data.transport.type",
-        "equals" : "sse",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "data.transport.sse.authentication.value",
-    "label" : "API key value",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "data.transport.sse.authentication.value",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.transport.sse.authentication.type",
-        "equals" : "apiKey",
-        "type" : "simple"
-      }, {
-        "property" : "data.transport.type",
-        "equals" : "sse",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
   }, {
     "id" : "data.transport.sse.authentication.username",
     "label" : "Username",

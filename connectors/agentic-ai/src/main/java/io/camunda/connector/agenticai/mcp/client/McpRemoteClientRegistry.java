@@ -9,7 +9,10 @@ package io.camunda.connector.agenticai.mcp.client;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Scheduler;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration.AuthenticationType;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration.McpClientType;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfigurationProperties.ClientConfiguration;
@@ -17,6 +20,11 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientCo
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.auth.Authentication;
+import io.camunda.connector.agenticai.mcp.client.model.auth.BasicAuthentication;
+import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication;
+import io.camunda.connector.agenticai.mcp.client.model.auth.NoAuthentication;
+import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,11 +77,12 @@ public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoClo
     switch (transport) {
       case StreamableHttpMcpRemoteClientTransportConfiguration httpConfig -> {
         final var httpConnectionConfig = httpConfig.http();
+        builder.type(McpClientType.HTTP);
         builder.http(
             new StreamableHttpMcpClientTransportConfiguration(
                 httpConnectionConfig.url(),
                 httpConnectionConfig.headers(),
-                httpConnectionConfig.authentication(),
+                resolveAuthentication(httpConnectionConfig.authentication()),
                 httpConnectionConfig.timeout(),
                 clientConfig.logRequests(),
                 clientConfig.logResponses()));
@@ -81,15 +90,35 @@ public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoClo
 
       case SseHttpMcpRemoteClientTransportConfiguration sseConfig -> {
         final var sseConnectionConfig = sseConfig.sse();
+        builder.type(McpClientType.SSE);
         builder.sse(
             new SseHttpMcpClientTransportConfiguration(
                 sseConnectionConfig.url(),
                 sseConnectionConfig.headers(),
-                sseConnectionConfig.authentication(),
+                resolveAuthentication(sseConnectionConfig.authentication()),
                 sseConnectionConfig.timeout(),
                 clientConfig.logRequests(),
                 clientConfig.logResponses()));
       }
+    }
+
+    return builder.build();
+  }
+
+  private AuthenticationConfiguration resolveAuthentication(Authentication authentication) {
+    if (authentication == null) {
+      return AuthenticationConfiguration.builder().type(AuthenticationType.NONE).build();
+    }
+
+    final var builder = AuthenticationConfiguration.builder();
+    switch (authentication) {
+      case NoAuthentication ignored -> builder.type(AuthenticationType.NONE);
+      case BasicAuthentication basicAuthentication ->
+          builder.type(AuthenticationType.BASIC).basic(basicAuthentication);
+      case BearerAuthentication bearerAuthentication ->
+          builder.type(AuthenticationType.BEARER).bearer(bearerAuthentication);
+      case OAuthAuthentication oAuthAuthentication ->
+          builder.type(AuthenticationType.OAUTH).oauth(oAuthAuthentication);
     }
 
     return builder.build();
