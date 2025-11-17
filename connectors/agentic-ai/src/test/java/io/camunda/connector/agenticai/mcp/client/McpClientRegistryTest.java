@@ -7,9 +7,11 @@
 package io.camunda.connector.agenticai.mcp.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -55,10 +57,50 @@ class McpClientRegistryTest {
   }
 
   @Test
-  void throwsException_whenRegisteringDuplicateId() {
+  void throwsException_whenClientSupplierIsNull() {
+    assertThatThrownBy(() -> registry.registerLazy("test-client", null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("MCP client supplier must not be null");
+  }
+
+  @Test
+  void throwsException_whenRegisteringDuplicateIdBothStatic() {
     var client1 = mock(MockAutoCloseableClient.class);
     var client2 = mock(MockAutoCloseableClient.class);
     registry.register("test-client", client1);
+
+    assertThatThrownBy(() -> registry.register("test-client", client2))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("MCP client with ID 'test-client' is already registered");
+  }
+
+  @Test
+  void throwsException_whenRegisteringDuplicateIdBothLazy() {
+    var client1 = mock(MockAutoCloseableClient.class);
+    var client2 = mock(MockAutoCloseableClient.class);
+    registry.registerLazy("test-client", () -> client1);
+
+    assertThatThrownBy(() -> registry.registerLazy("test-client", () -> client2))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("MCP client with ID 'test-client' is already registered");
+  }
+
+  @Test
+  void throwsException_whenRegisteringDuplicateIdFirstStaticThenLazy() {
+    var client1 = mock(MockAutoCloseableClient.class);
+    var client2 = mock(MockAutoCloseableClient.class);
+    registry.register("test-client", client1);
+
+    assertThatThrownBy(() -> registry.registerLazy("test-client", () -> client2))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("MCP client with ID 'test-client' is already registered");
+  }
+
+  @Test
+  void throwsException_whenRegisteringDuplicateIdFirstLazyThenStatic() {
+    var client1 = mock(MockAutoCloseableClient.class);
+    var client2 = mock(MockAutoCloseableClient.class);
+    registry.registerLazy("test-client", () -> client1);
 
     assertThatThrownBy(() -> registry.register("test-client", client2))
         .isInstanceOf(IllegalArgumentException.class)
@@ -76,15 +118,37 @@ class McpClientRegistryTest {
   }
 
   @Test
+  void returnsLazyRegisteredClient_whenClientExists() {
+    var client = mock(MockAutoCloseableClient.class);
+    registry.registerLazy("test-client", () -> client);
+
+    var result = registry.getClient("test-client");
+
+    assertThat(result).isEqualTo(client);
+  }
+
+  @Test
+  void throwsException_whenLazyRegisteredClientSupplierReturnsNull() {
+    registry.registerLazy("test-client", () -> null);
+
+    assertThatThrownBy(() -> registry.getClient("test-client"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("MCP client supplier for ID 'test-client' returned null");
+  }
+
+  @Test
   void allowsMultipleClientsWithDifferentIds() {
     var client1 = mock(MockAutoCloseableClient.class);
     var client2 = mock(MockAutoCloseableClient.class);
+    var client3 = mock(MockAutoCloseableClient.class);
 
     registry.register("client-1", client1);
-    registry.register("client-2", client2);
+    registry.registerLazy("client-2", () -> client2);
+    registry.register("client-3", client3);
 
     assertThat(registry.getClient("client-1")).isEqualTo(client1);
     assertThat(registry.getClient("client-2")).isEqualTo(client2);
+    assertThat(registry.getClient("client-3")).isEqualTo(client3);
   }
 
   @Test
@@ -95,16 +159,39 @@ class McpClientRegistryTest {
   }
 
   @Test
-  void closesAllClients_whenRegistryIsClosed() throws Exception {
+  void closesAllConstructedClients_whenRegistryIsClosed() throws Exception {
     var client1 = mock(MockAutoCloseableClient.class);
     var client2 = mock(MockAutoCloseableClient.class);
+    var client3 = mock(MockAutoCloseableClient.class);
+
     registry.register("client-1", client1);
-    registry.register("client-2", client2);
+    registry.registerLazy("client-2", () -> client2);
+    registry.register("client-3", client3);
+
+    registry.getClient("client-2"); // Force lazy client to be constructed
 
     registry.close();
 
     verify(client1).close();
     verify(client2).close();
+    verify(client3).close();
+  }
+
+  @Test
+  void doesNotCloseLazilyRegisteredButNotConstructedClient_whenRegistryIsClosed() throws Exception {
+    var client1 = mock(MockAutoCloseableClient.class);
+    var client2 = mock(MockAutoCloseableClient.class);
+    var client3 = mock(MockAutoCloseableClient.class);
+
+    registry.register("client-1", client1);
+    registry.registerLazy("client-2", () -> client2);
+    registry.register("client-3", client3);
+
+    registry.close();
+
+    verify(client1).close();
+    verify(client2, never()).close();
+    verify(client3).close();
   }
 
   @Test
@@ -126,15 +213,7 @@ class McpClientRegistryTest {
 
   @Test
   void doesNotThrowException_whenClosingEmptyRegistry() {
-    assertThat(registry)
-        .satisfies(
-            r -> {
-              try {
-                r.close();
-              } catch (Exception e) {
-                throw new RuntimeException("Should not throw exception", e);
-              }
-            });
+    assertThatCode(() -> registry.close()).doesNotThrowAnyException();
   }
 
   @Test
@@ -143,15 +222,7 @@ class McpClientRegistryTest {
     doThrow(new RuntimeException("Close failed")).when(client).close();
     registry.register("test-client", client);
 
-    assertThat(registry)
-        .satisfies(
-            r -> {
-              try {
-                r.close();
-              } catch (Exception e) {
-                throw new RuntimeException("Should not throw exception", e);
-              }
-            });
+    assertThatCode(() -> registry.close()).doesNotThrowAnyException();
   }
 
   interface MockAutoCloseableClient extends AutoCloseable {}
