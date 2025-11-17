@@ -63,6 +63,7 @@ public record OAuthAuthentication(
                   value = OAuthConstants.BASIC_AUTH_HEADER,
                   label = "Send as Basic Auth header")
             },
+            defaultValue = OAuthConstants.BASIC_AUTH_HEADER,
             description =
                 "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body")
         String clientAuthentication,
@@ -77,8 +78,11 @@ public record OAuthAuthentication(
   @TemplateProperty(ignore = true)
   public static final String TYPE = "oauth-client-credentials-flow";
 
-  @TemplateProperty(ignore = true)
-  public static final String GRANT_TYPE = "client_credentials";
+  public OAuthAuthentication {
+    if (clientAuthentication == null || clientAuthentication.isBlank()) {
+      clientAuthentication = OAuthConstants.BASIC_AUTH_HEADER;
+    }
+  }
 
   @Override
   public String toString() {

@@ -12,6 +12,9 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpe
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientFactory;
+import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHeadersSupplierFactory;
+import io.camunda.connector.http.client.authentication.OAuthService;
+import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,8 +24,17 @@ public class McpClientBaseLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public McpClientFactory<McpClient> langchain4JMcpClientFactory() {
-    return new Langchain4JMcpClientFactory();
+  public Langchain4JMcpClientHeadersSupplierFactory langchain4JMcpClientHeadersSupplierFactory(
+      ObjectMapper objectMapper) {
+    return new Langchain4JMcpClientHeadersSupplierFactory(
+        new OAuthService(), new CustomApacheHttpClient(), objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public McpClientFactory<McpClient> langchain4JMcpClientFactory(
+      Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory) {
+    return new Langchain4JMcpClientFactory(headersSupplierFactory);
   }
 
   @Bean

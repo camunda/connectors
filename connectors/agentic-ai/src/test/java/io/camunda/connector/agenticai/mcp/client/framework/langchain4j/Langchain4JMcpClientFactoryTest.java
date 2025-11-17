@@ -16,6 +16,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.transport.McpTransport;
 import dev.langchain4j.mcp.client.transport.http.HttpMcpTransport;
@@ -28,6 +29,8 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigur
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StdioMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration;
+import io.camunda.connector.http.client.authentication.OAuthService;
+import io.camunda.connector.http.client.client.HttpClient;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +57,13 @@ class Langchain4JMcpClientFactoryTest {
   @Mock private StreamableHttpMcpTransport streamableHttpMcpTransport;
   @Mock private HttpMcpTransport sseMcpTransport;
 
-  private final Langchain4JMcpClientFactory factory = new Langchain4JMcpClientFactory();
+  @Mock private OAuthService oAuthService;
+  @Mock private HttpClient httpClient;
+
+  private final Langchain4JMcpClientFactory factory =
+      new Langchain4JMcpClientFactory(
+          new Langchain4JMcpClientHeadersSupplierFactory(
+              oAuthService, httpClient, new ObjectMapper()));
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})

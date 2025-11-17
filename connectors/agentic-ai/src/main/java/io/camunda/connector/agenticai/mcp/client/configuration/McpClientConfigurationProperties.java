@@ -111,6 +111,16 @@ public record McpClientConfigurationProperties(
           StreamableHttpMcpClientTransportConfiguration,
           SseHttpMcpClientTransportConfiguration {}
 
+  public interface McpClientHttpTransportConfiguration {
+    String url();
+
+    Map<String, String> headers();
+
+    AuthenticationConfiguration authentication();
+
+    Duration timeout();
+  }
+
   public record StdioMcpClientTransportConfiguration(
       @NotBlank String command,
       @NotNull @DefaultValue List<String> args,
@@ -125,7 +135,7 @@ public record McpClientConfigurationProperties(
       @PositiveOrZero Duration timeout,
       @DefaultValue("false") boolean logRequests,
       @DefaultValue("false") boolean logResponses)
-      implements McpClientTransportConfiguration {}
+      implements McpClientTransportConfiguration, McpClientHttpTransportConfiguration {}
 
   public record SseHttpMcpClientTransportConfiguration(
       @NotBlank String url,
@@ -134,5 +144,5 @@ public record McpClientConfigurationProperties(
       @PositiveOrZero Duration timeout,
       @DefaultValue("false") boolean logRequests,
       @DefaultValue("false") boolean logResponses)
-      implements McpClientTransportConfiguration {}
+      implements McpClientTransportConfiguration, McpClientHttpTransportConfiguration {}
 }

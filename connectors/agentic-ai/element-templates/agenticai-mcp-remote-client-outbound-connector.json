@@ -406,6 +406,7 @@
     "label" : "Client authentication",
     "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
     "optional" : false,
+    "value" : "basicAuthHeader",
     "constraints" : {
       "notEmpty" : true
     },
@@ -670,6 +671,7 @@
     "label" : "Client authentication",
     "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
     "optional" : false,
+    "value" : "basicAuthHeader",
     "constraints" : {
       "notEmpty" : true
     },

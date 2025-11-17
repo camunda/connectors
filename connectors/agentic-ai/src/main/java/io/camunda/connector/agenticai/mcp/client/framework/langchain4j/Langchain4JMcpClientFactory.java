@@ -21,6 +21,13 @@ import java.util.Optional;
 
 public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> {
 
+  private final Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory;
+
+  public Langchain4JMcpClientFactory(
+      Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory) {
+    this.headersSupplierFactory = headersSupplierFactory;
+  }
+
   @Override
   public McpClient createClient(String clientId, McpClientConfiguration config) {
     final var transport = createTransport(config.transport());
@@ -51,7 +58,10 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
           new StreamableHttpMcpTransport.Builder()
               .url(http.url())
               .timeout(http.timeout())
-              .customHeaders(http.headers())
+              .customHeaders(
+                  headersSupplierFactory
+                      .createHttpHeadersSupplier(http)
+                      .get()) // TODO remove .get() call with L4J > 1.8.0
               .logRequests(http.logRequests())
               .logResponses(http.logResponses())
               .build();
@@ -60,7 +70,10 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
           new HttpMcpTransport.Builder()
               .sseUrl(sse.url())
               .timeout(sse.timeout())
-              .customHeaders(sse.headers())
+              .customHeaders(
+                  headersSupplierFactory
+                      .createHttpHeadersSupplier(sse)
+                      .get()) // TODO remove .get() call with L4J > 1.8.0
               .logRequests(sse.logRequests())
               .logResponses(sse.logResponses())
               .build();
