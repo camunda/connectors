@@ -20,6 +20,7 @@ import com.github.benmanes.caffeine.cache.Ticker;
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration.AuthenticationType;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration.McpClientType;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration;
@@ -30,18 +31,24 @@ import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportC
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientConnection;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientConnection;
-import io.camunda.connector.agenticai.mcp.client.model.auth.NoAuthentication;
+import io.camunda.connector.agenticai.mcp.client.model.auth.Authentication;
+import io.camunda.connector.agenticai.mcp.client.model.auth.BasicAuthentication;
+import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication;
+import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication;
+import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication.ClientAuthenticationMethod;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -59,73 +66,80 @@ class McpRemoteClientRegistryTest {
 
   private static final String STREAMABLE_HTTP_URL = "http://localhost:123456/mcp";
   private static final String SSE_URL = "http://localhost:123456/sse";
-  private static final Map<String, String> HTTP_HEADERS = Map.of("Authorization", "dummy");
+  private static final Map<String, String> HTTP_HEADERS = Map.of("X-Foo", "dummy");
   private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(12);
 
   private static final AuthenticationConfiguration NO_AUTHENTICATION =
+      AuthenticationConfiguration.builder().type(AuthenticationType.NONE).build();
+
+  private static final AuthenticationConfiguration BASIC_AUTHENTICATION =
       AuthenticationConfiguration.builder()
-          .type(AuthenticationConfiguration.AuthenticationType.NONE)
+          .type(AuthenticationType.BASIC)
+          .basic(new BasicAuthentication("test-username", "test-password"))
           .build();
 
-  private static final StreamableHttpMcpRemoteClientTransportConfiguration
+  private static final AuthenticationConfiguration BEARER_AUTHENTICATION =
+      AuthenticationConfiguration.builder()
+          .type(AuthenticationType.BEARER)
+          .bearer(new BearerAuthentication("test-token"))
+          .build();
+
+  private static final AuthenticationConfiguration OAUTH_AUTHENTICATION =
+      AuthenticationConfiguration.builder()
+          .type(AuthenticationType.OAUTH)
+          .oauth(
+              new OAuthAuthentication(
+                  "http://auth.example.com/token",
+                  "my-client-id",
+                  "my-client-secret",
+                  "https://api.example.com",
+                  ClientAuthenticationMethod.BASIC_AUTH_HEADER,
+                  "openid my-scope"))
+          .build();
+
+  private final McpClientConfiguration EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION =
+      createExpectedStreamableHttpClientConfiguration(NO_AUTHENTICATION);
+
+  private final StreamableHttpMcpRemoteClientTransportConfiguration
       STREAMABLE_HTTP_TRANSPORT_CONFIG =
-          new StreamableHttpMcpRemoteClientTransportConfiguration(
-              new StreamableHttpMcpRemoteClientConnection(
-                  new NoAuthentication(), STREAMABLE_HTTP_URL, HTTP_HEADERS, HTTP_TIMEOUT));
-
-  private static final SseHttpMcpRemoteClientTransportConfiguration SSE_TRANSPORT_CONFIG =
-      new SseHttpMcpRemoteClientTransportConfiguration(
-          new SseHttpMcpRemoteClientConnection(
-              new NoAuthentication(), SSE_URL, HTTP_HEADERS, HTTP_TIMEOUT));
-
-  private static final McpClientConfiguration EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION =
-      new McpClientConfiguration(
-          true,
-          McpClientType.HTTP,
-          null,
-          new StreamableHttpMcpClientTransportConfiguration(
-              STREAMABLE_HTTP_URL, HTTP_HEADERS, NO_AUTHENTICATION, HTTP_TIMEOUT, true, false),
-          null,
-          null,
-          null,
-          null);
-
-  private static final McpClientConfiguration EXPECTED_SSE_CLIENT_CONFIGURATION =
-      new McpClientConfiguration(
-          true,
-          McpClientType.SSE,
-          null,
-          null,
-          new SseHttpMcpClientTransportConfiguration(
-              SSE_URL, HTTP_HEADERS, NO_AUTHENTICATION, HTTP_TIMEOUT, true, false),
-          null,
-          null,
-          null);
+          createStreamableHttpTransportConfiguration(NO_AUTHENTICATION.authentication());
 
   @Mock private McpClientFactory<McpClient> clientFactory;
   @Mock private McpClient client;
 
-  @Test
-  void createsStreamableHttpRemoteMcpClient() {
+  public static Stream<AuthenticationConfiguration> authenticationConfigurations() {
+    return Stream.of(
+        NO_AUTHENTICATION, BASIC_AUTHENTICATION, BEARER_AUTHENTICATION, OAUTH_AUTHENTICATION);
+  }
+
+  @ParameterizedTest
+  @MethodSource("authenticationConfigurations")
+  void createsStreamableHttpRemoteMcpClient(AuthenticationConfiguration authentication) {
     final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
 
     when(clientFactory.createClient(
-            CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
+            CLIENT_ID.toString(), createExpectedStreamableHttpClientConfiguration(authentication)))
         .thenReturn(client);
 
-    final var resolvedClient = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG);
+    final var resolvedClient =
+        registry.getClient(
+            CLIENT_ID, createStreamableHttpTransportConfiguration(authentication.authentication()));
 
     assertThat(resolvedClient).isNotNull().isSameAs(this.client);
   }
 
-  @Test
-  void createsSseRemoteMcpClient() {
+  @ParameterizedTest
+  @MethodSource("authenticationConfigurations")
+  void createsSseRemoteMcpClient(AuthenticationConfiguration authentication) {
     final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
 
-    when(clientFactory.createClient(CLIENT_ID.toString(), EXPECTED_SSE_CLIENT_CONFIGURATION))
+    when(clientFactory.createClient(
+            CLIENT_ID.toString(), createExpectedSseHttpClientConfiguration(authentication)))
         .thenReturn(client);
 
-    final var resolvedClient = registry.getClient(CLIENT_ID, SSE_TRANSPORT_CONFIG);
+    final var resolvedClient =
+        registry.getClient(
+            CLIENT_ID, createSseTransportConfiguration(authentication.authentication()));
 
     assertThat(resolvedClient).isNotNull().isSameAs(this.client);
   }
@@ -234,6 +248,47 @@ class McpRemoteClientRegistryTest {
     }
 
     verify(client).close();
+  }
+
+  private static StreamableHttpMcpRemoteClientTransportConfiguration
+      createStreamableHttpTransportConfiguration(Authentication authentication) {
+    return new StreamableHttpMcpRemoteClientTransportConfiguration(
+        new StreamableHttpMcpRemoteClientConnection(
+            authentication, STREAMABLE_HTTP_URL, HTTP_HEADERS, HTTP_TIMEOUT));
+  }
+
+  private static McpClientConfiguration createExpectedStreamableHttpClientConfiguration(
+      AuthenticationConfiguration authentication) {
+    return new McpClientConfiguration(
+        true,
+        McpClientType.HTTP,
+        null,
+        new StreamableHttpMcpClientTransportConfiguration(
+            STREAMABLE_HTTP_URL, HTTP_HEADERS, authentication, HTTP_TIMEOUT, true, false),
+        null,
+        null,
+        null,
+        null);
+  }
+
+  private static SseHttpMcpRemoteClientTransportConfiguration createSseTransportConfiguration(
+      Authentication authentication) {
+    return new SseHttpMcpRemoteClientTransportConfiguration(
+        new SseHttpMcpRemoteClientConnection(authentication, SSE_URL, HTTP_HEADERS, HTTP_TIMEOUT));
+  }
+
+  private static McpClientConfiguration createExpectedSseHttpClientConfiguration(
+      AuthenticationConfiguration authentication) {
+    return new McpClientConfiguration(
+        true,
+        McpClientType.SSE,
+        null,
+        null,
+        new SseHttpMcpClientTransportConfiguration(
+            SSE_URL, HTTP_HEADERS, authentication, HTTP_TIMEOUT, true, false),
+        null,
+        null,
+        null);
   }
 
   private ClientConfiguration createClientConfig() {
