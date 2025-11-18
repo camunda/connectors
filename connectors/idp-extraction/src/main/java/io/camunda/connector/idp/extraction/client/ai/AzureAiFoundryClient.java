@@ -36,10 +36,4 @@ public class AzureAiFoundryClient extends AiClient {
 
     this.chatModel = builder.build();
   }
-
-  @Override
-  public String chatWithPdf(String textPrompt, String pdfUrl) {
-    throw new UnsupportedOperationException(
-        "Azure OpenAI models do not support PDF content type directly.");
-  }
 }

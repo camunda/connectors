@@ -74,13 +74,34 @@ public class ClassificationConnectorFunction implements OutboundConnectorFunctio
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
     ClassificationRequest request = context.bindVariables(ClassificationRequest.class);
+    LlmModel llmModel = LlmModel.fromId(request.input().getConverseData().modelId());
 
     TextExtractor textExtractor = getTextExtractor(request.extractor());
     AiClient aiClient = getAiClient(request.ai(), request.input().getConverseData());
 
+    String aiResponse;
     if (textExtractor == null) {
-      // multimodal chat
-      return null;
+      long aiStartTime = System.currentTimeMillis();
+      String prompt =
+          new StringBuilder()
+              .append(request.input().getUserPrompt())
+              .append("\n------ Document types: ------\n")
+              .append(String.join(", ", request.input().getDocumentTypes()))
+              .append("\n------ Response format: ------\n")
+              .append(LlmModel.getFormatSystemPrompt())
+              .append(
+                  request.input().isAutoClassify()
+                      ? LlmModel.getClasssificationSystemPromptWithUnknownOption()
+                      : "")
+              .toString();
+
+      LOGGER.info("Starting multimodal {} conversation", aiClient.getClass().getSimpleName());
+      aiResponse = aiClient.chat(prompt, request.input().getDocument());
+      long aiEndTime = System.currentTimeMillis();
+      LOGGER.info(
+          "Multimodal {} conversation took {} ms",
+          aiClient.getClass().getSimpleName(),
+          (aiEndTime - aiStartTime));
     } else {
       long startTime = System.currentTimeMillis();
       LOGGER.info("Extracting text through {}", textExtractor.getClass().getSimpleName());
@@ -108,15 +129,14 @@ public class ClassificationConnectorFunction implements OutboundConnectorFunctio
           "Classifying with ai provider {} and model {}",
           aiClient.getClass().getSimpleName(),
           request.input().getConverseData().modelId());
-      String response = aiClient.chat(prompt);
+      aiResponse = aiClient.chat(prompt);
       long endTime = System.currentTimeMillis();
       LOGGER.info(
           "Finished ai conversation in {}ms and in total took {}ms",
           (endTime - aiStartTime),
           (endTime - startTime));
-
-      return parseClassificationResponse(response);
     }
+    return parseClassificationResponse(aiResponse);
   }
 
   private TextExtractor getTextExtractor(@Valid ExtractionProvider extractor) {

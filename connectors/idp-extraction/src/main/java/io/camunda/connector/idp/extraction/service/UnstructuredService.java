@@ -19,7 +19,7 @@ import io.camunda.connector.idp.extraction.client.ai.VertexAiClient;
 import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
 import io.camunda.connector.idp.extraction.client.extraction.AwsTextrtactExtractionClient;
 import io.camunda.connector.idp.extraction.client.extraction.AzureDocumentIntelligenceExtractionClient;
-import io.camunda.connector.idp.extraction.client.extraction.GcpDocumentAiExtractionClient;
+import io.camunda.connector.idp.extraction.client.extraction.PdfBoxExtractionClient;
 import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
 import io.camunda.connector.idp.extraction.model.ExtractionRequest;
 import io.camunda.connector.idp.extraction.model.ExtractionResult;
@@ -30,7 +30,6 @@ import io.camunda.connector.idp.extraction.model.providers.AzureProvider;
 import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
 import io.camunda.connector.idp.extraction.model.providers.OpenAiProvider;
 import io.camunda.connector.idp.extraction.model.providers.ProviderConfig;
-import io.camunda.connector.idp.extraction.model.providers.gcp.DocumentAiRequestConfiguration;
 import io.camunda.connector.idp.extraction.model.providers.gcp.VertexRequestConfiguration;
 import io.camunda.connector.idp.extraction.utils.AwsUtil;
 import io.camunda.connector.idp.extraction.utils.GcsUtil;
@@ -56,27 +55,39 @@ public class UnstructuredService implements ExtractionService {
     LlmModel llmModel = LlmModel.fromId(extractionRequest.input().converseData().modelId());
 
     String aiResponse;
-    long extractionStartTime = System.currentTimeMillis();
-    LOGGER.info("Starting {} text extraction", textExtractor.getClass().getSimpleName());
-    String extractedText = textExtractor.extract(extractionRequest.input().document());
-    long extractionEndTime = System.currentTimeMillis();
-    LOGGER.info(
-        "{} text extraction took {} ms",
-        textExtractor.getClass().getSimpleName(),
-        (extractionEndTime - extractionStartTime));
+    if (textExtractor == null) {
+      long aiStartTime = System.currentTimeMillis();
+      LOGGER.info("Starting multimodal {} conversation", aiClient.getClass().getSimpleName());
+      String userPrompt = llmModel.getMessage(extractionRequest.input().taxonomyItems());
+      String prompt = String.format("%s%n%s", llmModel.getSystemPrompt(), userPrompt);
+      aiResponse = aiClient.chat(prompt, extractionRequest.input().document());
+      long aiEndTime = System.currentTimeMillis();
+      LOGGER.info(
+          "Multimodal {} conversation took {} ms",
+          aiClient.getClass().getSimpleName(),
+          (aiEndTime - aiStartTime));
+    } else {
+      long extractionStartTime = System.currentTimeMillis();
+      LOGGER.info("Starting {} text extraction", textExtractor.getClass().getSimpleName());
+      String extractedText = textExtractor.extract(extractionRequest.input().document());
+      long extractionEndTime = System.currentTimeMillis();
+      LOGGER.info(
+          "{} text extraction took {} ms",
+          textExtractor.getClass().getSimpleName(),
+          (extractionEndTime - extractionStartTime));
 
-    long aiStartTime = System.currentTimeMillis();
-    LOGGER.info("Starting {} conversation", aiClient.getClass().getSimpleName());
-    String userMessageText =
-        llmModel.getMessage(extractedText, extractionRequest.input().taxonomyItems());
-    String prompt = String.format("%s%n%s", llmModel.getSystemPrompt(), userMessageText);
-
-    aiResponse = aiClient.chat(prompt);
-    long aiEndTime = System.currentTimeMillis();
-    LOGGER.info(
-        "{} conversation took {} ms",
-        aiClient.getClass().getSimpleName(),
-        (aiEndTime - aiStartTime));
+      long aiStartTime = System.currentTimeMillis();
+      LOGGER.info("Starting {} conversation", aiClient.getClass().getSimpleName());
+      String userPrompt =
+          llmModel.getMessage(extractedText, extractionRequest.input().taxonomyItems());
+      String prompt = String.format("%s%n%s", llmModel.getSystemPrompt(), userPrompt);
+      aiResponse = aiClient.chat(prompt);
+      long aiEndTime = System.currentTimeMillis();
+      LOGGER.info(
+          "{} conversation took {} ms",
+          aiClient.getClass().getSimpleName(),
+          (aiEndTime - aiStartTime));
+    }
 
     return new ExtractionResult(
         buildResponseJsonIfPossible(aiResponse, extractionRequest.input().taxonomyItems()));
@@ -94,20 +105,8 @@ public class UnstructuredService implements ExtractionService {
           new AzureDocumentIntelligenceExtractionClient(
               azure.getDocumentIntelligenceConfiguration().getEndpoint(),
               azure.getDocumentIntelligenceConfiguration().getApiKey());
-      case GcpProvider gcp -> {
-        DocumentAiRequestConfiguration config =
-            (DocumentAiRequestConfiguration) gcp.getConfiguration();
-        GoogleCredentials credentials =
-            GcsUtil.getCredentials(
-                gcp.getAuthentication().authType(),
-                gcp.getAuthentication().bearerToken(),
-                gcp.getAuthentication().serviceAccountJson(),
-                gcp.getAuthentication().oauthClientId(),
-                gcp.getAuthentication().oauthClientSecret(),
-                gcp.getAuthentication().oauthRefreshToken());
-        yield new GcpDocumentAiExtractionClient(
-            credentials, config.getProjectId(), config.getRegion(), config.getProcessorId());
-      }
+      case OpenAiProvider openAi -> new PdfBoxExtractionClient();
+      case GcpProvider gcp -> null;
       default -> throw new IllegalStateException("Unexpected value: " + providerConfig);
     };
   }
