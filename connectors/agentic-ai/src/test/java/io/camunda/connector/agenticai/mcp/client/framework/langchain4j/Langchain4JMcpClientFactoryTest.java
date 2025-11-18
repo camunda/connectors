@@ -16,7 +16,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.transport.McpTransport;
 import dev.langchain4j.mcp.client.transport.http.HttpMcpTransport;
@@ -29,12 +28,12 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigur
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StdioMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration;
-import io.camunda.connector.http.client.authentication.OAuthService;
-import io.camunda.connector.http.client.client.HttpClient;
+import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.ThrowingConsumer;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -49,21 +48,31 @@ class Langchain4JMcpClientFactoryTest {
 
   private static final String CLIENT_ID = "test-client-id";
 
-  private static final AuthenticationConfiguration NO_AUTHENTICATION =
-      AuthenticationConfiguration.builder().type(AuthenticationType.NONE).build();
+  private static final AuthenticationConfiguration BEARER_AUTHENTICATION =
+      AuthenticationConfiguration.builder()
+          .type(AuthenticationType.BEARER)
+          .bearer(new BearerAuthentication("test-token"))
+          .build();
+
+  private static final Map<String, String> EXPECTED_HEADERS =
+      Map.of(
+          "X-Dummy", "Test",
+          "Authorization", "Bearer test-token");
 
   @Mock private DefaultMcpClient mcpClient;
+
   @Mock private StdioMcpTransport stdioMcpTransport;
   @Mock private StreamableHttpMcpTransport streamableHttpMcpTransport;
   @Mock private HttpMcpTransport sseMcpTransport;
 
-  @Mock private OAuthService oAuthService;
-  @Mock private HttpClient httpClient;
+  @Mock private Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory;
 
-  private final Langchain4JMcpClientFactory factory =
-      new Langchain4JMcpClientFactory(
-          new Langchain4JMcpClientHeadersSupplierFactory(
-              oAuthService, httpClient, new ObjectMapper()));
+  private Langchain4JMcpClientFactory factory;
+
+  @BeforeEach
+  void setUp() {
+    factory = new Langchain4JMcpClientFactory(headersSupplierFactory);
+  }
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
@@ -135,6 +144,9 @@ class Langchain4JMcpClientFactoryTest {
                   (mock, context) -> doReturn(streamableHttpMcpTransport).when(mock).build())) {
             final var streamableHttpTransportConfig =
                 createStreamableHttpMcpClientTransportConfiguration(logRequests, logResponses);
+            when(headersSupplierFactory.createHttpHeadersSupplier(streamableHttpTransportConfig))
+                .thenReturn(() -> EXPECTED_HEADERS);
+
             final var client =
                 factory.createClient(
                     CLIENT_ID,
@@ -146,7 +158,7 @@ class Langchain4JMcpClientFactoryTest {
             final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
             verify(transportBuilder).url(streamableHttpTransportConfig.url());
             verify(transportBuilder).timeout(streamableHttpTransportConfig.timeout());
-            verify(transportBuilder).customHeaders(streamableHttpTransportConfig.headers());
+            verify(transportBuilder).customHeaders(EXPECTED_HEADERS);
             verify(transportBuilder).logRequests(streamableHttpTransportConfig.logRequests());
             verify(transportBuilder).logResponses(streamableHttpTransportConfig.logResponses());
 
@@ -168,6 +180,8 @@ class Langchain4JMcpClientFactoryTest {
                   (mock, context) -> doReturn(sseMcpTransport).when(mock).build())) {
             final var sseConfig =
                 createSseHttpMcpClientTransportConfiguration(logRequests, logResponses);
+            when(headersSupplierFactory.createHttpHeadersSupplier(sseConfig))
+                .thenReturn(() -> EXPECTED_HEADERS);
             final var client =
                 factory.createClient(
                     CLIENT_ID,
@@ -178,7 +192,7 @@ class Langchain4JMcpClientFactoryTest {
             final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
             verify(transportBuilder).sseUrl(sseConfig.url());
             verify(transportBuilder).timeout(sseConfig.timeout());
-            verify(transportBuilder).customHeaders(sseConfig.headers());
+            verify(transportBuilder).customHeaders(EXPECTED_HEADERS);
             verify(transportBuilder).logRequests(sseConfig.logRequests());
             verify(transportBuilder).logResponses(sseConfig.logResponses());
 
@@ -266,8 +280,8 @@ class Langchain4JMcpClientFactoryTest {
           boolean logRequests, boolean logResponses) {
     return new StreamableHttpMcpClientTransportConfiguration(
         "http://localhost:123456/mcp",
-        Map.of("Authorization", "Bearer token"),
-        NO_AUTHENTICATION,
+        Map.of("X-Dummy", "Test"),
+        BEARER_AUTHENTICATION,
         Duration.ofSeconds(15),
         logRequests,
         logResponses);
@@ -277,8 +291,8 @@ class Langchain4JMcpClientFactoryTest {
       createSseHttpMcpClientTransportConfiguration(boolean logRequests, boolean logResponses) {
     return new SseHttpMcpClientTransportConfiguration(
         "http://localhost:123456/sse",
-        Map.of("Authorization", "Bearer token"),
-        NO_AUTHENTICATION,
+        Map.of("X-Dummy", "Test"),
+        BEARER_AUTHENTICATION,
         Duration.ofSeconds(15),
         logRequests,
         logResponses);
