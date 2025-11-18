@@ -28,8 +28,9 @@ public record A2aWebhookProperties(
             label = "Webhook ID",
             group = "endpoint",
             description = "The webhook ID is a part of the URL",
-            feel = FeelMode.disabled)
+            feel = FeelMode.optional)
         @NotBlank
+        @FEEL
         @Pattern(
             regexp = "^[a-zA-Z0-9]+([-_][a-zA-Z0-9]+)*$",
             message =

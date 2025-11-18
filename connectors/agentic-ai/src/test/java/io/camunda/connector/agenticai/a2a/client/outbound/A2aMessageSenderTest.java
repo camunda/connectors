@@ -91,7 +91,7 @@ class A2aMessageSenderTest {
     var operation =
         new SendMessageOperationConfiguration(
             A2aSendMessageOperationParametersBuilder.builder().text("hello").build(),
-            new A2aCommonSendMessageConfiguration(0, retrievalMode, Duration.ofSeconds(1)));
+            new A2aCommonSendMessageConfiguration(retrievalMode, 0, Duration.ofSeconds(1)));
 
     MessageEvent clientEvent = newMessageEvent();
     var expectedResult = messageResult(MESSAGE_ID);
@@ -128,7 +128,7 @@ class A2aMessageSenderTest {
     var operation =
         new SendMessageOperationConfiguration(
             A2aSendMessageOperationParametersBuilder.builder().text("hello").build(),
-            new A2aCommonSendMessageConfiguration(0, retrievalMode, Duration.ofSeconds(1)));
+            new A2aCommonSendMessageConfiguration(retrievalMode, 0, Duration.ofSeconds(1)));
 
     MessageEvent clientEvent = newMessageEvent();
     var expectedResult = messageResult(MESSAGE_ID);
@@ -379,13 +379,13 @@ class A2aMessageSenderTest {
   }
 
   private static A2aCommonSendMessageConfiguration sendMessageSettings() {
-    return new A2aCommonSendMessageConfiguration(1, null, Duration.ofSeconds(1));
+    return new A2aCommonSendMessageConfiguration(null, 1, Duration.ofSeconds(1));
   }
 
   private SendMessageOperationConfiguration newSendMessageOperation(Duration timeout) {
     return new SendMessageOperationConfiguration(
         A2aSendMessageOperationParametersBuilder.builder().text("hello").build(),
-        new A2aCommonSendMessageConfiguration(0, null, timeout));
+        new A2aCommonSendMessageConfiguration(null, 0, timeout));
   }
 
   private MessageEvent newMessageEvent() {

@@ -272,6 +272,6 @@ class A2AClientRequestHandlerTest {
   private static A2aCommonSendMessageConfiguration sendMessageConfiguration(
       int historyLength, int durationSeconds) {
     return new A2aCommonSendMessageConfiguration(
-        historyLength, new A2aResponseRetrievalMode.Polling(), Duration.ofSeconds(durationSeconds));
+        new A2aResponseRetrievalMode.Polling(), historyLength, Duration.ofSeconds(durationSeconds));
   }
 }

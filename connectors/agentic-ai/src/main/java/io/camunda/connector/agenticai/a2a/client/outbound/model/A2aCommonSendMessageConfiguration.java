@@ -20,6 +20,8 @@ import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Duration;
 
 public record A2aCommonSendMessageConfiguration(
+    @Valid @NotNull
+        A2aCommonSendMessageConfiguration.A2aResponseRetrievalMode responseRetrievalMode,
     @PositiveOrZero
         @TemplateProperty(
             group = "operation",
@@ -30,8 +32,6 @@ public record A2aCommonSendMessageConfiguration(
             defaultValueType = TemplateProperty.DefaultValueType.Number,
             defaultValue = "3")
         Integer historyLength,
-    @Valid @NotNull
-        A2aCommonSendMessageConfiguration.A2aResponseRetrievalMode responseRetrievalMode,
     @TemplateProperty(
             group = "operation",
             label = "Response timeout",
@@ -54,7 +54,7 @@ public record A2aCommonSendMessageConfiguration(
   })
   @TemplateDiscriminatorProperty(
       group = "operation",
-      label = "Response retrieval mode",
+      label = "Response retrieval",
       name = "type",
       description = "How to receive the final response from the remote agent.",
       defaultValue = A2aResponseRetrievalMode.Polling.POLLING_ID)

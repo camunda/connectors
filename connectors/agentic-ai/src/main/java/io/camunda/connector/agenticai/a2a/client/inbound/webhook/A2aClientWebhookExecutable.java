@@ -101,7 +101,7 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
 
   @Override
   public WebhookResult triggerWebhook(WebhookProcessingPayload payload) {
-    LOGGER.debug("Triggered A2A webhook with context {} and payload {}", props.context(), payload);
+    LOGGER.debug("Triggered A2A webhook with context {}", props.context());
 
     verifySignature(payload);
 
