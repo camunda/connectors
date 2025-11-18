@@ -69,7 +69,9 @@ public class UnstructuredService implements ExtractionService {
     LOGGER.info("Starting {} conversation", aiClient.getClass().getSimpleName());
     String userMessageText =
         llmModel.getMessage(extractedText, extractionRequest.input().taxonomyItems());
-    aiResponse = aiClient.chat(userMessageText);
+    String prompt = String.format("%s%n%s", llmModel.getSystemPrompt(), userMessageText);
+
+    aiResponse = aiClient.chat(prompt);
     long aiEndTime = System.currentTimeMillis();
     LOGGER.info(
         "{} conversation took {} ms",

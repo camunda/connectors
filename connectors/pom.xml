@@ -18,26 +18,26 @@
   <inceptionYear>2022</inceptionYear>
 
   <modules>
-<!--    <module>agentic-ai</module>-->
-<!--    <module>automation-anywhere</module>-->
-<!--    <module>aws</module>-->
-<!--    <module>box</module>-->
-<!--    <module>csv</module>-->
-<!--    <module>email</module>-->
-<!--    <module>google</module>-->
-<!--    <module>http</module>-->
-<!--    <module>jdbc</module>-->
-<!--    <module>kafka</module>-->
-<!--    <module>microsoft/azure-blobstorage</module>-->
-<!--    <module>microsoft-teams</module>-->
-<!--    <module>camunda-message</module>-->
-<!--    <module>rabbitmq</module>-->
-<!--    <module>sendgrid</module>-->
-<!--    <module>slack</module>-->
-<!--    <module>soap</module>-->
-<!--    <module>webhook</module>-->
+    <module>agentic-ai</module>
+    <module>automation-anywhere</module>
+    <module>aws</module>
+    <module>box</module>
+    <module>csv</module>
+    <module>email</module>
+    <module>google</module>
+    <module>http</module>
+    <module>jdbc</module>
+    <module>kafka</module>
+    <module>microsoft/azure-blobstorage</module>
+    <module>microsoft-teams</module>
+    <module>camunda-message</module>
+    <module>rabbitmq</module>
+    <module>sendgrid</module>
+    <module>slack</module>
+    <module>soap</module>
+    <module>webhook</module>
     <module>idp-extraction</module>
-<!--    <module>embeddings-vector-database</module>-->
+    <module>embeddings-vector-database</module>
   </modules>
 
   <properties>
