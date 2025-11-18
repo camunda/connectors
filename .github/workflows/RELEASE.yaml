@@ -41,6 +41,14 @@ jobs:
           prerelease: false
           generate_release_notes: false
           target_commitish: ${{ github.ref }}
+          body: |
+            ## 🚧 Release in Progress
+            
+            This release is currently being built and deployed.
+            
+            **Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            This message will be replaced with the full changelog once the release process completes.
 
   setup:
     needs: create-release
