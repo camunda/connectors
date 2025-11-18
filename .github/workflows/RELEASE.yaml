@@ -4,14 +4,20 @@ run-name: Release a new version ${{ inputs.version }}
 on:
   workflow_dispatch:
     inputs:
-      branch:
-        description: 'Branch to release from (e.g., main, alpha/8.7)'
-        required: true
-        type: string
       version:
         description: 'Version to release (e.g., 8.7.0, 8.7.1)'
         required: true
         type: string
+      skip-maven-release:
+        description: 'Skip Maven release'
+        required: false
+        type: boolean
+        default: false
+      skip-docker-release:
+        description: 'Skip Docker release'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
 
@@ -23,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ github.ref }}
           fetch-depth: 0
 
       - name: Create GitHub Release
@@ -34,7 +40,7 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: false
-          target_commitish: ${{ inputs.branch }}
+          target_commitish: ${{ github.ref }}
 
   setup:
     needs: create-release
@@ -49,7 +55,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ github.ref }}
           fetch-depth: 0
       - name: Identify previous release version
         id: prev_version
@@ -70,7 +76,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           token: ${{ secrets.PROTECTED_BRANCH_PAT }}
-          ref: ${{ inputs.branch }}
+          ref: ${{ github.ref }}
           fetch-depth: 0
 
       - name: Prepare Java and Maven settings
@@ -175,10 +181,12 @@ jobs:
             current_minor="${major}.${minor}"
             previous_minor="${major}.$((minor - 1))"
           
+            echo "Version $VERSION matches first minor release pattern (x.y.0)"
             echo "is_first_minor=true" >> $GITHUB_OUTPUT
             echo "current_minor=${current_minor}" >> $GITHUB_OUTPUT
             echo "previous_minor=${previous_minor}" >> $GITHUB_OUTPUT
           else
+            echo "Version $VERSION does NOT match first minor release pattern - skipping docs version bump"
             echo "is_first_minor=false" >> $GITHUB_OUTPUT
           fi
 
@@ -207,9 +215,14 @@ jobs:
     needs: setup
     name: Create a maven release
     runs-on: ubuntu-latest
+    if: ${{ !inputs.skip-maven-release }}
     permissions:
       contents: read
     steps:
+      - name: Log Maven release status
+        run: |
+          echo "Maven release is enabled (skip-maven-release: ${{ inputs.skip-maven-release }})"
+          
       - name: Download repository
         uses: actions/download-artifact@v6
         with:
@@ -271,6 +284,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      - name: Log Maven deployment target
+        run: |
+          if [[ "${{ inputs.version }}" == *"rc"* ]]; then
+            echo "Version contains 'rc' - deploying to Artifactory only"
+          else
+            echo "Version does not contain 'rc' - deploying to Artifactory and Maven Central (Staging)"
+          fi
+
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
         if: "! contains(inputs.version, 'rc')"
         run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded
@@ -295,9 +316,14 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     name: Perform the docker release
+    if: ${{ !inputs.skip-docker-release }}
     permissions:
       contents: read
     steps:
+      - name: Log Docker release status
+        run: |
+          echo "Docker release is enabled (skip-docker-release: ${{ inputs.skip-docker-release }})"
+          
       - name: Download repository
         uses: actions/download-artifact@v6
         with:
@@ -360,6 +386,15 @@ jobs:
           provenance: false
 
       # Build & push bundle docker images (with 'latest' tag)
+
+      - name: Log latest tag push decision
+        run: |
+          echo "Tag type: ${{ needs.setup.outputs.tagType }}"
+          if [[ "${{ needs.setup.outputs.tagType }}" == "NORMAL" ]]; then
+            echo "This is a NORMAL release - will push 'latest' tags for bundle-default and bundle-saas"
+          else
+            echo "This is NOT a NORMAL release - will NOT push 'latest' tags for bundle-default and bundle-saas"
+          fi
 
       - name: Build and Push Docker Image tag latest - connector-runtime
         uses: docker/build-push-action@v6
@@ -459,6 +494,7 @@ jobs:
 
   helm-deploy:
     needs: [ setup, docker-release ]
+    if: ${{ !inputs.skip-docker-release }}
     name: Run Helm Integration Tests
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
@@ -483,10 +519,10 @@ jobs:
 
     if: |
       needs.setup.result == 'success' &&
-      needs.maven-release.result == 'success' &&
-      needs.docker-release.result == 'success' &&
+      (needs.maven-release.result == 'success' || needs.maven-release.result == 'skipped') &&
+      (needs.docker-release.result == 'success' || needs.docker-release.result == 'skipped') &&
       needs.bundle-and-build-changelog.result == 'success' &&
-      needs.helm-deploy.result == 'success'
+      (needs.helm-deploy.result == 'success' || needs.helm-deploy.result == 'skipped')
 
     steps:
       - uses: actions/checkout@v5
