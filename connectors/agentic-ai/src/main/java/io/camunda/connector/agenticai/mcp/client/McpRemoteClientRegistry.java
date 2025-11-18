@@ -32,13 +32,11 @@ import org.slf4j.LoggerFactory;
 public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(McpRemoteClientRegistry.class);
 
-  private final ClientConfiguration clientConfig;
   private final Cache<McpRemoteClientIdentifier, C> cache;
   private final McpClientFactory<C> clientFactory;
 
   public McpRemoteClientRegistry(
       ClientConfiguration clientConfig, McpClientFactory<C> clientFactory) {
-    this.clientConfig = clientConfig;
     this.cache = createCache(clientConfig.cache());
     this.clientFactory = clientFactory;
   }
@@ -83,9 +81,7 @@ public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoClo
                 httpConnectionConfig.url(),
                 httpConnectionConfig.headers(),
                 resolveAuthentication(httpConnectionConfig.authentication()),
-                httpConnectionConfig.timeout(),
-                clientConfig.logRequests(),
-                clientConfig.logResponses()));
+                httpConnectionConfig.timeout()));
       }
 
       case SseHttpMcpRemoteClientTransportConfiguration sseConfig -> {
@@ -96,9 +92,7 @@ public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoClo
                 sseConnectionConfig.url(),
                 sseConnectionConfig.headers(),
                 resolveAuthentication(sseConnectionConfig.authentication()),
-                sseConnectionConfig.timeout(),
-                clientConfig.logRequests(),
-                clientConfig.logResponses()));
+                sseConnectionConfig.timeout()));
       }
     }
 

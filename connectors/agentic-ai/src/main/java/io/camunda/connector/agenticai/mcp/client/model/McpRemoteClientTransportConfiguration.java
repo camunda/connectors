@@ -44,11 +44,11 @@ public sealed interface McpRemoteClientTransportConfiguration
         McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration {
 
   interface McpRemoteClientConnection {
-    Authentication authentication();
-
     String url();
 
     Map<String, String> headers();
+
+    Authentication authentication();
 
     Duration timeout();
   }

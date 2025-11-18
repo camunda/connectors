@@ -264,7 +264,7 @@ class McpRemoteClientRegistryTest {
         McpClientType.HTTP,
         null,
         new StreamableHttpMcpClientTransportConfiguration(
-            STREAMABLE_HTTP_URL, HTTP_HEADERS, authentication, HTTP_TIMEOUT, true, false),
+            STREAMABLE_HTTP_URL, HTTP_HEADERS, authentication, HTTP_TIMEOUT),
         null,
         null,
         null,
@@ -285,7 +285,7 @@ class McpRemoteClientRegistryTest {
         null,
         null,
         new SseHttpMcpClientTransportConfiguration(
-            SSE_URL, HTTP_HEADERS, authentication, HTTP_TIMEOUT, true, false),
+            SSE_URL, HTTP_HEADERS, authentication, HTTP_TIMEOUT),
         null,
         null,
         null);
@@ -296,7 +296,7 @@ class McpRemoteClientRegistryTest {
   }
 
   private ClientConfiguration createClientConfig(ClientCacheConfiguration cacheConfiguration) {
-    return new ClientConfiguration(true, false, cacheConfiguration);
+    return new ClientConfiguration(cacheConfiguration);
   }
 
   @SuppressWarnings("unchecked")

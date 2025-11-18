@@ -16,10 +16,12 @@ import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain
 import io.camunda.connector.http.client.authentication.OAuthService;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@EnableConfigurationProperties(McpClientLangchain4JFrameworkConfigurationProperties.class)
 public class McpClientBaseLangchain4JFrameworkConfiguration {
 
   @Bean
@@ -33,8 +35,15 @@ public class McpClientBaseLangchain4JFrameworkConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public McpClientFactory<McpClient> langchain4JMcpClientFactory(
+      McpClientLangchain4JFrameworkConfigurationProperties config,
       Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory) {
-    return new Langchain4JMcpClientFactory(headersSupplierFactory);
+    final var loggingConfiguration = config.logging();
+
+    final var factory = new Langchain4JMcpClientFactory(headersSupplierFactory);
+    factory.logStdioEvents(loggingConfiguration.stdio().logEvents());
+    factory.logHttpRequests(loggingConfiguration.http().logRequests());
+    factory.logHttpResponses(loggingConfiguration.http().logResponses());
+    return factory;
   }
 
   @Bean

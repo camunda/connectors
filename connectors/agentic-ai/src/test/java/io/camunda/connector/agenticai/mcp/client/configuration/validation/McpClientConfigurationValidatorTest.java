@@ -37,26 +37,21 @@ class McpClientConfigurationValidatorTest {
       AuthenticationConfiguration.builder().type(AuthenticationType.NONE).build();
 
   private static final StdioMcpClientTransportConfiguration STDIO_CONFIGURATION =
-      new StdioMcpClientTransportConfiguration(
-          "echo", List.of("hello"), Collections.emptyMap(), false);
+      new StdioMcpClientTransportConfiguration("echo", List.of("hello"), Collections.emptyMap());
 
   private static final StreamableHttpMcpClientTransportConfiguration STREAMABLE_HTTP_CONFIGURATION =
       new StreamableHttpMcpClientTransportConfiguration(
           "http://localhost:1234/mcp",
           Collections.emptyMap(),
           NO_AUTHENTICATION,
-          Duration.ofSeconds(5),
-          false,
-          false);
+          Duration.ofSeconds(5));
 
   private static final SseHttpMcpClientTransportConfiguration SSE_CONFIGURATION =
       new SseHttpMcpClientTransportConfiguration(
           "http://localhost:1234/sse",
           Collections.emptyMap(),
           NO_AUTHENTICATION,
-          Duration.ofSeconds(5),
-          false,
-          false);
+          Duration.ofSeconds(5));
 
   @Autowired private Validator validator;
 
