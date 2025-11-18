@@ -51,7 +51,9 @@ public class Langchain4JMcpClientHeadersSupplierFactory {
           headerSuppliers.add(new BearerAuthHeadersSupplier(bearerAuthentication));
 
       case OAuthAuthentication oAuthAuthentication ->
-          headerSuppliers.add(createOAuthHeadersSupplier(oAuthAuthentication));
+          headerSuppliers.add(
+              new OAuthHeadersSupplier(
+                  oAuthService, httpClient, objectMapper, oAuthAuthentication));
 
       default -> {
         // no authentication to apply
@@ -59,11 +61,6 @@ public class Langchain4JMcpClientHeadersSupplierFactory {
     }
 
     return new CompositeHeadersSupplier(headerSuppliers);
-  }
-
-  protected OAuthHeadersSupplier createOAuthHeadersSupplier(
-      OAuthAuthentication oAuthAuthentication) {
-    return new OAuthHeadersSupplier(oAuthService, httpClient, objectMapper, oAuthAuthentication);
   }
 
   public static class CompositeHeadersSupplier implements Supplier<Map<String, String>> {
