@@ -13,14 +13,24 @@ import io.camunda.connector.idp.extraction.model.ConverseData;
 public class AzureOpenAiClient extends AiClient {
 
   public AzureOpenAiClient(String endpoint, String apiKey, ConverseData converseData) {
-    this.chatModel =
+
+    var builder =
         AzureOpenAiChatModel.builder()
             .endpoint(endpoint)
             .apiKey(apiKey)
-            .deploymentName(converseData.modelId())
-            .temperature(Double.valueOf(converseData.temperature()))
-            .topP(Double.valueOf(converseData.topP()))
-            .build();
+            .deploymentName(converseData.modelId());
+
+    if (converseData.maxTokens() != null) {
+      builder.maxTokens(converseData.maxTokens());
+    }
+    if (converseData.temperature() != null) {
+      builder.temperature(converseData.temperature().doubleValue());
+    }
+    if (converseData.topP() != null) {
+      builder.topP(converseData.topP().doubleValue());
+    }
+
+    this.chatModel = builder.build();
   }
 
   @Override

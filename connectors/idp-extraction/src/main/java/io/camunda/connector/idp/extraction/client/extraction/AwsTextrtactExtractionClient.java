@@ -10,7 +10,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.aws.model.impl.AwsAuthentication;
 import io.camunda.connector.idp.extraction.client.extraction.base.MlExtractor;
 import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
 import io.camunda.connector.idp.extraction.model.Polygon;
@@ -18,7 +17,6 @@ import io.camunda.connector.idp.extraction.model.PolygonPoint;
 import io.camunda.connector.idp.extraction.model.StructuredExtractionResponse;
 import io.camunda.connector.idp.extraction.model.TextractAnalysisTask;
 import io.camunda.connector.idp.extraction.model.TextractTextDetectionTask;
-import io.camunda.connector.idp.extraction.utils.AwsCredentialsProviderSupport;
 import io.camunda.connector.idp.extraction.utils.AwsUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,6 +28,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.textract.TextractClient;
@@ -59,15 +58,15 @@ public class AwsTextrtactExtractionClient implements TextExtractor, MlExtractor,
   private final String bucketName;
 
   public AwsTextrtactExtractionClient(
-      AwsAuthentication authentication, String region, String bucketName) {
+      AwsCredentialsProvider credentialsProvider, String region, String bucketName) {
     textractClient =
         TextractClient.builder()
-            .credentialsProvider(AwsCredentialsProviderSupport.credentialsProvider(authentication))
+            .credentialsProvider(credentialsProvider)
             .region(Region.of(region))
             .build();
     s3AsyncClient =
         S3AsyncClient.builder()
-            .credentialsProvider(AwsCredentialsProviderSupport.credentialsProvider(authentication))
+            .credentialsProvider(credentialsProvider)
             .region(Region.of(region))
             .build();
     this.bucketName = bucketName;

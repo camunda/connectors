@@ -6,8 +6,12 @@
  */
 package io.camunda.connector.idp.extraction;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.GoogleCredentials;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
@@ -22,6 +26,7 @@ import io.camunda.connector.idp.extraction.client.extraction.AzureDocumentIntell
 import io.camunda.connector.idp.extraction.client.extraction.GcpDocumentAiExtractionClient;
 import io.camunda.connector.idp.extraction.client.extraction.PdfBoxExtractionClient;
 import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
+import io.camunda.connector.idp.extraction.model.ClassificationResult;
 import io.camunda.connector.idp.extraction.model.ConverseData;
 import io.camunda.connector.idp.extraction.model.LlmModel;
 import io.camunda.connector.idp.extraction.request.classification.ClassificationRequest;
@@ -36,12 +41,15 @@ import io.camunda.connector.idp.extraction.request.common.extraction.ExtractionP
 import io.camunda.connector.idp.extraction.request.common.extraction.TextractExtractorRequest;
 import io.camunda.connector.idp.extraction.utils.AwsUtil;
 import io.camunda.connector.idp.extraction.utils.GcsUtil;
+import io.camunda.connector.idp.extraction.utils.StringUtil;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 @OutboundConnector(
     name = "IDP classification outbound Connector",
-    inputVariables = {"extractionProvider", "input"},
+    inputVariables = {"extractor", "ai", "input"},
     type = "io.camunda:idp-classification-connector-template:1")
 @ElementTemplate(
     engineVersion = "^8.7",
@@ -49,7 +57,7 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
     name = "IDP classification outbound Connector",
     version = 2,
     description = "Execute IDP classification requests",
-    icon = "icon.svg",
+    icon = "classification-icon.svg",
     documentationRef = "https://docs.camunda.io/docs/guides/",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "input", label = "Input message data"),
@@ -58,6 +66,10 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
     },
     inputDataClass = ClassificationRequest.class)
 public class ClassificationConnectorFunction implements OutboundConnectorFunction {
+
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(ClassificationConnectorFunction.class);
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
@@ -70,7 +82,12 @@ public class ClassificationConnectorFunction implements OutboundConnectorFunctio
       // multimodal chat
       return null;
     } else {
+      long startTime = System.currentTimeMillis();
+      LOGGER.info("Extracting text through {}", textExtractor.getClass().getSimpleName());
       String extractedText = textExtractor.extract(request.input().getDocument());
+      long extractionEndTime = System.currentTimeMillis();
+      LOGGER.info("Finished text extraction in {}ms", extractionEndTime - startTime);
+
       String prompt =
           new StringBuilder()
               .append(request.input().getUserPrompt())
@@ -85,7 +102,20 @@ public class ClassificationConnectorFunction implements OutboundConnectorFunctio
               .append("\n------ Extracted document text: ------\n")
               .append(extractedText)
               .toString();
-      return aiClient.chat(prompt);
+
+      long aiStartTime = System.currentTimeMillis();
+      LOGGER.info(
+          "Classifying with ai provider {} and model {}",
+          aiClient.getClass().getSimpleName(),
+          request.input().getConverseData().modelId());
+      String response = aiClient.chat(prompt);
+      long endTime = System.currentTimeMillis();
+      LOGGER.info(
+          "Finished ai conversation in {}ms and in total took {}ms",
+          (endTime - aiStartTime),
+          (endTime - startTime));
+
+      return parseClassificationResponse(response);
     }
   }
 
@@ -109,9 +139,15 @@ public class ClassificationConnectorFunction implements OutboundConnectorFunctio
             docAiRequest.region(),
             docAiRequest.processorId());
       }
-      case TextractExtractorRequest textractRequest ->
-          new AwsTextrtactExtractionClient(
-              null, textractRequest.region(), textractRequest.bucketName());
+      case TextractExtractorRequest textractRequest -> {
+        AwsCredentialsProvider credentialsProvider =
+            AwsUtil.credentialsProvider(
+                textractRequest.awsAuthType(),
+                textractRequest.accessKey(),
+                textractRequest.secretKey());
+        yield new AwsTextrtactExtractionClient(
+            credentialsProvider, textractRequest.region(), textractRequest.bucketName());
+      }
       case ExtractionProvider.ApachePdfBoxExtractorRequest pdfbox -> new PdfBoxExtractionClient();
       case ExtractionProvider.MultimodalExtractorRequest multimodal -> null;
     };
@@ -151,5 +187,45 @@ public class ClassificationConnectorFunction implements OutboundConnectorFunctio
           new OpenAiClient(
               openAiRequest.openAiEndpoint(), openAiRequest.openAiHeaders(), converseData);
     };
+  }
+
+  private ClassificationResult parseClassificationResponse(String llmResponse) {
+    try {
+      // First filter out thinking content, then strip markdown code blocks
+      String thinkingRemoved = StringUtil.filterThinkingContent(llmResponse);
+      String cleanedResponse = StringUtil.stripMarkdownCodeBlocks(thinkingRemoved);
+      JsonNode llmResponseJson = objectMapper.readValue(cleanedResponse, JsonNode.class);
+
+      if (!llmResponseJson.isObject()) {
+        throw new ConnectorException(
+            String.valueOf(500),
+            String.format("LLM response is not a JSON object: %s", llmResponse));
+      }
+
+      // Handle nested "response" wrapper if present
+      JsonNode dataNode = llmResponseJson;
+      if (llmResponseJson.has("response") && llmResponseJson.size() == 1) {
+        var nestedResponse = llmResponseJson.get("response");
+        if (nestedResponse.isObject()) {
+          dataNode = nestedResponse;
+        } else if (nestedResponse.isTextual()) {
+          dataNode = objectMapper.readValue(nestedResponse.asText(), JsonNode.class);
+        }
+      }
+
+      // Extract the required fields
+      String extractedValue =
+          dataNode.has("extractedValue") ? dataNode.get("extractedValue").asText() : null;
+      String confidence = dataNode.has("confidence") ? dataNode.get("confidence").asText() : null;
+      String reasoning = dataNode.has("reasoning") ? dataNode.get("reasoning").asText() : null;
+
+      return new ClassificationResult(extractedValue, confidence, reasoning);
+
+    } catch (JsonProcessingException e) {
+      throw new ConnectorException(
+          String.valueOf(500),
+          String.format("Failed to parse the JSON response from LLM: %s", llmResponse),
+          e);
+    }
   }
 }

@@ -15,11 +15,13 @@ import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
 import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
 import io.camunda.connector.idp.extraction.model.providers.ProviderConfig;
 import io.camunda.connector.idp.extraction.model.providers.gcp.DocumentAiRequestConfiguration;
+import io.camunda.connector.idp.extraction.utils.AwsUtil;
 import io.camunda.connector.idp.extraction.utils.GcsUtil;
 import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 public class StructuredService implements ExtractionService {
 
@@ -48,9 +50,12 @@ public class StructuredService implements ExtractionService {
 
   private MlExtractor getMlExtractor(ProviderConfig providerConfig) {
     return switch (providerConfig) {
-      case AwsProvider aws ->
-          new AwsTextrtactExtractionClient(
-              aws.getAuthentication(), aws.getConfiguration().region(), aws.getS3BucketName());
+      case AwsProvider aws -> {
+        AwsCredentialsProvider credentialsProvider =
+            AwsUtil.credentialsProvider(aws.getAuthentication());
+        yield new AwsTextrtactExtractionClient(
+            credentialsProvider, aws.getConfiguration().region(), aws.getS3BucketName());
+      }
       case GcpProvider gcp -> {
         DocumentAiRequestConfiguration config =
             (DocumentAiRequestConfiguration) gcp.getConfiguration();

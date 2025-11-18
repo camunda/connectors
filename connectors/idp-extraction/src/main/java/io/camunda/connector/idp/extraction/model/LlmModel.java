@@ -149,7 +149,7 @@ public enum LlmModel {
 
             Respond in this JSON format, without any preamble:
             {
-                "documentType": "<one of the listed document types>",
+                "extractedValue": "<one of the listed document types>",
                 "confidence": "<HIGH or LOW>",
                 "reasoning": "<1-2 sentences on the reasoning behind your choice and confidence level."
             }
@@ -160,8 +160,8 @@ public enum LlmModel {
     return """
             %s
 
-            If you are confident the document does not match any of the listed document types,
-            you may classify it as a different type that better represents the document.
+            You are free to classify outside the given types if you are confident the document does not match any of the listed document types.
+            You may classify it as a different type that better represents the document. Use the same case as the given types.
 
       """;
   }

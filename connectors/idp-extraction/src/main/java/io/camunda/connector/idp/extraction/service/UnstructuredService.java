@@ -82,9 +82,12 @@ public class UnstructuredService implements ExtractionService {
 
   private TextExtractor getTextExtractor(ProviderConfig providerConfig) {
     return switch (providerConfig) {
-      case AwsProvider aws ->
-          new AwsTextrtactExtractionClient(
-              aws.getAuthentication(), aws.getConfiguration().region(), aws.getS3BucketName());
+      case AwsProvider aws -> {
+        AwsCredentialsProvider credentialsProvider =
+            AwsUtil.credentialsProvider(aws.getAuthentication());
+        yield new AwsTextrtactExtractionClient(
+            credentialsProvider, aws.getConfiguration().region(), aws.getS3BucketName());
+      }
       case AzureProvider azure ->
           new AzureDocumentIntelligenceExtractionClient(
               azure.getDocumentIntelligenceConfiguration().getEndpoint(),

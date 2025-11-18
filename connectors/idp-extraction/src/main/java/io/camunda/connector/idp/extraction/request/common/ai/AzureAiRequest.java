@@ -18,7 +18,7 @@ public record AzureAiRequest(
     @TemplateProperty(
             id = "usingOpenAI",
             label = "Model type",
-            group = "configuration",
+            group = "ai",
             type = Dropdown,
             description = "Specify if the Azure AI Foundry is using OpenAI",
             defaultValue = "false",

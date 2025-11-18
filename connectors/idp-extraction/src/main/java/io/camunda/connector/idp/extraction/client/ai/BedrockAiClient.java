@@ -32,17 +32,27 @@ public class BedrockAiClient extends AiClient {
             .credentialsProvider(credentialsProvider)
             .build();
 
-    ChatRequestParameters parameters =
-        BedrockChatRequestParameters.builder()
-            .temperature(Double.valueOf(converseData.temperature()))
-            .topP(Double.valueOf(converseData.topP()))
-            .build();
-
     this.chatModel =
         BedrockChatModel.builder()
             .client(bedrockClient)
-            .defaultRequestParameters(parameters)
+            .defaultRequestParameters(getChatRequestParameters(converseData))
             .modelId(modelId)
             .build();
+  }
+
+  private ChatRequestParameters getChatRequestParameters(ConverseData converseData) {
+    var parametersBuilder = BedrockChatRequestParameters.builder();
+
+    if (converseData.maxTokens() != null) {
+      parametersBuilder.maxOutputTokens(converseData.maxTokens());
+    }
+    if (converseData.temperature() != null) {
+      parametersBuilder.temperature(converseData.temperature().doubleValue());
+    }
+    if (converseData.topP() != null) {
+      parametersBuilder.topP(converseData.topP().doubleValue());
+    }
+
+    return parametersBuilder.build();
   }
 }

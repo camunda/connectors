@@ -15,15 +15,25 @@ public class VertexAiClient extends AiClient {
 
   public VertexAiClient(
       GoogleCredentials credentials, String projectId, String location, ConverseData converseData) {
-    this.chatModel =
+
+    var builder =
         VertexAiGeminiChatModel.builder()
             .credentials(credentials)
             .project(projectId)
             .location(location)
             .modelName(converseData.modelId())
-            .temperature(converseData.temperature())
-            .topP(converseData.topP())
-            .responseMimeType("application/json")
-            .build();
+            .responseMimeType("application/json");
+
+    if (converseData.maxTokens() != null) {
+      builder.maxOutputTokens(converseData.maxTokens());
+    }
+    if (converseData.temperature() != null) {
+      builder.temperature(converseData.temperature());
+    }
+    if (converseData.topP() != null) {
+      builder.topP(converseData.topP());
+    }
+
+    this.chatModel = builder.build();
   }
 }

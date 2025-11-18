@@ -85,5 +85,7 @@ public class ClassificationRequestData extends DocumentRequestData {
     return autoClassify;
   }
 
-  public void setAutoClassify(boolean autoClassify) {}
+  public void setAutoClassify(boolean autoClassify) {
+    this.autoClassify = autoClassify;
+  }
 }

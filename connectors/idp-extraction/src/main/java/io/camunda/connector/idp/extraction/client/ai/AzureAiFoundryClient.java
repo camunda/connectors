@@ -18,14 +18,23 @@ public class AzureAiFoundryClient extends AiClient {
     // e.g., https://idp-ai-provider.services.ai.azure.com
     String baseEndpoint = endpoint.replace("/models", "").replaceAll("/$", "");
 
-    this.chatModel =
+    var builder =
         AzureOpenAiChatModel.builder()
             .endpoint(baseEndpoint)
             .apiKey(apiKey)
-            .deploymentName(converseData.modelId())
-            .temperature(Double.valueOf(converseData.temperature()))
-            .topP(Double.valueOf(converseData.topP()))
-            .build();
+            .deploymentName(converseData.modelId());
+
+    if (converseData.maxTokens() != null) {
+      builder.maxTokens(converseData.maxTokens());
+    }
+    if (converseData.temperature() != null) {
+      builder.temperature(converseData.temperature().doubleValue());
+    }
+    if (converseData.topP() != null) {
+      builder.topP(converseData.topP().doubleValue());
+    }
+
+    this.chatModel = builder.build();
   }
 
   @Override
