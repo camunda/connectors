@@ -16,11 +16,15 @@
  */
 package io.camunda.connector.runtime.core.intrinsic;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import jakarta.annotation.Nullable;
 import java.nio.charset.Charset;
+import java.util.ServiceLoader;
+import org.junit.jupiter.api.Test;
 
 /** Some test operations that show possible serialization and deserialization use cases. */
 public class TestFunctionProvider implements IntrinsicFunctionProvider {
@@ -48,5 +52,11 @@ public class TestFunctionProvider implements IntrinsicFunctionProvider {
   @IntrinsicFunction(name = "test_anythingToString")
   public String anythingToJson(Object anything) throws JsonProcessingException {
     return objectMapper.writeValueAsString(anything);
+  }
+
+  @Test
+  public void shouldFindIntrinsicFunctionProviderImpl() {
+    var a = ServiceLoader.load(IntrinsicFunctionProvider.class);
+    assertEquals(5, a.stream().count());
   }
 }

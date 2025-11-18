@@ -9,6 +9,8 @@ package io.camunda.connector.azure.blobstorage.model.core;
 import com.azure.core.http.rest.Response;
 import com.azure.core.util.BinaryData;
 import com.azure.core.util.Context;
+import com.azure.identity.ClientSecretCredential;
+import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
@@ -19,11 +21,13 @@ import com.azure.storage.blob.models.DownloadRetryOptions;
 import com.azure.storage.blob.options.BlobParallelUploadOptions;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
-import io.camunda.connector.azure.blobstorage.model.request.Authentication;
 import io.camunda.connector.azure.blobstorage.model.request.BlobStorageOperation;
 import io.camunda.connector.azure.blobstorage.model.request.BlobStorageRequest;
 import io.camunda.connector.azure.blobstorage.model.request.DownloadBlob;
 import io.camunda.connector.azure.blobstorage.model.request.UploadBlob;
+import io.camunda.connector.azure.blobstorage.model.request.auth.Authentication;
+import io.camunda.connector.azure.blobstorage.model.request.auth.OAuthAuthentication;
+import io.camunda.connector.azure.blobstorage.model.request.auth.SASAuthentication;
 import io.camunda.connector.azure.blobstorage.model.response.DownloadResponse;
 import io.camunda.connector.azure.blobstorage.model.response.DownloadResponse.DocumentContent;
 import io.camunda.connector.azure.blobstorage.model.response.UploadResponse;
@@ -33,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BlobStorageExecutor {
+
   private static final Logger log = LoggerFactory.getLogger(BlobStorageExecutor.class);
 
   private final Function<DocumentCreationRequest, Document> createDocument;
@@ -58,12 +63,7 @@ public class BlobStorageExecutor {
   }
 
   private UploadResponse upload(UploadBlob uploadBlob) {
-    BlobContainerClient blobContainerClient =
-        new BlobContainerClientBuilder()
-            .endpoint(this.authentication.getSASUrl())
-            .sasToken(this.authentication.getSASToken())
-            .containerName(uploadBlob.container())
-            .buildClient();
+    BlobContainerClient blobContainerClient = getClient(uploadBlob.container());
 
     String fileName =
         uploadBlob.fileName() != null && !uploadBlob.fileName().isEmpty()
@@ -91,12 +91,7 @@ public class BlobStorageExecutor {
   }
 
   private DownloadResponse download(DownloadBlob downloadBlob) {
-    BlobContainerClient blobContainerClient =
-        new BlobContainerClientBuilder()
-            .endpoint(this.authentication.getSASUrl())
-            .sasToken(this.authentication.getSASToken())
-            .containerName(downloadBlob.container())
-            .buildClient();
+    BlobContainerClient blobContainerClient = getClient(downloadBlob.container());
     DownloadRetryOptions options = new DownloadRetryOptions().setMaxRetryRequests(3);
 
     BlobClient blobClient = blobContainerClient.getBlobClient(downloadBlob.fileName());
@@ -122,5 +117,29 @@ public class BlobStorageExecutor {
     } else {
       return new DownloadResponse.StringContent(content.toString());
     }
+  }
+
+  private BlobContainerClient getClient(String container) {
+    return switch (authentication) {
+      case SASAuthentication sasAuthentication ->
+          new BlobContainerClientBuilder()
+              .endpoint(sasAuthentication.SASUrl())
+              .sasToken(sasAuthentication.SASToken())
+              .containerName(container)
+              .buildClient();
+      case OAuthAuthentication oAuthAuthentication -> {
+        ClientSecretCredential credential =
+            new ClientSecretCredentialBuilder()
+                .tenantId(oAuthAuthentication.tenantId())
+                .clientId(oAuthAuthentication.clientId())
+                .clientSecret(oAuthAuthentication.clientSecret())
+                .build();
+        yield new BlobContainerClientBuilder()
+            .endpoint(oAuthAuthentication.accountUrl())
+            .credential(credential)
+            .containerName(container)
+            .buildClient();
+      }
+    };
   }
 }

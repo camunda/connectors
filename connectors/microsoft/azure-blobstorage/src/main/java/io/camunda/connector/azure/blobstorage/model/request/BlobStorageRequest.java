@@ -8,6 +8,7 @@ package io.camunda.connector.azure.blobstorage.model.request;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.azure.blobstorage.model.request.auth.Authentication;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
