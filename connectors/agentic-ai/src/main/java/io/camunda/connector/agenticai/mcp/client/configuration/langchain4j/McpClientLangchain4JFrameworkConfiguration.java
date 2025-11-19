@@ -47,7 +47,7 @@ public class McpClientLangchain4JFrameworkConfiguration {
         .forEach(
             (id, clientConfig) -> {
               if (clientConfig.enabled()) {
-                registry.registerLazy(
+                registry.register(
                     id,
                     () -> {
                       LOGGER.info("Creating MCP client with ID '{}'", id);

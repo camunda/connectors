@@ -18,18 +18,13 @@ public class McpClientRegistry<C extends AutoCloseable> implements AutoCloseable
   private final Map<String, C> clients = new LinkedHashMap<>();
   private final Map<String, Supplier<C>> clientSuppliers = new LinkedHashMap<>();
 
-  public void register(String id, C client) {
+  public void register(String id, Supplier<C> clientSupplier) {
     validateClientId(id);
 
-    if (client == null) {
-      throw new IllegalArgumentException("MCP client must not be null");
+    if (clientSuppliers.containsKey(id)) {
+      throw new IllegalArgumentException(
+          "MCP client with ID '%s' is already registered".formatted(id));
     }
-
-    clients.put(id, client);
-  }
-
-  public void registerLazy(String id, Supplier<C> clientSupplier) {
-    validateClientId(id);
 
     if (clientSupplier == null) {
       throw new IllegalArgumentException("MCP client supplier must not be null");
@@ -38,34 +33,32 @@ public class McpClientRegistry<C extends AutoCloseable> implements AutoCloseable
     clientSuppliers.put(id, clientSupplier);
   }
 
-  private void validateClientId(String id) {
-    if (id == null || id.isBlank()) {
-      throw new IllegalArgumentException("ID must not be null or empty");
-    }
-
-    if (clients.containsKey(id) || clientSuppliers.containsKey(id)) {
-      throw new IllegalArgumentException(
-          "MCP client with ID '%s' is already registered".formatted(id));
-    }
-  }
-
   public C getClient(String id) {
+    validateClientId(id);
+
     return clients.computeIfAbsent(
         id,
         clientId -> {
-          if (clientSuppliers.containsKey(clientId)) {
-            final var client = clientSuppliers.get(clientId).get();
-            if (client == null) {
-              throw new IllegalArgumentException(
-                  "MCP client supplier for ID '%s' returned null".formatted(clientId));
-            }
-
-            return client;
-          } else {
+          final var clientSupplier = clientSuppliers.get(clientId);
+          if (clientSupplier == null) {
             throw new IllegalArgumentException(
-                "No MCP client registered with ID '%s'".formatted(id));
+                "No MCP client registered with ID '%s'".formatted(clientId));
           }
+
+          final var client = clientSupplier.get();
+          if (client == null) {
+            throw new IllegalArgumentException(
+                "MCP client supplier for ID '%s' returned null".formatted(clientId));
+          }
+
+          return client;
         });
+  }
+
+  private void validateClientId(String id) {
+    if (id == null || id.isBlank()) {
+      throw new IllegalArgumentException("MCP client ID must not be null or empty");
+    }
   }
 
   @Override
