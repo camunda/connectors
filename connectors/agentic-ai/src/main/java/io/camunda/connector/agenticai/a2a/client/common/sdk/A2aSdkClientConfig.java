@@ -10,4 +10,14 @@ import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import javax.annotation.Nullable;
 
 @AgenticAiRecord
-public record A2aSdkClientConfig(int historyLength, @Nullable Boolean supportPolling) {}
+public record A2aSdkClientConfig(
+    int historyLength, boolean blocking, @Nullable PushNotificationConfig pushNotificationConfig) {
+
+  public A2aSdkClientConfig {
+    if (blocking && pushNotificationConfig != null) {
+      throw new IllegalArgumentException("Cannot enable both blocking and push notifications.");
+    }
+  }
+
+  public record PushNotificationConfig(String url, String authScheme) {}
+}

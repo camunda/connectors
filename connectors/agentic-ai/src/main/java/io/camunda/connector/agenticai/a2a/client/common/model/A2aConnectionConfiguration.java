@@ -6,12 +6,14 @@
  */
 package io.camunda.connector.agenticai.a2a.client.common.model;
 
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
 
 public record A2aConnectionConfiguration(
     @NotBlank
+        @FEEL
         @TemplateProperty(
             group = "connection",
             label = "A2A server URL",
@@ -19,7 +21,8 @@ public record A2aConnectionConfiguration(
             type = TemplateProperty.PropertyType.String,
             feel = Property.FeelMode.optional)
         String url,
-    @TemplateProperty(
+    @FEEL
+        @TemplateProperty(
             group = "connection",
             label = "Agent card location",
             description =

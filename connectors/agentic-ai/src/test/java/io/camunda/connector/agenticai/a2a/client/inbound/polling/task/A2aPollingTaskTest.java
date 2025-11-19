@@ -44,6 +44,7 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStat
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus.TaskState;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClient;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientConfig;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientConfigBuilder;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.model.A2aPollingRuntimeProperties;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.model.A2aPollingRuntimeProperties.A2aPollingRuntimePropertiesData;
@@ -390,7 +391,7 @@ class A2aPollingTaskTest {
   }
 
   private static A2aSdkClientConfig a2aClientConfig() {
-    return new A2aSdkClientConfig(3, null);
+    return new A2aSdkClientConfigBuilder().historyLength(3).blocking(false).build();
   }
 
   private static A2aPollingRuntimeProperties runtimeProperties(String clientResponse) {

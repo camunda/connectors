@@ -17,8 +17,12 @@ import io.a2a.client.transport.rest.RestTransport;
 import io.a2a.client.transport.rest.RestTransportConfig;
 import io.a2a.spec.A2AClientException;
 import io.a2a.spec.AgentCard;
+import io.a2a.spec.PushNotificationAuthenticationInfo;
+import io.a2a.spec.PushNotificationConfig;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aClientCommonConfigurationProperties.TransportConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.grpc.ManagedChannelFactory;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 
 public class A2aSdkClientFactoryImpl implements A2aSdkClientFactory {
@@ -40,15 +44,30 @@ public class A2aSdkClientFactoryImpl implements A2aSdkClientFactory {
         new ManagedChannelFactory(transportConfiguration.grpc().useTls());
     final GrpcTransportConfig grpcTransportConfig =
         new GrpcTransportConfig(managedChannelFactory::create);
+
+    final var clientConfigBuilder =
+        new ClientConfig.Builder()
+            .setStreaming(false)
+            .setPolling(!config.blocking())
+            .setHistoryLength(config.historyLength());
+    final var pushNotificationConfig = config.pushNotificationConfig();
+    if (pushNotificationConfig != null) {
+      final var authenticationInfo =
+          new PushNotificationAuthenticationInfo(
+              Optional.ofNullable(pushNotificationConfig.authScheme())
+                  .map(List::of)
+                  .orElse(List.of()),
+              null);
+      clientConfigBuilder.setPushNotificationConfig(
+          new PushNotificationConfig.Builder()
+              .url(pushNotificationConfig.url())
+              .authenticationInfo(authenticationInfo)
+              .build());
+    }
     try {
       Client client =
           Client.builder(agentCard)
-              .clientConfig(
-                  new ClientConfig.Builder()
-                      .setStreaming(false)
-                      .setPolling(config.supportPolling() == null || config.supportPolling())
-                      .setHistoryLength(config.historyLength())
-                      .build())
+              .clientConfig(clientConfigBuilder.build())
               .addConsumer(consumer)
               .withTransport(JSONRPCTransport.class, jsonrpcTransportConfig)
               .withTransport(RestTransport.class, restTransportConfig)

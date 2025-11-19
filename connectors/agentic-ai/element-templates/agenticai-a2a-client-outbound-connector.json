@@ -251,6 +251,110 @@
     "tooltip" : "Referenced documents that will be added to the message.",
     "type" : "String"
   }, {
+    "id" : "data.connectorMode.operation.settings.responseRetrievalMode.type",
+    "label" : "Response retrieval",
+    "description" : "How to receive the final response from the remote agent.",
+    "value" : "polling",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.operation.settings.responseRetrievalMode.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.type",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Blocking",
+      "value" : "blocking"
+    }, {
+      "name" : "Polling",
+      "value" : "polling"
+    }, {
+      "name" : "Notification",
+      "value" : "notification"
+    } ]
+  }, {
+    "id" : "data.connectorMode.operation.settings.responseRetrievalMode.webhookUrl",
+    "label" : "Webhook URL",
+    "description" : "The webhook URL where the remote agent will send the response.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.operation.settings.responseRetrievalMode.webhookUrl",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.settings.responseRetrievalMode.type",
+        "equals" : "notification",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.operation.type",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.connectorMode.operation.settings.responseRetrievalMode.authorizationType",
+    "label" : "Authorization type",
+    "description" : "The authorization type required by the webhook.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.operation.settings.responseRetrievalMode.authorizationType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.settings.responseRetrievalMode.type",
+        "equals" : "notification",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.operation.type",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "None",
+      "value" : "NONE"
+    }, {
+      "name" : "Basic",
+      "value" : "BASIC"
+    }, {
+      "name" : "API key",
+      "value" : "API_KEY"
+    }, {
+      "name" : "Bearer token",
+      "value" : "BEARER_TOKEN"
+    } ]
+  }, {
     "id" : "data.connectorMode.operation.settings.historyLength",
     "label" : "History length",
     "description" : "The number of most recent messages from the task's history to retrieve in the response.",
@@ -274,30 +378,6 @@
       } ]
     },
     "type" : "Number"
-  }, {
-    "id" : "data.connectorMode.operation.settings.supportPolling",
-    "label" : "Support polling",
-    "description" : "Whether to enable polling for the remote agent's response instead of waiting for it synchronously.",
-    "optional" : true,
-    "value" : true,
-    "feel" : "static",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.connectorMode.operation.settings.supportPolling",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.connectorMode.operation.type",
-        "equals" : "sendMessage",
-        "type" : "simple"
-      }, {
-        "property" : "data.connectorMode.type",
-        "equals" : "standalone",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Boolean"
   }, {
     "id" : "data.connectorMode.operation.settings.timeout",
     "label" : "Response timeout",
@@ -362,6 +442,96 @@
     },
     "type" : "Text"
   }, {
+    "id" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.type",
+    "label" : "Response retrieval",
+    "description" : "How to receive the final response from the remote agent.",
+    "value" : "polling",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode.type",
+      "equals" : "aiAgentTool",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Blocking",
+      "value" : "blocking"
+    }, {
+      "name" : "Polling",
+      "value" : "polling"
+    }, {
+      "name" : "Notification",
+      "value" : "notification"
+    } ]
+  }, {
+    "id" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.webhookUrl",
+    "label" : "Webhook URL",
+    "description" : "The webhook URL where the remote agent will send the response.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.webhookUrl",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.type",
+        "equals" : "notification",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "aiAgentTool",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.authorizationType",
+    "label" : "Authorization type",
+    "description" : "The authorization type required by the webhook.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.authorizationType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.type",
+        "equals" : "notification",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "aiAgentTool",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "None",
+      "value" : "NONE"
+    }, {
+      "name" : "Basic",
+      "value" : "BASIC"
+    }, {
+      "name" : "API key",
+      "value" : "API_KEY"
+    }, {
+      "name" : "Bearer token",
+      "value" : "BEARER_TOKEN"
+    } ]
+  }, {
     "id" : "data.connectorMode.toolOperation.sendMessageSettings.historyLength",
     "label" : "History length",
     "description" : "The number of most recent messages from the task's history to retrieve in the response.",
@@ -379,24 +549,6 @@
       "type" : "simple"
     },
     "type" : "Number"
-  }, {
-    "id" : "data.connectorMode.toolOperation.sendMessageSettings.supportPolling",
-    "label" : "Support polling",
-    "description" : "Whether to enable polling for the remote agent's response instead of waiting for it synchronously.",
-    "optional" : true,
-    "value" : true,
-    "feel" : "static",
-    "group" : "operation",
-    "binding" : {
-      "name" : "data.connectorMode.toolOperation.sendMessageSettings.supportPolling",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "data.connectorMode.type",
-      "equals" : "aiAgentTool",
-      "type" : "simple"
-    },
-    "type" : "Boolean"
   }, {
     "id" : "data.connectorMode.toolOperation.sendMessageSettings.timeout",
     "label" : "Response timeout",
