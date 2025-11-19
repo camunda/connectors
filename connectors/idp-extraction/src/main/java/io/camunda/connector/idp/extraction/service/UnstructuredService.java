@@ -9,58 +9,40 @@ package io.camunda.connector.idp.extraction.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.auth.oauth2.GoogleCredentials;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.idp.extraction.client.ai.AzureAiFoundryClient;
-import io.camunda.connector.idp.extraction.client.ai.AzureOpenAiClient;
-import io.camunda.connector.idp.extraction.client.ai.BedrockAiClient;
-import io.camunda.connector.idp.extraction.client.ai.OpenAiClient;
-import io.camunda.connector.idp.extraction.client.ai.VertexAiClient;
 import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
-import io.camunda.connector.idp.extraction.client.extraction.AwsTextrtactExtractionClient;
-import io.camunda.connector.idp.extraction.client.extraction.AzureDocumentIntelligenceExtractionClient;
-import io.camunda.connector.idp.extraction.client.extraction.PdfBoxExtractionClient;
 import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
-import io.camunda.connector.idp.extraction.model.ExtractionRequest;
 import io.camunda.connector.idp.extraction.model.ExtractionResult;
 import io.camunda.connector.idp.extraction.model.LlmModel;
 import io.camunda.connector.idp.extraction.model.TaxonomyItem;
-import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
-import io.camunda.connector.idp.extraction.model.providers.AzureProvider;
-import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
-import io.camunda.connector.idp.extraction.model.providers.OpenAiProvider;
-import io.camunda.connector.idp.extraction.model.providers.ProviderConfig;
-import io.camunda.connector.idp.extraction.model.providers.gcp.VertexRequestConfiguration;
-import io.camunda.connector.idp.extraction.utils.AwsUtil;
-import io.camunda.connector.idp.extraction.utils.GcsUtil;
 import io.camunda.connector.idp.extraction.utils.StringUtil;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
-public class UnstructuredService implements ExtractionService {
+public class UnstructuredService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UnstructuredService.class);
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   public UnstructuredService() {}
 
-  @Override
-  public Object extract(ExtractionRequest extractionRequest) {
-    TextExtractor textExtractor = getTextExtractor(extractionRequest.baseRequest());
-    AiClient aiClient = getAiClient(extractionRequest);
-    LlmModel llmModel = LlmModel.fromId(extractionRequest.input().converseData().modelId());
-
+  public Object extract(
+      TextExtractor textExtractor,
+      AiClient aiClient,
+      LlmModel llmModel,
+      List<TaxonomyItem> taxonomyItems,
+      Document document) {
     String aiResponse;
     if (textExtractor == null) {
       long aiStartTime = System.currentTimeMillis();
       LOGGER.info("Starting multimodal {} conversation", aiClient.getClass().getSimpleName());
-      String userPrompt = llmModel.getMessage(extractionRequest.input().taxonomyItems());
+      String userPrompt = llmModel.getMessage(taxonomyItems);
       String prompt = String.format("%s%n%s", llmModel.getSystemPrompt(), userPrompt);
-      aiResponse = aiClient.chat(prompt, extractionRequest.input().document());
+      aiResponse = aiClient.chat(prompt, document);
       long aiEndTime = System.currentTimeMillis();
       LOGGER.info(
           "Multimodal {} conversation took {} ms",
@@ -69,7 +51,7 @@ public class UnstructuredService implements ExtractionService {
     } else {
       long extractionStartTime = System.currentTimeMillis();
       LOGGER.info("Starting {} text extraction", textExtractor.getClass().getSimpleName());
-      String extractedText = textExtractor.extract(extractionRequest.input().document());
+      String extractedText = textExtractor.extract(document);
       long extractionEndTime = System.currentTimeMillis();
       LOGGER.info(
           "{} text extraction took {} ms",
@@ -78,8 +60,7 @@ public class UnstructuredService implements ExtractionService {
 
       long aiStartTime = System.currentTimeMillis();
       LOGGER.info("Starting {} conversation", aiClient.getClass().getSimpleName());
-      String userPrompt =
-          llmModel.getMessage(extractedText, extractionRequest.input().taxonomyItems());
+      String userPrompt = llmModel.getMessage(extractedText, taxonomyItems);
       String prompt = String.format("%s%n%s", llmModel.getSystemPrompt(), userPrompt);
       aiResponse = aiClient.chat(prompt);
       long aiEndTime = System.currentTimeMillis();
@@ -89,67 +70,7 @@ public class UnstructuredService implements ExtractionService {
           (aiEndTime - aiStartTime));
     }
 
-    return new ExtractionResult(
-        buildResponseJsonIfPossible(aiResponse, extractionRequest.input().taxonomyItems()));
-  }
-
-  private TextExtractor getTextExtractor(ProviderConfig providerConfig) {
-    return switch (providerConfig) {
-      case AwsProvider aws -> {
-        AwsCredentialsProvider credentialsProvider =
-            AwsUtil.credentialsProvider(aws.getAuthentication());
-        yield new AwsTextrtactExtractionClient(
-            credentialsProvider, aws.getConfiguration().region(), aws.getS3BucketName());
-      }
-      case AzureProvider azure ->
-          new AzureDocumentIntelligenceExtractionClient(
-              azure.getDocumentIntelligenceConfiguration().getEndpoint(),
-              azure.getDocumentIntelligenceConfiguration().getApiKey());
-      case OpenAiProvider openAi -> new PdfBoxExtractionClient();
-      case GcpProvider gcp -> null;
-      default -> throw new IllegalStateException("Unexpected value: " + providerConfig);
-    };
-  }
-
-  private AiClient getAiClient(ExtractionRequest extractionRequest) {
-    final var input = extractionRequest.input();
-    return switch (extractionRequest.baseRequest()) {
-      case AwsProvider aws -> {
-        AwsCredentialsProvider credentialsProvider =
-            AwsUtil.credentialsProvider(aws.getAuthentication());
-        yield new BedrockAiClient(
-            credentialsProvider, aws.getConfiguration().region(), input.converseData());
-      }
-      case OpenAiProvider openAi ->
-          new OpenAiClient(
-              openAi.getOpenAiEndpoint(), openAi.getOpenAiHeaders(), input.converseData());
-      case GcpProvider gemini -> {
-        var config = (VertexRequestConfiguration) gemini.getConfiguration();
-        GoogleCredentials credentials =
-            GcsUtil.getCredentials(
-                gemini.getAuthentication().authType(),
-                gemini.getAuthentication().bearerToken(),
-                gemini.getAuthentication().serviceAccountJson(),
-                gemini.getAuthentication().oauthClientId(),
-                gemini.getAuthentication().oauthClientSecret(),
-                gemini.getAuthentication().oauthRefreshToken());
-        yield new VertexAiClient(
-            credentials, config.getProjectId(), config.getRegion(), input.converseData());
-      }
-      case AzureProvider azure -> {
-        if (azure.getAiFoundryConfig().isUsingOpenAI()) {
-          yield new AzureOpenAiClient(
-              azure.getAiFoundryConfig().getEndpoint(),
-              azure.getAiFoundryConfig().getApiKey(),
-              input.converseData());
-        } else {
-          yield new AzureAiFoundryClient(
-              azure.getAiFoundryConfig().getEndpoint(),
-              azure.getAiFoundryConfig().getApiKey(),
-              input.converseData());
-        }
-      }
-    };
+    return new ExtractionResult(buildResponseJsonIfPossible(aiResponse, taxonomyItems));
   }
 
   private Map<String, Object> buildResponseJsonIfPossible(

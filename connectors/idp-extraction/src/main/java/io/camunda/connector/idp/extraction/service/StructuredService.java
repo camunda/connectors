@@ -23,13 +23,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
-public class StructuredService implements ExtractionService {
+public class StructuredService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(StructuredService.class);
 
   public StructuredService() {}
 
-  @Override
   public Object extract(ExtractionRequest extractionRequest) {
     final var input = extractionRequest.input();
     long startTime = System.currentTimeMillis();

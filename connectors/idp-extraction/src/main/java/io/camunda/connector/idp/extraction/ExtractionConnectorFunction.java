@@ -6,10 +6,15 @@
  */
 package io.camunda.connector.idp.extraction;
 
+import static io.camunda.connector.idp.extraction.utils.ProviderUtil.getAiClient;
+import static io.camunda.connector.idp.extraction.utils.ProviderUtil.getTextExtractor;
+
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
+import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
 import io.camunda.connector.idp.extraction.model.*;
 import io.camunda.connector.idp.extraction.service.StructuredService;
 import io.camunda.connector.idp.extraction.service.UnstructuredService;
@@ -53,8 +58,20 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
   public Object execute(OutboundConnectorContext context) {
     final var extractionRequest = context.bindVariables(ExtractionRequest.class);
     return switch (extractionRequest.input().extractionType()) {
-      case STRUCTURED -> structuredService.extract(extractionRequest);
-      case UNSTRUCTURED -> unstructuredService.extract(extractionRequest);
+      case STRUCTURED -> {
+        yield structuredService.extract(extractionRequest);
+      }
+      case UNSTRUCTURED -> {
+        TextExtractor textExtractor = getTextExtractor(extractionRequest.baseRequest());
+        AiClient aiClient = getAiClient(extractionRequest);
+        LlmModel llmModel = LlmModel.fromId(extractionRequest.input().converseData().modelId());
+        yield unstructuredService.extract(
+            textExtractor,
+            aiClient,
+            llmModel,
+            extractionRequest.input().taxonomyItems(),
+            extractionRequest.input().document());
+      }
     };
   }
 }

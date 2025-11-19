@@ -146,7 +146,7 @@
               <files>
                 <file>
                   <templateId>io.camunda.connectors.idp.extraction.v1</templateId>
-                  <templateFileName>idp-extraction-outbound-connector.json</templateFileName>
+                  <templateFileName>idp-extraction-connector.json</templateFileName>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
@@ -156,7 +156,17 @@
               <files>
                 <file>
                   <templateId>io.camunda.connectors.idp.classification.v1</templateId>
-                  <templateFileName>idp-classification-outbound-connector.json</templateFileName>
+                  <templateFileName>idp-classification-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.idp.extraction.UnstructuredExtractionConnectorFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.idp.unstructured-extraction.v1</templateId>
+                  <templateFileName>idp-unstructured-extraction-connector.json</templateFileName>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
