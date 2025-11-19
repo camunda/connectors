@@ -16,7 +16,6 @@ import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -132,7 +131,7 @@ public record McpClientConfigurationProperties(
       @NotBlank String url,
       @NotNull @DefaultValue Map<String, String> headers,
       @Valid @NotNull @DefaultValue AuthenticationConfiguration authentication,
-      @PositiveOrZero Duration timeout,
+      Duration timeout,
       @DefaultValue("false") boolean logRequests,
       @DefaultValue("false") boolean logResponses)
       implements McpClientTransportConfiguration, McpClientHttpTransportConfiguration {}
@@ -141,7 +140,7 @@ public record McpClientConfigurationProperties(
       @NotBlank String url,
       @NotNull @DefaultValue Map<String, String> headers,
       @Valid @NotNull @DefaultValue AuthenticationConfiguration authentication,
-      @PositiveOrZero Duration timeout,
+      Duration timeout,
       @DefaultValue("false") boolean logRequests,
       @DefaultValue("false") boolean logResponses)
       implements McpClientTransportConfiguration, McpClientHttpTransportConfiguration {}
