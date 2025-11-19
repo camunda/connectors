@@ -30,6 +30,9 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -234,6 +237,58 @@ class OAuthHeadersSupplierIntegrationTest {
 
       // verify token was fetched only once
       verify(1, postRequestedFor(urlEqualTo("/oauth/token")));
+    }
+
+    @Test
+    void shouldFetchTokenOnlyOnceWhenRequestedConcurrently() throws Exception {
+      // given
+      stubFor(
+          post(urlEqualTo("/oauth/token"))
+              .willReturn(
+                  aResponse()
+                      .withStatus(200)
+                      .withHeader("Content-Type", "application/json")
+                      .withBody(
+                          """
+                              {
+                                "access_token": "cached-token",
+                                "token_type": "Bearer",
+                                "expires_in": 3600
+                              }
+                              """)));
+
+      final var auth =
+          new OAuthAuthentication(
+              tokenEndpoint,
+              "my-client-id",
+              "my-client-secret",
+              null,
+              ClientAuthenticationMethod.BASIC_AUTH_HEADER,
+              null);
+
+      final var supplier = new OAuthHeadersSupplier(oAuthService, httpClient, objectMapper, auth);
+
+      // when
+      final int threads = 3;
+      try (final var executor = Executors.newFixedThreadPool(threads)) {
+        final var futures =
+            IntStream.range(0, threads)
+                .mapToObj(i -> CompletableFuture.supplyAsync(supplier, executor))
+                .toList();
+
+        final var headers1 = futures.get(0).get();
+        final var headers2 = futures.get(1).get();
+        final var headers3 = futures.get(2).get();
+        executor.shutdownNow();
+
+        // then (unchanged assertions)
+        assertThat(headers1).containsEntry("Authorization", "Bearer cached-token");
+        assertThat(headers2).isEqualTo(headers1);
+        assertThat(headers3).isEqualTo(headers1);
+
+        // verify token was fetched only once
+        verify(1, postRequestedFor(urlEqualTo("/oauth/token")));
+      }
     }
 
     @Test

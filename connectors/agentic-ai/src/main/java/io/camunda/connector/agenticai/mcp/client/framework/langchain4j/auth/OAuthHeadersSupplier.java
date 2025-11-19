@@ -63,7 +63,7 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
   }
 
   @Override
-  public Map<String, String> get() {
+  public synchronized Map<String, String> get() {
     if (tokenResponse == null || tokenResponse.isExpired(clock)) {
       LOGGER.debug(
           "Fetching MCP client OAuth token from token endpoint: {}", config.oauthTokenEndpoint());
