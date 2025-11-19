@@ -38,7 +38,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @WireMockTest
-class OAuthHeadersSupplierIntegrationTest {
+class OAuthHeadersSupplierTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private OAuthService oAuthService;
