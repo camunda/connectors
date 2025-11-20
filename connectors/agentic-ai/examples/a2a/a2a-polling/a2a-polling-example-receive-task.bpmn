@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0btqdo1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.40.0-dev" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0btqdo1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.41.0-dev" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
   <bpmn:process id="A2A_Polling_Example_Receive_Task" name="A2A Polling Example (Receive Task)" isExecutable="true">
     <bpmn:startEvent id="StartEvent">
       <bpmn:outgoing>Flow_1ukp3v4</bpmn:outgoing>
@@ -18,6 +18,7 @@
           <zeebe:input source="sendMessage" target="data.connectorMode.operation.type" />
           <zeebe:input source="=if is defined(messageText) then&#10;  messageText&#10;else&#10;  &#34;Hey!&#34;" target="data.connectorMode.operation.params.text" />
           <zeebe:input source="=3" target="data.connectorMode.operation.settings.historyLength" />
+          <zeebe:input source="polling" target="data.connectorMode.operation.settings.responseRetrievalMode.type" />
           <zeebe:input source="PT1M" target="data.connectorMode.operation.settings.timeout" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
@@ -84,14 +85,14 @@
       <bpmndi:BPMNShape id="BPMNShape_1gt4wy4" bpmnElement="StartEvent">
         <dc:Bounds x="232" y="112" width="36" height="36" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_156sdca_di" bpmnElement="Send_A2A_Request">
-        <dc:Bounds x="340" y="90" width="100" height="80" />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_0wxbc0q_di" bpmnElement="EndEvent_Async">
         <dc:Bounds x="672" y="112" width="36" height="36" />
         <bpmndi:BPMNLabel>
           <dc:Bounds x="665" y="155" width="51" height="27" />
         </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_156sdca_di" bpmnElement="Send_A2A_Request">
+        <dc:Bounds x="340" y="90" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1mr1w77_di" bpmnElement="Wait_For_Completion">
         <dc:Bounds x="500" y="90" width="100" height="80" />
@@ -103,12 +104,12 @@
           <dc:Bounds x="649" y="275" width="82" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_1ekhdla_di" bpmnElement="TimerBoundaryEvent">
-        <dc:Bounds x="552" y="152" width="36" height="36" />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="TextAnnotation_1f96g7y_di" bpmnElement="TextAnnotation_1f96g7y">
         <dc:Bounds x="160" y="50" width="100" height="41" />
         <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1ekhdla_di" bpmnElement="TimerBoundaryEvent">
+        <dc:Bounds x="552" y="152" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_1ukp3v4_di" bpmnElement="Flow_1ukp3v4">
         <di:waypoint x="268" y="130" />
@@ -118,10 +119,6 @@
         <di:waypoint x="440" y="130" />
         <di:waypoint x="500" y="130" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Association_02h1clh_di" bpmnElement="Association_02h1clh">
-        <di:waypoint x="241" y="115" />
-        <di:waypoint x="226" y="91" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_10hibj6_di" bpmnElement="Flow_10hibj6">
         <di:waypoint x="600" y="130" />
         <di:waypoint x="672" y="130" />
@@ -130,6 +127,10 @@
         <di:waypoint x="570" y="188" />
         <di:waypoint x="570" y="250" />
         <di:waypoint x="672" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_02h1clh_di" bpmnElement="Association_02h1clh">
+        <di:waypoint x="241" y="115" />
+        <di:waypoint x="226" y="91" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>

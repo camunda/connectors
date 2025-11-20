@@ -27,6 +27,7 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStat
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aClientRequest;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aClientRequest.A2aRequestData;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration;
+import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration.A2aResponseRetrievalMode;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aConnectorModeConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aSendMessageOperationParametersBuilder;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
@@ -271,6 +272,6 @@ class A2AClientRequestHandlerTest {
   private static A2aCommonSendMessageConfiguration sendMessageConfiguration(
       int historyLength, int durationSeconds) {
     return new A2aCommonSendMessageConfiguration(
-        historyLength, false, Duration.ofSeconds(durationSeconds));
+        new A2aResponseRetrievalMode.Polling(), historyLength, Duration.ofSeconds(durationSeconds));
   }
 }

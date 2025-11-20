@@ -16,6 +16,8 @@ import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientConfig;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.outbound.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration;
+import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration.A2aResponseRetrievalMode;
+import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration.A2aResponseRetrievalMode.Notification;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aSendMessageOperationParameters;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 import java.util.ArrayList;
@@ -27,6 +29,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 
 public class A2aMessageSenderImpl implements A2aMessageSender {
   private final A2aDocumentToPartConverter documentToPartConverter;
@@ -56,9 +59,10 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
             response.completeExceptionally(e);
           }
         };
-    A2aCommonSendMessageConfiguration settings = sendMessageOperation.settings();
-    A2aSdkClientConfig a2ASdkClientConfig =
-        new A2aSdkClientConfig(settings.historyLength(), settings.supportPolling());
+
+    final var settings = sendMessageOperation.settings();
+    A2aSdkClientConfig a2ASdkClientConfig = createA2aSdkClientConfig(settings);
+
     try (var a2aClient = clientFactory.buildClient(agentCard, consumer, a2ASdkClientConfig)) {
       a2aClient.sendMessage(message);
 
@@ -71,6 +75,20 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
         throw new RuntimeException(e.getCause() != null ? e.getCause() : e);
       }
     }
+  }
+
+  private static @NotNull A2aSdkClientConfig createA2aSdkClientConfig(
+      A2aCommonSendMessageConfiguration settings) {
+    final var retrievalMode = settings.responseRetrievalMode();
+
+    A2aSdkClientConfig.PushNotificationConfig pushNotificationConfig = null;
+    if (retrievalMode instanceof Notification notification) {
+      pushNotificationConfig =
+          new A2aSdkClientConfig.PushNotificationConfig(
+              notification.webhookUrl(), notification.authorizationType().toA2aSecurityScheme());
+    }
+    final var blocking = retrievalMode instanceof A2aResponseRetrievalMode.Blocking;
+    return new A2aSdkClientConfig(settings.historyLength(), blocking, pushNotificationConfig);
   }
 
   private Message createMessage(SendMessageOperationConfiguration sendMessageOperation) {

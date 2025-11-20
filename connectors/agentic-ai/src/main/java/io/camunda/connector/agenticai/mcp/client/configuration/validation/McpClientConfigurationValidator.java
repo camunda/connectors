@@ -9,20 +9,24 @@ package io.camunda.connector.agenticai.mcp.client.configuration.validation;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
-import java.util.stream.Stream;
 
 public class McpClientConfigurationValidator
     implements ConstraintValidator<ValidMcpClientConfiguration, McpClientConfiguration> {
 
   @Override
   public boolean isValid(McpClientConfiguration config, ConstraintValidatorContext cxt) {
-    final var stdioConfigured = config.stdio() != null;
-    final var httpConfigured = config.http() != null;
-    final var sseConfigured = config.sse() != null;
+    // only validate transport if type is set - otherwise rely on type not null validation
+    if (config.type() != null) {
+      if (config.transport() == null) {
+        cxt.disableDefaultConstraintViolation();
+        cxt.buildConstraintViolationWithTemplate(
+                "MCP client transport configuration is missing for the configured type '%s'"
+                    .formatted(config.type()))
+            .addConstraintViolation();
+        return false;
+      }
+    }
 
-    final var configuredTransports =
-        Stream.of(stdioConfigured, httpConfigured, sseConfigured).filter(c -> c).count();
-
-    return configuredTransports == 1L;
+    return true;
   }
 }

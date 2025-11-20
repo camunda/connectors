@@ -23,7 +23,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
     inputVariables = {"data"},
     type = "io.camunda.agenticai:mcpremoteclient:1")
 @ElementTemplate(
-    id = "io.camunda.connectors.agenticai.mcp.remoteclient.v1",
+    id = "io.camunda.connectors.agenticai.mcp.remoteclient.v0",
     name = "MCP Remote Client (early access)",
     description = "MCP (Model Context Protocol) client, operating on temporary remote connections.",
     engineVersion = "^8.9",
@@ -35,6 +35,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
           id = "transport",
           label = "Transport",
           tooltip = "Configure the connection to the remote MCP server."),
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(
           id = "connectorMode",
           label = "Connector mode",

@@ -21,7 +21,7 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 
-class A2ASdkClientFactoryTest {
+class A2aSdkClientFactoryTest {
 
   @Test
   void createsClientWithGrpcTransportWithTls() {
@@ -143,7 +143,7 @@ class A2ASdkClientFactoryTest {
   @ParameterizedTest
   @NullSource
   @ValueSource(booleans = {true, false})
-  void passesCorrectParametersToClientConfigBuilder(Boolean supportPolling) {
+  void passesCorrectParametersToClientConfigBuilderWithoutPushNotification(Boolean blocking) {
     final var transportConfig = new TransportConfiguration(new GrpcConfiguration(true));
     A2aSdkClientFactory factory = new A2aSdkClientFactoryImpl(transportConfig);
     AgentCard agentCard = mock(AgentCard.class);
@@ -155,7 +155,8 @@ class A2ASdkClientFactoryTest {
       var clientBuilder = spy(Client.builder(agentCard));
       mockClient.when(() -> Client.builder(agentCard)).thenReturn(clientBuilder);
 
-      A2aSdkClientConfig config = new A2aSdkClientConfig(5, supportPolling);
+      boolean isBlocking = blocking != null && blocking;
+      A2aSdkClientConfig config = new A2aSdkClientConfig(5, isBlocking, null);
       A2aSdkClient client = factory.buildClient(agentCard, (event, card) -> {}, config);
 
       verify(clientBuilder)
@@ -164,8 +165,52 @@ class A2ASdkClientFactoryTest {
                   clientConfig -> {
                     assertThat(clientConfig.isStreaming()).isFalse();
                     assertThat(clientConfig.getHistoryLength()).isEqualTo(5);
-                    assertThat(clientConfig.isPolling())
-                        .isEqualTo(supportPolling == null || supportPolling);
+                    assertThat(clientConfig.isPolling()).isEqualTo(!isBlocking);
+                    assertThat(clientConfig.getPushNotificationConfig()).isNull();
+                  }));
+
+      assertThat(client).isNotNull();
+      client.close();
+    }
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(strings = {"bearer", "api-key"})
+  void passesCorrectParametersToClientConfigBuilderWithPushNotification(String authScheme) {
+    final var transportConfig = new TransportConfiguration(new GrpcConfiguration(true));
+    A2aSdkClientFactory factory = new A2aSdkClientFactoryImpl(transportConfig);
+    AgentCard agentCard = mock(AgentCard.class);
+
+    when(agentCard.preferredTransport()).thenReturn(TransportProtocol.GRPC.asString());
+    when(agentCard.url()).thenReturn("localhost:50051");
+
+    try (var mockClient = mockStatic(Client.class, Answers.CALLS_REAL_METHODS)) {
+      var clientBuilder = spy(Client.builder(agentCard));
+      mockClient.when(() -> Client.builder(agentCard)).thenReturn(clientBuilder);
+
+      var pushNotificationConfig =
+          new A2aSdkClientConfig.PushNotificationConfig("https://example.com/webhook", authScheme);
+      A2aSdkClientConfig config = new A2aSdkClientConfig(5, false, pushNotificationConfig);
+      A2aSdkClient client = factory.buildClient(agentCard, (event, card) -> {}, config);
+
+      verify(clientBuilder)
+          .clientConfig(
+              assertArg(
+                  clientConfig -> {
+                    assertThat(clientConfig.isStreaming()).isFalse();
+                    assertThat(clientConfig.getHistoryLength()).isEqualTo(5);
+                    assertThat(clientConfig.isPolling()).isTrue();
+                    var pushConfig = clientConfig.getPushNotificationConfig();
+                    assertThat(pushConfig).isNotNull();
+                    assertThat(pushConfig.url()).isEqualTo("https://example.com/webhook");
+                    var authInfo = pushConfig.authentication();
+                    assertThat(authInfo).isNotNull();
+                    if (authScheme != null) {
+                      assertThat(authInfo.schemes()).containsExactly(authScheme);
+                    } else {
+                      assertThat(authInfo.schemes()).isEmpty();
+                    }
                   }));
 
       assertThat(client).isNotNull();
@@ -174,6 +219,9 @@ class A2ASdkClientFactoryTest {
   }
 
   private static A2aSdkClient buildClient(AgentCard agentCard, A2aSdkClientFactory factory) {
-    return factory.buildClient(agentCard, (event, card) -> {}, new A2aSdkClientConfig(3, false));
+    return factory.buildClient(
+        agentCard,
+        (event, card) -> {},
+        new A2aSdkClientConfigBuilder().historyLength(3).blocking(true).build());
   }
 }

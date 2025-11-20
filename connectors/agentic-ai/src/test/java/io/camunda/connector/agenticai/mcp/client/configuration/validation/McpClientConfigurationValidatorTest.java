@@ -8,7 +8,10 @@ package io.camunda.connector.agenticai.mcp.client.configuration.validation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration.AuthenticationType;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration.McpClientType;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StdioMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration;
@@ -18,7 +21,6 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -31,64 +33,106 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @Import(ValidationAutoConfiguration.class)
 class McpClientConfigurationValidatorTest {
 
+  private static final AuthenticationConfiguration NO_AUTHENTICATION =
+      AuthenticationConfiguration.builder().type(AuthenticationType.NONE).build();
+
   private static final StdioMcpClientTransportConfiguration STDIO_CONFIGURATION =
       new StdioMcpClientTransportConfiguration(
           "echo", List.of("hello"), Collections.emptyMap(), false);
+
   private static final StreamableHttpMcpClientTransportConfiguration STREAMABLE_HTTP_CONFIGURATION =
       new StreamableHttpMcpClientTransportConfiguration(
-          "http://localhost:1234/mcp", Collections.emptyMap(), Duration.ofSeconds(5), false, false);
+          "http://localhost:1234/mcp",
+          Collections.emptyMap(),
+          NO_AUTHENTICATION,
+          Duration.ofSeconds(5),
+          false,
+          false);
+
   private static final SseHttpMcpClientTransportConfiguration SSE_CONFIGURATION =
       new SseHttpMcpClientTransportConfiguration(
-          "http://localhost:1234/sse", Collections.emptyMap(), Duration.ofSeconds(5), false, false);
+          "http://localhost:1234/sse",
+          Collections.emptyMap(),
+          NO_AUTHENTICATION,
+          Duration.ofSeconds(5),
+          false,
+          false);
 
   @Autowired private Validator validator;
 
   @ParameterizedTest
   @MethodSource("validConfigurations")
-  void validationSucceedsIfOnlyOneTransportConfigured(McpClientConfiguration configuration) {
+  void validationSucceeds(McpClientConfiguration configuration) {
     assertThat(validator.validate(configuration)).isEmpty();
   }
 
   @ParameterizedTest
+  @MethodSource("missingTypeConfigurations")
+  void validationFailsWhenTypeIsNotConfigured(McpClientConfiguration configuration) {
+    assertThat(validator.validate(configuration))
+        .isNotEmpty()
+        .extracting(ConstraintViolation::getMessage)
+        .containsExactlyInAnyOrder("MCP client type must not be null");
+  }
+
+  @ParameterizedTest
   @MethodSource("invalidConfigurations")
-  void validationFailsWhenMultipleTransportsConfigured(McpClientConfiguration configuration) {
+  void validationFailsWhenTransportForConfiguredTypeIsMissing(
+      McpClientConfiguration configuration) {
     assertThat(validator.validate(configuration))
         .isNotEmpty()
         .extracting(ConstraintViolation::getMessage)
         .containsExactly(
-            "The MCP client needs to be configured with a single transport (either STDIO, Streamable HTTP, or SSE)");
-  }
-
-  @Test
-  void validationFailsWhenNoTransportConfigured() {
-    assertThat(validator.validate(createConfiguration(null, null, null)))
-        .isNotEmpty()
-        .extracting(ConstraintViolation::getMessage)
-        .containsExactly(
-            "The MCP client needs to be configured with a single transport (either STDIO, Streamable HTTP, or SSE)");
+            "MCP client transport configuration is missing for the configured type '%s'"
+                .formatted(configuration.type()));
   }
 
   static Stream<McpClientConfiguration> validConfigurations() {
     return Stream.of(
-        createConfiguration(STDIO_CONFIGURATION, null, null),
-        createConfiguration(null, STREAMABLE_HTTP_CONFIGURATION, null),
-        createConfiguration(null, null, SSE_CONFIGURATION));
+        createConfiguration(McpClientType.STDIO, STDIO_CONFIGURATION, null, null),
+        createConfiguration(
+            McpClientType.STDIO,
+            STDIO_CONFIGURATION,
+            STREAMABLE_HTTP_CONFIGURATION,
+            SSE_CONFIGURATION),
+        createConfiguration(McpClientType.HTTP, null, STREAMABLE_HTTP_CONFIGURATION, null),
+        createConfiguration(
+            McpClientType.HTTP,
+            STDIO_CONFIGURATION,
+            STREAMABLE_HTTP_CONFIGURATION,
+            SSE_CONFIGURATION),
+        createConfiguration(McpClientType.SSE, null, null, SSE_CONFIGURATION),
+        createConfiguration(
+            McpClientType.SSE,
+            STDIO_CONFIGURATION,
+            STREAMABLE_HTTP_CONFIGURATION,
+            SSE_CONFIGURATION));
+  }
+
+  static Stream<McpClientConfiguration> missingTypeConfigurations() {
+    return Stream.of(
+        createConfiguration(null, null, null, null),
+        createConfiguration(
+            null, STDIO_CONFIGURATION, STREAMABLE_HTTP_CONFIGURATION, SSE_CONFIGURATION));
   }
 
   static Stream<McpClientConfiguration> invalidConfigurations() {
     return Stream.of(
-        createConfiguration(STDIO_CONFIGURATION, STREAMABLE_HTTP_CONFIGURATION, SSE_CONFIGURATION),
-        createConfiguration(STDIO_CONFIGURATION, STREAMABLE_HTTP_CONFIGURATION, null),
-        createConfiguration(STDIO_CONFIGURATION, null, SSE_CONFIGURATION),
-        createConfiguration(null, STREAMABLE_HTTP_CONFIGURATION, SSE_CONFIGURATION));
+        createConfiguration(
+            McpClientType.STDIO, null, STREAMABLE_HTTP_CONFIGURATION, SSE_CONFIGURATION),
+        createConfiguration(McpClientType.HTTP, STDIO_CONFIGURATION, null, SSE_CONFIGURATION),
+        createConfiguration(
+            McpClientType.SSE, STDIO_CONFIGURATION, STREAMABLE_HTTP_CONFIGURATION, null));
   }
 
   private static McpClientConfiguration createConfiguration(
+      McpClientType type,
       StdioMcpClientTransportConfiguration stdioConfig,
       StreamableHttpMcpClientTransportConfiguration httpConfig,
       SseHttpMcpClientTransportConfiguration sseConfig) {
     return new McpClientConfiguration(
         true,
+        type,
         stdioConfig,
         httpConfig,
         sseConfig,

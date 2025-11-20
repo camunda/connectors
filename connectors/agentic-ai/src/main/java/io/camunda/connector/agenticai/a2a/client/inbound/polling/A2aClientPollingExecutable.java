@@ -19,6 +19,7 @@ import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
+// TODO: add documentation link when available
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.a2a.client.polling.v0",
     version = 0,

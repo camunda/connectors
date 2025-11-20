@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConv
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.A2aClientPollingExecutable;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.service.A2aPollingExecutorService;
+import io.camunda.connector.agenticai.a2a.client.inbound.webhook.A2aClientWebhookExecutable;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aClientOutboundConnectorFunction;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aClientRequestHandler;
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aMessageSender;
@@ -53,6 +54,8 @@ public class A2aAutoConfigurationTest {
   private static final List<Class<?>> A2A_POLLING_BEANS =
       List.of(A2aClientPollingExecutable.class, A2aPollingExecutorService.class);
 
+  private static final List<Class<?>> A2A_WEBHOOK_BEANS = List.of(A2aClientWebhookExecutable.class);
+
   private final ApplicationContextRunner contextRunner =
       new ApplicationContextRunner()
           .withUserConfiguration(TestConfig.class)
@@ -66,6 +69,7 @@ public class A2aAutoConfigurationTest {
           assertHasAllBeansOf(context, A2A_OUTBOUND_BEANS);
           assertHasAllBeansOf(context, A2A_AGENT_TOOL_BEANS);
           assertHasAllBeansOf(context, A2A_POLLING_BEANS);
+          assertHasAllBeansOf(context, A2A_WEBHOOK_BEANS);
         });
   }
 
@@ -91,6 +95,7 @@ public class A2aAutoConfigurationTest {
               assertHasAllBeansOf(context, A2A_COMMON_BEANS);
               assertHasAllBeansOf(context, A2A_AGENT_TOOL_BEANS);
               assertHasAllBeansOf(context, A2A_POLLING_BEANS);
+              assertHasAllBeansOf(context, A2A_WEBHOOK_BEANS);
             });
   }
 
@@ -100,7 +105,8 @@ public class A2aAutoConfigurationTest {
         .withPropertyValues(
             "camunda.connector.agenticai.a2a.client.outbound.enabled=false",
             "camunda.connector.agenticai.a2a.client.agentic.tool.enabled=false",
-            "camunda.connector.agenticai.a2a.client.polling.enabled=false")
+            "camunda.connector.agenticai.a2a.client.polling.enabled=false",
+            "camunda.connector.agenticai.a2a.client.webhook.enabled=false")
         .run(
             context -> {
               assertDoesNotHaveAnyBeansOf(context, A2A_OUTBOUND_BEANS);
