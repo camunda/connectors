@@ -1,15 +1,61 @@
 name: Release a new version
-run-name: Release a new version ${{ github.event.release.tag_name }}
+run-name: Release a new version ${{ inputs.version }}
 
 on:
-  release:
-    types: [ created ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 8.7.0, 8.7.1)'
+        required: true
+        type: string
+      skip-maven-release:
+        description: 'Skip Maven release'
+        required: false
+        type: boolean
+        default: false
+      skip-docker-release:
+        description: 'Skip Docker release'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
 
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: ${{ inputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+          target_commitish: ${{ github.ref }}
+          body: |
+            ## 🚧 Release in Progress
+            
+            This release is currently being built and deployed.
+            
+            **Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            This message will be replaced with the full changelog once the release process completes.
+
   setup:
+    needs: create-release
     name: Prepare the repository
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       tagType: ${{ steps.prev_version.outputs.release_type }}
       releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
@@ -17,13 +63,13 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.release.target_commitish }}
+          ref: ${{ github.ref }}
           fetch-depth: 0
       - name: Identify previous release version
         id: prev_version
         uses: camunda/infra-global-github-actions/previous-version@main
         with:
-          version: "${{ github.event.release.tag_name }}"
+          version: "${{ inputs.version }}"
           verbose: 'false'
       # We will update this branch by setting the new version and pushing it
       - name: Determine release branch name
@@ -33,12 +79,12 @@ jobs:
           git checkout "$releaseBranch"
           echo "releaseBranch=$releaseBranch" >> $GITHUB_OUTPUT
         env:
-          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+          RELEASE_VERSION: ${{ inputs.version }}
 
       - uses: actions/checkout@v5
         with:
           token: ${{ secrets.PROTECTED_BRANCH_PAT }}
-          ref: ${{ github.event.release.target_commitish }}
+          ref: ${{ github.ref }}
           fetch-depth: 0
 
       - name: Prepare Java and Maven settings
@@ -62,7 +108,7 @@ jobs:
       - name: Set Connectors release version
         run: mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
         env:
-          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+          RELEASE_VERSION: ${{ inputs.version }}
 
       - name: Compile and Test
         run: mvn -B package generate-sources source:jar javadoc:jar
@@ -100,7 +146,7 @@ jobs:
           git tag -fa ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
           git push --force origin ${RELEASE_VERSION}
         env:
-          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+          RELEASE_VERSION: ${{ inputs.version }}
           RELEASE_BRANCH: ${{ needs.setup.outputs.releaseBranch }}
 
       - name: Upload repository
@@ -115,6 +161,9 @@ jobs:
     needs: setup
     name: Version bump documentation links, if this is the first minor release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -132,7 +181,7 @@ jobs:
       - name: Determine if first minor release
         id: version_check
         env:
-          VERSION: ${{ inputs.tag_name }}  # e.g. "8.8.0"
+          VERSION: ${{ inputs.version }}  # e.g. "8.8.0"
         run: |
           if [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.0$ ]]; then
             major="${BASH_REMATCH[1]}"
@@ -140,10 +189,12 @@ jobs:
             current_minor="${major}.${minor}"
             previous_minor="${major}.$((minor - 1))"
           
+            echo "Version $VERSION matches first minor release pattern (x.y.0)"
             echo "is_first_minor=true" >> $GITHUB_OUTPUT
             echo "current_minor=${current_minor}" >> $GITHUB_OUTPUT
             echo "previous_minor=${previous_minor}" >> $GITHUB_OUTPUT
           else
+            echo "Version $VERSION does NOT match first minor release pattern - skipping docs version bump"
             echo "is_first_minor=false" >> $GITHUB_OUTPUT
           fi
 
@@ -172,7 +223,14 @@ jobs:
     needs: setup
     name: Create a maven release
     runs-on: ubuntu-latest
+    if: ${{ !inputs.skip-maven-release }}
+    permissions:
+      contents: read
     steps:
+      - name: Log Maven release status
+        run: |
+          echo "Maven release is enabled (skip-maven-release: ${{ inputs.skip-maven-release }})"
+          
       - name: Download repository
         uses: actions/download-artifact@v5
         with:
@@ -234,8 +292,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      - name: Log Maven deployment target
+        run: |
+          if [[ "${{ inputs.version }}" == *"rc"* ]]; then
+            echo "Version contains 'rc' - deploying to Artifactory only"
+          else
+            echo "Version does not contain 'rc' - deploying to Artifactory and Maven Central (Staging)"
+          fi
+
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
-        if: "! contains(github.event.release.tag_name, 'rc')"
+        if: "! contains(inputs.version, 'rc')"
         run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
@@ -245,7 +311,7 @@ jobs:
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
       - name: Deploy artifacts to Artifactory
-        if: "contains(github.event.release.tag_name, 'rc')"
+        if: "contains(inputs.version, 'rc')"
         run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true -Pe2eExcluded
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
@@ -258,7 +324,14 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     name: Perform the docker release
+    if: ${{ !inputs.skip-docker-release }}
+    permissions:
+      contents: read
     steps:
+      - name: Log Docker release status
+        run: |
+          echo "Docker release is enabled (skip-docker-release: ${{ inputs.skip-docker-release }})"
+          
       - name: Download repository
         uses: actions/download-artifact@v5
         with:
@@ -293,34 +366,43 @@ jobs:
 
       # Build & push bundle docker images (with version tag)
 
-      - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - connector-runtime
+      - name: Build and Push Docker Image tag ${{ inputs.version }} - connector-runtime
         uses: docker/build-push-action@v6
         with:
           context: connector-runtime/connector-runtime-application/
           push: true
-          tags: camunda/connectors:${{ github.event.release.tag_name }}
+          tags: camunda/connectors:${{ inputs.version }}
           platforms: linux/amd64,linux/arm64
           provenance: false
 
-      - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - bundle-default
+      - name: Build and Push Docker Image tag ${{ inputs.version }} - bundle-default
         uses: docker/build-push-action@v6
         with:
           context: bundle/default-bundle/
           push: true
-          tags: camunda/connectors-bundle:${{ github.event.release.tag_name }}
+          tags: camunda/connectors-bundle:${{ inputs.version }}
           platforms: linux/amd64,linux/arm64
           provenance: false
 
-      - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - bundle-saas
+      - name: Build and Push Docker Image tag ${{ inputs.version }} - bundle-saas
         uses: docker/build-push-action@v6
         with:
           context: bundle/camunda-saas-bundle/
           push: true
-          tags: camunda/connectors-bundle-saas:${{ github.event.release.tag_name }}
+          tags: camunda/connectors-bundle-saas:${{ inputs.version }}
           platforms: linux/amd64,linux/arm64
           provenance: false
 
       # Build & push bundle docker images (with 'latest' tag)
+
+      - name: Log latest tag push decision
+        run: |
+          echo "Tag type: ${{ needs.setup.outputs.tagType }}"
+          if [[ "${{ needs.setup.outputs.tagType }}" == "NORMAL" ]]; then
+            echo "This is a NORMAL release - will push 'latest' tags for bundle-default and bundle-saas"
+          else
+            echo "This is NOT a NORMAL release - will NOT push 'latest' tags for bundle-default and bundle-saas"
+          fi
 
       - name: Build and Push Docker Image tag latest - connector-runtime
         uses: docker/build-push-action@v6
@@ -381,6 +463,8 @@ jobs:
     needs: setup
     name: Bundle and generate changelogs
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Download repository
         uses: actions/download-artifact@v5
@@ -391,14 +475,14 @@ jobs:
       - name: Bundle element templates
         run: bash bundle/bundle-templates.sh ${RELEASE_VERSION}
         env:
-          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+          RELEASE_VERSION: ${{ inputs.version }}
 
       - name: Build Changelog
         id: changelog
         uses: Requarks/changelog-action@v1
         with:
           token: ${{ github.token }}
-          fromTag: ${{ github.event.release.tag_name }}
+          fromTag: ${{ inputs.version }}
           toTag: ${{ needs.setup.outputs.previousTag }}
           writeToFile: false
           excludeTypes: build,docs,other,style,ci
@@ -409,21 +493,22 @@ jobs:
         with:
           prerelease: ${{ needs.setup.outputs.tagType != 'NORMAL' }}
           body: ${{ steps.changelog.outputs.changes }}
-          tag_name: ${{ github.event.release.tag_name }}
+          tag_name: ${{ inputs.version }}
           files: |
             bundle/default-bundle/target/connectors-bundle-sbom.json
             bundle/default-bundle/target/connectors-bundle-sbom.xml
-            connectors-bundle-templates-${{ github.event.release.tag_name }}.tar.gz
-            connectors-bundle-templates-${{ github.event.release.tag_name }}.zip
+            connectors-bundle-templates-${{ inputs.version }}.tar.gz
+            connectors-bundle-templates-${{ inputs.version }}.zip
 
 
   helm-deploy:
     needs: [ setup, docker-release ]
+    if: ${{ !inputs.skip-docker-release }}
     name: Run Helm Integration Tests
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
     with:
-      connectors-version: ${{ github.event.release.tag_name }}
+      connectors-version: ${{ inputs.version }}
       release-branch: ${{ needs.setup.outputs.releaseBranch }}
 
   # This job waits for the FOSSA scan (triggered by CHECK_LICENSES.yml) to complete,
@@ -438,18 +523,20 @@ jobs:
       - bundle-and-build-changelog
       - helm-deploy
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     if: |
       needs.setup.result == 'success' &&
-      needs.maven-release.result == 'success' &&
-      needs.docker-release.result == 'success' &&
+      (needs.maven-release.result == 'success' || needs.maven-release.result == 'skipped') &&
+      (needs.docker-release.result == 'success' || needs.docker-release.result == 'skipped') &&
       needs.bundle-and-build-changelog.result == 'success' &&
-      needs.helm-deploy.result == 'success'
+      (needs.helm-deploy.result == 'success' || needs.helm-deploy.result == 'skipped')
 
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ inputs.version }}
       - name: Import Secrets
         id: secrets
         uses: hashicorp/vault-action@v3.4.0
@@ -479,7 +566,7 @@ jobs:
           project-id: "custom+50756/camunda/connectors"
           attribution-release-group-id: "4945" # https://app.fossa.com/projects/group/4945
           sbom-release-group-id: "4946"        # https://app.fossa.com/projects/group/4946 
-          release-number: ${{ github.event.release.tag_name }}
+          release-number: ${{ inputs.version }}
           revision-id: ${{ steps.fossa-context.outputs.head-revision }}
           attribution-format: "TXT"
           sbom-format: "CYCLONEDX_JSON"
