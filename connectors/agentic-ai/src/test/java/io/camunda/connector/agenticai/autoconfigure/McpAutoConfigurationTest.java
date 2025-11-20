@@ -18,6 +18,8 @@ import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientFunction;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientHandler;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientExecutor;
+import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHeadersSupplierFactory;
+import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientLoggingResolver;
 import io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolHandler;
 import java.util.List;
@@ -31,6 +33,8 @@ public class McpAutoConfigurationTest {
       List.of(
           McpClientFactory.class,
           McpClientOperationConverter.class,
+          Langchain4JMcpClientLoggingResolver.class,
+          Langchain4JMcpClientHeadersSupplierFactory.class,
           Langchain4JMcpClientExecutor.class);
 
   private static final List<Class<?>> REMOTE_MCP_CLIENT_BEANS =
