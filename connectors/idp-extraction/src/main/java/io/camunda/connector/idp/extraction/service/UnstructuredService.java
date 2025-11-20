@@ -84,8 +84,8 @@ public class UnstructuredService {
       return parseAndValidateResponse(llmResponse, taxonomyItems);
     } catch (JsonProcessingException | ConnectorException e) {
       LOGGER.warn(
-          "Initial JSON parsing failed, attempting to clean up response with LLM. Error: {}",
-          e.getMessage());
+          "Initial JSON parsing failed, attempting to clean up response with LLM. Response: {}",
+          llmResponse);
 
       // Try to fix the JSON with another LLM call
       try {
