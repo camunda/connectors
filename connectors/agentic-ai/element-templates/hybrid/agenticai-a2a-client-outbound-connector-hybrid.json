@@ -318,16 +318,14 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.connectorMode.operation.settings.responseRetrievalMode.authorizationType",
-    "label" : "Authorization type",
-    "description" : "The authorization type required by the webhook.",
+    "id" : "data.connectorMode.operation.settings.responseRetrievalMode.authenticationSchemes",
+    "label" : "Authentication schemes",
+    "description" : "A list of authentication schemes required by the webhook.",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
+    "feel" : "required",
     "group" : "operation",
     "binding" : {
-      "name" : "data.connectorMode.operation.settings.responseRetrievalMode.authorizationType",
+      "name" : "data.connectorMode.operation.settings.responseRetrievalMode.authenticationSchemes",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -345,20 +343,34 @@
         "type" : "simple"
       } ]
     },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "None",
-      "value" : "NONE"
-    }, {
-      "name" : "Basic",
-      "value" : "BASIC"
-    }, {
-      "name" : "API key",
-      "value" : "API_KEY"
-    }, {
-      "name" : "Bearer token",
-      "value" : "BEARER_TOKEN"
-    } ]
+    "type" : "String"
+  }, {
+    "id" : "data.connectorMode.operation.settings.responseRetrievalMode.credentials",
+    "label" : "Authentication credentials",
+    "description" : "Credentials to authenticate the webhook request.",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.operation.settings.responseRetrievalMode.credentials",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.settings.responseRetrievalMode.type",
+        "equals" : "notification",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.operation.type",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
   }, {
     "id" : "data.connectorMode.operation.settings.historyLength",
     "label" : "History length",
@@ -499,16 +511,14 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.authorizationType",
-    "label" : "Authorization type",
-    "description" : "The authorization type required by the webhook.",
+    "id" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.authenticationSchemes",
+    "label" : "Authentication schemes",
+    "description" : "A list of authentication schemes required by the webhook.",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
+    "feel" : "required",
     "group" : "operation",
     "binding" : {
-      "name" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.authorizationType",
+      "name" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.authenticationSchemes",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -522,20 +532,30 @@
         "type" : "simple"
       } ]
     },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "None",
-      "value" : "NONE"
-    }, {
-      "name" : "Basic",
-      "value" : "BASIC"
-    }, {
-      "name" : "API key",
-      "value" : "API_KEY"
-    }, {
-      "name" : "Bearer token",
-      "value" : "BEARER_TOKEN"
-    } ]
+    "type" : "String"
+  }, {
+    "id" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.credentials",
+    "label" : "Authentication credentials",
+    "description" : "Credentials to authenticate the webhook request.",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.credentials",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.type",
+        "equals" : "notification",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "aiAgentTool",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
   }, {
     "id" : "data.connectorMode.toolOperation.sendMessageSettings.historyLength",
     "label" : "History length",

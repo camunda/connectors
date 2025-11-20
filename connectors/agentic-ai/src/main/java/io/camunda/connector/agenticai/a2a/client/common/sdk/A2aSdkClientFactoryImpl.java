@@ -21,8 +21,6 @@ import io.a2a.spec.PushNotificationAuthenticationInfo;
 import io.a2a.spec.PushNotificationConfig;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aClientCommonConfigurationProperties.TransportConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.grpc.ManagedChannelFactory;
-import java.util.List;
-import java.util.Optional;
 import java.util.function.BiConsumer;
 
 public class A2aSdkClientFactoryImpl implements A2aSdkClientFactory {
@@ -54,10 +52,7 @@ public class A2aSdkClientFactoryImpl implements A2aSdkClientFactory {
     if (pushNotificationConfig != null) {
       final var authenticationInfo =
           new PushNotificationAuthenticationInfo(
-              Optional.ofNullable(pushNotificationConfig.authScheme())
-                  .map(List::of)
-                  .orElse(List.of()),
-              null);
+              pushNotificationConfig.authSchemes(), pushNotificationConfig.credentials());
       clientConfigBuilder.setPushNotificationConfig(
           new PushNotificationConfig.Builder()
               .url(pushNotificationConfig.url())

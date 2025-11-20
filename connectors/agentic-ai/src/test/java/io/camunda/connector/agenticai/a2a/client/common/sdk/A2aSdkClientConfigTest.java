@@ -2,6 +2,7 @@ package io.camunda.connector.agenticai.a2a.client.common.sdk;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /*
@@ -22,7 +23,8 @@ class A2aSdkClientConfigTest {
                 new A2aSdkClientConfig(
                     10,
                     true,
-                    new A2aSdkClientConfig.PushNotificationConfig("http://example.com", "Bearer")));
+                    new A2aSdkClientConfig.PushNotificationConfig(
+                        "http://example.com", List.of("Bearer"), null)));
     assertEquals("Cannot enable both blocking and push notifications.", exception.getMessage());
   }
 }

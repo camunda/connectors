@@ -11,14 +11,16 @@
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="io.camunda.agenticai:a2aclient:0" retries="3" />
         <zeebe:ioMapping>
+          <zeebe:input source="NONE" target="data.connectorMode.operation.settings.responseRetrievalMode.authorizationType" />
           <zeebe:input source="http://localhost:11001" target="data.connection.url" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="sendMessage" target="data.connectorMode.operation.type" />
           <zeebe:input source="=if is defined(messageText) then&#10;  messageText&#10;else&#10;  &#34;Hey!&#34;" target="data.connectorMode.operation.params.text" />
-          <zeebe:input source="=3" target="data.connectorMode.operation.settings.historyLength" />
           <zeebe:input source="notification" target="data.connectorMode.operation.settings.responseRetrievalMode.type" />
           <zeebe:input source="http://localhost:8085/inbound/my-webhook-id" target="data.connectorMode.operation.settings.responseRetrievalMode.webhookUrl" />
-          <zeebe:input source="NONE" target="data.connectorMode.operation.settings.responseRetrievalMode.authorizationType" />
+          <zeebe:input target="data.connectorMode.operation.settings.responseRetrievalMode.authenticationSchemes" />
+          <zeebe:input target="data.connectorMode.operation.settings.responseRetrievalMode.credentials" />
+          <zeebe:input source="=3" target="data.connectorMode.operation.settings.historyLength" />
           <zeebe:input source="PT1M" target="data.connectorMode.operation.settings.timeout" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
@@ -74,7 +76,7 @@
     </bpmn:textAnnotation>
     <bpmn:association id="Association_1cprgwa" associationDirection="None" sourceRef="Event_1y152vy" targetRef="TextAnnotation_1buc8q1" />
   </bpmn:process>
-  <bpmn:message id="Message_0bldhbt" name="c9411cf3-162a-49bd-98f3-87eddadb8381" zeebe:modelerTemplate="io.camunda.connectors.agenticai.a2a.client.webhook.intermediate.v0">
+  <bpmn:message id="Message_0bldhbt" name="8928288c-6d65-41b5-b9b3-36466dc7156d" zeebe:modelerTemplate="io.camunda.connectors.agenticai.a2a.client.webhook.intermediate.v0">
     <bpmn:extensionElements>
       <zeebe:subscription correlationKey="=internal_clientResponse.id" />
     </bpmn:extensionElements>

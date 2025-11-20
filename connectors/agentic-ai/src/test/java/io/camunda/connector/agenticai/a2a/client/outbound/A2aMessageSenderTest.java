@@ -40,8 +40,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EmptySource;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -120,15 +120,18 @@ class A2aMessageSenderTest {
   }
 
   @ParameterizedTest
-  @EnumSource(A2aResponseRetrievalMode.Notification.AuthorizationType.class)
-  void shouldPassNotificationModeWithAuthSchemeToClientFactory(
-      A2aResponseRetrievalMode.Notification.AuthorizationType authorizationType) {
-    String webhookUrl = "https://example.com/webhook";
-    var retrievalMode = new A2aResponseRetrievalMode.Notification(webhookUrl, authorizationType);
+  @NullSource
+  @MethodSource("provideAuthenticationSchemes")
+  void shouldPassNotificationModeWithAuthSchemeToClientFactory(List<String> authenticationSchemes) {
+    var webhookUrl = "https://example.com/webhook";
+    var credentials = "bXl1c2VyOm15cGFzc3dvcmQ=";
+    var notification =
+        new A2aResponseRetrievalMode.Notification(webhookUrl, authenticationSchemes, credentials);
+
     var operation =
         new SendMessageOperationConfiguration(
             A2aSendMessageOperationParametersBuilder.builder().text("hello").build(),
-            new A2aCommonSendMessageConfiguration(retrievalMode, 0, Duration.ofSeconds(1)));
+            new A2aCommonSendMessageConfiguration(notification, 0, Duration.ofSeconds(1)));
 
     MessageEvent clientEvent = newMessageEvent();
     var expectedResult = messageResult(MESSAGE_ID);
@@ -147,10 +150,19 @@ class A2aMessageSenderTest {
                   assertThat(config.blocking()).isFalse();
                   assertThat(config.pushNotificationConfig()).isNotNull();
                   assertThat(config.pushNotificationConfig().url()).isEqualTo(webhookUrl);
-                  assertThat(config.pushNotificationConfig().authScheme())
-                      .isEqualTo(authorizationType.toA2aSecurityScheme());
+                  assertThat(config.pushNotificationConfig().authSchemes())
+                      .containsExactlyElementsOf(notification.authenticationSchemes());
+                  assertThat(config.pushNotificationConfig().credentials()).isEqualTo(credentials);
                 }));
     verify(client).close();
+  }
+
+  public static Stream<Arguments> provideAuthenticationSchemes() {
+    return Stream.of(
+        Arguments.of(List.of()),
+        Arguments.of(List.of("Basic")),
+        Arguments.of(List.of("Bearer", "CustomScheme1")),
+        Arguments.of(List.of("CustomSchemeA", "CustomSchemeB", "CustomSchemeC")));
   }
 
   @Test

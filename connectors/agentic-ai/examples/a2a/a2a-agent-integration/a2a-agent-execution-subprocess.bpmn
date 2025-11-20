@@ -67,12 +67,16 @@
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="io.camunda.agenticai:a2aclient:0" retries="3" />
         <zeebe:ioMapping>
+          <zeebe:input target="data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.authenticationScheme" />
           <zeebe:input source="=a2aAgentUrl" target="data.connection.url" />
           <zeebe:input source="aiAgentTool" target="data.connectorMode.type" />
           <zeebe:input source="=toolCall.operation" target="data.connectorMode.toolOperation.operation" />
           <zeebe:input source="=toolCall.params" target="data.connectorMode.toolOperation.params" />
+          <zeebe:input source="notification" target="data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.type" />
+          <zeebe:input source="http://localhost:8085/inbound/31761c21-8a04-4569-aad0-eb9bb601d729" target="data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.webhookUrl" />
+          <zeebe:input source="=[&#34;Basic&#34;]" target="data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.authenticationSchemes" />
+          <zeebe:input source="bXl1c2VyOm15cGFzc3dvcmQ=" target="data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.credentials" />
           <zeebe:input source="=3" target="data.connectorMode.toolOperation.sendMessageSettings.historyLength" />
-          <zeebe:input source="polling" target="data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.type" />
           <zeebe:input source="PT1M" target="data.connectorMode.toolOperation.sendMessageSettings.timeout" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
