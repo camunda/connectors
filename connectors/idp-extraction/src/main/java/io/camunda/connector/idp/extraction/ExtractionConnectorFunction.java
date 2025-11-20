@@ -64,11 +64,9 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
       case UNSTRUCTURED -> {
         TextExtractor textExtractor = getTextExtractor(extractionRequest.baseRequest());
         AiClient aiClient = getAiClient(extractionRequest);
-        LlmModel llmModel = LlmModel.fromId(extractionRequest.input().converseData().modelId());
         yield unstructuredService.extract(
             textExtractor,
             aiClient,
-            llmModel,
             extractionRequest.input().taxonomyItems(),
             extractionRequest.input().document());
       }

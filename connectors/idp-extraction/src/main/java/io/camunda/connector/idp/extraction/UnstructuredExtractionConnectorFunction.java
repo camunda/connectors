@@ -15,7 +15,6 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
 import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
-import io.camunda.connector.idp.extraction.model.LlmModel;
 import io.camunda.connector.idp.extraction.request.unstructured.UnstructuredExtractionRequest;
 import io.camunda.connector.idp.extraction.service.UnstructuredService;
 
@@ -47,13 +46,8 @@ public class UnstructuredExtractionConnectorFunction implements OutboundConnecto
         context.bindVariables(UnstructuredExtractionRequest.class);
     TextExtractor textExtractor = getTextExtractor(request.extractor());
     AiClient aiClient = getAiClient(request.ai(), request.input().getConverseData());
-    LlmModel llmModel = LlmModel.fromId(request.input().getConverseData().modelId());
 
     return unstructuredService.extract(
-        textExtractor,
-        aiClient,
-        llmModel,
-        request.input().getTaxonomyItems(),
-        request.input().getDocument());
+        textExtractor, aiClient, request.input().getTaxonomyItems(), request.input().getDocument());
   }
 }

@@ -9,13 +9,14 @@ package io.camunda.connector.idp.extraction.client.ai.base;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.PdfFileContent;
+import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentLinkParameters;
 import java.time.Duration;
-import java.util.List;
 
 public abstract class AiClient {
 
@@ -25,11 +26,13 @@ public abstract class AiClient {
     return chatModel.chat(input);
   }
 
-  public String chat(List<ChatMessage> messages) {
-    return chatModel.chat(messages).aiMessage().text();
+  public ChatResponse chat(String systemMessageText, String userMessageText) {
+    ChatMessage systemMessage = new SystemMessage(systemMessageText);
+    ChatMessage userMessage = new UserMessage(userMessageText);
+    return chatModel.chat(systemMessage, userMessage);
   }
 
-  public String chat(String input, Document document) {
+  public ChatResponse chat(String systemMessageText, String userMessageText, Document document) {
     String contentType = document.metadata() != null ? document.metadata().getContentType() : null;
 
     // If contentType is null, treat as PDF
@@ -37,6 +40,7 @@ public abstract class AiClient {
       contentType = "application/pdf";
     }
 
+    SystemMessage systemMessage = new SystemMessage(systemMessageText);
     UserMessage message;
 
     // Try to generate a document link first
@@ -46,10 +50,12 @@ public abstract class AiClient {
 
       // Check if it's an image type
       if (contentType.startsWith("image/")) {
-        message = UserMessage.from(TextContent.from(input), ImageContent.from(documentLink));
+        message =
+            UserMessage.from(TextContent.from(userMessageText), ImageContent.from(documentLink));
       } else {
         // Treat everything else as PDF (including explicit application/pdf)
-        message = UserMessage.from(TextContent.from(input), PdfFileContent.from(documentLink));
+        message =
+            UserMessage.from(TextContent.from(userMessageText), PdfFileContent.from(documentLink));
       }
     } catch (Exception e) {
       // Fallback to base64 if link generation fails
@@ -58,14 +64,14 @@ public abstract class AiClient {
       if (contentType.startsWith("image/")) {
         message =
             UserMessage.from(
-                TextContent.from(input), ImageContent.from(base64Content, contentType));
+                TextContent.from(userMessageText), ImageContent.from(base64Content, contentType));
       } else {
         message =
             UserMessage.from(
-                TextContent.from(input), PdfFileContent.from(base64Content, contentType));
+                TextContent.from(userMessageText), PdfFileContent.from(base64Content, contentType));
       }
     }
 
-    return chatModel.chat(message).aiMessage().text();
+    return chatModel.chat(systemMessage, message);
   }
 }

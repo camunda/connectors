@@ -7,6 +7,7 @@
 package io.camunda.connector.idp.extraction.client.ai;
 
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
+import dev.langchain4j.model.chat.request.ResponseFormat;
 import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
 import io.camunda.connector.idp.extraction.model.ConverseData;
 
@@ -20,6 +21,7 @@ public class AzureAiFoundryClient extends AiClient {
 
     var builder =
         AzureOpenAiChatModel.builder()
+            .responseFormat(ResponseFormat.JSON)
             .endpoint(baseEndpoint)
             .apiKey(apiKey)
             .deploymentName(converseData.modelId());

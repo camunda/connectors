@@ -36,17 +36,6 @@ public class ClassificationRequestData extends DocumentRequestData {
   List<String> documentTypes;
 
   @TemplateProperty(
-      id = "userPrompt",
-      label = "user prompt",
-      group = "input",
-      type = TemplateProperty.PropertyType.Hidden,
-      description = "The user prompt for the model",
-      defaultValue = "= input.userPrompt",
-      binding = @TemplateProperty.PropertyBinding(name = "userPrompt"),
-      feel = Property.FeelMode.disabled)
-  String userPrompt;
-
-  @TemplateProperty(
       id = "autoClassify",
       label = "Auto classify",
       group = "input",
@@ -71,14 +60,6 @@ public class ClassificationRequestData extends DocumentRequestData {
 
   public void setDocumentTypes(List<String> documentTypes) {
     this.documentTypes = documentTypes;
-  }
-
-  public String getUserPrompt() {
-    return userPrompt;
-  }
-
-  public void setUserPrompt(String userPrompt) {
-    this.userPrompt = userPrompt;
   }
 
   public boolean isAutoClassify() {

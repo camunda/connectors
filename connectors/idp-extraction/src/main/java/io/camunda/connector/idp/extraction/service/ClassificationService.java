@@ -12,6 +12,7 @@ import static io.camunda.connector.idp.extraction.utils.ProviderUtil.getTextExtr
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
 import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
@@ -31,25 +32,15 @@ public class ClassificationService {
 
     TextExtractor textExtractor = getTextExtractor(request.extractor());
     AiClient aiClient = getAiClient(request.ai(), request.input().getConverseData());
+    String systemPrompt = LlmModel.getClassificationSystemPrompt(request.input().isAutoClassify());
 
-    String aiResponse;
+    ChatResponse aiResponse;
     if (textExtractor == null) {
       long aiStartTime = System.currentTimeMillis();
-      String prompt =
-          new StringBuilder()
-              .append(request.input().getUserPrompt())
-              .append("\n------ Document types: ------\n")
-              .append(String.join(", ", request.input().getDocumentTypes()))
-              .append("\n------ Response format: ------\n")
-              .append(LlmModel.getFormatSystemPrompt())
-              .append(
-                  request.input().isAutoClassify()
-                      ? LlmModel.getClasssificationSystemPromptWithUnknownOption()
-                      : "")
-              .toString();
+      String userPrompt = LlmModel.getClassificationUserPrompt(request.input().getDocumentTypes());
 
       LOGGER.info("Starting multimodal {} conversation", aiClient.getClass().getSimpleName());
-      aiResponse = aiClient.chat(prompt, request.input().getDocument());
+      aiResponse = aiClient.chat(systemPrompt, userPrompt, request.input().getDocument());
       long aiEndTime = System.currentTimeMillis();
       LOGGER.info(
           "Multimodal {} conversation took {} ms",
@@ -61,28 +52,14 @@ public class ClassificationService {
       String extractedText = textExtractor.extract(request.input().getDocument());
       long extractionEndTime = System.currentTimeMillis();
       LOGGER.info("Finished text extraction in {}ms", extractionEndTime - startTime);
-
-      String prompt =
-          new StringBuilder()
-              .append(request.input().getUserPrompt())
-              .append("\n------ Document types: ------\n")
-              .append(String.join(", ", request.input().getDocumentTypes()))
-              .append("\n------ Response format: ------\n")
-              .append(LlmModel.getFormatSystemPrompt())
-              .append(
-                  request.input().isAutoClassify()
-                      ? LlmModel.getClasssificationSystemPromptWithUnknownOption()
-                      : "")
-              .append("\n------ Extracted document text: ------\n")
-              .append(extractedText)
-              .toString();
-
+      String userPrompt =
+          LlmModel.getClassificationUserPrompt(request.input().getDocumentTypes(), extractedText);
       long aiStartTime = System.currentTimeMillis();
       LOGGER.info(
           "Classifying with ai provider {} and model {}",
           aiClient.getClass().getSimpleName(),
           request.input().getConverseData().modelId());
-      aiResponse = aiClient.chat(prompt);
+      aiResponse = aiClient.chat(systemPrompt, userPrompt);
       long endTime = System.currentTimeMillis();
       LOGGER.info(
           "Finished ai conversation in {}ms and in total took {}ms",
@@ -92,7 +69,8 @@ public class ClassificationService {
     return parseClassificationResponse(aiResponse);
   }
 
-  private ClassificationResult parseClassificationResponse(String llmResponse) {
+  private ClassificationResult parseClassificationResponse(ChatResponse aiResponse) {
+    String llmResponse = aiResponse.aiMessage().text();
     try {
       // First filter out thinking content, then strip markdown code blocks
       String thinkingRemoved = StringUtil.filterThinkingContent(llmResponse);
@@ -122,7 +100,7 @@ public class ClassificationService {
       String confidence = dataNode.has("confidence") ? dataNode.get("confidence").asText() : null;
       String reasoning = dataNode.has("reasoning") ? dataNode.get("reasoning").asText() : null;
 
-      return new ClassificationResult(extractedValue, confidence, reasoning);
+      return new ClassificationResult(extractedValue, confidence, reasoning, aiResponse.metadata());
 
     } catch (JsonProcessingException e) {
       throw new ConnectorException(

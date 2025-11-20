@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.idp.extraction.client.ai;
 
+import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
 import io.camunda.connector.idp.extraction.model.ConverseData;
@@ -19,7 +20,7 @@ public class OpenAiClient extends AiClient {
             .baseUrl(endpoint)
             .modelName(converseData.modelId())
             .customHeaders(headers)
-            .responseFormat("json_object");
+            .responseFormat(ResponseFormat.JSON);
 
     if (converseData.maxTokens() != null) {
       builder.maxTokens(converseData.maxTokens());

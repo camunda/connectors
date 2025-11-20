@@ -6,4 +6,5 @@
  */
 package io.camunda.connector.idp.extraction.model;
 
-public record ClassificationResult(String extractedValue, String confidence, String reasoning) {}
+public record ClassificationResult(
+    String extractedValue, String confidence, String reasoning, Object metadata) {}
