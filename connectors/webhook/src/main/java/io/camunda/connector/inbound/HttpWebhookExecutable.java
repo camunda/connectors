@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.inbound;
 
+import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
+
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
@@ -30,6 +32,7 @@ import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
 import jakarta.annotation.Nullable;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,11 +94,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     responseExpression = mapResponseExpression();
     hmacVerifier =
         new HMACVerifier(
-            props.shouldValidateHmac(),
-            props.hmacScopes(),
-            props.hmacHeader(),
-            props.hmacSecret(),
-            props.hmacAlgorithm());
+            props.hmacScopes(), props.hmacHeader(), props.hmacSecret(), props.hmacAlgorithm());
     context.reportHealth(Health.up());
   }
 
@@ -104,7 +103,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     LOGGER.trace("Triggered webhook with context {} and payload {}", props.context(), payload);
 
     validateHttpMethod(payload);
-    hmacVerifier.verifySignature(payload);
+    verifyHmac(payload);
 
     var authResult = authChecker.checkAuthorization(payload);
     if (authResult instanceof Failure failureResult) {
@@ -146,6 +145,16 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
           };
     }
     return responseExpression;
+  }
+
+  private void verifyHmac(WebhookProcessingPayload payload) {
+    var shouldValidateHmac =
+        Optional.ofNullable(props.shouldValidateHmac())
+            .filter(choice -> enabled.name().equals(choice))
+            .isPresent();
+    if (shouldValidateHmac) {
+      hmacVerifier.verifySignature(payload);
+    }
   }
 
   @Override

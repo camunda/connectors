@@ -6,9 +6,6 @@
  */
 package io.camunda.connector.inbound.signature;
 
-import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.disabled;
-import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
-
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException.Reason;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
@@ -18,23 +15,16 @@ import io.camunda.connector.inbound.signature.strategy.HMACEncodingStrategyFacto
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Optional;
 
 public class HMACVerifier {
 
-  private final String shouldValidateHmac;
   private final HMACScope[] hmacScopes;
   private final String hmacHeader;
   private final String hmacSecret;
   private final String hmacAlgorithm;
 
   public HMACVerifier(
-      String shouldValidateHmac,
-      HMACScope[] hmacScopes,
-      String hmacHeader,
-      String hmacSecret,
-      String hmacAlgorithm) {
-    this.shouldValidateHmac = shouldValidateHmac;
+      HMACScope[] hmacScopes, String hmacHeader, String hmacSecret, String hmacAlgorithm) {
     this.hmacScopes = hmacScopes;
     this.hmacHeader = hmacHeader;
     this.hmacSecret = hmacSecret;
@@ -50,21 +40,13 @@ public class HMACVerifier {
 
   private boolean webhookSignatureIsValid(WebhookProcessingPayload payload) {
     try {
-      if (shouldValidateHmac()) {
-        HMACEncodingStrategy strategy =
-            HMACEncodingStrategyFactory.getStrategy(hmacScopes, payload.method());
-        byte[] bytesToSign = strategy.getBytesToSign(payload);
-        return validateHmacSignature(bytesToSign, payload);
-      }
+      HMACEncodingStrategy strategy =
+          HMACEncodingStrategyFactory.getStrategy(hmacScopes, payload.method());
+      byte[] bytesToSign = strategy.getBytesToSign(payload);
+      return validateHmacSignature(bytesToSign, payload);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    return true;
-  }
-
-  private boolean shouldValidateHmac() {
-    final String shouldValidate = Optional.ofNullable(shouldValidateHmac).orElse(disabled.name());
-    return enabled.name().equals(shouldValidate);
   }
 
   private boolean validateHmacSignature(byte[] signatureData, WebhookProcessingPayload payload)

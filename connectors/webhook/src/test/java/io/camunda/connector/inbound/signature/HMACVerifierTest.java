@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.inbound.signature;
 
-import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -21,38 +20,13 @@ import io.camunda.connector.inbound.utils.HttpMethods;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 class HMACVerifierTest {
-
-  @ParameterizedTest
-  @NullSource
-  @ValueSource(strings = "disabled")
-  void verifySignature_WhenValidationDisabled_ShouldNotThrowException(String shouldValidateHmac) {
-    HMACVerifier verifier =
-        new HMACVerifier(
-            shouldValidateHmac,
-            new HMACScope[] {HMACScope.BODY},
-            "X-HMAC-Sig",
-            "mySecretKey",
-            HMACAlgoCustomerChoice.sha_256.name());
-
-    WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
-    when(payload.method()).thenReturn(HttpMethods.post.name());
-    when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
-    when(payload.rawBody()).thenReturn("{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
-
-    assertThatCode(() -> verifier.verifySignature(payload)).doesNotThrowAnyException();
-  }
 
   @Test
   void verifySignature_WhenSignatureMatches_ShouldNotThrowException() {
     HMACVerifier verifier =
         new HMACVerifier(
-            enabled.name(),
             new HMACScope[] {HMACScope.BODY},
             "X-HMAC-Sig",
             "mySecretKey",
@@ -76,7 +50,6 @@ class HMACVerifierTest {
   void verifySignature_WhenSignatureDoesNotMatch_ShouldThrowException() {
     HMACVerifier verifier =
         new HMACVerifier(
-            enabled.name(),
             new HMACScope[] {HMACScope.BODY},
             "X-HMAC-Sig",
             "mySecretKey",

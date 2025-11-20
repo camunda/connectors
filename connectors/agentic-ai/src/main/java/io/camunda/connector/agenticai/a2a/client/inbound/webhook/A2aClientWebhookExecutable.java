@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.a2a.client.inbound.webhook;
 
+import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.a2a.spec.Task;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
@@ -29,6 +31,7 @@ import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.signature.HMACVerifier;
 import java.io.IOException;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,11 +91,7 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
     hmacVerifier =
         new HMACVerifier(
-            props.shouldValidateHmac(),
-            props.hmacScopes(),
-            props.hmacHeader(),
-            props.hmacSecret(),
-            props.hmacAlgorithm());
+            props.hmacScopes(), props.hmacHeader(), props.hmacSecret(), props.hmacAlgorithm());
     context.reportHealth(Health.up());
   }
 
@@ -100,7 +99,7 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
   public WebhookResult triggerWebhook(WebhookProcessingPayload payload) {
     LOGGER.debug("Triggered A2A webhook with context {}", props.context());
 
-    hmacVerifier.verifySignature(payload);
+    verifyHmac(payload);
 
     final var authResult = authChecker.checkAuthorization(payload);
     if (authResult instanceof Failure failureResult) {
@@ -124,6 +123,16 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
                   .withTag("a2a-webhook-request")
                   .withMessage("Error deserializing A2A Webhook payload: " + e.getMessage()));
       throw new RuntimeException(e);
+    }
+  }
+
+  private void verifyHmac(WebhookProcessingPayload payload) {
+    var shouldValidateHmac =
+        Optional.ofNullable(props.shouldValidateHmac())
+            .filter(choice -> enabled.name().equals(choice))
+            .isPresent();
+    if (shouldValidateHmac) {
+      hmacVerifier.verifySignature(payload);
     }
   }
 
