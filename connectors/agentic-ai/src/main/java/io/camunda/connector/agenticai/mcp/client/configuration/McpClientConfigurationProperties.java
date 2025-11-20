@@ -7,6 +7,11 @@
 package io.camunda.connector.agenticai.mcp.client.configuration;
 
 import io.camunda.connector.agenticai.mcp.client.configuration.validation.ValidMcpClientConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.auth.Authentication;
+import io.camunda.connector.agenticai.mcp.client.model.auth.BasicAuthentication;
+import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication;
+import io.camunda.connector.agenticai.mcp.client.model.auth.NoAuthentication;
+import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -14,6 +19,7 @@ import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.lang.Nullable;
@@ -29,6 +35,7 @@ public record McpClientConfigurationProperties(
   @ValidMcpClientConfiguration
   public record McpClientConfiguration(
       @DefaultValue("true") boolean enabled,
+      @NotNull(message = "MCP client type must not be null") McpClientType type,
       @Nullable StdioMcpClientTransportConfiguration stdio,
       @Nullable StreamableHttpMcpClientTransportConfiguration http,
       @Nullable SseHttpMcpClientTransportConfiguration sse,
@@ -37,16 +44,80 @@ public record McpClientConfigurationProperties(
       @Nullable Duration reconnectInterval)
       implements McpClientConfigurationPropertiesMcpClientConfigurationBuilder.With {
 
+    public enum McpClientType {
+      STDIO(McpClientConfiguration::stdio),
+      HTTP(McpClientConfiguration::http),
+      SSE(McpClientConfiguration::sse);
+
+      private final Function<McpClientConfiguration, McpClientTransportConfiguration>
+          transportSupplier;
+
+      McpClientType(
+          Function<McpClientConfiguration, McpClientTransportConfiguration> transportSupplier) {
+        this.transportSupplier = transportSupplier;
+      }
+
+      public McpClientTransportConfiguration getTransport(McpClientConfiguration config) {
+        return transportSupplier.apply(config);
+      }
+    }
+
     public static McpClientConfigurationPropertiesMcpClientConfigurationBuilder builder() {
       return McpClientConfigurationPropertiesMcpClientConfigurationBuilder.builder();
+    }
+
+    public McpClientTransportConfiguration transport() {
+      return type.getTransport(this);
+    }
+  }
+
+  @AgenticAiRecord
+  public record AuthenticationConfiguration(
+      @NotNull @DefaultValue("NONE") AuthenticationType type,
+      @Valid @Nullable BasicAuthentication basic,
+      @Valid @Nullable BearerAuthentication bearer,
+      @Valid @Nullable OAuthAuthentication oauth) {
+
+    public enum AuthenticationType {
+      NONE(config -> new NoAuthentication()),
+      BASIC(AuthenticationConfiguration::basic),
+      BEARER(AuthenticationConfiguration::bearer),
+      OAUTH(AuthenticationConfiguration::oauth);
+
+      private final Function<AuthenticationConfiguration, Authentication> authenticationSupplier;
+
+      AuthenticationType(
+          Function<AuthenticationConfiguration, Authentication> authenticationSupplier) {
+        this.authenticationSupplier = authenticationSupplier;
+      }
+
+      public Authentication getAuthentication(AuthenticationConfiguration config) {
+        return authenticationSupplier.apply(config);
+      }
+    }
+
+    public static McpClientConfigurationPropertiesAuthenticationConfigurationBuilder builder() {
+      return McpClientConfigurationPropertiesAuthenticationConfigurationBuilder.builder();
+    }
+
+    public Authentication authentication() {
+      return type.getAuthentication(this);
     }
   }
 
   public sealed interface McpClientTransportConfiguration
       permits StdioMcpClientTransportConfiguration,
           StreamableHttpMcpClientTransportConfiguration,
-          SseHttpMcpClientTransportConfiguration {
-    String type();
+          SseHttpMcpClientTransportConfiguration {}
+
+  public interface McpClientHttpTransportConfiguration {
+    String url();
+
+    Map<String, String> headers();
+
+    AuthenticationConfiguration authentication();
+
+    Duration timeout();
   }
 
   public record StdioMcpClientTransportConfiguration(
@@ -54,39 +125,23 @@ public record McpClientConfigurationProperties(
       @NotNull @DefaultValue List<String> args,
       @NotNull @DefaultValue Map<String, String> env,
       @DefaultValue("true") boolean logEvents)
-      implements McpClientTransportConfiguration {
-
-    @Override
-    public String type() {
-      return "stdio";
-    }
-  }
+      implements McpClientTransportConfiguration {}
 
   public record StreamableHttpMcpClientTransportConfiguration(
       @NotBlank String url,
       @NotNull @DefaultValue Map<String, String> headers,
+      @Valid @NotNull @DefaultValue AuthenticationConfiguration authentication,
       Duration timeout,
       @DefaultValue("false") boolean logRequests,
       @DefaultValue("false") boolean logResponses)
-      implements McpClientTransportConfiguration {
-
-    @Override
-    public String type() {
-      return "http";
-    }
-  }
+      implements McpClientTransportConfiguration, McpClientHttpTransportConfiguration {}
 
   public record SseHttpMcpClientTransportConfiguration(
       @NotBlank String url,
       @NotNull @DefaultValue Map<String, String> headers,
+      @Valid @NotNull @DefaultValue AuthenticationConfiguration authentication,
       Duration timeout,
       @DefaultValue("false") boolean logRequests,
       @DefaultValue("false") boolean logResponses)
-      implements McpClientTransportConfiguration {
-
-    @Override
-    public String type() {
-      return "sse";
-    }
-  }
+      implements McpClientTransportConfiguration, McpClientHttpTransportConfiguration {}
 }

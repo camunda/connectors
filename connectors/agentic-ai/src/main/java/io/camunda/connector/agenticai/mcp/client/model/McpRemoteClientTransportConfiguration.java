@@ -8,6 +8,8 @@ package io.camunda.connector.agenticai.mcp.client.model;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.mcp.client.model.auth.Authentication;
+import io.camunda.connector.agenticai.mcp.client.model.auth.NoAuthentication;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -42,6 +44,8 @@ public sealed interface McpRemoteClientTransportConfiguration
         McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration {
 
   interface McpRemoteClientConnection {
+    Authentication authentication();
+
     String url();
 
     Map<String, String> headers();
@@ -54,6 +58,7 @@ public sealed interface McpRemoteClientTransportConfiguration
       @Valid @NotNull StreamableHttpMcpRemoteClientConnection http)
       implements McpRemoteClientTransportConfiguration {
     public record StreamableHttpMcpRemoteClientConnection(
+        @Valid Authentication authentication,
         @TemplateProperty(
                 group = "transport",
                 label = "URL",
@@ -79,7 +84,14 @@ public sealed interface McpRemoteClientTransportConfiguration
                 feel = Property.FeelMode.disabled,
                 optional = true)
             Duration timeout)
-        implements McpRemoteClientConnection {}
+        implements McpRemoteClientConnection {
+
+      public StreamableHttpMcpRemoteClientConnection {
+        if (authentication == null) {
+          authentication = new NoAuthentication();
+        }
+      }
+    }
   }
 
   @TemplateSubType(id = "sse", label = "SSE")
@@ -87,6 +99,7 @@ public sealed interface McpRemoteClientTransportConfiguration
       @Valid @NotNull SseHttpMcpRemoteClientConnection sse)
       implements McpRemoteClientTransportConfiguration {
     public record SseHttpMcpRemoteClientConnection(
+        @Valid Authentication authentication,
         @TemplateProperty(
                 group = "transport",
                 label = "URL",
@@ -112,6 +125,13 @@ public sealed interface McpRemoteClientTransportConfiguration
                 feel = Property.FeelMode.disabled,
                 optional = true)
             Duration timeout)
-        implements McpRemoteClientConnection {}
+        implements McpRemoteClientConnection {
+
+      public SseHttpMcpRemoteClientConnection {
+        if (authentication == null) {
+          authentication = new NoAuthentication();
+        }
+      }
+    }
   }
 }

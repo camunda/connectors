@@ -26,6 +26,9 @@
     "label" : "Transport",
     "tooltip" : "Configure the connection to the remote MCP server."
   }, {
+    "id" : "authentication",
+    "label" : "Authentication"
+  }, {
     "id" : "connectorMode",
     "label" : "Connector mode",
     "tooltip" : "Select how this connector is used. When the connector is used as an AI agent tool, select the AI Agent tool mode."
@@ -194,6 +197,536 @@
       "type" : "simple"
     },
     "type" : "Hidden"
+  }, {
+    "id" : "data.transport.http.authentication.type",
+    "label" : "Type",
+    "description" : "Choose the authentication type. Select 'None' if no authentication is necessary",
+    "value" : "noAuth",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.http.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.transport.type",
+      "equals" : "http",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "None",
+      "value" : "noAuth"
+    }, {
+      "name" : "Basic",
+      "value" : "basic"
+    }, {
+      "name" : "Bearer token",
+      "value" : "bearer"
+    }, {
+      "name" : "OAuth 2.0",
+      "value" : "oauth-client-credentials-flow"
+    } ]
+  }, {
+    "id" : "data.transport.http.authentication.username",
+    "label" : "Username",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.http.authentication.username",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.transport.http.authentication.type",
+        "equals" : "basic",
+        "type" : "simple"
+      }, {
+        "property" : "data.transport.type",
+        "equals" : "http",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.http.authentication.password",
+    "label" : "Password",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.http.authentication.password",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.transport.http.authentication.type",
+        "equals" : "basic",
+        "type" : "simple"
+      }, {
+        "property" : "data.transport.type",
+        "equals" : "http",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.http.authentication.token",
+    "label" : "Bearer token",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.http.authentication.token",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.transport.http.authentication.type",
+        "equals" : "bearer",
+        "type" : "simple"
+      }, {
+        "property" : "data.transport.type",
+        "equals" : "http",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.http.authentication.oauthTokenEndpoint",
+    "label" : "OAuth 2.0 token endpoint",
+    "description" : "The OAuth token endpoint",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+        "message" : "Must be a http(s) URL"
+      }
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.http.authentication.oauthTokenEndpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.transport.http.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "data.transport.type",
+        "equals" : "http",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.http.authentication.clientId",
+    "label" : "Client ID",
+    "description" : "Your application's client ID from the OAuth client",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.http.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.transport.http.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "data.transport.type",
+        "equals" : "http",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.http.authentication.clientSecret",
+    "label" : "Client secret",
+    "description" : "Your application's client secret from the OAuth client",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.http.authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.transport.http.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "data.transport.type",
+        "equals" : "http",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.http.authentication.audience",
+    "label" : "Audience",
+    "description" : "The unique identifier of the target API you want to access",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.http.authentication.audience",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.transport.http.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "data.transport.type",
+        "equals" : "http",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.http.authentication.clientAuthentication",
+    "label" : "Client authentication",
+    "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
+    "optional" : false,
+    "value" : "BASIC_AUTH_HEADER",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.http.authentication.clientAuthentication",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.transport.http.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "data.transport.type",
+        "equals" : "http",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Send as Basic Auth header",
+      "value" : "BASIC_AUTH_HEADER"
+    }, {
+      "name" : "Send client credentials in body",
+      "value" : "CREDENTIALS_BODY"
+    } ]
+  }, {
+    "id" : "data.transport.http.authentication.scopes",
+    "label" : "Scopes",
+    "description" : "The scopes which you want to request authorization for (e.g.read:contacts)",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.http.authentication.scopes",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.transport.http.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "data.transport.type",
+        "equals" : "http",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.sse.authentication.type",
+    "label" : "Type",
+    "description" : "Choose the authentication type. Select 'None' if no authentication is necessary",
+    "value" : "noAuth",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.sse.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.transport.type",
+      "equals" : "sse",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "None",
+      "value" : "noAuth"
+    }, {
+      "name" : "Basic",
+      "value" : "basic"
+    }, {
+      "name" : "Bearer token",
+      "value" : "bearer"
+    }, {
+      "name" : "OAuth 2.0",
+      "value" : "oauth-client-credentials-flow"
+    } ]
+  }, {
+    "id" : "data.transport.sse.authentication.username",
+    "label" : "Username",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.sse.authentication.username",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.transport.sse.authentication.type",
+        "equals" : "basic",
+        "type" : "simple"
+      }, {
+        "property" : "data.transport.type",
+        "equals" : "sse",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.sse.authentication.password",
+    "label" : "Password",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.sse.authentication.password",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.transport.sse.authentication.type",
+        "equals" : "basic",
+        "type" : "simple"
+      }, {
+        "property" : "data.transport.type",
+        "equals" : "sse",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.sse.authentication.token",
+    "label" : "Bearer token",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.sse.authentication.token",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.transport.sse.authentication.type",
+        "equals" : "bearer",
+        "type" : "simple"
+      }, {
+        "property" : "data.transport.type",
+        "equals" : "sse",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.sse.authentication.oauthTokenEndpoint",
+    "label" : "OAuth 2.0 token endpoint",
+    "description" : "The OAuth token endpoint",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
+        "message" : "Must be a http(s) URL"
+      }
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.sse.authentication.oauthTokenEndpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.transport.sse.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "data.transport.type",
+        "equals" : "sse",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.sse.authentication.clientId",
+    "label" : "Client ID",
+    "description" : "Your application's client ID from the OAuth client",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.sse.authentication.clientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.transport.sse.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "data.transport.type",
+        "equals" : "sse",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.sse.authentication.clientSecret",
+    "label" : "Client secret",
+    "description" : "Your application's client secret from the OAuth client",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.sse.authentication.clientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.transport.sse.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "data.transport.type",
+        "equals" : "sse",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.sse.authentication.audience",
+    "label" : "Audience",
+    "description" : "The unique identifier of the target API you want to access",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.sse.authentication.audience",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.transport.sse.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "data.transport.type",
+        "equals" : "sse",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.transport.sse.authentication.clientAuthentication",
+    "label" : "Client authentication",
+    "description" : "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
+    "optional" : false,
+    "value" : "BASIC_AUTH_HEADER",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.sse.authentication.clientAuthentication",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.transport.sse.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "data.transport.type",
+        "equals" : "sse",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Send as Basic Auth header",
+      "value" : "BASIC_AUTH_HEADER"
+    }, {
+      "name" : "Send client credentials in body",
+      "value" : "CREDENTIALS_BODY"
+    } ]
+  }, {
+    "id" : "data.transport.sse.authentication.scopes",
+    "label" : "Scopes",
+    "description" : "The scopes which you want to request authorization for (e.g.read:contacts)",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "data.transport.sse.authentication.scopes",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.transport.sse.authentication.type",
+        "equals" : "oauth-client-credentials-flow",
+        "type" : "simple"
+      }, {
+        "property" : "data.transport.type",
+        "equals" : "sse",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
   }, {
     "id" : "data.connectorMode.type",
     "label" : "Connector mode",

@@ -73,11 +73,11 @@ class Langchain4JMcpRemoteClientHandlerTest {
       STREAMABLE_HTTP_TRANSPORT_CONFIG =
           new StreamableHttpMcpRemoteClientTransportConfiguration(
               new StreamableHttpMcpRemoteClientConnection(
-                  STREAMABLE_HTTP_URL, HTTP_HEADERS, HTTP_TIMEOUT));
+                  null, STREAMABLE_HTTP_URL, HTTP_HEADERS, HTTP_TIMEOUT));
 
   private static final SseHttpMcpRemoteClientTransportConfiguration SSE_TRANSPORT_CONFIG =
       new SseHttpMcpRemoteClientTransportConfiguration(
-          new SseHttpMcpRemoteClientConnection(SSE_URL, HTTP_HEADERS, HTTP_TIMEOUT));
+          new SseHttpMcpRemoteClientConnection(null, SSE_URL, HTTP_HEADERS, HTTP_TIMEOUT));
 
   private static final McpClientOperationConfiguration LIST_TOOLS_OPERATION =
       new McpClientOperationConfiguration("tools/list", Map.of());
