@@ -68,19 +68,16 @@ json.properties.each { property ->
             type: "Hidden"
         ])
     } else if (property.id == "activationCondition") {
-        property.value = "=if kind = \"task\" then\n  is defined(status.state) and not(list contains([\"submitted\", \"working\"], status.state))\nelse\n  true"
+        property.value = "=if result.kind = \"task\" then\n  is defined(result.status.state) and not(list contains([\"submitted\", \"working\"], result.status.state))\nelse\n  true"
         updatedProperties.add(property)
     } else if (property.id == "correlationKeyProcess") {
-        property.value = "=if internal_clientResponse.kind = \"message\" then\n  \"msg-\" + internal_clientResponse.messageId\n" +
-                "else if internal_clientResponse.kind = \"task\" then\n  \"task-\" + internal_clientResponse.id\n" +
-                "else\n  \"agentCard-\" + internal_clientResponse.id"
+        property.value = "=internal_clientResponse.pollingData.id"
         property.type = "Hidden"
         property.remove("feel")
         property.remove("constraints")
         updatedProperties.add(property)
     } else if (property.id == "correlationKeyPayload") {
-        property.value = "=if kind = \"message\" then\n  \"msg-\" + messageId\nelse if kind = \"task\" then\n  \"task-\" + id\n" +
-                "else\n  \"agentCard-\" + id"
+        property.value = "=pollingData.id"
         property.type = "Hidden"
         property.remove("feel")
         property.remove("constraints")

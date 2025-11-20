@@ -38,7 +38,10 @@ import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConv
 import io.camunda.connector.agenticai.a2a.client.common.model.A2aConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aAgentCard;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aArtifact;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aClientResponse;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aClientResponse.PollingData;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aResult;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus.TaskState;
@@ -206,8 +209,12 @@ class A2aPollingTaskTest {
   void returnsWithoutCorrelatingWhenLoadingClientResponseFails() {
     expectErrors();
 
+    final var runtimeProperties =
+        new A2aPollingRuntimeProperties(
+            new A2aPollingRuntimePropertiesData(CONNECTION, "invalid", 3));
+
     when(processInstanceContext.bind(A2aPollingRuntimeProperties.class))
-        .thenReturn(runtimeProperties("invalid"));
+        .thenReturn(runtimeProperties);
 
     pollingTask.run();
 
@@ -227,29 +234,32 @@ class A2aPollingTaskTest {
   @Test
   void directlyCorrelatesAgentCard() throws JsonProcessingException {
     final var agentCard =
-        A2aAgentCard.builder()
-            .id("agent-id")
-            .name("agent-name")
-            .description("agent-description")
-            .build();
+        A2aAgentCard.builder().name("agent-name").description("agent-description").build();
     when(processInstanceContext.bind(A2aPollingRuntimeProperties.class))
-        .thenReturn(runtimeProperties(objectMapper.writeValueAsString(agentCard)));
+        .thenReturn(runtimeProperties(a2aClientResponse(agentCard)));
 
     pollingTask.run();
 
     verify(processInstanceContext)
-        .correlate(assertArg(arg -> assertThat(arg).isEqualTo(agentCard)));
+        .correlate(
+            ArgumentMatchers.<A2aClientResponse>assertArg(
+                arg -> {
+                  assertThat(arg.result()).isEqualTo(agentCard);
+                  assertThat(arg.pollingData()).isNotNull();
+                  assertThat(arg.pollingData().id()).isEqualTo("agent-card-id");
+                }));
     verifyNoInteractions(agentCardFetcher, clientFactory);
   }
 
   @Test
   void directlyCorrelatesMessage() throws JsonProcessingException {
     when(processInstanceContext.bind(A2aPollingRuntimeProperties.class))
-        .thenReturn(runtimeProperties(objectMapper.writeValueAsString(MESSAGE)));
+        .thenReturn(runtimeProperties(a2aClientResponse(MESSAGE)));
 
     pollingTask.run();
 
-    verify(processInstanceContext).correlate(assertArg(arg -> assertThat(arg).isEqualTo(MESSAGE)));
+    verify(processInstanceContext)
+        .correlate(assertArg(arg -> assertThat(arg).isEqualTo(a2aClientResponse(MESSAGE))));
     verifyNoInteractions(agentCardFetcher, clientFactory);
   }
 
@@ -257,10 +267,11 @@ class A2aPollingTaskTest {
   void directlyCorrelatesCompletedTask() throws JsonProcessingException {
     final var successfulActivationCheckResult =
         new ActivationCheckResult.Success.CanActivate(mock(ProcessElement.class));
-    when(context.canActivate(any(A2aTask.class))).thenReturn(successfulActivationCheckResult);
+    when(context.canActivate(any(A2aClientResponse.class)))
+        .thenReturn(successfulActivationCheckResult);
 
     when(processInstanceContext.bind(A2aPollingRuntimeProperties.class))
-        .thenReturn(runtimeProperties(objectMapper.writeValueAsString(COMPLETED_TASK)));
+        .thenReturn(runtimeProperties(a2aClientResponse(COMPLETED_TASK)));
 
     pollingTask.run();
 
@@ -274,7 +285,7 @@ class A2aPollingTaskTest {
     expectErrors();
 
     when(processInstanceContext.bind(A2aPollingRuntimeProperties.class))
-        .thenReturn(runtimeProperties(objectMapper.writeValueAsString(WORKING_TASK)));
+        .thenReturn(runtimeProperties(a2aClientResponse(WORKING_TASK)));
 
     when(agentCardFetcher.fetchAgentCardRaw(CONNECTION))
         .thenThrow(new RuntimeException("Fetching agent card failed"));
@@ -297,7 +308,7 @@ class A2aPollingTaskTest {
     expectErrors();
 
     when(processInstanceContext.bind(A2aPollingRuntimeProperties.class))
-        .thenReturn(runtimeProperties(objectMapper.writeValueAsString(WORKING_TASK)));
+        .thenReturn(runtimeProperties(a2aClientResponse(WORKING_TASK)));
 
     when(agentCardFetcher.fetchAgentCardRaw(CONNECTION)).thenReturn(agentCard);
     when(clientFactory.buildClient(eq(agentCard), any(), eq(a2aClientConfig())))
@@ -321,7 +332,7 @@ class A2aPollingTaskTest {
     expectErrors();
 
     when(processInstanceContext.bind(A2aPollingRuntimeProperties.class))
-        .thenReturn(runtimeProperties(objectMapper.writeValueAsString(WORKING_TASK)));
+        .thenReturn(runtimeProperties(a2aClientResponse(WORKING_TASK)));
 
     when(agentCardFetcher.fetchAgentCardRaw(CONNECTION)).thenReturn(agentCard);
     when(clientFactory.buildClient(eq(agentCard), any(), eq(a2aClientConfig()))).thenReturn(client);
@@ -344,7 +355,7 @@ class A2aPollingTaskTest {
   @Test
   void pollsWorkingTask() throws JsonProcessingException {
     when(processInstanceContext.bind(A2aPollingRuntimeProperties.class))
-        .thenReturn(runtimeProperties(objectMapper.writeValueAsString(WORKING_TASK)));
+        .thenReturn(runtimeProperties(a2aClientResponse(WORKING_TASK)));
 
     when(agentCardFetcher.fetchAgentCardRaw(CONNECTION)).thenReturn(agentCard);
     when(clientFactory.buildClient(eq(agentCard), any(), eq(a2aClientConfig()))).thenReturn(client);
@@ -353,13 +364,13 @@ class A2aPollingTaskTest {
     pollingTask.run();
 
     verify(processInstanceContext)
-        .correlate(assertArg(arg -> assertThat(arg).isEqualTo(COMPLETED_TASK)));
+        .correlate(assertArg(arg -> assertThat(arg).isEqualTo(a2aClientResponse(COMPLETED_TASK))));
   }
 
   @Test
   void createsClientOnlyOnce() throws JsonProcessingException {
     when(processInstanceContext.bind(A2aPollingRuntimeProperties.class))
-        .thenReturn(runtimeProperties(objectMapper.writeValueAsString(WORKING_TASK)));
+        .thenReturn(runtimeProperties(a2aClientResponse(WORKING_TASK)));
 
     when(agentCardFetcher.fetchAgentCardRaw(CONNECTION)).thenReturn(agentCard);
     when(clientFactory.buildClient(eq(agentCard), any(), eq(a2aClientConfig()))).thenReturn(client);
@@ -373,7 +384,7 @@ class A2aPollingTaskTest {
     verify(client, times(2)).getTask(any(TaskQueryParams.class));
 
     verify(processInstanceContext, times(2))
-        .correlate(assertArg(arg -> assertThat(arg).isEqualTo(WORKING_TASK)));
+        .correlate(assertArg(arg -> assertThat(arg).isEqualTo(a2aClientResponse(WORKING_TASK))));
   }
 
   @Test
@@ -394,17 +405,30 @@ class A2aPollingTaskTest {
     return new A2aSdkClientConfigBuilder().historyLength(3).blocking(false).build();
   }
 
-  private static A2aPollingRuntimeProperties runtimeProperties(String clientResponse) {
-    return new A2aPollingRuntimeProperties(
-        new A2aPollingRuntimePropertiesData(CONNECTION, clientResponse, 3));
+  private A2aClientResponse a2aClientResponse(A2aResult result) {
+    var id =
+        switch (result) {
+          case A2aAgentCard ignored -> "agent-card-id";
+          case A2aMessage message -> message.messageId();
+          case A2aTask task -> task.id();
+          default -> throw new IllegalStateException("Unexpected value: " + result);
+        };
+    return A2aClientResponse.builder().result(result).pollingData(new PollingData(id)).build();
   }
 
-  private A2aTask taskArgumentMatcher(final A2aTask expectedTask) {
+  private A2aPollingRuntimeProperties runtimeProperties(A2aClientResponse clientResponse)
+      throws JsonProcessingException {
+    return new A2aPollingRuntimeProperties(
+        new A2aPollingRuntimePropertiesData(
+            CONNECTION, objectMapper.writeValueAsString(clientResponse), 3));
+  }
+
+  private A2aClientResponse taskArgumentMatcher(final A2aTask expectedTask) {
     return assertArg(
         arg ->
             assertThat(arg)
                 .usingRecursiveComparison()
                 .ignoringFieldsOfTypes(OffsetDateTime.class)
-                .isEqualTo(expectedTask));
+                .isEqualTo(a2aClientResponse(expectedTask)));
   }
 }

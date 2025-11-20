@@ -82,6 +82,13 @@ public record A2aCommonSendMessageConfiguration(
             String webhookUrl,
         @TemplateProperty(
                 group = "operation",
+                label = "Token",
+                description =
+                    "A unique token for the task or session to validate incoming push notifications",
+                feel = Property.FeelMode.optional)
+            String token,
+        @TemplateProperty(
+                group = "operation",
                 label = "Authentication schemes",
                 description = "A list of authentication schemes required by the webhook.",
                 feel = Property.FeelMode.required)

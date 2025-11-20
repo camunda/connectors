@@ -153,7 +153,7 @@
       "type" : "zeebe:property"
     },
     "type" : "String",
-    "value" : "=if kind = \"task\" then\n  is defined(status.state) and not(list contains([\"submitted\", \"working\"], status.state))\nelse\n  true"
+    "value" : "=if result.kind = \"task\" then\n  is defined(result.status.state) and not(list contains([\"submitted\", \"working\"], result.status.state))\nelse\n  true"
   }, {
     "id" : "correlationKeyProcess",
     "label" : "Correlation key (process)",
@@ -164,7 +164,7 @@
       "type" : "bpmn:Message#zeebe:subscription#property"
     },
     "type" : "Hidden",
-    "value" : "=if internal_clientResponse.kind = \"message\" then\n  \"msg-\" + internal_clientResponse.messageId\nelse if internal_clientResponse.kind = \"task\" then\n  \"task-\" + internal_clientResponse.id\nelse\n  \"agentCard-\" + internal_clientResponse.id"
+    "value" : "=internal_clientResponse.pollingData.id"
   }, {
     "id" : "correlationKeyPayload",
     "label" : "Correlation key (payload)",
@@ -175,7 +175,7 @@
       "type" : "zeebe:property"
     },
     "type" : "Hidden",
-    "value" : "=if kind = \"message\" then\n  \"msg-\" + messageId\nelse if kind = \"task\" then\n  \"task-\" + id\nelse\n  \"agentCard-\" + id"
+    "value" : "=pollingData.id"
   }, {
     "id" : "messageIdExpression",
     "label" : "Message ID expression",

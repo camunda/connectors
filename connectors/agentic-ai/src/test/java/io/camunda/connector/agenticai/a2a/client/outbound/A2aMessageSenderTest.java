@@ -125,8 +125,10 @@ class A2aMessageSenderTest {
   void shouldPassNotificationModeWithAuthSchemeToClientFactory(List<String> authenticationSchemes) {
     var webhookUrl = "https://example.com/webhook";
     var credentials = "bXl1c2VyOm15cGFzc3dvcmQ=";
+    var token = "a-token";
     var notification =
-        new A2aResponseRetrievalMode.Notification(webhookUrl, authenticationSchemes, credentials);
+        new A2aResponseRetrievalMode.Notification(
+            webhookUrl, token, authenticationSchemes, credentials);
 
     var operation =
         new SendMessageOperationConfiguration(
@@ -150,6 +152,7 @@ class A2aMessageSenderTest {
                   assertThat(config.blocking()).isFalse();
                   assertThat(config.pushNotificationConfig()).isNotNull();
                   assertThat(config.pushNotificationConfig().url()).isEqualTo(webhookUrl);
+                  assertThat(config.pushNotificationConfig().token()).isEqualTo(token);
                   assertThat(config.pushNotificationConfig().authSchemes())
                       .containsExactlyElementsOf(notification.authenticationSchemes());
                   assertThat(config.pushNotificationConfig().credentials()).isEqualTo(credentials);
