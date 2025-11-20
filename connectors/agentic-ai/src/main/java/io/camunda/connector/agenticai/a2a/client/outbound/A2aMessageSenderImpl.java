@@ -29,7 +29,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
 
 public class A2aMessageSenderImpl implements A2aMessageSender {
   private final A2aDocumentToPartConverter documentToPartConverter;
@@ -77,7 +76,7 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
     }
   }
 
-  private static @NotNull A2aSdkClientConfig createA2aSdkClientConfig(
+  private static A2aSdkClientConfig createA2aSdkClientConfig(
       A2aCommonSendMessageConfiguration settings) {
     final var retrievalMode = settings.responseRetrievalMode();
 
@@ -85,7 +84,9 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
     if (retrievalMode instanceof Notification notification) {
       pushNotificationConfig =
           new A2aSdkClientConfig.PushNotificationConfig(
-              notification.webhookUrl(), notification.authorizationType().toA2aSecurityScheme());
+              notification.webhookUrl(),
+              notification.authenticationSchemes(),
+              notification.credentials());
     }
     final var blocking = retrievalMode instanceof A2aResponseRetrievalMode.Blocking;
     return new A2aSdkClientConfig(settings.historyLength(), blocking, pushNotificationConfig);

@@ -15,6 +15,7 @@ import io.a2a.spec.AgentCard;
 import io.a2a.spec.TransportProtocol;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aClientCommonConfigurationProperties.TransportConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aClientCommonConfigurationProperties.TransportConfiguration.GrpcConfiguration;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
@@ -178,6 +179,8 @@ class A2aSdkClientFactoryTest {
   @NullSource
   @ValueSource(strings = {"bearer", "api-key"})
   void passesCorrectParametersToClientConfigBuilderWithPushNotification(String authScheme) {
+    String credentials = authScheme != null ? "test-credentials-" + authScheme : null;
+    List<String> authSchemes = authScheme != null ? List.of(authScheme) : List.of();
     final var transportConfig = new TransportConfiguration(new GrpcConfiguration(true));
     A2aSdkClientFactory factory = new A2aSdkClientFactoryImpl(transportConfig);
     AgentCard agentCard = mock(AgentCard.class);
@@ -190,7 +193,8 @@ class A2aSdkClientFactoryTest {
       mockClient.when(() -> Client.builder(agentCard)).thenReturn(clientBuilder);
 
       var pushNotificationConfig =
-          new A2aSdkClientConfig.PushNotificationConfig("https://example.com/webhook", authScheme);
+          new A2aSdkClientConfig.PushNotificationConfig(
+              "https://example.com/webhook", authSchemes, credentials);
       A2aSdkClientConfig config = new A2aSdkClientConfig(5, false, pushNotificationConfig);
       A2aSdkClient client = factory.buildClient(agentCard, (event, card) -> {}, config);
 
@@ -206,10 +210,12 @@ class A2aSdkClientFactoryTest {
                     assertThat(pushConfig.url()).isEqualTo("https://example.com/webhook");
                     var authInfo = pushConfig.authentication();
                     assertThat(authInfo).isNotNull();
-                    if (authScheme != null) {
-                      assertThat(authInfo.schemes()).containsExactly(authScheme);
+                    assertThat(authInfo.schemes()).containsExactlyElementsOf(authSchemes);
+                    var creds = authInfo.credentials();
+                    if (credentials != null) {
+                      assertThat(creds).isEqualTo(credentials);
                     } else {
-                      assertThat(authInfo.schemes()).isEmpty();
+                      assertThat(creds).isNull();
                     }
                   }));
 
