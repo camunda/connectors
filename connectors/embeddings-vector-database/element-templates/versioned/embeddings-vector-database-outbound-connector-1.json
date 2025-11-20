@@ -8,6 +8,9 @@
   },
   "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/embeddings-vector-db/",
   "version" : 1,
+  "deprecated": {
+    "message": "Replace with version >= 2 of the Embeddings Vector DB Outbound Connector template."
+  },
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -17,7 +20,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.2"
+    "camunda" : "^8.8"
   },
   "groups" : [ {
     "id" : "operation",
