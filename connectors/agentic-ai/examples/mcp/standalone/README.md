@@ -17,6 +17,7 @@ camunda:
             # replace path to files to the directory you want the model to have access to
             # you can also add multiple paths, see https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem
             filesystem:
+              type: stdio
               stdio:
                 command: npx
                 args:
