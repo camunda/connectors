@@ -1,34 +1,76 @@
 name: Release a new version
-run-name: Release a new version ${{ github.event.release.tag_name }}
+run-name: Release a new version ${{ inputs.version }}
 
 on:
-  release:
-    types: [ created ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 8.7.0, 8.7.1)'
+        required: true
+        type: string
+      skip-maven-release:
+        description: 'Skip Maven release'
+        required: false
+        type: boolean
+        default: false
+      skip-docker-release:
+        description: 'Skip Docker release'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
-  build-and-push:
-    name: Build and push Docker images
+
+  create-release:
+    name: Create GitHub Release
     runs-on: ubuntu-latest
-    outputs:
-      releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
-          token: ${{ secrets.PROTECTED_BRANCH_PAT }}
-          ref: ${{ github.event.release.target_commitish }}
+          ref: ${{ github.ref }}
           fetch-depth: 0
 
-      - name: Validate release tag and determine previous tag
-        id: validate_tag
-        run: |
-          OUTPUT="$(.github/workflows/scripts/prev_tag.sh ${{ github.event.release.tag_name }})"
-          if [ $? -ne 0 ]; then
-            echo "Script failed"
-            exit 1
-          fi
-          echo "type=$( echo $OUTPUT | cut -d ' ' -f1 )" >> $GITHUB_OUTPUT
-          echo "previousTag=$( echo $OUTPUT | cut -d ' ' -f2 )" >> $GITHUB_OUTPUT
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: ${{ inputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+          target_commitish: ${{ github.ref }}
+          body: |
+            ## 🚧 Release in Progress
+            
+            This release is currently being built and deployed.
+            
+            **Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            This message will be replaced with the full changelog once the release process completes.
 
+  setup:
+    needs: create-release
+    name: Prepare the repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tagType: ${{ steps.prev_version.outputs.release_type }}
+      releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
+      previousTag: ${{ steps.prev_version.outputs.previous_version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+      - name: Identify previous release version
+        id: prev_version
+        uses: camunda/infra-global-github-actions/previous-version@main
+        with:
+          version: "${{ inputs.version }}"
+          verbose: 'false'
       # We will update this branch by setting the new version and pushing it
       - name: Determine release branch name
         id: determine_release_branch
@@ -37,7 +79,168 @@ jobs:
           git checkout "$releaseBranch"
           echo "releaseBranch=$releaseBranch" >> $GITHUB_OUTPUT
         env:
-          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+          RELEASE_VERSION: ${{ inputs.version }}
+
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.PROTECTED_BRANCH_PAT }}
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+
+      - name: Prepare Java and Maven settings
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Install element templates CLI
+        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
+
+        # Maven build & version bump
+      - name: Set Connectors release version
+        run: mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+
+      - name: Compile and Test
+        run: mvn -B package generate-sources source:jar javadoc:jar
+
+      - name: Publish Test Report
+        if: always()
+        uses: scacap/action-surefire-report@v1
+
+      - name: Upload detailed surefire reports
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: surefire-reports
+          path: '**/target/surefire-reports/*.xml'
+
+      - name: Generate sbom reports
+        run: |
+          mvn cyclonedx:makeAggregateBom -pl bundle/default-bundle
+
+      - name: Configure git user
+        run: |
+          # https://github.com/actions/checkout/issues/13#issuecomment-724415212
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and tag
+        run: |
+          # check if worktree is empty
+          if [ -z "$(git status --porcelain)" ]; then
+              echo "No changes to commit"
+              exit 0
+          fi
+          git commit -am "ci: release version ${RELEASE_VERSION}"
+          git push --force-with-lease origin ${RELEASE_BRANCH}
+          git tag -fa ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
+          git push --force origin ${RELEASE_VERSION}
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_BRANCH: ${{ needs.setup.outputs.releaseBranch }}
+
+      - name: Upload repository
+        uses: actions/upload-artifact@v5
+        with:
+          name: repository
+          path: .
+          include-hidden-files: 'true'
+
+
+  version-bump-docs-links:
+    needs: setup
+    name: Version bump documentation links, if this is the first minor release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Fetch main branch
+        run: git fetch origin main
+
+      - name: Configure git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Determine if first minor release
+        id: version_check
+        env:
+          VERSION: ${{ inputs.version }}  # e.g. "8.8.0"
+        run: |
+          if [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.0$ ]]; then
+            major="${BASH_REMATCH[1]}"
+            minor="${BASH_REMATCH[2]}"
+            current_minor="${major}.${minor}"
+            previous_minor="${major}.$((minor - 1))"
+          
+            echo "Version $VERSION matches first minor release pattern (x.y.0)"
+            echo "is_first_minor=true" >> $GITHUB_OUTPUT
+            echo "current_minor=${current_minor}" >> $GITHUB_OUTPUT
+            echo "previous_minor=${previous_minor}" >> $GITHUB_OUTPUT
+          else
+            echo "Version $VERSION does NOT match first minor release pattern - skipping docs version bump"
+            echo "is_first_minor=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Collect connector template links
+        if: steps.version_check.outputs.is_first_minor == 'true'
+        run: |
+          chmod +x ./.github/workflows/scripts/version_bump_all_element_templates_docs_links_versions.sh
+          ./.github/workflows/scripts/version_bump_all_element_templates_docs_links_versions.sh ${{ steps.version_check.outputs.previous_minor }} ${{ steps.version_check.outputs.current_minor }}
+        shell: bash
+
+      - name: Create pull request to main branch
+        if: steps.version_check.outputs.is_first_minor == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: chore/version-bump-docs-links
+          commit-message: "ci: bump docs version from ${{ steps.version_check.outputs.previous_minor }} to ${{ steps.version_check.outputs.current_minor }}"
+          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          base: main
+          title: "chore(docs-links): bump versions from ${{ steps.version_check.outputs.previous_minor }} to ${{ steps.version_check.outputs.current_minor }}"
+          labels: "no milestone"
+          body: |
+            This bumps docs version of latest's element templates of a connector to latest minor version.
+
+  maven-release:
+    needs: setup
+    name: Create a maven release
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip-maven-release }}
+    permissions:
+      contents: read
+    steps:
+      - name: Log Maven release status
+        run: |
+          echo "Maven release is enabled (skip-maven-release: ${{ inputs.skip-maven-release }})"
+
+      - name: Download repository
+        uses: actions/download-artifact@v6
+        with:
+          name: repository
+
+      - name: Prepare Java and Maven settings
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
 
       - name: Import Secrets
         id: secrets
@@ -49,8 +252,6 @@ jobs:
           secretId: ${{ secrets.VAULT_SECRET_ID }}
           exportEnv: false # we rely on step outputs, no need for environment variables
           secrets: |
-            secret/data/products/connectors/ci/common DOCKERHUB_USER;
-            secret/data/products/connectors/ci/common DOCKERHUB_PASSWORD;
             secret/data/products/connectors/ci/common ARTIFACTORY_USR;
             secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
             secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_USR;
@@ -65,23 +266,8 @@ jobs:
           gpg_private_key: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC }}
           passphrase: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
-      - name: Restore cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - name: Prepare Java and Maven settings
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
       - name: 'Create settings.xml'
-        uses: s4u/maven-settings-action@v3.1.0
+        uses: s4u/maven-settings-action@v4.0.0
         with:
           githubServer: false
           servers: |
@@ -98,45 +284,71 @@ jobs:
             ]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
-      - name: Configure git user
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Log Maven deployment target
         run: |
-          # https://github.com/actions/checkout/issues/13#issuecomment-724415212
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Install element templates CLI
-        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
-
-      # Maven build & version bump
-
-      - name: Set Connectors release version
-        run: mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
-        env:
-          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+          if [[ "${{ inputs.version }}" == *"rc"* ]]; then
+            echo "Version contains 'rc' - deploying to Artifactory only"
+          else
+            echo "Version does not contain 'rc' - deploying to Artifactory and Maven Central (Staging)"
+          fi
 
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
-        run: mvn -B compile generate-sources source:jar javadoc:jar deploy -PcheckFormat -Pcentral-sonatype-publish
+        if: "! contains(inputs.version, 'rc')"
+        run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
           MAVEN_USR: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}
           MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
-          
-      - name: Publish Test Report
-        if: success() || failure()
-        uses: scacap/action-surefire-report@v1
 
-      - name: Upload detailed surefire reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: surefire-reports
-          path: '**/target/surefire-reports/*.xml'
+      - name: Deploy artifacts to Artifactory
+        if: "contains(inputs.version, 'rc')"
+        run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true -Pe2eExcluded
+        env:
+          NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
+          NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
+          MAVEN_USR: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}
+          MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
+          MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
-      - name: Generate sbom reports
+  docker-release:
+    needs: setup
+    runs-on: ubuntu-latest
+    name: Perform the docker release
+    if: ${{ !inputs.skip-docker-release }}
+    permissions:
+      contents: read
+    steps:
+      - name: Log Docker release status
         run: |
-          mvn cyclonedx:makeAggregateBom -pl bundle/default-bundle
+          echo "Docker release is enabled (skip-docker-release: ${{ inputs.skip-docker-release }})"
+
+      - name: Download repository
+        uses: actions/download-artifact@v6
+        with:
+          name: repository
+
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false # we rely on step outputs, no need for environment variables
+          secrets: |
+            secret/data/products/connectors/ci/common DOCKERHUB_USER;
+            secret/data/products/connectors/ci/common DOCKERHUB_PASSWORD;
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -154,34 +366,43 @@ jobs:
 
       # Build & push bundle docker images (with version tag)
 
-      - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - connector-runtime
+      - name: Build and Push Docker Image tag ${{ inputs.version }} - connector-runtime
         uses: docker/build-push-action@v6
         with:
           context: connector-runtime/connector-runtime-application/
           push: true
-          tags: camunda/connectors:${{ github.event.release.tag_name }}
+          tags: camunda/connectors:${{ inputs.version }}
           platforms: linux/amd64,linux/arm64
           provenance: false
 
-      - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - bundle-default
+      - name: Build and Push Docker Image tag ${{ inputs.version }} - bundle-default
         uses: docker/build-push-action@v6
         with:
           context: bundle/default-bundle/
           push: true
-          tags: camunda/connectors-bundle:${{ github.event.release.tag_name }}
+          tags: camunda/connectors-bundle:${{ inputs.version }}
           platforms: linux/amd64,linux/arm64
           provenance: false
 
-      - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - bundle-saas
+      - name: Build and Push Docker Image tag ${{ inputs.version }} - bundle-saas
         uses: docker/build-push-action@v6
         with:
           context: bundle/camunda-saas-bundle/
           push: true
-          tags: camunda/connectors-bundle-saas:${{ github.event.release.tag_name }}
+          tags: camunda/connectors-bundle-saas:${{ inputs.version }}
           platforms: linux/amd64,linux/arm64
           provenance: false
 
       # Build & push bundle docker images (with 'latest' tag)
+
+      - name: Log latest tag push decision
+        run: |
+          echo "Tag type: ${{ needs.setup.outputs.tagType }}"
+          if [[ "${{ needs.setup.outputs.tagType }}" == "NORMAL" ]]; then
+            echo "This is a NORMAL release - will push 'latest' tags for bundle-default and bundle-saas"
+          else
+            echo "This is NOT a NORMAL release - will NOT push 'latest' tags for bundle-default and bundle-saas"
+          fi
 
       - name: Build and Push Docker Image tag latest - connector-runtime
         uses: docker/build-push-action@v6
@@ -193,7 +414,7 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag latest - bundle-default
-        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+        if: ${{ needs.setup.outputs.tagType == 'NORMAL' }}
         uses: docker/build-push-action@v6
         with:
           context: bundle/default-bundle/
@@ -203,7 +424,7 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag latest - bundle-saas
-        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+        if: ${{ needs.setup.outputs.tagType == 'NORMAL' }}
         uses: docker/build-push-action@v6
         with:
           context: bundle/camunda-saas-bundle/
@@ -215,7 +436,7 @@ jobs:
       # Update README in Dockerhub
 
       - name: Push README to Dockerhub - bundle-default
-        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+        if: ${{ needs.setup.outputs.tagType == 'NORMAL' }}
         uses: christian-korneck/update-container-description-action@v1
         env:
           DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
@@ -227,7 +448,7 @@ jobs:
           short_description: 'Camunda out-of-the-box Connectors Bundle'
 
       - name: Push README to Dockerhub - bundle-saas
-        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+        if: ${{ needs.setup.outputs.tagType == 'NORMAL' }}
         uses: christian-korneck/update-container-description-action@v1
         env:
           DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
@@ -238,52 +459,113 @@ jobs:
           readme_file: bundle/README.md
           short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
 
-      # Update GitHub release
+  bundle-and-build-changelog:
+    needs: setup
+    name: Bundle and generate changelogs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download repository
+        uses: actions/download-artifact@v6
+        with:
+          name: repository
 
+      # Update GitHub release
       - name: Bundle element templates
         run: bash bundle/bundle-templates.sh ${RELEASE_VERSION}
         env:
-          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+          RELEASE_VERSION: ${{ inputs.version }}
 
       - name: Build Changelog
         id: changelog
         uses: Requarks/changelog-action@v1
         with:
           token: ${{ github.token }}
-          fromTag: ${{ github.event.release.tag_name }}
-          toTag: ${{ steps.validate_tag.outputs.previousTag }}
+          fromTag: ${{ inputs.version }}
+          toTag: ${{ needs.setup.outputs.previousTag }}
           writeToFile: false
           excludeTypes: build,docs,other,style,ci
           excludeScopes: deps
 
-      - name: Commit and tag
-        run: |
-          git commit -am "ci: release version ${RELEASE_VERSION}"
-          git push --force-with-lease origin ${RELEASE_BRANCH}
-          git tag -fa ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
-          git push --force origin ${RELEASE_VERSION}
-
-        env:
-          RELEASE_VERSION: ${{ github.event.release.tag_name }}
-          RELEASE_BRANCH: ${{ steps.determine_release_branch.outputs.releaseBranch }}
-
       - name: Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          prerelease: ${{ steps.validate_tag.outputs.type != 'NORMAL' }}
+          prerelease: ${{ needs.setup.outputs.tagType != 'NORMAL' }}
           body: ${{ steps.changelog.outputs.changes }}
-          tag_name: ${{ github.event.release.tag_name }}
+          tag_name: ${{ inputs.version }}
           files: |
             bundle/default-bundle/target/connectors-bundle-sbom.json
             bundle/default-bundle/target/connectors-bundle-sbom.xml
-            connectors-bundle-templates-${{ github.event.release.tag_name }}.tar.gz
-            connectors-bundle-templates-${{ github.event.release.tag_name }}.zip
+            connectors-bundle-templates-${{ inputs.version }}.tar.gz
+            connectors-bundle-templates-${{ inputs.version }}.zip
 
   helm-deploy:
-    needs: build-and-push
+    needs: [ setup, docker-release ]
+    if: ${{ !inputs.skip-docker-release }}
     name: Run Helm Integration Tests
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
     with:
-      connectors-version: ${{ github.event.release.tag_name }}
-      release-branch: ${{ needs.build-and-push.outputs.releaseBranch }}
+      connectors-version: ${{ inputs.version }}
+      release-branch: ${{ needs.setup.outputs.releaseBranch }}
+
+  # This job waits for the FOSSA scan (triggered by CHECK_LICENSES.yml) to complete,
+  # then creates releases in FOSSA and generates attribution/SBOM reports.
+  # Runs on all releases (including RC and alpha) after successful completion of all release jobs.
+  fossa_release:
+    name: Create FOSSA releases and generate attribution/SBOM reports
+    needs:
+      - setup
+      - maven-release
+      - docker-release
+      - bundle-and-build-changelog
+      - helm-deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    if: |
+      needs.setup.result == 'success' &&
+      (needs.maven-release.result == 'success' || needs.maven-release.result == 'skipped') &&
+      (needs.docker-release.result == 'success' || needs.docker-release.result == 'skipped') &&
+      needs.bundle-and-build-changelog.result == 'success' &&
+      (needs.helm-deploy.result == 'success' || needs.helm-deploy.result == 'skipped')
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.version }}
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common FOSSA_API_KEY;
+      - name: Get FOSSA context
+        id: fossa-context
+        uses: camunda/infra-global-github-actions/fossa/info@1c6cd774501c2210dd7a44bbc938508fffa80a26
+      - name: Wait for FOSSA scan completion
+        uses: camunda/infra-global-github-actions/fossa/wait-for-scan@1c6cd774501c2210dd7a44bbc938508fffa80a26
+        with:
+          api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
+          branch: ${{ steps.fossa-context.outputs.head-ref }}
+          project-id: "custom+50756/camunda/connectors"
+          revision-id: ${{ steps.fossa-context.outputs.head-revision }}
+      - name: Create FOSSA releases and generate reports
+        uses: camunda/infra-global-github-actions/fossa/release@1c6cd774501c2210dd7a44bbc938508fffa80a26
+        with:
+          api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
+          branch: ${{ steps.fossa-context.outputs.head-ref }}
+          project-id: "custom+50756/camunda/connectors"
+          attribution-release-group-id: "4945" # https://app.fossa.com/projects/group/4945
+          sbom-release-group-id: "4946"        # https://app.fossa.com/projects/group/4946
+          release-number: ${{ inputs.version }}
+          revision-id: ${{ steps.fossa-context.outputs.head-revision }}
+          attribution-format: "TXT"
+          sbom-format: "CYCLONEDX_JSON"
