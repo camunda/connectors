@@ -56,6 +56,7 @@
         <zeebe:ioMapping>
           <zeebe:input source="http" target="data.transport.type" />
           <zeebe:input source="https://remote.mcpservers.org/fetch/mcp" target="data.transport.http.url" />
+          <zeebe:input source="noAuth" target="data.transport.http.authentication.type" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/list" target="data.connectorMode.operation.type" />
         </zeebe:ioMapping>
@@ -76,6 +77,7 @@
         <zeebe:ioMapping>
           <zeebe:input source="http" target="data.transport.type" />
           <zeebe:input source="https://remote.mcpservers.org/fetch/mcp" target="data.transport.http.url" />
+          <zeebe:input source="noAuth" target="data.transport.http.authentication.type" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/call" target="data.connectorMode.operation.type" />
           <zeebe:input source="fetch" target="data.connectorMode.operation.toolName" />

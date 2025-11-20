@@ -102,6 +102,7 @@
             <zeebe:input source="http" target="data.transport.type" />
             <zeebe:input source="http://localhost:1234/mcp" target="data.transport.http.url" />
             <zeebe:input source="={&#34;X-Dummy&#34;: &#34;HTTP&#34;}" target="data.transport.http.headers" />
+            <zeebe:input source="noAuth" target="data.transport.http.authentication.type" />
             <zeebe:input source="aiAgentTool" target="data.connectorMode.type" />
             <zeebe:input source="=toolCall.method" target="data.connectorMode.toolOperation.method" />
             <zeebe:input source="=toolCall.params" target="data.connectorMode.toolOperation.params" />
@@ -126,6 +127,7 @@
             <zeebe:input source="sse" target="data.transport.type" />
             <zeebe:input source="http://localhost:1234/sse" target="data.transport.sse.url" />
             <zeebe:input source="={&#34;X-Dummy&#34;: &#34;SSE&#34;}" target="data.transport.sse.headers" />
+            <zeebe:input source="noAuth" target="data.transport.sse.authentication.type" />
             <zeebe:input source="aiAgentTool" target="data.connectorMode.type" />
             <zeebe:input source="=toolCall.method" target="data.connectorMode.toolOperation.method" />
             <zeebe:input source="=toolCall.params" target="data.connectorMode.toolOperation.params" />
@@ -361,7 +363,7 @@ else
         <dc:Bounds x="162" y="262" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_005wn4n_di" bpmnElement="Agent_Tools" isExpanded="true">
-        <dc:Bounds x="870" y="570" width="790" height="670" />
+        <dc:Bounds x="870" y="570" width="790" height="490" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1sbkoqq_di" bpmnElement="GetDateAndTime">
@@ -522,13 +524,13 @@ else
         <dc:Bounds x="480" y="430" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Group_1n0n1ph_di" bpmnElement="Group_1n0n1ph">
-        <dc:Bounds x="890" y="600" width="300" height="610" />
+        <dc:Bounds x="890" y="600" width="300" height="440" />
         <bpmndi:BPMNLabel>
           <dc:Bounds x="1009" y="607" width="62" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Group_1fun9sa_di" bpmnElement="Group_1fun9sa">
-        <dc:Bounds x="1220" y="600" width="410" height="610" />
+        <dc:Bounds x="1220" y="600" width="410" height="440" />
         <bpmndi:BPMNLabel>
           <dc:Bounds x="1400" y="607" width="51" height="14" />
         </bpmndi:BPMNLabel>

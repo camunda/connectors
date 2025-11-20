@@ -94,6 +94,7 @@
             <zeebe:input source="http" target="data.transport.type" />
             <zeebe:input source="http://localhost:1234/mcp" target="data.transport.http.url" />
             <zeebe:input source="={&#34;X-Dummy&#34;: &#34;HTTP&#34;}" target="data.transport.http.headers" />
+            <zeebe:input source="noAuth" target="data.transport.http.authentication.type" />
             <zeebe:input source="aiAgentTool" target="data.connectorMode.type" />
             <zeebe:input source="=toolCall.method" target="data.connectorMode.toolOperation.method" />
             <zeebe:input source="=toolCall.params" target="data.connectorMode.toolOperation.params" />
@@ -118,6 +119,7 @@
             <zeebe:input source="sse" target="data.transport.type" />
             <zeebe:input source="http://localhost:1234/sse" target="data.transport.sse.url" />
             <zeebe:input source="={&#34;X-Dummy&#34;: &#34;SSE&#34;}" target="data.transport.sse.headers" />
+            <zeebe:input source="noAuth" target="data.transport.sse.authentication.type" />
             <zeebe:input source="aiAgentTool" target="data.connectorMode.type" />
             <zeebe:input source="=toolCall.method" target="data.connectorMode.toolOperation.method" />
             <zeebe:input source="=toolCall.params" target="data.connectorMode.toolOperation.params" />

@@ -59,6 +59,7 @@
         <zeebe:ioMapping>
           <zeebe:input source="http" target="data.transport.type" />
           <zeebe:input source="http://localhost:1234/mcp" target="data.transport.http.url" />
+          <zeebe:input source="noAuth" target="data.transport.http.authentication.type" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/list" target="data.connectorMode.operation.type" />
           <zeebe:input source="=[&#34;toolA&#34;]" target="data.tools.excluded" />
@@ -80,6 +81,7 @@
         <zeebe:ioMapping>
           <zeebe:input source="http" target="data.transport.type" />
           <zeebe:input source="http://localhost:1234/mcp" target="data.transport.http.url" />
+          <zeebe:input source="noAuth" target="data.transport.http.authentication.type" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="tools/call" target="data.connectorMode.operation.type" />
           <zeebe:input source="toolC" target="data.connectorMode.operation.toolName" />
