@@ -15,6 +15,7 @@ camunda:
             # replace path to files to the directory you want the model to have access to
             # you can also add multiple paths, see https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem
             filesystem:
+              type: stdio
               stdio:
                 command: npx
                 args:
@@ -24,6 +25,7 @@ camunda:
 
             # STDIO servers can be started in any runtime/language, e.g. as docker container        
             time:
+              type: stdio
               stdio:
                 command: docker
                 args:
@@ -35,17 +37,34 @@ camunda:
             # Remote HTTP/SSE MCP server
             # start the OpenMemory MCP server first as documented on https://mem0.ai/openmemory-mcp
             openmemory:
+              type: sse
               sse:
                 # replace with the URL returned by the OpenMemory MCP link UI
                 url: http://localhost:8765/mcp/openmemory/sse/<your-client-id>
 
             # Remote Streamable HTTP MCP server example
             # fetch:
-            #  enabled: true
-            #  http:
-            #    url: https://remote.mcpservers.org/fetch/mcp
-            #    headers:
-            #      X-Dummy: dummy-value
+            #   enabled: true
+            #   type: http
+            #   http:
+            #     url: https://remote.mcpservers.org/fetch/mcp
+            #     headers:
+            #       X-Dummy: dummy-value
+            #     # authentication examples
+            #     authentication:
+            #       type: basic # or bearer or oauth
+            #       basic:
+            #         username: my-username
+            #         password: my-password
+            #       bearer:
+            #         token: my-token
+            #       oauth:
+            #         oauth-token-endpoint: http://example.com/oauth/token
+            #         client-id: my-client-id
+            #         client-secret: my-client-secret
+            #         scopes: my-scope
+            #         audience: my-audience
+            #         client-authentication: basic-auth-header # or credentials-body
 ```
 
 ## Example Usage
