@@ -86,28 +86,28 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
     };
   }
 
-  public void logStdioEvents(boolean logStdioEvents) {
-    logStdioEvents((clientId, config) -> logStdioEvents);
+  public void logStdioEvents(boolean loggingEnabled) {
+    this.logStdioEvents = (clientId, config) -> loggingEnabled;
   }
 
-  public void logStdioEvents(LoggingResolver stdioEventsLoggingResolver) {
-    this.logStdioEvents = stdioEventsLoggingResolver;
+  public void logStdioEvents(LoggingResolver logStdioEventsResolver) {
+    this.logStdioEvents = logStdioEventsResolver;
   }
 
-  public void logHttpRequests(boolean logHttpRequests) {
-    logHttpRequests((clientId, config) -> logHttpRequests);
+  public void logHttpRequests(boolean loggingEnabled) {
+    this.logHttpRequests = (clientId, config) -> loggingEnabled;
   }
 
-  public void logHttpRequests(LoggingResolver httpRequestsLoggingResolver) {
-    this.logHttpRequests = httpRequestsLoggingResolver;
+  public void logHttpRequests(LoggingResolver logHttpRequestsResolver) {
+    this.logHttpRequests = logHttpRequestsResolver;
   }
 
-  public void logHttpResponses(boolean logHttpResponses) {
-    logHttpResponses((clientId, config) -> logHttpResponses);
+  public void logHttpResponses(boolean loggingEnabled) {
+    this.logHttpResponses = (clientId, config) -> loggingEnabled;
   }
 
-  public void logHttpResponses(LoggingResolver httpResponsesLoggingResolver) {
-    this.logHttpResponses = httpResponsesLoggingResolver;
+  public void logHttpResponses(LoggingResolver logHttpResponsesResolver) {
+    this.logHttpResponses = logHttpResponsesResolver;
   }
 
   @FunctionalInterface
