@@ -21,16 +21,13 @@ import java.util.Optional;
 
 public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> {
 
-  private static final LoggingResolver DEFAULT_LOGGING_RESOLVER = (clientId, config) -> false;
-
-  private LoggingResolver logStdioEvents = DEFAULT_LOGGING_RESOLVER;
-  private LoggingResolver logHttpRequests = DEFAULT_LOGGING_RESOLVER;
-  private LoggingResolver logHttpResponses = DEFAULT_LOGGING_RESOLVER;
-
+  private final Langchain4JMcpClientLoggingResolver loggingResolver;
   private final Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory;
 
   public Langchain4JMcpClientFactory(
+      Langchain4JMcpClientLoggingResolver loggingResolver,
       Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory) {
+    this.loggingResolver = loggingResolver;
     this.headersSupplierFactory = headersSupplierFactory;
   }
 
@@ -56,7 +53,7 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
         yield new StdioMcpTransport.Builder()
             .command(commandParts)
             .environment(stdio.env())
-            .logEvents(logStdioEvents.resolve(clientId, config))
+            .logEvents(loggingResolver.logStdioEvents(clientId, config))
             .build();
       }
 
@@ -68,8 +65,8 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
                   headersSupplierFactory
                       .createHttpHeadersSupplier(http)
                       .get()) // TODO remove .get() call with L4J > 1.8.0
-              .logRequests(logHttpRequests.resolve(clientId, config))
-              .logResponses(logHttpResponses.resolve(clientId, config))
+              .logRequests(loggingResolver.logHttpRequests(clientId, config))
+              .logResponses(loggingResolver.logHttpResponses(clientId, config))
               .build();
 
       case McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration sse ->
@@ -80,38 +77,9 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
                   headersSupplierFactory
                       .createHttpHeadersSupplier(sse)
                       .get()) // TODO remove .get() call with L4J > 1.8.0
-              .logRequests(logHttpRequests.resolve(clientId, config))
-              .logResponses(logHttpResponses.resolve(clientId, config))
+              .logRequests(loggingResolver.logHttpRequests(clientId, config))
+              .logResponses(loggingResolver.logHttpResponses(clientId, config))
               .build();
     };
-  }
-
-  public void logStdioEvents(boolean loggingEnabled) {
-    this.logStdioEvents = (clientId, config) -> loggingEnabled;
-  }
-
-  public void logStdioEvents(LoggingResolver logStdioEventsResolver) {
-    this.logStdioEvents = logStdioEventsResolver;
-  }
-
-  public void logHttpRequests(boolean loggingEnabled) {
-    this.logHttpRequests = (clientId, config) -> loggingEnabled;
-  }
-
-  public void logHttpRequests(LoggingResolver logHttpRequestsResolver) {
-    this.logHttpRequests = logHttpRequestsResolver;
-  }
-
-  public void logHttpResponses(boolean loggingEnabled) {
-    this.logHttpResponses = (clientId, config) -> loggingEnabled;
-  }
-
-  public void logHttpResponses(LoggingResolver logHttpResponsesResolver) {
-    this.logHttpResponses = logHttpResponsesResolver;
-  }
-
-  @FunctionalInterface
-  public interface LoggingResolver {
-    boolean resolve(String clientId, McpClientConfiguration config);
   }
 }

@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHeadersSupplierFactory;
+import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientLoggingResolver;
 import io.camunda.connector.http.client.authentication.OAuthService;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -26,6 +27,20 @@ public class McpClientBaseLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public Langchain4JMcpClientLoggingResolver langchain4JMcpClientLoggingResolver(
+      McpClientLangchain4JFrameworkConfigurationProperties config) {
+    final var loggingConfiguration = config.logging();
+
+    final var resolver = new Langchain4JMcpClientLoggingResolver();
+    resolver.setLogStdioEvents(loggingConfiguration.stdio().logEvents());
+    resolver.setLogHttpRequests(loggingConfiguration.http().logRequests());
+    resolver.setLogHttpResponses(loggingConfiguration.http().logResponses());
+
+    return resolver;
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public Langchain4JMcpClientHeadersSupplierFactory langchain4JMcpClientHeadersSupplierFactory(
       ObjectMapper objectMapper) {
     return new Langchain4JMcpClientHeadersSupplierFactory(
@@ -35,15 +50,9 @@ public class McpClientBaseLangchain4JFrameworkConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public McpClientFactory<McpClient> langchain4JMcpClientFactory(
-      McpClientLangchain4JFrameworkConfigurationProperties config,
+      Langchain4JMcpClientLoggingResolver loggingResolver,
       Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory) {
-    final var loggingConfiguration = config.logging();
-
-    final var factory = new Langchain4JMcpClientFactory(headersSupplierFactory);
-    factory.logStdioEvents(loggingConfiguration.stdio().logEvents());
-    factory.logHttpRequests(loggingConfiguration.http().logRequests());
-    factory.logHttpResponses(loggingConfiguration.http().logResponses());
-    return factory;
+    return new Langchain4JMcpClientFactory(loggingResolver, headersSupplierFactory);
   }
 
   @Bean

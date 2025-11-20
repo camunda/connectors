@@ -64,11 +64,13 @@ class Langchain4JMcpClientFactoryTest {
 
   @Mock private Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory;
 
+  private Langchain4JMcpClientLoggingResolver loggingResolver;
   private Langchain4JMcpClientFactory factory;
 
   @BeforeEach
   void setUp() {
-    factory = new Langchain4JMcpClientFactory(headersSupplierFactory);
+    loggingResolver = new Langchain4JMcpClientLoggingResolver();
+    factory = new Langchain4JMcpClientFactory(loggingResolver, headersSupplierFactory);
   }
 
   @Test
@@ -102,7 +104,7 @@ class Langchain4JMcpClientFactoryTest {
 
   @Test
   void configuresClientSpecificStdioLogging() {
-    factory.logStdioEvents(((clientId, config) -> !clientId.equals(CLIENT_ID)));
+    loggingResolver.setLogStdioEvents(((clientId, config) -> !clientId.equals(CLIENT_ID)));
 
     withMockedMcpClientBuilder(
         mockedMcpClientConstruction -> {
@@ -195,8 +197,8 @@ class Langchain4JMcpClientFactoryTest {
 
   @Test
   void configuresClientSpecificStreamableHttpMcpClientLogging() {
-    factory.logHttpRequests(((clientId, config) -> clientId.equals(CLIENT_ID)));
-    factory.logHttpResponses(((clientId, config) -> !clientId.equals(CLIENT_ID)));
+    loggingResolver.setLogHttpRequests(((clientId, config) -> clientId.equals(CLIENT_ID)));
+    loggingResolver.setLogHttpResponses(((clientId, config) -> !clientId.equals(CLIENT_ID)));
 
     withMockedMcpClientBuilder(
         mockedMcpClientConstruction -> {
@@ -264,8 +266,8 @@ class Langchain4JMcpClientFactoryTest {
 
   @Test
   void configuresClientSpecificSseHttpMcpClientLogging() {
-    factory.logHttpRequests(((clientId, config) -> clientId.equals(CLIENT_ID)));
-    factory.logHttpResponses(((clientId, config) -> !clientId.equals(CLIENT_ID)));
+    loggingResolver.setLogHttpRequests(((clientId, config) -> clientId.equals(CLIENT_ID)));
+    loggingResolver.setLogHttpResponses(((clientId, config) -> !clientId.equals(CLIENT_ID)));
 
     withMockedMcpClientBuilder(
         mockedMcpClientConstruction -> {
