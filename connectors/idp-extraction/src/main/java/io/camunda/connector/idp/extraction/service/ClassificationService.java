@@ -66,47 +66,75 @@ public class ClassificationService {
           (endTime - aiStartTime),
           (endTime - startTime));
     }
-    return parseClassificationResponse(aiResponse);
+    return parseClassificationResponse(aiResponse, aiClient);
   }
 
-  private ClassificationResult parseClassificationResponse(ChatResponse aiResponse) {
+  private ClassificationResult parseClassificationResponse(
+      ChatResponse aiResponse, AiClient aiClient) {
     String llmResponse = aiResponse.aiMessage().text();
     try {
-      // First filter out thinking content, then strip markdown code blocks
-      String thinkingRemoved = StringUtil.filterThinkingContent(llmResponse);
-      String cleanedResponse = StringUtil.stripMarkdownCodeBlocks(thinkingRemoved);
-      JsonNode llmResponseJson = objectMapper.readValue(cleanedResponse, JsonNode.class);
+      return parseAndValidateClassificationResponse(llmResponse, aiResponse);
+    } catch (JsonProcessingException | ConnectorException e) {
+      LOGGER.warn(
+          "Initial JSON parsing failed, attempting to clean up response with LLM. Error: {}",
+          e.getMessage());
 
-      if (!llmResponseJson.isObject()) {
+      // Try to fix the JSON with another LLM call
+      try {
+        long cleanupStartTime = System.currentTimeMillis();
+        LOGGER.info("Starting JSON cleanup {} conversation", aiClient.getClass().getSimpleName());
+        ChatResponse cleanupResponse =
+            aiClient.chat(
+                LlmModel.getJsonExtractionSystemPrompt(),
+                LlmModel.getJsonExtractionUserPrompt(llmResponse));
+        long cleanupEndTime = System.currentTimeMillis();
+        LOGGER.info(
+            "JSON cleanup {} conversation took {} ms",
+            aiClient.getClass().getSimpleName(),
+            (cleanupEndTime - cleanupStartTime));
+
+        String cleanedResponse = cleanupResponse.aiMessage().text();
+        return parseAndValidateClassificationResponse(cleanedResponse, cleanupResponse);
+      } catch (Exception cleanupException) {
         throw new ConnectorException(
             String.valueOf(500),
-            String.format("LLM response is not a JSON object: %s", llmResponse));
+            String.format(
+                "Failed to parse JSON even after cleanup attempt. Original response: %s",
+                llmResponse),
+            cleanupException);
       }
-
-      // Handle nested "response" wrapper if present
-      JsonNode dataNode = llmResponseJson;
-      if (llmResponseJson.has("response") && llmResponseJson.size() == 1) {
-        var nestedResponse = llmResponseJson.get("response");
-        if (nestedResponse.isObject()) {
-          dataNode = nestedResponse;
-        } else if (nestedResponse.isTextual()) {
-          dataNode = objectMapper.readValue(nestedResponse.asText(), JsonNode.class);
-        }
-      }
-
-      // Extract the required fields
-      String extractedValue =
-          dataNode.has("extractedValue") ? dataNode.get("extractedValue").asText() : null;
-      String confidence = dataNode.has("confidence") ? dataNode.get("confidence").asText() : null;
-      String reasoning = dataNode.has("reasoning") ? dataNode.get("reasoning").asText() : null;
-
-      return new ClassificationResult(extractedValue, confidence, reasoning, aiResponse.metadata());
-
-    } catch (JsonProcessingException e) {
-      throw new ConnectorException(
-          String.valueOf(500),
-          String.format("Failed to parse the JSON response from LLM: %s", llmResponse),
-          e);
     }
+  }
+
+  private ClassificationResult parseAndValidateClassificationResponse(
+      String llmResponse, ChatResponse aiResponse) throws JsonProcessingException {
+    // First filter out thinking content, then strip markdown code blocks
+    String thinkingRemoved = StringUtil.filterThinkingContent(llmResponse);
+    String cleanedResponse = StringUtil.stripMarkdownCodeBlocks(thinkingRemoved);
+    JsonNode llmResponseJson = objectMapper.readValue(cleanedResponse, JsonNode.class);
+
+    if (!llmResponseJson.isObject()) {
+      throw new ConnectorException(
+          String.valueOf(500), String.format("LLM response is not a JSON object: %s", llmResponse));
+    }
+
+    // Handle nested "response" wrapper if present
+    JsonNode dataNode = llmResponseJson;
+    if (llmResponseJson.has("response") && llmResponseJson.size() == 1) {
+      var nestedResponse = llmResponseJson.get("response");
+      if (nestedResponse.isObject()) {
+        dataNode = nestedResponse;
+      } else if (nestedResponse.isTextual()) {
+        dataNode = objectMapper.readValue(nestedResponse.asText(), JsonNode.class);
+      }
+    }
+
+    // Extract the required fields
+    String extractedValue =
+        dataNode.has("extractedValue") ? dataNode.get("extractedValue").asText() : null;
+    String confidence = dataNode.has("confidence") ? dataNode.get("confidence").asText() : null;
+    String reasoning = dataNode.has("reasoning") ? dataNode.get("reasoning").asText() : null;
+
+    return new ClassificationResult(extractedValue, confidence, reasoning, aiResponse.metadata());
   }
 }
