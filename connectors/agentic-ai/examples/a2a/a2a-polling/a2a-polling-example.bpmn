@@ -43,27 +43,27 @@
           <zeebe:property name="data.clientResponse" value="=internal_clientResponse" />
           <zeebe:property name="data.historyLength" value="3" />
           <zeebe:property name="data.processPollingInterval" value="PT5S" />
-          <zeebe:property name="data.taskPollingInterval" value="PT10S" />
-          <zeebe:property name="activationCondition" value="=if kind = &#34;task&#34; then&#10;  is defined(status.state) and not(list contains([&#34;submitted&#34;, &#34;working&#34;], status.state))&#10;else&#10;  true" />
-          <zeebe:property name="correlationKeyExpression" value="=if kind = &#34;message&#34; then&#10;  &#34;msg-&#34; + messageId&#10;else&#10;  &#34;task-&#34; + id" />
+          <zeebe:property name="data.taskPollingInterval" value="PT5S" />
+          <zeebe:property name="activationCondition" value="=if result.kind = &#34;task&#34; then&#10;  is defined(result.status.state) and not(list contains([&#34;submitted&#34;, &#34;working&#34;], result.status.state))&#10;else&#10;  true" />
+          <zeebe:property name="correlationKeyExpression" value="=pollingData.id" />
           <zeebe:property name="deduplicationModeManualFlag" value="false" />
           <zeebe:property name="deduplicationMode" value="AUTO" />
-          <zeebe:property name="resultVariable" value="completedClientResponse" />
-          <zeebe:property name="resultExpression" value="" />
+          <zeebe:property name="resultVariable" value="" />
+          <zeebe:property name="resultExpression" value="={completedClientResponse: result}" />
         </zeebe:properties>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_1w81qig</bpmn:incoming>
       <bpmn:outgoing>Flow_1ogwbnu</bpmn:outgoing>
-      <bpmn:messageEventDefinition id="MessageEventDefinition_0qobqmb" messageRef="Message_0ipekj8" />
+      <bpmn:messageEventDefinition id="MessageEventDefinition_01voi2y" messageRef="Message_1qdcpz4" />
     </bpmn:intermediateCatchEvent>
     <bpmn:textAnnotation id="TextAnnotation_1f96g7y">
       <bpmn:text>Input: messageText</bpmn:text>
     </bpmn:textAnnotation>
     <bpmn:association id="Association_02h1clh" associationDirection="None" sourceRef="StartEvent" targetRef="TextAnnotation_1f96g7y" />
   </bpmn:process>
-  <bpmn:message id="Message_0ipekj8" name="8fa83750-e928-426d-a35f-94453e777fac" zeebe:modelerTemplate="io.camunda.connectors.agenticai.a2a.client.polling.intermediate.v0">
+  <bpmn:message id="Message_1qdcpz4" name="0db018f4-e71e-466f-b783-44b6234273ad" zeebe:modelerTemplate="io.camunda.connectors.agenticai.a2a.client.polling.intermediate.v0">
     <bpmn:extensionElements>
-      <zeebe:subscription correlationKey="=if internal_clientResponse.kind = &#34;message&#34; then&#10;  &#34;msg-&#34; + internal_clientResponse.messageId&#10;else&#10;  &#34;task-&#34; + internal_clientResponse.id" />
+      <zeebe:subscription correlationKey="=internal_clientResponse.pollingData.id" />
     </bpmn:extensionElements>
   </bpmn:message>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
@@ -80,10 +80,10 @@
       <bpmndi:BPMNShape id="Activity_156sdca_di" bpmnElement="Send_A2A_Request">
         <dc:Bounds x="340" y="90" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_140xoi0_di" bpmnElement="Wait_For_Completion">
+      <bpmndi:BPMNShape id="Event_0ds35d4_di" bpmnElement="Wait_For_Completion">
         <dc:Bounds x="512" y="112" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="502" y="148" width="56" height="27" />
+          <dc:Bounds x="502" y="155" width="56" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="TextAnnotation_1f96g7y_di" bpmnElement="TextAnnotation_1f96g7y">
