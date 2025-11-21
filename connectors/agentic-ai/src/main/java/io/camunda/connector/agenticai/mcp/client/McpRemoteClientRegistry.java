@@ -59,11 +59,22 @@ public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoClo
         .build();
   }
 
-  public C getClient(
-      McpRemoteClientIdentifier clientId, McpRemoteClientTransportConfiguration transport) {
-    return getClient(clientId, transport, false);
-  }
-
+  /**
+   * Gets or creates an MCP client for the given identifier and transport configuration.
+   * 
+   * <p><strong>Important:</strong> When {@code cacheable=false}, the caller is responsible
+   * for closing the returned client to prevent resource leaks. Non-cached clients are NOT
+   * tracked by the registry and will NOT be automatically closed when the registry is closed.
+   * 
+   * <p>Use {@code cacheable=false} when authentication credentials are process-specific and
+   * should not be shared across invocations.
+   *
+   * @param clientId The unique identifier for the client
+   * @param transport The transport configuration
+   * @param cacheable If true, the client will be cached and reused; if false, a new client
+   *                  is created each time and the caller must close it
+   * @return The MCP client instance
+   */
   public C getClient(
       McpRemoteClientIdentifier clientId,
       McpRemoteClientTransportConfiguration transport,
@@ -71,6 +82,7 @@ public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoClo
     if (cacheable) {
       return this.cache.get(clientId, key -> this.createClient(clientId, transport));
     } else {
+      LOGGER.info("MCP({}): Creating non-cached remote HTTP client - caller responsible for closing", clientId);
       return this.createClient(clientId, transport);
     }
   }

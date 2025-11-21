@@ -12,6 +12,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -123,7 +125,7 @@ class McpRemoteClientRegistryTest {
 
     final var resolvedClient =
         registry.getClient(
-            CLIENT_ID, createStreamableHttpTransportConfiguration(authentication.authentication()));
+            CLIENT_ID, createStreamableHttpTransportConfiguration(authentication.authentication()), true);
 
     assertThat(resolvedClient).isNotNull().isSameAs(this.client);
   }
@@ -139,7 +141,7 @@ class McpRemoteClientRegistryTest {
 
     final var resolvedClient =
         registry.getClient(
-            CLIENT_ID, createSseTransportConfiguration(authentication.authentication()));
+            CLIENT_ID, createSseTransportConfiguration(authentication.authentication()), true);
 
     assertThat(resolvedClient).isNotNull().isSameAs(this.client);
   }
@@ -152,8 +154,8 @@ class McpRemoteClientRegistryTest {
             CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
         .thenReturn(client);
 
-    final var resolvedClient1 = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG);
-    final var resolvedClient2 = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG);
+    final var resolvedClient1 = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, true);
+    final var resolvedClient2 = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, true);
 
     assertThat(resolvedClient1).isNotNull().isSameAs(client).isSameAs(resolvedClient2);
   }
@@ -161,7 +163,7 @@ class McpRemoteClientRegistryTest {
   @ParameterizedTest
   @CsvSource({"false,3", "true,0"})
   void doesNotCacheIfCacheDisabledOrConfiguredToZeroCacheSize(boolean enabled, long maximumSize)
-      throws InterruptedException {
+      throws Exception {
     final var registry =
         new McpRemoteClientRegistry<>(
             createClientConfig(
@@ -173,12 +175,42 @@ class McpRemoteClientRegistryTest {
             CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
         .thenReturn(client, client2);
 
-    final var resolvedClient1 = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG);
+    // With cache disabled or size=0, getClient with cacheable=true still doesn't cache
+    final var resolvedClient1 = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, true);
     Thread.sleep(Duration.ofMillis(10));
-    final var resolvedClient2 = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG);
+    final var resolvedClient2 = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, true);
 
+    // Should create new instances each time
     assertThat(resolvedClient1).isNotNull().isSameAs(client).isNotSameAs(resolvedClient2);
     assertThat(resolvedClient2).isNotNull().isSameAs(client2);
+    
+    // Verify clients are created twice
+    verify(clientFactory, times(2)).createClient(CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION);
+  }
+
+  @Test
+  void cacheableParameterControlsCaching() {
+    final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
+    final var client2 = mock(McpClient.class);
+
+    when(clientFactory.createClient(
+            CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
+        .thenReturn(client, client2);
+
+    // First call with cacheable=true should cache
+    final var cachedClient1 = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, true);
+    final var cachedClient2 = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, true);
+
+    // Should return same cached instance
+    assertThat(cachedClient1).isNotNull().isSameAs(client).isSameAs(cachedClient2);
+
+    // Call with cacheable=false should create new instance
+    final var nonCachedClient = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, false);
+    
+    assertThat(nonCachedClient).isNotNull().isSameAs(client2).isNotSameAs(cachedClient1);
+    
+    // Factory should be called twice: once for cache, once for non-cached
+    verify(clientFactory, times(2)).createClient(CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION);
   }
 
   @Test
@@ -201,7 +233,8 @@ class McpRemoteClientRegistryTest {
                 i ->
                     registry.getClient(
                         new McpRemoteClientIdentifier(PROCESS_DEFINITION_KEY, "client-" + i),
-                        STREAMABLE_HTTP_TRANSPORT_CONFIG))
+                        STREAMABLE_HTTP_TRANSPORT_CONFIG,
+                        true))
             .toList();
 
     assertThat(resolvedClients).hasSize(5).containsExactlyElementsOf(mockClients);
@@ -226,7 +259,7 @@ class McpRemoteClientRegistryTest {
       when(clientFactory.createClient(
               CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
           .thenReturn(client);
-      final var resolvedClient = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG);
+      final var resolvedClient = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, true);
 
       fakeTicker.advance(Duration.ofMinutes(10).plusSeconds(1)); // exceed cache expiration time
       getCache(registry).cleanUp();
@@ -242,12 +275,80 @@ class McpRemoteClientRegistryTest {
               CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
           .thenReturn(client);
 
-      final var resolvedClient = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG);
+      final var resolvedClient = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, true);
 
       assertThat(resolvedClient).isNotNull().isSameAs(client);
     }
 
     verify(client).close();
+  }
+
+  @Test
+  void nonCachedClientsAreNotClosedAutomatically() throws Exception {
+    final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
+
+    when(clientFactory.createClient(
+            CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
+        .thenReturn(client);
+
+    // Get non-cached client
+    final var nonCachedClient = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, false);
+    
+    assertThat(nonCachedClient).isNotNull().isSameAs(client);
+    
+    // Close the registry - should NOT close non-cached clients
+    registry.close();
+    
+    verify(client, never()).close();
+  }
+
+  @Test
+  void closingNonCachedClientExplicitly() throws Exception {
+    final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
+
+    when(clientFactory.createClient(
+            CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
+        .thenReturn(client);
+
+    // Get non-cached client
+    final var nonCachedClient = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, false);
+    
+    assertThat(nonCachedClient).isNotNull().isSameAs(client);
+    
+    // Caller is responsible for closing non-cached client
+    registry.closeClient(CLIENT_ID, nonCachedClient);
+    
+    verify(client).close();
+  }
+
+  @Test
+  void mixedCachingScenarios() {
+    final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
+    final var client2 = mock(McpClient.class);
+    final var client3 = mock(McpClient.class);
+
+    when(clientFactory.createClient(
+            CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
+        .thenReturn(client, client2, client3);
+
+    // Create cached client
+    final var cachedClient = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, true);
+    
+    // Create non-cached client (should be different instance)
+    final var nonCachedClient1 = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, false);
+    
+    // Get cached client again (should be same as first)
+    final var cachedClientAgain = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, true);
+    
+    // Create another non-cached client (should be different from all)
+    final var nonCachedClient2 = registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, false);
+
+    assertThat(cachedClient).isSameAs(client).isSameAs(cachedClientAgain);
+    assertThat(nonCachedClient1).isSameAs(client2).isNotSameAs(cachedClient);
+    assertThat(nonCachedClient2).isSameAs(client3).isNotSameAs(cachedClient).isNotSameAs(nonCachedClient1);
+    
+    // Factory should be called 3 times: once for cache, twice for non-cached
+    verify(clientFactory, times(3)).createClient(CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION);
   }
 
   private static StreamableHttpMcpRemoteClientTransportConfiguration
