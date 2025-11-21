@@ -26,6 +26,9 @@
     "id" : "authentication",
     "label" : "Authentication"
   }, {
+    "id" : "options",
+    "label" : "Options"
+  }, {
     "id" : "connectorMode",
     "label" : "Connector mode",
     "tooltip" : "Select how this connector is used. When the connector is used as an AI agent tool, select the AI Agent tool mode."
@@ -722,6 +725,19 @@
       } ]
     },
     "type" : "String"
+  }, {
+    "id" : "data.options.clientCache",
+    "label" : "Enable client caching",
+    "description" : "If enabled, the MCP client instance is cached on the connector runtime and reused across requests.",
+    "optional" : true,
+    "feel" : "static",
+    "group" : "options",
+    "binding" : {
+      "name" : "data.options.clientCache",
+      "type" : "zeebe:input"
+    },
+    "tooltip" : "Only enable this option if you are sure that the configuration or authentication details of this client will not change between invocations.<br>Caching the client instance can improve performance by reusing existing connections.",
+    "type" : "Boolean"
   }, {
     "id" : "data.connectorMode.type",
     "label" : "Connector mode",

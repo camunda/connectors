@@ -36,6 +36,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
           label = "Transport",
           tooltip = "Configure the connection to the remote MCP server."),
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
+      @ElementTemplate.PropertyGroup(id = "options", label = "Options"),
       @ElementTemplate.PropertyGroup(
           id = "connectorMode",
           label = "Connector mode",

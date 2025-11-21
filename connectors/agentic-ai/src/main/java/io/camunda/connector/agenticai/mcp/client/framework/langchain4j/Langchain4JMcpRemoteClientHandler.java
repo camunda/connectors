@@ -12,9 +12,11 @@ import io.camunda.connector.agenticai.mcp.client.McpRemoteClientHandler;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
 import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientOptionsConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,13 +41,24 @@ public class Langchain4JMcpRemoteClientHandler implements McpRemoteClientHandler
   @Override
   public McpClientResult handle(OutboundConnectorContext context, McpRemoteClientRequest request) {
     final var clientId = McpRemoteClientIdentifier.from(context);
+    final var cacheable =
+        Optional.ofNullable(request.data().options())
+            .map(McpRemoteClientOptionsConfiguration::clientCache)
+            .orElse(false);
     final var operation = operationConverter.convertOperation(request.data().connectorMode());
     final var toolNameFilter = McpToolNameFilter.from(request.data().tools());
 
     LOGGER.debug("MCP({}): Handling operation '{}' on remote client", clientId, operation.method());
 
-    final var client = remoteClientRegistry.getClient(clientId, request.data().transport());
+    McpClient client = null;
 
-    return clientExecutor.execute(client, operation, toolNameFilter);
+    try {
+      client = remoteClientRegistry.getClient(clientId, request.data().transport(), cacheable);
+      return clientExecutor.execute(client, operation, toolNameFilter);
+    } finally {
+      if (!cacheable && client != null) {
+        remoteClientRegistry.closeClient(clientId, client);
+      }
+    }
   }
 }

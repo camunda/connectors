@@ -22,6 +22,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4J
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -131,7 +132,9 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
             })
         .when(remoteMcpClientRegistry)
         .getClient(
-            any(McpRemoteClientIdentifier.class), any(McpRemoteClientTransportConfiguration.class));
+            any(McpRemoteClientIdentifier.class),
+            any(McpRemoteClientTransportConfiguration.class),
+            anyBoolean());
   }
 
   @Override

@@ -19,6 +19,7 @@ package io.camunda.connector.e2e.agenticai.mcp;
 import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
@@ -80,7 +81,7 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
     when(aRemoteMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
     when(aRemoteMcpClient.executeTool(aRemoteMcpClientToolExecutionRequestCaptor.capture()))
         .thenReturn(toolExecutionResult("A Remote MCP Client result"));
-    doReturn(aRemoteMcpClient).when(remoteMcpClientRegistry).getClient(any(), any());
+    doReturn(aRemoteMcpClient).when(remoteMcpClientRegistry).getClient(any(), any(), anyBoolean());
   }
 
   @Test
