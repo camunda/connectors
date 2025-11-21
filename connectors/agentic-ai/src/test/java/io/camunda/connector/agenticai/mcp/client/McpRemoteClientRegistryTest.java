@@ -357,7 +357,7 @@ class McpRemoteClientRegistryTest {
     final var nonCachedClient1 =
         registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, false);
 
-    // cet cached client again (should be same as first)
+    // get cached client again (should be same as first)
     final var cachedClientAgain =
         registry.getClient(CLIENT_ID, STREAMABLE_HTTP_TRANSPORT_CONFIG, true);
 
