@@ -206,6 +206,11 @@
         <artifactId>connector-embeddings-vector-database</artifactId>
         <version>${project.version}</version>
       </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-load-test</artifactId>
+        <version>${project.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
