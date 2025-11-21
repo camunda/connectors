@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.mcp.client;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,10 +16,10 @@ import org.slf4j.LoggerFactory;
 public class McpClientRegistry<C extends AutoCloseable> implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(McpClientRegistry.class);
 
-  private final Map<String, C> clients = new LinkedHashMap<>();
+  private final Map<String, C> clients = new ConcurrentHashMap<>();
   private final Map<String, Supplier<C>> clientSuppliers = new LinkedHashMap<>();
 
-  public void register(String id, Supplier<C> clientSupplier) {
+  public synchronized void register(String id, Supplier<C> clientSupplier) {
     validateClientId(id);
 
     if (clientSuppliers.containsKey(id)) {

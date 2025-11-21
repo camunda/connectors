@@ -20,6 +20,7 @@ import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4J
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.assertArg;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,6 +38,9 @@ import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
+import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +67,7 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
 
   @Mock private McpClient aMcpClient;
   @Mock private McpClient aRemoteMcpClient;
+  @Mock private McpClient aRemoteMcpClient2;
 
   @Captor private ArgumentCaptor<ToolExecutionRequest> aMcpClientToolExecutionRequestCaptor;
 
@@ -75,17 +80,91 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
     when(aMcpClient.executeTool(aMcpClientToolExecutionRequestCaptor.capture()))
         .thenReturn(toolExecutionResult("A MCP Client result"));
     doReturn(aMcpClient).when(mcpClientRegistry).getClient(any());
+  }
+
+  @Test
+  void executesStandaloneMcpClientsWithRemoteMcpClientCachingDisabled() throws IOException {
+    BpmnModelInstance bpmnModel = Bpmn.readModelFromStream(testProcess.getInputStream());
+    setRemoteMcpClientCachingEnabled(bpmnModel, false);
+
+    when(aRemoteMcpClient.key()).thenReturn("a-remote-mcp-client");
+    when(aRemoteMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
+
+    when(aRemoteMcpClient2.key()).thenReturn("a-remote-mcp-client-2");
+    when(aRemoteMcpClient2.executeTool(aRemoteMcpClientToolExecutionRequestCaptor.capture()))
+        .thenReturn(toolExecutionResult("A Remote MCP Client result"));
+
+    doReturn(aRemoteMcpClient, aRemoteMcpClient2)
+        .when(remoteMcpClientRegistry)
+        .getClient(any(), any(), eq(false));
+
+    testAndAssertMcpClientExecution(bpmnModel);
+
+    verify(aRemoteMcpClient).listTools();
+    verify(aRemoteMcpClient2)
+        .executeTool(
+            assertArg(
+                toolExecutionRequest -> {
+                  assertThat(toolExecutionRequest.name()).isEqualTo("toolC");
+                  JSONAssert.assertEquals(
+                      "{\"paramC1\": \"someOtherValue\"}", toolExecutionRequest.arguments(), true);
+                }));
+  }
+
+  @Test
+  void executesStandaloneMcpClientsWithRemoteMcpClientCachingEnabled() throws IOException {
+    BpmnModelInstance bpmnModel = Bpmn.readModelFromStream(testProcess.getInputStream());
+    setRemoteMcpClientCachingEnabled(bpmnModel, true);
 
     when(aRemoteMcpClient.key()).thenReturn("a-remote-mcp-client");
     when(aRemoteMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
     when(aRemoteMcpClient.executeTool(aRemoteMcpClientToolExecutionRequestCaptor.capture()))
         .thenReturn(toolExecutionResult("A Remote MCP Client result"));
-    doReturn(aRemoteMcpClient).when(remoteMcpClientRegistry).getClient(any(), any());
+
+    doReturn(aRemoteMcpClient).when(remoteMcpClientRegistry).getClient(any(), any(), eq(true));
+
+    testAndAssertMcpClientExecution(bpmnModel);
+
+    verify(aRemoteMcpClient).listTools();
+    verify(aRemoteMcpClient)
+        .executeTool(
+            assertArg(
+                toolExecutionRequest -> {
+                  assertThat(toolExecutionRequest.name()).isEqualTo("toolC");
+                  JSONAssert.assertEquals(
+                      "{\"paramC1\": \"someOtherValue\"}", toolExecutionRequest.arguments(), true);
+                }));
   }
 
-  @Test
-  void executesStandaloneMcpClients() throws IOException {
-    BpmnModelInstance bpmnModel = Bpmn.readModelFromStream(testProcess.getInputStream());
+  private void setRemoteMcpClientCachingEnabled(BpmnModelInstance bpmnModel, boolean cacheEnabled) {
+    setRemoteMcpClientCachingEnabled(bpmnModel, "Remote_Client_List_Tools", cacheEnabled);
+    setRemoteMcpClientCachingEnabled(bpmnModel, "Remote_Client_Call_Tool", cacheEnabled);
+  }
+
+  private void setRemoteMcpClientCachingEnabled(
+      BpmnModelInstance bpmnModel, String elementId, boolean cacheEnabled) {
+    ServiceTask serviceTask = bpmnModel.getModelElementById(elementId);
+    assertThat(serviceTask).isNotNull();
+
+    ZeebeIoMapping ioMapping = serviceTask.getSingleExtensionElement(ZeebeIoMapping.class);
+    assertThat(ioMapping).isNotNull();
+
+    final var inputMapping =
+        ioMapping.getChildElementsByType(ZeebeInput.class).stream()
+            .filter(input -> "data.options.clientCache".equals(input.getTarget()))
+            .findFirst()
+            .orElseGet(
+                () -> {
+                  final var im = bpmnModel.newInstance(ZeebeInput.class);
+                  im.setTarget("data.options.clientCache");
+                  ioMapping.addChildElement(im);
+                  return im;
+                });
+
+    inputMapping.setSource("=" + cacheEnabled);
+  }
+
+  private void testAndAssertMcpClientExecution(BpmnModelInstance bpmnModel) {
     ZeebeTest zeebeTest = createProcessInstance(bpmnModel, Map.of()).waitForProcessCompletion();
 
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
@@ -134,16 +213,6 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
                       "{\"paramA1\": \"someValue\", \"paramA2\": 3}",
                       toolExecutionRequest.arguments(),
                       true);
-                }));
-
-    verify(aRemoteMcpClient).listTools();
-    verify(aRemoteMcpClient)
-        .executeTool(
-            assertArg(
-                toolExecutionRequest -> {
-                  assertThat(toolExecutionRequest.name()).isEqualTo("toolC");
-                  JSONAssert.assertEquals(
-                      "{\"paramC1\": \"someOtherValue\"}", toolExecutionRequest.arguments(), true);
                 }));
   }
 
