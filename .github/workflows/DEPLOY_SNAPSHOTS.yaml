@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - 'release/**'
   workflow_dispatch: { }
 
 defaults:
@@ -16,9 +17,32 @@ jobs:
   deploy-snapshots:
     name: Deploy snapshot artifacts
     runs-on: ubuntu-latest
-    concurrency: deploy-snapshots
+    concurrency:
+      group: deploy-snapshots-${{ github.ref }}
+      cancel-in-progress: true
+    outputs:
+      docker_version: ${{ steps.maven_version.outputs.docker_version }}
+      branch: ${{ steps.version.outputs.branch }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Determine branch and version
+        id: version
+        run: |
+          # Get the current branch name
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          echo "branch=${BRANCH_NAME}" >> "$GITHUB_OUTPUT"
+          
+          echo "::notice::Current branch: ${BRANCH_NAME}"
+          
+          # Determine if this is the main branch
+          if [ "$BRANCH_NAME" = "main" ]; then
+            echo "is_main=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Branch is 'main' - will push both versioned and unversioned SNAPSHOT Docker tags"
+          else
+            echo "is_main=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Branch is '${BRANCH_NAME}' (not main) - will push only versioned SNAPSHOT Docker tags"
+          fi
 
       - name: Import Secrets
         id: secrets # important to refer to it in later steps
@@ -65,6 +89,26 @@ jobs:
              }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
+      - name: Set snapshot version
+        id: maven_version
+        run: |
+          # Extract minor version from Maven project (e.g., "8.9" from "8.9.0-SNAPSHOT")
+          MINOR_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | cut -d'.' -f1-2)
+          FINAL_VERSION="${MINOR_VERSION}.0-SNAPSHOT"
+          
+          echo "::notice::Detected minor version: ${MINOR_VERSION}"
+          
+          # Set the version locally (no need to commit)
+          mvn -B versions:set -DnewVersion="${FINAL_VERSION}" -DgenerateBackupPoms=false -f parent
+          
+          # Output versions for use in later steps
+          echo "maven_version=${FINAL_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "minor_version=${MINOR_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "docker_version=${MINOR_VERSION}-SNAPSHOT" >> "$GITHUB_OUTPUT"
+          
+          echo "::notice::Maven version set to: ${FINAL_VERSION}"
+          echo "::notice::Docker version will be: ${MINOR_VERSION}-SNAPSHOT"
+
       - name: Build Artifacts
         run: mvn -B compile generate-sources source:jar javadoc:jar deploy -DskipTests
         env:
@@ -95,7 +139,17 @@ jobs:
           username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
           password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
 
+      - name: Build and Push Docker Image - connector-runtime
+        uses: docker/build-push-action@v6
+        with:
+          context: connector-runtime/connector-runtime-application/
+          push: true
+          tags: camunda/connectors:${{ steps.maven_version.outputs.docker_version }}
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+
       - name: Build and Push Docker Image tag SNAPSHOT - connector-runtime
+        if: steps.version.outputs.is_main == 'true'
         uses: docker/build-push-action@v6
         with:
           context: connector-runtime/connector-runtime-application/
@@ -104,7 +158,25 @@ jobs:
           platforms: linux/amd64,linux/arm64
           provenance: false
 
+      - name: Log Docker Image Push - connector-runtime
+        run: |
+          if [ "${{ steps.version.outputs.is_main }}" = "true" ]; then
+            echo "::notice::Pushed Docker images for connector-runtime: ${{ steps.maven_version.outputs.docker_version }} AND SNAPSHOT (unversioned)"
+          else
+            echo "::notice::Pushed Docker image for connector-runtime: ${{ steps.maven_version.outputs.docker_version }} (versioned only, skipped unversioned SNAPSHOT)"
+          fi
+
+      - name: Build and Push Docker Image - bundle-default
+        uses: docker/build-push-action@v6
+        with:
+          context: bundle/default-bundle/
+          push: true
+          tags: camunda/connectors-bundle:${{ steps.maven_version.outputs.docker_version }}
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+
       - name: Build and Push Docker Image tag SNAPSHOT - bundle-default
+        if: steps.version.outputs.is_main == 'true'
         uses: docker/build-push-action@v6
         with:
           context: bundle/default-bundle/
@@ -113,7 +185,25 @@ jobs:
           platforms: linux/amd64,linux/arm64
           provenance: false
 
+      - name: Log Docker Image Push - bundle-default
+        run: |
+          if [ "${{ steps.version.outputs.is_main }}" = "true" ]; then
+            echo "::notice::Pushed Docker images for bundle-default: ${{ steps.maven_version.outputs.docker_version }} AND SNAPSHOT (unversioned)"
+          else
+            echo "::notice::Pushed Docker image for bundle-default: ${{ steps.maven_version.outputs.docker_version }} (versioned only, skipped unversioned SNAPSHOT)"
+          fi
+
+      - name: Build and Push Docker Image - bundle-saas
+        uses: docker/build-push-action@v6
+        with:
+          context: bundle/camunda-saas-bundle/
+          push: true
+          tags: camunda/connectors-bundle-saas:${{ steps.maven_version.outputs.docker_version }}
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+
       - name: Build and Push Docker Image tag SNAPSHOT - bundle-saas
+        if: steps.version.outputs.is_main == 'true'
         uses: docker/build-push-action@v6
         with:
           context: bundle/camunda-saas-bundle/
@@ -122,11 +212,19 @@ jobs:
           platforms: linux/amd64,linux/arm64
           provenance: false
 
+      - name: Log Docker Image Push - bundle-saas
+        run: |
+          if [ "${{ steps.version.outputs.is_main }}" = "true" ]; then
+            echo "::notice::Pushed Docker images for bundle-saas: ${{ steps.maven_version.outputs.docker_version }} AND SNAPSHOT (unversioned)"
+          else
+            echo "::notice::Pushed Docker image for bundle-saas: ${{ steps.maven_version.outputs.docker_version }} (versioned only, skipped unversioned SNAPSHOT)"
+          fi
+
   helm-deploy:
     needs: deploy-snapshots
     name: Helm chart Integration Tests
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
     with:
-      connectors-version: SNAPSHOT
-      release-branch: main
+      connectors-version: ${{ needs.deploy-snapshots.outputs.docker_version }}
+      release-branch: ${{ needs.deploy-snapshots.outputs.branch }}
