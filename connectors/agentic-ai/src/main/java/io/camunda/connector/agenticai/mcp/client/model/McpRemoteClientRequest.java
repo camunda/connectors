@@ -13,6 +13,7 @@ import org.springframework.lang.Nullable;
 public record McpRemoteClientRequest(@Valid @NotNull McpRemoteClientRequestData data) {
   public record McpRemoteClientRequestData(
       @Valid @NotNull McpRemoteClientTransportConfiguration transport,
+      @Valid McpRemoteClientOptionsConfiguration options,
       @Valid @NotNull McpConnectorModeConfiguration connectorMode,
       @Valid @Nullable McpClientToolsConfiguration tools) {}
 }

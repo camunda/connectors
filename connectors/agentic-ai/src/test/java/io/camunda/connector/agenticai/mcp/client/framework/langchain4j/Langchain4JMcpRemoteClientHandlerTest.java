@@ -29,6 +29,7 @@ import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationConfigu
 import io.camunda.connector.agenticai.mcp.client.model.McpClientToolsConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientOptionsConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest.McpRemoteClientRequestData;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration;
@@ -304,7 +305,10 @@ class Langchain4JMcpRemoteClientHandlerTest {
       McpRemoteClientTransportConfiguration transport, McpClientOperationConfiguration operation) {
     return new McpRemoteClientRequest(
         new McpRemoteClientRequestData(
-            transport, new ToolModeConfiguration(operation), EMPTY_FILTER_CONFIGURATION));
+            transport,
+            new McpRemoteClientOptionsConfiguration(false),
+            new ToolModeConfiguration(operation),
+            EMPTY_FILTER_CONFIGURATION));
   }
 
   private McpRemoteClientRequest createStandaloneModeRequest(
@@ -313,6 +317,7 @@ class Langchain4JMcpRemoteClientHandlerTest {
     return new McpRemoteClientRequest(
         new McpRemoteClientRequestData(
             transport,
+            new McpRemoteClientOptionsConfiguration(false),
             new McpConnectorModeConfiguration.StandaloneModeConfiguration(operation),
             EMPTY_FILTER_CONFIGURATION));
   }

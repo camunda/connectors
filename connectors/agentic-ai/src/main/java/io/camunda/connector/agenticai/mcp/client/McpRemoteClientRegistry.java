@@ -26,13 +26,14 @@ import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication
 import io.camunda.connector.agenticai.mcp.client.model.auth.NoAuthentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(McpRemoteClientRegistry.class);
 
-  private final Cache<McpRemoteClientIdentifier, C> cache;
+  private final Cache<@NonNull McpRemoteClientIdentifier, C> cache;
   private final McpClientFactory<C> clientFactory;
 
   public McpRemoteClientRegistry(
@@ -41,7 +42,8 @@ public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoClo
     this.clientFactory = clientFactory;
   }
 
-  private Cache<McpRemoteClientIdentifier, C> createCache(ClientCacheConfiguration cacheConfig) {
+  private Cache<@NonNull McpRemoteClientIdentifier, C> createCache(
+      ClientCacheConfiguration cacheConfig) {
     final var maximumSize = cacheConfig.enabled() ? cacheConfig.maximumSize() : 0;
 
     return Caffeine.newBuilder()
@@ -59,13 +61,25 @@ public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoClo
 
   public C getClient(
       McpRemoteClientIdentifier clientId, McpRemoteClientTransportConfiguration transport) {
-    return this.cache.get(
-        clientId,
-        key -> {
-          LOGGER.info("MCP({}): Creating remote HTTP client", clientId);
-          return this.clientFactory.createClient(
-              clientId.toString(), createClientConfiguration(transport));
-        });
+    return getClient(clientId, transport, false);
+  }
+
+  public C getClient(
+      McpRemoteClientIdentifier clientId,
+      McpRemoteClientTransportConfiguration transport,
+      boolean cacheable) {
+    if (cacheable) {
+      return this.cache.get(clientId, key -> this.createClient(clientId, transport));
+    } else {
+      return this.createClient(clientId, transport);
+    }
+  }
+
+  private C createClient(
+      McpRemoteClientIdentifier clientId, McpRemoteClientTransportConfiguration transport) {
+    LOGGER.info("MCP({}): Creating remote HTTP client", clientId);
+    return this.clientFactory.createClient(
+        clientId.toString(), createClientConfiguration(transport));
   }
 
   private McpClientConfiguration createClientConfiguration(
@@ -123,7 +137,7 @@ public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoClo
     this.cache.asMap().forEach(this::closeClient);
   }
 
-  private void closeClient(Object clientId, Object client) {
+  public void closeClient(Object clientId, Object client) {
     LOGGER.info("MCP({}): Closing remote HTTP client", clientId);
     if (client instanceof AutoCloseable autoCloseable) {
       try {
