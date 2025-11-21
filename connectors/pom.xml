@@ -38,6 +38,7 @@
     <module>webhook</module>
     <module>idp-extraction</module>
     <module>embeddings-vector-database</module>
+    <module>load-test</module>
   </modules>
 
   <properties>
