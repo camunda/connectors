@@ -31,7 +31,6 @@ import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.signature.HMACVerifier;
 import java.io.IOException;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,11 +126,7 @@ public class A2aClientWebhookExecutable implements WebhookConnectorExecutable {
   }
 
   private void verifyHmac(WebhookProcessingPayload payload) {
-    var shouldValidateHmac =
-        Optional.ofNullable(props.shouldValidateHmac())
-            .filter(choice -> enabled.name().equals(choice))
-            .isPresent();
-    if (shouldValidateHmac) {
+    if (enabled.equals(props.shouldValidateHmac())) {
       hmacVerifier.verifySignature(payload);
     }
   }

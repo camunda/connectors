@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.inbound.signature;
 
+import static io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice.sha_256;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -26,11 +27,7 @@ class HMACVerifierTest {
   @Test
   void verifySignature_WhenSignatureMatches_ShouldNotThrowException() {
     HMACVerifier verifier =
-        new HMACVerifier(
-            new HMACScope[] {HMACScope.BODY},
-            "X-HMAC-Sig",
-            "mySecretKey",
-            HMACAlgoCustomerChoice.sha_256.name());
+        new HMACVerifier(new HMACScope[] {HMACScope.BODY}, "X-HMAC-Sig", "mySecretKey", sha_256);
 
     WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
     when(payload.method()).thenReturn(HttpMethods.post.name());
@@ -49,11 +46,7 @@ class HMACVerifierTest {
   @Test
   void verifySignature_WhenSignatureDoesNotMatch_ShouldThrowException() {
     HMACVerifier verifier =
-        new HMACVerifier(
-            new HMACScope[] {HMACScope.BODY},
-            "X-HMAC-Sig",
-            "mySecretKey",
-            HMACAlgoCustomerChoice.sha_256.name());
+        new HMACVerifier(new HMACScope[] {HMACScope.BODY}, "X-HMAC-Sig", "mySecretKey", sha_256);
 
     WebhookProcessingPayload payload = mock(WebhookProcessingPayload.class);
     when(payload.method()).thenReturn(HttpMethods.post.name());

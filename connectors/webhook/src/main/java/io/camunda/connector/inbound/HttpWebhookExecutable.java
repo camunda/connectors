@@ -32,7 +32,6 @@ import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
 import jakarta.annotation.Nullable;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -148,11 +147,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   }
 
   private void verifyHmac(WebhookProcessingPayload payload) {
-    var shouldValidateHmac =
-        Optional.ofNullable(props.shouldValidateHmac())
-            .filter(choice -> enabled.name().equals(choice))
-            .isPresent();
-    if (shouldValidateHmac) {
+    if (enabled.equals(props.shouldValidateHmac())) {
       hmacVerifier.verifySignature(payload);
     }
   }

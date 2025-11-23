@@ -21,10 +21,13 @@ public class HMACVerifier {
   private final HMACScope[] hmacScopes;
   private final String hmacHeader;
   private final String hmacSecret;
-  private final String hmacAlgorithm;
+  private final HMACAlgoCustomerChoice hmacAlgorithm;
 
   public HMACVerifier(
-      HMACScope[] hmacScopes, String hmacHeader, String hmacSecret, String hmacAlgorithm) {
+      HMACScope[] hmacScopes,
+      String hmacHeader,
+      String hmacSecret,
+      HMACAlgoCustomerChoice hmacAlgorithm) {
     this.hmacScopes = hmacScopes;
     this.hmacHeader = hmacHeader;
     this.hmacSecret = hmacSecret;
@@ -53,11 +56,7 @@ public class HMACVerifier {
       throws NoSuchAlgorithmException, InvalidKeyException, IOException {
     final HMACSignatureValidator hmacSignatureValidator =
         new HMACSignatureValidator(
-            signatureData,
-            payload.headers(),
-            hmacHeader,
-            hmacSecret,
-            HMACAlgoCustomerChoice.valueOf(hmacAlgorithm));
+            signatureData, payload.headers(), hmacHeader, hmacSecret, hmacAlgorithm);
     return hmacSignatureValidator.isRequestValid();
   }
 }
