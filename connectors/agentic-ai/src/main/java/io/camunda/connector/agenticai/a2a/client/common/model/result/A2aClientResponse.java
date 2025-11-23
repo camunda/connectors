@@ -23,8 +23,8 @@ public record A2aClientResponse(
 
   public record PollingData(
       /*
-       Task or message identifier or a unique generated identifier for the agent card
-       and is used primarily for message correlation by the A2A inbound polling connector.
+       Task or message identifier or a unique generated identifier for the agent card.
+       It is used primarily for message correlation by the A2A inbound polling connector.
       */
       String id) {}
 }

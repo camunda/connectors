@@ -82,6 +82,9 @@ json.properties.each { property ->
         property.remove("feel")
         property.remove("constraints")
         updatedProperties.add(property)
+    } else if (property.id == "resultExpression"){
+        property.value = "={response: result}"
+        updatedProperties.add(property)
     } else {
         updatedProperties.add(property)
     }
