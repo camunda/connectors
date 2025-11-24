@@ -27,12 +27,18 @@ import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.Map;
+import java.util.function.Supplier;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 
 @SpringBootTest(
     classes = {TestConnectorRuntimeApplication.class},
@@ -47,6 +53,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 public abstract class BaseAgenticAiTest {
   @Autowired protected CamundaClient camundaClient;
   @Autowired protected ObjectMapper objectMapper;
+  @Autowired protected ResourceLoader resourceLoader;
   @TempDir protected File tempDir;
 
   protected ZeebeTest createProcessInstance(
@@ -92,5 +99,30 @@ public abstract class BaseAgenticAiTest {
             .join();
 
     assertThat(incidents.items()).hasSize(1).first().satisfies(assertion);
+  }
+
+  protected Resource testFileResource(String filename) {
+    return resourceLoader.getResource("classpath:__files/" + filename);
+  }
+
+  protected Supplier<String> testFileContent(String filename) {
+    return () -> {
+      try {
+        return testFileResource(filename).getContentAsString(StandardCharsets.UTF_8);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    };
+  }
+
+  protected Supplier<String> testFileContentBase64(String filename) {
+    return () -> {
+      try {
+        return Base64.getEncoder()
+            .encodeToString(testFileResource(filename).getContentAsByteArray());
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    };
   }
 }

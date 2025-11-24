@@ -32,8 +32,13 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class A2aMessageSenderImpl implements A2aMessageSender {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(A2aMessageSenderImpl.class);
+
   private final A2aDocumentToPartConverter documentToPartConverter;
   private final A2aSendMessageResponseHandler sendMessageResponseHandler;
   private final A2aSdkClientFactory clientFactory;
@@ -66,6 +71,7 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
     A2aSdkClientConfig a2ASdkClientConfig = createA2aSdkClientConfig(settings);
 
     try (var a2aClient = clientFactory.buildClient(agentCard, consumer, a2ASdkClientConfig)) {
+      LOGGER.debug("Sending a message to the remote agent: [{}]", agentCard.name());
       a2aClient.sendMessage(message);
 
       try {

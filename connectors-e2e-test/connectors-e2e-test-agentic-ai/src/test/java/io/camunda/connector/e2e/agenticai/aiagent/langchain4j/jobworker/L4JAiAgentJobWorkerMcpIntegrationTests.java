@@ -149,6 +149,7 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
             testProcessWithMcp,
             e -> e,
             HAIKU_TEXT,
+            Map.of(),
             true,
             (agentResponse) ->
                 JobWorkerAgentResponseAssert.assertThat(agentResponse)
