@@ -9,9 +9,8 @@ package io.camunda.connector.agenticai.a2a.client.inbound.webhook;
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.disabled;
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchException;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -36,8 +35,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,6 +46,7 @@ import org.mockito.quality.Strictness;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class A2aClientWebhookExecutableTest {
 
+  private static final String HMAC_HEADER = "HMAC-Signature-Header";
   private static final String TASK_JSON =
       """
           {
@@ -90,7 +88,7 @@ class A2aClientWebhookExecutableTest {
   }
 
   @Test
-  void triggerWebhook_ValidA2aTask_HappyCase() {
+  void triggerWebhook_ValidA2aTask_ReturnsMappedRequest() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
             .properties(
@@ -111,8 +109,8 @@ class A2aClientWebhookExecutableTest {
     webhookExecutable.activate(ctx);
     var result = webhookExecutable.triggerWebhook(payload);
 
-    assertNotNull(result);
-    assertNotNull(result.request());
+    assertThat(result).isNotNull();
+    assertThat(result.request()).isNotNull();
     assertThat(result.request().body()).isInstanceOf(A2aTask.class);
     A2aTask resultTask = (A2aTask) result.request().body();
     assertThat(resultTask.id()).isEqualTo("task-123");
@@ -137,14 +135,12 @@ class A2aClientWebhookExecutableTest {
 
     webhookExecutable.activate(ctx);
 
-    assertThrows(RuntimeException.class, () -> webhookExecutable.triggerWebhook(payload));
+    assertThatThrownBy(() -> webhookExecutable.triggerWebhook(payload))
+        .isInstanceOf(RuntimeException.class);
   }
 
   @Test
   void triggerWebhook_HmacEnabled_ValidSignature_Success() {
-    String secret = "mySecret123";
-    String hmacSignature = calculateHmac(TASK_JSON, secret, HMACAlgoCustomerChoice.sha_256);
-
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
             .properties(
@@ -160,9 +156,9 @@ class A2aClientWebhookExecutableTest {
                         "shouldValidateHmac",
                         enabled.name(),
                         "hmacSecret",
-                        secret,
+                        "mySecret123",
                         "hmacHeader",
-                        "X-Hub-Signature",
+                        HMAC_HEADER,
                         "hmacAlgorithm",
                         HMACAlgoCustomerChoice.sha_256.name())))
             .build();
@@ -174,21 +170,19 @@ class A2aClientWebhookExecutableTest {
             Map.of(
                 HttpHeaders.CONTENT_TYPE,
                 MediaType.JSON_UTF_8.toString(),
-                "X-Hub-Signature",
-                hmacSignature));
+                HMAC_HEADER,
+                "82874661fa330e9fa686ab66f78bad7dd198cdb1812e6fe84e7e83c1735501e1"));
     when(payload.rawBody()).thenReturn(TASK_JSON.getBytes(StandardCharsets.UTF_8));
 
     webhookExecutable.activate(ctx);
     var result = webhookExecutable.triggerWebhook(payload);
 
-    assertNotNull(result);
+    assertThat(result).isNotNull();
     assertThat(result.request().body()).isInstanceOf(A2aTask.class);
   }
 
   @Test
   void triggerWebhook_HmacEnabled_InvalidSignature_ThrowsException() {
-    String secret = "mySecret123";
-
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
             .properties(
@@ -204,9 +198,9 @@ class A2aClientWebhookExecutableTest {
                         "shouldValidateHmac",
                         enabled.name(),
                         "hmacSecret",
-                        secret,
+                        "mySecret123",
                         "hmacHeader",
-                        "X-Hub-Signature",
+                        HMAC_HEADER,
                         "hmacAlgorithm",
                         HMACAlgoCustomerChoice.sha_256.name())))
             .build();
@@ -218,7 +212,7 @@ class A2aClientWebhookExecutableTest {
             Map.of(
                 HttpHeaders.CONTENT_TYPE,
                 MediaType.JSON_UTF_8.toString(),
-                "X-Hub-Signature",
+                HMAC_HEADER,
                 "invalid-signature"));
     when(payload.rawBody()).thenReturn(TASK_JSON.getBytes(StandardCharsets.UTF_8));
 
@@ -257,7 +251,7 @@ class A2aClientWebhookExecutableTest {
     webhookExecutable.activate(ctx);
     var result = webhookExecutable.triggerWebhook(payload);
 
-    assertNotNull(result);
+    assertThat(result).isNotNull();
     assertThat(result.request().body()).isInstanceOf(A2aTask.class);
   }
 
@@ -293,7 +287,7 @@ class A2aClientWebhookExecutableTest {
     webhookExecutable.activate(ctx);
     var result = webhookExecutable.triggerWebhook(payload);
 
-    assertNotNull(result);
+    assertThat(result).isNotNull();
     assertThat(result.request().body()).isInstanceOf(A2aTask.class);
   }
 
@@ -361,37 +355,9 @@ class A2aClientWebhookExecutableTest {
     webhookExecutable.activate(ctx);
     var result = webhookExecutable.triggerWebhook(payload);
 
-    assertNotNull(result);
+    assertThat(result).isNotNull();
     MappedHttpRequest request = result.request();
     assertThat(request.headers()).isEqualTo(headers);
     assertThat(request.params()).isEqualTo(params);
-  }
-
-  private String calculateHmac(String data, String secret, HMACAlgoCustomerChoice algorithm) {
-    String algorithmName =
-        switch (algorithm) {
-          case sha_1 -> "HmacSHA1";
-          case sha_256 -> "HmacSHA256";
-          case sha_512 -> "HmacSHA512";
-        };
-
-    try {
-      Mac mac = Mac.getInstance(algorithmName);
-      SecretKeySpec secretKeySpec = new SecretKeySpec(secret.getBytes(), algorithmName);
-      mac.init(secretKeySpec);
-      byte[] hmacBytes = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-
-      StringBuilder hexString = new StringBuilder();
-      for (byte b : hmacBytes) {
-        String hex = Integer.toHexString(0xff & b);
-        if (hex.length() == 1) {
-          hexString.append('0');
-        }
-        hexString.append(hex);
-      }
-      return hexString.toString();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
   }
 }
