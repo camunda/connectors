@@ -13,8 +13,8 @@ import io.a2a.spec.TaskStatus;
 import io.camunda.connector.agenticai.a2a.client.common.A2aAgentCardFetcher;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aAgentCard;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aClientResponse;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
-import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aResult;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClient;
@@ -25,6 +25,7 @@ import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.inbound.Severity;
+import java.util.Objects;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,27 +77,30 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
       return;
     }
 
-    switch (clientResponse) {
-      case A2aAgentCard agentCardResult -> handleAgentCard(agentCardResult);
-      case A2aMessage message -> handleMessage(message);
-      case A2aTask task -> handleTask(runtimeProperties, task);
+    switch (clientResponse.result()) {
+      case A2aAgentCard ignored -> handleAgentCard(clientResponse);
+      case A2aMessage ignored -> handleMessage(clientResponse);
+      case A2aTask ignored -> handleTask(runtimeProperties, clientResponse);
       default -> throw new IllegalStateException("Unexpected value: " + clientResponse);
     }
   }
 
-  private void handleAgentCard(final A2aAgentCard agentCardResult) {
+  private void handleAgentCard(final A2aClientResponse clientResponse) {
     LOGGER.debug("A2A agent card result does not need polling -> directly correlating");
-    processInstanceContext.correlate(agentCardResult);
+    processInstanceContext.correlate(clientResponse);
   }
 
-  private void handleMessage(final A2aMessage message) {
+  private void handleMessage(final A2aClientResponse clientResponse) {
     LOGGER.debug(
-        "A2A message {} does not need polling -> directly correlating", message.messageId());
-    processInstanceContext.correlate(message);
+        "A2A message {} does not need polling -> directly correlating",
+        Objects.requireNonNull(clientResponse.pollingData()).id());
+    processInstanceContext.correlate(clientResponse);
   }
 
-  private void handleTask(final A2aPollingRuntimeProperties runtimeProperties, final A2aTask task) {
-    if (context.canActivate(task) instanceof ActivationCheckResult.Success) {
+  private void handleTask(
+      final A2aPollingRuntimeProperties runtimeProperties, final A2aClientResponse clientResponse) {
+    final var task = (A2aTask) clientResponse.result();
+    if (context.canActivate(clientResponse) instanceof ActivationCheckResult.Success) {
       LOGGER.debug(
           "A2A task {} in state '{}' does not need polling -> directly correlating",
           task.id(),
@@ -104,7 +108,7 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
               .map(A2aTaskStatus::state)
               .map(A2aTaskStatus.TaskState::asString)
               .orElse(null));
-      processInstanceContext.correlate(task);
+      processInstanceContext.correlate(clientResponse);
       return;
     }
 
@@ -130,9 +134,14 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
               .orElse(null));
 
       final var convertedTask = objectConverter.convert(loadedTask);
-      processInstanceContext.correlate(convertedTask);
+      final var response =
+          A2aClientResponse.builder()
+              .result(convertedTask)
+              .pollingData(clientResponse.pollingData())
+              .build();
+      processInstanceContext.correlate(response);
     } catch (Exception e) {
-      LOGGER.error("Failed to poll A2A task %s".formatted(task.id()), e);
+      LOGGER.error("Failed to poll A2A task {}", task.id(), e);
       this.context.log(
           activity ->
               activity
@@ -159,10 +168,10 @@ public class A2aPollingTask implements Runnable, AutoCloseable {
     return null;
   }
 
-  private A2aResult getClientResponse(final A2aPollingRuntimeProperties runtimeProperties) {
+  private A2aClientResponse getClientResponse(final A2aPollingRuntimeProperties runtimeProperties) {
     try {
       final var clientResponseJson = runtimeProperties.data().clientResponse();
-      return objectMapper.readValue(clientResponseJson, A2aResult.class);
+      return objectMapper.readValue(clientResponseJson, A2aClientResponse.class);
     } catch (Exception e) {
       LOGGER.debug("Failed to load A2A client response", e);
       this.context.log(

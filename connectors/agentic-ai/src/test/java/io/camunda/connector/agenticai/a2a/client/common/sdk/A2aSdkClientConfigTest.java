@@ -24,7 +24,7 @@ class A2aSdkClientConfigTest {
                     10,
                     true,
                     new A2aSdkClientConfig.PushNotificationConfig(
-                        "http://example.com", List.of("Bearer"), null)));
+                        "http://example.com", null, List.of("Bearer"), null)));
     assertEquals("Cannot enable both blocking and push notifications.", exception.getMessage());
   }
 }

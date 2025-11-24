@@ -361,7 +361,7 @@
       "type" : "bpmn:Message#zeebe:subscription#property"
     },
     "type" : "Hidden",
-    "value" : "=internal_clientResponse.id"
+    "value" : "=internal_clientResponse.result.id + (if is defined(internal_clientResponse.pushNotificationData.token) then (\"-\" + internal_clientResponse.pushNotificationData.token) else \"\")"
   }, {
     "id" : "correlationKeyPayload",
     "label" : "Correlation key (payload)",
@@ -372,7 +372,7 @@
       "type" : "zeebe:property"
     },
     "type" : "Hidden",
-    "value" : "=request.body.id"
+    "value" : "=request.body.id + (if is defined(request.headers.`x-a2a-notification-token`) then (\"-\" + request.headers.`x-a2a-notification-token`) else \"\")"
   }, {
     "id" : "messageIdExpression",
     "label" : "Message ID expression",

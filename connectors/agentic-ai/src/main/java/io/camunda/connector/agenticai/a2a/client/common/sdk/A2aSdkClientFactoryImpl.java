@@ -22,6 +22,7 @@ import io.a2a.spec.PushNotificationConfig;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aClientCommonConfigurationProperties.TransportConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.grpc.ManagedChannelFactory;
 import java.util.function.BiConsumer;
+import org.apache.commons.lang3.StringUtils;
 
 public class A2aSdkClientFactoryImpl implements A2aSdkClientFactory {
   private final JSONRPCTransportConfig jsonrpcTransportConfig;
@@ -50,12 +51,17 @@ public class A2aSdkClientFactoryImpl implements A2aSdkClientFactory {
             .setHistoryLength(config.historyLength());
     final var pushNotificationConfig = config.pushNotificationConfig();
     if (pushNotificationConfig != null) {
+      final var token =
+          StringUtils.isBlank(pushNotificationConfig.token())
+              ? null
+              : pushNotificationConfig.token();
       final var authenticationInfo =
           new PushNotificationAuthenticationInfo(
               pushNotificationConfig.authSchemes(), pushNotificationConfig.credentials());
       clientConfigBuilder.setPushNotificationConfig(
           new PushNotificationConfig.Builder()
               .url(pushNotificationConfig.url())
+              .token(token)
               .authenticationInfo(authenticationInfo)
               .build());
     }

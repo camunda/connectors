@@ -37,7 +37,6 @@ import io.camunda.connector.agenticai.model.message.content.TextContent;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -50,7 +49,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class A2AClientRequestHandlerTest {
+class A2aClientRequestHandlerTest {
 
   @Mock private A2aAgentCardFetcher agentCardFetcher;
   @Mock private A2aMessageSender messageSender;
@@ -75,13 +74,15 @@ class A2AClientRequestHandlerTest {
                   CONNECTION,
                   new A2aConnectorModeConfiguration.StandaloneModeConfiguration(operation)));
 
-      var expectedResult =
-          new A2aAgentCard(UUID.randomUUID().toString(), "name", "desc", List.of());
+      var expectedResult = new A2aAgentCard("name", "desc", List.of());
       when(agentCardFetcher.fetchAgentCard(CONNECTION)).thenReturn(expectedResult);
 
-      var result = handler.handle(request);
+      var response = handler.handle(request);
 
-      assertThat(result).isSameAs(expectedResult);
+      assertThat(response.result()).isSameAs(expectedResult);
+      assertThat(response.pollingData()).isNotNull();
+      assertThat(response.pollingData().id()).isNotNull();
+      assertThat(response.pushNotificationData()).isNull();
       verify(agentCardFetcher).fetchAgentCard(CONNECTION);
       verify(agentCardFetcher, never()).fetchAgentCardRaw(any());
       verify(messageSender, never()).sendMessage(any(), any());
@@ -90,10 +91,13 @@ class A2AClientRequestHandlerTest {
     @Test
     void handleSendMessage() {
       var agentCard = mock(AgentCard.class);
+      var sendMessageConfiguration =
+          new A2aCommonSendMessageConfiguration(
+              new A2aResponseRetrievalMode.Blocking(), 1, Duration.ofSeconds(1));
       var operation =
           new SendMessageOperationConfiguration(
               A2aSendMessageOperationParametersBuilder.builder().text("Hello").build(),
-              sendMessageConfiguration(1, 1));
+              sendMessageConfiguration);
       var request =
           new A2aClientRequest(
               new A2aRequestData(
@@ -116,9 +120,11 @@ class A2AClientRequestHandlerTest {
               .build();
       when(messageSender.sendMessage(agentCard, operation)).thenReturn(expectedSendResult);
 
-      var result = handler.handle(request);
+      var response = handler.handle(request);
 
-      assertThat(result).isSameAs(expectedSendResult);
+      assertThat(response.result()).isSameAs(expectedSendResult);
+      assertThat(response.pollingData()).isNull();
+      assertThat(response.pushNotificationData()).isNull();
       verify(agentCardFetcher).fetchAgentCardRaw(CONNECTION);
       verify(messageSender).sendMessage(agentCard, operation);
       verify(agentCardFetcher, never()).fetchAgentCard(CONNECTION);
@@ -137,13 +143,15 @@ class A2AClientRequestHandlerTest {
               new A2aRequestData(
                   CONNECTION, new A2aConnectorModeConfiguration.ToolModeConfiguration(operation)));
 
-      var expectedResult =
-          new A2aAgentCard(UUID.randomUUID().toString(), "name", "desc", List.of());
+      var expectedResult = new A2aAgentCard("name", "desc", List.of());
       when(agentCardFetcher.fetchAgentCard(CONNECTION)).thenReturn(expectedResult);
 
-      var result = handler.handle(request);
+      var response = handler.handle(request);
 
-      assertThat(result).isSameAs(expectedResult);
+      assertThat(response.result()).isSameAs(expectedResult);
+      assertThat(response.pollingData()).isNotNull();
+      assertThat(response.pollingData().id()).isNotNull();
+      assertThat(response.pushNotificationData()).isNull();
       verify(agentCardFetcher).fetchAgentCard(CONNECTION);
       verify(agentCardFetcher, never()).fetchAgentCardRaw(any());
       verify(messageSender, never()).sendMessage(any(), any());
@@ -152,7 +160,12 @@ class A2AClientRequestHandlerTest {
     @Test
     void handleSendMessage() {
       var params = Map.<String, Object>of("text", "Hello, agent!");
-      var commonConfiguration = sendMessageConfiguration(10, 45);
+      var commonConfiguration =
+          new A2aCommonSendMessageConfiguration(
+              new A2aResponseRetrievalMode.Notification(
+                  "http://www.webhook.com", "my-token", List.of(), null),
+              10,
+              Duration.ofSeconds(45));
       var operation = new A2aToolOperationConfiguration("sendMessage", params, commonConfiguration);
       var request =
           new A2aClientRequest(
@@ -171,9 +184,12 @@ class A2AClientRequestHandlerTest {
               .build();
       when(messageSender.sendMessage(eq(agentCard), any())).thenReturn(expectedSendResult);
 
-      var result = handler.handle(request);
+      var response = handler.handle(request);
 
-      assertThat(result).isSameAs(expectedSendResult);
+      assertThat(response.result()).isSameAs(expectedSendResult);
+      assertThat(response.pollingData()).isNull();
+      assertThat(response.pushNotificationData()).isNotNull();
+      assertThat(response.pushNotificationData().token()).isEqualTo("my-token");
 
       ArgumentCaptor<SendMessageOperationConfiguration> opCaptor =
           ArgumentCaptor.forClass(SendMessageOperationConfiguration.class);
@@ -223,9 +239,12 @@ class A2AClientRequestHandlerTest {
               .build();
       when(messageSender.sendMessage(eq(agentCard), any())).thenReturn(expectedSendResult);
 
-      var result = handler.handle(request);
+      var response = handler.handle(request);
 
-      assertThat(result).isSameAs(expectedSendResult);
+      assertThat(response.result()).isSameAs(expectedSendResult);
+      assertThat(response.pollingData()).isNotNull();
+      assertThat(response.pollingData().id()).isEqualTo("message-2");
+      assertThat(response.pushNotificationData()).isNull();
 
       ArgumentCaptor<SendMessageOperationConfiguration> opCaptor =
           ArgumentCaptor.forClass(SendMessageOperationConfiguration.class);

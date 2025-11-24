@@ -194,7 +194,7 @@ class A2aSdkClientFactoryTest {
 
       var pushNotificationConfig =
           new A2aSdkClientConfig.PushNotificationConfig(
-              "https://example.com/webhook", authSchemes, credentials);
+              "https://example.com/webhook", "my-token", authSchemes, credentials);
       A2aSdkClientConfig config = new A2aSdkClientConfig(5, false, pushNotificationConfig);
       A2aSdkClient client = factory.buildClient(agentCard, (event, card) -> {}, config);
 
@@ -208,6 +208,7 @@ class A2aSdkClientFactoryTest {
                     var pushConfig = clientConfig.getPushNotificationConfig();
                     assertThat(pushConfig).isNotNull();
                     assertThat(pushConfig.url()).isEqualTo("https://example.com/webhook");
+                    assertThat(pushConfig.token()).isEqualTo("my-token");
                     var authInfo = pushConfig.authentication();
                     assertThat(authInfo).isNotNull();
                     assertThat(authInfo.schemes()).containsExactlyElementsOf(authSchemes);

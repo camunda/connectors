@@ -313,6 +313,33 @@
     },
     "type" : "String"
   }, {
+    "id" : "data.connectorMode.operation.settings.responseRetrievalMode.token",
+    "label" : "Token",
+    "description" : "A unique token for the task or session to validate incoming push notifications",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.operation.settings.responseRetrievalMode.token",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.settings.responseRetrievalMode.type",
+        "equals" : "notification",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.operation.type",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
     "id" : "data.connectorMode.operation.settings.responseRetrievalMode.authenticationSchemes",
     "label" : "Authentication schemes",
     "description" : "A list of authentication schemes required by the webhook.",
@@ -491,6 +518,29 @@
     "group" : "operation",
     "binding" : {
       "name" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.webhookUrl",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.type",
+        "equals" : "notification",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "aiAgentTool",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.token",
+    "label" : "Token",
+    "description" : "A unique token for the task or session to validate incoming push notifications",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.token",
       "type" : "zeebe:input"
     },
     "condition" : {

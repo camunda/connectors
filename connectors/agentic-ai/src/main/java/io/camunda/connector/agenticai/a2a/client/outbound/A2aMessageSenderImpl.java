@@ -85,6 +85,7 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
       pushNotificationConfig =
           new A2aSdkClientConfig.PushNotificationConfig(
               notification.webhookUrl(),
+              notification.token(),
               notification.authenticationSchemes(),
               notification.credentials());
     }

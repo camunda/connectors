@@ -71,13 +71,13 @@ json.properties.each { property ->
         property.value = "=is defined(request.body.status.state) and not(list contains([\"submitted\", \"working\"], request.body.status.state))"
         updatedProperties.add(property)
     }  else if (property.id == "correlationKeyProcess") {
-        property.value = "=internal_clientResponse.id"
+        property.value = "=internal_clientResponse.result.id + (if is defined(internal_clientResponse.pushNotificationData.token) then (\"-\" + internal_clientResponse.pushNotificationData.token) else \"\")"
         property.type = "Hidden"
         property.remove("feel")
         property.remove("constraints")
         updatedProperties.add(property)
     } else if (property.id == "correlationKeyPayload") {
-        property.value = "=request.body.id"
+        property.value = "=request.body.id + (if is defined(request.headers.`x-a2a-notification-token`) then (\"-\" + request.headers.`x-a2a-notification-token`) else \"\")"
         property.type = "Hidden"
         property.remove("feel")
         property.remove("constraints")

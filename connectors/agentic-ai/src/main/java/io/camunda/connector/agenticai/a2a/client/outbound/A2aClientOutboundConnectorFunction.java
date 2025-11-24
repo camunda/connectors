@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.a2a.client.outbound;
 
 import io.camunda.connector.agenticai.a2a.client.common.A2aConstants;
-import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aResult;
+import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aClientResponse;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aClientRequest;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.api.annotation.OutboundConnector;
@@ -60,7 +60,7 @@ public class A2aClientOutboundConnectorFunction implements OutboundConnectorFunc
   }
 
   @Override
-  public A2aResult execute(OutboundConnectorContext context) {
+  public A2aClientResponse execute(OutboundConnectorContext context) {
     final A2aClientRequest request = context.bindVariables(A2aClientRequest.class);
     return handler.handle(request);
   }

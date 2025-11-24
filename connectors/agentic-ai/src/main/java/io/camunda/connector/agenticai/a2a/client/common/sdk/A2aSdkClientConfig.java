@@ -20,5 +20,6 @@ public record A2aSdkClientConfig(
     }
   }
 
-  public record PushNotificationConfig(String url, List<String> authSchemes, String credentials) {}
+  public record PushNotificationConfig(
+      String url, String token, List<String> authSchemes, String credentials) {}
 }
