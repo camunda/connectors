@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.a2a.client.common;
 
+import static io.camunda.connector.agenticai.a2a.client.common.A2aErrorCodes.ERROR_CODE_A2A_CLIENT_AGENT_CARD_RETRIEVAL_FAILED;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 import io.a2a.A2A;
@@ -13,12 +14,12 @@ import io.a2a.spec.A2AClientError;
 import io.a2a.spec.AgentCard;
 import io.camunda.connector.agenticai.a2a.client.common.model.A2aConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aAgentCard;
+import io.camunda.connector.api.error.ConnectorException;
 import java.util.Collections;
 import org.apache.commons.collections4.CollectionUtils;
 
 public class A2aAgentCardFetcherImpl implements A2aAgentCardFetcher {
 
-  // TODO: add caching?
   @Override
   public A2aAgentCard fetchAgentCard(A2aConnectionConfiguration connection) {
     AgentCard agentCard = fetchAgentCardRaw(connection);
@@ -32,7 +33,10 @@ public class A2aAgentCardFetcherImpl implements A2aAgentCardFetcher {
     try {
       return A2A.getAgentCard(connection.url(), relativeCardPath, Collections.emptyMap());
     } catch (A2AClientError e) {
-      throw new RuntimeException(e);
+      throw new ConnectorException(
+          ERROR_CODE_A2A_CLIENT_AGENT_CARD_RETRIEVAL_FAILED,
+          "Failed to load agent card from %s".formatted(connection.agentCardLocation()),
+          e);
     }
   }
 
