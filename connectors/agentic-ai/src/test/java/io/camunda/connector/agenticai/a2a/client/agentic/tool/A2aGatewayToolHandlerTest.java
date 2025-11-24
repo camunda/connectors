@@ -16,6 +16,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aArtifact;
@@ -312,6 +313,28 @@ class A2aGatewayToolHandlerTest {
               () -> handler.handleToolDiscoveryResults(agentContext, toolDiscoveryResults))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessage("Tool call result content for A2A client tool discovery is not a map.");
+    }
+
+    @Test
+    void throwsRuntimeException_whenJsonSerializationFails() throws Exception {
+      ObjectMapper mockMapper = mock(ObjectMapper.class);
+      // Mock successful loading of schema
+      when(mockMapper.readValue(any(InputStream.class), any(TypeReference.class)))
+          .thenReturn(Map.of("type", "object"));
+      // But fail when serializing agent card
+      when(mockMapper.writeValueAsString(any()))
+          .thenThrow(new JsonProcessingException("Serialization failed") {});
+
+      var handler = new A2aGatewayToolHandler(mockMapper);
+      var agentContext = AgentContext.empty();
+      Map<String, Object> content = Map.of("title", "Agent 1");
+      var toolDiscoveryResults =
+          List.of(createToolCallResultWithContent("A2A_fetchAgentCard_a2a1", "a2a1", content));
+
+      assertThatThrownBy(
+              () -> handler.handleToolDiscoveryResults(agentContext, toolDiscoveryResults))
+          .isInstanceOf(RuntimeException.class)
+          .hasMessageContaining("Failed to serialize A2A client tool description");
     }
   }
 

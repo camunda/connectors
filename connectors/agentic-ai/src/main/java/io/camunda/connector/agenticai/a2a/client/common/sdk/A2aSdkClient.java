@@ -6,12 +6,16 @@
  */
 package io.camunda.connector.agenticai.a2a.client.common.sdk;
 
+import static io.camunda.connector.agenticai.a2a.client.common.A2aErrorCodes.ERROR_CODE_A2A_CLIENT_SEND_MESSAGE_FAILED;
+import static io.camunda.connector.agenticai.a2a.client.common.A2aErrorCodes.ERROR_CODE_A2A_CLIENT_TASK_RETRIEVAL_FAILED;
+
 import io.a2a.client.Client;
 import io.a2a.spec.A2AClientException;
 import io.a2a.spec.Message;
 import io.a2a.spec.Task;
 import io.a2a.spec.TaskQueryParams;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.grpc.ManagedChannelFactory;
+import io.camunda.connector.api.error.ConnectorException;
 
 public class A2aSdkClient implements AutoCloseable {
   private final Client sdkClient;
@@ -26,7 +30,7 @@ public class A2aSdkClient implements AutoCloseable {
     try {
       sdkClient.sendMessage(message);
     } catch (A2AClientException e) {
-      throw new RuntimeException(e);
+      throw new ConnectorException(ERROR_CODE_A2A_CLIENT_SEND_MESSAGE_FAILED, e);
     }
   }
 
@@ -34,7 +38,7 @@ public class A2aSdkClient implements AutoCloseable {
     try {
       return sdkClient.getTask(request);
     } catch (A2AClientException e) {
-      throw new RuntimeException(e);
+      throw new ConnectorException(ERROR_CODE_A2A_CLIENT_TASK_RETRIEVAL_FAILED, e);
     }
   }
 

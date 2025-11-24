@@ -31,6 +31,7 @@ import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aSendMessageOp
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -175,7 +176,8 @@ class A2aMessageSenderTest {
     // Do not trigger consumer -> future never completes
     doAnswer(inv -> null).when(client).sendMessage(any());
     assertThatThrownBy(() -> messageSender.sendMessage(agentCard, operation))
-        .isInstanceOf(RuntimeException.class)
+        .isInstanceOf(ConnectorException.class)
+        .hasFieldOrPropertyWithValue("errorCode", "A2A_CLIENT_SEND_MESSAGE_RESPONSE_TIMEOUT")
         .hasMessageContaining("Timed out waiting for response from agent");
     verify(client).close();
   }
