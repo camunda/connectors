@@ -85,7 +85,8 @@ public record A2aCommonSendMessageConfiguration(
                 label = "Token",
                 description =
                     "A unique token for the task or session to validate incoming push notifications",
-                feel = Property.FeelMode.optional)
+                feel = Property.FeelMode.optional,
+                optional = true)
             String token,
         @TemplateProperty(
                 group = "operation",

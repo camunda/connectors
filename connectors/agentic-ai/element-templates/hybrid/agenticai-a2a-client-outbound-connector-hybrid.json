@@ -321,7 +321,7 @@
     "id" : "data.connectorMode.operation.settings.responseRetrievalMode.token",
     "label" : "Token",
     "description" : "A unique token for the task or session to validate incoming push notifications",
-    "optional" : false,
+    "optional" : true,
     "feel" : "optional",
     "group" : "operation",
     "binding" : {
@@ -541,7 +541,7 @@
     "id" : "data.connectorMode.toolOperation.sendMessageSettings.responseRetrievalMode.token",
     "label" : "Token",
     "description" : "A unique token for the task or session to validate incoming push notifications",
-    "optional" : false,
+    "optional" : true,
     "feel" : "optional",
     "group" : "operation",
     "binding" : {
