@@ -9,7 +9,7 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
-          java-version: '21'
+          java-version: '21.0.9'
           distribution: 'temurin'
 
       - name: Checkout repository
