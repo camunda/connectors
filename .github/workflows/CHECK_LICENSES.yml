@@ -57,7 +57,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '21.0.9'
       - name: Update Maven settings.xml
         uses: s4u/maven-settings-action@v4.0.0
         with:
