@@ -17,11 +17,16 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aAgentCar
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Collections;
 import org.apache.commons.collections4.CollectionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class A2aAgentCardFetcherImpl implements A2aAgentCardFetcher {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(A2aAgentCardFetcherImpl.class);
+
   @Override
   public A2aAgentCard fetchAgentCard(A2aConnectionConfiguration connection) {
+    LOGGER.debug("Fetching agent-card from URL: {}", connection.url());
     AgentCard agentCard = fetchAgentCardRaw(connection);
     return convertAgentCard(agentCard);
   }

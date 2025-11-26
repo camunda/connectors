@@ -206,6 +206,55 @@ public interface Langchain4JAiAgentToolSpecifications {
                       .build())
               .build());
 
+  JsonObjectSchema A2A_JSON_OBJECT_SCHEMA =
+      JsonObjectSchema.builder()
+          .addStringProperty("text", "The request or the follow-up message to send to the agent.")
+          .addStringProperty(
+              "taskId",
+              "The ID of the task this message is part of. ONLY include if continuing an existing task (e.g., input-required); otherwise OMIT.")
+          .addStringProperty(
+              "contextId",
+              "The context ID for this message, used to group related interactions. OMIT on first message; include on subsequent messages.")
+          .addProperty(
+              "referenceTaskIds",
+              JsonArraySchema.builder()
+                  .description(
+                      "A list of other task IDs that this message references for additional context.")
+                  .build())
+          .required("text")
+          .build();
+
+  List<ToolSpecification> EXPECTED_A2A_TOOL_SPECIFICATIONS =
+      List.of(
+          GET_DATE_AND_TIME_TOOL,
+          SUPERFLUX_PRODUCT_TOOL,
+          SEARCH_THE_WEB_TOOL,
+          DOWNLOAD_A_FILE_TOOL,
+          ToolSpecification.builder()
+              .name("A2A_Travel_Agent")
+              .description(
+                  """
+                  This tool allows interaction with the remote A2A agent represented by the following agent card:
+                  {"name":"Travel agent","description":"Helps with travel bookings","skills":[{"id":"hotel-booking","name":"Hotel Booking","description":"Book a hotel room","tags":["booking","hotel"],"examples":["Book a single room","Book a double room"],"inputModes":["text"],"outputModes":["text"]}],"kind":"agentCard"}""")
+              .parameters(A2A_JSON_OBJECT_SCHEMA)
+              .build(),
+          ToolSpecification.builder()
+              .name("A2A_Weather_Agent")
+              .description(
+                  """
+                  This tool allows interaction with the remote A2A agent represented by the following agent card:
+                  {"name":"Weather agent","description":"Helps with weather information","skills":[{"id":"weather-forecast","name":"Weather Forecast","description":"Get weather forecast information","tags":["forecast","weather"],"examples":["What's the weather like today?","Will it rain tomorrow?"],"inputModes":["text"],"outputModes":["text"]}],"kind":"agentCard"}""")
+              .parameters(A2A_JSON_OBJECT_SCHEMA)
+              .build(),
+          ToolSpecification.builder()
+              .name("A2A_Exchange_Rate_Agent")
+              .description(
+                  """
+                  This tool allows interaction with the remote A2A agent represented by the following agent card:
+                  {"name":"Exchange rate agent","description":"Helps with exchanging currency rates","skills":[{"id":"currency-exchange","name":"Currency Exchange","description":"Get currency exchange rates","tags":["currency","exchange"],"examples":["What's the exchange rate from USD to EUR?","Convert 100 GBP to JPY."],"inputModes":["text"],"outputModes":["text"]}],"kind":"agentCard"}""")
+              .parameters(A2A_JSON_OBJECT_SCHEMA)
+              .build());
+
   // individual tools provided by a specific MCP client - expected resolved specifications are
   // prefixed with the MCP client name
   List<ToolSpecification> MCP_TOOL_SPECIFICATIONS =

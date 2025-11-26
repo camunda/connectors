@@ -1,0 +1,36 @@
+{
+  "id": "task-001",
+  "contextId": "ctx-001",
+  "status": {
+    "state": "completed",
+    "timestamp": "2024-03-15T10:11:00Z"
+  },
+  "artifacts": [
+    {
+      "artifactId": "art-001",
+      "name": "ExchangeRate",
+      "parts": [
+        {
+          "kind": "text",
+          "text": "1 USD = 0.85 EUR"
+        }
+      ]
+    }
+  ],
+  "history": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "kind": "text",
+          "text": "What's the exchange rate for USD to EUR?"
+        }
+      ],
+      "messageId": "msg-001",
+      "taskId": "task-001",
+      "contextId": "ctx-001",
+      "kind": "message"
+    }
+  ],
+  "kind": "task"
+}

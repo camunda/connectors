@@ -1,0 +1,54 @@
+{
+  "jsonrpc": "2.0",
+  "id": "req-001",
+  "result": {
+    "id": "task-001",
+    "contextId": "ctx-001",
+    "status": {
+      "state": "working",
+      "message": {
+        "role": "agent",
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Still looking for a room."
+          }
+        ],
+        "messageId": "msg-003",
+        "taskId": "task-001",
+        "contextId": "ctx-001",
+        "kind": "message"
+      },
+      "timestamp": "2024-03-15T10:11:00Z"
+    },
+    "history": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Book a single hotel room"
+          }
+        ],
+        "messageId": "msg-001",
+        "taskId": "task-001",
+        "contextId": "ctx-001",
+        "kind": "message"
+      },
+      {
+        "role": "agent",
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Task received. I will start searching for rooms."
+          }
+        ],
+        "messageId": "msg-002",
+        "taskId": "task-001",
+        "contextId": "ctx-001",
+        "kind": "message"
+      }
+    ],
+    "kind": "task"
+  }
+}
