@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.outboundconnector;
 
+import static io.camunda.connector.e2e.agenticai.TestUtil.postWithDelay;
+import static io.camunda.connector.e2e.agenticai.TestUtil.waitForElementActivation;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_A2A_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,6 +57,8 @@ import org.springframework.test.context.TestPropertySource;
     })
 public class L4JAiAgentConnectorA2aIntegrationTests extends BaseL4JAiAgentConnectorTest {
 
+  public static final String WEBHOOK_ELEMENT_ID = "Wait_For_Completion_Webhook";
+
   @Value("classpath:agentic-ai-connectors-a2a.bpmn")
   protected Resource testProcessWithA2a;
 
@@ -82,12 +86,12 @@ public class L4JAiAgentConnectorA2aIntegrationTests extends BaseL4JAiAgentConnec
   protected Pair<List<ChatMessage>, ZeebeTest> setupBasicTestWithoutFeedbackLoop(
       Resource process,
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
-      String responseText,
-      Map<String, Object> extraProcessVariables)
+      Map<String, Object> extraProcessVariables,
+      String responseText)
       throws Exception {
     Pair<List<ChatMessage>, ZeebeTest> conversationAndTest =
         super.setupBasicTestWithoutFeedbackLoop(
-            process, elementTemplateModifier, responseText, extraProcessVariables);
+            process, elementTemplateModifier, extraProcessVariables, responseText);
     List<ChatMessage> conversation =
         conversationAndTest.getLeft().stream()
             .map(
@@ -108,8 +112,8 @@ public class L4JAiAgentConnectorA2aIntegrationTests extends BaseL4JAiAgentConnec
         testBasicExecutionWithoutFeedbackLoop(
             testProcessWithA2a,
             e -> e,
-            HAIKU_TEXT,
             Map.of("a2aServerUrl", wireMock.getHttpBaseUrl(), "webhookUrl", webhookUrl),
+            HAIKU_TEXT,
             true,
             (agentResponse) ->
                 AgentResponseAssert.assertThat(agentResponse)
@@ -167,8 +171,12 @@ public class L4JAiAgentConnectorA2aIntegrationTests extends BaseL4JAiAgentConnec
                 "userPrompt",
                 testSupport.initialUserPrompt));
 
-    testSupport.callWebhookEndpointWithDelay(
-        webhookUrl, testFileContent("exchange-rate-agent-webhook-payload.json").get(), 10);
+    // manually trigger process definition import to register the webhook
+    importProcessDefinitions();
+    waitForElementActivation(zeebeTest, WEBHOOK_ELEMENT_ID);
+
+    postWithDelay(
+        webhookUrl, testFileContent("exchange-rate-agent-webhook-payload.json").get(), 100);
 
     zeebeTest.waitForProcessCompletion();
 

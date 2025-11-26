@@ -24,6 +24,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
 import static io.camunda.connector.e2e.BpmnFile.Replace.replace;
+import static io.camunda.connector.e2e.agenticai.TestUtil.postWithDelay;
+import static io.camunda.connector.e2e.agenticai.TestUtil.waitForElementActivation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -41,14 +43,7 @@ import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import org.apache.commons.collections4.MapUtils;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,6 +60,8 @@ import org.springframework.test.context.TestPropertySource;
     })
 @WireMockTest
 public class A2aStandaloneTests extends BaseAgenticAiTest {
+
+  private static final String WEBHOOK_ELEMENT_ID = "Wait_For_Completion_Webhook";
 
   @Value("classpath:a2a-connectors-standalone.bpmn")
   protected Resource testProcess;
@@ -103,7 +100,12 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
 
   @Test
   void executeStandaloneA2aConnectorsWebhook() throws Exception {
-    BpmnModelInstance bpmnModel = Bpmn.readModelFromStream(testProcess.getInputStream());
+    BpmnModelInstance bpmnModel =
+        // So that the connector runtime replaces the already registered A2A webhook with a new one
+        // for this process.
+        BpmnFile.replace(
+            testProcess.getFile(),
+            replace("id=\"A2A_Standalone\"", "id=\"A2A_Standalone_Webhook\""));
     ZeebeTest zeebeTest =
         createProcessInstance(
             bpmnModel,
@@ -115,17 +117,19 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
                 "webhookUrl",
                 webhookUrl));
 
+    waitForWebhookElementActivation(zeebeTest);
+
     // Post working state - should NOT activate webhook
-    callWebhookEndpointWithDelay(
+    postWithDelay(
         webhookUrl,
         extractTaskFromJsonRpc(testFileContent("travel-agent-response-working.json").get()),
-        5);
+        100);
 
     // Post completed state - should activate webhook
-    callWebhookEndpointWithDelay(
+    postWithDelay(
         webhookUrl,
         extractTaskFromJsonRpc(testFileContent("travel-agent-response-completed.json").get()),
-        10);
+        300);
 
     zeebeTest.waitForProcessCompletion();
 
@@ -136,6 +140,8 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
   void executeStandaloneA2aConnectorsWebhookWithToken() throws Exception {
     var token = "test-token-123";
     BpmnModelInstance bpmnModel =
+        // So that the connector runtime replaces the already registered A2A webhook with a new one
+        // for this process.
         BpmnFile.replace(
             testProcess.getFile(), replace("id=\"A2A_Standalone\"", "id=\"A2A_Standalone_Token\""));
     ZeebeTest zeebeTest =
@@ -151,29 +157,31 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
                 "token",
                 token));
 
+    waitForWebhookElementActivation(zeebeTest);
+
     // Post working state - should NOT activate webhook
-    callWebhookEndpointWithDelay(
+    postWithDelay(
         webhookUrl,
         extractTaskFromJsonRpc(testFileContent("travel-agent-response-working.json").get()),
         Map.of("X-A2A-Notification-Token", token),
-        5);
+        100);
 
     // Post completed state with invalid token - should NOT activate webhook
-    callWebhookEndpointWithDelay(
+    postWithDelay(
         webhookUrl,
         extractTaskFromJsonRpc(
             testFileContent("travel-agent-response-completed.json")
                 .get()
                 .replaceAll("ctx-001", "ctx-002")),
         Map.of("X-A2A-Notification-Token", "invalid-token"),
-        7);
+        300);
 
     // Post completed state - should activate webhook
-    callWebhookEndpointWithDelay(
+    postWithDelay(
         webhookUrl,
         extractTaskFromJsonRpc(testFileContent("travel-agent-response-completed.json").get()),
         Map.of("X-A2A-Notification-Token", token),
-        10);
+        500);
 
     zeebeTest.waitForProcessCompletion();
 
@@ -209,29 +217,31 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
                 "webhookUrl",
                 webhookUrl));
 
+    waitForWebhookElementActivation(zeebeTest);
+
     // Post working state - should NOT activate webhook
-    callWebhookEndpointWithDelay(
+    postWithDelay(
         webhookUrl,
         extractTaskFromJsonRpc(testFileContent("travel-agent-response-working.json").get()),
         authHeaders,
-        5);
+        100);
 
     // Post completed state with invalid credentials - should NOT activate webhook
-    callWebhookEndpointWithDelay(
+    postWithDelay(
         webhookUrl,
         extractTaskFromJsonRpc(
             testFileContent("travel-agent-response-completed.json")
                 .get()
                 .replaceAll("ctx-001", "ctx-002")),
         Map.of("Authorization", "Basic dXNlcjI6cGFzczMyMQo="),
-        7);
+        300);
 
     // Post completed state - should activate webhook
-    callWebhookEndpointWithDelay(
+    postWithDelay(
         webhookUrl,
         extractTaskFromJsonRpc(testFileContent("travel-agent-response-completed.json").get()),
         authHeaders,
-        10);
+        500);
 
     zeebeTest.waitForProcessCompletion();
 
@@ -262,16 +272,18 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
                 "webhookUrl",
                 webhookUrl));
 
+    waitForWebhookElementActivation(zeebeTest);
+
     // Post working state - should NOT activate webhook
-    callWebhookEndpointWithDelay(
+    postWithDelay(
         webhookUrl,
         extractTaskFromJsonRpc(testFileContent("travel-agent-response-working.json").get()),
         Map.of(
             "X-HMAC-Signature", "d2515228699764ba7e6df716539d1ddabbb8cc329e99fc70448c2753cc37bd92"),
-        5);
+        100);
 
     // Post completed state with invalid HMAC signature - should NOT activate webhook
-    callWebhookEndpointWithDelay(
+    postWithDelay(
         webhookUrl,
         extractTaskFromJsonRpc(
             testFileContent("travel-agent-response-completed.json")
@@ -279,19 +291,25 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
                 .replaceAll("ctx-001", "ctx-002")),
         Map.of(
             "X-HMAC-Signature", "d2515228699764ba7e6df716539d1ddabbb8cc329e99fc70448c2753cc37bd92"),
-        7);
+        300);
 
     // Post completed state - should activate webhook
-    callWebhookEndpointWithDelay(
+    postWithDelay(
         webhookUrl,
         extractTaskFromJsonRpc(testFileContent("travel-agent-response-completed.json").get()),
         Map.of(
             "X-HMAC-Signature", "1fe75a1c849df2aacb18952f187938b64edff510f341c9ab55df03783aee85a0"),
-        10);
+        500);
 
     zeebeTest.waitForProcessCompletion();
 
     assertVariablesWithWebhook(zeebeTest);
+  }
+
+  private void waitForWebhookElementActivation(ZeebeTest zeebeTest) {
+    // manually trigger process definition import to register the webhook
+    importProcessDefinitions();
+    waitForElementActivation(zeebeTest, WEBHOOK_ELEMENT_ID);
   }
 
   private static void assertVariablesWithWebhook(ZeebeTest zeebeTest) {
@@ -356,33 +374,6 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
             .willReturn(
                 aResponse()
                     .withBody(testFileContent("travel-agent-response-completed.json").get())));
-  }
-
-  private void callWebhookEndpointWithDelay(
-      String webhookUrl, String payload, long delayInSeconds) {
-    callWebhookEndpointWithDelay(webhookUrl, payload, Map.of(), delayInSeconds);
-  }
-
-  private void callWebhookEndpointWithDelay(
-      String webhookUrl, String payload, Map<String, String> headers, long delayInSeconds) {
-    CompletableFuture.delayedExecutor(delayInSeconds, TimeUnit.SECONDS)
-        .execute(
-            () -> {
-              try (var client = HttpClient.newHttpClient()) {
-                HttpRequest.Builder builder =
-                    HttpRequest.newBuilder()
-                        .uri(URI.create(webhookUrl))
-                        .header("Content-Type", "application/json")
-                        .POST(HttpRequest.BodyPublishers.ofString(payload));
-                if (MapUtils.isNotEmpty(headers)) {
-                  headers.forEach(builder::header);
-                }
-                var request = builder.build();
-                client.send(request, HttpResponse.BodyHandlers.discarding());
-              } catch (Exception e) {
-                throw new RuntimeException(e);
-              }
-            });
   }
 
   private String extractTaskFromJsonRpc(String jsonRpcResponse) throws Exception {

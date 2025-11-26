@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
+import static io.camunda.connector.e2e.agenticai.TestUtil.postWithDelay;
+import static io.camunda.connector.e2e.agenticai.TestUtil.waitForElementActivation;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_A2A_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,6 +56,8 @@ import org.springframework.test.context.TestPropertySource;
       "camunda.connector.webhook.enabled=true"
     })
 public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWorkerTest {
+
+  public static final String WEBHOOK_ELEMENT_ID = "Wait_For_Completion_Webhook";
 
   @Value("classpath:agentic-ai-ahsp-connectors-a2a.bpmn")
   protected Resource testProcessWithA2a;
@@ -167,8 +171,11 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
                 "userPrompt",
                 testSupport.initialUserPrompt));
 
-    testSupport.callWebhookEndpointWithDelay(
-        webhookUrl, testFileContent("exchange-rate-agent-webhook-payload.json").get(), 10);
+    // manually trigger process definition import to register the webhook
+    importProcessDefinitions();
+    waitForElementActivation(zeebeTest, WEBHOOK_ELEMENT_ID);
+    postWithDelay(
+        webhookUrl, testFileContent("exchange-rate-agent-webhook-payload.json").get(), 100);
 
     zeebeTest.waitForProcessCompletion();
 

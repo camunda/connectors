@@ -40,15 +40,9 @@ import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.process.test.api.CamundaAssert;
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.springframework.core.io.Resource;
 import org.springframework.util.StreamUtils;
@@ -273,23 +267,5 @@ public class L4JAiAgentA2aIntegrationTestSupport {
             .willReturn(
                 aResponse()
                     .withBody(testFileContentSupplier.apply("exchange-rate-agent-response.json"))));
-  }
-
-  public void callWebhookEndpointWithDelay(String webhookUrl, String payload, long delayInSeconds) {
-    CompletableFuture.delayedExecutor(delayInSeconds, TimeUnit.SECONDS)
-        .execute(
-            () -> {
-              try (var client = HttpClient.newHttpClient()) {
-                var request =
-                    HttpRequest.newBuilder()
-                        .uri(URI.create(webhookUrl))
-                        .header("Content-Type", "application/json")
-                        .POST(HttpRequest.BodyPublishers.ofString(payload))
-                        .build();
-                client.send(request, HttpResponse.BodyHandlers.discarding());
-              } catch (Exception e) {
-                throw new RuntimeException(e);
-              }
-            });
   }
 }

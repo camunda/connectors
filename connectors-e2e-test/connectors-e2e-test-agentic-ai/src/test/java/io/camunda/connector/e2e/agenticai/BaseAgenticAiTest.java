@@ -24,6 +24,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.response.Incident;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImporter;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
@@ -54,6 +55,7 @@ public abstract class BaseAgenticAiTest {
   @Autowired protected CamundaClient camundaClient;
   @Autowired protected ObjectMapper objectMapper;
   @Autowired protected ResourceLoader resourceLoader;
+  @Autowired private ProcessDefinitionImporter processDefinitionImporter;
   @TempDir protected File tempDir;
 
   protected ZeebeTest createProcessInstance(
@@ -124,5 +126,9 @@ public abstract class BaseAgenticAiTest {
         throw new RuntimeException(e);
       }
     };
+  }
+
+  protected void importProcessDefinitions() {
+    processDefinitionImporter.scheduleImport();
   }
 }

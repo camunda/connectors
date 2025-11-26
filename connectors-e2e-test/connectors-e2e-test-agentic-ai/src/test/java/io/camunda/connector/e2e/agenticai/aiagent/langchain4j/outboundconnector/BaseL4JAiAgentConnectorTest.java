@@ -84,8 +84,8 @@ abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
     return testBasicExecutionWithoutFeedbackLoop(
         testProcess,
         elementTemplateModifier,
-        responseText,
         Map.of(),
+        responseText,
         assertToolSpecifications,
         agentResponseAssertions);
   }
@@ -93,14 +93,14 @@ abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
   protected ZeebeTest testBasicExecutionWithoutFeedbackLoop(
       Resource process,
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
-      String responseText,
       Map<String, Object> extraProcessVariables,
+      String responseText,
       boolean assertToolSpecifications,
       ThrowingConsumer<AgentResponse> agentResponseAssertions)
       throws Exception {
     final var testSetup =
         setupBasicTestWithoutFeedbackLoop(
-            process, elementTemplateModifier, responseText, extraProcessVariables);
+            process, elementTemplateModifier, extraProcessVariables, responseText);
 
     final var zeebeTest = testSetup.getRight();
     zeebeTest.waitForProcessCompletion();
@@ -124,8 +124,8 @@ abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
   protected Pair<List<ChatMessage>, ZeebeTest> setupBasicTestWithoutFeedbackLoop(
       Resource process,
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
-      String responseText,
-      Map<String, Object> extraProcessVariables)
+      Map<String, Object> extraProcessVariables,
+      String responseText)
       throws Exception {
     final var initialUserPrompt = "Write a haiku about the sea";
     final var expectedConversation =
