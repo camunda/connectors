@@ -23,7 +23,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
-import static io.camunda.connector.e2e.BpmnFile.Replace.replace;
 import static io.camunda.connector.e2e.agenticai.TestUtil.postWithDelay;
 import static io.camunda.connector.e2e.agenticai.TestUtil.waitForElementActivation;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,13 +34,16 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aAgentCar
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aClientResponse;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
-import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
+import io.camunda.zeebe.model.bpmn.instance.IntermediateCatchEvent;
+import io.camunda.zeebe.model.bpmn.instance.Process;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperties;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperty;
 import java.io.IOException;
 import java.util.Map;
 import org.assertj.core.api.Assertions;
@@ -100,12 +102,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
 
   @Test
   void executeStandaloneA2aConnectorsWebhook() throws Exception {
-    BpmnModelInstance bpmnModel =
-        // So that the connector runtime replaces the already registered A2A webhook with a new one
-        // for this process.
-        BpmnFile.replace(
-            testProcess.getFile(),
-            replace("id=\"A2A_Standalone\"", "id=\"A2A_Standalone_Webhook\""));
+    BpmnModelInstance bpmnModel = getBpmnModelWithNewId("A2A_Standalone_Webhook");
     ZeebeTest zeebeTest =
         createProcessInstance(
             bpmnModel,
@@ -139,11 +136,8 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
   @Test
   void executeStandaloneA2aConnectorsWebhookWithToken() throws Exception {
     var token = "test-token-123";
-    BpmnModelInstance bpmnModel =
-        // So that the connector runtime replaces the already registered A2A webhook with a new one
-        // for this process.
-        BpmnFile.replace(
-            testProcess.getFile(), replace("id=\"A2A_Standalone\"", "id=\"A2A_Standalone_Token\""));
+    BpmnModelInstance bpmnModel = getBpmnModelWithNewId("A2A_Standalone_Token");
+
     ZeebeTest zeebeTest =
         createProcessInstance(
             bpmnModel,
@@ -196,16 +190,10 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
   @Test
   void executeStandaloneA2aConnectorsWebhookWithBasicAuthentication() throws Exception {
     var authHeaders = Map.of("Authorization", "Basic dXNlcjE6cGFzczEyMw==");
-    BpmnModelInstance bpmnModel =
-        BpmnFile.replace(
-            testProcess.getFile(),
-            replace("id=\"A2A_Standalone\"", "id=\"A2A_Standalone_BasicAuth\""),
-            replace(
-                "<zeebe:property name=\"inbound.auth.type\" value=\"NONE\" />",
-                """
-            <zeebe:property name="inbound.auth.type" value="BASIC" />
-            <zeebe:property name="inbound.auth.username" value="user1" />
-            <zeebe:property name="inbound.auth.password" value="pass123" />"""));
+
+    BpmnModelInstance bpmnModel = getBpmnModelWithNewId("A2A_Standalone_BasicAuth");
+    configureBasicAuth(bpmnModel);
+
     ZeebeTest zeebeTest =
         createProcessInstance(
             bpmnModel,
@@ -250,17 +238,9 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
 
   @Test
   void executeStandaloneA2aConnectorsWebhookWithHmacVerification() throws Exception {
-    BpmnModelInstance bpmnModel =
-        BpmnFile.replace(
-            testProcess.getFile(),
-            replace("id=\"A2A_Standalone\"", "id=\"A2A_Standalone_HMAC\""),
-            replace(
-                "<zeebe:property name=\"inbound.shouldValidateHmac\" value=\"disabled\"",
-                """
-            <zeebe:property name="inbound.shouldValidateHmac" value="enabled" />
-            <zeebe:property name="inbound.hmacSecret" value="my-secret-key" />
-            <zeebe:property name="inbound.hmacHeader" value="X-HMAC-Signature" />
-            <zeebe:property name="inbound.hmacAlgorithm" value="sha_256" />"""));
+    BpmnModelInstance bpmnModel = getBpmnModelWithNewId("A2A_Standalone_HMAC");
+    configureHmacValidation(bpmnModel);
+
     ZeebeTest zeebeTest =
         createProcessInstance(
             bpmnModel,
@@ -312,6 +292,15 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
     waitForElementActivation(zeebeTest, WEBHOOK_ELEMENT_ID);
   }
 
+  private BpmnModelInstance getBpmnModelWithNewId(String newProcessId) throws IOException {
+    BpmnModelInstance bpmnModel = Bpmn.readModelFromStream(testProcess.getInputStream());
+    Process process = bpmnModel.getModelElementsByType(Process.class).iterator().next();
+    // So that the connector runtime replaces the already registered A2A webhook with a new one
+    // for this process.
+    process.setId(newProcessId);
+    return bpmnModel;
+  }
+
   private static void assertVariablesWithWebhook(ZeebeTest zeebeTest) {
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasVariableSatisfies(
@@ -338,6 +327,46 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
     Assertions.assertThat(response.result()).isInstanceOf(A2aAgentCard.class);
     var a2aAgentCard = (A2aAgentCard) response.result();
     assertThat(a2aAgentCard.skills()).isNotEmpty();
+  }
+
+  private static void configureBasicAuth(BpmnModelInstance bpmnModel) {
+    IntermediateCatchEvent webhookCatchEvent = bpmnModel.getModelElementById(WEBHOOK_ELEMENT_ID);
+    ZeebeProperties properties = webhookCatchEvent.getSingleExtensionElement(ZeebeProperties.class);
+    properties.getProperties().stream()
+        .filter(property -> "inbound.auth.type".equals(property.getName()))
+        .findFirst()
+        .get()
+        .setValue("BASIC");
+    ZeebeProperty username = bpmnModel.newInstance(ZeebeProperty.class);
+    username.setName("inbound.auth.username");
+    username.setValue("user1");
+    ZeebeProperty password = bpmnModel.newInstance(ZeebeProperty.class);
+    password.setName("inbound.auth.password");
+    password.setValue("pass123");
+    properties.addChildElement(username);
+    properties.addChildElement(password);
+  }
+
+  private static void configureHmacValidation(BpmnModelInstance bpmnModel) {
+    IntermediateCatchEvent webhookCatchEvent = bpmnModel.getModelElementById(WEBHOOK_ELEMENT_ID);
+    ZeebeProperties properties = webhookCatchEvent.getSingleExtensionElement(ZeebeProperties.class);
+    properties.getProperties().stream()
+        .filter(property -> "inbound.shouldValidateHmac".equals(property.getName()))
+        .findFirst()
+        .get()
+        .setValue("enabled");
+    ZeebeProperty hmacSecret = bpmnModel.newInstance(ZeebeProperty.class);
+    hmacSecret.setName("inbound.hmacSecret");
+    hmacSecret.setValue("my-secret-key");
+    properties.addChildElement(hmacSecret);
+    ZeebeProperty hmacHeader = bpmnModel.newInstance(ZeebeProperty.class);
+    hmacHeader.setName("inbound.hmacHeader");
+    hmacHeader.setValue("X-HMAC-Signature");
+    properties.addChildElement(hmacHeader);
+    ZeebeProperty hmacAlgorithm = bpmnModel.newInstance(ZeebeProperty.class);
+    hmacAlgorithm.setName("inbound.hmacAlgorithm");
+    hmacAlgorithm.setValue("sha_256");
+    properties.addChildElement(hmacAlgorithm);
   }
 
   private void setUpWireMockStubs() {
