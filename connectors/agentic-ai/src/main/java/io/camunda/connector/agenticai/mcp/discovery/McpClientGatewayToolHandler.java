@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.mcp.discovery.McpToolCallIdentifier
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
@@ -22,6 +23,7 @@ import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.util.CollectionUtils;
 import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import java.util.List;
 import java.util.Map;
@@ -51,12 +53,14 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
   }
 
   @Override
+  public boolean isGatewayManaged(String toolName) {
+    return McpToolCallIdentifier.isMcpToolCallIdentifier(toolName);
+  }
+
+  @Override
   public GatewayToolDiscoveryInitiationResult initiateToolDiscovery(
       AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions) {
-    final var mcpGatewayToolDefinitions =
-        gatewayToolDefinitions.stream()
-            .filter(gatewayToolDefinition -> GATEWAY_TYPE.equals(gatewayToolDefinition.type()))
-            .toList();
+    final var mcpGatewayToolDefinitions = extractMcpGatewayToolDefinitions(gatewayToolDefinitions);
 
     // nothing to discover
     if (mcpGatewayToolDefinitions.isEmpty()) {
@@ -80,6 +84,19 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
             .toList();
 
     return new GatewayToolDiscoveryInitiationResult(updatedAgentContext, discoveryToolCalls);
+  }
+
+  @Override
+  public GatewayToolDefinitionUpdates resolveUpdatedGatewayToolDefinitions(
+      AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions) {
+    final var mcpClientIds = getMcpClientIds(agentContext);
+    final var mcpGatewayToolDefinitionIds =
+        extractMcpGatewayToolDefinitions(gatewayToolDefinitions).stream()
+            .map(GatewayToolDefinition::name)
+            .toList();
+
+    return CollectionUtils.computeListItemChanges(
+        mcpClientIds, mcpGatewayToolDefinitionIds, GatewayToolDefinitionUpdates::new);
   }
 
   @Override
@@ -161,7 +178,7 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
         .map(
             toolCall -> {
               String toolCallName = toolCall.name();
-              if (McpToolCallIdentifier.isMcpToolCallIdentifier(toolCallName)) {
+              if (isGatewayManaged(toolCallName)) {
                 final var toolCallIdentifier = McpToolCallIdentifier.fromToolCallName(toolCallName);
                 return new ToolCall(
                     toolCall.id(),
@@ -190,6 +207,13 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
 
               return toolCallResultFromMcpToolCall(toolCallResult);
             })
+        .toList();
+  }
+
+  private List<GatewayToolDefinition> extractMcpGatewayToolDefinitions(
+      List<GatewayToolDefinition> gatewayToolDefinitions) {
+    return gatewayToolDefinitions.stream()
+        .filter(gatewayToolDefinition -> GATEWAY_TYPE.equals(gatewayToolDefinition.type()))
         .toList();
   }
 

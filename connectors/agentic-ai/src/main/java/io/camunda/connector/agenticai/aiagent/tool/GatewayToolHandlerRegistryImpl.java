@@ -48,6 +48,13 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
   }
 
   @Override
+  public Optional<GatewayToolHandler> handlerForToolDefinition(String toolName) {
+    return handlers.values().stream()
+        .filter(handler -> handler.isGatewayManaged(toolName))
+        .findFirst();
+  }
+
+  @Override
   public GatewayToolDiscoveryInitiationResult initiateToolDiscovery(
       final AgentContext agentContext, final List<GatewayToolDefinition> gatewayToolDefinitions) {
     var updatedAgentContext = agentContext;
@@ -65,6 +72,22 @@ public class GatewayToolHandlerRegistryImpl implements GatewayToolHandlerRegistr
 
     return new GatewayToolDiscoveryInitiationResult(
         updatedAgentContext, List.copyOf(toolDiscoveryToolCalls));
+  }
+
+  @Override
+  public Map<String, GatewayToolDefinitionUpdates> resolveUpdatedGatewayToolDefinitions(
+      AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions) {
+    final var updateSummary = new LinkedHashMap<String, GatewayToolDefinitionUpdates>();
+    handlers.forEach(
+        (type, handler) -> {
+          final var updates =
+              handler.resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
+          if (!updates.isEmpty()) {
+            updateSummary.put(type, updates);
+          }
+        });
+
+    return updateSummary;
   }
 
   @Override
