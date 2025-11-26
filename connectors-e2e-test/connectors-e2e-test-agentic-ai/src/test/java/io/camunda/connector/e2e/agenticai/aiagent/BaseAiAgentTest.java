@@ -23,6 +23,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import dev.langchain4j.service.tool.ToolExecutionResult;
 import io.camunda.client.api.worker.JobWorker;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
@@ -178,5 +179,9 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
 
   protected Map<String, Object> userFollowUpFeedback(String followUp) {
     return Map.of("userSatisfied", false, "followUpUserPrompt", followUp);
+  }
+
+  protected ToolExecutionResult toolExecutionResult(String resultText) {
+    return ToolExecutionResult.builder().resultText(resultText).build();
   }
 }
