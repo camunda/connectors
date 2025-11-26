@@ -23,7 +23,22 @@ import java.util.List;
 public interface GatewayToolHandler extends GatewayToolCallTransformer {
   String type();
 
+  /**
+   * Determines whether a tool is managed by this gateway handler.
+   *
+   * @param toolName The name of the tool to check
+   * @return true if this handler manages the tool definition, false otherwise
+   */
+  boolean isGatewayManaged(String toolName);
+
   GatewayToolDiscoveryInitiationResult initiateToolDiscovery(
+      AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions);
+
+  /**
+   * Resolves updated gateway tool definitions compared to what is stored on the agent context. Used
+   * for tool reconciliation.
+   */
+  GatewayToolDefinitionUpdates resolveUpdatedGatewayToolDefinitions(
       AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions);
 
   /**

@@ -16,12 +16,14 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aSendMess
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.agenticai.util.CollectionUtils;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -53,12 +55,14 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
   }
 
   @Override
+  public boolean isGatewayManaged(String toolName) {
+    return A2aToolCallIdentifier.isA2aToolCallIdentifier(toolName);
+  }
+
+  @Override
   public GatewayToolDiscoveryInitiationResult initiateToolDiscovery(
       AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions) {
-    final var a2aGatewayToolDefinitions =
-        gatewayToolDefinitions.stream()
-            .filter(gatewayToolDefinition -> A2A_GATEWAY_TYPE.equals(gatewayToolDefinition.type()))
-            .toList();
+    final var a2aGatewayToolDefinitions = extractA2aGatewayToolDefinitions(gatewayToolDefinitions);
 
     // nothing to discover
     if (a2aGatewayToolDefinitions.isEmpty()) {
@@ -83,6 +87,19 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
             .toList();
 
     return new GatewayToolDiscoveryInitiationResult(updatedAgentContext, discoveryToolCalls);
+  }
+
+  @Override
+  public GatewayToolDefinitionUpdates resolveUpdatedGatewayToolDefinitions(
+      AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions) {
+    final var a2aClientIds = getA2aClientIds(agentContext);
+    final var a2aGatewayToolDefinitionIds =
+        extractA2aGatewayToolDefinitions(gatewayToolDefinitions).stream()
+            .map(GatewayToolDefinition::name)
+            .toList();
+
+    return CollectionUtils.computeListItemChanges(
+        a2aClientIds, a2aGatewayToolDefinitionIds, GatewayToolDefinitionUpdates::new);
   }
 
   @Override
@@ -154,7 +171,7 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
         .map(
             toolCall -> {
               String toolCallName = toolCall.name();
-              if (A2aToolCallIdentifier.isA2aToolCallIdentifier(toolCallName)) {
+              if (isGatewayManaged(toolCallName)) {
                 final var toolCallIdentifier = A2aToolCallIdentifier.fromToolCallName(toolCallName);
                 return new ToolCall(
                     toolCall.id(),
@@ -186,6 +203,13 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
 
               return toolCallResultFromA2aSendMessage(toolCallResult);
             })
+        .toList();
+  }
+
+  private List<GatewayToolDefinition> extractA2aGatewayToolDefinitions(
+      List<GatewayToolDefinition> gatewayToolDefinitions) {
+    return gatewayToolDefinitions.stream()
+        .filter(gatewayToolDefinition -> A2A_GATEWAY_TYPE.equals(gatewayToolDefinition.type()))
         .toList();
   }
 

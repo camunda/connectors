@@ -10,13 +10,31 @@ import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Wrapper around multiple tool handlers, implementing distributing and merging gateway operations
  * across multiple handlers.
  */
 public interface GatewayToolHandlerRegistry extends GatewayToolCallTransformer {
+
+  /**
+   * Determines whether a tool definition is managed by any registered gateway handler.
+   *
+   * @param toolName The name of the tool to check
+   * @return true if any handler manages the tool definition, false otherwise
+   */
+  default boolean isGatewayManaged(String toolName) {
+    return handlerForToolDefinition(toolName).isPresent();
+  }
+
+  Optional<GatewayToolHandler> handlerForToolDefinition(String toolName);
+
   GatewayToolDiscoveryInitiationResult initiateToolDiscovery(
+      AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions);
+
+  Map<String, GatewayToolDefinitionUpdates> resolveUpdatedGatewayToolDefinitions(
       AgentContext agentContext, List<GatewayToolDefinition> gatewayToolDefinitions);
 
   boolean allToolDiscoveryResultsPresent(

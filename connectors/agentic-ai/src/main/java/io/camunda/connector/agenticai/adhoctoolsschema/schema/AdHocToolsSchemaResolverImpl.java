@@ -33,6 +33,10 @@ public class AdHocToolsSchemaResolverImpl implements AdHocToolsSchemaResolver {
 
   @Override
   public AdHocToolsSchemaResponse resolveAdHocToolsSchema(List<AdHocToolElement> elements) {
+    if (elements.isEmpty()) {
+      return AdHocToolsSchemaResponse.builder().build();
+    }
+
     final var gatewayToolDefinitions =
         gatewayToolDefinitionResolvers.stream()
             .flatMap(resolver -> resolver.resolveGatewayToolDefinitions(elements).stream())
