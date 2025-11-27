@@ -45,10 +45,7 @@ class PostmanOperationUtilTest {
       var operations = PostmanOperationUtil.extractOperations(collection, Set.of());
       // Pick an operation that has properties (e.g., "add book" which has body properties)
       var addBookOperation =
-          operations.stream()
-              .filter(op -> op.id().contains("add_book"))
-              .findFirst()
-              .orElseThrow();
+          operations.stream().filter(op -> op.id().contains("add_book")).findFirst().orElseThrow();
       var props = addBookOperation.builder().getProperties();
       allPropertyOrders.add(toPropertyIdList(props));
     }
