@@ -36,6 +36,7 @@ import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.common.L4JAiAgentA2aIntegrationTestSupport;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
+import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImporter;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.io.IOException;
 import java.util.List;
@@ -44,6 +45,7 @@ import java.util.function.Function;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.core.io.Resource;
@@ -58,6 +60,8 @@ import org.springframework.test.context.TestPropertySource;
 public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWorkerTest {
 
   public static final String WEBHOOK_ELEMENT_ID = "Wait_For_Completion_Webhook";
+
+  @Autowired private ProcessDefinitionImporter processDefinitionImporter;
 
   @Value("classpath:agentic-ai-ahsp-connectors-a2a.bpmn")
   protected Resource testProcessWithA2a;
@@ -172,7 +176,7 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
                 testSupport.initialUserPrompt));
 
     // manually trigger process definition import to register the webhook
-    importProcessDefinitions();
+    processDefinitionImporter.scheduleImport();
     waitForElementActivation(zeebeTest, WEBHOOK_ELEMENT_ID);
     postWithDelay(
         webhookUrl, testFileContent("exchange-rate-agent-webhook-payload.json").get(), 100);
