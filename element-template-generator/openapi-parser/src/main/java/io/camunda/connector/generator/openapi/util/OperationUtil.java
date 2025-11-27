@@ -29,8 +29,7 @@ import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -142,12 +141,11 @@ public class OperationUtil {
     try {
       var parameters = operation.getParameters();
       Set<HttpOperationProperty> properties =
-          new HashSet<>(
-              parameters == null
-                  ? Collections.emptySet()
-                  : parameters.stream()
-                      .map(parameter -> ParameterUtil.transformToProperty(parameter, components))
-                      .collect(Collectors.toSet()));
+          parameters == null
+              ? new LinkedHashSet<>()
+              : parameters.stream()
+                  .map(parameter -> ParameterUtil.transformToProperty(parameter, components))
+                  .collect(Collectors.toCollection(LinkedHashSet::new));
 
       var label = method.name() + " " + path;
 
