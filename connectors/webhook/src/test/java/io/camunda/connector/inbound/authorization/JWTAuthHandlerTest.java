@@ -18,11 +18,12 @@ import io.camunda.connector.inbound.authorization.AuthorizationResult.Success;
 import io.camunda.connector.inbound.model.JWTProperties;
 import io.camunda.connector.inbound.model.WebhookAuthorization.JwtAuth;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import org.junit.jupiter.api.Test;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import org.junit.Test;
 
 public class JWTAuthHandlerTest {
 
