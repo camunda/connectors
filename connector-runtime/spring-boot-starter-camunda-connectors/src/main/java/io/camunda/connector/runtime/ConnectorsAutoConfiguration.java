@@ -64,6 +64,9 @@ public class ConnectorsAutoConfiguration {
   @Value("${camunda.connector.secretprovider.environment.tenantaware:false}")
   boolean environmentSecretProviderTenantAware;
 
+  @Value("${camunda.connector.secretprovider.environment.processdefinitionaware:false}")
+  boolean environmentSecretProviderProcessDefinitionAware;
+
   @Value(
       "${camunda.connector.secretprovider.console.endpoint:https://cluster-api.cloud.camunda.io/secrets}")
   String consoleSecretsApiEndpoint;
@@ -99,7 +102,10 @@ public class ConnectorsAutoConfiguration {
       matchIfMissing = true)
   public EnvironmentSecretProvider defaultSecretProvider(Environment environment) {
     return new EnvironmentSecretProvider(
-        environment, environmentSecretProviderPrefix, environmentSecretProviderTenantAware);
+        environment,
+        environmentSecretProviderPrefix,
+        environmentSecretProviderTenantAware,
+        environmentSecretProviderProcessDefinitionAware);
   }
 
   @Bean

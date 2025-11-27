@@ -29,7 +29,7 @@ public class EnvironmentSecretProviderTest {
     MockEnvironment env = new MockEnvironment();
     env.setProperty("secrets.my-total-secret", "beebop");
     EnvironmentSecretProvider secretProvider =
-        new EnvironmentSecretProvider(env, "secrets.", false);
+        new EnvironmentSecretProvider(env, "secrets.", false, false);
     String myTotalSecret = secretProvider.getSecret("my-total-secret", null);
     assertThat(myTotalSecret).isEqualTo("beebop");
   }
@@ -38,26 +38,72 @@ public class EnvironmentSecretProviderTest {
   void shouldNotApplyPrefix() {
     MockEnvironment env = new MockEnvironment();
     env.setProperty("my-total-secret", "beebop");
-    EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, null, false);
+    EnvironmentSecretProvider secretProvider =
+        new EnvironmentSecretProvider(env, null, false, false);
     String myTotalSecret = secretProvider.getSecret("my-total-secret", null);
     assertThat(myTotalSecret).isEqualTo("beebop");
   }
 
   @Test
-  void shouldApplyContext() {
+  void shouldApplyTenantId() {
     MockEnvironment env = new MockEnvironment();
     env.setProperty("my-tenant_my-total-secret", "beebop");
-    EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, null, true);
+    EnvironmentSecretProvider secretProvider =
+        new EnvironmentSecretProvider(env, null, true, false);
     String myTotalSecret =
         secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant", "my-process"));
     assertThat(myTotalSecret).isEqualTo("beebop");
   }
 
   @Test
-  void shouldApplyPrefixAndContext() {
+  void shouldApplyPrefixAndTenantId() {
     MockEnvironment env = new MockEnvironment();
     env.setProperty("secrets.my-tenant_my-total-secret", "beebop");
-    EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, "secrets.", true);
+    EnvironmentSecretProvider secretProvider =
+        new EnvironmentSecretProvider(env, "secrets.", true, false);
+    String myTotalSecret =
+        secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant", "my-process"));
+    assertThat(myTotalSecret).isEqualTo("beebop");
+  }
+
+  @Test
+  void shouldApplyProcessDefinitionId() {
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty("my-process_my-total-secret", "beebop");
+    EnvironmentSecretProvider secretProvider =
+        new EnvironmentSecretProvider(env, null, false, true);
+    String myTotalSecret =
+        secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant", "my-process"));
+    assertThat(myTotalSecret).isEqualTo("beebop");
+  }
+
+  @Test
+  void shouldApplyPrefixAndProcessDefinitionId() {
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty("secrets.my-process_my-total-secret", "beebop");
+    EnvironmentSecretProvider secretProvider =
+        new EnvironmentSecretProvider(env, "secrets.", false, true);
+    String myTotalSecret =
+        secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant", "my-process"));
+    assertThat(myTotalSecret).isEqualTo("beebop");
+  }
+
+  @Test
+  void shouldApplyTenantIdAndProcessDefinitionId() {
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty("my-tenant_my-process_my-total-secret", "beebop");
+    EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, null, true, true);
+    String myTotalSecret =
+        secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant", "my-process"));
+    assertThat(myTotalSecret).isEqualTo("beebop");
+  }
+
+  @Test
+  void shouldApplyPrefixAndTenantIdAndProcessDefinitionId() {
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty("secrets.my-tenant_my-process_my-total-secret", "beebop");
+    EnvironmentSecretProvider secretProvider =
+        new EnvironmentSecretProvider(env, "secrets.", true, true);
     String myTotalSecret =
         secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant", "my-process"));
     assertThat(myTotalSecret).isEqualTo("beebop");
