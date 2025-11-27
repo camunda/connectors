@@ -110,6 +110,8 @@ jobs:
       - name: Publish Test Report
         if: always()
         uses: scacap/action-surefire-report@v1
+        with:
+          check_name: 'Publish Test Report'
 
       - name: Upload detailed surefire reports
         if: always()
