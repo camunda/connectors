@@ -24,6 +24,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -77,10 +78,10 @@ class PostmanOperationUtilTest {
     for (var operation : operations) {
       if (operation.builder() != null) {
         var properties = operation.builder().getProperties();
-        // Verify the properties set is a LinkedHashSet by checking the class
-        assertThat(properties.getClass().getSimpleName())
+        // Verify the properties set is a LinkedHashSet for deterministic ordering
+        assertThat(properties)
             .as("Properties should be stored in a LinkedHashSet for deterministic ordering")
-            .isEqualTo("LinkedHashSet");
+            .isInstanceOf(LinkedHashSet.class);
       }
     }
   }
