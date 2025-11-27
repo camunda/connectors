@@ -23,8 +23,6 @@ import io.camunda.connector.generator.postman.model.PostmanCollectionV210;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -60,34 +58,10 @@ class PostmanOperationUtilTest {
     }
   }
 
-  @Test
-  void extractOperations_propertiesAreInLinkedHashSet() throws IOException {
-    // given - parse a collection from test resources
-    PostmanCollectionV210 collection;
-    try (var input = new FileInputStream("src/test/resources/postman-books.json")) {
-      collection = ObjectMapperProvider.getInstance().readValue(input, PostmanCollectionV210.class);
-    }
-
-    // when
-    var operations = PostmanOperationUtil.extractOperations(collection, Set.of());
-
-    // then - verify that properties collection preserves insertion order
-    for (var operation : operations) {
-      if (operation.builder() != null) {
-        var properties = operation.builder().getProperties();
-        // Verify the properties set is a LinkedHashSet for deterministic ordering
-        assertThat(properties)
-            .as("Properties should be stored in a LinkedHashSet for deterministic ordering")
-            .isInstanceOf(LinkedHashSet.class);
-      }
-    }
-  }
-
-  private List<String> toPropertyIdList(Set<HttpOperationProperty> properties) {
+  private List<String> toPropertyIdList(List<HttpOperationProperty> properties) {
     List<String> ids = new ArrayList<>();
-    Iterator<HttpOperationProperty> iterator = properties.iterator();
-    while (iterator.hasNext()) {
-      ids.add(iterator.next().id());
+    for (HttpOperationProperty prop : properties) {
+      ids.add(prop.id());
     }
     return ids;
   }
