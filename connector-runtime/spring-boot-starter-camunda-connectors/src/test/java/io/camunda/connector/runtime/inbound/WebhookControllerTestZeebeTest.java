@@ -628,6 +628,43 @@ class WebhookControllerTestZeebeTest {
     assertNull(responseEntity.getBody());
   }
 
+  @Test
+  public void testHeadRequestForWebhookVerification() throws Exception {
+    WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
+    WebhookResult webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
+        .thenReturn(webhookResult);
+
+    var webhookDef = webhookDefinition("processA", 1, "myPath");
+    var webhookContext =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            v -> {},
+            webhookDef,
+            correlationHandler,
+            (e) -> {},
+            mapper,
+            activityLogRegistry);
+
+    // Register webhook function 'implementation'
+    webhookConnectorRegistry.register(
+        new RegisteredExecutable.Activated(
+            webhookConnectorExecutable,
+            webhookContext,
+            ExecutableId.fromDeduplicationId("random")));
+
+    deployProcess("processA");
+
+    MockHttpServletRequest headRequest = new MockHttpServletRequest();
+    headRequest.setMethod("HEAD");
+
+    ResponseEntity<?> responseEntity =
+        controller.inbound("myPath", new HashMap<>(), null, new HashMap<>(), headRequest);
+
+    assertEquals(200, responseEntity.getStatusCode().value());
+  }
+
   public void deployProcess(String bpmnProcessId) {
     camundaClient
         .newDeployResourceCommand()
