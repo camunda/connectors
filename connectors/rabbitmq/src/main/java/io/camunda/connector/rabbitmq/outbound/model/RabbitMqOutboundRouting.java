@@ -12,7 +12,6 @@ import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.rabbitmq.common.model.FactoryRoutingData;
-import jakarta.validation.constraints.NotBlank;
 
 /**
  * Represents the routing information for a RabbitMQ outbound request. This record is structured to
@@ -26,14 +25,14 @@ import jakarta.validation.constraints.NotBlank;
  * functionality without breaking changes.
  */
 public record RabbitMqOutboundRouting(
-    @NotBlank
-        @TemplateProperty(
+    // @NotBlank
+    @TemplateProperty(
             group = "routing",
             description =
                 "Topic exchange: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>")
         String exchange,
-    @NotBlank
-        @TemplateProperty(
+    // @NotBlank
+    @TemplateProperty(
             group = "routing",
             label = "Routing key",
             description =
