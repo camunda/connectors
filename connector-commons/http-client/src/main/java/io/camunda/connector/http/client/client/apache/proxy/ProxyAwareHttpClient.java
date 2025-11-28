@@ -23,10 +23,12 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.SocketConfig;
+import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,11 +104,21 @@ public class ProxyAwareHttpClient implements Closeable {
   }
 
   private PoolingHttpClientConnectionManager createConnectionManager() {
-    PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+    // Use system default SSL context to support mTLS configured via system properties
+    var sslContext = SSLContexts.createSystemDefault();
+    var sslSocketFactory = new SSLConnectionSocketFactory(sslContext);
+    var socketFactoryRegistry =
+        org.apache.hc.core5.http.config.RegistryBuilder
+            .<org.apache.hc.client5.http.socket.ConnectionSocketFactory>create()
+            .register("https", sslSocketFactory)
+            .register(
+                "http",
+                org.apache.hc.client5.http.socket.PlainConnectionSocketFactory.getSocketFactory())
+            .build();
+
+    var connectionManager = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
     connectionManager.setMaxTotal(Integer.MAX_VALUE);
     connectionManager.setDefaultMaxPerRoute(Integer.MAX_VALUE);
-
-    // Socket config
     connectionManager.setDefaultSocketConfig(SocketConfig.custom().setSoKeepAlive(true).build());
 
     return connectionManager;
