@@ -11,7 +11,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
     <relativePath>../parent/pom.xml</relativePath>
-    <version>8.9.0-SNAPSHOT</version>
+    <version>8.9.0-alpha1-rc98</version>
   </parent>
 
   <modules>
@@ -204,6 +204,11 @@
       <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-embeddings-vector-database</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-load-test</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>
