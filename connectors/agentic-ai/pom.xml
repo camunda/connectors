@@ -69,7 +69,7 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-webhook</artifactId>
-      <version>${version.camunda}</version>
+      <version>${project.version}</version>
     </dependency>
 
     <dependency>
