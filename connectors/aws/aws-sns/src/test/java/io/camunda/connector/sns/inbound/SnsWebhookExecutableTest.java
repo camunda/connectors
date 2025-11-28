@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.sns.inbound;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -27,7 +28,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import org.assertj.core.api.Assertions;
-import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -224,7 +224,7 @@ class SnsWebhookExecutableTest {
 
     // when & then
     testObject.activate(ctx);
-    Assert.assertThrows(Exception.class, () -> testObject.triggerWebhook(payload));
+    assertThrows(Exception.class, () -> testObject.triggerWebhook(payload));
   }
 
   @Test
@@ -253,7 +253,7 @@ class SnsWebhookExecutableTest {
 
     // when & then
     testObject.activate(ctx);
-    Assert.assertThrows(Exception.class, () -> testObject.triggerWebhook(payload));
+    assertThrows(Exception.class, () -> testObject.triggerWebhook(payload));
   }
 
   @Test
@@ -313,7 +313,7 @@ class SnsWebhookExecutableTest {
 
     // when & then
     testObject.activate(ctx);
-    Assert.assertThrows(Exception.class, () -> testObject.triggerWebhook(payload));
+    assertThrows(Exception.class, () -> testObject.triggerWebhook(payload));
   }
 
   private InboundConnectorContext createConnectorContext(Map<String, Object> properties) {

@@ -8,7 +8,7 @@ package io.camunda.connector.csv;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.*;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.camunda.connector.csv.model.*;
 import io.camunda.connector.csv.model.ReadCsvRequest.RowType;
@@ -16,7 +16,7 @@ import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilde
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CsvConnectorTests {
 

@@ -57,6 +57,7 @@ public class SecurityConfiguration {
             requestMatcherConfigurer ->
                 requestMatcherConfigurer
                     .requestMatchers(HttpMethod.GET, "/inbound/*")
+                    .requestMatchers(HttpMethod.HEAD, "/inbound/*")
                     .requestMatchers(HttpMethod.POST, "/inbound/*")
                     .requestMatchers(HttpMethod.PUT, "/inbound/*")
                     .requestMatchers(HttpMethod.DELETE, "/inbound/*")
