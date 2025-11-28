@@ -24,7 +24,7 @@ jobs:
       docker_version: ${{ steps.maven_version.outputs.docker_version }}
       branch: ${{ steps.version.outputs.branch }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Determine branch and version
         id: version
