@@ -23,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
 import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
+import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
@@ -59,6 +60,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           ProcessDefinitionAdHocToolElementsResolver.class,
           AdHocToolsSchemaFunction.class,
           GatewayToolHandlerRegistry.class,
+          AgentToolsResolver.class,
           AgentInitializer.class,
           InProcessConversationStore.class,
           CamundaDocumentConversationStore.class,
