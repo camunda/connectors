@@ -98,7 +98,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '21.0.9'
 
       - name: Restore cache
         uses: actions/cache@v4
@@ -247,7 +247,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '21.0.9'
 
       - name: Import Secrets
         id: secrets
