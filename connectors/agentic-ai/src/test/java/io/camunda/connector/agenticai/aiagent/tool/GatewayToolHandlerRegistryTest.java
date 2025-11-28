@@ -538,4 +538,120 @@ class GatewayToolHandlerRegistryTest {
       }
     }
   }
+
+  @Nested
+  class ResolveUpdatedGatewayToolDefinitions {
+
+    private static final AgentContext AGENT_CONTEXT = AgentContext.empty();
+
+    @Mock private GatewayToolHandler handler1;
+    @Mock private GatewayToolHandler handler2;
+
+    private GatewayToolHandlerRegistry registry;
+
+    @BeforeEach
+    void setUp() {
+      when(handler1.type()).thenReturn("type1");
+      when(handler2.type()).thenReturn("type2");
+      registry = new GatewayToolHandlerRegistryImpl(List.of(handler1, handler2));
+    }
+
+    @Test
+    void returnsEmptyMap_whenNoChangesDetected() {
+      var gatewayToolDefinitions =
+          List.of(
+              GatewayToolDefinition.builder()
+                  .type("type1")
+                  .name("gateway1")
+                  .description("Gateway 1")
+                  .build());
+
+      when(handler1.resolveUpdatedGatewayToolDefinitions(AGENT_CONTEXT, gatewayToolDefinitions))
+          .thenReturn(GatewayToolDefinitionUpdates.empty());
+      when(handler2.resolveUpdatedGatewayToolDefinitions(AGENT_CONTEXT, gatewayToolDefinitions))
+          .thenReturn(GatewayToolDefinitionUpdates.empty());
+
+      var result =
+          registry.resolveUpdatedGatewayToolDefinitions(AGENT_CONTEXT, gatewayToolDefinitions);
+
+      assertThat(result).isEmpty();
+    }
+
+    @Test
+    void returnsUpdatesFromSingleHandler() {
+      var gatewayToolDefinitions =
+          List.of(
+              GatewayToolDefinition.builder()
+                  .type("type1")
+                  .name("gateway1")
+                  .description("Gateway 1")
+                  .build());
+
+      final var handler1Updates = new GatewayToolDefinitionUpdates(List.of("gateway1"), List.of());
+      when(handler1.resolveUpdatedGatewayToolDefinitions(AGENT_CONTEXT, gatewayToolDefinitions))
+          .thenReturn(handler1Updates);
+      when(handler2.resolveUpdatedGatewayToolDefinitions(AGENT_CONTEXT, gatewayToolDefinitions))
+          .thenReturn(GatewayToolDefinitionUpdates.empty());
+
+      var result =
+          registry.resolveUpdatedGatewayToolDefinitions(AGENT_CONTEXT, gatewayToolDefinitions);
+
+      assertThat(result).hasSize(1);
+      assertThat(result).containsEntry("type1", handler1Updates);
+    }
+
+    @Test
+    void aggregatesUpdatesFromMultipleHandlers() {
+      var gatewayToolDefinitions =
+          List.of(
+              GatewayToolDefinition.builder()
+                  .type("type1")
+                  .name("gateway1")
+                  .description("Gateway 1")
+                  .build(),
+              GatewayToolDefinition.builder()
+                  .type("type2")
+                  .name("gateway2")
+                  .description("Gateway 2")
+                  .build());
+
+      final var handler1Updates = new GatewayToolDefinitionUpdates(List.of("gateway1"), List.of());
+      final var handler2Updates =
+          new GatewayToolDefinitionUpdates(List.of(), List.of("gateway-removed"));
+      when(handler1.resolveUpdatedGatewayToolDefinitions(AGENT_CONTEXT, gatewayToolDefinitions))
+          .thenReturn(handler1Updates);
+      when(handler2.resolveUpdatedGatewayToolDefinitions(AGENT_CONTEXT, gatewayToolDefinitions))
+          .thenReturn(handler2Updates);
+
+      var result =
+          registry.resolveUpdatedGatewayToolDefinitions(AGENT_CONTEXT, gatewayToolDefinitions);
+
+      assertThat(result).hasSize(2);
+      assertThat(result).containsEntry("type1", handler1Updates);
+      assertThat(result).containsEntry("type2", handler2Updates);
+    }
+
+    @Test
+    void excludesHandlersWithNoChanges() {
+      var gatewayToolDefinitions =
+          List.of(
+              GatewayToolDefinition.builder()
+                  .type("type1")
+                  .name("gateway1")
+                  .description("Gateway 1")
+                  .build());
+
+      final var handler1Updates = new GatewayToolDefinitionUpdates(List.of("gateway1"), List.of());
+      when(handler1.resolveUpdatedGatewayToolDefinitions(AGENT_CONTEXT, gatewayToolDefinitions))
+          .thenReturn(handler1Updates);
+      when(handler2.resolveUpdatedGatewayToolDefinitions(AGENT_CONTEXT, gatewayToolDefinitions))
+          .thenReturn(GatewayToolDefinitionUpdates.empty());
+
+      var result =
+          registry.resolveUpdatedGatewayToolDefinitions(AGENT_CONTEXT, gatewayToolDefinitions);
+
+      assertThat(result).hasSize(1);
+      assertThat(result).containsOnlyKeys("type1");
+    }
+  }
 }

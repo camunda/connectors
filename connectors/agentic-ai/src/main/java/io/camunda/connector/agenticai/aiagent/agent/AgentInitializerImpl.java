@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
@@ -21,24 +20,29 @@ import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 public class AgentInitializerImpl implements AgentInitializer {
 
-  private final AdHocToolsSchemaResolver toolsSchemaResolver;
+  private static final Logger LOGGER = LoggerFactory.getLogger(AgentInitializerImpl.class);
+
+  private final AgentToolsResolver toolsResolver;
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
 
   public AgentInitializerImpl(
-      AdHocToolsSchemaResolver toolsSchemaResolver,
-      GatewayToolHandlerRegistry gatewayToolHandlers) {
-    this.toolsSchemaResolver = toolsSchemaResolver;
+      AgentToolsResolver toolsResolver, GatewayToolHandlerRegistry gatewayToolHandlers) {
+    this.toolsResolver = toolsResolver;
     this.gatewayToolHandlers = gatewayToolHandlers;
   }
 
   @Override
   public AgentInitializationResult initializeAgent(AgentExecutionContext executionContext) {
     AgentContext agentContext =
-        Optional.ofNullable(executionContext.initialAgentContext()).orElseGet(AgentContext::empty);
+        Optional.ofNullable(executionContext.initialAgentContext())
+            .orElseGet(
+                () -> AgentContext.empty().withMetadata(executionContext.jobContext().metadata()));
 
     List<ToolCallResult> toolCallResults =
         Optional.ofNullable(executionContext.initialToolCallResults()).orElseGet(List::of);
@@ -46,24 +50,34 @@ public class AgentInitializerImpl implements AgentInitializer {
     return switch (agentContext.state()) {
       case INITIALIZING -> initiateToolDiscovery(executionContext, agentContext, toolCallResults);
       case TOOL_DISCOVERY -> handleToolDiscoveryResults(agentContext, toolCallResults);
-      default -> new AgentContextInitializationResult(agentContext, toolCallResults);
+      default -> handleReadyState(executionContext, agentContext, toolCallResults);
     };
+  }
+
+  private AgentInitializationResult handleReadyState(
+      AgentExecutionContext executionContext,
+      AgentContext agentContext,
+      List<ToolCallResult> toolCallResults) {
+
+    final var agentMetadata = agentContext.metadata();
+    final var executionMetadata = executionContext.jobContext().metadata();
+    if (agentMetadata == null
+        || !executionMetadata.processDefinitionKey().equals(agentMetadata.processDefinitionKey())) {
+      agentContext =
+          toolsResolver
+              .updateToolDefinitions(executionContext, agentContext)
+              .withMetadata(executionMetadata);
+    }
+
+    return new AgentContextInitializationResult(agentContext, toolCallResults);
   }
 
   private AgentInitializationResult initiateToolDiscovery(
       AgentExecutionContext executionContext,
       AgentContext agentContext,
       List<ToolCallResult> toolCallResults) {
-    final var toolElements = executionContext.toolElements();
-
-    // skip tool discovery if no tool elements are defined
-    if (CollectionUtils.isEmpty(toolElements)) {
-      return new AgentContextInitializationResult(
-          agentContext.withState(AgentState.READY), toolCallResults);
-    }
-
     // add ad-hoc tool definitions to agent context
-    final var adHocToolsSchema = toolsSchemaResolver.resolveAdHocToolsSchema(toolElements);
+    final var adHocToolsSchema = toolsResolver.loadAdHocToolsSchema(executionContext, agentContext);
     agentContext = agentContext.withToolDefinitions(adHocToolsSchema.toolDefinitions());
 
     if (CollectionUtils.isEmpty(adHocToolsSchema.gatewayToolDefinitions())) {

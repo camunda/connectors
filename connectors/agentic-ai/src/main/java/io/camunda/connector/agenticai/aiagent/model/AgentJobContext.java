@@ -20,4 +20,8 @@ public interface AgentJobContext {
   String tenantId();
 
   String type();
+
+  default AgentMetadata metadata() {
+    return new AgentMetadata(processDefinitionKey(), processInstanceKey());
+  }
 }

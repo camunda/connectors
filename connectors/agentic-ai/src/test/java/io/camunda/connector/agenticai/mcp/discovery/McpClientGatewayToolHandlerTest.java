@@ -413,4 +413,113 @@ class McpClientGatewayToolHandlerTest {
         .inputSchema(Map.of("type", "object"))
         .build();
   }
+
+  @Nested
+  class ResolveUpdatedGatewayToolDefinitions {
+
+    @Test
+    void returnsEmptyUpdates_whenNoChanges() {
+      var agentContext =
+          AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of("mcp1", "mcp2"));
+      var gatewayToolDefinitions =
+          List.of(
+              createGatewayToolDefinition("mcpClient", "mcp1"),
+              createGatewayToolDefinition("mcpClient", "mcp2"));
+
+      var result =
+          handler.resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
+
+      assertThat(result.added()).isEmpty();
+      assertThat(result.removed()).isEmpty();
+    }
+
+    @Test
+    void detectsAddedMcpClients() {
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of("mcp1"));
+      var gatewayToolDefinitions =
+          List.of(
+              createGatewayToolDefinition("mcpClient", "mcp1"),
+              createGatewayToolDefinition("mcpClient", "mcp2"),
+              createGatewayToolDefinition("mcpClient", "mcp3"));
+
+      var result =
+          handler.resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
+
+      assertThat(result.added()).containsExactly("mcp2", "mcp3");
+      assertThat(result.removed()).isEmpty();
+    }
+
+    @Test
+    void detectsRemovedMcpClients() {
+      var agentContext =
+          AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of("mcp1", "mcp2", "mcp3"));
+      var gatewayToolDefinitions = List.of(createGatewayToolDefinition("mcpClient", "mcp1"));
+
+      var result =
+          handler.resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
+
+      assertThat(result.added()).isEmpty();
+      assertThat(result.removed()).containsExactly("mcp2", "mcp3");
+    }
+
+    @Test
+    void detectsBothAddedAndRemovedMcpClients() {
+      var agentContext =
+          AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of("mcp1", "mcp2"));
+      var gatewayToolDefinitions =
+          List.of(
+              createGatewayToolDefinition("mcpClient", "mcp2"),
+              createGatewayToolDefinition("mcpClient", "mcp3"));
+
+      var result =
+          handler.resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
+
+      assertThat(result.added()).containsExactly("mcp3");
+      assertThat(result.removed()).containsExactly("mcp1");
+    }
+
+    @Test
+    void ignoresNonMcpGatewayToolDefinitions() {
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of("mcp1"));
+      var gatewayToolDefinitions =
+          List.of(
+              createGatewayToolDefinition("mcpClient", "mcp1"),
+              createGatewayToolDefinition("other", "other1"),
+              createGatewayToolDefinition("a2aClient", "a2a1"));
+
+      var result =
+          handler.resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
+
+      assertThat(result.added()).isEmpty();
+      assertThat(result.removed()).isEmpty();
+    }
+
+    @Test
+    void handlesEmptyExistingClients() {
+      var agentContext = AgentContext.empty();
+      var gatewayToolDefinitions =
+          List.of(
+              createGatewayToolDefinition("mcpClient", "mcp1"),
+              createGatewayToolDefinition("mcpClient", "mcp2"));
+
+      var result =
+          handler.resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
+
+      assertThat(result.added()).containsExactly("mcp1", "mcp2");
+      assertThat(result.removed()).isEmpty();
+    }
+
+    @Test
+    void handlesEmptyNewGatewayToolDefinitions() {
+      var agentContext =
+          AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of("mcp1", "mcp2"));
+      var gatewayToolDefinitions = List.<GatewayToolDefinition>of();
+
+      var result =
+          handler.resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
+
+      assertThat(result.added()).isEmpty();
+      assertThat(result.removed()).containsExactly("mcp1", "mcp2");
+    }
+  }
 }

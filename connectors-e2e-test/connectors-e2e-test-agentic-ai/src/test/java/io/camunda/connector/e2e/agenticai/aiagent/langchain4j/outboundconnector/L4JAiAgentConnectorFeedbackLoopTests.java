@@ -18,8 +18,6 @@ package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.outboundconnector
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import dev.langchain4j.data.message.AiMessage;
@@ -71,7 +69,8 @@ public class L4JAiAgentConnectorFeedbackLoopTests extends BaseL4JAiAgentConnecto
                 .hasResponseText(HAIKU_TEXT)
                 .hasNoResponseJson());
 
-    verify(toolsSchemaResolver, never()).resolveAdHocToolsSchema(any());
+    // verify that tool schema resolver was called with an empty list (no tools configured)
+    verify(toolsSchemaResolver).resolveAdHocToolsSchema(List.of());
   }
 
   @Test

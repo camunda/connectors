@@ -23,6 +23,7 @@ import org.springframework.lang.Nullable;
 @JsonDeserialize(builder = AgentContext.AgentContextJacksonProxyBuilder.class)
 public record AgentContext(
     @RecordBuilder.Initializer("DEFAULT_STATE") AgentState state,
+    @Nullable AgentMetadata metadata,
     @RecordBuilder.Initializer(source = AgentMetrics.class, value = "empty") AgentMetrics metrics,
     List<ToolDefinition> toolDefinitions,
     @Nullable ConversationContext conversation,
