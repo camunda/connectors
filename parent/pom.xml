@@ -87,6 +87,7 @@ limitations under the License.</license.inlineheader>
     <version.hibernate-validator>9.1.0.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.failsafe>3.3.2</version.failsafe>
+    <version.hamcrest>3.0</version.hamcrest>
 
     <version.spring-boot>3.5.7</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>7.4.1</version.spring-cloud-gcp-starter-logging>
@@ -136,7 +137,7 @@ limitations under the License.</license.inlineheader>
 
     <version.slack>1.46.0</version.slack>
 
-    <version.testcontainers>1.21.3</version.testcontainers>
+    <version.testcontainers>2.0.2</version.testcontainers>
     <version.awaitility>4.3.0</version.awaitility>
     <version.json-path>2.10.0</version.json-path>
 
@@ -622,13 +623,20 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <dependency>
+        <groupId>org.hamcrest</groupId>
+        <artifactId>hamcrest</artifactId>
+        <version>${version.hamcrest}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers</artifactId>
         <version>${version.testcontainers}</version>
       </dependency>
       <dependency>
         <groupId>org.testcontainers</groupId>
-        <artifactId>junit-jupiter</artifactId>
+        <artifactId>testcontainers-junit-jupiter</artifactId>
         <version>${version.testcontainers}</version>
       </dependency>
       <dependency>

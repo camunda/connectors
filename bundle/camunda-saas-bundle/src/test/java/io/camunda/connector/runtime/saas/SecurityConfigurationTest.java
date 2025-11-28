@@ -132,6 +132,9 @@ public class SecurityConfigurationTest {
     mvc.perform(get("/inbound/non-existing").header("Authorization", "Bearer TOKEN"))
         .andExpect(status().isNotFound());
 
+    mvc.perform(head("/inbound/non-existing").header("Authorization", "Bearer TOKEN"))
+        .andExpect(status().isNotFound());
+
     mvc.perform(post("/inbound/non-existing").header("Authorization", "Bearer TOKEN"))
         .andExpect(status().isNotFound());
 
@@ -148,9 +151,6 @@ public class SecurityConfigurationTest {
         .andExpect(status().isUnauthorized());
 
     mvc.perform(patch("/inbound/non-existing").header("Authorization", "Bearer TOKEN"))
-        .andExpect(status().isUnauthorized());
-
-    mvc.perform(head("/inbound/non-existing").header("Authorization", "Bearer TOKEN"))
         .andExpect(status().isUnauthorized());
   }
 
