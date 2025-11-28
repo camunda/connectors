@@ -14,6 +14,8 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
+import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
+import io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -56,12 +58,8 @@ public record WebhookConnectorProperties(
             description =
                 "Choose whether HMAC verification is enabled. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a> and <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#example' target='_blank'>example</a> that explains how to use HMAC-related fields",
             defaultValue = "disabled",
-            type = PropertyType.Dropdown,
-            choices = {
-              @DropdownPropertyChoice(label = "Enabled", value = "enabled"),
-              @DropdownPropertyChoice(label = "Disabled", value = "disabled")
-            })
-        String shouldValidateHmac,
+            type = PropertyType.Dropdown)
+        HMACSwitchCustomerChoice shouldValidateHmac,
     @TemplateProperty(
             id = "hmacSecret",
             label = "HMAC secret key",
@@ -89,14 +87,9 @@ public record WebhookConnectorProperties(
             description = "Choose HMAC algorithm",
             defaultValue = "sha_256",
             type = PropertyType.Dropdown,
-            choices = {
-              @DropdownPropertyChoice(label = "SHA-1", value = "sha_1"),
-              @DropdownPropertyChoice(label = "SHA-256", value = "sha_256"),
-              @DropdownPropertyChoice(label = "SHA-512", value = "sha_512")
-            },
             condition =
                 @PropertyCondition(property = "inbound.shouldValidateHmac", equals = "enabled"))
-        String hmacAlgorithm,
+        HMACAlgoCustomerChoice hmacAlgorithm,
     @TemplateProperty(
             id = "hmacScopes",
             label = "HMAC scopes",

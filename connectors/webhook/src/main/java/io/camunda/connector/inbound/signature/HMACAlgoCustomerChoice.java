@@ -6,9 +6,14 @@
  */
 package io.camunda.connector.inbound.signature;
 
+import io.camunda.connector.generator.java.annotation.DropdownItem;
+
 public enum HMACAlgoCustomerChoice {
+  @DropdownItem(label = "SHA-1")
   sha_1("HmacSHA1", "sha1"),
+  @DropdownItem(label = "SHA-256")
   sha_256("HmacSHA256", "sha256"),
+  @DropdownItem(label = "SHA-512")
   sha_512("HmacSHA512", "sha512");
 
   private final String algoReference;
