@@ -194,21 +194,23 @@ public class TextractTestUtils {
 
   public static final TextractRequestData FULL_FILLED_ASYNC_TEXTRACT_DATA =
       new TextractRequestData(
-          TextractExecutionType.ASYNC,
           DocumentLocationType.S3,
           "test-bucket",
           "test-object",
           "1",
+          null,
+          TextractExecutionType.ASYNC,
           true,
           true,
           true,
           true,
+          false,
+          "",
           "token",
           "jobTag",
           "kmsId",
           "notification-channel",
           "sns-arn",
           "outputBucket",
-          "prefix",
-          null);
+          "prefix");
 }
