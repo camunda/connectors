@@ -34,6 +34,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -44,6 +45,11 @@ import org.springframework.context.annotation.Import;
 public class OutboundConnectorsAutoConfiguration {
 
   @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnProperty(
+      name = "camunda.connector.virtual-threads.enabled",
+      havingValue = "true",
+      matchIfMissing = true)
   public CamundaClientExecutorService camundaClientExecutorService(
       @Autowired(required = false) MeterRegistry meterRegistry) {
     ThreadFactory factory = Thread.ofVirtual().name("job-worker-virtual-", 0).factory();
