@@ -119,8 +119,6 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
                 final var existingToolDefinition =
                     existingNonGatewayToolDefinitions.get(newToolDefinition.name());
 
-                // TODO do we allow all cases here or only certain fields to change (e.g.
-                // description is allowed, but schema is not)?
                 if (!existingToolDefinition.equals(newToolDefinition)) {
                   LOGGER.info(
                       "Updating tool definition '{}' after process migration.",
