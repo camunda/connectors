@@ -29,11 +29,14 @@ public class EnvironmentSecretProvider implements SecretProvider {
   private final Environment environment;
   private final String prefix;
   private final boolean tenantAware;
+  private final boolean processDefinitionAware;
 
-  public EnvironmentSecretProvider(Environment environment, String prefix, boolean tenantAware) {
+  public EnvironmentSecretProvider(
+      Environment environment, String prefix, boolean tenantAware, boolean processDefinitionAware) {
     this.environment = environment;
     this.prefix = prefix;
     this.tenantAware = tenantAware;
+    this.processDefinitionAware = processDefinitionAware;
   }
 
   @PostConstruct
@@ -68,7 +71,13 @@ public class EnvironmentSecretProvider implements SecretProvider {
               + "Please set `camunda.connector.secretprovider.environment.prefix`. or `CAMUNDA_CONNECTOR_SECRETPROVIDER_ENVIRONMENT_PREFIX`.");
     }
     String secretName =
-        tenantAware ? composeSecretNameTenantAware(name, context) : composeSecretName(name);
+        tenantAware
+            ? (processDefinitionAware
+                ? composeSecretNameTenantAwareProcessDefinitionAware(name, context)
+                : composeSecretNameTenantAware(name, context))
+            : (processDefinitionAware
+                ? composeSecretNameProcessDefinitionAware(name, context)
+                : composeSecretName(name));
     LOG.debug("Getting secret value for name '{}'", secretName);
     return environment.getProperty(secretName);
   }
@@ -93,5 +102,33 @@ public class EnvironmentSecretProvider implements SecretProvider {
   private String composeSecretNameTenantAware(String name, SecretContext context) {
     return String.format(
         "%s%s_%s", StringUtils.hasText(prefix) ? prefix : "", context.tenantId(), name);
+  }
+
+  /**
+   * returns the secret name in format ${prefix}${processDefinitionId}_${name}
+   *
+   * @param name the secrets' name to find the value for
+   * @return the final secret name
+   */
+  private String composeSecretNameProcessDefinitionAware(String name, SecretContext context) {
+    return String.format(
+        "%s%s_%s", StringUtils.hasText(prefix) ? prefix : "", context.processDefinitionId(), name);
+  }
+
+  /**
+   * returns the secret name in format ${prefix}${tenantId}_${processDefinitionId}_${name}
+   *
+   * @param name the secrets' name to find the value for
+   * @param context the context of where the secret is originated
+   * @return the final secret name
+   */
+  private String composeSecretNameTenantAwareProcessDefinitionAware(
+      String name, SecretContext context) {
+    return String.format(
+        "%s%s_%s_%s",
+        StringUtils.hasText(prefix) ? prefix : "",
+        context.tenantId(),
+        context.processDefinitionId(),
+        name);
   }
 }
