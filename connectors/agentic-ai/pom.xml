@@ -21,7 +21,7 @@
     <version.record-builder>51</version.record-builder>
     <version.groovy>4.0.29</version.groovy>
     <version.gmavenplus-plugin>4.2.1</version.gmavenplus-plugin>
-    <version.a2asdk>0.3.2.Final</version.a2asdk>
+    <version.a2asdk>0.3.3.Final</version.a2asdk>
   </properties>
 
   <licenses>
