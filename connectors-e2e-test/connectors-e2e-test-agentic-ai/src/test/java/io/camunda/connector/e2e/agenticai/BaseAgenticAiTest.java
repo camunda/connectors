@@ -62,6 +62,10 @@ public abstract class BaseAgenticAiTest {
   }
 
   protected ZeebeTest deployModel(BpmnModelInstance model) {
+    return deployModel(model, 1);
+  }
+
+  protected ZeebeTest deployModel(BpmnModelInstance model, int expectedVersionCount) {
     final var process =
         model.getDefinitions().getRootElements().stream()
             .findFirst()
@@ -81,7 +85,7 @@ public abstract class BaseAgenticAiTest {
                       .send()
                       .join();
 
-              assertThat(processDefinitions.items()).hasSize(1);
+              assertThat(processDefinitions.items()).hasSize(expectedVersionCount);
             });
 
     return zeebeTest;
