@@ -20,7 +20,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /** Configuration properties for Camunda Connectors. */
 @ConfigurationProperties(prefix = "camunda.connector")
-public record ConnectorProperties(Polling polling, Webhook webhook, SecretProvider secretProvider) {
+public record ConnectorProperties(
+    Polling polling,
+    Webhook webhook,
+    SecretProvider secretProvider,
+    VirtualThreads virtualThreads) {
   // NOTE: this class is not used in directly in the code, but is used by Spring Boot
   // configuration annotation processor to generate the configuration properties metadata
 
@@ -29,6 +33,8 @@ public record ConnectorProperties(Polling polling, Webhook webhook, SecretProvid
 
   /** Configuration for Operate polling that enables inbound Connectors. */
   public record Polling(boolean enabled, long interval) {}
+
+  public record VirtualThreads(boolean enabled) {}
 
   public record SecretProvider(
       Discovery discovery, Environment environment, ConsoleSecretProvider console) {}
