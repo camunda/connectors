@@ -13,9 +13,11 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,22 +66,33 @@ public class AgentToolsResolverImpl implements AgentToolsResolver {
       return;
     }
 
-    final var added =
-        gatewayToolHandlerUpdates.values().stream()
-            .flatMap(updates -> updates.added().stream())
-            .toList();
-    final var removed =
-        gatewayToolHandlerUpdates.values().stream()
-            .flatMap(updates -> updates.removed().stream())
-            .toList();
+    final var changesSummary =
+        gatewayToolHandlerUpdates.entrySet().stream()
+            .map(
+                entry -> {
+                  final var updates = entry.getValue();
+
+                  final var parts = new ArrayList<String>();
+                  if (CollectionUtils.isNotEmpty(updates.added())) {
+                    parts.add("added: " + String.join(", ", updates.added()));
+                  }
+
+                  if (CollectionUtils.isNotEmpty(updates.removed())) {
+                    parts.add("removed: " + String.join(", ", updates.removed()));
+                  }
+
+                  return "%s [%s]".formatted(entry.getKey(), String.join("; ", parts));
+                })
+            .collect(Collectors.joining(", "));
+
     throw new ConnectorException(
         AgentErrorCodes.ERROR_CODE_MIGRATION_GATEWAY_TOOL_DEFINITIONS_CHANGED,
         """
               Gateway tool definitions have changed, most likely due to a process migration.
               Adding or removing gateway tool definitions to a running AI Agent is currently not supported.
               Please restore gateway tool definitions to the previous state to continue agent execution.
-              Added: %s - Removed: %s"""
-            .formatted(String.join(", ", added), String.join(", ", removed)));
+              Changes: %s"""
+            .formatted(changesSummary));
   }
 
   private AgentContext updateChangedToolDefinitions(
