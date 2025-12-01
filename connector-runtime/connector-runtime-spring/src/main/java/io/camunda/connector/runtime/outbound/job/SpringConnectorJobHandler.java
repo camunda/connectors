@@ -26,9 +26,9 @@ import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.api.worker.JobHandler;
 import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.client.jobhandling.CommandWrapper;
-import io.camunda.client.metrics.MetricsContext.CounterMetricsContext;
-import io.camunda.client.metrics.MetricsContext.TimerMetricsContext;
 import io.camunda.client.metrics.MetricsRecorder;
+import io.camunda.client.metrics.MetricsRecorder.CounterMetricsContext;
+import io.camunda.client.metrics.MetricsRecorder.TimerMetricsContext;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -42,7 +42,7 @@ import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.*;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
-import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetricsContext;
+import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
@@ -136,12 +136,16 @@ public class SpringConnectorJobHandler implements JobHandler {
   }
 
   @Override
-  public void handle(JobClient client, ActivatedJob job) {
-    CounterMetricsContext counterMetricsContext = ConnectorsOutboundMetricsContext.counter(job);
-    TimerMetricsContext timerMetricsContext = ConnectorsOutboundMetricsContext.timer(job);
+  public void handle(JobClient client, ActivatedJob job) throws Exception {
+    CounterMetricsContext counterMetricsContext = ConnectorMetrics.counter(job);
+    TimerMetricsContext timerMetricsContext = ConnectorMetrics.timer(job);
     connectorsOutboundMetrics.increaseActivated(counterMetricsContext);
     connectorsOutboundMetrics.executeWithTimer(
-        timerMetricsContext, () -> this.executeJob(client, job, counterMetricsContext));
+        timerMetricsContext,
+        () -> {
+          this.executeJob(client, job, counterMetricsContext);
+          return null;
+        });
   }
 
   private void executeJob(

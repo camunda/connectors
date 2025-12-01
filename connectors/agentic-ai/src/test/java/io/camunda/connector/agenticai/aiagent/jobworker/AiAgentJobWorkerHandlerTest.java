@@ -151,7 +151,7 @@ class AiAgentJobWorkerHandlerTest {
    */
 
   @Test
-  void completesJobWithoutProcessChanges() {
+  void completesJobWithoutProcessChanges() throws Exception {
     when(agentRequestHandler.handleRequest(executionContext))
         .thenReturn(
             JobWorkerAgentCompletion.builder()
@@ -178,7 +178,7 @@ class AiAgentJobWorkerHandlerTest {
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
-  void completesWithCompletingAdHocSubProcess(boolean cancelRemainingInstances) {
+  void completesWithCompletingAdHocSubProcess(boolean cancelRemainingInstances) throws Exception {
     when(agentRequestHandler.handleRequest(executionContext))
         .thenReturn(
             JobWorkerAgentCompletion.builder()
@@ -209,7 +209,7 @@ class AiAgentJobWorkerHandlerTest {
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
-  void completesWithActivatingElements(boolean cancelRemainingInstances) {
+  void completesWithActivatingElements(boolean cancelRemainingInstances) throws Exception {
     final var agentResponse =
         AgentResponse.builder()
             .context(AgentContext.empty())
@@ -260,7 +260,7 @@ class AiAgentJobWorkerHandlerTest {
   }
 
   @Test
-  void failsSuccessfulCompletionBasedOnErrorExpression() {
+  void failsSuccessfulCompletionBasedOnErrorExpression() throws Exception {
     jobHeaders.put("errorExpression", ERROR_EXPRESSION);
 
     final var agentResponse =
@@ -289,7 +289,7 @@ class AiAgentJobWorkerHandlerTest {
   }
 
   @Test
-  void throwsBpmnErrorForSuccessfulCompletionBasedOnErrorExpression() {
+  void throwsBpmnErrorForSuccessfulCompletionBasedOnErrorExpression() throws Exception {
     jobHeaders.put("errorExpression", ERROR_EXPRESSION);
 
     final var agentResponse =
@@ -318,7 +318,7 @@ class AiAgentJobWorkerHandlerTest {
   }
 
   @Test
-  void triggersCompletionExceptionHandler() {
+  void triggersCompletionExceptionHandler() throws Exception {
     stubFor(
         post(urlPathEqualTo("/v2/jobs/123456/completion"))
             .willReturn(
@@ -356,7 +356,7 @@ class AiAgentJobWorkerHandlerTest {
   }
 
   @Test
-  void failsWithExceptionMessage() {
+  void failsWithExceptionMessage() throws Exception {
     final var exception = new RuntimeException("Execution failed");
     when(agentRequestHandler.handleRequest(executionContext)).thenThrow(exception);
 
@@ -379,7 +379,7 @@ class AiAgentJobWorkerHandlerTest {
   @ParameterizedTest
   @NullAndEmptySource
   @ValueSource(strings = "  ")
-  void failsWithEmptyExceptionMessage(String exceptionMessage) {
+  void failsWithEmptyExceptionMessage(String exceptionMessage) throws Exception {
     final var exception = new RuntimeException(exceptionMessage);
     when(agentRequestHandler.handleRequest(executionContext)).thenThrow(exception);
 
@@ -403,7 +403,7 @@ class AiAgentJobWorkerHandlerTest {
   }
 
   @Test
-  void failsWithRetriesAndRetryBackoff() {
+  void failsWithRetriesAndRetryBackoff() throws Exception {
     when(job.getRetries()).thenReturn(3);
     jobHeaders.put("retryBackoff", "PT10S");
 
@@ -427,7 +427,7 @@ class AiAgentJobWorkerHandlerTest {
   }
 
   @Test
-  void failsWithInvalidRetryBackoffValue() {
+  void failsWithInvalidRetryBackoffValue() throws Exception {
     Mockito.reset(executionContextFactory);
     jobHeaders.put("retryBackoff", "invalid");
 
@@ -452,7 +452,7 @@ class AiAgentJobWorkerHandlerTest {
   }
 
   @Test
-  void failsWithConnectorException() {
+  void failsWithConnectorException() throws Exception {
     final var exception = new ConnectorException("MY_ERROR_CODE", "Execution failed");
     when(agentRequestHandler.handleRequest(executionContext)).thenThrow(exception);
 
@@ -476,7 +476,7 @@ class AiAgentJobWorkerHandlerTest {
   }
 
   @Test
-  void failsWithJobErrorFromErrorExpression() {
+  void failsWithJobErrorFromErrorExpression() throws Exception {
     jobHeaders.put("errorExpression", ERROR_EXPRESSION);
 
     final var exception = new ConnectorException("JOB_ERROR_CODE", "Execution failed");
@@ -493,7 +493,7 @@ class AiAgentJobWorkerHandlerTest {
   }
 
   @Test
-  void throwsBpmnErrorFromErrorExpression() {
+  void throwsBpmnErrorFromErrorExpression() throws Exception {
     jobHeaders.put("errorExpression", ERROR_EXPRESSION);
 
     final var exception = new ConnectorException("BPMN_ERROR_CODE", "Execution failed");
@@ -510,7 +510,7 @@ class AiAgentJobWorkerHandlerTest {
   }
 
   @Test
-  void failsJobWhenErrorExpressionCouldNotBeParsed() {
+  void failsJobWhenErrorExpressionCouldNotBeParsed() throws Exception {
     jobHeaders.put("errorExpression", "=invalid expression");
 
     final var exception = new ConnectorException("MY_ERROR_CODE", "Execution failed");
@@ -528,7 +528,7 @@ class AiAgentJobWorkerHandlerTest {
   }
 
   @Test
-  void truncatesLongErrorMessage() {
+  void truncatesLongErrorMessage() throws Exception {
     final var exceptionMessage = "abc".repeat(3000);
     final var expectedExceptionMessage = exceptionMessage.substring(0, 6000);
 
