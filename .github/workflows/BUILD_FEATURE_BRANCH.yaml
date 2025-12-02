@@ -83,3 +83,12 @@ jobs:
           provenance: false
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle:${{ env.TAG }}
+
+  helm-deploy:
+    needs: [ run-tests ]
+    name: Run Helm Integration Tests
+    uses: ./.github/workflows/INTEGRATION_TEST.yml
+    secrets: inherit
+    with:
+      connectors-version: pr-${{ github.sha }}
+      release-branch: main
