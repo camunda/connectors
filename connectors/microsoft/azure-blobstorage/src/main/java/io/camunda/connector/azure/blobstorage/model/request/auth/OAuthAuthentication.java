@@ -20,7 +20,7 @@ public record OAuthAuthentication(
         @TemplateProperty(
             group = "authentication",
             description =
-                "The tenant id. Learn more in our <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+                "The tenant id. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
             feel = Property.FeelMode.optional)
         @NotBlank
         String tenantId,
@@ -28,7 +28,7 @@ public record OAuthAuthentication(
         @TemplateProperty(
             group = "authentication",
             description =
-                "The client if of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+                "The client if of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
             feel = Property.FeelMode.optional)
         @NotBlank
         String clientId,
@@ -36,7 +36,7 @@ public record OAuthAuthentication(
         @TemplateProperty(
             group = "authentication",
             description =
-                "The client secret of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+                "The client secret of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
             feel = Property.FeelMode.optional)
         @NotBlank
         String clientSecret,
@@ -44,7 +44,7 @@ public record OAuthAuthentication(
         @TemplateProperty(
             group = "authentication",
             description =
-                "The account url of the storage account. Learn more in our <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+                "The account url of the storage account. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
             feel = Property.FeelMode.optional)
         @NotBlank
         String accountUrl)
