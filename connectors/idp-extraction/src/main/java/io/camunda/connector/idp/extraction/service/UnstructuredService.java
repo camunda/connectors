@@ -18,7 +18,6 @@ import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
 import io.camunda.connector.idp.extraction.caller.VertexCaller;
 import io.camunda.connector.idp.extraction.model.ExtractionRequest;
 import io.camunda.connector.idp.extraction.model.ExtractionRequestData;
-import io.camunda.connector.idp.extraction.model.ExtractionResult;
 import io.camunda.connector.idp.extraction.model.TaxonomyItem;
 import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
 import io.camunda.connector.idp.extraction.model.providers.AzureProvider;
@@ -112,21 +111,20 @@ public class UnstructuredService implements ExtractionService {
     };
   }
 
-  private ExtractionResult extractUsingGcp(ExtractionRequestData input, GcpProvider baseRequest) {
+  private Map<String, Object> extractUsingGcp(ExtractionRequestData input, GcpProvider baseRequest) {
     try {
       long startTime = System.currentTimeMillis();
       Object result = vertexCaller.generateContent(input, baseRequest);
       long endTime = System.currentTimeMillis();
       LOGGER.info("Gemini content extraction took {} ms", (endTime - startTime));
-      return new ExtractionResult(
-          buildResponseJsonIfPossible(result.toString(), input.taxonomyItems()));
+      return buildResponseJsonIfPossible(result.toString(), input.taxonomyItems());
     } catch (Exception e) {
       LOGGER.error("Document extraction via GCP failed: {}", e.getMessage());
       throw new ConnectorException(e);
     }
   }
 
-  private ExtractionResult extractUsingAws(ExtractionRequestData input, AwsProvider baseRequest) {
+  private Map<String, Object> extractUsingAws(ExtractionRequestData input, AwsProvider baseRequest) {
     try {
       long startTime = System.currentTimeMillis();
       String extractedText =
@@ -143,15 +141,14 @@ public class UnstructuredService implements ExtractionService {
               bedrockRuntimeClientSupplier.getBedrockRuntimeClient(baseRequest));
       long endTime = System.currentTimeMillis();
       LOGGER.info("Aws content extraction took {} ms", (endTime - startTime));
-      return new ExtractionResult(
-          buildResponseJsonIfPossible(bedrockResponse, input.taxonomyItems()));
+      return buildResponseJsonIfPossible(bedrockResponse, input.taxonomyItems());
     } catch (Exception e) {
       LOGGER.error("Document extraction failed: {}", e.getMessage());
       throw new ConnectorException(e);
     }
   }
 
-  private ExtractionResult extractUsingAzure(
+  private Map<String, Object> extractUsingAzure(
       ExtractionRequestData input, AzureProvider baseRequest) {
     try {
       long startTime = System.currentTimeMillis();
@@ -165,15 +162,14 @@ public class UnstructuredService implements ExtractionService {
       long endTime = System.currentTimeMillis();
       LOGGER.info("Azure content extraction took {} ms", (endTime - startTime));
 
-      return new ExtractionResult(
-          buildResponseJsonIfPossible(azureResponse, input.taxonomyItems()));
+      return buildResponseJsonIfPossible(azureResponse, input.taxonomyItems());
     } catch (Exception e) {
       LOGGER.error("Document extraction failed: {}", e.getMessage());
       throw new ConnectorException(e);
     }
   }
 
-  private ExtractionResult extractUsingOpenAiSpec(
+  private Map<String, Object> extractUsingOpenAiSpec(
       ExtractionRequestData input, OpenAiProvider baseRequest) {
     try {
       long startTime = System.currentTimeMillis();
@@ -187,8 +183,7 @@ public class UnstructuredService implements ExtractionService {
       long endTime = System.currentTimeMillis();
       LOGGER.info("OpenAI Spec content extraction took {} ms", (endTime - startTime));
 
-      return new ExtractionResult(
-          buildResponseJsonIfPossible(openAiResponse, input.taxonomyItems()));
+      return buildResponseJsonIfPossible(openAiResponse, input.taxonomyItems());
     } catch (Exception e) {
       LOGGER.error("Document extraction via OpenAI Spec failed: {}", e.getMessage());
       throw new ConnectorException(e);

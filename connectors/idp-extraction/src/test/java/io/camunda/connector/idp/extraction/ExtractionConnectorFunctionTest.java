@@ -12,7 +12,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.idp.extraction.model.ExtractionRequest;
-import io.camunda.connector.idp.extraction.model.ExtractionResult;
 import io.camunda.connector.idp.extraction.service.StructuredService;
 import io.camunda.connector.idp.extraction.service.UnstructuredService;
 import io.camunda.connector.idp.extraction.util.ExtractionTestUtils;
@@ -36,7 +35,7 @@ class ExtractionConnectorFunctionTest {
   void execute_ShouldCallUnstructuredService_WhenExtractionTypeIsUnstructured() {
     // given
     var outBoundContext = prepareConnectorContext();
-    var expectedResult = new ExtractionResult(Map.of("sum", "$12.25", "supplier", "Camunda Inc."));
+    var expectedResult = Map.of("sum", "$12.25", "supplier", "Camunda Inc.");
     when(unstructuredService.extract(any(ExtractionRequest.class))).thenReturn(expectedResult);
 
     // when

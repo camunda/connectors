@@ -23,7 +23,6 @@ import io.camunda.connector.idp.extraction.caller.OpenAiSpecCaller;
 import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
 import io.camunda.connector.idp.extraction.caller.VertexCaller;
 import io.camunda.connector.idp.extraction.model.ExtractionRequest;
-import io.camunda.connector.idp.extraction.model.ExtractionResult;
 import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
 import io.camunda.connector.idp.extraction.supplier.BedrockRuntimeClientSupplier;
 import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
@@ -365,12 +364,8 @@ public class UnstructuredServiceTest {
 
     assertThat(result)
         .isNotNull()
-        .isInstanceOf(ExtractionResult.class)
-        .asInstanceOf(InstanceOfAssertFactories.type(ExtractionResult.class))
-        .satisfies(
-            extractionResult ->
-                assertThat(extractionResult.extractedFields())
-                    .containsExactlyInAnyOrderEntriesOf(expected));
+        .asInstanceOf(InstanceOfAssertFactories.MAP)
+        .containsExactlyInAnyOrderEntriesOf(expected);
   }
 
   private ExtractionRequest prepareExtractionRequest() {
