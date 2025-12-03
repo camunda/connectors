@@ -70,7 +70,7 @@ limitations under the License.</license.inlineheader>
     <nexus.release.repository>https://artifacts.camunda.com/artifactory/connectors/</nexus.release.repository>
 
     <!-- Camunda internal libraries -->
-    <version.camunda>8.8.4</version.camunda>
+    <version.camunda>8.8.6</version.camunda>
     <version.feel-engine>1.20.0</version.feel-engine>
 
     <!-- Third party dependencies -->
@@ -89,17 +89,17 @@ limitations under the License.</license.inlineheader>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
 
-    <version.spring-boot>3.5.7</version.spring-boot>
+    <version.spring-boot>3.5.8</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>7.4.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.21</version.logback>
 
-    <version.aws-java-sdk>1.12.793</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.38.8</version.software-aws-java-sdk>
-    <version.aws-java-sdk-sts>1.12.793</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.38.8</version.software-aws-java-sdk-sts>
+    <version.aws-java-sdk>1.12.794</version.aws-java-sdk>
+    <version.software-aws-java-sdk>2.40.0</version.software-aws-java-sdk>
+    <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.40.0</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.38.8</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.40.0</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.3</version.localstack>
 
@@ -107,11 +107,11 @@ limitations under the License.</license.inlineheader>
 
     <version.google-http-client>2.0.2</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20251019-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20251114-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.40.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20251110-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.71.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.72.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20251110-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <version.gson-extras>3.3.0</version.gson-extras>
@@ -127,10 +127,10 @@ limitations under the License.</license.inlineheader>
 
     <version.kafka-clients>4.1.1</version.kafka-clients>
 
-    <version.microsoft-graph>6.56.0</version.microsoft-graph>
+    <version.microsoft-graph>6.57.0</version.microsoft-graph>
     <version.azure-identity>1.18.1</version.azure-identity>
 
-    <version.bouncycastle>1.82</version.bouncycastle>
+    <version.bouncycastle>1.83</version.bouncycastle>
     <version.box-sdk>4.16.4</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
@@ -152,7 +152,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.5.0</version.auth0.jwt>
     <version.auth0.jwks>0.23.0</version.auth0.jwks>
     
-    <version.langchain4j>1.8.0</version.langchain4j>
+    <version.langchain4j>1.9.1</version.langchain4j>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.6.2</plugin.version.maven-enforcer-plugin>
@@ -160,7 +160,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-install-plugin>3.1.4</plugin.version.maven-install-plugin>
     <plugin.version.license>5.0.0</plugin.version.license>
     <plugin.version.license.codehaus>2.7.0</plugin.version.license.codehaus>
-    <plugin.version.maven-resources-plugin>3.3.1</plugin.version.maven-resources-plugin>
+    <plugin.version.maven-resources-plugin>3.4.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.1</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.4</plugin.version.maven-surefire-plugin>
     <plugin.version.spotless-maven-plugin>2.46.1</plugin.version.spotless-maven-plugin>
