@@ -26,6 +26,7 @@ import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.jackson2.autoconfigure.Jackson2AutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest(
@@ -33,7 +34,7 @@ import org.springframework.boot.test.context.SpringBootTest;
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.polling.enabled=false"
     },
-    classes = {TestConnectorRuntimeApplication.class})
+    classes = {Jackson2AutoConfiguration.class, TestConnectorRuntimeApplication.class})
 public class ObjectMapperQualifierTest {
 
   @Autowired @ConnectorsObjectMapper private ObjectMapper connectorObjectMapper;

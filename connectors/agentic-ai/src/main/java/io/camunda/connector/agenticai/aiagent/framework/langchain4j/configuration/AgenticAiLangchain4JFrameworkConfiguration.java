@@ -63,7 +63,8 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public JsonSchemaConverter langchain4JJsonSchemaConverter(ObjectMapper objectMapper) {
+  public JsonSchemaConverter langchain4JJsonSchemaConverter(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new JsonSchemaConverter(objectMapper);
   }
 
