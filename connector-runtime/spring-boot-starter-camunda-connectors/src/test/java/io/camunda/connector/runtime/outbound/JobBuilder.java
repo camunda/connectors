@@ -116,19 +116,22 @@ public class JobBuilder {
       return withHeaders(headers);
     }
 
-    public JobResult executeAndCaptureResult(SpringConnectorJobHandler SpringConnectorJobHandler) {
+    public JobResult executeAndCaptureResult(SpringConnectorJobHandler SpringConnectorJobHandler)
+        throws Exception {
       return executeAndCaptureResult(SpringConnectorJobHandler, true, false);
     }
 
     public JobResult executeAndCaptureResult(
-        SpringConnectorJobHandler springConnectorJobHandler, boolean expectComplete) {
+        SpringConnectorJobHandler springConnectorJobHandler, boolean expectComplete)
+        throws Exception {
       return executeAndCaptureResult(springConnectorJobHandler, expectComplete, false);
     }
 
     public JobResult executeAndCaptureResult(
         SpringConnectorJobHandler SpringConnectorJobHandler,
         boolean expectComplete,
-        boolean expectBpmnError) {
+        boolean expectBpmnError)
+        throws Exception {
 
       // when
       SpringConnectorJobHandler.handle(jobClient, job);
@@ -163,7 +166,7 @@ public class JobBuilder {
       }
     }
 
-    public void execute(SpringConnectorJobHandler SpringConnectorJobHandler) {
+    public void execute(SpringConnectorJobHandler SpringConnectorJobHandler) throws Exception {
       SpringConnectorJobHandler.handle(jobClient, job);
     }
   }

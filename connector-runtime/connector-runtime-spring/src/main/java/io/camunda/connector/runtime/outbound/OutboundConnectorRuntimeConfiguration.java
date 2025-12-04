@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.client.jobhandling.JobWorkerManager;
+import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
@@ -31,9 +32,7 @@ import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactor
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
-import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -76,7 +75,7 @@ public class OutboundConnectorRuntimeConfiguration {
       CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
       SecretProviderAggregator secretProviderAggregator,
       ValidationProvider validationProvider,
-      ConnectorsOutboundMetrics outboundMetrics,
+      MetricsRecorder metricsRecorder,
       DocumentFactory documentFactory,
       ObjectMapper objectMapper) {
     return new OutboundConnectorManager(
@@ -87,11 +86,6 @@ public class OutboundConnectorRuntimeConfiguration {
         validationProvider,
         documentFactory,
         objectMapper,
-        outboundMetrics);
-  }
-
-  @Bean
-  public ConnectorsOutboundMetrics connectorsOutboundMetrics(MeterRegistry meterRegistry) {
-    return new ConnectorsOutboundMetrics(meterRegistry);
+        metricsRecorder);
   }
 }
