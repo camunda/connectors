@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.runtime.metrics;
 
-import io.camunda.client.metrics.MetricsRecorder;
-
 public class ConnectorMetrics {
 
   public static class Tag {
@@ -33,10 +31,10 @@ public class ConnectorMetrics {
     public static final String METRIC_NAME_INVOCATIONS = "camunda.connector.outbound.invocations";
     public static final String METRIC_NAME_TIME = "camunda.connector.outbound.execution-time";
 
-    public static final String ACTION_ACTIVATED = MetricsRecorder.ACTION_ACTIVATED;
-    public static final String ACTION_COMPLETED = MetricsRecorder.ACTION_COMPLETED;
-    public static final String ACTION_FAILED = MetricsRecorder.ACTION_FAILED;
-    public static final String ACTION_BPMN_ERROR = MetricsRecorder.ACTION_BPMN_ERROR;
+    public static final String ACTION_ACTIVATED = "activated";
+    public static final String ACTION_COMPLETED = "completed";
+    public static final String ACTION_FAILED = "failed";
+    public static final String ACTION_BPMN_ERROR = "bpmn-error";
   }
 
   public static class Inbound {
