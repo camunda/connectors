@@ -11,6 +11,8 @@ import static org.mockito.Mockito.mock;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
+import io.camunda.client.metrics.DefaultNoopMetricsRecorder;
+import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
@@ -51,5 +53,10 @@ class TestConfig {
   @Bean
   public CommandExceptionHandlingStrategy commandExceptionHandlingStrategy() {
     return mock(CommandExceptionHandlingStrategy.class);
+  }
+
+  @Bean
+  public MetricsRecorder metricsRecorder() {
+    return new DefaultNoopMetricsRecorder();
   }
 }
