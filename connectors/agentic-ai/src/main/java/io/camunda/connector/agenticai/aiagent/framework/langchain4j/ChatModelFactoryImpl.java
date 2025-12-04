@@ -16,19 +16,11 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.*;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication.AwsStaticCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.api.error.ConnectorInputException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -38,9 +30,6 @@ import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
@@ -126,40 +115,45 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       BedrockProviderConfiguration configuration) {
     final var connection = configuration.bedrock();
 
-    final var bedrockClientBuilder =
-        BedrockRuntimeClient.builder()
-            .credentialsProvider(
-                switch (connection.authentication()) {
-                  case AwsDefaultCredentialsChainAuthentication ignored ->
-                      DefaultCredentialsProvider.create();
-                  case AwsStaticCredentialsAuthentication sca ->
-                      StaticCredentialsProvider.create(
-                          AwsBasicCredentials.create(sca.accessKey(), sca.secretKey()));
-                })
-            .region(Region.of(connection.region()));
+    final var builder =
+        BedrockChatModel.builder()
+            .client(createBedrockClient(connection))
+            .modelId(connection.model().model());
+
+    return applyModelParametersIfPresent(connection, builder);
+  }
+
+  private BedrockChatModel.Builder applyModelParametersIfPresent(
+      BedrockProviderConfiguration.BedrockConnection connection, BedrockChatModel.Builder builder) {
+    final var modelParameters = connection.model().parameters();
+    if (modelParameters == null) {
+      return builder;
+    }
+
+    final var requestParametersBuilder = BedrockChatRequestParameters.builder();
+    Optional.ofNullable(modelParameters.maxTokens())
+        .ifPresent(requestParametersBuilder::maxOutputTokens);
+    Optional.ofNullable(modelParameters.temperature())
+        .ifPresent(requestParametersBuilder::temperature);
+    Optional.ofNullable(modelParameters.topP()).ifPresent(requestParametersBuilder::topP);
+
+    builder.defaultRequestParameters(requestParametersBuilder.build());
+
+    return builder;
+  }
+
+  private BedrockRuntimeClient createBedrockClient(
+      BedrockProviderConfiguration.BedrockConnection connection) {
+    var bedrockClientBuilder =
+        BedrockRuntimeClient.builder().region(Region.of(connection.region()));
+
+    var authenticationCustomizer = AwsBedrockRuntimeAuthenticationCustomizer.createFor(connection);
+    authenticationCustomizer.provideAuthenticationMechanism(bedrockClientBuilder);
 
     if (connection.endpoint() != null) {
       bedrockClientBuilder.endpointOverride(URI.create(connection.endpoint()));
     }
-
-    final var builder =
-        BedrockChatModel.builder()
-            .client(bedrockClientBuilder.build())
-            .modelId(connection.model().model());
-
-    final var modelParameters = connection.model().parameters();
-    if (modelParameters != null) {
-      final var requestParametersBuilder = BedrockChatRequestParameters.builder();
-      Optional.ofNullable(modelParameters.maxTokens())
-          .ifPresent(requestParametersBuilder::maxOutputTokens);
-      Optional.ofNullable(modelParameters.temperature())
-          .ifPresent(requestParametersBuilder::temperature);
-      Optional.ofNullable(modelParameters.topP()).ifPresent(requestParametersBuilder::topP);
-
-      builder.defaultRequestParameters(requestParametersBuilder.build());
-    }
-
-    return builder;
+    return bedrockClientBuilder.build();
   }
 
   protected VertexAiGeminiChatModel.VertexAiGeminiChatModelBuilder

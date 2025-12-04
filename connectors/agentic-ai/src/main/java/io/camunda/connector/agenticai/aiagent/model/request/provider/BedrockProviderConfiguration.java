@@ -48,19 +48,20 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
       @Valid @NotNull BedrockModel model) {
 
     @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
+    @SuppressWarnings("unused")
     public boolean isDefaultCredentialsChainUsedInSaaS() {
       return ConnectorUtils.isSaaS()
-          && authentication instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
+          && authentication instanceof AwsAuthentication.DefaultCredentialsChainAuthentication;
     }
   }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({
     @JsonSubTypes.Type(
-        value = AwsAuthentication.AwsStaticCredentialsAuthentication.class,
+        value = AwsAuthentication.StaticCredentialsAuthentication.class,
         name = "credentials"),
     @JsonSubTypes.Type(
-        value = AwsAuthentication.AwsDefaultCredentialsChainAuthentication.class,
+        value = AwsAuthentication.DefaultCredentialsChainAuthentication.class,
         name = "defaultCredentialsChain"),
   })
   @TemplateDiscriminatorProperty(
@@ -71,8 +72,9 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
       description =
           "Specify the AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock/#authentication\" target=\"_blank\">documentation page</a>")
   public sealed interface AwsAuthentication {
+
     @TemplateSubType(id = "credentials", label = "Credentials")
-    record AwsStaticCredentialsAuthentication(
+    record StaticCredentialsAuthentication(
         @TemplateProperty(
                 group = "provider",
                 label = "Access key",
@@ -88,6 +90,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
             @NotBlank
             String secretKey)
         implements AwsAuthentication {
+
       @Override
       public String toString() {
         return "AwsStaticCredentialsAuthentication{accessKey=[REDACTED], secretKey=[REDACTED]}";
@@ -97,7 +100,25 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
     @TemplateSubType(
         id = "defaultCredentialsChain",
         label = "Default Credentials Chain (Hybrid/Self-Managed only)")
-    record AwsDefaultCredentialsChainAuthentication() implements AwsAuthentication {}
+    record DefaultCredentialsChainAuthentication() implements AwsAuthentication {
+    }
+
+    @TemplateSubType(id = "apiKey", label = "API Key")
+    record ApiKeyAuthentication(
+        @TemplateProperty(
+                group = "provider",
+                label = "API Key",
+                description =
+                    "Provide an API Key with permissions to interact with your AWS Bedrock Instance")
+            @NotBlank
+            String apiKey)
+        implements AwsAuthentication {
+
+      @Override
+      public String toString() {
+        return "AwsStaticCredentialsAuthentication{apiKey=[REDACTED]}";
+      }
+    }
   }
 
   public record BedrockModel(

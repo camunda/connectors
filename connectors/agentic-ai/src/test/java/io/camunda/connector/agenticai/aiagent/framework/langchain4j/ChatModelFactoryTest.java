@@ -84,6 +84,8 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.auth.token.credentials.SdkTokenProvider;
+import software.amazon.awssdk.auth.token.credentials.StaticTokenProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClientBuilder;
@@ -300,6 +302,7 @@ class ChatModelFactoryTest {
   class BedrockChatModelFactoryTest {
 
     private static final String BEDROCK_REGION = "eu-west-1";
+    private static final String BEDROCK_API_KEY = "bedrockApiKey";
     private static final String BEDROCK_ACCESS_KEY = "bedrockAccessKey";
     private static final String BEDROCK_SECRET_KEY = "bedrockSecretKey";
     private static final String BEDROCK_MODEL = "bedrockModel";
@@ -317,7 +320,7 @@ class ChatModelFactoryTest {
               new BedrockConnection(
                   BEDROCK_REGION,
                   null,
-                  new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+                  new AwsAuthentication.DefaultCredentialsChainAuthentication(),
                   new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testCreateBedrockChatModelWithCredentials(
@@ -335,7 +338,7 @@ class ChatModelFactoryTest {
               new BedrockConnection(
                   BEDROCK_REGION,
                   null,
-                  new AwsAuthentication.AwsStaticCredentialsAuthentication(
+                  new AwsAuthentication.StaticCredentialsAuthentication(
                       BEDROCK_ACCESS_KEY, BEDROCK_SECRET_KEY),
                   new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
@@ -350,6 +353,82 @@ class ChatModelFactoryTest {
             assertThat(credentials).isNotNull().isInstanceOf(AwsBasicCredentials.class);
             assertThat(credentials.accessKeyId()).isEqualTo(BEDROCK_ACCESS_KEY);
             assertThat(credentials.secretAccessKey()).isEqualTo(BEDROCK_SECRET_KEY);
+          });
+    }
+
+    @Test
+    void createsBedrockChatModelWithApiKeyCredentials() {
+      final var providerConfig =
+          new BedrockProviderConfiguration(
+              new BedrockConnection(
+                  BEDROCK_REGION,
+                  null,
+                  new AwsAuthentication.ApiKeyAuthentication(BEDROCK_API_KEY),
+                  new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
+
+      testBedrockChatModelBuilder(
+          providerConfig,
+          (builders) -> {
+            var clientBuilder = builders.clientBuilder;
+            var tokenProviderCaptor = ArgumentCaptor.forClass(SdkTokenProvider.class);
+            verify(clientBuilder).tokenProvider(tokenProviderCaptor.capture());
+
+            final var tokenProvider = tokenProviderCaptor.getValue();
+            assertThat(tokenProvider)
+                .isNotNull()
+                .satisfies(
+                    provider -> {
+                      var token = provider.resolveToken().token();
+                      assertThat(token).isEqualTo(BEDROCK_API_KEY);
+                    });
+          });
+    }
+
+    @Test
+    void createsBedrockChatModelWithCustomEndpoint() {
+      final var providerConfig =
+          new BedrockProviderConfiguration(
+              new BedrockConnection(
+                  BEDROCK_REGION,
+                  "https://my-custom-endpoint.local",
+                  new AwsAuthentication.DefaultCredentialsChainAuthentication(),
+                  new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
+
+      testBedrockChatModelBuilder(
+          providerConfig,
+          (builders) -> {
+            verify(builders.clientBuilder)
+                .endpointOverride(URI.create("https://my-custom-endpoint.local"));
+          });
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @MethodSource("nullModelParameters")
+    void createsBedrockChatModelWithNullModelParameters(BedrockModelParameters modelParameters) {
+      final var providerConfig =
+          new BedrockProviderConfiguration(
+              new BedrockConnection(
+                  BEDROCK_REGION,
+                  null,
+                  new AwsAuthentication.DefaultCredentialsChainAuthentication(),
+                  new BedrockModel(BEDROCK_MODEL, modelParameters)));
+
+      testBedrockChatModelBuilder(
+          providerConfig,
+          (builders) -> {
+            if (modelParameters == null) {
+              verify(builders.chatModelBuilder, never()).defaultRequestParameters(any());
+            } else {
+              verify(builders.chatModelBuilder)
+                  .defaultRequestParameters(modelParametersArgumentCaptor.capture());
+
+              final var parameters = modelParametersArgumentCaptor.getValue();
+              assertThat(parameters).isNotNull().isInstanceOf(BedrockChatRequestParameters.class);
+              assertThat(parameters.maxOutputTokens()).isNull();
+              assertThat(parameters.temperature()).isNull();
+              assertThat(parameters.topP()).isNull();
+            }
           });
     }
 
@@ -378,54 +457,6 @@ class ChatModelFactoryTest {
                 .isEqualTo(DEFAULT_MODEL_PARAMETERS.maxTokens());
             assertThat(parameters.temperature()).isEqualTo(DEFAULT_MODEL_PARAMETERS.temperature());
             assertThat(parameters.topP()).isEqualTo(DEFAULT_MODEL_PARAMETERS.topP());
-          });
-    }
-
-    @Test
-    void createsBedrockChatModelWithCustomEndpoint() {
-      final var providerConfig =
-          new BedrockProviderConfiguration(
-              new BedrockConnection(
-                  BEDROCK_REGION,
-                  "https://my-custom-endpoint.local",
-                  new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
-                  new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
-
-      testBedrockChatModelBuilder(
-          providerConfig,
-          (builders) -> {
-            verify(builders.clientBuilder)
-                .endpointOverride(URI.create("https://my-custom-endpoint.local"));
-          });
-    }
-
-    @ParameterizedTest
-    @NullSource
-    @MethodSource("nullModelParameters")
-    void createsBedrockChatModelWithNullModelParameters(BedrockModelParameters modelParameters) {
-      final var providerConfig =
-          new BedrockProviderConfiguration(
-              new BedrockConnection(
-                  BEDROCK_REGION,
-                  null,
-                  new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
-                  new BedrockModel(BEDROCK_MODEL, modelParameters)));
-
-      testBedrockChatModelBuilder(
-          providerConfig,
-          (builders) -> {
-            if (modelParameters == null) {
-              verify(builders.chatModelBuilder, never()).defaultRequestParameters(any());
-            } else {
-              verify(builders.chatModelBuilder)
-                  .defaultRequestParameters(modelParametersArgumentCaptor.capture());
-
-              final var parameters = modelParametersArgumentCaptor.getValue();
-              assertThat(parameters).isNotNull().isInstanceOf(BedrockChatRequestParameters.class);
-              assertThat(parameters.maxOutputTokens()).isNull();
-              assertThat(parameters.temperature()).isNull();
-              assertThat(parameters.topP()).isNull();
-            }
           });
     }
 
