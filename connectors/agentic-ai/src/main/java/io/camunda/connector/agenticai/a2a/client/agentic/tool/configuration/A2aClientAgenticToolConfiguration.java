@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.agentic.tool.A2aGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.a2a.client.agentic.tool.A2aGatewayToolHandler;
 import io.camunda.connector.agenticai.a2a.client.agentic.tool.systemprompt.A2aSystemPromptContributor;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -31,7 +32,8 @@ public class A2aClientAgenticToolConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public A2aGatewayToolHandler a2aGatewayToolHandler(ObjectMapper objectMapper) {
+  public A2aGatewayToolHandler a2aGatewayToolHandler(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new A2aGatewayToolHandler(objectMapper);
   }
 

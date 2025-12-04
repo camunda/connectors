@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.JsonMapper;
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import java.time.ZoneOffset;
 import java.util.Date;
@@ -44,7 +45,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 public class ObjectMapperSerializationTest {
 
   @Autowired private JsonMapper jsonMapper;
-  @Autowired private ObjectMapper objectMapper;
+  @Autowired @ConnectorsObjectMapper private ObjectMapper objectMapper;
   @Autowired private ApplicationContext applicationContext;
 
   @Test

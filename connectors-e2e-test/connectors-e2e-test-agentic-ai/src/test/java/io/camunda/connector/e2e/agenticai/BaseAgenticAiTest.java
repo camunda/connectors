@@ -24,6 +24,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.response.Incident;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
@@ -52,7 +53,7 @@ import org.springframework.core.io.ResourceLoader;
 @CamundaSpringProcessTest
 public abstract class BaseAgenticAiTest {
   @Autowired protected CamundaClient camundaClient;
-  @Autowired protected ObjectMapper objectMapper;
+  @Autowired @ConnectorsObjectMapper protected ObjectMapper objectMapper;
   @Autowired protected ResourceLoader resourceLoader;
   @TempDir protected File tempDir;
 
