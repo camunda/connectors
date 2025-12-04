@@ -91,8 +91,9 @@ public class FeelEngineWrapper {
       Objects.requireNonNull(variables, ERROR_CONTEXT_IS_NULL);
       Map<String, Object> variablesMap = new HashMap<>();
       for (Object o : variables) {
-        Objects.requireNonNull(o, ERROR_CONTEXT_IS_NULL);
-        tryConvertToMap(o).ifPresent(variablesMap::putAll);
+        if (o != null) {
+          tryConvertToMap(o).ifPresent(variablesMap::putAll);
+        }
       }
       return variablesMap;
     } catch (IllegalArgumentException ex) {
