@@ -8,7 +8,7 @@ package io.camunda.connector.idp.extraction.model.providers.azure;
 
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import org.jetbrains.annotations.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 public class DocumentIntelligenceConfiguration {
 

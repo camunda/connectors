@@ -35,13 +35,6 @@ except in compliance with the proprietary license.</license.inlineheader>
 
   <dependencies>
 
-    <!-- Fix CVE-2022-36944 -->
-    <dependency>
-      <groupId>org.scala-lang</groupId>
-      <artifactId>scala-library</artifactId>
-      <version>2.13.18</version>
-    </dependency>
-
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
@@ -67,8 +60,40 @@ except in compliance with the proprietary license.</license.inlineheader>
 
     <dependency>
       <groupId>io.confluent</groupId>
+      <artifactId>kafka-json-schema-provider</artifactId>
+      <version>${version.schema-registry}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.confluent</groupId>
       <artifactId>kafka-json-schema-serializer</artifactId>
       <version>${version.schema-registry}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-text</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jdk8</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>dev.failsafe</groupId>
+      <artifactId>failsafe</artifactId>
     </dependency>
 
     <dependency>
@@ -77,21 +102,11 @@ except in compliance with the proprietary license.</license.inlineheader>
       <version>${version.schema-registry}</version>
     </dependency>
 
-
     <dependency>
-      <groupId>org.xerial.snappy</groupId>
-      <artifactId>snappy-java</artifactId>
-      <version>${version.snappy-java}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-text</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>dev.failsafe</groupId>
-      <artifactId>failsafe</artifactId>
+      <groupId>org.json</groupId>
+      <artifactId>json</artifactId>
+      <version>${version.json}</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
@@ -112,6 +127,12 @@ except in compliance with the proprietary license.</license.inlineheader>
       <groupId>org.apache.httpcomponents.core5</groupId>
       <artifactId>httpcore5</artifactId>
       <version>${version.httpcore5}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-test-utils</artifactId>
       <scope>test</scope>
     </dependency>
 
@@ -177,6 +198,14 @@ except in compliance with the proprietary license.</license.inlineheader>
             </connector>
           </connectors>
           <versionHistoryEnabled>true</versionHistoryEnabled>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <configuration>
+          <ignoredDependencies>
+            <ignoredDependency>io.confluent:kafka-schema-serializer</ignoredDependency>
+          </ignoredDependencies>
         </configuration>
       </plugin>
     </plugins>

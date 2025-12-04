@@ -41,8 +41,36 @@
     </dependency>
 
     <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp</artifactId>
+      <version>${version.okhttp}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.projectreactor</groupId>
+      <artifactId>reactor-core</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>org.apache.commons</groupId>
-      <artifactId>commons-text</artifactId>
+      <artifactId>commons-lang3</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.microsoft.kiota</groupId>
+      <artifactId>microsoft-kiota-abstractions</artifactId>
+      <version>${version.microsoft-kiota-abstraction}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.microsoft.graph</groupId>
+      <artifactId>microsoft-graph-core</artifactId>
+      <version>${version.microsoft-graph-core}</version>
     </dependency>
 
     <dependency>
