@@ -34,11 +34,11 @@
       <version>${project.version}</version>
     </dependency>
 
-  <dependency>
-    <groupId>com.amazonaws</groupId>
-    <artifactId>aws-java-sdk-eventbridge</artifactId>
-    <version>${version.aws-java-sdk}</version>
-  </dependency>
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk-eventbridge</artifactId>
+      <version>${version.aws-java-sdk}</version>
+    </dependency>
 
   </dependencies>
 
@@ -51,7 +51,8 @@
         <configuration>
           <connectors>
             <connector>
-              <connectorClass>io.camunda.connector.aws.eventbridge.EventBridgeFunction</connectorClass>
+              <connectorClass>io.camunda.connector.aws.eventbridge.EventBridgeFunction
+              </connectorClass>
               <files>
                 <file>
                   <templateId>io.camunda.connectors.AWSEventBridge.v1</templateId>

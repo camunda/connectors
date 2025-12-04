@@ -1,11 +1,13 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-        <groupId>io.camunda.connector</groupId>
-        <artifactId>connector-runtime-bundle-parent</artifactId>
-        <version>8.9.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connector-runtime-bundle-parent</artifactId>
+    <version>8.9.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>connector-runtime-bundle</artifactId>
   <packaging>jar</packaging>
@@ -19,141 +21,217 @@
     </dependency>
 
     <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>camunda-client-java</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-runtime-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-beans</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-webmvc</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-context</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-aws-sqs</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-aws-dynamodb</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-aws-eventbridge</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-aws-lambda</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-aws-bedrock</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-aws-s3</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-aws-textract</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-box</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-csv</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-google-drive</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-google-gcs</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-rabbitmq</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-sendgrid</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-aws-sns</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-http-json</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-slack</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-jdbc</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-kafka</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-message</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-microsoft-teams</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-graphql</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-google-sheets</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-webhook</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-http-polling</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-automationanywhere</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-soap</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-aws-sagemaker</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-email</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-idp-extraction</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-aws-comprehend</artifactId>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
-    <groupId>io.camunda.connector</groupId>
-    <artifactId>connector-google-gemini</artifactId>
-  </dependency>
-  <dependency>
-    <groupId>io.camunda.connector</groupId>
-    <artifactId>connector-agentic-ai</artifactId>
-  </dependency>
-  <dependency>
-    <groupId>io.camunda.connector</groupId>
-    <artifactId>connector-azure-blobstorage</artifactId>
-  </dependency>
-  <dependency>
-    <groupId>io.camunda.connector</groupId>
-    <artifactId>connector-embeddings-vector-database</artifactId>
-  </dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-google-gemini</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-agentic-ai</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-azure-blobstorage</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-embeddings-vector-database</artifactId>
+      <scope>runtime</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -165,93 +243,108 @@
           <mainClass>io.camunda.connector.runtime.app.ConnectorRuntimeApplication</mainClass>
         </configuration>
       </plugin>
-       <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-shade-plugin</artifactId>
-          <version>${plugin.version.maven-shade-plugin}</version>
-          <dependencies>
-            <dependency>
-              <groupId>org.springframework.boot</groupId>
-              <artifactId>spring-boot-maven-plugin</artifactId>
-              <version>${version.spring-boot}</version>
-            </dependency>
-          </dependencies>
-          <configuration>
-            <shadedArtifactAttached>true</shadedArtifactAttached>
-            <shadedClassifierName>with-dependencies</shadedClassifierName>
-            <!-- no need for this since we are not consuming this artifact downstream -->
-            <createDependencyReducedPom>false</createDependencyReducedPom>
-            <transformers>
-              <!-- This is needed if you have dependencies that use Service Loader. Most Google Cloud client libraries does. -->
-              <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-              <!-- This is needed to not repeat licenses in the META-INF directory -->
-              <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer" />
-              <!-- This is needed to merge existing NOTICE files and keep them downstream -->
-              <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
-                <addHeader>false</addHeader>
-              </transformer>
-              <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                  <resource>META-INF/spring.handlers</resource>
-              </transformer>
-              <transformer implementation="org.springframework.boot.maven.PropertiesMergingResourceTransformer">
-                  <resource>META-INF/spring.factories</resource>
-              </transformer>
-              <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                  <resource>META-INF/spring-autoconfigure-metadata.properties</resource>
-              </transformer>
-              <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                  <resource>META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</resource>
-              </transformer>
-              <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                  <resource>META-INF/spring.schemas</resource>
-              </transformer>
-              <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                  <resource>META-INF/additional-spring-configuration-metadata.json</resource>
-              </transformer>
-              <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                  <resource>META-INF/spring.tooling</resource>
-              </transformer>
-              <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                  <resource>META-INF/spring-configuration-metadata.json</resource>
-              </transformer>
-              <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                  <resource>META-INF/io.netty.versions.properties</resource>
-              </transformer>
-              <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                <mainClass>io.camunda.connector.runtime.app.ConnectorRuntimeApplication</mainClass>
-              </transformer>
-            </transformers>
-            <artifactSet>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>${plugin.version.maven-shade-plugin}</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+            <version>${version.spring-boot}</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <shadedArtifactAttached>true</shadedArtifactAttached>
+          <shadedClassifierName>with-dependencies</shadedClassifierName>
+          <!-- no need for this since we are not consuming this artifact downstream -->
+          <createDependencyReducedPom>false</createDependencyReducedPom>
+          <transformers>
+            <!-- This is needed if you have dependencies that use Service Loader. Most Google Cloud client libraries does. -->
+            <transformer
+              implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+            <!-- This is needed to not repeat licenses in the META-INF directory -->
+            <transformer
+              implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
+            <!-- This is needed to merge existing NOTICE files and keep them downstream -->
+            <transformer
+              implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
+              <addHeader>false</addHeader>
+            </transformer>
+            <transformer
+              implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+              <resource>META-INF/spring.handlers</resource>
+            </transformer>
+            <transformer
+              implementation="org.springframework.boot.maven.PropertiesMergingResourceTransformer">
+              <resource>META-INF/spring.factories</resource>
+            </transformer>
+            <transformer
+              implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+              <resource>META-INF/spring-autoconfigure-metadata.properties</resource>
+            </transformer>
+            <transformer
+              implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+              <resource>
+                META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+              </resource>
+            </transformer>
+            <transformer
+              implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+              <resource>META-INF/spring.schemas</resource>
+            </transformer>
+            <transformer
+              implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+              <resource>META-INF/additional-spring-configuration-metadata.json</resource>
+            </transformer>
+            <transformer
+              implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+              <resource>META-INF/spring.tooling</resource>
+            </transformer>
+            <transformer
+              implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+              <resource>META-INF/spring-configuration-metadata.json</resource>
+            </transformer>
+            <transformer
+              implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+              <resource>META-INF/io.netty.versions.properties</resource>
+            </transformer>
+            <transformer
+              implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+              <mainClass>io.camunda.connector.runtime.app.ConnectorRuntimeApplication</mainClass>
+            </transformer>
+          </transformers>
+          <artifactSet>
+            <excludes>
+              <!-- Classes provided by JSR-250 artifact are fully covered by javax.annotation-api artifact
+                   that comes with google-cloud-secretmanager (dependency of connector-runtime-cloud) -->
+              <exclude>javax.annotation:jsr250-api</exclude>
+            </excludes>
+          </artifactSet>
+          <filters>
+            <filter>
+              <artifact>*:*</artifact>
               <excludes>
-                <!-- Classes provided by JSR-250 artifact are fully covered by javax.annotation-api artifact
-                     that comes with google-cloud-secretmanager (dependency of connector-runtime-cloud) -->
-                <exclude>javax.annotation:jsr250-api</exclude>
+                <exclude>module-info.class</exclude>
+                <exclude>META-INF/versions/9/module-info.class</exclude>
+                <exclude>META-INF/DEPENDENCIES</exclude>
+                <exclude>META-INF/MANIFEST.MF</exclude>
+                <exclude>META-INF/*.SF</exclude>
+                <exclude>META-INF/*.DSA</exclude>
+                <exclude>META-INF/*.RSA</exclude>
               </excludes>
-            </artifactSet>
-            <filters>
-              <filter>
-                <artifact>*:*</artifact>
-                <excludes>
-                  <exclude>module-info.class</exclude>
-                  <exclude>META-INF/versions/9/module-info.class</exclude>
-                  <exclude>META-INF/DEPENDENCIES</exclude>
-                  <exclude>META-INF/MANIFEST.MF</exclude>
-                  <exclude>META-INF/*.SF</exclude>
-                  <exclude>META-INF/*.DSA</exclude>
-                  <exclude>META-INF/*.RSA</exclude>
-                </excludes>
-              </filter>
-            </filters>
-          </configuration>
-          <executions>
-            <execution>
-              <phase>package</phase>
-              <goals>
-                <goal>shade</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
+            </filter>
+          </filters>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
@@ -292,6 +385,19 @@
             <configuration>
               <classifier>javadoc</classifier>
               <classesDirectory>${basedir}/main/resources/javadoc</classesDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>analyze-dependencies</id>
+            <configuration>
+              <ignoredNonTestScopedDependencies>
+                <dependency>io.camunda.connector:connector-runtime-application</dependency>
+              </ignoredNonTestScopedDependencies>
             </configuration>
           </execution>
         </executions>
