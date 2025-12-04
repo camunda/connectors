@@ -116,9 +116,9 @@ public record WebhookConnectorProperties(
     @TemplateProperty(ignore = true) Function<WebhookResultContext, Object> responseBodyExpression,
     @TemplateProperty(
             id = "verificationExpression",
-            label = "One time verification response expression",
+            label = "Verification expression",
             description =
-                "Specify condition and response. Learn more in the <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#verification-expression' target='_blank'>documentation</a>",
+                "Expression to validate requests and control responses before process instance creation. Returns a response object to handle the request without triggering a process, or null to proceed normally. Learn more in the <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#verification-expression' target='_blank'>documentation</a>",
             type = PropertyType.Text,
             group = "webhookResponse",
             feel = FeelMode.required,
