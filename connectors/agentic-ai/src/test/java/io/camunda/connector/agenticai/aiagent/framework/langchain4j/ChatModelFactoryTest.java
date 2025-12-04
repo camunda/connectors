@@ -80,12 +80,8 @@ import org.mockito.MockedStatic;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.auth.token.credentials.SdkTokenProvider;
-import software.amazon.awssdk.auth.token.credentials.StaticTokenProvider;
+import software.amazon.awssdk.auth.credentials.*;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClientBuilder;
@@ -370,17 +366,13 @@ class ChatModelFactoryTest {
           providerConfig,
           (builders) -> {
             var clientBuilder = builders.clientBuilder;
-            var tokenProviderCaptor = ArgumentCaptor.forClass(SdkTokenProvider.class);
-            verify(clientBuilder).tokenProvider(tokenProviderCaptor.capture());
 
-            final var tokenProvider = tokenProviderCaptor.getValue();
-            assertThat(tokenProvider)
-                .isNotNull()
-                .satisfies(
-                    provider -> {
-                      var token = provider.resolveToken().token();
-                      assertThat(token).isEqualTo(BEDROCK_API_KEY);
-                    });
+            var overrideConfigurationCaptor =
+                ArgumentCaptor.forClass(ClientOverrideConfiguration.class);
+            verify(clientBuilder).overrideConfiguration(overrideConfigurationCaptor.capture());
+
+            assertThat(overrideConfigurationCaptor.getValue().headers())
+                .containsEntry("Authorization", java.util.List.of("Bearer " + BEDROCK_API_KEY));
           });
     }
 

@@ -63,6 +63,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
     @JsonSubTypes.Type(
         value = AwsAuthentication.DefaultCredentialsChainAuthentication.class,
         name = "defaultCredentialsChain"),
+    @JsonSubTypes.Type(value = AwsAuthentication.ApiKeyAuthentication.class, name = "apiKey"),
   })
   @TemplateDiscriminatorProperty(
       label = "Authentication",
@@ -97,12 +98,6 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
       }
     }
 
-    @TemplateSubType(
-        id = "defaultCredentialsChain",
-        label = "Default Credentials Chain (Hybrid/Self-Managed only)")
-    record DefaultCredentialsChainAuthentication() implements AwsAuthentication {
-    }
-
     @TemplateSubType(id = "apiKey", label = "API Key")
     record ApiKeyAuthentication(
         @TemplateProperty(
@@ -119,6 +114,11 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
         return "AwsStaticCredentialsAuthentication{apiKey=[REDACTED]}";
       }
     }
+
+    @TemplateSubType(
+        id = "defaultCredentialsChain",
+        label = "Default Credentials Chain (Hybrid/Self-Managed only)")
+    record DefaultCredentialsChainAuthentication() implements AwsAuthentication {}
   }
 
   public record BedrockModel(

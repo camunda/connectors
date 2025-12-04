@@ -1,10 +1,19 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
 package io.camunda.connector.agenticai.aiagent.model.request.provider;
 
+import java.util.List;
+import java.util.Map;
+import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.auth.token.credentials.SdkTokenProvider;
-import software.amazon.awssdk.auth.token.credentials.StaticTokenProvider;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.http.auth.scheme.NoAuthAuthScheme;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClientBuilder;
 
 /**
@@ -32,7 +41,8 @@ public interface AwsBedrockRuntimeAuthenticationCustomizer {
   }
 
   private static AwsBedrockRuntimeAuthenticationCustomizer defaultCredentials() {
-    return bedrockBuilder -> bedrockBuilder.credentialsProvider(DefaultCredentialsProvider.builder().build());
+    return bedrockBuilder ->
+        bedrockBuilder.credentialsProvider(DefaultCredentialsProvider.builder().build());
   }
 
   private static AwsBedrockRuntimeAuthenticationCustomizer staticCredentials(
@@ -43,13 +53,21 @@ public interface AwsBedrockRuntimeAuthenticationCustomizer {
             staticCredentialsAuthentication.accessKey(),
             staticCredentialsAuthentication.secretKey());
 
-    return bedrockBuilder -> bedrockBuilder.credentialsProvider(StaticCredentialsProvider.create(awsCredentials));
+    return bedrockBuilder ->
+        bedrockBuilder.credentialsProvider(StaticCredentialsProvider.create(awsCredentials));
   }
 
   private static AwsBedrockRuntimeAuthenticationCustomizer apiKey(
       BedrockProviderConfiguration.AwsAuthentication.ApiKeyAuthentication apiKeyAuthentication) {
     return bedrockBuilder ->
-        bedrockBuilder.tokenProvider(StaticTokenProvider.create(apiKeyAuthentication::apiKey));
+        bedrockBuilder
+            .credentialsProvider(AnonymousCredentialsProvider.create())
+            .putAuthScheme(NoAuthAuthScheme.create())
+            .overrideConfiguration(
+                ClientOverrideConfiguration.builder()
+                    .headers(
+                        Map.of("Authorization", List.of("Bearer " + apiKeyAuthentication.apiKey())))
+                    .build());
   }
 
   void provideAuthenticationMechanism(BedrockRuntimeClientBuilder runtime);
