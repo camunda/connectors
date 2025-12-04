@@ -6,7 +6,11 @@
  */
 package io.camunda.connector.inbound.signature;
 
+import io.camunda.connector.generator.java.annotation.DropdownItem;
+
 public enum HMACSwitchCustomerChoice {
+  @DropdownItem(label = "Enabled")
   enabled,
+  @DropdownItem(label = "Disabled")
   disabled
 }
