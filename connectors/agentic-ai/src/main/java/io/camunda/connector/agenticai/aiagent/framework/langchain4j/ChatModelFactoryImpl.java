@@ -29,17 +29,16 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompa
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.api.error.ConnectorInputException;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
 public class ChatModelFactoryImpl implements ChatModelFactory {
 
