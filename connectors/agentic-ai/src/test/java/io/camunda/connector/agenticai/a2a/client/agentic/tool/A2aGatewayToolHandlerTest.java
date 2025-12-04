@@ -517,4 +517,114 @@ class A2aGatewayToolHandlerTest {
       throw new RuntimeException("Failed to parse tool description JSON", e);
     }
   }
+
+  @Nested
+  class ResolveUpdatedGatewayToolDefinitions {
+
+    @Test
+    void returnsEmptyUpdates_whenNoChanges() {
+      var agentContext =
+          AgentContext.empty().withProperty(PROPERTY_A2A_CLIENTS, List.of("a2a1", "a2a2"));
+      var gatewayToolDefinitions =
+          List.of(
+              createGatewayToolDefinition(A2A_CLIENT_GATEWAY_TYPE, "a2a1"),
+              createGatewayToolDefinition(A2A_CLIENT_GATEWAY_TYPE, "a2a2"));
+
+      var result =
+          handler.resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
+
+      assertThat(result.added()).isEmpty();
+      assertThat(result.removed()).isEmpty();
+    }
+
+    @Test
+    void detectsAddedA2aClients() {
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_A2A_CLIENTS, List.of("a2a1"));
+      var gatewayToolDefinitions =
+          List.of(
+              createGatewayToolDefinition(A2A_CLIENT_GATEWAY_TYPE, "a2a1"),
+              createGatewayToolDefinition(A2A_CLIENT_GATEWAY_TYPE, "a2a2"),
+              createGatewayToolDefinition(A2A_CLIENT_GATEWAY_TYPE, "a2a3"));
+
+      var result =
+          handler.resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
+
+      assertThat(result.added()).containsExactly("a2a2", "a2a3");
+      assertThat(result.removed()).isEmpty();
+    }
+
+    @Test
+    void detectsRemovedA2aClients() {
+      var agentContext =
+          AgentContext.empty().withProperty(PROPERTY_A2A_CLIENTS, List.of("a2a1", "a2a2", "a2a3"));
+      var gatewayToolDefinitions =
+          List.of(createGatewayToolDefinition(A2A_CLIENT_GATEWAY_TYPE, "a2a1"));
+
+      var result =
+          handler.resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
+
+      assertThat(result.added()).isEmpty();
+      assertThat(result.removed()).containsExactly("a2a2", "a2a3");
+    }
+
+    @Test
+    void detectsBothAddedAndRemovedA2aClients() {
+      var agentContext =
+          AgentContext.empty().withProperty(PROPERTY_A2A_CLIENTS, List.of("a2a1", "a2a2"));
+      var gatewayToolDefinitions =
+          List.of(
+              createGatewayToolDefinition(A2A_CLIENT_GATEWAY_TYPE, "a2a2"),
+              createGatewayToolDefinition(A2A_CLIENT_GATEWAY_TYPE, "a2a3"));
+
+      var result =
+          handler.resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
+
+      assertThat(result.added()).containsExactly("a2a3");
+      assertThat(result.removed()).containsExactly("a2a1");
+    }
+
+    @Test
+    void ignoresNonA2aGatewayToolDefinitions() {
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_A2A_CLIENTS, List.of("a2a1"));
+      var gatewayToolDefinitions =
+          List.of(
+              createGatewayToolDefinition(A2A_CLIENT_GATEWAY_TYPE, "a2a1"),
+              createGatewayToolDefinition("other", "other1"),
+              createGatewayToolDefinition("mcpClient", "mcp1"));
+
+      var result =
+          handler.resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
+
+      assertThat(result.added()).isEmpty();
+      assertThat(result.removed()).isEmpty();
+    }
+
+    @Test
+    void handlesEmptyExistingClients() {
+      var agentContext = AgentContext.empty();
+      var gatewayToolDefinitions =
+          List.of(
+              createGatewayToolDefinition(A2A_CLIENT_GATEWAY_TYPE, "a2a1"),
+              createGatewayToolDefinition(A2A_CLIENT_GATEWAY_TYPE, "a2a2"));
+
+      var result =
+          handler.resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
+
+      assertThat(result.added()).containsExactly("a2a1", "a2a2");
+      assertThat(result.removed()).isEmpty();
+    }
+
+    @Test
+    void handlesEmptyNewGatewayToolDefinitions() {
+      var agentContext =
+          AgentContext.empty().withProperty(PROPERTY_A2A_CLIENTS, List.of("a2a1", "a2a2"));
+      var gatewayToolDefinitions = List.<GatewayToolDefinition>of();
+
+      var result =
+          handler.resolveUpdatedGatewayToolDefinitions(agentContext, gatewayToolDefinitions);
+
+      assertThat(result.added()).isEmpty();
+      assertThat(result.removed()).containsExactly("a2a1", "a2a2");
+    }
+  }
 }
