@@ -25,6 +25,14 @@
       "datasourceTemplate": "docker"
     }
   ],
+  "hostRules": [
+    {
+      "hostType": "docker",
+      "matchHost": "https://reg.mini.dev",
+      "username": "minimus",
+      "password": "{{ secrets.INFRA_MINIMUS_REGISTRY_TOKEN }}"
+    }
+  ],
   "packageRules": [
     {
       "matchManagers": [
