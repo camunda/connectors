@@ -63,6 +63,7 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientCo
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
@@ -182,7 +183,7 @@ public class AgenticAiConnectorsAutoConfiguration {
   public CamundaDocumentConversationStore aiAgentCamundaDocumentConversationStore(
       DocumentFactory documentFactory,
       CamundaDocumentStore documentStore,
-      ObjectMapper objectMapper) {
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new CamundaDocumentConversationStore(documentFactory, documentStore, objectMapper);
   }
 
@@ -215,7 +216,8 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AgentResponseHandler aiAgentResponseHandler(ObjectMapper objectMapper) {
+  public AgentResponseHandler aiAgentResponseHandler(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new AgentResponseHandlerImpl(objectMapper);
   }
 
@@ -294,7 +296,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       SecretProviderAggregator secretProvider,
       @Autowired(required = false) ValidationProvider validationProvider,
       DocumentFactory documentFactory,
-      ObjectMapper objectMapper) {
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
     if (validationProvider == null) {
       validationProvider = ValidationUtil.discoverDefaultValidationProviderImplementation();
     }
@@ -313,7 +315,7 @@ public class AgenticAiConnectorsAutoConfiguration {
       JobWorkerAgentRequestHandler agentRequestHandler,
       CommandExceptionHandlingStrategy exceptionHandlingStrategy,
       SecretProviderAggregator secretProvider,
-      ObjectMapper objectMapper,
+      @ConnectorsObjectMapper ObjectMapper objectMapper,
       MetricsRecorder metricsRecorder) {
     return new AiAgentJobWorkerHandlerImpl(
         executionContextFactory,
