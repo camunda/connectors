@@ -22,7 +22,7 @@ COPY target/*-with-dependencies.jar /opt/app/
 # ADD https://s01.oss.sonatype.org/content/repositories/releases/io/camunda/connector/connector-runtime-application/${VERSION}/connector-runtime-application-${VERSION}-with-dependencies.jar /opt/app/runtime.jar
 
 # Create an unprivileged user / group and switch to that user
-RUN groupadd --gid 1001 camunda && useradd --no-create-home --gid 1001 --uid 1001 camunda
+RUN addgroup --gid 1001 camunda && adduser -S -G camunda -u 1001 --no-create-home camunda
 USER 1001:1001
 
 # Use entry point to allow downstream images to add JVM arguments using CMD
