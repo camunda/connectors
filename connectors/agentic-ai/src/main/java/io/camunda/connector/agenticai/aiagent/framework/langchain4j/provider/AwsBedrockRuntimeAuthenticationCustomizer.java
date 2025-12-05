@@ -4,8 +4,9 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.aiagent.model.request.provider;
+package io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider;
 
+import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import java.util.List;
 import java.util.Map;
 import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
