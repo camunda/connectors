@@ -7,7 +7,7 @@
     "keywords" : [ "AI", "AI Agent", "agentic orchestration" ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/",
-  "version" : 5,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -17,7 +17,7 @@
     "value" : "bpmn:AdHocSubProcess"
   },
   "engines" : {
-    "camunda" : "^8.8"
+    "camunda" : "^8.9"
   },
   "groups" : [ {
     "id" : "provider",
@@ -1418,7 +1418,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "5",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
