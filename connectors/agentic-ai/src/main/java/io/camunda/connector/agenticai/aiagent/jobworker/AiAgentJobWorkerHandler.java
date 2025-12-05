@@ -10,5 +10,5 @@ import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
 
 public interface AiAgentJobWorkerHandler {
-  void handle(JobClient jobClient, ActivatedJob job);
+  void handle(JobClient jobClient, ActivatedJob job) throws Exception;
 }

@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.autoconfigure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
+import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.connector.agenticai.a2a.client.agentic.tool.configuration.A2aClientAgenticToolConfiguration;
 import io.camunda.connector.agenticai.a2a.client.inbound.polling.configuration.A2aClientPollingConfiguration;
 import io.camunda.connector.agenticai.a2a.client.inbound.webhook.configuration.A2aClientWebhookConfiguration;
@@ -35,6 +36,8 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandlerImpl;
+import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
+import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
@@ -64,7 +67,6 @@ import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
-import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import io.camunda.zeebe.feel.tagged.impl.TaggedParameterExtractor;
 import java.util.List;
@@ -156,10 +158,17 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AgentInitializer aiAgentInitializer(
+  public AgentToolsResolver aiAgentToolsResolver(
       AdHocToolsSchemaResolver toolsSchemaResolver,
       GatewayToolHandlerRegistry gatewayToolHandlers) {
-    return new AgentInitializerImpl(toolsSchemaResolver, gatewayToolHandlers);
+    return new AgentToolsResolverImpl(toolsSchemaResolver, gatewayToolHandlers);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AgentInitializer aiAgentInitializer(
+      AgentToolsResolver toolsResolver, GatewayToolHandlerRegistry gatewayToolHandlers) {
+    return new AgentInitializerImpl(toolsResolver, gatewayToolHandlers);
   }
 
   @Bean
@@ -305,14 +314,14 @@ public class AgenticAiConnectorsAutoConfiguration {
       CommandExceptionHandlingStrategy exceptionHandlingStrategy,
       SecretProviderAggregator secretProvider,
       ObjectMapper objectMapper,
-      ConnectorsOutboundMetrics connectorsOutboundMetrics) {
+      MetricsRecorder metricsRecorder) {
     return new AiAgentJobWorkerHandlerImpl(
         executionContextFactory,
         agentRequestHandler,
         exceptionHandlingStrategy,
         new OutboundConnectorExceptionHandler(secretProvider),
         new ConnectorResultHandler(objectMapper),
-        connectorsOutboundMetrics);
+        metricsRecorder);
   }
 
   @Bean

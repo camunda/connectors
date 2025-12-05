@@ -124,6 +124,7 @@ class AgentContextTest {
             () ->
                 new AgentContext(
                     state,
+                    null,
                     metrics,
                     toolDefinitions,
                     InProcessConversationContext.builder("test-conversation").build(),

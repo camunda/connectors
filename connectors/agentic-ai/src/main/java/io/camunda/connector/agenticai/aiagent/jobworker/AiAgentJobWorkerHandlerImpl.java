@@ -14,8 +14,9 @@ import io.camunda.client.api.response.FailJobResponse;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.client.jobhandling.CommandWrapper;
-import io.camunda.client.metrics.DefaultNoopMetricsRecorder;
 import io.camunda.client.metrics.MetricsRecorder;
+import io.camunda.client.metrics.MetricsRecorder.CounterMetricsContext;
+import io.camunda.client.metrics.MetricsRecorder.TimerMetricsContext;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.jobworker.JobWorkerAgentResult.AgentErrorResult;
@@ -31,7 +32,7 @@ import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.ErrorExpressionJob;
-import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
+import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
@@ -50,8 +51,7 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
   private final OutboundConnectorExceptionHandler outboundConnectorExceptionHandler;
   private final ConnectorResultHandler connectorResultHandler;
   private final CommandExceptionHandlingStrategy exceptionHandlingStrategy;
-  private final ConnectorsOutboundMetrics connectorsOutboundMetrics;
-  private final MetricsRecorder metricsRecorder = new DefaultNoopMetricsRecorder();
+  private final MetricsRecorder metricsRecorder;
 
   public AiAgentJobWorkerHandlerImpl(
       final JobWorkerAgentExecutionContextFactory executionContextFactory,
@@ -59,22 +59,32 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
       final CommandExceptionHandlingStrategy exceptionHandlingStrategy,
       final OutboundConnectorExceptionHandler outboundConnectorExceptionHandler,
       final ConnectorResultHandler connectorResultHandler,
-      final ConnectorsOutboundMetrics connectorsOutboundMetrics) {
+      final MetricsRecorder metricsRecorder) {
     this.executionContextFactory = executionContextFactory;
     this.agentRequestHandler = agentRequestHandler;
     this.exceptionHandlingStrategy = exceptionHandlingStrategy;
     this.outboundConnectorExceptionHandler = outboundConnectorExceptionHandler;
     this.connectorResultHandler = connectorResultHandler;
-    this.connectorsOutboundMetrics = connectorsOutboundMetrics;
+    this.metricsRecorder = metricsRecorder;
   }
 
   @Override
-  public void handle(final JobClient jobClient, final ActivatedJob job) {
-    connectorsOutboundMetrics.increaseInvocation(job);
-    connectorsOutboundMetrics.executeWithTimer(job, () -> this.executeJob(jobClient, job));
+  public void handle(final JobClient jobClient, final ActivatedJob job) throws Exception {
+    CounterMetricsContext counterMetricsContext = ConnectorMetrics.counter(job);
+    TimerMetricsContext timerMetricsContext = ConnectorMetrics.timer(job);
+    metricsRecorder.increaseActivated(counterMetricsContext);
+    metricsRecorder.executeWithTimer(
+        timerMetricsContext,
+        () -> {
+          this.executeJob(jobClient, job, counterMetricsContext);
+          return null;
+        });
   }
 
-  private void executeJob(final JobClient jobClient, final ActivatedJob job) {
+  private void executeJob(
+      final JobClient jobClient,
+      final ActivatedJob job,
+      final CounterMetricsContext counterMetricsContext) {
     final var agentResult = getAgentResult(jobClient, job);
 
     try {
@@ -85,20 +95,22 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
               new ErrorExpressionJobContext(new ErrorExpressionJob(job.getRetries())));
 
       optionalConnectorError.ifPresentOrElse(
-          connectorError -> handleConnectorError(jobClient, job, connectorError),
+          connectorError ->
+              handleConnectorError(jobClient, job, connectorError, counterMetricsContext),
           () -> {
             switch (agentResult) {
               case AgentSuccessResult successResult ->
-                  completeJob(jobClient, job, successResult.completion());
+                  completeJob(jobClient, job, successResult.completion(), counterMetricsContext);
               case AgentErrorResult errorResult ->
-                  failJob(jobClient, job, errorResult.errorResult());
+                  failJob(jobClient, job, errorResult.errorResult(), counterMetricsContext);
             }
           });
     } catch (Exception e) {
       failJob(
           jobClient,
           job,
-          this.outboundConnectorExceptionHandler.handleFinalResultException(e, job));
+          this.outboundConnectorExceptionHandler.handleFinalResultException(e, job),
+          counterMetricsContext);
     }
   }
 
@@ -120,9 +132,12 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
   }
 
   private void handleConnectorError(
-      final JobClient jobClient, final ActivatedJob job, final ConnectorError connectorError) {
+      final JobClient jobClient,
+      final ActivatedJob job,
+      final ConnectorError connectorError,
+      final CounterMetricsContext counterMetricsContext) {
     switch (connectorError) {
-      case BpmnError bpmnError -> throwBpmnError(jobClient, job, bpmnError);
+      case BpmnError bpmnError -> throwBpmnError(jobClient, job, bpmnError, counterMetricsContext);
       case JobError jobError ->
           failJob(
               jobClient,
@@ -131,31 +146,30 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
                   Map.of("error", jobError.errorMessage()),
                   new RuntimeException(jobError.errorMessage()),
                   jobError.retries(),
-                  jobError.retryBackoff()));
+                  jobError.retryBackoff()),
+              counterMetricsContext);
     }
   }
 
   private void completeJob(
       final JobClient jobClient,
       final ActivatedJob job,
-      final JobWorkerAgentCompletion completion) {
+      final JobWorkerAgentCompletion completion,
+      final CounterMetricsContext counterMetricsContext) {
     LOGGER.debug(
         "Asynchronously executing complete command for job: {}, max retries: {}",
         job.getKey(),
         MAX_ZEEBE_COMMAND_RETRIES);
 
-    try {
-      connectorsOutboundMetrics.increaseCompletion(job);
-    } finally {
-      final var completeCommand = prepareCompleteCommand(jobClient, job, completion);
-      executeCommandAsync(
-          completeCommand,
-          job,
-          (command, throwable) -> {
-            completion.onCompletionError(throwable);
-            exceptionHandlingStrategy.handleCommandError(command, throwable);
-          });
-    }
+    final var completeCommand = prepareCompleteCommand(jobClient, job, completion);
+    executeCommandAsync(
+        completeCommand,
+        job,
+        (command, throwable) -> {
+          completion.onCompletionError(throwable);
+          exceptionHandlingStrategy.handleCommandError(command, throwable);
+        },
+        counterMetricsContext);
   }
 
   private CompleteJobCommandStep1 prepareCompleteCommand(
@@ -200,17 +214,16 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
   }
 
   private void failJob(
-      final JobClient jobClient, final ActivatedJob job, final ErrorResult errorResult) {
+      final JobClient jobClient,
+      final ActivatedJob job,
+      final ErrorResult errorResult,
+      final CounterMetricsContext counterMetricsContext) {
     LOGGER.error(
         "Exception while completing AI Agent job with key %s".formatted(job.getKey()),
         errorResult.exception());
 
-    try {
-      connectorsOutboundMetrics.increaseFailure(job);
-    } finally {
-      final var failCommand = prepareFailJobCommand(jobClient, job, errorResult);
-      executeCommandAsync(failCommand, job);
-    }
+    final var failCommand = prepareFailJobCommand(jobClient, job, errorResult);
+    executeCommandAsync(failCommand, job, counterMetricsContext);
   }
 
   private FinalCommandStep<FailJobResponse> prepareFailJobCommand(
@@ -231,19 +244,18 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
   }
 
   private void throwBpmnError(
-      final JobClient jobClient, final ActivatedJob job, final BpmnError bpmnError) {
+      final JobClient jobClient,
+      final ActivatedJob job,
+      final BpmnError bpmnError,
+      CounterMetricsContext counterMetricsContext) {
     LOGGER.error(
         "BPMN error while completing AI Agent job with key {}. Code: {}. Message: {}",
         job.getKey(),
         bpmnError.errorCode(),
         bpmnError.errorMessage());
 
-    try {
-      connectorsOutboundMetrics.increaseBpmnError(job);
-    } finally {
-      final var throwBpmnErrorCommand = prepareThrowBpmnErrorCommand(jobClient, job, bpmnError);
-      executeCommandAsync(throwBpmnErrorCommand, job);
-    }
+    final var throwBpmnErrorCommand = prepareThrowBpmnErrorCommand(jobClient, job, bpmnError);
+    executeCommandAsync(throwBpmnErrorCommand, job, counterMetricsContext);
   }
 
   private ThrowErrorCommandStep2 prepareThrowBpmnErrorCommand(
@@ -255,17 +267,26 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
         .errorMessage(truncateErrorMessage(bpmnError.errorMessage()));
   }
 
-  private void executeCommandAsync(final FinalCommandStep<?> command, final ActivatedJob job) {
-    executeCommandAsync(command, job, this.exceptionHandlingStrategy);
+  private void executeCommandAsync(
+      final FinalCommandStep<?> command,
+      final ActivatedJob job,
+      final CounterMetricsContext counterMetricsContext) {
+    executeCommandAsync(command, job, this.exceptionHandlingStrategy, counterMetricsContext);
   }
 
   private void executeCommandAsync(
       final FinalCommandStep<?> command,
       final ActivatedJob job,
-      final CommandExceptionHandlingStrategy exceptionHandlingStrategy) {
+      final CommandExceptionHandlingStrategy exceptionHandlingStrategy,
+      final CounterMetricsContext counterMetricsContext) {
     final var commandWrapper =
         new CommandWrapper(
-            command, job, exceptionHandlingStrategy, metricsRecorder, MAX_ZEEBE_COMMAND_RETRIES);
+            command,
+            job,
+            exceptionHandlingStrategy,
+            metricsRecorder,
+            counterMetricsContext,
+            MAX_ZEEBE_COMMAND_RETRIES);
     commandWrapper.executeAsync();
   }
 

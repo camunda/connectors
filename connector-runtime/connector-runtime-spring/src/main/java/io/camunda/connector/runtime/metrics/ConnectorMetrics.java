@@ -16,7 +16,10 @@
  */
 package io.camunda.connector.runtime.metrics;
 
-import io.camunda.client.metrics.MetricsRecorder;
+import io.camunda.client.api.response.ActivatedJob;
+import io.camunda.client.metrics.MetricsRecorder.CounterMetricsContext;
+import io.camunda.client.metrics.MetricsRecorder.TimerMetricsContext;
+import java.util.Map;
 
 public class ConnectorMetrics {
 
@@ -32,11 +35,6 @@ public class ConnectorMetrics {
 
     public static final String METRIC_NAME_INVOCATIONS = "camunda.connector.outbound.invocations";
     public static final String METRIC_NAME_TIME = "camunda.connector.outbound.execution-time";
-
-    public static final String ACTION_ACTIVATED = MetricsRecorder.ACTION_ACTIVATED;
-    public static final String ACTION_COMPLETED = MetricsRecorder.ACTION_COMPLETED;
-    public static final String ACTION_FAILED = MetricsRecorder.ACTION_FAILED;
-    public static final String ACTION_BPMN_ERROR = MetricsRecorder.ACTION_BPMN_ERROR;
   }
 
   public static class Inbound {
@@ -53,5 +51,26 @@ public class ConnectorMetrics {
     public static final String ACTION_ACTIVATION_CONDITION_FAILED = "activation-condition-failed";
     public static final String ACTION_CORRELATED = "correlated";
     public static final String ACTION_CORRELATION_FAILED = "correlation-failed";
+  }
+
+  public static CounterMetricsContext counter(ActivatedJob job) {
+    Result result = Result.getResult(job);
+    return new CounterMetricsContext(
+        Outbound.METRIC_NAME_INVOCATIONS,
+        Map.ofEntries(
+            Map.entry(ConnectorMetrics.Tag.TYPE, result.type()),
+            Map.entry(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id()),
+            Map.entry(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())),
+        1);
+  }
+
+  public static TimerMetricsContext timer(ActivatedJob job) {
+    Result result = Result.getResult(job);
+    return new TimerMetricsContext(
+        ConnectorMetrics.Outbound.METRIC_NAME_TIME,
+        Map.ofEntries(
+            Map.entry(ConnectorMetrics.Tag.TYPE, result.type()),
+            Map.entry(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_ID, result.id()),
+            Map.entry(ConnectorMetrics.Tag.ELEMENT_TEMPLATE_VERSION, result.version())));
   }
 }

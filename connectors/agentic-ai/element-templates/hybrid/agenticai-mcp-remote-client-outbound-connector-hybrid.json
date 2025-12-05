@@ -136,6 +136,7 @@
     "label" : "Timeout",
     "description" : "Timeout for individual HTTP requests as ISO-8601 duration (example: <code>PT30S</code>)",
     "optional" : true,
+    "feel" : "optional",
     "group" : "transport",
     "binding" : {
       "name" : "data.transport.http.timeout",
@@ -146,7 +147,7 @@
       "equals" : "http",
       "type" : "simple"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "data.transport.sse.url",
     "label" : "URL",
@@ -189,6 +190,7 @@
     "label" : "Timeout",
     "description" : "Timeout for individual HTTP requests as ISO-8601 duration (example: <code>PT30S</code>)",
     "optional" : true,
+    "feel" : "optional",
     "group" : "transport",
     "binding" : {
       "name" : "data.transport.sse.timeout",
@@ -199,7 +201,7 @@
       "equals" : "sse",
       "type" : "simple"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "data.transport.http.authentication.type",
     "label" : "Type",
