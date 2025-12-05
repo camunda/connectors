@@ -68,14 +68,16 @@ class ProviderConfigurationTest {
     void validationShouldSucceed_WhenSaaSAndNotDefaultCredentialChainUsed() {
       simulateSaaSEnvironment();
       final var connection =
-          createConnection(new AwsAuthentication.AwsStaticCredentialsAuthentication("key", "secret"));
+          createConnection(
+              new AwsAuthentication.AwsStaticCredentialsAuthentication("key", "secret"));
       assertThat(validator.validate(connection)).isEmpty();
     }
 
     @Test
     void validationShouldSucceed_WhenNotSaaSAndNotDefaultCredentialChainUsed() {
       final var connection =
-          createConnection(new AwsAuthentication.AwsStaticCredentialsAuthentication("key", "secret"));
+          createConnection(
+              new AwsAuthentication.AwsStaticCredentialsAuthentication("key", "secret"));
       assertThat(validator.validate(connection)).isEmpty();
     }
 
