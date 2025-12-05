@@ -36,12 +36,13 @@ except in compliance with the proprietary license.</license.inlineheader>
       <artifactId>sendgrid-java</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.bouncycastle</groupId>
-      <artifactId>bcpkix-jdk18on</artifactId>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.bouncycastle</groupId>
-      <artifactId>bcprov-jdk18on</artifactId>
+      <groupId>com.sendgrid</groupId>
+      <artifactId>java-http-client</artifactId>
+      <version>${version.sendGrid-http-client}</version>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>

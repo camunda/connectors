@@ -20,6 +20,18 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-context</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-autoconfigure</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-registry-prometheus</artifactId>
     </dependency>
@@ -35,6 +47,23 @@
 
   <build>
     <plugins>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>analyze-dependencies</id>
+            <configuration>
+              <ignoredDependencies>
+                <!-- needed in runtime but not directly referenced in the code -->
+                <ignoredDependency>io.camunda.connector:spring-boot-starter-camunda-connectors</ignoredDependency>
+                <ignoredDependency>io.micrometer:micrometer-registry-prometheus</ignoredDependency>
+                <ignoredDependency>com.google.cloud:spring-cloud-gcp-logging</ignoredDependency>
+                <ignoredDependency>org.codehaus.janino:janino</ignoredDependency>
+              </ignoredDependencies>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>

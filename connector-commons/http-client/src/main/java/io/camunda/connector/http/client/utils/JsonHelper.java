@@ -16,11 +16,10 @@
  */
 package io.camunda.connector.http.client.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.JsonParseException;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
-import java.io.IOException;
 
 public class JsonHelper {
 
@@ -33,7 +32,7 @@ public class JsonHelper {
     try {
       JsonNode jsonNode = objectMapper.readTree(jsonString);
       return jsonNode.isObject() || jsonNode.isArray();
-    } catch (JsonParseException | IOException e) {
+    } catch (JsonProcessingException e) {
       return false;
     }
   }

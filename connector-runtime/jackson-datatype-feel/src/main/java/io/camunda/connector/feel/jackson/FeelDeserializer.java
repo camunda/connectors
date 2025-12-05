@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import scala.compiletime.ops.string;
 
 /**
  * A Jackson deserializer for FEEL expressions. It can be used to deserialize a string that contains

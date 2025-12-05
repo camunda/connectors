@@ -42,11 +42,6 @@ except in compliance with the proprietary license.</license.inlineheader>
       <artifactId>aws-java-sdk-sns</artifactId>
       <version>${version.aws-java-sdk}</version>
     </dependency>
-    <!-- This dependency will be removed after camunda/zeebe#9859 is resolved. -->
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-text</artifactId>
-    </dependency>
   </dependencies>
 
   <build>

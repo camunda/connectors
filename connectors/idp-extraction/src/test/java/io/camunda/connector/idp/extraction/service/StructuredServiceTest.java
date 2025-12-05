@@ -26,7 +26,6 @@ import io.camunda.connector.idp.extraction.util.ExtractionTestUtils;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -347,7 +346,7 @@ public class StructuredServiceTest {
         .containsEntry("supplier_name", 0.92f); // Not renamed, should use formatted name
   }
 
-  private static @NotNull StructuredExtractionResponse getStructuredExtractionResponse() {
+  private static StructuredExtractionResponse getStructuredExtractionResponse() {
     Map<String, Object> extractedFields = new HashMap<>();
     extractedFields.put("Invoice Number", "INV-12345");
     extractedFields.put("Total Amount", "$12.25");

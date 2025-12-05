@@ -54,28 +54,30 @@ except in compliance with the proprietary license.</license.inlineheader>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-validation</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
       <artifactId>connector-core</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-validation</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
     </dependency>
 
     <!-- test dependencies -->
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-runtime-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-test-utils</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -101,6 +103,11 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers-junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -137,6 +144,36 @@ except in compliance with the proprietary license.</license.inlineheader>
     </pluginManagement>
 
     <plugins>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>analyze-dependencies</id>
+            <configuration>
+              <ignoredUnusedDeclaredDependencies combine.children="append">
+                <dependency>org.assertj:assertj-core</dependency>
+                <dependency>io.camunda.connector:connector-core</dependency>
+                <dependency>io.camunda.connector:connector-runtime-core</dependency>
+                <dependency>jakarta.validation:jakarta.validation-api</dependency>
+                <dependency>io.camunda.connector:connector-runtime-test</dependency>
+                <dependency>io.camunda.connector:connector-object-mapper</dependency>
+                <dependency>io.camunda.connector:connector-validation</dependency>
+                <dependency>com.fasterxml.jackson.core:jackson-databind</dependency>
+                <dependency>org.mockito:mockito-core</dependency>
+                <dependency>org.springframework.boot:spring-boot-test</dependency>
+                <dependency>org.apache.tika:tika-parsers-standard-package</dependency>
+              </ignoredUnusedDeclaredDependencies>
+              <ignoredNonTestScopedDependencies combine.children="append">
+                <dependency>io.camunda.connector:connector-validation</dependency>
+                <dependency>com.fasterxml.jackson.core:jackson-core</dependency>
+                <dependency>io.camunda.connector:jackson-datatype-document</dependency>
+                <dependency>io.camunda.connector:connector-object-mapper</dependency>
+                <dependency>org.junit.jupiter:junit-jupiter-api</dependency>
+              </ignoredNonTestScopedDependencies>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 

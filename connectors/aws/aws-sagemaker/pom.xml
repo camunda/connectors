@@ -45,9 +45,8 @@
     </dependency>
 
     <dependency>
-      <groupId>com.amazonaws</groupId>
-      <artifactId>aws-java-sdk-sagemaker</artifactId>
-      <version>${version.aws-java-sdk}</version>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
     </dependency>
 
   </dependencies>  

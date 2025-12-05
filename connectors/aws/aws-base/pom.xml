@@ -1,64 +1,58 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>io.camunda.connector</groupId>
-        <artifactId>connector-aws-parent</artifactId>
-        <version>8.9.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
-    </parent>
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connector-aws-parent</artifactId>
+    <version>8.9.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
 
-    <name>connector-aws-base</name>
-    <description>Camunda Connector AWS base functionality</description>
-    <artifactId>connector-aws-base</artifactId>
-    <packaging>jar</packaging>
+  <name>connector-aws-base</name>
+  <description>Camunda Connector AWS base functionality</description>
+  <artifactId>connector-aws-base</artifactId>
+  <packaging>jar</packaging>
 
-    <licenses>
-        <license>
-            <name>Camunda Self-Managed Free Edition license</name>
-            <url>
-                https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/
-            </url>
-        </license>
-        <license>
-            <name>Camunda Self-Managed Enterprise Edition license</name>
-        </license>
-    </licenses>
+  <licenses>
+    <license>
+      <name>Camunda Self-Managed Free Edition license</name>
+      <url>
+        https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/
+      </url>
+    </license>
+    <license>
+      <name>Camunda Self-Managed Enterprise Edition license</name>
+    </license>
+  </licenses>
 
-    <dependencies>
+  <dependencies>
 
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-core</artifactId>
-            <version>${version.aws-java-sdk}</version>
-        </dependency>
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk-core</artifactId>
+      <version>${version.aws-java-sdk}</version>
+    </dependency>
 
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-sts</artifactId>
-            <version>${version.aws-java-sdk-sts}</version>
-        </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>auth</artifactId>
+      <version>${version.software-aws-java-sdk}</version>
+    </dependency>
 
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>auth</artifactId>
-            <version>${version.software-aws-java-sdk}</version>
-        </dependency>
+    <dependency>
+      <groupId>uk.org.webcompere</groupId>
+      <artifactId>system-stubs-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
 
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>sts</artifactId>
-            <version>${version.software-aws-java-sdk-sts}</version>
-        </dependency>
+    <dependency>
+      <groupId>uk.org.webcompere</groupId>
+      <artifactId>system-stubs-core</artifactId>
+      <scope>test</scope>
+    </dependency>
 
-        <dependency>
-            <groupId>uk.org.webcompere</groupId>
-            <artifactId>system-stubs-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-    </dependencies>
+  </dependencies>
 
 </project>

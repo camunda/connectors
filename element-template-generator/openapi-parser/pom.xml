@@ -16,22 +16,65 @@
 
   <properties>
     <version.swagger-parser>2.1.36</version.swagger-parser>
+    <version.swagger-models>2.2.41</version.swagger-models>
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-http-base</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-object-mapper</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>element-template-generator-http-dsl</artifactId>
     </dependency>
 
     <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-feel-wrapper</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.swagger.core.v3</groupId>
+      <artifactId>swagger-models</artifactId>
+      <version>${version.swagger-models}</version>
+    </dependency>
+    <dependency>
       <groupId>io.swagger.parser.v3</groupId>
-      <artifactId>swagger-parser</artifactId>
+      <artifactId>swagger-parser-v3</artifactId>
       <version>${version.swagger-parser}</version>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
-      <artifactId>jackson-dataformat-yaml</artifactId>
+      <groupId>io.swagger.parser.v3</groupId>
+      <artifactId>swagger-parser-core</artifactId>
+      <version>${version.swagger-parser}</version>
     </dependency>
 
     <dependency>
@@ -47,11 +90,6 @@
     <dependency>
       <groupId>org.skyscreamer</groupId>
       <artifactId>jsonassert</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>jackson-datatype-feel</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

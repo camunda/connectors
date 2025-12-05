@@ -36,14 +36,19 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- This dependency will be removed after camunda/zeebe#9859 is resolved. -->
     <dependency>
       <groupId>org.apache.commons</groupId>
-      <artifactId>commons-text</artifactId>
+      <artifactId>commons-lang3</artifactId>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>element-template-generator-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-test-utils</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
