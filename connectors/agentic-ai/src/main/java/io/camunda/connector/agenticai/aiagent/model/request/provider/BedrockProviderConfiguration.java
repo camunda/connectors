@@ -111,7 +111,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
 
       @Override
       public String toString() {
-        return "AwsStaticCredentialsAuthentication{apiKey=[REDACTED]}";
+        return "AwsApiKeyAuthentication{apiKey=[REDACTED]}";
       }
     }
 
