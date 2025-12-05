@@ -127,10 +127,24 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
             .client(createBedrockClient(connection))
             .modelId(connection.model().model());
 
-    return applyModelParametersIfPresent(connection, builder);
+    return applyBedrockModelParametersIfPresent(connection, builder);
   }
 
-  private BedrockChatModel.Builder applyModelParametersIfPresent(
+  private BedrockRuntimeClient createBedrockClient(
+      BedrockProviderConfiguration.BedrockConnection connection) {
+    var bedrockClientBuilder =
+        BedrockRuntimeClient.builder().region(Region.of(connection.region()));
+
+    var authenticationCustomizer = AwsBedrockRuntimeAuthenticationCustomizer.createFor(connection);
+    authenticationCustomizer.provideAuthenticationMechanism(bedrockClientBuilder);
+
+    if (connection.endpoint() != null) {
+      bedrockClientBuilder.endpointOverride(URI.create(connection.endpoint()));
+    }
+    return bedrockClientBuilder.build();
+  }
+
+  private BedrockChatModel.Builder applyBedrockModelParametersIfPresent(
       BedrockProviderConfiguration.BedrockConnection connection, BedrockChatModel.Builder builder) {
     final var modelParameters = connection.model().parameters();
     if (modelParameters == null) {
@@ -147,20 +161,6 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     builder.defaultRequestParameters(requestParametersBuilder.build());
 
     return builder;
-  }
-
-  private BedrockRuntimeClient createBedrockClient(
-      BedrockProviderConfiguration.BedrockConnection connection) {
-    var bedrockClientBuilder =
-        BedrockRuntimeClient.builder().region(Region.of(connection.region()));
-
-    var authenticationCustomizer = AwsBedrockRuntimeAuthenticationCustomizer.createFor(connection);
-    authenticationCustomizer.provideAuthenticationMechanism(bedrockClientBuilder);
-
-    if (connection.endpoint() != null) {
-      bedrockClientBuilder.endpointOverride(URI.create(connection.endpoint()));
-    }
-    return bedrockClientBuilder.build();
   }
 
   protected VertexAiGeminiChatModel.VertexAiGeminiChatModelBuilder
