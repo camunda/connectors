@@ -99,6 +99,11 @@
       <artifactId>tika-core</artifactId>
       <version>${version.apache-tika}</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.tika</groupId>
+      <artifactId>tika-parsers-standard-package</artifactId>
+      <version>${version.apache-tika}</version>
+    </dependency>
 
     <!-- Direct dependencies from transitive dependencies -->
     <dependency>
@@ -182,6 +187,11 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-autoconfigure</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-test</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
