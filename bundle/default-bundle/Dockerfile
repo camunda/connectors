@@ -1,17 +1,19 @@
-FROM eclipse-temurin:25.0.1_8-jre
+FROM reg.mini.dev/1212/openjre-base:25.0.1-dev
+
+# If you don't have access to Minimus hardened base images, you can use public
+# base images like this instead on your own risk:
+#FROM eclipse-temurin:25.0.1_8-jre
 
 VOLUME /tmp
+
+# Switch to root to allow setting up our own user and dirs
+USER root
 
 # The /opt/app is used for the Connectors runtime, and out-of-the-box connectors
 # Use the /opt/custom to mount your own connectors, secret providers, or include other jars into the classpath
 RUN mkdir /opt/app && mkdir /opt/custom
 
 COPY target/*-with-dependencies.jar /opt/app/
-
-RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
 
 # Using the start script from the base connector runtime image
 COPY start.sh /start.sh
