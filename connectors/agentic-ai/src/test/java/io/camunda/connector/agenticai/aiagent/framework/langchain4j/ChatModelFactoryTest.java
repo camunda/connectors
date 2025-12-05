@@ -63,6 +63,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProvi
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.assertj.core.api.ThrowingConsumer;
@@ -372,7 +373,7 @@ class ChatModelFactoryTest {
             verify(clientBuilder).overrideConfiguration(overrideConfigurationCaptor.capture());
 
             assertThat(overrideConfigurationCaptor.getValue().headers())
-                .containsEntry("Authorization", java.util.List.of("Bearer " + BEDROCK_API_KEY));
+                .containsEntry("Authorization", List.of("Bearer " + BEDROCK_API_KEY));
           });
     }
 
