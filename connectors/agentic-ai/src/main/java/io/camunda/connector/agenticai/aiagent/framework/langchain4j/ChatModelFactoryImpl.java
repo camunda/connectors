@@ -21,8 +21,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAi
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication.AwsStaticCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration;
@@ -130,11 +128,18 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
         BedrockRuntimeClient.builder()
             .credentialsProvider(
                 switch (connection.authentication()) {
-                  case AwsDefaultCredentialsChainAuthentication ignored ->
+                  case BedrockProviderConfiguration.AwsAuthentication
+                              .DefaultCredentialsChainAuthentication
+                          ignored ->
                       DefaultCredentialsProvider.create();
-                  case AwsStaticCredentialsAuthentication sca ->
+                  case BedrockProviderConfiguration.AwsAuthentication
+                              .StaticCredentialsAuthentication
+                          sca ->
                       StaticCredentialsProvider.create(
                           AwsBasicCredentials.create(sca.accessKey(), sca.secretKey()));
+                  case BedrockProviderConfiguration.AwsAuthentication.ApiKeyAuthentication
+                          ignored ->
+                      throw new UnsupportedOperationException("Not yet implemented");
                 })
             .region(Region.of(connection.region()));
 
