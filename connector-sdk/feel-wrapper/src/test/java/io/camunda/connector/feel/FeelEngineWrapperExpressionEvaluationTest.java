@@ -193,6 +193,24 @@ class FeelEngineWrapperExpressionEvaluationTest {
   }
 
   @Test
+  void evaluateToJson_ShouldNotFail_WhenResponseBodyIsEmpty() throws JSONException {
+    // given - simulates HTTP response with empty body (null)
+    // FEEL expression -> {"processedOutput": response.status}
+    final var resultExpression = "{\"processedOutput\": response.status }";
+    // Response body is null, but wrapped response contains the null
+    final Object responseContent = null;
+
+    // when - this should not throw exception even though responseContent is null
+    final var evaluatedResultAsJson =
+        objectUnderTest.evaluateToJson(
+            resultExpression, responseContent, wrapResponse(responseContent));
+
+    // then - should evaluate successfully with null values
+    JSONAssert.assertEquals(
+        "{\"processedOutput\": null}", evaluatedResultAsJson, JSONCompareMode.STRICT);
+  }
+
+  @Test
   void evaluateToJson_ShouldNotFail_WhenCallingNonExistingFunction() {
     // given
     // FEEL expression -> {"processedOutput": camel case(response.callStatus)}
