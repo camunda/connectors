@@ -96,7 +96,7 @@ class ConnectorHelperTest {
 
     // when - should not throw exception even though responseContent is null
     final var actual =
-        connectorResultHandler.createOutputVariables(responseContent, null, resultExpression);
+        ConnectorHelper.createOutputVariables(responseContent, null, resultExpression);
 
     // then - should evaluate successfully with null values
     assertThat(actual).containsEntry("status", null);
