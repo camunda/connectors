@@ -14,7 +14,7 @@ USER root
 RUN mkdir /opt/app && mkdir /opt/custom
 
 COPY start.sh /start.sh
-RUN chmod +x start.sh
+RUN chmod +x /start.sh
 
 # Copy Connector runtime from local build
 COPY target/*-with-dependencies.jar /opt/app/
