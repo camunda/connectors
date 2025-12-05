@@ -63,6 +63,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProvi
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.assertj.core.api.ThrowingConsumer;
@@ -80,10 +81,8 @@ import org.mockito.MockedStatic;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.*;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClientBuilder;
@@ -300,6 +299,7 @@ class ChatModelFactoryTest {
   class BedrockChatModelFactoryTest {
 
     private static final String BEDROCK_REGION = "eu-west-1";
+    private static final String BEDROCK_API_KEY = "bedrockApiKey";
     private static final String BEDROCK_ACCESS_KEY = "bedrockAccessKey";
     private static final String BEDROCK_SECRET_KEY = "bedrockSecretKey";
     private static final String BEDROCK_MODEL = "bedrockModel";
@@ -353,31 +353,27 @@ class ChatModelFactoryTest {
           });
     }
 
-    private void testCreateBedrockChatModelWithCredentials(
-        BedrockProviderConfiguration providerConfig,
-        ThrowingConsumer<AwsCredentialsProvider> credentialsProviderAssertions) {
+    @Test
+    void createsBedrockChatModelWithApiKeyCredentials() {
+      final var providerConfig =
+          new BedrockProviderConfiguration(
+              new BedrockConnection(
+                  BEDROCK_REGION,
+                  null,
+                  new AwsAuthentication.AwsApiKeyAuthentication(BEDROCK_API_KEY),
+                  new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
+
       testBedrockChatModelBuilder(
           providerConfig,
           (builders) -> {
-            verify(builders.clientBuilder).region(Region.EU_WEST_1);
-            verify(builders.clientBuilder, never()).endpointOverride(any());
+            var clientBuilder = builders.clientBuilder;
 
-            verify(builders.clientBuilder)
-                .credentialsProvider(credentialsProviderArgumentCaptor.capture());
-            credentialsProviderAssertions.accept(credentialsProviderArgumentCaptor.getValue());
+            var overrideConfigurationCaptor =
+                ArgumentCaptor.forClass(ClientOverrideConfiguration.class);
+            verify(clientBuilder).overrideConfiguration(overrideConfigurationCaptor.capture());
 
-            verify(builders.chatModelBuilder).client(builders.clientResultCaptor.getResult());
-            verify(builders.chatModelBuilder).modelId(BEDROCK_MODEL);
-
-            verify(builders.chatModelBuilder)
-                .defaultRequestParameters(modelParametersArgumentCaptor.capture());
-
-            final var parameters = modelParametersArgumentCaptor.getValue();
-            assertThat(parameters).isNotNull().isInstanceOf(BedrockChatRequestParameters.class);
-            assertThat(parameters.maxOutputTokens())
-                .isEqualTo(DEFAULT_MODEL_PARAMETERS.maxTokens());
-            assertThat(parameters.temperature()).isEqualTo(DEFAULT_MODEL_PARAMETERS.temperature());
-            assertThat(parameters.topP()).isEqualTo(DEFAULT_MODEL_PARAMETERS.topP());
+            assertThat(overrideConfigurationCaptor.getValue().headers())
+                .containsEntry("Authorization", List.of("Bearer " + BEDROCK_API_KEY));
           });
     }
 
@@ -426,6 +422,34 @@ class ChatModelFactoryTest {
               assertThat(parameters.temperature()).isNull();
               assertThat(parameters.topP()).isNull();
             }
+          });
+    }
+
+    private void testCreateBedrockChatModelWithCredentials(
+        BedrockProviderConfiguration providerConfig,
+        ThrowingConsumer<AwsCredentialsProvider> credentialsProviderAssertions) {
+      testBedrockChatModelBuilder(
+          providerConfig,
+          (builders) -> {
+            verify(builders.clientBuilder).region(Region.EU_WEST_1);
+            verify(builders.clientBuilder, never()).endpointOverride(any());
+
+            verify(builders.clientBuilder)
+                .credentialsProvider(credentialsProviderArgumentCaptor.capture());
+            credentialsProviderAssertions.accept(credentialsProviderArgumentCaptor.getValue());
+
+            verify(builders.chatModelBuilder).client(builders.clientResultCaptor.getResult());
+            verify(builders.chatModelBuilder).modelId(BEDROCK_MODEL);
+
+            verify(builders.chatModelBuilder)
+                .defaultRequestParameters(modelParametersArgumentCaptor.capture());
+
+            final var parameters = modelParametersArgumentCaptor.getValue();
+            assertThat(parameters).isNotNull().isInstanceOf(BedrockChatRequestParameters.class);
+            assertThat(parameters.maxOutputTokens())
+                .isEqualTo(DEFAULT_MODEL_PARAMETERS.maxTokens());
+            assertThat(parameters.temperature()).isEqualTo(DEFAULT_MODEL_PARAMETERS.temperature());
+            assertThat(parameters.topP()).isEqualTo(DEFAULT_MODEL_PARAMETERS.topP());
           });
     }
 
