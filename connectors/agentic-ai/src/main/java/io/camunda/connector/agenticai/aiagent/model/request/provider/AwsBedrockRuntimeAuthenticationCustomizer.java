@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request.provider;
 
+import java.util.List;
+import java.util.Map;
 import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -13,9 +15,6 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.http.auth.scheme.NoAuthAuthScheme;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClientBuilder;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * Functional interface to customize the AWS Bedrock Runtime client.
@@ -29,7 +28,8 @@ public interface AwsBedrockRuntimeAuthenticationCustomizer {
       BedrockProviderConfiguration.BedrockConnection bedrockConnection) {
 
     return switch (bedrockConnection.authentication()) {
-      case BedrockProviderConfiguration.AwsAuthentication.DefaultCredentialsChainAuthentication ignored ->
+      case BedrockProviderConfiguration.AwsAuthentication.DefaultCredentialsChainAuthentication
+              ignored ->
           defaultCredentials();
       case BedrockProviderConfiguration.AwsAuthentication.StaticCredentialsAuthentication
               staticAuthentication ->
