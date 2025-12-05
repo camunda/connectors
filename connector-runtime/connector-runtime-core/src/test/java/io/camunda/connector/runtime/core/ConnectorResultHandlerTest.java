@@ -87,4 +87,18 @@ class ConnectorResultHandlerTest {
         .hasMessageContaining(
             "The connector result contains a forbidden literal 'camunda.function.type'");
   }
+
+  @Test
+  void shouldHandleEmptyResponseBody() {
+    // given - simulates HTTP response with empty/null body
+    final String resultExpression = "={\"status\": response.status}";
+    final Object responseContent = null;
+
+    // when - should not throw exception even though responseContent is null
+    final var actual =
+        connectorResultHandler.createOutputVariables(responseContent, null, resultExpression);
+
+    // then - should evaluate successfully with null values
+    assertThat(actual).containsEntry("status", null);
+  }
 }

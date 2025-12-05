@@ -361,10 +361,10 @@ class SpringConnectorJobHandlerTest {
         var result =
             JobBuilder.create()
                 .withResultExpressionHeader(resultExpression)
-                .executeAndCaptureResult(jobHandler, false);
+                .executeAndCaptureResult(jobHandler);
 
         // then
-        assertThat(result.getErrorMessage()).contains("Context is null");
+        assertThat(result.getVariables().get("processedOutput")).isNull();
       }
 
       @Test
