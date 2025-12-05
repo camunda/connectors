@@ -51,19 +51,19 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
     @SuppressWarnings("unused")
     public boolean isDefaultCredentialsChainUsedInSaaS() {
       return ConnectorUtils.isSaaS()
-          && authentication instanceof AwsAuthentication.DefaultCredentialsChainAuthentication;
+          && authentication instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
     }
   }
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes({
     @JsonSubTypes.Type(
-        value = AwsAuthentication.StaticCredentialsAuthentication.class,
+        value = AwsAuthentication.AwsStaticCredentialsAuthentication.class,
         name = "credentials"),
     @JsonSubTypes.Type(
-        value = AwsAuthentication.DefaultCredentialsChainAuthentication.class,
+        value = AwsAuthentication.AwsDefaultCredentialsChainAuthentication.class,
         name = "defaultCredentialsChain"),
-    @JsonSubTypes.Type(value = AwsAuthentication.ApiKeyAuthentication.class, name = "apiKey"),
+    @JsonSubTypes.Type(value = AwsAuthentication.AwsApiKeyAuthentication.class, name = "apiKey"),
   })
   @TemplateDiscriminatorProperty(
       label = "Authentication",
@@ -75,7 +75,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
   public sealed interface AwsAuthentication {
 
     @TemplateSubType(id = "credentials", label = "Credentials")
-    record StaticCredentialsAuthentication(
+    record AwsStaticCredentialsAuthentication(
         @TemplateProperty(
                 group = "provider",
                 label = "Access key",
@@ -99,7 +99,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
     }
 
     @TemplateSubType(id = "apiKey", label = "API Key")
-    record ApiKeyAuthentication(
+    record AwsApiKeyAuthentication(
         @TemplateProperty(
                 group = "provider",
                 label = "API Key",
@@ -118,7 +118,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
     @TemplateSubType(
         id = "defaultCredentialsChain",
         label = "Default Credentials Chain (Hybrid/Self-Managed only)")
-    record DefaultCredentialsChainAuthentication() implements AwsAuthentication {}
+    record AwsDefaultCredentialsChainAuthentication() implements AwsAuthentication {}
   }
 
   public record BedrockModel(

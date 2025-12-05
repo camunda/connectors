@@ -28,13 +28,13 @@ public interface AwsBedrockRuntimeAuthenticationCustomizer {
       BedrockProviderConfiguration.BedrockConnection bedrockConnection) {
 
     return switch (bedrockConnection.authentication()) {
-      case BedrockProviderConfiguration.AwsAuthentication.DefaultCredentialsChainAuthentication
+      case BedrockProviderConfiguration.AwsAuthentication.AwsDefaultCredentialsChainAuthentication
               ignored ->
           defaultCredentials();
-      case BedrockProviderConfiguration.AwsAuthentication.StaticCredentialsAuthentication
+      case BedrockProviderConfiguration.AwsAuthentication.AwsStaticCredentialsAuthentication
               staticAuthentication ->
           staticCredentials(staticAuthentication);
-      case BedrockProviderConfiguration.AwsAuthentication.ApiKeyAuthentication
+      case BedrockProviderConfiguration.AwsAuthentication.AwsApiKeyAuthentication
               apiKeyAuthentication ->
           apiKey(apiKeyAuthentication);
     };
@@ -46,7 +46,7 @@ public interface AwsBedrockRuntimeAuthenticationCustomizer {
   }
 
   private static AwsBedrockRuntimeAuthenticationCustomizer staticCredentials(
-      BedrockProviderConfiguration.AwsAuthentication.StaticCredentialsAuthentication
+      BedrockProviderConfiguration.AwsAuthentication.AwsStaticCredentialsAuthentication
           staticCredentialsAuthentication) {
     var awsCredentials =
         AwsBasicCredentials.create(
@@ -58,7 +58,7 @@ public interface AwsBedrockRuntimeAuthenticationCustomizer {
   }
 
   private static AwsBedrockRuntimeAuthenticationCustomizer apiKey(
-      BedrockProviderConfiguration.AwsAuthentication.ApiKeyAuthentication apiKeyAuthentication) {
+      BedrockProviderConfiguration.AwsAuthentication.AwsApiKeyAuthentication apiKeyAuthentication) {
     return bedrockBuilder ->
         bedrockBuilder
             .credentialsProvider(AnonymousCredentialsProvider.create())

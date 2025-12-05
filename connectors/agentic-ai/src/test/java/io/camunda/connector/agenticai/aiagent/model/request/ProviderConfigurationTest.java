@@ -50,7 +50,7 @@ class ProviderConfigurationTest {
     void validationShouldFail_WhenSaaSAndDefaultCredentialChainUsed() {
       simulateSaaSEnvironment();
       final var connection =
-          createConnection(new AwsAuthentication.DefaultCredentialsChainAuthentication());
+          createConnection(new AwsAuthentication.AwsDefaultCredentialsChainAuthentication());
       assertThat(validator.validate(connection))
           .hasSize(1)
           .extracting(ConstraintViolation::getMessage)
@@ -60,7 +60,7 @@ class ProviderConfigurationTest {
     @Test
     void validationShouldSucceed_WhenNotSaaSAndDefaultCredentialChainUsed() {
       final var connection =
-          createConnection(new AwsAuthentication.DefaultCredentialsChainAuthentication());
+          createConnection(new AwsAuthentication.AwsDefaultCredentialsChainAuthentication());
       assertThat(validator.validate(connection)).isEmpty();
     }
 
@@ -68,14 +68,14 @@ class ProviderConfigurationTest {
     void validationShouldSucceed_WhenSaaSAndNotDefaultCredentialChainUsed() {
       simulateSaaSEnvironment();
       final var connection =
-          createConnection(new AwsAuthentication.StaticCredentialsAuthentication("key", "secret"));
+          createConnection(new AwsAuthentication.AwsStaticCredentialsAuthentication("key", "secret"));
       assertThat(validator.validate(connection)).isEmpty();
     }
 
     @Test
     void validationShouldSucceed_WhenNotSaaSAndNotDefaultCredentialChainUsed() {
       final var connection =
-          createConnection(new AwsAuthentication.StaticCredentialsAuthentication("key", "secret"));
+          createConnection(new AwsAuthentication.AwsStaticCredentialsAuthentication("key", "secret"));
       assertThat(validator.validate(connection)).isEmpty();
     }
 

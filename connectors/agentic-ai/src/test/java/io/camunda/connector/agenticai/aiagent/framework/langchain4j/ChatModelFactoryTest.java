@@ -317,7 +317,7 @@ class ChatModelFactoryTest {
               new BedrockConnection(
                   BEDROCK_REGION,
                   null,
-                  new AwsAuthentication.DefaultCredentialsChainAuthentication(),
+                  new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
                   new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testCreateBedrockChatModelWithCredentials(
@@ -335,7 +335,7 @@ class ChatModelFactoryTest {
               new BedrockConnection(
                   BEDROCK_REGION,
                   null,
-                  new AwsAuthentication.StaticCredentialsAuthentication(
+                  new AwsAuthentication.AwsStaticCredentialsAuthentication(
                       BEDROCK_ACCESS_KEY, BEDROCK_SECRET_KEY),
                   new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
@@ -360,7 +360,7 @@ class ChatModelFactoryTest {
               new BedrockConnection(
                   BEDROCK_REGION,
                   null,
-                  new AwsAuthentication.ApiKeyAuthentication(BEDROCK_API_KEY),
+                  new AwsAuthentication.AwsApiKeyAuthentication(BEDROCK_API_KEY),
                   new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testBedrockChatModelBuilder(
@@ -384,7 +384,7 @@ class ChatModelFactoryTest {
               new BedrockConnection(
                   BEDROCK_REGION,
                   "https://my-custom-endpoint.local",
-                  new AwsAuthentication.DefaultCredentialsChainAuthentication(),
+                  new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
                   new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testBedrockChatModelBuilder(
@@ -404,7 +404,7 @@ class ChatModelFactoryTest {
               new BedrockConnection(
                   BEDROCK_REGION,
                   null,
-                  new AwsAuthentication.DefaultCredentialsChainAuthentication(),
+                  new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
                   new BedrockModel(BEDROCK_MODEL, modelParameters)));
 
       testBedrockChatModelBuilder(
