@@ -87,6 +87,9 @@ jobs:
       identifier: connectors-int-${{ github.run_id }}
       camunda-helm-dir: ${{ needs.prepare-inputs.outputs.helm-dir }}
       test-enabled: true
+      e2e-enabled: false
+      scenario: keycloak-original
+      shortname: keyco
       extra-values: |
         connectors:
           image:
