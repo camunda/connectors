@@ -1,9 +1,9 @@
 # These owners will be the default owners for everything in the repo.
-* @camunda/connectors 
+* @camunda/connectors
 
-# Custom rule for AI & IDP collaborators 
-/connectors/agentic-ai @camunda/connector-ai-i-idp-collaborators @camunda/connectors
-/connectors/idp-extraction @camunda/connector-ai-i-idp-collaborators @camunda/connectors
+# Custom rule for AI & IDP collaborators
+/connectors/agentic-ai @camunda/connectors-agentic-ai @camunda/connectors
+/connectors/idp-extraction @camunda/connectors-idp @camunda/connectors
 /connectors/embeddings-vector-database @camunda/connector-ai-i-idp-collaborators @camunda/connectors
 /connectors-e2e-test/connectors-e2e-test-agentic-ai @camunda/connector-ai-i-idp-collaborators @camunda/connectors
 # These files are excluded so that Renovate can automatically merge dependency upgrades
