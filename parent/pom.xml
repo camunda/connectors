@@ -94,12 +94,12 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.21</version.logback>
 
     <version.aws-java-sdk>1.12.794</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.40.0</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.40.3</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.40.0</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.40.3</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.40.0</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.40.3</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.3</version.localstack>
 
@@ -109,7 +109,7 @@ limitations under the License.</license.inlineheader>
 
     <version.google-api-services-drive>v3-rev20251114-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
-    <version.google-auth-library-oauth2-http>1.40.0</version.google-auth-library-oauth2-http>
+    <version.google-auth-library-oauth2-http>1.41.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20251110-2.0.0</version.google-api-services-docs>
     <version.google-libraries-bom>26.72.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20251110-2.0.0</version.google-api-services-sheets>
@@ -127,7 +127,7 @@ limitations under the License.</license.inlineheader>
 
     <version.kafka-clients>4.1.1</version.kafka-clients>
 
-    <version.microsoft-graph>6.57.0</version.microsoft-graph>
+    <version.microsoft-graph>6.58.0</version.microsoft-graph>
     <version.azure-identity>1.18.1</version.azure-identity>
 
     <version.bouncycastle>1.83</version.bouncycastle>
@@ -534,7 +534,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-text</artifactId>
-        <version>1.14.0</version>
+        <version>1.15.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>

@@ -26,7 +26,7 @@
   <properties>
     <!-- Pins avro version, as jackson-dataformat-avro transitively imports the outdated one -->
     <version.avro>1.12.1</version.avro>
-    <version.schema-registry>8.1.0</version.schema-registry>
+    <version.schema-registry>8.1.1</version.schema-registry>
     <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
 under one or more contributor license agreements. Licensed under a proprietary license.
 See the License.txt file for more information. You may not use this file
