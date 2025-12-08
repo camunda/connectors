@@ -89,7 +89,7 @@ jobs:
     if: github.ref != 'refs/heads/main' && !contains(github.event.pull_request.labels.*.name, 'skip-helm-deploy')
     needs: prepare-inputs
     name: Helm chart Integration Tests
-    uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@main
+    uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@always-green/update-scenarios-global-secret-for-habor
     secrets: inherit
     with:
       identifier: connectors-int-${{ github.run_id }}
