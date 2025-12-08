@@ -110,6 +110,12 @@ jobs:
       # This keycloak realm and elasticsearch prefixes are all randomly generated at installation time.
       scenario: keycloak-original
       shortname: keyco
+      # Github does not guarantee that the cleanup job will run. So we need to use flags. Within the helm CI the max ttl for a namespace is set.
+      # That max ttl can be overridden by setting the deployment-ttl to a non-empty value.
+      # When always-delete-namespace is true, and ttl is empty, the namespace is deleted after the test run.
+      # If ttl is non-empty, the namespace is not deleted after the test run.
+      deployment-ttl: ""
+      always-delete-namespace: true
       extra-values: |
         connectors:
           image:
