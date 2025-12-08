@@ -41,11 +41,17 @@ public class SoapMessageHandler {
 
   private String processSoapHeaderPart(SoapHeaderPart xmlPart) {
     if (xmlPart == null || xmlPart instanceof HeaderNone) {
+      LOG.trace("No header provided for SOAP message.");
       return null;
     } else if (xmlPart instanceof HeaderTemplate template) {
-      return TemplateUtil.compileTemplate(template.template(), true).execute(template.context());
+      String soapHeader =
+          TemplateUtil.compileTemplate(template.template(), true).execute(template.context());
+      LOG.trace("Generated SOAP Header from XML template: {}", soapHeader);
+      return soapHeader;
     } else if (xmlPart instanceof HeaderJson json) {
-      return toXmlMapper.toXmlPartString(json.json());
+      String soapHeader = toXmlMapper.toXmlPartString(json.json());
+      LOG.trace("Generated SOAP Header from JSON template: {}", soapHeader);
+      return soapHeader;
     } else {
       throw new IllegalStateException("Unrecognized SOAP header implementation");
     }
@@ -53,11 +59,17 @@ public class SoapMessageHandler {
 
   private String processSoapBodyPart(SoapBodyPart xmlPart) {
     if (xmlPart == null) {
+      LOG.trace("No body provided for SOAP message.");
       return "";
     } else if (xmlPart instanceof BodyTemplate template) {
-      return TemplateUtil.compileTemplate(template.template(), true).execute(template.context());
+      String soapBody =
+          TemplateUtil.compileTemplate(template.template(), true).execute(template.context());
+      LOG.trace("Generated SOAP Body from XML template: {}", soapBody);
+      return soapBody;
     } else if (xmlPart instanceof BodyJson json) {
-      return toXmlMapper.toXmlPartString(json.json());
+      String soapBody = toXmlMapper.toXmlPartString(json.json());
+      LOG.trace("Generated SOAP Body from JSON template: {}", soapBody);
+      return soapBody;
     } else {
       throw new IllegalStateException("Unrecognized SOAP body implementation");
     }
