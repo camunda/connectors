@@ -86,8 +86,12 @@ jobs:
     with:
       identifier: connectors-int-${{ github.run_id }}
       camunda-helm-dir: ${{ needs.prepare-inputs.outputs.helm-dir }}
+      # test-enabled enables testing generally, both IT and E2E tests.
       test-enabled: true
+      # e2e-enabled is our way to disable E2E tests if needed.
       e2e-enabled: false
+      # This scenario installs a full Camunda 8 cluster with Keycloak and Elasticsearch being external. 
+      # This keycloak realm and elasticsearch prefixes are all randomly generated at installation time.
       scenario: keycloak-original
       shortname: keyco
       extra-values: |
