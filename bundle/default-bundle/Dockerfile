@@ -6,6 +6,8 @@ FROM reg.mini.dev/1212/openjre-base:25.0.1-dev
 
 VOLUME /tmp
 
+WORKDIR /
+
 # Switch to root to allow setting up our own user and dirs
 USER root
 
