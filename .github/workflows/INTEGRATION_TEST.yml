@@ -47,25 +47,31 @@ jobs:
         run: |
           echo "version=$(grep -oPm1 "(?<=<version>)[^<]+" "pom.xml")" >> $GITHUB_OUTPUT
 
-      # An empty registry means we pull from docker hub.
       - name: Determine version of the Connectors image to use
         id: determine-connectors-version
         run: |
-          if [ -z "${{ inputs.connectors-version }}" ]; then
-            if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-              echo "connectors-registry=" >> $GITHUB_OUTPUT
-              echo "connectors-repository=camunda/connectors-bundle" >> $GITHUB_OUTPUT
-              echo "connectors-version=SNAPSHOT" >> $GITHUB_OUTPUT
-            else
-              echo "connectors-registry=registry.camunda.cloud" >> $GITHUB_OUTPUT
-              echo "connectors-repository=team-connectors/connectors-bundle" >> $GITHUB_OUTPUT
-              echo "connectors-version=${{ steps.maven-version.outputs.version }}" >> $GITHUB_OUTPUT
-            fi
+          # Defaults: internal registry for feature branches and explicit versions
+          REGISTRY="registry.camunda.cloud"
+          REPOSITORY="team-connectors/connectors-bundle"
+          
+          if [ -n "${{ inputs.connectors-version }}" ]; then
+            # Explicit version provided
+            VERSION="${{ inputs.connectors-version }}"
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            # Main branch: use Docker Hub public image (empty registry)
+            REGISTRY=""
+            REPOSITORY="camunda/connectors-bundle"
+            VERSION="SNAPSHOT"
           else
-            echo "connectors-registry=registry.camunda.cloud" >> $GITHUB_OUTPUT
-            echo "connectors-repository=team-connectors/connectors-bundle" >> $GITHUB_OUTPUT
-            echo "connectors-version=${{ inputs.connectors-version }}" >> $GITHUB_OUTPUT
+            # Feature branch: use Maven project version
+            VERSION="${{ steps.maven-version.outputs.version }}"
           fi
+          
+          {
+            echo "connectors-registry=${REGISTRY}"
+            echo "connectors-repository=${REPOSITORY}"
+            echo "connectors-version=${VERSION}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Determine Helm chart directory to use
         id: determine-helm-dir
