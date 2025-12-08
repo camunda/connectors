@@ -32,6 +32,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Prepare inputs
     outputs:
+      connectors-registry: ${{ steps.determine-connectors-version.outputs.connectors-registry }}
+      connectors-repository: ${{ steps.determine-connectors-version.outputs.connectors-repository }}
       connectors-version: ${{ steps.determine-connectors-version.outputs.connectors-version }}
       helm-dir: ${{ steps.determine-helm-dir.outputs.helm-dir }}
     steps:
@@ -50,11 +52,17 @@ jobs:
         run: |
           if [ -z "${{ inputs.connectors-version }}" ]; then
             if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+              echo "connectors-registry=" >> $GITHUB_OUTPUT
+              echo "connectors-repository=camunda/connectors-bundle" >> $GITHUB_OUTPUT
               echo "connectors-version=SNAPSHOT" >> $GITHUB_OUTPUT
             else
+              echo "connectors-registry=registry.camunda.cloud" >> $GITHUB_OUTPUT
+              echo "connectors-repository=team-connectors/connectors-bundle" >> $GITHUB_OUTPUT
               echo "connectors-version=${{ steps.maven-version.outputs.version }}" >> $GITHUB_OUTPUT
             fi
           else
+            echo "connectors-registry=registry.camunda.cloud" >> $GITHUB_OUTPUT
+            echo "connectors-repository=team-connectors/connectors-bundle" >> $GITHUB_OUTPUT
             echo "connectors-version=${{ inputs.connectors-version }}" >> $GITHUB_OUTPUT
           fi
 
@@ -97,4 +105,6 @@ jobs:
       extra-values: |
         connectors:
           image:
+            registry: ${{ needs.prepare-inputs.outputs.connectors-registry }}
+            repository: ${{ needs.prepare-inputs.outputs.connectors-repository }}
             tag: ${{ needs.prepare-inputs.outputs.connectors-version }}
