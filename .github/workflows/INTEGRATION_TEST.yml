@@ -47,6 +47,7 @@ jobs:
         run: |
           echo "version=$(grep -oPm1 "(?<=<version>)[^<]+" "pom.xml")" >> $GITHUB_OUTPUT
 
+      # An empty registry means we pull from docker hub.
       - name: Determine version of the Connectors image to use
         id: determine-connectors-version
         run: |
