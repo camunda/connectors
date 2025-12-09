@@ -356,6 +356,7 @@ jobs:
           secrets: |
             secret/data/products/connectors/ci/common DOCKERHUB_USER;
             secret/data/products/connectors/ci/common DOCKERHUB_PASSWORD;
+            secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -370,6 +371,13 @@ jobs:
         with:
           username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
           password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
+
+      - name: Login to Minimus
+        uses: docker/login-action@v3
+        with:
+          registry: reg.mini.dev
+          username: minimus
+          password: ${{ steps.secrets.outputs.REGISTRY_MINIMUS_PSW }}
 
       # Build & push bundle docker images (with version tag)
 
