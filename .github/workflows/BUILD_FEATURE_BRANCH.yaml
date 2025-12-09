@@ -9,6 +9,8 @@ on:
 jobs:
   run-tests:
     runs-on: ubuntu-latest
+    outputs:
+      connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
     steps:
       - uses: actions/checkout@v6
 
@@ -72,14 +74,28 @@ jobs:
           registry: registry.camunda.cloud
           username: ${{ steps.secrets.outputs.CI_LDAP_USER }}
           password: ${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}
+      
+      - name: Set connectors version
+        id: connectors-version
+        run: |
+          echo "connectors-version=pr-${{ github.sha }}" >> $GITHUB_OUTPUT
 
       # Publish Docker images for Preview environments
       - name: Build and Push Docker Image tag ${{ env.TAG }} - bundle-default
         env:
-          TAG: pr-${{ github.sha }}
+          TAG: ${{ steps.connectors-version.outputs.connectors-version }}
         uses: docker/build-push-action@v6
         with:
           context: bundle/default-bundle/
           provenance: false
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle:${{ env.TAG }}
+
+  helm-deploy:
+    needs: [ run-tests ]
+    name: Run Helm Integration Tests
+    uses: ./.github/workflows/INTEGRATION_TEST.yml
+    secrets: inherit
+    with:
+      connectors-version: ${{ needs.run-tests.outputs.connectors-version }}
+      release-branch: main
