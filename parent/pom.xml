@@ -705,18 +705,6 @@ limitations under the License.</license.inlineheader>
       <url>https://artifacts.camunda.com/artifactory/zeebe-io-snapshots/</url>
     </repository>
 
-    <repository>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>identity</id>
-      <name>Identity Repository</name>
-      <url>https://artifacts.camunda.com/artifactory/camunda-identity/</url>
-    </repository>
-
     <!-- opensaml dependencies for soap connector -->
     <repository>
       <id>shibboleth</id>
