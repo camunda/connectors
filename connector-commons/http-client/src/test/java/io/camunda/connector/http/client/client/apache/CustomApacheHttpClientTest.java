@@ -19,7 +19,7 @@ package io.camunda.connector.http.client.client.apache;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static uk.org.webcompere.systemstubs.SystemStubs.restoreSystemProperties;
 import static uk.org.webcompere.systemstubs.SystemStubs.withEnvironmentVariables;
