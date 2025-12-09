@@ -224,6 +224,9 @@
       "name" : "Credentials",
       "value" : "credentials"
     }, {
+      "name" : "API Key",
+      "value" : "apiKey"
+    }, {
       "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
       "value" : "defaultCredentialsChain"
     } ]
@@ -271,6 +274,32 @@
       "allMatch" : [ {
         "property" : "provider.bedrock.authentication.type",
         "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "provider.type",
+        "equals" : "bedrock",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.bedrock.authentication.apiKey",
+    "label" : "API Key",
+    "description" : "Provide an API Key with permissions to interact with your AWS Bedrock Instance",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "provider.bedrock.authentication.type",
+        "equals" : "apiKey",
         "type" : "simple"
       }, {
         "property" : "provider.type",

@@ -48,6 +48,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
       @Valid @NotNull BedrockModel model) {
 
     @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
+    @SuppressWarnings("unused")
     public boolean isDefaultCredentialsChainUsedInSaaS() {
       return ConnectorUtils.isSaaS()
           && authentication instanceof AwsAuthentication.AwsDefaultCredentialsChainAuthentication;
@@ -62,6 +63,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
     @JsonSubTypes.Type(
         value = AwsAuthentication.AwsDefaultCredentialsChainAuthentication.class,
         name = "defaultCredentialsChain"),
+    @JsonSubTypes.Type(value = AwsAuthentication.AwsApiKeyAuthentication.class, name = "apiKey"),
   })
   @TemplateDiscriminatorProperty(
       label = "Authentication",
@@ -71,6 +73,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
       description =
           "Specify the AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock/#authentication\" target=\"_blank\">documentation page</a>")
   public sealed interface AwsAuthentication {
+
     @TemplateSubType(id = "credentials", label = "Credentials")
     record AwsStaticCredentialsAuthentication(
         @TemplateProperty(
@@ -88,9 +91,27 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
             @NotBlank
             String secretKey)
         implements AwsAuthentication {
+
       @Override
       public String toString() {
         return "AwsStaticCredentialsAuthentication{accessKey=[REDACTED], secretKey=[REDACTED]}";
+      }
+    }
+
+    @TemplateSubType(id = "apiKey", label = "API Key")
+    record AwsApiKeyAuthentication(
+        @TemplateProperty(
+                group = "provider",
+                label = "API Key",
+                description =
+                    "Provide an API Key with permissions to interact with your AWS Bedrock Instance")
+            @NotBlank
+            String apiKey)
+        implements AwsAuthentication {
+
+      @Override
+      public String toString() {
+        return "AwsApiKeyAuthentication{apiKey=[REDACTED]}";
       }
     }
 
