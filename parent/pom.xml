@@ -471,6 +471,16 @@ limitations under the License.</license.inlineheader>
         <artifactId>regions</artifactId>
         <version>${version.software-aws-java-sdk}</version>
       </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>http-auth-spi</artifactId>
+        <version>${version.software-aws-java-sdk}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>http-auth</artifactId>
+        <version>${version.software-aws-java-sdk}</version>
+      </dependency>
 
       <dependency>
         <groupId>com.google.code.findbugs</groupId>
