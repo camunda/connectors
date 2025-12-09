@@ -43,9 +43,10 @@ public class BedrockAiClient extends AiClient {
   private ChatRequestParameters getChatRequestParameters(ConverseData converseData) {
     var parametersBuilder = BedrockChatRequestParameters.builder();
 
-    if (converseData.maxTokens() != null) {
-      parametersBuilder.maxOutputTokens(converseData.maxTokens());
-    }
+    // Commenting out the max tokens assignment because it negatively impacts responses
+    //    if (converseData.maxTokens() != null) {
+    //      parametersBuilder.maxOutputTokens(converseData.maxTokens());
+    //    }
     if (converseData.temperature() != null) {
       parametersBuilder.temperature(converseData.temperature().doubleValue());
     }

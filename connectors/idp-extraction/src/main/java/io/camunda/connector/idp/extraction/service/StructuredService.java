@@ -6,22 +6,14 @@
  */
 package io.camunda.connector.idp.extraction.service;
 
-import com.google.auth.oauth2.GoogleCredentials;
-import io.camunda.connector.idp.extraction.client.extraction.AwsTextrtactExtractionClient;
-import io.camunda.connector.idp.extraction.client.extraction.GcpDocumentAiExtractionClient;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.idp.extraction.client.extraction.base.MlExtractor;
 import io.camunda.connector.idp.extraction.model.*;
-import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
-import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
-import io.camunda.connector.idp.extraction.model.providers.ProviderConfig;
-import io.camunda.connector.idp.extraction.model.providers.gcp.DocumentAiRequestConfiguration;
-import io.camunda.connector.idp.extraction.utils.AwsUtil;
-import io.camunda.connector.idp.extraction.utils.GcsUtil;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 public class StructuredService {
 
@@ -29,15 +21,18 @@ public class StructuredService {
 
   public StructuredService() {}
 
-  public Object extract(ExtractionRequest extractionRequest) {
-    final var input = extractionRequest.input();
+  public Object extract(
+      MlExtractor mlExtractor,
+      List<String> includedFields,
+      Map<String, String> renameMappings,
+      String delimiter,
+      Document document) {
     long startTime = System.currentTimeMillis();
-    MlExtractor mlExtractor = getMlExtractor(extractionRequest.baseRequest());
     LOGGER.info("Starting {} document analysis", mlExtractor.getClass().getSimpleName());
 
-    StructuredExtractionResponse results =
-        mlExtractor.runDocumentAnalysis(extractionRequest.input().document());
-    StructuredExtractionResult processedResults = processExtractedData(results, input);
+    StructuredExtractionResponse results = mlExtractor.runDocumentAnalysis(document);
+    StructuredExtractionResult processedResults =
+        processExtractedData(results, includedFields, renameMappings, delimiter);
 
     long endTime = System.currentTimeMillis();
     LOGGER.info(
@@ -47,46 +42,19 @@ public class StructuredService {
     return processedResults;
   }
 
-  private MlExtractor getMlExtractor(ProviderConfig providerConfig) {
-    return switch (providerConfig) {
-      case AwsProvider aws -> {
-        AwsCredentialsProvider credentialsProvider =
-            AwsUtil.credentialsProvider(aws.getAuthentication());
-        yield new AwsTextrtactExtractionClient(
-            credentialsProvider, aws.getConfiguration().region(), aws.getS3BucketName());
-      }
-      case GcpProvider gcp -> {
-        DocumentAiRequestConfiguration config =
-            (DocumentAiRequestConfiguration) gcp.getConfiguration();
-        GoogleCredentials credentials =
-            GcsUtil.getCredentials(
-                gcp.getAuthentication().authType(),
-                gcp.getAuthentication().bearerToken(),
-                gcp.getAuthentication().serviceAccountJson(),
-                gcp.getAuthentication().oauthClientId(),
-                gcp.getAuthentication().oauthClientSecret(),
-                gcp.getAuthentication().oauthRefreshToken());
-        yield new GcpDocumentAiExtractionClient(
-            credentials, config.getProjectId(), config.getRegion(), config.getProcessorId());
-      }
-      default ->
-          throw new IllegalStateException(
-              "Unsupported provider for structured extraction: "
-                  + providerConfig.getClass().getSimpleName());
-    };
-  }
-
   /**
    * Processes extracted key-value pairs and confidence scores by formatting variable names and
    * filtering out excluded or empty values.
    *
    * @param response The StructuredExtractionResponse containing both extracted fields and
    *     confidence scores
-   * @param input The extraction request data containing filtering rules
    * @return A StructuredExtractionResult with processed extracted fields and confidence scores
    */
   private StructuredExtractionResult processExtractedData(
-      StructuredExtractionResponse response, ExtractionRequestData input) {
+      StructuredExtractionResponse response,
+      List<String> includedFields,
+      Map<String, String> renameMappings,
+      String delimiter) {
     Map<String, Object> parsedResults = new HashMap<>();
     Map<String, Object> processedConfidenceScores = new HashMap<>();
     Map<String, Polygon> processedGeometry = new HashMap<>();
@@ -98,19 +66,19 @@ public class StructuredService {
             (key, value) -> {
               String variableName;
               // Check if key variable should be overridden by renameMappings value
-              if (input.renameMappings() != null && input.renameMappings().containsKey(key)) {
-                variableName = input.renameMappings().get(key);
+              if (renameMappings != null && renameMappings.containsKey(key)) {
+                variableName = renameMappings.get(key);
               } else {
-                variableName = formatZeebeVariableName(key, input.delimiter());
+                variableName = formatZeebeVariableName(key, delimiter);
               }
               Object confidenceScore = response.confidenceScore().get(key);
 
               // Check if field should be included based on includedFields filter
               boolean shouldInclude;
-              if (input.includedFields() == null || input.includedFields().isEmpty()) {
+              if (includedFields == null || includedFields.isEmpty()) {
                 shouldInclude = true;
               } else {
-                shouldInclude = input.includedFields().contains(key);
+                shouldInclude = includedFields.contains(key);
               }
 
               // Include the field if it should be included and value is not null

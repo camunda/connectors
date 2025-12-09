@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.idp.extraction.service;
 
+import static io.camunda.connector.idp.extraction.error.IdpErrorCodes.INVALID_JSON_RESPONSE;
+import static io.camunda.connector.idp.extraction.error.IdpErrorCodes.JSON_PARSING_FAILED;
 import static io.camunda.connector.idp.extraction.utils.ProviderUtil.getAiClient;
 import static io.camunda.connector.idp.extraction.utils.ProviderUtil.getTextExtractor;
 
@@ -97,7 +99,7 @@ public class ClassificationService {
         return parseAndValidateClassificationResponse(cleanedResponse, cleanupResponse);
       } catch (Exception cleanupException) {
         throw new ConnectorException(
-            String.valueOf(500),
+            JSON_PARSING_FAILED,
             String.format(
                 "Failed to parse JSON even after cleanup attempt. Original response: %s",
                 llmResponse),
@@ -115,7 +117,8 @@ public class ClassificationService {
 
     if (!llmResponseJson.isObject()) {
       throw new ConnectorException(
-          String.valueOf(500), String.format("LLM response is not a JSON object: %s", llmResponse));
+          INVALID_JSON_RESPONSE,
+          String.format("LLM response is not a JSON object: %s", llmResponse));
     }
 
     // Handle nested "response" wrapper if present

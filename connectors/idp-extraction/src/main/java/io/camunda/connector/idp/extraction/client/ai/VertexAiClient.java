@@ -24,9 +24,10 @@ public class VertexAiClient extends AiClient {
             .modelName(converseData.modelId())
             .responseMimeType("application/json");
 
-    if (converseData.maxTokens() != null) {
-      builder.maxOutputTokens(converseData.maxTokens());
-    }
+    // Commenting out the max tokens assignment because it negatively impacts responses
+    //    if (converseData.maxTokens() != null) {
+    //      builder.maxOutputTokens(converseData.maxTokens());
+    //    }
     if (converseData.temperature() != null) {
       builder.temperature(converseData.temperature());
     }

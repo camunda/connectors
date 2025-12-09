@@ -171,6 +171,16 @@
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.idp.extraction.StructuredExtractionConnectorFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.idp.structured-extraction.v1</templateId>
+                  <templateFileName>idp-structured-extraction-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
           </connectors>
           <versionHistoryEnabled>true</versionHistoryEnabled>
           <includeDependencies>

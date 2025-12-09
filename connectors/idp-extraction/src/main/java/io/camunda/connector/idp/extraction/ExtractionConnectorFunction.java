@@ -6,14 +6,14 @@
  */
 package io.camunda.connector.idp.extraction;
 
-import static io.camunda.connector.idp.extraction.utils.ProviderUtil.getAiClient;
-import static io.camunda.connector.idp.extraction.utils.ProviderUtil.getTextExtractor;
+import static io.camunda.connector.idp.extraction.utils.ProviderUtil.*;
 
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
+import io.camunda.connector.idp.extraction.client.extraction.base.MlExtractor;
 import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
 import io.camunda.connector.idp.extraction.model.*;
 import io.camunda.connector.idp.extraction.service.StructuredService;
@@ -59,7 +59,13 @@ public class ExtractionConnectorFunction implements OutboundConnectorFunction {
     final var extractionRequest = context.bindVariables(ExtractionRequest.class);
     return switch (extractionRequest.input().extractionType()) {
       case STRUCTURED -> {
-        yield structuredService.extract(extractionRequest);
+        MlExtractor mlExtractor = getMlExtractor(extractionRequest.baseRequest());
+        yield structuredService.extract(
+            mlExtractor,
+            extractionRequest.input().includedFields(),
+            extractionRequest.input().renameMappings(),
+            extractionRequest.input().delimiter(),
+            extractionRequest.input().document());
       }
       case UNSTRUCTURED -> {
         TextExtractor textExtractor = getTextExtractor(extractionRequest.baseRequest());

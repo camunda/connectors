@@ -17,6 +17,7 @@ import io.camunda.connector.idp.extraction.client.extraction.AwsTextrtactExtract
 import io.camunda.connector.idp.extraction.client.extraction.AzureDocumentIntelligenceExtractionClient;
 import io.camunda.connector.idp.extraction.client.extraction.GcpDocumentAiExtractionClient;
 import io.camunda.connector.idp.extraction.client.extraction.PdfBoxExtractionClient;
+import io.camunda.connector.idp.extraction.client.extraction.base.MlExtractor;
 import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
 import io.camunda.connector.idp.extraction.model.ConverseData;
 import io.camunda.connector.idp.extraction.model.ExtractionRequest;
@@ -25,6 +26,7 @@ import io.camunda.connector.idp.extraction.model.providers.AzureProvider;
 import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
 import io.camunda.connector.idp.extraction.model.providers.OpenAiProvider;
 import io.camunda.connector.idp.extraction.model.providers.ProviderConfig;
+import io.camunda.connector.idp.extraction.model.providers.gcp.DocumentAiRequestConfiguration;
 import io.camunda.connector.idp.extraction.model.providers.gcp.VertexRequestConfiguration;
 import io.camunda.connector.idp.extraction.request.common.ai.AiProvider;
 import io.camunda.connector.idp.extraction.request.common.ai.AzureAiRequest;
@@ -56,6 +58,67 @@ public class ProviderUtil {
       case OpenAiProvider openAi -> new PdfBoxExtractionClient();
       case GcpProvider gcp -> null;
       default -> throw new IllegalStateException("Unexpected value: " + providerConfig);
+    };
+  }
+
+  public static MlExtractor getMlExtractor(ExtractionProvider extractor) {
+    return switch (extractor) {
+      case DocumentAiExtractorRequest docAiRequest -> {
+        GoogleCredentials credentials =
+            GcsUtil.getCredentials(
+                docAiRequest.authType(),
+                docAiRequest.bearerToken(),
+                docAiRequest.serviceAccountJson(),
+                docAiRequest.oauthClientId(),
+                docAiRequest.oauthClientSecret(),
+                docAiRequest.oauthRefreshToken());
+        yield new GcpDocumentAiExtractionClient(
+            credentials,
+            docAiRequest.projectId(),
+            docAiRequest.region(),
+            docAiRequest.processorId());
+      }
+      case TextractExtractorRequest textractRequest -> {
+        AwsCredentialsProvider credentialsProvider =
+            AwsUtil.credentialsProvider(
+                textractRequest.awsAuthType(),
+                textractRequest.accessKey(),
+                textractRequest.secretKey());
+        yield new AwsTextrtactExtractionClient(
+            credentialsProvider, textractRequest.region(), textractRequest.bucketName());
+      }
+      default ->
+          throw new IllegalStateException(
+              "Extractor not supported: " + extractor.getClass().getSimpleName());
+    };
+  }
+
+  public static MlExtractor getMlExtractor(ProviderConfig providerConfig) {
+    return switch (providerConfig) {
+      case AwsProvider aws -> {
+        AwsCredentialsProvider credentialsProvider =
+            AwsUtil.credentialsProvider(aws.getAuthentication());
+        yield new AwsTextrtactExtractionClient(
+            credentialsProvider, aws.getConfiguration().region(), aws.getS3BucketName());
+      }
+      case GcpProvider gcp -> {
+        DocumentAiRequestConfiguration config =
+            (DocumentAiRequestConfiguration) gcp.getConfiguration();
+        GoogleCredentials credentials =
+            GcsUtil.getCredentials(
+                gcp.getAuthentication().authType(),
+                gcp.getAuthentication().bearerToken(),
+                gcp.getAuthentication().serviceAccountJson(),
+                gcp.getAuthentication().oauthClientId(),
+                gcp.getAuthentication().oauthClientSecret(),
+                gcp.getAuthentication().oauthRefreshToken());
+        yield new GcpDocumentAiExtractionClient(
+            credentials, config.getProjectId(), config.getRegion(), config.getProcessorId());
+      }
+      default ->
+          throw new IllegalStateException(
+              "Unsupported provider for structured extraction: "
+                  + providerConfig.getClass().getSimpleName());
     };
   }
 

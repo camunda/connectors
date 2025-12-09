@@ -6,6 +6,10 @@
  */
 package io.camunda.connector.idp.extraction.service;
 
+import static io.camunda.connector.idp.extraction.error.IdpErrorCodes.INVALID_JSON_RESPONSE;
+import static io.camunda.connector.idp.extraction.error.IdpErrorCodes.INVALID_RESPONSE_FORMAT;
+import static io.camunda.connector.idp.extraction.error.IdpErrorCodes.JSON_PARSING_FAILED;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -105,6 +109,7 @@ public class UnstructuredService {
         return parseAndValidateResponse(cleanedResponse, taxonomyItems);
       } catch (Exception cleanupException) {
         throw new ConnectorException(
+            JSON_PARSING_FAILED,
             String.format(
                 "Failed to parse JSON even after cleanup attempt. Original response: %s",
                 llmResponse),
@@ -132,7 +137,7 @@ public class UnstructuredService {
           llmResponseJson = objectMapper.readValue(nestedResponse.asText(), JsonNode.class);
         } else {
           throw new ConnectorException(
-              String.valueOf(500),
+              INVALID_RESPONSE_FORMAT,
               String.format("LLM response is neither a JSON object nor a string: %s", llmResponse));
         }
       }
@@ -154,7 +159,8 @@ public class UnstructuredService {
 
     } else {
       throw new ConnectorException(
-          String.valueOf(500), String.format("LLM response is not a JSON object: %s", llmResponse));
+          INVALID_JSON_RESPONSE,
+          String.format("LLM response is not a JSON object: %s", llmResponse));
     }
   }
 }

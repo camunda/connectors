@@ -22,9 +22,10 @@ public class AzureOpenAiClient extends AiClient {
             .apiKey(apiKey)
             .deploymentName(converseData.modelId());
 
-    if (converseData.maxTokens() != null) {
-      builder.maxTokens(converseData.maxTokens());
-    }
+    // Commenting out the max tokens assignment because it negatively impacts responses
+    //    if (converseData.maxTokens() != null) {
+    //      builder.maxTokens(converseData.maxTokens());
+    //    }
     if (converseData.temperature() != null) {
       builder.temperature(converseData.temperature().doubleValue());
     }
