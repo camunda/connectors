@@ -6,9 +6,9 @@
 
   <parent>
     <groupId>io.camunda.connector</groupId>
-    <artifactId>connectors-parent</artifactId>
+    <artifactId>connector-google-parent</artifactId>
     <version>8.9.0-SNAPSHOT</version>
-    <relativePath>../../pom.xml</relativePath>
+    <relativePath>../pom.xml</relativePath>
   </parent>
 
   <name>connector-google-gcs</name>
@@ -36,6 +36,10 @@
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-storage</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-core</artifactId>
     </dependency>
   </dependencies>
 

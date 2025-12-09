@@ -30,6 +30,10 @@
       <artifactId>connector-http-base</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator-core</artifactId>
+    </dependency>
   </dependencies>
 
   <build>

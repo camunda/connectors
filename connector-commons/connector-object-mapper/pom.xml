@@ -15,12 +15,11 @@
   <packaging>jar</packaging>
 
   <dependencies>
+    <!-- Jackson dependencies -->
     <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-core</artifactId>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
     </dependency>
-
-    <!-- Jackson databind & datatype dependencies -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
@@ -34,7 +33,7 @@
       <artifactId>jackson-datatype-jdk8</artifactId>
     </dependency>
 
-
+    <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
@@ -46,5 +45,17 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <configuration>
+          <!-- jackson-core is used in both main and test code. Ignore the warning about test-only usage. -->
+          <ignoreAllNonTestScoped>true</ignoreAllNonTestScoped>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>

@@ -32,14 +32,18 @@
       <artifactId>jackson-databind</artifactId>
       <version>${version.jackson-bom}</version>
     </dependency>
-    <!-- This dependency will be removed after https://github.com/camunda/zeebe/issues/9859 is resolved. -->
     <dependency>
       <groupId>org.apache.commons</groupId>
-      <artifactId>commons-text</artifactId>
+      <artifactId>commons-lang3</artifactId>
     </dependency>
     <dependency>
       <groupId>org.jdbi</groupId>
       <artifactId>jdbi3-core</artifactId>
+      <version>${version.jdbi}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jdbi</groupId>
+      <artifactId>jdbi3-json</artifactId>
       <version>${version.jdbi}</version>
     </dependency>
     <dependency>
@@ -120,6 +124,11 @@
       <version>${version.testcontainers}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-test-utils</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -142,6 +151,20 @@
             </connector>
           </connectors>
           <versionHistoryEnabled>true</versionHistoryEnabled>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <configuration>
+          <!-- JDBC drivers -->
+          <ignoredDependencies>
+            <ignoredDependency>com.microsoft.sqlserver:mssql-jdbc</ignoredDependency>
+            <ignoredDependency>org.postgresql:postgresql</ignoredDependency>
+            <ignoredDependency>org.mariadb.jdbc:mariadb-java-client</ignoredDependency>
+            <ignoredDependency>com.mysql:mysql-connector-j</ignoredDependency>
+            <ignoredDependency>com.oracle.database.jdbc:ojdbc11</ignoredDependency>
+            <ignoredDependency>com.oracle.database.jdbc:ucp</ignoredDependency>
+          </ignoredDependencies>
         </configuration>
       </plugin>
     </plugins>

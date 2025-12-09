@@ -72,6 +72,7 @@ limitations under the License.</license.inlineheader>
     <!-- Camunda internal libraries -->
     <version.camunda>8.9.0-SNAPSHOT</version.camunda>
     <version.feel-engine>1.20.0</version.feel-engine>
+    <version.camunda-xml-model>7.23.0</version.camunda-xml-model>
 
     <!-- Third party dependencies -->
 
@@ -86,6 +87,7 @@ limitations under the License.</license.inlineheader>
     <version.jackson-datatype-jsr310>2.20.1</version.jackson-datatype-jsr310>
     <version.hibernate-validator>9.1.0.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
+    <version.json>20250107</version.json>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
 
@@ -103,6 +105,9 @@ limitations under the License.</license.inlineheader>
 
     <version.localstack>2.0.2</version.localstack>
 
+    <version.okhttp>4.12.0</version.okhttp>
+    <version.opensearch-client>2.9.0</version.opensearch-client>
+
     <version.google-api-client>2.8.1</version.google-api-client>
 
     <version.google-http-client>2.0.2</version.google-http-client>
@@ -114,11 +119,13 @@ limitations under the License.</license.inlineheader>
     <version.google-libraries-bom>26.72.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20251110-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
+    <version.jsr305>3.0.2</version.jsr305>
     <version.gson-extras>3.3.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
     <version.httpcore5>5.3.6</version.httpcore5>
     <version.httpclient5>5.5.1</version.httpclient5>
+    <version.httpclient>4.5.13</version.httpclient>
     <version.pdfbox>3.0.6</version.pdfbox>
     <version.collections4>4.5.0</version.collections4>
 
@@ -128,12 +135,20 @@ limitations under the License.</license.inlineheader>
     <version.kafka-clients>4.1.1</version.kafka-clients>
 
     <version.microsoft-graph>6.58.0</version.microsoft-graph>
+    <version.microsoft-kiota-abstraction>1.8.10</version.microsoft-kiota-abstraction>
+    <version.microsoft-graph-core>3.6.5</version.microsoft-graph-core>
     <version.azure-identity>1.18.1</version.azure-identity>
+    <version.azure-core>1.57.0</version.azure-core>
+    <version.azure-cosmos>4.71.0-beta.1</version.azure-cosmos>
 
     <version.bouncycastle>1.83</version.bouncycastle>
     <version.box-sdk>4.16.4</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
+    <version.sendGrid-http-client>4.5.0</version.sendGrid-http-client>
+
+    <version.wss4j>4.0.1</version.wss4j>
+    <version.xmlsec>4.0.4</version.xmlsec>
 
     <version.slack>1.46.0</version.slack>
 
@@ -145,14 +160,17 @@ limitations under the License.</license.inlineheader>
     <version.commons-codec>1.20.0</version.commons-codec>
     <version.guava>33.5.0-jre</version.guava>
     <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
+    <version.javax.annotation-api>1.3.2</version.javax.annotation-api>
 
     <version.wiremock>3.13.2</version.wiremock>
-    <version.system-stubs-jupiter>2.1.8</version.system-stubs-jupiter>
+    <version.system-stubs>2.1.8</version.system-stubs>
 
     <version.auth0.jwt>4.5.0</version.auth0.jwt>
     <version.auth0.jwks>0.23.0</version.auth0.jwks>
     
     <version.langchain4j>1.9.1</version.langchain4j>
+
+    <version.scala>2.13.18</version.scala>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.6.2</plugin.version.maven-enforcer-plugin>
@@ -330,15 +348,15 @@ limitations under the License.</license.inlineheader>
         <version>${project.version}</version>
       </dependency>
 
-<!--      <dependency>-->
-<!--        <groupId>io.camunda.connector</groupId>-->
-<!--        <artifactId>connector-document</artifactId>-->
-<!--        <version>${project.version}</version>-->
-<!--      </dependency>-->
-
       <dependency>
         <groupId>io.camunda</groupId>
         <artifactId>camunda-spring-boot-starter</artifactId>
+        <version>${version.camunda}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.camunda</groupId>
+        <artifactId>camunda-client-java</artifactId>
         <version>${version.camunda}</version>
       </dependency>
 
@@ -360,6 +378,18 @@ limitations under the License.</license.inlineheader>
         <version>${version.feel-engine}</version>
       </dependency>
 
+      <dependency>
+        <groupId>org.camunda.bpm.model</groupId>
+        <artifactId>camunda-xml-model</artifactId>
+        <version>${version.camunda-xml-model}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.scala-lang</groupId>
+        <artifactId>scala-library</artifactId>
+        <version>${version.scala}</version>
+      </dependency>
+
       <!-- Third party dependencies -->
       <dependency>
         <groupId>jakarta.validation</groupId>
@@ -371,6 +401,12 @@ limitations under the License.</license.inlineheader>
         <groupId>org.hibernate.validator</groupId>
         <artifactId>hibernate-validator</artifactId>
         <version>${version.hibernate-validator}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>${version.guava}</version>
       </dependency>
 
       <dependency>
@@ -410,6 +446,47 @@ limitations under the License.</license.inlineheader>
         <artifactId>aws-java-sdk-sagemaker</artifactId>
         <version>${version.aws-java-sdk}</version>
       </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bedrockruntime</artifactId>
+        <version>${version.software-aws-java-sdk}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sdk-core</artifactId>
+        <version>${version.software-aws-java-sdk}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>aws-core</artifactId>
+        <version>${version.software-aws-java-sdk}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>auth</artifactId>
+        <version>${version.software-aws-java-sdk}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>regions</artifactId>
+        <version>${version.software-aws-java-sdk}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>http-auth-spi</artifactId>
+        <version>${version.software-aws-java-sdk}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>http-auth</artifactId>
+        <version>${version.software-aws-java-sdk}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.google.code.findbugs</groupId>
+        <artifactId>jsr305</artifactId>
+        <version>${version.jsr305}</version>
+      </dependency>
 
       <dependency>
         <groupId>com.google.api-client</groupId>
@@ -419,6 +496,11 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.google.http-client</groupId>
         <artifactId>google-http-client</artifactId>
+        <version>${version.google-http-client}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.http-client</groupId>
+        <artifactId>google-http-client-gson</artifactId>
         <version>${version.google-http-client}</version>
       </dependency>
       <dependency>
@@ -434,6 +516,11 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.google.auth</groupId>
         <artifactId>google-auth-library-oauth2-http</artifactId>
+        <version>${version.google-auth-library-oauth2-http}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.auth</groupId>
+        <artifactId>google-auth-library-credentials</artifactId>
         <version>${version.google-auth-library-oauth2-http}</version>
       </dependency>
       <dependency>
@@ -490,9 +577,21 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <dependency>
+        <groupId>org.xerial.snappy</groupId>
+        <artifactId>snappy-java</artifactId>
+        <version>${version.snappy-java}</version>
+      </dependency>
+
+      <dependency>
         <groupId>com.microsoft.graph</groupId>
         <artifactId>microsoft-graph</artifactId>
         <version>${version.microsoft-graph}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-core</artifactId>
+        <version>${version.azure-core}</version>
       </dependency>
 
       <dependency>
@@ -540,6 +639,17 @@ limitations under the License.</license.inlineheader>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
         <version>3.20.0</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.wss4j</groupId>
+        <artifactId>wss4j-ws-security-dom</artifactId>
+        <version>${version.wss4j}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.santuario</groupId>
+        <artifactId>xmlsec</artifactId>
+        <version>${version.xmlsec}</version>
       </dependency>
 
       <!-- Fixes CWE-770 -->
@@ -654,11 +764,16 @@ limitations under the License.</license.inlineheader>
         <artifactId>wiremock-standalone</artifactId>
         <version>${version.wiremock}</version>
       </dependency>
+      <dependency>
+        <groupId>uk.org.webcompere</groupId>
+        <artifactId>system-stubs-core</artifactId>
+        <version>${version.system-stubs}</version>
+      </dependency>
 
       <dependency>
         <groupId>uk.org.webcompere</groupId>
         <artifactId>system-stubs-jupiter</artifactId>
-        <version>${version.system-stubs-jupiter}</version>
+        <version>${version.system-stubs}</version>
         <scope>test</scope>
       </dependency>
     </dependencies>
@@ -839,6 +954,43 @@ limitations under the License.</license.inlineheader>
         <plugin>
           <artifactId>maven-dependency-plugin</artifactId>
           <version>3.9.0</version>
+          <executions>
+            <execution>
+              <id>analyze-dependencies</id>
+              <goals>
+                <goal>analyze-only</goal>
+              </goals>
+              <phase>process-test-classes</phase>
+              <configuration>
+                <failOnWarning>true</failOnWarning>
+                <ignoreUnusedRuntime>true</ignoreUnusedRuntime>
+                <ignoredUnusedDeclaredDependencies>
+                  <dependency>org.slf4j:slf4j-api</dependency>
+                  <dependency>org.mockito:mockito-junit-jupiter</dependency>
+                  <dependency>org.junit.jupiter:junit-jupiter</dependency>
+                  <dependency>org.testcontainers:testcontainers-junit-jupiter</dependency>
+                  <dependency>org.testcontainers:junit-jupiter</dependency>
+                  <dependency>org.junit.jupiter:junit-jupiter-api</dependency>
+                  <dependency>org.testcontainers:testcontainers</dependency>
+                  <dependency>org.springframework.boot:spring-boot-starter-actuator</dependency>
+                  <dependency>io.camunda.connector:connector-validation</dependency>
+                </ignoredUnusedDeclaredDependencies>
+                <ignoredUsedUndeclaredDependencies>
+                  <!-- included in junit-jupiter, ignore for cleaner pom -->
+                  <dependency>org.junit.jupiter:junit-jupiter-api</dependency>
+                  <dependency>org.junit.jupiter:junit-jupiter-params</dependency>
+                  <!-- jackson core and jackson-annotations are transitive from jackson-databind -->
+                  <dependency>com.fasterxml.jackson.core:jackson-core</dependency>
+                  <dependency>com.fasterxml.jackson.core:jackson-annotations</dependency>
+                  <!-- false-positive, transitive from jsonassert -->
+                  <dependency>com.vaadin.external.google:android-json</dependency>
+                </ignoredUsedUndeclaredDependencies>
+                <ignoredNonTestScopedDependencies>
+                  <dependency>com.fasterxml.jackson.core:jackson-core</dependency>
+                </ignoredNonTestScopedDependencies>
+              </configuration>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>

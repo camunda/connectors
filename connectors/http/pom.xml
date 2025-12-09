@@ -1,41 +1,49 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>io.camunda.connector</groupId>
-        <artifactId>connectors-parent</artifactId>
-        <version>8.9.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
-    </parent>
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connectors-parent</artifactId>
+    <version>8.9.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
 
-    <artifactId>connector-http-parent</artifactId>
-    <packaging>pom</packaging>
-    <name>connector-http-parent</name>
-    <description>Parent POM for Google Connectors</description>
-    <inceptionYear>2023</inceptionYear>
+  <artifactId>connector-http-parent</artifactId>
+  <packaging>pom</packaging>
+  <name>connector-http-parent</name>
+  <description>Parent POM for Google Connectors</description>
+  <inceptionYear>2023</inceptionYear>
 
-    <modules>
-        <module>http-base</module>
-        <module>polling</module>
-        <module>rest</module>
-        <module>graphql</module>
-    </modules>
+  <modules>
+    <module>http-base</module>
+    <module>polling</module>
+    <module>rest</module>
+    <module>graphql</module>
+  </modules>
 
-    <properties>
-        <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+  <properties>
+    <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
 under one or more contributor license agreements. Licensed under a proprietary license.
 See the License.txt file for more information. You may not use this file
 except in compliance with the proprietary license.</license.inlineheader>
-    </properties>
+  </properties>
 
-    <build>
-        <pluginManagement>
-            <plugins>
-            </plugins>
-        </pluginManagement>
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <!-- declared in our http-base module -->
+        <configuration>
+          <ignoredUsedUndeclaredDependencies combine.children="append">
+            <dependency>io.camunda.connector:http-client</dependency>
+            <dependency>org.apache.httpcomponents.core5:httpcore5</dependency>
+            <dependency>org.apache.httpcomponents:httpcore</dependency>
+          </ignoredUsedUndeclaredDependencies>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
-        <plugins>
-        </plugins>
-    </build>
 </project>
