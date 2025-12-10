@@ -124,7 +124,7 @@ public class WebhookActivatedDocumentTests {
             "webhook_document.bpmn",
             // valid activation condition
             BpmnFile.Replace.replace(
-                "<ACTIVATION_CONDITION>", "=request.headers.THEHEADER = &#34;THEVALUE&#34;"));
+                "<ACTIVATION_CONDITION>", "=request.headers.theheader = &#34;THEVALUE&#34;"));
 
     // Prepare a mocked process connectorData backed by our test model
     when(searchQueryClient.getProcessModel(1L)).thenReturn(model);
