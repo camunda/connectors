@@ -5,7 +5,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-parent</artifactId>
     <version>8.9.0-SNAPSHOT</version>
-    <relativePath>../pom.xml</relativePath>
+    <relativePath>../../pom.xml</relativePath>
   </parent>
 
   <name>connector-microsoft-teams</name>
@@ -41,8 +41,36 @@
     </dependency>
 
     <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp</artifactId>
+      <version>${version.okhttp}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.projectreactor</groupId>
+      <artifactId>reactor-core</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>org.apache.commons</groupId>
-      <artifactId>commons-text</artifactId>
+      <artifactId>commons-lang3</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.microsoft.kiota</groupId>
+      <artifactId>microsoft-kiota-abstractions</artifactId>
+      <version>${version.microsoft-kiota-abstraction}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.microsoft.graph</groupId>
+      <artifactId>microsoft-graph-core</artifactId>
+      <version>${version.microsoft-graph-core}</version>
     </dependency>
 
     <dependency>
@@ -57,21 +85,21 @@
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
         <version>${project.version}</version>
-      <configuration>
-        <connectors>
-          <connector>
-            <connectorClass>io.camunda.connector.MSTeamsFunction</connectorClass>
-            <files>
-              <file>
-                <templateId>io.camunda.connectors.MSTeams.v1</templateId>
-                <templateFileName>microsoft-teams-outbound-connector.json</templateFileName>
-              </file>
-            </files>
-            <generateHybridTemplates>true</generateHybridTemplates>
-          </connector>
-                            </connectors>
-                    <versionHistoryEnabled>true</versionHistoryEnabled>
-      </configuration>
+        <configuration>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.MSTeamsFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.MSTeams.v1</templateId>
+                  <templateFileName>microsoft-teams-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+          </connectors>
+          <versionHistoryEnabled>true</versionHistoryEnabled>
+        </configuration>
       </plugin>
     </plugins>
   </build>

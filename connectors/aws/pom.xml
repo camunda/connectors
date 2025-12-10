@@ -51,6 +51,16 @@ except in compliance with the proprietary license.</license.inlineheader>
     </pluginManagement>
 
     <plugins>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <configuration>
+          <!-- AWS SDK dependencies defined in our aws-base module -->
+          <ignoredUsedUndeclaredDependencies combine.children="append">
+            <dependency>com.amazonaws:aws-java-sdk-core</dependency>
+            <dependency>software.amazon.awssdk:auth</dependency>
+          </ignoredUsedUndeclaredDependencies>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 

@@ -1,4 +1,4 @@
-name: Build branch for preview env deployment
+name: Helm integration tests
 
 on:
   push:
@@ -7,7 +7,8 @@ on:
       - '!main'
 
 jobs:
-  run-tests:
+  build-image:
+    name: Build and Publish Connectors Docker Image
     runs-on: ubuntu-latest
     outputs:
       connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
@@ -99,8 +100,8 @@ jobs:
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle:${{ env.TAG }}
 
-  helm-deploy:
-    needs: [ run-tests ]
+  helm-integration-tests:
+    needs: [ build-image ]
     name: Run Helm Integration Tests
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit

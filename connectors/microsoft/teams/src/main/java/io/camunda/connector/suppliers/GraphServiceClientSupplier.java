@@ -25,7 +25,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
 
 public class GraphServiceClientSupplier {
@@ -78,7 +77,6 @@ public class GraphServiceClientSupplier {
     return new GraphServiceClient((new DelegateAuthenticationProvider(token)), DEFAULT_SCOPE);
   }
 
-  @NotNull
   private Request buildRequest(final RefreshTokenAuthentication authentication) {
 
     FormBody.Builder formBodyBuilder =
