@@ -20,6 +20,12 @@ public record TimeoutConfiguration(
             type = TemplateProperty.PropertyType.String,
             feel = Property.FeelMode.optional,
             defaultValue = "PT60S",
-            defaultValueType = TemplateProperty.DefaultValueType.String)
+            defaultValueType = TemplateProperty.DefaultValueType.String,
+            constraints =
+                @TemplateProperty.PropertyConstraints(
+                    pattern =
+                        @TemplateProperty.Pattern(
+                            value = "PT(\\d+H)?(\\d+M)?(\\d+S)?",
+                            message = "must be a ISO-8601 duration")))
         @NotNull
         Duration timeout) {}
