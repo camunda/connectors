@@ -73,18 +73,6 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "input.userPrompt",
-    "label" : "user prompt",
-    "description" : "The user prompt for the model",
-    "optional" : false,
-    "value" : "= input.userPrompt",
-    "group" : "input",
-    "binding" : {
-      "name" : "input.userPrompt",
-      "type" : "zeebe:input"
-    },
-    "type" : "Hidden"
-  }, {
     "id" : "input.autoClassify",
     "label" : "Auto classify",
     "description" : "The model can classify as a type not in the list if confidence is high.",

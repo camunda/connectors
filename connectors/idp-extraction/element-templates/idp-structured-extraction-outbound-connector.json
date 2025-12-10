@@ -1,8 +1,8 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid IDP classification outbound Connector",
-  "id" : "io.camunda.connector.IdpClassificationOutBoundTemplate.v1-hybrid",
-  "description" : "Execute IDP classification requests",
+  "name" : "IDP Structured Extraction outbound Connector",
+  "id" : "io.camunda.connector.IdpStructuredExtractionOutBoundTemplate.v1",
+  "description" : "Execute IDP Structured Extraction requests",
   "metadata" : {
     "keywords" : [ ]
   },
@@ -20,17 +20,11 @@
     "camunda" : "^8.9"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "input",
     "label" : "Input message data"
   }, {
     "id" : "extractor",
     "label" : "Extractor selection"
-  }, {
-    "id" : "ai",
-    "label" : "Ai provider selection"
   }, {
     "id" : "connector",
     "label" : "Connector"
@@ -45,47 +39,45 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
-    "value" : "io.camunda:idp-classification-connector-template:1",
-    "group" : "taskDefinitionType",
+    "value" : "io.camunda:idp-structured-connector-template:1",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
-    "id" : "input.converseData",
-    "label" : "AWS Bedrock Converse Parameters",
-    "description" : "Specify the parameters for AWS Bedrock",
+    "id" : "input.includedFields",
+    "label" : "Included Fields",
+    "description" : "List of fields that should be returned from the extraction",
     "optional" : false,
-    "value" : "= input.converseData",
+    "value" : "= input.includedFields",
     "group" : "input",
     "binding" : {
-      "name" : "input.converseData",
+      "name" : "input.includedFields",
       "type" : "zeebe:input"
     },
     "type" : "Hidden"
   }, {
-    "id" : "input.documentTypes",
-    "label" : "Document types",
-    "description" : "The possible classification types considered by the model",
+    "id" : "input.renameMappings",
+    "label" : "Rename mappings",
+    "description" : "List of keys that should be renamed and not be given the default name",
     "optional" : false,
-    "value" : "= input.documentTypes",
+    "value" : "= input.renameMappings",
     "group" : "input",
     "binding" : {
-      "name" : "input.documentTypes",
+      "name" : "input.renameMappings",
       "type" : "zeebe:input"
     },
     "type" : "Hidden"
   }, {
-    "id" : "input.autoClassify",
-    "label" : "Auto classify",
-    "description" : "The model can classify as a type not in the list if confidence is high.",
+    "id" : "input.delimiter",
+    "label" : "delimiter",
+    "description" : "The delimiter used for the variable name of the extracted field",
     "optional" : false,
-    "value" : "= input.autoClassify",
+    "value" : "= input.delimiter",
     "group" : "input",
     "binding" : {
-      "name" : "input.autoClassify",
+      "name" : "input.delimiter",
       "type" : "zeebe:input"
     },
     "type" : "Hidden"
@@ -503,419 +495,6 @@
     },
     "type" : "Text"
   }, {
-    "id" : "ai.type",
-    "label" : "Text extraction providers",
-    "group" : "ai",
-    "binding" : {
-      "name" : "ai.type",
-      "type" : "zeebe:input"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Azure AI Foundry",
-      "value" : "azureAiFoundry"
-    }, {
-      "name" : "AWS Bedrock AI",
-      "value" : "bedrockAi"
-    }, {
-      "name" : "OpenAi Compatible",
-      "value" : "openAi"
-    }, {
-      "name" : "GCP VertexAi",
-      "value" : "vertexAi"
-    } ]
-  }, {
-    "id" : "ai.usingOpenAI",
-    "label" : "Model type",
-    "description" : "Specify if the Azure AI Foundry is using OpenAI",
-    "optional" : false,
-    "value" : "false",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "ai",
-    "binding" : {
-      "name" : "ai.usingOpenAI",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "ai.type",
-      "equals" : "azureAiFoundry",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Base Azure Foundry model",
-      "value" : "false"
-    }, {
-      "name" : "Azure OpenAI model",
-      "value" : "true"
-    } ]
-  }, {
-    "id" : "ai.endpoint",
-    "label" : "Azure AI Endpoint",
-    "description" : "Specify the endpoint of Azure AI",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "ai",
-    "binding" : {
-      "name" : "ai.endpoint",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "ai.type",
-      "equals" : "azureAiFoundry",
-      "type" : "simple"
-    },
-    "type" : "Text"
-  }, {
-    "id" : "ai.apiKey",
-    "label" : "Azure AI API Key",
-    "description" : "Specify the API key of Azure AI",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "ai",
-    "binding" : {
-      "name" : "ai.apiKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "ai.type",
-      "equals" : "azureAiFoundry",
-      "type" : "simple"
-    },
-    "type" : "Text"
-  }, {
-    "id" : "ai.awsAuthType",
-    "label" : "Authentication type",
-    "optional" : false,
-    "value" : "credentials",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "ai",
-    "binding" : {
-      "name" : "ai.awsAuthType",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "ai.type",
-      "equals" : "bedrockAi",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Credentials",
-      "value" : "credentials"
-    }, {
-      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
-      "value" : "defaultCredentialsChain"
-    } ]
-  }, {
-    "id" : "ai.accessKey",
-    "label" : "Access key",
-    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "ai",
-    "binding" : {
-      "name" : "ai.accessKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "ai.awsAuthType",
-        "equals" : "credentials",
-        "type" : "simple"
-      }, {
-        "property" : "ai.type",
-        "equals" : "bedrockAi",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "ai.secretKey",
-    "label" : "Secret key",
-    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "ai",
-    "binding" : {
-      "name" : "ai.secretKey",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "ai.awsAuthType",
-        "equals" : "credentials",
-        "type" : "simple"
-      }, {
-        "property" : "ai.type",
-        "equals" : "bedrockAi",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "ai.region",
-    "label" : "Region",
-    "description" : "Specify the AWS region",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "ai",
-    "binding" : {
-      "name" : "ai.region",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "ai.type",
-      "equals" : "bedrockAi",
-      "type" : "simple"
-    },
-    "type" : "Text"
-  }, {
-    "id" : "ai.openAiEndpoint",
-    "label" : "OpenAI Spec Endpoint",
-    "description" : "Specify the OpenAI compatible specification endpoint.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "ai",
-    "binding" : {
-      "name" : "ai.openAiEndpoint",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "ai.type",
-      "equals" : "openAi",
-      "type" : "simple"
-    },
-    "type" : "Text"
-  }, {
-    "id" : "ai.openAiHeaders",
-    "label" : "Headers",
-    "description" : "Map of HTTP headers to add to the request.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "ai",
-    "binding" : {
-      "name" : "ai.openAiHeaders",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "ai.type",
-      "equals" : "openAi",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "ai.authType",
-    "label" : "Type",
-    "optional" : false,
-    "value" : "refresh",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "ai",
-    "binding" : {
-      "name" : "ai.authType",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "ai.type",
-      "equals" : "vertexAi",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Bearer token",
-      "value" : "bearer"
-    }, {
-      "name" : "Refresh token",
-      "value" : "refresh"
-    }, {
-      "name" : "Service account",
-      "value" : "service_account"
-    } ]
-  }, {
-    "id" : "ai.bearerToken",
-    "label" : "Bearer token",
-    "description" : "Enter a valid Google API Bearer token",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "ai",
-    "binding" : {
-      "name" : "ai.bearerToken",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "ai.authType",
-        "equals" : "bearer",
-        "type" : "simple"
-      }, {
-        "property" : "ai.type",
-        "equals" : "vertexAi",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "ai.oauthClientId",
-    "label" : "Client ID",
-    "description" : "Enter Google API Client ID",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "ai",
-    "binding" : {
-      "name" : "ai.oauthClientId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "ai.authType",
-        "equals" : "refresh",
-        "type" : "simple"
-      }, {
-        "property" : "ai.type",
-        "equals" : "vertexAi",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "ai.oauthClientSecret",
-    "label" : "Client secret",
-    "description" : "Enter Google API client Secret",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "ai",
-    "binding" : {
-      "name" : "ai.oauthClientSecret",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "ai.authType",
-        "equals" : "refresh",
-        "type" : "simple"
-      }, {
-        "property" : "ai.type",
-        "equals" : "vertexAi",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "ai.oauthRefreshToken",
-    "label" : "Refresh token",
-    "description" : "Enter a valid Google API refresh token",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "ai",
-    "binding" : {
-      "name" : "ai.oauthRefreshToken",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "ai.authType",
-        "equals" : "refresh",
-        "type" : "simple"
-      }, {
-        "property" : "ai.type",
-        "equals" : "vertexAi",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "ai.serviceAccountJson",
-    "label" : "Service account json",
-    "description" : "Enter a the contents of your service account json file",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "ai",
-    "binding" : {
-      "name" : "ai.serviceAccountJson",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "ai.authType",
-        "equals" : "service_account",
-        "type" : "simple"
-      }, {
-        "property" : "ai.type",
-        "equals" : "vertexAi",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "String"
-  }, {
-    "id" : "ai.gcpRegion",
-    "label" : "Region",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "ai",
-    "binding" : {
-      "name" : "ai.region",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "ai.type",
-      "equals" : "vertexAi",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "ai.vertexProjectId",
-    "label" : "Project ID",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "ai",
-    "binding" : {
-      "name" : "ai.projectId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "ai.type",
-      "equals" : "vertexAi",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
@@ -930,7 +509,7 @@
     "id" : "id",
     "label" : "ID",
     "description" : "ID of the element template",
-    "value" : "io.camunda.connector.IdpClassificationOutBoundTemplate.v1",
+    "value" : "io.camunda.connector.IdpStructuredExtractionOutBoundTemplate.v1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateId",
@@ -994,6 +573,6 @@
     "type" : "String"
   } ],
   "icon" : {
-    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxnIHN0eWxlPSJtaXgtYmxlbmQtbW9kZTptdWx0aXBseSI+CiAgICAgICAgPHBhdGggZD0iTTE5LjE3ODkgMEgwVjE5LjE3ODlIMTkuMTc4OVYwWiIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4wMSIvPgogICAgPC9nPgogICAgPHBhdGggZD0iTTEwLjE4NzkgOC45OTAxVjUuMzk0MDdINS4zOTMxOFYxMy43ODQ4SDEzLjc4MzlWOC45OTAxSDEwLjE4NzlaTTYuNTkxODYgNi41OTI3NEg4Ljk4OTIxVjguOTkwMUg2LjU5MTg2VjYuNTkyNzRaTTguOTg5MjEgMTIuNTg2MUg2LjU5MTg2VjEwLjE4ODhIOC45ODkyMVYxMi41ODYxWk0xMi41ODUyIDEyLjU4NjFIMTAuMTg3OVYxMC4xODg4SDEyLjU4NTJWMTIuNTg2MVoiIGZpbGw9IiNGQzVEMEQiLz4KICAgIDxwYXRoIGQ9Ik0xNS41ODE5IDE2Ljc4MTVIMy41OTUxNkMzLjI3NzM3IDE2Ljc4MTEgMi45NzI2OSAxNi42NTQ3IDIuNzQ3OTcgMTYuNDNDMi41MjMyNiAxNi4yMDUzIDIuMzk2ODUgMTUuOTAwNiAyLjM5NjQ4IDE1LjU4MjhWMy41OTYwNUMyLjM5Njg1IDMuMjc4MjUgMi41MjMyNiAyLjk3MzU3IDIuNzQ3OTcgMi43NDg4NkMyLjk3MjY5IDIuNTI0MTQgMy4yNzczNyAyLjM5NzczIDMuNTk1MTYgMi4zOTczN0g5LjU4ODU1VjMuNTk2MDVIMy41OTUxNlYxNS41ODI4SDE1LjU4MTlWOS41ODk0NEgxNi43ODA2VjE1LjU4MjhDMTYuNzgwMyAxNS45MDA2IDE2LjY1MzkgMTYuMjA1MyAxNi40MjkxIDE2LjQzQzE2LjIwNDQgMTYuNjU0NyAxNS44OTk3IDE2Ljc4MTEgMTUuNTgxOSAxNi43ODE1WiIgZmlsbD0iIzE2MTYxNiIvPgogICAgPHBhdGggZD0iTTE3IDcuNUgxMlY2LjVIMTdWNy41WiIgZmlsbD0iI0ZDNUQwRCIvPgogICAgPHBhdGggZD0iTTE3IDUuNUgxMlY0LjVIMTdWNS41WiIgZmlsbD0iI0ZDNUQwRCIvPgogICAgPHBhdGggZD0iTTE3IDMuNUgxNUgxMlYyLjVIMTdWMy41WiIgZmlsbD0iI0ZDNUQwRCIvPgo8L3N2Zz4K"
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE5LjE3ODkiIGhlaWdodD0iMTkuMTc4OSIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4wMSIgc3R5bGU9Im1peC1ibGVuZC1tb2RlOm11bHRpcGx5Ii8+CjxwYXRoIGQ9Ik0xNi43ODA2IDcuMTkyMDhIMTEuOTg1OVYyLjM5NzM3SDE2Ljc4MDZWNy4xOTIwOFpNMTMuMTg0NiA1Ljk5MzRIMTUuNTgxOVYzLjU5NjA1SDEzLjE4NDZWNS45OTM0WiIgZmlsbD0iI0ZDNUQwRCIvPgo8cGF0aCBkPSJNMTAuMTg3OSA4Ljk5MDFWNS4zOTQwN0g1LjM5MzE4VjEzLjc4NDhIMTMuNzgzOVY4Ljk5MDFIMTAuMTg3OVpNNi41OTE4NiA2LjU5Mjc0SDguOTg5MjFWOC45OTAxSDYuNTkxODZWNi41OTI3NFpNOC45ODkyMSAxMi41ODYxSDYuNTkxODZWMTAuMTg4OEg4Ljk4OTIxVjEyLjU4NjFaTTEyLjU4NTIgMTIuNTg2MUgxMC4xODc5VjEwLjE4ODhIMTIuNTg1MlYxMi41ODYxWiIgZmlsbD0iI0ZDNUQwRCIvPgo8cGF0aCBkPSJNMTUuNTgxOSAxNi43ODE1SDMuNTk1MTZDMy4yNzczNyAxNi43ODExIDIuOTcyNjkgMTYuNjU0NyAyLjc0Nzk3IDE2LjQzQzIuNTIzMjYgMTYuMjA1MyAyLjM5Njg1IDE1LjkwMDYgMi4zOTY0OCAxNS41ODI4VjMuNTk2MDVDMi4zOTY4NSAzLjI3ODI1IDIuNTIzMjYgMi45NzM1NyAyLjc0Nzk3IDIuNzQ4ODZDMi45NzI2OSAyLjUyNDE0IDMuMjc3MzcgMi4zOTc3MyAzLjU5NTE2IDIuMzk3MzdIOS41ODg1NVYzLjU5NjA1SDMuNTk1MTZWMTUuNTgyOEgxNS41ODE5VjkuNTg5NDRIMTYuNzgwNlYxNS41ODI4QzE2Ljc4MDMgMTUuOTAwNiAxNi42NTM5IDE2LjIwNTMgMTYuNDI5MSAxNi40M0MxNi4yMDQ0IDE2LjY1NDcgMTUuODk5NyAxNi43ODExIDE1LjU4MTkgMTYuNzgxNVoiIGZpbGw9IiMxNjE2MTYiLz4KPC9zdmc+Cg=="
   }
 }
