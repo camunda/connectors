@@ -113,17 +113,15 @@ final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
                 decodedJWT -> {
                   try {
                     Jwk jwk = jwkProvider.get(decodedJWT.getKeyId());
-                    return JWT.require(
-                            getAlgorithm(
-                                Optional.ofNullable(jwk.getAlgorithm())
-                                    .orElse(decodedJWT.getAlgorithm()),
-                                jwk.getPublicKey()))
-                        .build();
+                    var algorithmName =
+                        Optional.ofNullable(jwk.getAlgorithm()).orElse(decodedJWT.getAlgorithm());
+                    var algorithm = getAlgorithm(algorithmName, jwk.getPublicKey());
+                    return JWT.require(algorithm).build();
                   } catch (InvalidPublicKeyException e) {
-                    LOGGER.warn("Token verification failed: " + e.getMessage());
+                    LOGGER.warn("Token verification failed: {}", e.getMessage());
                     throw new RuntimeException(e);
                   } catch (JwkException e) {
-                    LOGGER.warn("Cannot find JWK for the JWT token: " + e.getMessage());
+                    LOGGER.warn("Cannot find JWK for the JWT token: {}", e.getMessage());
                     throw new RuntimeException(e);
                   }
                 })
