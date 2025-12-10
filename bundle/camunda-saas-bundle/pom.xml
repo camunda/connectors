@@ -168,16 +168,6 @@
       <artifactId>connector-test-utils</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-object-mapper</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <build>
@@ -276,6 +266,10 @@
           <execution>
             <id>analyze-dependencies</id>
             <configuration>
+              <ignoredDependencies>
+                <dependency>com.fasterxml.jackson.core:jackson-databind</dependency>
+                <dependency>io.camunda.connector:connector-object-mapper</dependency>
+              </ignoredDependencies>
             </configuration>
           </execution>
         </executions>

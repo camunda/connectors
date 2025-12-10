@@ -23,44 +23,14 @@
     <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>camunda-client-java</artifactId>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-runtime-core</artifactId>
-      <scope>test</scope>
     </dependency>
 
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-beans</artifactId>
-      <scope>test</scope>
-    </dependency>
 
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-webmvc</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-context</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot</artifactId>
-      <scope>test</scope>
-    </dependency>
 
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -395,9 +365,16 @@
           <execution>
             <id>analyze-dependencies</id>
             <configuration>
-              <ignoredNonTestScopedDependencies>
+              <ignoredDependencies>
                 <dependency>io.camunda.connector:connector-runtime-application</dependency>
-              </ignoredNonTestScopedDependencies>
+                <dependency>io.camunda:camunda-client-java</dependency>
+                <dependency>io.camunda.connector:connector-runtime-core</dependency>
+                <dependency>org.springframework:spring-context</dependency>
+                <dependency>org.springframework:spring-core</dependency>
+                <dependency>org.springframework.boot:spring-boot</dependency>
+                <dependency>org.springframework:spring-webmvc</dependency>
+                <dependency>org.springframework:spring-beans</dependency>
+              </ignoredDependencies>
             </configuration>
           </execution>
         </executions>
