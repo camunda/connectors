@@ -32,35 +32,7 @@
       <scope>test</scope>
     </dependency>
 
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-beans</artifactId>
-      <scope>test</scope>
-    </dependency>
 
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-webmvc</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-context</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot</artifactId>
-      <scope>test</scope>
-    </dependency>
 
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -397,6 +369,11 @@
             <configuration>
               <ignoredNonTestScopedDependencies>
                 <dependency>io.camunda.connector:connector-runtime-application</dependency>
+                <dependency>io.springframework:spring-beans</dependency>
+                <dependency>io.springframework:spring-webmvc</dependency>
+                <dependency>io.springframework:spring-context</dependency>
+                <dependency>io.springframework:spring-core</dependency>
+                <dependency>io.springframework:spring-boot</dependency>
               </ignoredNonTestScopedDependencies>
             </configuration>
           </execution>
