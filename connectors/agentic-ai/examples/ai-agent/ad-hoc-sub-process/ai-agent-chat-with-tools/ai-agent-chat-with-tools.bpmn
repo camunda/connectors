@@ -44,9 +44,10 @@
         <zeebe:adHoc outputCollection="toolCallResults" outputElement="={&#10;  id: toolCall._meta.id,&#10;  name: toolCall._meta.name,&#10;  content: toolCallResult&#10;}" />
         <zeebe:taskDefinition type="io.camunda.agenticai:aiagent-job-worker:1" retries="3" />
         <zeebe:ioMapping>
+          <zeebe:input source="PT120S" target="provider.openaiCompatible.timeout" />
           <zeebe:input source="openaiCompatible" target="provider.type" />
           <zeebe:input source="http://localhost:12434/engines/v1" target="provider.openaiCompatible.endpoint" />
-          <zeebe:input source="PT120S" target="provider.openaiCompatible.timeout" />
+          <zeebe:input source="PT60Sa" target="provider.openaiCompatible.timeoutConfiguration.timeout" />
           <zeebe:input source="ai/qwen3:8B-Q4_0" target="provider.openaiCompatible.model.model" />
           <zeebe:input source="=&#34;You are a helpful, generic chat agent which can answer a wide amount of questions based on your knowledge and an optional set of available tools.&#10;&#10;If tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don&#39;t guess any tools which were not explicitely configured. If no tool matches the request, try to generate an answer. If you&#39;re not able to find a good answer, return with a message stating why you&#39;re not able to.&#10;&#10;If you are prompted to interact with a person, never guess contact details, but use available user/person lookup tools instead and return with an error if you&#39;re not able to look up appropriate data.&#10;&#10;Thinking, step by step, before you execute your tools, you think using the template `&#60;thinking&#62;&#60;context&#62;&#60;/context&#62;&#60;reflection&#62;&#60;/reflection&#62;&#60;/thinking&#62;`&#34;" target="data.systemPrompt.prompt" />
           <zeebe:input source="=if (is defined(followUpInput)) then followUpInput else inputText" target="data.userPrompt.prompt" />

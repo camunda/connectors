@@ -154,7 +154,11 @@
     "optional" : false,
     "value" : "PT60S",
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "PT(\\d+H)?(\\d+M)?(\\d+S)?",
+        "message" : "must be a ISO-8601 duration"
+      }
     },
     "feel" : "optional",
     "group" : "provider",
@@ -316,7 +320,11 @@
     "optional" : false,
     "value" : "PT60S",
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "PT(\\d+H)?(\\d+M)?(\\d+S)?",
+        "message" : "must be a ISO-8601 duration"
+      }
     },
     "feel" : "optional",
     "group" : "provider",
@@ -506,7 +514,11 @@
     "optional" : false,
     "value" : "PT60S",
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "PT(\\d+H)?(\\d+M)?(\\d+S)?",
+        "message" : "must be a ISO-8601 duration"
+      }
     },
     "feel" : "optional",
     "group" : "provider",
@@ -669,7 +681,11 @@
     "optional" : false,
     "value" : "PT60S",
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "PT(\\d+H)?(\\d+M)?(\\d+S)?",
+        "message" : "must be a ISO-8601 duration"
+      }
     },
     "feel" : "optional",
     "group" : "provider",
@@ -744,7 +760,11 @@
     "optional" : false,
     "value" : "PT60S",
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "PT(\\d+H)?(\\d+M)?(\\d+S)?",
+        "message" : "must be a ISO-8601 duration"
+      }
     },
     "feel" : "optional",
     "group" : "provider",
