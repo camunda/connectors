@@ -51,17 +51,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockPart;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -73,7 +73,8 @@ import org.springframework.test.web.servlet.ResultActions;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true",
-      "camunda.connector.polling.enabled=true"
+      "camunda.connector.polling.enabled=true",
+      "spring.http.converters.preferred-json-mapper=jackson2"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
@@ -100,11 +101,11 @@ public class WebhookActivatedDocumentTests {
 
   @Autowired MockMvc mockMvc;
 
-  @MockBean ProcessDefinitionSearch processDefinitionSearch;
+  @MockitoBean ProcessDefinitionSearch processDefinitionSearch;
 
   @Autowired ProcessStateStore stateStore;
 
-  @MockBean SearchQueryClient searchQueryClient;
+  @MockitoBean SearchQueryClient searchQueryClient;
 
   @Autowired DocumentFactory documentFactory;
 

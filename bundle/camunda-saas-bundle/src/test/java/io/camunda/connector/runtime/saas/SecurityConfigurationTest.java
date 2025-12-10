@@ -32,11 +32,11 @@ import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalManagementPort;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -159,10 +159,10 @@ public class SecurityConfigurationTest {
     ResponseEntity<String> response =
         restTemplateBuilder
             .rootUri("http://localhost:" + managementPort + "/actuator")
-            .setConnectTimeout(Duration.ofSeconds(60))
-            .setReadTimeout(Duration.ofSeconds(60))
+            .connectTimeout(Duration.ofSeconds(60))
+            .readTimeout(Duration.ofSeconds(60))
             .build()
-            .exchange("/metrics", HttpMethod.GET, new HttpEntity<>(null), String.class);
+            .exchange("/metrics", HttpMethod.GET, new HttpEntity<>((Void) null), String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
   }
