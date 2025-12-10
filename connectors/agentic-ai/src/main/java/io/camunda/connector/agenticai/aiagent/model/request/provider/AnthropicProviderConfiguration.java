@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model.request.provider;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.ANTHROPIC_ID;
 
+import io.camunda.connector.agenticai.aiagent.model.request.provider.mixin.TimeoutConfiguration;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -32,6 +33,7 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
               optional = true)
           String endpoint,
       @Valid @NotNull AnthropicAuthentication authentication,
+      @Valid @NotNull TimeoutConfiguration timeoutConfiguration,
       @Valid @NotNull AnthropicModel model) {}
 
   public record AnthropicAuthentication(

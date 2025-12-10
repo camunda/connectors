@@ -37,6 +37,7 @@ import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
@@ -66,6 +67,7 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
 
     final var builder =
         AnthropicChatModel.builder()
+            .timeout(connection.timeoutConfiguration().timeout())
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model());
 
@@ -90,6 +92,7 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     final var builder =
         AzureOpenAiChatModel.builder()
             .endpoint(connection.endpoint())
+            .timeout(connection.timeoutConfiguration().timeout())
             .deploymentName(configuration.azureOpenAi().model().deploymentName());
 
     switch (connection.authentication()) {
@@ -124,6 +127,7 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
 
     final var builder =
         BedrockChatModel.builder()
+            .timeout(connection.timeoutConfiguration().timeout())
             .client(createBedrockClient(connection))
             .modelId(connection.model().model());
 
@@ -134,13 +138,20 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       BedrockProviderConfiguration.BedrockConnection connection) {
     var bedrockClientBuilder =
         BedrockRuntimeClient.builder().region(Region.of(connection.region()));
+    var overrideClientConfigurationBuilder = ClientOverrideConfiguration.builder();
 
     var authenticationCustomizer = AwsBedrockRuntimeAuthenticationCustomizer.createFor(connection);
-    authenticationCustomizer.provideAuthenticationMechanism(bedrockClientBuilder);
+    authenticationCustomizer.provideAuthenticationMechanism(
+        bedrockClientBuilder, overrideClientConfigurationBuilder);
 
     if (connection.endpoint() != null) {
       bedrockClientBuilder.endpointOverride(URI.create(connection.endpoint()));
     }
+
+    overrideClientConfigurationBuilder.apiCallTimeout(connection.timeoutConfiguration().timeout());
+
+    bedrockClientBuilder.overrideConfiguration(overrideClientConfigurationBuilder.build());
+
     return bedrockClientBuilder.build();
   }
 
@@ -205,6 +216,7 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
 
     final var builder =
         OpenAiChatModel.builder()
+            .timeout(connection.timeoutConfiguration().timeout())
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model());
 
@@ -233,6 +245,7 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
 
     final var builder =
         OpenAiChatModel.builder()
+            .timeout(connection.timeoutConfiguration().timeout())
             .modelName(connection.model().model())
             .baseUrl(connection.endpoint());
 

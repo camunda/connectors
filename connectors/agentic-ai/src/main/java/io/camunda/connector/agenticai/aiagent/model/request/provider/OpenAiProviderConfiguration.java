@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model.request.provider;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OPENAI_ID;
 
+import io.camunda.connector.agenticai.aiagent.model.request.provider.mixin.TimeoutConfiguration;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -24,7 +25,9 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
   public static final String OPENAI_ID = "openai";
 
   public record OpenAiConnection(
-      @Valid @NotNull OpenAiAuthentication authentication, @Valid @NotNull OpenAiModel model) {}
+      @Valid @NotNull OpenAiAuthentication authentication,
+      @Valid @NotNull TimeoutConfiguration timeoutConfiguration,
+      @Valid @NotNull OpenAiModel model) {}
 
   public record OpenAiAuthentication(
       @NotBlank
