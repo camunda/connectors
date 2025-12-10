@@ -223,7 +223,7 @@ public class JWTAuthHandlerTest {
     // given jwt, check only signature
     JwkProvider jwkProvider = new JwkProviderNoAlg();
     JWTProperties jwtProperties = new JWTProperties("https://mockUrl.com", null, null);
-    var headers = Map.of("Authorization", "Bearer " + NO_ALG_PRESENT_JWT);
+    var headers = Map.of("Authorization", "Bearer " + JWT_WITH_ES512_ALGORITHM_TOKEN);
     var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
     var payload = new TestWebhookProcessingPayload(headers);
 
@@ -299,12 +299,18 @@ public class JWTAuthHandlerTest {
     @Override
     public Jwk get(String keyId) {
       Map<String, Object> jwkMap = new HashMap<>();
+      jwkMap.put("kid", "fcaf10be37ad8b7461f8daab6d390c70");
       jwkMap.put("use", "sig");
-      jwkMap.put("kty", "RSA");
+      jwkMap.put("kty", "EC");
+      jwkMap.put("key_ops", List.of("sign"));
       jwkMap.put(
-          "n",
-          "pOe4GbleFDT1u5ioOQjNMmhvkDVoVD9cBKvX7AlErtWA_D6wc1w1iwkd6arYVCPObZbAB4vLSXrlpBSOuP6VYnXw_cTgniv_c82ra-mfqCpM-SbqzZ3sVqlcE_bwxvci_4PrxAW4R85ok12NXyZ2371H3yGevabi35AlVm-bQ24azo1hLK_0DzB6TxsAIOTOcKfIugOfqP-B2R4vR4u6pYftS8MWcxegr9iJ5JNtubI1X2JHpxJhkRoMVwKFna2GXmtzdxLi3yS_GffVCKfTbFMhalbJS1lSmLqhmLZZL-lrQZ6fansTl1vcGcoxnzPTwBkZMks0iVV4yfym_gKBXQ");
-      jwkMap.put("e", "AQAB");
+          "x",
+          "AKbVN_7jvuvwwC4AwG5-ZswrTqhRJg-TfSfiU6eQ7N13Cr8WpnrgZZu0_4xKRKPaRExABT8-IgqtXItFhLSz5IWO");
+      jwkMap.put(
+          "y",
+          "ATgwQMO8XghJ7gi7XpoUpjzl73B0r2lsEDewljK7pi__yZB-TBa3sixngFVLVpAw9tEYnQbPvCcqZ2PNfpE5ZDs-");
+      jwkMap.put("crv", "P-521");
+
       return Jwk.fromValues(jwkMap);
     }
   }
