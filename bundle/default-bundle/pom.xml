@@ -23,13 +23,11 @@
     <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>camunda-client-java</artifactId>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-runtime-core</artifactId>
-      <scope>test</scope>
     </dependency>
 
 
@@ -369,6 +367,8 @@
             <configuration>
               <ignoredDependencies>
                 <dependency>io.camunda.connector:connector-runtime-application</dependency>
+                <dependency>io.camunda:camunda-client-java</dependency>
+                <dependency>io.camunda.connector:connector-runtime-core</dependency>
                 <dependency>org.springframework:spring-context</dependency>
                 <dependency>org.springframework:spring-core</dependency>
                 <dependency>org.springframework.boot:spring-boot</dependency>
