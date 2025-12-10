@@ -19,8 +19,8 @@
     <dependencies>
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>localstack</artifactId>
-            <version>${version.localstack}</version>
+            <artifactId>testcontainers-localstack</artifactId>
+            <version>${version.testcontainers}</version>
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
@@ -68,7 +68,7 @@
 
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
         </dependency>
     </dependencies>
 

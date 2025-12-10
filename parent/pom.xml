@@ -85,6 +85,7 @@ limitations under the License.</license.inlineheader>
     <version.hibernate-validator>8.0.3.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.failsafe>3.3.2</version.failsafe>
+    <version.hamcrest>3.0</version.hamcrest>
 
     <version.spring-boot>3.5.8</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>5.13.7</version.spring-cloud-gcp-starter-logging>
@@ -97,8 +98,6 @@ limitations under the License.</license.inlineheader>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
     <version.aws-sdk-secretsmanager>2.40.3</version.aws-sdk-secretsmanager>
-
-    <version.localstack>1.21.3</version.localstack>
 
     <version.google-api-client>2.8.1</version.google-api-client>
 
@@ -134,7 +133,7 @@ limitations under the License.</license.inlineheader>
 
     <version.slack>1.46.0</version.slack>
 
-    <version.testcontainers>1.21.3</version.testcontainers>
+    <version.testcontainers>2.0.2</version.testcontainers>
     <version.awaitility>4.3.0</version.awaitility>
     <version.json-path>2.10.0</version.json-path>
 
@@ -587,7 +586,7 @@ limitations under the License.</license.inlineheader>
       </dependency>
       <dependency>
         <groupId>org.testcontainers</groupId>
-        <artifactId>junit-jupiter</artifactId>
+        <artifactId>testcontainers-junit-jupiter</artifactId>
         <version>${version.testcontainers}</version>
       </dependency>
       <dependency>
@@ -604,6 +603,12 @@ limitations under the License.</license.inlineheader>
         <groupId>org.wiremock</groupId>
         <artifactId>wiremock-standalone</artifactId>
         <version>${version.wiremock}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.hamcrest</groupId>
+        <artifactId>hamcrest</artifactId>
+        <version>${version.hamcrest}</version>
+        <scope>test</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
