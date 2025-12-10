@@ -148,6 +148,7 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
         testBasicExecutionWithoutFeedbackLoop(
             testProcessWithMcp,
             e -> e,
+            Map.of(),
             HAIKU_TEXT,
             true,
             (agentResponse) ->

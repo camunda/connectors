@@ -32,7 +32,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
@@ -68,7 +68,7 @@ jobs:
       releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
       previousTag: ${{ steps.prev_version.outputs.previous_version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
@@ -88,7 +88,7 @@ jobs:
         env:
           RELEASE_VERSION: ${{ inputs.version }}
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           token: ${{ secrets.PROTECTED_BRANCH_PAT }}
           ref: ${{ github.ref }}
@@ -98,7 +98,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '21.0.9'
 
       - name: Restore cache
         uses: actions/cache@v4
@@ -173,7 +173,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -247,7 +247,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '21.0.9'
 
       - name: Import Secrets
         id: secrets
@@ -356,6 +356,7 @@ jobs:
           secrets: |
             secret/data/products/connectors/ci/common DOCKERHUB_USER;
             secret/data/products/connectors/ci/common DOCKERHUB_PASSWORD;
+            secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -370,6 +371,13 @@ jobs:
         with:
           username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
           password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
+
+      - name: Login to Minimus
+        uses: docker/login-action@v3
+        with:
+          registry: reg.mini.dev
+          username: minimus
+          password: ${{ steps.secrets.outputs.REGISTRY_MINIMUS_PSW }}
 
       # Build & push bundle docker images (with version tag)
 
@@ -543,7 +551,7 @@ jobs:
       (needs.helm-deploy.result == 'success' || needs.helm-deploy.result == 'skipped')
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.version }}
       - name: Import Secrets
@@ -559,16 +567,16 @@ jobs:
             secret/data/products/connectors/ci/common FOSSA_API_KEY;
       - name: Get FOSSA context
         id: fossa-context
-        uses: camunda/infra-global-github-actions/fossa/info@1c6cd774501c2210dd7a44bbc938508fffa80a26
+        uses: camunda/infra-global-github-actions/fossa/info@c7794826624039d8cb9ddeaa38c9dfb2781e34ba
       - name: Wait for FOSSA scan completion
-        uses: camunda/infra-global-github-actions/fossa/wait-for-scan@1c6cd774501c2210dd7a44bbc938508fffa80a26
+        uses: camunda/infra-global-github-actions/fossa/wait-for-scan@c7794826624039d8cb9ddeaa38c9dfb2781e34ba
         with:
           api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           branch: ${{ steps.fossa-context.outputs.head-ref }}
           project-id: "custom+50756/camunda/connectors"
           revision-id: ${{ steps.fossa-context.outputs.head-revision }}
       - name: Create FOSSA releases and generate reports
-        uses: camunda/infra-global-github-actions/fossa/release@1c6cd774501c2210dd7a44bbc938508fffa80a26
+        uses: camunda/infra-global-github-actions/fossa/release@c7794826624039d8cb9ddeaa38c9dfb2781e34ba
         with:
           api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           branch: ${{ steps.fossa-context.outputs.head-ref }}

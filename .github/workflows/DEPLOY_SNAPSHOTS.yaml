@@ -24,7 +24,7 @@ jobs:
       docker_version: ${{ steps.maven_version.outputs.docker_version }}
       branch: ${{ steps.version.outputs.branch }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Determine branch and version
         id: version
@@ -58,6 +58,7 @@ jobs:
             secret/data/products/connectors/ci/common DOCKERHUB_PASSWORD;
             secret/data/products/connectors/ci/common ARTIFACTORY_USR;
             secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
+            secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
       - name: Restore cache
         uses: actions/cache@v4
@@ -71,7 +72,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '21.0.9'
           server-id: camunda-nexus
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
@@ -138,6 +139,13 @@ jobs:
         with:
           username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
           password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
+
+      - name: Login to Minimus
+        uses: docker/login-action@v3
+        with:
+          registry: reg.mini.dev
+          username: minimus
+          password: ${{ steps.secrets.outputs.REGISTRY_MINIMUS_PSW }}
 
       - name: Build and Push Docker Image - connector-runtime
         uses: docker/build-push-action@v6

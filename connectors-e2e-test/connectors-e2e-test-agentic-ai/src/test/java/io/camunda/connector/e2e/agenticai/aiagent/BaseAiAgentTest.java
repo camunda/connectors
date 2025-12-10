@@ -34,26 +34,19 @@ import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
 
 @WireMockTest
 @Import(CamundaDocumentTestConfiguration.class)
 public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
-
-  @Autowired protected ResourceLoader resourceLoader;
 
   private JobWorker jobWorker;
   protected final AtomicInteger jobWorkerCounter = new AtomicInteger(0);
@@ -146,31 +139,6 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
   protected BpmnModelInstance modelWithModifications(File model, File elementTemplate) {
     return new BpmnFile(model)
         .apply(elementTemplate, AI_AGENT_TASK_ID, new File(tempDir, "updated.bpmn"));
-  }
-
-  protected Resource testFileResource(String filename) {
-    return resourceLoader.getResource("classpath:__files/" + filename);
-  }
-
-  protected Supplier<String> testFileContent(String filename) {
-    return () -> {
-      try {
-        return testFileResource(filename).getContentAsString(StandardCharsets.UTF_8);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    };
-  }
-
-  protected Supplier<String> testFileContentBase64(String filename) {
-    return () -> {
-      try {
-        return Base64.getEncoder()
-            .encodeToString(testFileResource(filename).getContentAsByteArray());
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    };
   }
 
   protected Map<String, Object> userSatisfiedFeedback() {

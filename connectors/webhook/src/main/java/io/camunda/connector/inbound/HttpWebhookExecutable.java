@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.inbound;
 
-import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.disabled;
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 
 import io.camunda.connector.api.annotation.InboundConnector;
@@ -14,8 +13,6 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
-import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
-import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException.Reason;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
@@ -30,18 +27,11 @@ import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties.WebhookConnectorPropertiesWrapper;
 import io.camunda.connector.inbound.model.WebhookProcessingResultImpl;
-import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
-import io.camunda.connector.inbound.signature.HMACSignatureValidator;
-import io.camunda.connector.inbound.signature.strategy.HMACEncodingStrategy;
-import io.camunda.connector.inbound.signature.strategy.HMACEncodingStrategyFactory;
+import io.camunda.connector.inbound.signature.HMACVerifier;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
 import jakarta.annotation.Nullable;
-import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,12 +78,11 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpWebhookExecutable.class);
 
-  private static final String ERROR_ACTIVITY_LOG_TAG = "Error";
-
   private WebhookConnectorProperties props;
   private WebhookAuthorizationHandler<?> authChecker;
   private InboundConnectorContext context;
   private Function<WebhookResultContext, WebhookHttpResponse> responseExpression;
+  private HMACVerifier hmacVerifier;
 
   @Override
   public void activate(InboundConnectorContext context) {
@@ -102,6 +91,9 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     props = new WebhookConnectorProperties(wrappedProps);
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
     responseExpression = mapResponseExpression();
+    hmacVerifier =
+        new HMACVerifier(
+            props.hmacScopes(), props.hmacHeader(), props.hmacSecret(), props.hmacAlgorithm());
     context.reportHealth(Health.up());
   }
 
@@ -110,7 +102,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     LOGGER.trace("Triggered webhook with context {} and payload {}", props.context(), payload);
 
     validateHttpMethod(payload);
-    verifySignature(payload);
+    verifyHmac(payload);
 
     var authResult = authChecker.checkAuthorization(payload);
     if (authResult instanceof Failure failureResult) {
@@ -154,43 +146,10 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     return responseExpression;
   }
 
-  private void verifySignature(WebhookProcessingPayload payload) {
-    if (!webhookSignatureIsValid(payload)) {
-      throw new WebhookSecurityException(
-          401, Reason.INVALID_SIGNATURE, "HMAC signature check didn't pass");
+  private void verifyHmac(WebhookProcessingPayload payload) {
+    if (enabled.equals(props.shouldValidateHmac())) {
+      hmacVerifier.verifySignature(payload);
     }
-  }
-
-  private boolean webhookSignatureIsValid(WebhookProcessingPayload payload) {
-    try {
-      if (shouldValidateHmac()) {
-        HMACEncodingStrategy strategy =
-            HMACEncodingStrategyFactory.getStrategy(props.hmacScopes(), payload.method());
-        byte[] bytesToSign = strategy.getBytesToSign(payload);
-        return validateHmacSignature(bytesToSign, payload);
-      }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-    return true;
-  }
-
-  private boolean shouldValidateHmac() {
-    final String shouldValidateHmac =
-        Optional.ofNullable(props.shouldValidateHmac()).orElse(disabled.name());
-    return enabled.name().equals(shouldValidateHmac);
-  }
-
-  private boolean validateHmacSignature(byte[] signatureData, WebhookProcessingPayload payload)
-      throws NoSuchAlgorithmException, InvalidKeyException, IOException {
-    final HMACSignatureValidator hmacSignatureValidator =
-        new HMACSignatureValidator(
-            signatureData,
-            payload.headers(),
-            props.hmacHeader(),
-            props.hmacSecret(),
-            HMACAlgoCustomerChoice.valueOf(props.hmacAlgorithm()));
-    return hmacSignatureValidator.isRequestValid();
   }
 
   @Override

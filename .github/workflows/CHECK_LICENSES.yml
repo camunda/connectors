@@ -30,7 +30,7 @@ jobs:
     if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || github.event_name == 'push' }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
       # Import FOSSA_API_KEY and other secrets from Vault
@@ -57,7 +57,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '21.0.9'
       - name: Update Maven settings.xml
         uses: s4u/maven-settings-action@v4.0.0
         with:
@@ -70,10 +70,10 @@ jobs:
             }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
       - name: Setup fossa-cli
-        uses: camunda/infra-global-github-actions/fossa/setup@1c6cd774501c2210dd7a44bbc938508fffa80a26
+        uses: camunda/infra-global-github-actions/fossa/setup@c7794826624039d8cb9ddeaa38c9dfb2781e34ba
       - name: Get context info
         id: info
-        uses: camunda/infra-global-github-actions/fossa/info@1c6cd774501c2210dd7a44bbc938508fffa80a26
+        uses: camunda/infra-global-github-actions/fossa/info@c7794826624039d8cb9ddeaa38c9dfb2781e34ba
       - name: Adjust pom.xml files for FOSSA
         run: |
           # The parent/pom.xml must be the actual root, otherwise, FOSSA won't detect the hierarchy correctly
@@ -85,7 +85,7 @@ jobs:
             'del(.project.modules.module[] | select(. == "parent"))' \
             pom.xml
       - name: Analyze project
-        uses: camunda/infra-global-github-actions/fossa/analyze@1c6cd774501c2210dd7a44bbc938508fffa80a26
+        uses: camunda/infra-global-github-actions/fossa/analyze@c7794826624039d8cb9ddeaa38c9dfb2781e34ba
         with:
           api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           branch: ${{  steps.info.outputs.head-ref }}
@@ -95,7 +95,7 @@ jobs:
       # It does not fail for pre-existing issues already present in the base branch.
       - name: Check Pull Request for new License Issues
         if: steps.info.outputs.is-pull-request == 'true'
-        uses: camunda/infra-global-github-actions/fossa/pr-check@1c6cd774501c2210dd7a44bbc938508fffa80a26
+        uses: camunda/infra-global-github-actions/fossa/pr-check@c7794826624039d8cb9ddeaa38c9dfb2781e34ba
         with:
           api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           base-ref: ${{ steps.info.outputs.base-ref }}

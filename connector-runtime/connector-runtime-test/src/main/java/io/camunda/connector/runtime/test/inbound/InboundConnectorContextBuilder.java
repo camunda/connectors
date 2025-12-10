@@ -49,7 +49,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -284,7 +283,6 @@ public class InboundConnectorContextBuilder {
       return getCorrelationResult(correlationRequest.getVariables());
     }
 
-    @NotNull
     private CorrelationResult getCorrelationResult(Object variables) {
       correlate(variables);
       return Objects.requireNonNullElse(

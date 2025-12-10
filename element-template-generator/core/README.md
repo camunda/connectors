@@ -3,8 +3,6 @@
 This is a tool to generate [element templates](https://docs.camunda.io/docs/components/connectors/custom-built-connectors/connector-templates/)
 based on the Connector Java code.
 
-**Note:** only outbound Connector templates are currently supported.
-
 ## Prerequisites
 
 To make use of the Template Generator, your Connector must:

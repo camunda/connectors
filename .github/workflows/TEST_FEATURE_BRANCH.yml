@@ -18,7 +18,7 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
@@ -56,7 +56,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '21.0.9'
 
       - uses: actions/setup-node@v6
         with:
@@ -110,6 +110,8 @@ jobs:
       - name: Publish Test Report
         if: always()
         uses: scacap/action-surefire-report@v1
+        with:
+          check_name: 'Publish Test Report'
 
       - name: Upload detailed surefire reports
         if: always()

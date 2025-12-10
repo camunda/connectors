@@ -33,6 +33,11 @@
     </dependency>
 
     <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>element-template-generator-core</artifactId>
     </dependency>
@@ -43,10 +48,6 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>postman-collections-parser</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>jackson-datatype-feel</artifactId>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -60,6 +61,22 @@
 
   <build>
     <plugins>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>analyze-dependencies</id>
+            <configuration>
+              <ignoredDependencies>
+                <!-- false positives: these dependencies are linked to the CLI application -->
+                <ignoredDependency>io.camunda.connector:postman-collections-parser</ignoredDependency>
+                <ignoredDependency>io.camunda.connector:openapi-parser</ignoredDependency>
+                <ignoredDependency>org.slf4j:slf4j-nop</ignoredDependency>
+              </ignoredDependencies>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>

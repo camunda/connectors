@@ -1,54 +1,64 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>io.camunda.connector</groupId>
-        <artifactId>connectors-parent</artifactId>
-        <version>8.9.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
-    </parent>
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connectors-parent</artifactId>
+    <version>8.9.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
 
-    <artifactId>connector-google-parent</artifactId>
-    <packaging>pom</packaging>
-    <name>google-connector-parent</name>
-    <description>Parent POM for Google Connectors</description>
-    <inceptionYear>2023</inceptionYear>
+  <artifactId>connector-google-parent</artifactId>
+  <packaging>pom</packaging>
+  <name>google-connector-parent</name>
+  <description>Parent POM for Google Connectors</description>
+  <inceptionYear>2023</inceptionYear>
 
-    <modules>
-        <module>google-base</module>
-        <module>google-drive</module>
-        <module>google-sheets</module>
-        <module>google-gemini</module>
-        <module>google-gcs</module>
-    </modules>
+  <modules>
+    <module>google-base</module>
+    <module>google-drive</module>
+    <module>google-sheets</module>
+    <module>google-gemini</module>
+    <module>google-gcs</module>
+  </modules>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.google.cloud</groupId>
-                <artifactId>libraries-bom</artifactId>
-                <version>26.71.0</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>libraries-bom</artifactId>
+        <version>26.72.0</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
-    <properties>
-        <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+  <properties>
+    <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
 under one or more contributor license agreements. Licensed under a proprietary license.
 See the License.txt file for more information. You may not use this file
 except in compliance with the proprietary license.</license.inlineheader>
-    </properties>
+  </properties>
 
-    <build>
-        <pluginManagement>
-            <plugins>
-            </plugins>
-        </pluginManagement>
-
-        <plugins>
-        </plugins>
-    </build>
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <configuration>
+          <!-- declared in our google-base module -->
+          <ignoredUsedUndeclaredDependencies combine.children="append">
+            <dependency>com.google.auth:google-auth-library-oauth2-http</dependency>
+            <dependency>com.google.api-client:google-api-client</dependency>
+            <dependency>com.google.http-client:google-http-client</dependency>
+            <dependency>com.google.http-client:google-http-client-gson</dependency>
+            <dependency>com.google.auth:google-auth-library-credentials</dependency>
+            <dependency>org.apache.commons:commons-lang3</dependency>
+          </ignoredUsedUndeclaredDependencies>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

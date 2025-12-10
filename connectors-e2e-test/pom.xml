@@ -1,43 +1,56 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>io.camunda.connector</groupId>
-        <artifactId>connector-parent</artifactId>
-        <relativePath>../parent/pom.xml</relativePath>
-        <version>8.9.0-SNAPSHOT</version>
-    </parent>
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connector-parent</artifactId>
+    <relativePath>../parent/pom.xml</relativePath>
+    <version>8.9.0-SNAPSHOT</version>
+  </parent>
 
-    <description>Parent POM for Connectors e2e tests</description>
-    <name>Connectors E2E Tests</name>
-    <artifactId>connectors-e2e-test-parent</artifactId>
-    <packaging>pom</packaging>
+  <description>Parent POM for Connectors e2e tests</description>
+  <name>Connectors E2E Tests</name>
+  <artifactId>connectors-e2e-test-parent</artifactId>
+  <packaging>pom</packaging>
 
-    <properties>
-        <skip.central.release>true</skip.central.release>
-    </properties>
+  <properties>
+    <skip.central.release>true</skip.central.release>
+  </properties>
 
-    <modules>
-        <module>connectors-e2e-test-base</module>
-        <module>connectors-e2e-test-http</module>
-        <module>connectors-e2e-test-automation-anywhere</module>
-        <module>connectors-e2e-test-kafka</module>
-        <module>connectors-e2e-test-aws</module>
-        <module>connectors-e2e-test-easy-post</module>
-        <module>connectors-e2e-test-soap</module>
-        <module>connectors-e2e-test-rabbitmq</module>
-      <module>connectors-e2e-test-servicenow</module>
-        <module>connectors-e2e-test-message</module>
-        <module>connectors-e2e-test-agentic-ai</module>
-        <module>connectors-e2e-email</module>
-    </modules>
+  <modules>
+    <module>connectors-e2e-test-base</module>
+    <module>connectors-e2e-test-http</module>
+    <module>connectors-e2e-test-automation-anywhere</module>
+    <module>connectors-e2e-test-kafka</module>
+    <module>connectors-e2e-test-aws</module>
+    <module>connectors-e2e-test-easy-post</module>
+    <module>connectors-e2e-test-soap</module>
+    <module>connectors-e2e-test-rabbitmq</module>
+    <module>connectors-e2e-test-servicenow</module>
+    <module>connectors-e2e-test-message</module>
+    <module>connectors-e2e-test-agentic-ai</module>
+    <module>connectors-e2e-email</module>
+  </modules>
 
-    <dependencies>
-        <dependency>
-            <groupId>io.camunda.connector</groupId>
-            <artifactId>connector-test-utils</artifactId>
-        </dependency>
-    </dependencies>
+  <dependencies>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-test-utils</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>

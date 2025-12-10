@@ -30,6 +30,21 @@
 
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
+      <artifactId>aws-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>auth</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>regions</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>bedrockruntime</artifactId>
       <version>${version.software-aws-java-sdk}</version>
     </dependency>
@@ -47,8 +62,19 @@
     </dependency>
 
     <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sdk-core</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>org.apache.pdfbox</groupId>
       <artifactId>pdfbox</artifactId>
+      <version>${version.pdfbox}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.pdfbox</groupId>
+      <artifactId>pdfbox-io</artifactId>
       <version>${version.pdfbox}</version>
     </dependency>
 
@@ -66,6 +92,56 @@
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-document-ai</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.auth</groupId>
+      <artifactId>google-auth-library-oauth2-http</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.auth</groupId>
+      <artifactId>google-auth-library-credentials</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.api</groupId>
+      <artifactId>gax</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>proto-google-cloud-document-ai-v1</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.http-client</groupId>
+      <artifactId>google-http-client</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-core</artifactId>
     </dependency>
 
     <dependency>
@@ -106,7 +182,7 @@
 
     <dependency>
       <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j</artifactId>
+      <artifactId>langchain4j-core</artifactId>
     </dependency>
 
       <dependency>
@@ -130,6 +206,23 @@
     <dependency>
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-vertex-ai-gemini</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-runtime-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.httpcomponents.core5</groupId>
+      <artifactId>httpcore5</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 

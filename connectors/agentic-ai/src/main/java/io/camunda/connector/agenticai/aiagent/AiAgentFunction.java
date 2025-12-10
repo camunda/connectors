@@ -39,8 +39,8 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     metadata = @ElementTemplate.Metadata(keywords = {"AI", "AI Agent", "agentic orchestration"}),
     documentationRef =
         "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/",
-    engineVersion = "^8.8",
-    version = 5,
+    engineVersion = "^8.9",
+    version = 6,
     inputDataClass = OutboundConnectorAgentRequest.class,
     outputDataClass = AgentResponse.class,
     defaultResultVariable = "agent",

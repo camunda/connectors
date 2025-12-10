@@ -17,13 +17,14 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolsSchemaResponse;
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryResult;
@@ -85,14 +86,26 @@ class AgentInitializerTest {
               .description("Some other gateway type.")
               .build());
 
-  @Mock private AdHocToolsSchemaResolver toolsSchemaResolver;
+  @Mock private AgentToolsResolver toolsResolver;
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
+  @Mock private AgentJobContext jobContext;
   @InjectMocks private AgentInitializerImpl agentInitializer;
 
   @Mock private AgentExecutionContext executionContext;
 
   @Nested
   class WithAlreadyInitializedState {
+
+    private static final Long PROCESS_DEFINITION_KEY = 123456789L;
+    private static final Long PROCESS_INSTANCE_KEY = 987654321L;
+    private static final AgentMetadata EXECUTION_METADATA =
+        new AgentMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
+
+    @BeforeEach
+    void setUp() {
+      when(executionContext.jobContext()).thenReturn(jobContext);
+      when(jobContext.metadata()).thenReturn(EXECUTION_METADATA);
+    }
 
     @ParameterizedTest
     @EnumSource(
@@ -101,7 +114,10 @@ class AgentInitializerTest {
         mode = EnumSource.Mode.EXCLUDE)
     void returnsAgentContextAndToolCallResultsFromRequest(AgentState agentState) {
       final var agentContext =
-          AgentContext.empty().withState(agentState).withProperty("hello", "world");
+          AgentContext.empty()
+              .withState(agentState)
+              .withProperty("hello", "world")
+              .withMetadata(EXECUTION_METADATA);
       when(executionContext.initialAgentContext()).thenReturn(agentContext);
       when(executionContext.initialToolCallResults()).thenReturn(TOOL_CALL_RESULTS);
 
@@ -115,11 +131,17 @@ class AgentInitializerTest {
                 assertThat(res.toolCallResults()).isEqualTo(TOOL_CALL_RESULTS);
               });
 
-      verifyNoInteractions(toolsSchemaResolver, gatewayToolHandlers);
+      verifyNoInteractions(toolsResolver, gatewayToolHandlers);
     }
 
     @Test
     void handlesNullInitialAgentContext() {
+      // When initialAgentContext is null, creates new context with INITIALIZING state
+      // which triggers initiateToolDiscovery flow
+      when(toolsResolver.loadAdHocToolsSchema(
+              any(AgentExecutionContext.class), any(AgentContext.class)))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
+
       final var result = agentInitializer.initializeAgent(executionContext);
 
       assertThat(result)
@@ -128,16 +150,20 @@ class AgentInitializerTest {
               res -> {
                 assertThat(res.agentContext())
                     .usingRecursiveComparison()
-                    .isEqualTo(AgentContext.empty().withState(AgentState.READY));
+                    .isEqualTo(
+                        AgentContext.empty()
+                            .withState(AgentState.READY)
+                            .withMetadata(EXECUTION_METADATA));
                 assertThat(res.toolCallResults()).isEmpty();
               });
 
-      verifyNoInteractions(toolsSchemaResolver, gatewayToolHandlers);
+      verifyNoInteractions(gatewayToolHandlers);
     }
 
     @Test
     void handlesNullInitialToolCallResults() {
-      final var agentContext = AgentContext.empty().withState(AgentState.READY);
+      final var agentContext =
+          AgentContext.empty().withState(AgentState.READY).withMetadata(EXECUTION_METADATA);
       when(executionContext.initialAgentContext()).thenReturn(agentContext);
 
       final var result = agentInitializer.initializeAgent(executionContext);
@@ -150,7 +176,7 @@ class AgentInitializerTest {
                 assertThat(res.toolCallResults()).isEmpty();
               });
 
-      verifyNoInteractions(toolsSchemaResolver, gatewayToolHandlers);
+      verifyNoInteractions(toolsResolver, gatewayToolHandlers);
     }
   }
 
@@ -167,6 +193,10 @@ class AgentInitializerTest {
 
     @Test
     void noToolDiscoveryWhenNoToolElementsExist() {
+      when(toolsResolver.loadAdHocToolsSchema(
+              any(AgentExecutionContext.class), any(AgentContext.class)))
+          .thenReturn(new AdHocToolsSchemaResponse(List.of(), null));
+
       final var result = agentInitializer.initializeAgent(executionContext);
 
       assertThat(result)
@@ -179,7 +209,7 @@ class AgentInitializerTest {
                 assertThat(res.toolCallResults()).isEmpty();
               });
 
-      verifyNoInteractions(toolsSchemaResolver, gatewayToolHandlers);
+      verifyNoInteractions(gatewayToolHandlers);
     }
 
     @ParameterizedTest
@@ -187,8 +217,8 @@ class AgentInitializerTest {
     void
         whenNoGatewayToolsResolved_returnsUpdatedAgentContextIncludingToolDefinitionsWithoutGatewayDiscovery(
             List<GatewayToolDefinition> gatewayToolDefinitions) {
-      when(executionContext.toolElements()).thenReturn(AD_HOC_TOOL_ELEMENTS);
-      when(toolsSchemaResolver.resolveAdHocToolsSchema(AD_HOC_TOOL_ELEMENTS))
+      when(toolsResolver.loadAdHocToolsSchema(
+              any(AgentExecutionContext.class), any(AgentContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(TOOL_DEFINITIONS, gatewayToolDefinitions));
 
       final var result = agentInitializer.initializeAgent(executionContext);
@@ -213,10 +243,8 @@ class AgentInitializerTest {
     @NullAndEmptySource
     void whenNoToolDiscoveryToolCallsReturned_returnsUpdatedAgentContextIncludingToolDefinitions(
         List<ToolCall> toolDiscoveryToolCalls) {
-      when(executionContext.toolElements())
-          .thenReturn(AD_HOC_TOOL_ELEMENTS_WITH_GATEWAY_TOOL_ELEMENTS);
-      when(toolsSchemaResolver.resolveAdHocToolsSchema(
-              AD_HOC_TOOL_ELEMENTS_WITH_GATEWAY_TOOL_ELEMENTS))
+      when(toolsResolver.loadAdHocToolsSchema(
+              any(AgentExecutionContext.class), any(AgentContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(TOOL_DEFINITIONS, GATEWAY_TOOL_DEFINITIONS));
 
       when(gatewayToolHandlers.initiateToolDiscovery(
@@ -255,10 +283,8 @@ class AgentInitializerTest {
                   .arguments(Map.of("method", "tools/list"))
                   .build());
 
-      when(executionContext.toolElements())
-          .thenReturn(AD_HOC_TOOL_ELEMENTS_WITH_GATEWAY_TOOL_ELEMENTS);
-      when(toolsSchemaResolver.resolveAdHocToolsSchema(
-              AD_HOC_TOOL_ELEMENTS_WITH_GATEWAY_TOOL_ELEMENTS))
+      when(toolsResolver.loadAdHocToolsSchema(
+              any(AgentExecutionContext.class), any(AgentContext.class)))
           .thenReturn(new AdHocToolsSchemaResponse(TOOL_DEFINITIONS, GATEWAY_TOOL_DEFINITIONS));
 
       when(gatewayToolHandlers.initiateToolDiscovery(
@@ -442,6 +468,102 @@ class AgentInitializerTest {
       final var result = agentInitializer.initializeAgent(executionContext);
 
       assertThat(result).isInstanceOf(AgentDiscoveryInProgressInitializationResult.class);
+    }
+  }
+
+  @Nested
+  class ProcessMigration {
+
+    private static final long ORIGINAL_PROCESS_DEFINITION_KEY = 111111111L;
+    private static final long MIGRATED_PROCESS_DEFINITION_KEY = 222222222L;
+    private static final long PROCESS_INSTANCE_KEY = 987654321L;
+
+    @BeforeEach
+    void setUp() {
+      when(executionContext.jobContext()).thenReturn(jobContext);
+    }
+
+    @Test
+    void triggersToolUpdateWhenMetadataIsNull() {
+      final var agentContext =
+          AgentContext.empty().withState(AgentState.READY).withToolDefinitions(TOOL_DEFINITIONS);
+      when(executionContext.initialAgentContext()).thenReturn(agentContext);
+
+      final var executionMetadata =
+          new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
+      when(jobContext.metadata()).thenReturn(executionMetadata);
+
+      final var updatedAgentContext =
+          agentContext.withToolDefinitions(TOOL_DEFINITIONS).withProperty("updated", true);
+      when(toolsResolver.updateToolDefinitions(executionContext, agentContext))
+          .thenReturn(updatedAgentContext);
+
+      final var result = agentInitializer.initializeAgent(executionContext);
+
+      assertThat(result)
+          .isInstanceOfSatisfying(
+              AgentContextInitializationResult.class,
+              res -> {
+                assertThat(res.agentContext().metadata()).isEqualTo(executionMetadata);
+                assertThat(res.agentContext().properties()).containsEntry("updated", true);
+              });
+    }
+
+    @Test
+    void triggersToolUpdateWhenProcessDefinitionKeyChanged() {
+      final var originalMetadata =
+          new AgentMetadata(ORIGINAL_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
+      final var agentContext =
+          AgentContext.empty()
+              .withState(AgentState.READY)
+              .withMetadata(originalMetadata)
+              .withToolDefinitions(TOOL_DEFINITIONS);
+      when(executionContext.initialAgentContext()).thenReturn(agentContext);
+
+      final var executionMetadata =
+          new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
+      when(jobContext.metadata()).thenReturn(executionMetadata);
+
+      final var updatedAgentContext =
+          agentContext.withToolDefinitions(TOOL_DEFINITIONS).withProperty("migrated", true);
+      when(toolsResolver.updateToolDefinitions(executionContext, agentContext))
+          .thenReturn(updatedAgentContext);
+
+      final var result = agentInitializer.initializeAgent(executionContext);
+
+      assertThat(result)
+          .isInstanceOfSatisfying(
+              AgentContextInitializationResult.class,
+              res -> {
+                assertThat(res.agentContext().metadata()).isEqualTo(executionMetadata);
+                assertThat(res.agentContext().properties()).containsEntry("migrated", true);
+              });
+    }
+
+    @Test
+    void skipsToolUpdateWhenProcessDefinitionKeyMatches() {
+      final var metadata = new AgentMetadata(ORIGINAL_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
+      final var agentContext =
+          AgentContext.empty()
+              .withState(AgentState.READY)
+              .withMetadata(metadata)
+              .withToolDefinitions(TOOL_DEFINITIONS);
+      when(executionContext.initialAgentContext()).thenReturn(agentContext);
+      when(executionContext.initialToolCallResults()).thenReturn(TOOL_CALL_RESULTS);
+
+      when(jobContext.metadata()).thenReturn(metadata);
+
+      final var result = agentInitializer.initializeAgent(executionContext);
+
+      assertThat(result)
+          .isInstanceOfSatisfying(
+              AgentContextInitializationResult.class,
+              res -> {
+                assertThat(res.agentContext()).isEqualTo(agentContext);
+                assertThat(res.toolCallResults()).isEqualTo(TOOL_CALL_RESULTS);
+              });
+
+      verifyNoInteractions(toolsResolver, gatewayToolHandlers);
     }
   }
 }

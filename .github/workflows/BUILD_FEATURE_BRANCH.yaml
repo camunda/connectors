@@ -9,8 +9,10 @@ on:
 jobs:
   run-tests:
     runs-on: ubuntu-latest
+    outputs:
+      connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Import Secrets
         id: secrets
@@ -24,6 +26,7 @@ jobs:
           secrets: |
             secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_LDAP_USER;
             secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_LDAP_PASSWORD;
+            secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
       - name: Restore cache
         uses: actions/cache@v4
@@ -36,7 +39,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '21.0.9'
 
       # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
       - name: 'Create settings.xml'
@@ -66,20 +69,41 @@ jobs:
       - name: Set up Docker Build
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
+      - name: Login to Harbor
         uses: docker/login-action@v3
         with:
           registry: registry.camunda.cloud
           username: ${{ steps.secrets.outputs.CI_LDAP_USER }}
           password: ${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}
+      
+      - name: Set connectors version
+        id: connectors-version
+        run: |
+          echo "connectors-version=pr-${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Login to Minimus
+        uses: docker/login-action@v3
+        with:
+          registry: reg.mini.dev
+          username: minimus
+          password: ${{ steps.secrets.outputs.REGISTRY_MINIMUS_PSW }}
 
       # Publish Docker images for Preview environments
       - name: Build and Push Docker Image tag ${{ env.TAG }} - bundle-default
         env:
-          TAG: pr-${{ github.sha }}
+          TAG: ${{ steps.connectors-version.outputs.connectors-version }}
         uses: docker/build-push-action@v6
         with:
           context: bundle/default-bundle/
           provenance: false
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle:${{ env.TAG }}
+
+  helm-deploy:
+    needs: [ run-tests ]
+    name: Run Helm Integration Tests
+    uses: ./.github/workflows/INTEGRATION_TEST.yml
+    secrets: inherit
+    with:
+      connectors-version: ${{ needs.run-tests.outputs.connectors-version }}
+      release-branch: main

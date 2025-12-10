@@ -1,0 +1,30 @@
+{
+  "name": "Exchange rate agent",
+  "description": "Helps with exchanging currency rates",
+  "url": "%s/exchange-rate-agent",
+  "version": "1.0.0",
+  "documentationUrl": "http://example.com/docs",
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": true,
+    "stateTransitionHistory": false
+  },
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "skills": [
+    {
+      "id": "currency-exchange",
+      "name": "Currency Exchange",
+      "description": "Get currency exchange rates",
+      "tags": [
+        "currency",
+        "exchange"
+      ],
+      "examples": [
+        "What's the exchange rate from USD to EUR?",
+        "Convert 100 GBP to JPY."
+      ]
+    }
+  ],
+  "protocolVersion": "0.3.0"
+}

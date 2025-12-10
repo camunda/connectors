@@ -32,10 +32,13 @@ import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockedConstruction;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -63,6 +66,8 @@ class Langchain4JMcpClientFactoryTest {
   @Mock private HttpMcpTransport sseMcpTransport;
 
   @Mock private Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory;
+
+  @Captor private ArgumentCaptor<Supplier<Map<String, String>>> headersSupplierCaptor;
 
   private Langchain4JMcpClientLoggingResolver loggingResolver;
   private Langchain4JMcpClientFactory factory;
@@ -185,9 +190,11 @@ class Langchain4JMcpClientFactoryTest {
             final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
             verify(transportBuilder).url(streamableHttpTransportConfig.url());
             verify(transportBuilder).timeout(streamableHttpTransportConfig.timeout());
-            verify(transportBuilder).customHeaders(EXPECTED_HEADERS);
             verify(transportBuilder).logRequests(false);
             verify(transportBuilder).logResponses(false);
+
+            verify(transportBuilder).customHeaders(headersSupplierCaptor.capture());
+            assertThat(headersSupplierCaptor.getValue().get()).isEqualTo(EXPECTED_HEADERS);
 
             verifyMcpClientBuilder(
                 mockedMcpClientConstruction.constructed().getFirst(), streamableHttpMcpTransport);
@@ -254,9 +261,11 @@ class Langchain4JMcpClientFactoryTest {
             final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
             verify(transportBuilder).sseUrl(sseConfig.url());
             verify(transportBuilder).timeout(sseConfig.timeout());
-            verify(transportBuilder).customHeaders(EXPECTED_HEADERS);
             verify(transportBuilder).logRequests(false);
             verify(transportBuilder).logResponses(false);
+
+            verify(transportBuilder).customHeaders(headersSupplierCaptor.capture());
+            assertThat(headersSupplierCaptor.getValue().get()).isEqualTo(EXPECTED_HEADERS);
 
             verifyMcpClientBuilder(
                 mockedMcpClientConstruction.constructed().getFirst(), sseMcpTransport);

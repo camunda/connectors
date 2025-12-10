@@ -32,12 +32,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.client.api.command.FailJobCommandStep1;
 import io.camunda.client.api.worker.BackoffSupplier;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.jobhandling.DefaultCommandExceptionHandlingStrategy;
-import io.camunda.client.metrics.DefaultNoopMetricsRecorder;
+import io.camunda.client.metrics.MicrometerMetricsRecorder;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
@@ -50,7 +49,6 @@ import io.camunda.connector.runtime.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.TestValidation;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
-import io.camunda.connector.runtime.metrics.ConnectorsOutboundMetrics;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -86,7 +84,7 @@ class SpringConnectorJobHandlerTest {
       protected static SpringConnectorJobHandler newConnectorJobHandler(
           OutboundConnectorFunction call, SecretProviderAggregator secretProviderAggregator) {
         return new SpringConnectorJobHandler(
-            new ConnectorsOutboundMetrics(new SimpleMeterRegistry()),
+            new MicrometerMetricsRecorder(new SimpleMeterRegistry()),
             new DefaultCommandExceptionHandlingStrategy(
                 BackoffSupplier.newBackoffBuilder().build(),
                 Executors.newSingleThreadScheduledExecutor()),
@@ -94,8 +92,7 @@ class SpringConnectorJobHandlerTest {
             new DefaultValidationProvider(),
             mock(DocumentFactory.class),
             TestObjectMapperSupplier.INSTANCE,
-            call,
-            new DefaultNoopMetricsRecorder());
+            call);
       }
 
       protected static SpringConnectorJobHandler newConnectorJobHandler(
@@ -108,7 +105,7 @@ class SpringConnectorJobHandlerTest {
       @NullSource
       @EmptySource
       @ValueSource(strings = {" ", "\t", "\n"})
-      void shouldNotSetWithBlankResultVariable(String variableName) {
+      void shouldNotSetWithBlankResultVariable(String variableName) throws Exception {
         // given
         var jobHandler = newConnectorJobHandler((context) -> Map.of("hello", "world"));
 
@@ -123,7 +120,7 @@ class SpringConnectorJobHandlerTest {
       }
 
       @Test
-      void shouldHandleMap() {
+      void shouldHandleMap() throws Exception {
         // given
         var jobHandler = newConnectorJobHandler((context) -> Map.of("hello", "world"));
 
@@ -138,7 +135,7 @@ class SpringConnectorJobHandlerTest {
       }
 
       @Test
-      void shouldHandleNull() {
+      void shouldHandleNull() throws Exception {
         // given
         var jobHandler = newConnectorJobHandler((ctx) -> null);
         var expected = new HashMap<>();
@@ -155,7 +152,7 @@ class SpringConnectorJobHandlerTest {
       }
 
       @Test
-      void shouldHandleEmptyMap() {
+      void shouldHandleEmptyMap() throws Exception {
         // given
         var jobHandler = newConnectorJobHandler((ctx) -> Map.of());
 
@@ -170,7 +167,7 @@ class SpringConnectorJobHandlerTest {
       }
 
       @Test
-      void shouldHandleScalarValue() {
+      void shouldHandleScalarValue() throws Exception {
         // given
         var jobHandler = newConnectorJobHandler((ctx) -> 1);
 
@@ -192,7 +189,7 @@ class SpringConnectorJobHandlerTest {
       @NullSource
       @EmptySource
       @ValueSource(strings = {" ", "\t", "\n"})
-      void shouldNotSetWithBlankResultExpression(String expression) {
+      void shouldNotSetWithBlankResultExpression(String expression) throws Exception {
         // given
         var jobHandler = newConnectorJobHandler((context) -> Map.of("hello", "world"));
 
@@ -207,7 +204,7 @@ class SpringConnectorJobHandlerTest {
       }
 
       @Test
-      void shouldHandleMap() {
+      void shouldHandleMap() throws Exception {
         // given
         var jobHandler =
             newConnectorJobHandler(
@@ -226,7 +223,7 @@ class SpringConnectorJobHandlerTest {
       }
 
       @Test
-      void shouldHandleMap_WithNullValues() {
+      void shouldHandleMap_WithNullValues() throws Exception {
         // given
         var jobHandler =
             newConnectorJobHandler(
@@ -251,7 +248,7 @@ class SpringConnectorJobHandlerTest {
       }
 
       @Test
-      void shouldHandleMap_MapNullValues() {
+      void shouldHandleMap_MapNullValues() throws Exception {
         // given
         var jobHandler =
             newConnectorJobHandler(
@@ -278,7 +275,7 @@ class SpringConnectorJobHandlerTest {
       }
 
       @Test
-      void shouldHandlePojo_Mapped() {
+      void shouldHandlePojo_Mapped() throws Exception {
         // given
         var jobHandler =
             newConnectorJobHandler((context) -> new TestConnectorResponsePojo("responseValue"));
@@ -295,7 +292,7 @@ class SpringConnectorJobHandlerTest {
       }
 
       @Test
-      void shouldHandlePojo_NullValues() {
+      void shouldHandlePojo_NullValues() throws Exception {
         // given
         var jobHandler = newConnectorJobHandler((context) -> new TestConnectorResponsePojo(null));
         var resultExpression = "{\"processedOutput\": response.value }";
@@ -313,7 +310,7 @@ class SpringConnectorJobHandlerTest {
       }
 
       @Test
-      void shouldHandlePojo_DirectAssignment() {
+      void shouldHandlePojo_DirectAssignment() throws Exception {
         // given
         var jobHandler =
             newConnectorJobHandler((context) -> new TestConnectorResponsePojo("responseValue"));
@@ -330,7 +327,7 @@ class SpringConnectorJobHandlerTest {
       }
 
       @Test
-      void shouldHandleUnknownObject() {
+      void shouldHandleUnknownObject() throws Exception {
         // given
         var jobHandler =
             newConnectorJobHandler(
@@ -355,7 +352,7 @@ class SpringConnectorJobHandlerTest {
       }
 
       @Test
-      void shouldFail_MappingFromNull() {
+      void shouldFail_MappingFromNull() throws Exception {
         // given
         var jobHandler = newConnectorJobHandler((context) -> null);
         var resultExpression = "{\"processedOutput\": response.callStatus }";
@@ -364,14 +361,14 @@ class SpringConnectorJobHandlerTest {
         var result =
             JobBuilder.create()
                 .withResultExpressionHeader(resultExpression)
-                .executeAndCaptureResult(jobHandler, false);
+                .executeAndCaptureResult(jobHandler);
 
         // then
-        assertThat(result.getErrorMessage()).contains("Context is null");
+        assertThat(result.getVariables().get("processedOutput")).isNull();
       }
 
       @Test
-      void shouldNotFail_MappingNonExistingKeys() {
+      void shouldNotFail_MappingNonExistingKeys() throws Exception {
         // given
         var jobHandler = newConnectorJobHandler((context) -> Map.of());
         var resultExpression = "{\"processedOutput\": response.callStatus }";
@@ -387,7 +384,7 @@ class SpringConnectorJobHandlerTest {
       }
 
       @Test
-      void shouldSucceed_MappingFromScalarToContext() {
+      void shouldSucceed_MappingFromScalarToContext() throws Exception {
         // given
         var jobHandler = newConnectorJobHandler((context) -> "FOO");
         var resultExpression = "{processedOutput: response}";
@@ -403,7 +400,7 @@ class SpringConnectorJobHandlerTest {
       }
 
       @Test
-      void shouldFail_MappingFromScalar() {
+      void shouldFail_MappingFromScalar() throws Exception {
         // given
         var jobHandler = newConnectorJobHandler((context) -> "FOO");
         var resultExpression = "= response";
@@ -419,7 +416,7 @@ class SpringConnectorJobHandlerTest {
       }
 
       @Test
-      void shouldFail_ProducingScalar() {
+      void shouldFail_ProducingScalar() throws Exception {
         // given
         var jobHandler = newConnectorJobHandler((context) -> Map.of("FOO", "BAR"));
         var resultExpression = "= FOO";
@@ -438,7 +435,7 @@ class SpringConnectorJobHandlerTest {
     @Nested
     class ResultVariableAndExpressionTests {
       @Test
-      void shouldNotSetWithoutResultVariableAndExpression() {
+      void shouldNotSetWithoutResultVariableAndExpression() throws Exception {
         // given
         var jobHandler = newConnectorJobHandler((context) -> Map.of("hello", "world"));
 
@@ -450,7 +447,7 @@ class SpringConnectorJobHandlerTest {
       }
 
       @Test
-      void shouldSetBothResultVariableAndExpression() {
+      void shouldSetBothResultVariableAndExpression() throws Exception {
         // given
         var jobHandler =
             newConnectorJobHandler(
@@ -492,7 +489,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldProduceFailCommandWhenCallThrowsException() {
+    void shouldProduceFailCommandWhenCallThrowsException() throws Exception {
       // given
       var jobHandler =
           newConnectorJobHandler(
@@ -508,7 +505,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldTruncateFailJobErrorMessage() {
+    void shouldTruncateFailJobErrorMessage() throws Exception {
       // given
       var veryLongMessage = "This is quite a long message".repeat(300); // 8400 chars
       var jobHandler =
@@ -526,7 +523,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldTruncateBpmnErrorMessage() {
+    void shouldTruncateBpmnErrorMessage() throws Exception {
       // given
       var veryLongMessage = "This is quite a long message".repeat(300); // 8400 chars
       var errorExpression = "bpmnError(\"500\", testProperty)";
@@ -550,7 +547,7 @@ class SpringConnectorJobHandlerTest {
 
     @ParameterizedTest
     @MethodSource("provideInputExceptions")
-    void shouldNotRetry_OnConnectorInputException(Exception exception) {
+    void shouldNotRetry_OnConnectorInputException(Exception exception) throws Exception {
       // given
       var jobHandler =
           newConnectorJobHandler(
@@ -589,7 +586,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldParseRetryBackoffHeader_Duration() {
+    void shouldParseRetryBackoffHeader_Duration() throws Exception {
       // given
       int initialRetries = 3;
 
@@ -615,7 +612,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldParseRetryBackoffHeader_Period() {
+    void shouldParseRetryBackoffHeader_Period() throws Exception {
       // given
       int initialRetries = 3;
       var jobBuilder =
@@ -663,7 +660,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldHandleMissingRetryBackoffHeader() {
+    void shouldHandleMissingRetryBackoffHeader() throws Exception {
       // given
       int initialRetries = 3;
       var jobBuilder = JobBuilder.create().useJobClient(jobClient).withRetries(initialRetries);
@@ -688,7 +685,7 @@ class SpringConnectorJobHandlerTest {
   @Nested
   class ConnectorRetryExceptionTests {
     @Test
-    void shouldHandleConnectorRetryException_Default_Error() throws JsonProcessingException {
+    void shouldHandleConnectorRetryException_Default_Error() throws Exception {
       // given
       var jobHandler =
           newConnectorJobHandler(
@@ -705,7 +702,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldHandleConnectorRetryException_Custom_Error_Code() throws JsonProcessingException {
+    void shouldHandleConnectorRetryException_Custom_Error_Code() throws Exception {
       // given
       var jobRetries = 3;
       var policyRetries = 4;
@@ -748,8 +745,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldHandleConnectorRetryException_Basic_And_Retry_Exceptions()
-        throws JsonProcessingException {
+    void shouldHandleConnectorRetryException_Basic_And_Retry_Exceptions() throws Exception {
       AtomicInteger occurrence = new AtomicInteger();
       // given
       var jobRetries = 3;
@@ -811,7 +807,7 @@ class SpringConnectorJobHandlerTest {
           "if error.code != null then bpmnError(\"123\", \"\") else null",
           "if unknownFunction(error.code) then bpmnError(\"123\", \"\") else null"
         })
-    void shouldNotCreateBpmnErrorWithExpression(String expression) {
+    void shouldNotCreateBpmnErrorWithExpression(String expression) throws Exception {
       var jobHandler =
           newConnectorJobHandler(
               context -> {
@@ -829,7 +825,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldFail_BpmnErrorFunctionWithWrongArgument() {
+    void shouldFail_BpmnErrorFunctionWithWrongArgument() throws Exception {
       var jobHandler =
           newConnectorJobHandler(
               context -> {
@@ -849,7 +845,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldCreateBpmnError_UsingExceptionCodeAndRawContext() {
+    void shouldCreateBpmnError_UsingExceptionCodeAndRawContext() throws Exception {
       // given
       var errorExpression =
           "if error.code != null then "
@@ -871,7 +867,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldCreateBpmnError_UsingExceptionCodeAndErrorVariables() {
+    void shouldCreateBpmnError_UsingExceptionCodeAndErrorVariables() throws Exception {
       // given
       var errorExpression =
           "if error.code != null then "
@@ -898,7 +894,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldHideSecretsInJobErrorMessage() {
+    void shouldHideSecretsInJobErrorMessage() throws Exception {
       // given
       var errorMessage = "Something went wrong: bar is not the correct password";
       var jobHandler =
@@ -919,7 +915,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldHideSecretsInJsonProcessingError() {
+    void shouldHideSecretsInJsonProcessingError() throws Exception {
       // given
       var jobHandler =
           newConnectorJobHandler(
@@ -940,7 +936,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldHideSecretsInJobErrorJsonMessage() {
+    void shouldHideSecretsInJobErrorJsonMessage() throws Exception {
       // given
       var errorMessage = "Something went wrong: bar is not the correct password";
       var jobHandler =
@@ -961,7 +957,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldCreateBpmnErro2r_UsingExceptionCodeAndErrorVariables() {
+    void shouldCreateBpmnErro2r_UsingExceptionCodeAndErrorVariables() throws Exception {
       // given
       var jobHandler =
           newConnectorJobHandler(
@@ -992,7 +988,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldCreateBpmnError_UsingExceptionWithBpmnErrorFunction() {
+    void shouldCreateBpmnError_UsingExceptionWithBpmnErrorFunction() throws Exception {
       // given
       var errorExpression =
           "if error.code != null then "
@@ -1014,7 +1010,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldCreateBpmnError_UsingExceptionWithDefaultFunction() {
+    void shouldCreateBpmnError_UsingExceptionWithDefaultFunction() throws Exception {
       // given
       var errorExpression =
           "if contains(error.code,\"10\") then "
@@ -1036,7 +1032,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldCreateBpmnError_UsingExceptionCodeAsFirstCondition() {
+    void shouldCreateBpmnError_UsingExceptionCodeAsFirstCondition() throws Exception {
       // given
       var errorExpression =
           "if error.code != null then "
@@ -1061,7 +1057,7 @@ class SpringConnectorJobHandlerTest {
 
     @Test
     void shouldCreateJobError_UsingExceptionCodeAsSecondConditionAfterResponseProperty()
-        throws JsonProcessingException {
+        throws Exception {
       // given
       var errorExpression =
           """
@@ -1086,7 +1082,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldCreateJobError_UsingResponseProperty() throws JsonProcessingException {
+    void shouldCreateJobError_UsingResponseProperty() throws Exception {
       // given
       var errorExpression =
           """
@@ -1107,7 +1103,8 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldCreateJobError_UsingResponsePropertySettingRetriesRelativeToCurrentRetries() {
+    void shouldCreateJobError_UsingResponsePropertySettingRetriesRelativeToCurrentRetries()
+        throws Exception {
       // given
       var errorExpression =
           """
@@ -1130,7 +1127,8 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldCreateBpmnError_UsingExceptionCodeAsSecondConditionAfterResponseProperty() {
+    void shouldCreateBpmnError_UsingExceptionCodeAsSecondConditionAfterResponseProperty()
+        throws Exception {
       // given
       var errorExpression =
           "if response.testProperty = \"foo\" then "
@@ -1154,7 +1152,8 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldCreateBpmnError_UsingExceptionCodeAsSecondConditionAfterPlainProperty() {
+    void shouldCreateBpmnError_UsingExceptionCodeAsSecondConditionAfterPlainProperty()
+        throws Exception {
       // given
       var errorExpression =
           "if testProperty = \"foo\" then "
@@ -1178,7 +1177,8 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldCreateBpmnError_UsingExceptionCodeAsSecondConditionAfterContextProperty() {
+    void shouldCreateBpmnError_UsingExceptionCodeAsSecondConditionAfterContextProperty()
+        throws Exception {
       // given
       var errorExpression =
           "if testObject.testProperty = \"foo\" then "
@@ -1202,7 +1202,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldCreateBpmnError_UsingResponseValueAsFirstCondition() {
+    void shouldCreateBpmnError_UsingResponseValueAsFirstCondition() throws Exception {
       // given
       var errorExpression =
           "if response.testProperty = \"foo\" then "
@@ -1222,7 +1222,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldCreateBpmnError_UsingResponseValueAsSecondCondition() {
+    void shouldCreateBpmnError_UsingResponseValueAsSecondCondition() throws Exception {
       // given
       var errorExpression =
           "if error.code != null then "
@@ -1242,7 +1242,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldCreateBpmnError_UsingResultVariable() {
+    void shouldCreateBpmnError_UsingResultVariable() throws Exception {
       // given
       var errorExpression =
           "if testProperty = \"foo\" then "
@@ -1268,7 +1268,7 @@ class SpringConnectorJobHandlerTest {
   }
 
   @Test
-  void shouldRaiseExceptionDuringJsonProcessing() {
+  void shouldRaiseExceptionDuringJsonProcessing() throws Exception {
     // given
     var jobHandler = newConnectorJobHandler(context -> context.bindVariables(TestValidation.class));
 
@@ -1286,7 +1286,7 @@ class SpringConnectorJobHandlerTest {
   }
 
   @Test
-  void shouldPrioritizeSecretNotFoundException() {
+  void shouldPrioritizeSecretNotFoundException() throws Exception {
     // given
     var jobHandler = newConnectorJobHandler(context -> context.bindVariables(TestValidation.class));
 
@@ -1301,7 +1301,7 @@ class SpringConnectorJobHandlerTest {
   }
 
   @Test
-  void shouldHideExceptionMessageWhenSecretsObfuscationFails() {
+  void shouldHideExceptionMessageWhenSecretsObfuscationFails() throws Exception {
     // given
     var jobHandlerForMissingSecret =
         newConnectorJobHandler(
@@ -1344,7 +1344,7 @@ class SpringConnectorJobHandlerTest {
   }
 
   @Test
-  void shouldRaiseMultipleExceptionsDuringJsonProcessing() {
+  void shouldRaiseMultipleExceptionsDuringJsonProcessing() throws Exception {
     // given
     var jobHandler = newConnectorJobHandler(context -> context.bindVariables(TestValidation.class));
 
@@ -1362,7 +1362,7 @@ class SpringConnectorJobHandlerTest {
   }
 
   @Test
-  void connectorRaiseAnExceptionContainingSecret() {
+  void connectorRaiseAnExceptionContainingSecret() throws Exception {
     // given
     var jobHandler =
         newConnectorJobHandler(
@@ -1381,7 +1381,7 @@ class SpringConnectorJobHandlerTest {
   }
 
   @Test
-  void retrieveAllSecretsShouldNotThrowIfSecretNotFound() {
+  void retrieveAllSecretsShouldNotThrowIfSecretNotFound() throws Exception {
     // given
     var jobHandler =
         newConnectorJobHandler(

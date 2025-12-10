@@ -32,7 +32,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +55,7 @@ public class InboundEmailTest extends BaseEmailTest {
     }
   }
 
-  private static @NotNull Collection<Flags.Flag> getFlag(HandlingStrategy handlingStrategy) {
+  private static Collection<Flags.Flag> getFlag(HandlingStrategy handlingStrategy) {
     return switch (handlingStrategy) {
       case READ -> List.of(Flags.Flag.SEEN);
       case DELETE -> List.of(Flags.Flag.DELETED);

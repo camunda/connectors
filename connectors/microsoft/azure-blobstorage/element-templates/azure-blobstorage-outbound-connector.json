@@ -109,7 +109,7 @@
   }, {
     "id" : "authentication.tenantId",
     "label" : "Tenant id",
-    "description" : "The tenant id. Learn more in our <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blob-storage/#o-auth-20\">documentation</a>.",
+    "description" : "The tenant id. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -129,7 +129,7 @@
   }, {
     "id" : "authentication.clientId",
     "label" : "Client id",
-    "description" : "The client if of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blob-storage/#o-auth-20\">documentation</a>.",
+    "description" : "The client if of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -149,7 +149,7 @@
   }, {
     "id" : "authentication.clientSecret",
     "label" : "Client secret",
-    "description" : "The client secret of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blob-storage/#o-auth-20\">documentation</a>.",
+    "description" : "The client secret of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -169,7 +169,7 @@
   }, {
     "id" : "authentication.accountUrl",
     "label" : "Account url",
-    "description" : "The account url of the storage account. Learn more in our <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blob-storage/#o-auth-20\">documentation</a>.",
+    "description" : "The account url of the storage account. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true

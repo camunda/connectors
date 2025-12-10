@@ -31,7 +31,7 @@ public record A2aPollingActivationProperties(
           @TemplateProperty(
               id = "taskPollingInterval",
               group = "polling",
-              defaultValue = "PT30S",
+              defaultValue = "PT10S",
               binding = @TemplateProperty.PropertyBinding(name = "taskPollingInterval"),
               description =
                   "The delay between A2A task polling requests, defined as ISO 8601 durations format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
@@ -44,7 +44,7 @@ public record A2aPollingActivationProperties(
       }
 
       if (taskPollingInterval == null) {
-        taskPollingInterval = Duration.ofSeconds(30);
+        taskPollingInterval = Duration.ofSeconds(10);
       }
     }
   }

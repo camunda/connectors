@@ -80,8 +80,8 @@ public sealed interface McpRemoteClientTransportConfiguration
                 group = "transport",
                 description =
                     "Timeout for individual HTTP requests as ISO-8601 duration (example: <code>PT30S</code>)",
-                type = TemplateProperty.PropertyType.Hidden,
-                feel = Property.FeelMode.disabled,
+                type = TemplateProperty.PropertyType.String,
+                feel = Property.FeelMode.optional,
                 optional = true)
             Duration timeout)
         implements McpRemoteClientConnection {
@@ -121,8 +121,8 @@ public sealed interface McpRemoteClientTransportConfiguration
                 group = "transport",
                 description =
                     "Timeout for individual HTTP requests as ISO-8601 duration (example: <code>PT30S</code>)",
-                type = TemplateProperty.PropertyType.Hidden,
-                feel = Property.FeelMode.disabled,
+                type = TemplateProperty.PropertyType.String,
+                feel = Property.FeelMode.optional,
                 optional = true)
             Duration timeout)
         implements McpRemoteClientConnection {

@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.inbound.webhook;
 import static java.util.Collections.emptyMap;
 import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
+import static org.springframework.web.bind.annotation.RequestMethod.HEAD;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
@@ -112,7 +113,7 @@ public class InboundWebhookRestController {
   }
 
   @RequestMapping(
-      method = {GET, POST, PUT, DELETE},
+      method = {GET, HEAD, POST, PUT, DELETE},
       path = "/inbound/{context}")
   public ResponseEntity<?> inbound(
       @PathVariable(value = "context") String context,

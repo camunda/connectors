@@ -1,0 +1,30 @@
+{
+  "name": "Weather agent",
+  "description": "Helps with weather information",
+  "url": "%s/weather-agent",
+  "version": "1.0.0",
+  "documentationUrl": "http://example.com/docs",
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "stateTransitionHistory": false
+  },
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "skills": [
+    {
+      "id": "weather-forecast",
+      "name": "Weather Forecast",
+      "description": "Get weather forecast information",
+      "tags": [
+        "forecast",
+        "weather"
+      ],
+      "examples": [
+        "What's the weather like today?",
+        "Will it rain tomorrow?"
+      ]
+    }
+  ],
+  "protocolVersion": "0.3.0"
+}

@@ -1,69 +1,84 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
 
-    <parent>
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connector-google-parent</artifactId>
+    <version>8.9.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <name>connector-google-sheets</name>
+  <description>Camunda Google Sheets Connector</description>
+  <artifactId>connector-google-sheets</artifactId>
+  <packaging>jar</packaging>
+
+  <licenses>
+    <license>
+      <name>Camunda Self-Managed Free Edition license</name>
+      <url>
+        https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/
+      </url>
+    </license>
+    <license>
+      <name>Camunda Self-Managed Enterprise Edition license</name>
+    </license>
+  </licenses>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-google-base</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.apis</groupId>
+      <artifactId>google-api-services-sheets</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
         <groupId>io.camunda.connector</groupId>
-        <artifactId>connector-google-parent</artifactId>
-        <version>8.9.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
-    </parent>
-
-    <name>connector-google-sheets</name>
-    <description>Camunda Google Sheets Connector</description>
-    <artifactId>connector-google-sheets</artifactId>
-    <packaging>jar</packaging>
-
-    <licenses>
-        <license>
-            <name>Camunda Self-Managed Free Edition license</name>
-            <url>https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/</url>
-        </license>
-        <license>
-            <name>Camunda Self-Managed Enterprise Edition license</name>
-        </license>
-    </licenses>
-
-    <dependencies>
-        <dependency>
-            <groupId>io.camunda.connector</groupId>
-            <artifactId>connector-google-base</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.apis</groupId>
-            <artifactId>google-api-services-sheets</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.camunda.connector</groupId>
-            <artifactId>element-template-generator-core</artifactId>
-        </dependency>
-    </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>io.camunda.connector</groupId>
-                <artifactId>element-template-generator-maven-plugin</artifactId>
-                <version>${project.version}</version>
-                <configuration>
-                    <connectors>
-                        <connector>
-                            <connectorClass>io.camunda.connector.gsheets.GoogleSheetsFunction</connectorClass>
-                            <files>
-                                <file>
-                                    <templateId>io.camunda.connectors.GoogleSheets.v1</templateId>
-                                    <templateFileName>google-sheets-outbound-connector.json</templateFileName>
-                                </file>
-                            </files>
-                            <generateHybridTemplates>true</generateHybridTemplates>
-                        </connector>
-                    </connectors>
+        <artifactId>element-template-generator-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.gsheets.GoogleSheetsFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.GoogleSheets.v1</templateId>
+                  <templateFileName>google-sheets-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+          </connectors>
           <versionHistoryEnabled>true</versionHistoryEnabled>
-                    <includeDependencies>io.camunda.connector:connector-google-base</includeDependencies>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
+          <includeDependencies>io.camunda.connector:connector-google-base</includeDependencies>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

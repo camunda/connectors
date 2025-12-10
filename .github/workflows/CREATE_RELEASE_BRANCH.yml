@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.branch }}
           fetch-depth: 0
@@ -31,7 +31,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '17.0.17'
 
       - name: Configure git user
         run: |

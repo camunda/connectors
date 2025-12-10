@@ -29,7 +29,7 @@ import io.camunda.connector.http.base.model.HttpMethod;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -162,7 +162,7 @@ public class PostmanOperationUtil {
         Optional.ofNullable(endpoint.description()).map(desc -> desc.content()).orElse(null);
     var operationId = TransformerUtils.normalizeString(label + " " + opIdentifier);
     List<String> tags = Arrays.asList(opIdentifier.split("/"));
-    Set<HttpOperationProperty> requestConfigurationProps = new HashSet<>();
+    Set<HttpOperationProperty> requestConfigurationProps = new LinkedHashSet<>();
     requestConfigurationProps.addAll(PostmanPathUtil.transformToPathProperty(endpoint));
     requestConfigurationProps.addAll(PostmanQueryUtil.transformToQueryParamProperty(endpoint));
     requestConfigurationProps.addAll(PostmanHeaderUtil.transformToHeaderProperty(endpoint));

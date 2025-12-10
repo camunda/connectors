@@ -32,10 +32,12 @@ jobs:
     runs-on: ubuntu-latest
     name: Prepare inputs
     outputs:
+      connectors-registry: ${{ steps.determine-connectors-version.outputs.connectors-registry }}
+      connectors-repository: ${{ steps.determine-connectors-version.outputs.connectors-repository }}
       connectors-version: ${{ steps.determine-connectors-version.outputs.connectors-version }}
       helm-dir: ${{ steps.determine-helm-dir.outputs.helm-dir }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install jq
         run: sudo apt-get install jq
@@ -48,15 +50,28 @@ jobs:
       - name: Determine version of the Connectors image to use
         id: determine-connectors-version
         run: |
-          if [ -z "${{ inputs.connectors-version }}" ]; then
-            if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-              echo "connectors-version=SNAPSHOT" >> $GITHUB_OUTPUT
-            else
-              echo "connectors-version=${{ steps.maven-version.outputs.version }}" >> $GITHUB_OUTPUT
-            fi
+          # Defaults: internal registry for feature branches and explicit versions
+          REGISTRY="registry.camunda.cloud"
+          REPOSITORY="team-connectors/connectors-bundle"
+          
+          if [ -n "${{ inputs.connectors-version }}" ]; then
+            # Explicit version provided
+            VERSION="${{ inputs.connectors-version }}"
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            # Main branch: use Docker Hub public image (empty registry)
+            REGISTRY=""
+            REPOSITORY="camunda/connectors-bundle"
+            VERSION="SNAPSHOT"
           else
-            echo "connectors-version=${{ inputs.connectors-version }}" >> $GITHUB_OUTPUT
+            # Feature branch: use Maven project version
+            VERSION="${{ steps.maven-version.outputs.version }}"
           fi
+          
+          {
+            echo "connectors-registry=${REGISTRY}"
+            echo "connectors-repository=${REPOSITORY}"
+            echo "connectors-version=${VERSION}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Determine Helm chart directory to use
         id: determine-helm-dir
@@ -78,7 +93,7 @@ jobs:
           echo "Helm dir: ${{ steps.determine-helm-dir.outputs.helm-dir }}"
 
   helm-deploy:
-    if: github.ref != 'refs/heads/main'
+    if: github.ref != 'refs/heads/main' && !contains(github.event.pull_request.labels.*.name, 'skip-helm-deploy')
     needs: prepare-inputs
     name: Helm chart Integration Tests
     uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@main
@@ -86,8 +101,24 @@ jobs:
     with:
       identifier: connectors-int-${{ github.run_id }}
       camunda-helm-dir: ${{ needs.prepare-inputs.outputs.helm-dir }}
+      camunda-helm-git-ref: main
+      # test-enabled enables testing generally, both IT and E2E tests.
       test-enabled: true
+      # e2e-enabled is our way to disable E2E tests if needed.
+      e2e-enabled: false
+      # This scenario installs a full Camunda 8 cluster with Keycloak and Elasticsearch being external. 
+      # This keycloak realm and elasticsearch prefixes are all randomly generated at installation time.
+      scenario: keycloak-original
+      shortname: keyco
+      # Github does not guarantee that the cleanup job will run. So we need to use flags. Within the helm CI the max ttl for a namespace is set.
+      # That max ttl can be overridden by setting the deployment-ttl to a non-empty value.
+      # When always-delete-namespace is true, and ttl is empty, the namespace is deleted after the test run.
+      # If ttl is non-empty, the namespace is not deleted after the test run.
+      deployment-ttl: ""
+      always-delete-namespace: true
       extra-values: |
         connectors:
           image:
+            registry: ${{ needs.prepare-inputs.outputs.connectors-registry }}
+            repository: ${{ needs.prepare-inputs.outputs.connectors-repository }}
             tag: ${{ needs.prepare-inputs.outputs.connectors-version }}

@@ -36,6 +36,11 @@
       <artifactId>aws-java-sdk-sqs</artifactId>
       <version>${version.aws-java-sdk}</version>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-runtime-core</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>

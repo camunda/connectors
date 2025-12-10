@@ -47,6 +47,20 @@
       }
     },
     {
+      "name": "Download_A_File",
+      "description": "Download a file from the provided URL",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The URL to download the file from"
+          }
+        },
+        "required": ["url"]
+      }
+    },
+    {
       "name": "A_Complex_Tool",
       "description": "A very complex tool",
       "inputSchema": {
@@ -114,20 +128,6 @@
           "secondValue",
           "thirdValue"
         ]
-      }
-    },
-    {
-      "name": "Download_A_File",
-      "description": "Download a file from the provided URL",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "url": {
-            "type": "string",
-            "description": "The URL to download the file from"
-          }
-        },
-        "required": ["url"]
       }
     },
     {

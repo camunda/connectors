@@ -17,12 +17,27 @@
     <!-- Spring dependencies (scope: provided) -->
     <dependency>
       <groupId>org.springframework</groupId>
-      <artifactId>spring-webmvc</artifactId>
+      <artifactId>spring-context</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
-      <artifactId>spring-context</artifactId>
+      <artifactId>spring-core</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-autoconfigure</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-beans</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -31,12 +46,56 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.tomcat</groupId>
+      <artifactId>tomcat-annotations-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-core</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-commons</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents.core5</groupId>
+      <artifactId>httpcore5</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.httpcomponents.client5</groupId>
+      <artifactId>httpclient5</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
 
     <!-- The runtime provides enhanced metrics for logback if it is present -->
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+      <optional>true</optional>
+    </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
@@ -45,8 +104,27 @@
 
     <!-- Camunda dependencies -->
     <dependency>
+      <groupId>org.camunda.bpm.model</groupId>
+      <artifactId>camunda-xml-model</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>camunda-spring-boot-starter</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>camunda-client-java</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-feel-wrapper</artifactId>
     </dependency>
 
     <dependency>
@@ -64,15 +142,30 @@
       <artifactId>connector-object-mapper</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+
     <!-- Test -->
     <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-test</artifactId>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-document</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-feel</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-validation</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-test</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -87,7 +180,7 @@
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>junit-jupiter</artifactId>
+      <artifactId>testcontainers-junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -106,16 +199,31 @@
       <artifactId>connector-test-utils</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <scope>test</scope>
+    </dependency>
 
     <dependency>
       <groupId>dev.failsafe</groupId>
       <artifactId>failsafe</artifactId>
       <version>3.3.2</version>
-    </dependency>
-    <dependency>
-        <groupId>io.camunda.connector</groupId>
-        <artifactId>connector-test</artifactId>
-        <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda</groupId>
