@@ -8,9 +8,9 @@ package io.camunda.connector.kafka.inbound;
 
 import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.DEFAULT_KEY_DESERIALIZER;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
@@ -282,7 +282,7 @@ public class KafkaExecutableTest {
     // Then
     assertEquals("my-key", kafkaInboundMessage.getKey());
     assertEquals(kafkaMessageValue, kafkaInboundMessage.getRawValue());
-    assertTrue(kafkaInboundMessage.getValue() instanceof JsonNode);
+    assertInstanceOf(JsonNode.class, kafkaInboundMessage.getValue());
     assertEquals("Item_184", ((JsonNode) kafkaInboundMessage.getValue()).get("itemid").asText());
   }
 

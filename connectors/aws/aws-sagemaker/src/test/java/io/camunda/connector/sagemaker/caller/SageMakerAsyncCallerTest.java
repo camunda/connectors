@@ -8,6 +8,7 @@ package io.camunda.connector.sagemaker.caller;
 
 import static io.camunda.connector.sagemaker.testutils.SageMakerTestUtils.ASYNC_EXECUTION_JSON;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -20,7 +21,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.sagemaker.model.SageMakerRequest;
-import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -66,7 +66,7 @@ class SageMakerAsyncCallerTest {
             .readValue(ASYNC_EXECUTION_JSON, SageMakerRequest.class);
     when(runtime.invokeEndpointAsync(any(InvokeEndpointAsyncRequest.class)))
         .thenThrow(new RuntimeException("Something went terribly wrong!"));
-    Assert.assertThrows(
+    assertThrows(
         ConnectorException.class, () -> SageMakerAsyncCaller.ASYNC_CALLER.apply(runtime, request));
   }
 }
