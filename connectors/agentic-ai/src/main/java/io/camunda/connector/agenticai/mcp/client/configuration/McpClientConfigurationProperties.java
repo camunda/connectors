@@ -123,25 +123,20 @@ public record McpClientConfigurationProperties(
   public record StdioMcpClientTransportConfiguration(
       @NotBlank String command,
       @NotNull @DefaultValue List<String> args,
-      @NotNull @DefaultValue Map<String, String> env,
-      @DefaultValue("true") boolean logEvents)
+      @NotNull @DefaultValue Map<String, String> env)
       implements McpClientTransportConfiguration {}
 
   public record StreamableHttpMcpClientTransportConfiguration(
       @NotBlank String url,
       @NotNull @DefaultValue Map<String, String> headers,
       @Valid @NotNull @DefaultValue AuthenticationConfiguration authentication,
-      Duration timeout,
-      @DefaultValue("false") boolean logRequests,
-      @DefaultValue("false") boolean logResponses)
+      Duration timeout)
       implements McpClientTransportConfiguration, McpClientHttpTransportConfiguration {}
 
   public record SseHttpMcpClientTransportConfiguration(
       @NotBlank String url,
       @NotNull @DefaultValue Map<String, String> headers,
       @Valid @NotNull @DefaultValue AuthenticationConfiguration authentication,
-      Duration timeout,
-      @DefaultValue("false") boolean logRequests,
-      @DefaultValue("false") boolean logResponses)
+      Duration timeout)
       implements McpClientTransportConfiguration, McpClientHttpTransportConfiguration {}
 }

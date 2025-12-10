@@ -20,10 +20,7 @@ public record McpRemoteClientConfigurationProperties(
     @NotNull @DefaultValue("true") Boolean enabled,
     @NotNull @Valid @DefaultValue ClientConfiguration client) {
 
-  public record ClientConfiguration(
-      @DefaultValue("false") boolean logRequests,
-      @DefaultValue("false") boolean logResponses,
-      @NotNull @Valid @DefaultValue ClientCacheConfiguration cache) {
+  public record ClientConfiguration(@NotNull @Valid @DefaultValue ClientCacheConfiguration cache) {
 
     public record ClientCacheConfiguration(
         @DefaultValue("true") boolean enabled,

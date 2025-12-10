@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.a2a.client.outbound.model;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.generator.dsl.Property;
-import io.camunda.connector.generator.java.annotation.DropdownItem;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -18,6 +17,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Duration;
+import java.util.List;
 
 public record A2aCommonSendMessageConfiguration(
     @Valid @NotNull
@@ -80,34 +80,33 @@ public record A2aCommonSendMessageConfiguration(
                 description = "The webhook URL where the remote agent will send the response.",
                 feel = Property.FeelMode.optional)
             String webhookUrl,
-        @NotNull
-            @TemplateProperty(
+        @TemplateProperty(
                 group = "operation",
-                label = "Authorization type",
-                description = "The authorization type required by the webhook.",
-                type = TemplateProperty.PropertyType.Dropdown)
-            AuthorizationType authorizationType)
+                label = "Token",
+                description =
+                    "A unique token for the task or session to validate incoming push notifications",
+                feel = Property.FeelMode.optional,
+                optional = true)
+            String token,
+        @TemplateProperty(
+                group = "operation",
+                label = "Authentication schemes",
+                description = "A list of authentication schemes required by the webhook.",
+                feel = Property.FeelMode.required)
+            List<String> authenticationSchemes,
+        @TemplateProperty(
+                group = "operation",
+                label = "Authentication credentials",
+                description = "Credentials to authenticate the webhook request.",
+                feel = Property.FeelMode.optional)
+            String credentials)
         implements A2aResponseRetrievalMode {
       @TemplateProperty(ignore = true)
       public static final String NOTIFICATION_ID = "notification";
 
-      public enum AuthorizationType {
-        @DropdownItem(label = "None")
-        NONE,
-        @DropdownItem(label = "Basic")
-        BASIC,
-        @DropdownItem(label = "API key")
-        API_KEY,
-        @DropdownItem(label = "Bearer token")
-        BEARER_TOKEN;
-
-        public String toA2aSecurityScheme() {
-          return switch (this) {
-            case NONE -> null;
-            case BASIC -> "Basic";
-            case API_KEY -> "ApiKey";
-            case BEARER_TOKEN -> "Bearer";
-          };
+      public Notification {
+        if (authenticationSchemes == null) {
+          authenticationSchemes = List.of();
         }
       }
     }

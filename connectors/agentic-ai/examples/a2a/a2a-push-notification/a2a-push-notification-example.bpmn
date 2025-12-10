@@ -11,14 +11,17 @@
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="io.camunda.agenticai:a2aclient:0" retries="3" />
         <zeebe:ioMapping>
+          <zeebe:input source="NONE" target="data.connectorMode.operation.settings.responseRetrievalMode.authorizationType" />
           <zeebe:input source="http://localhost:11001" target="data.connection.url" />
           <zeebe:input source="standalone" target="data.connectorMode.type" />
           <zeebe:input source="sendMessage" target="data.connectorMode.operation.type" />
           <zeebe:input source="=if is defined(messageText) then&#10;  messageText&#10;else&#10;  &#34;Hey!&#34;" target="data.connectorMode.operation.params.text" />
-          <zeebe:input source="=3" target="data.connectorMode.operation.settings.historyLength" />
           <zeebe:input source="notification" target="data.connectorMode.operation.settings.responseRetrievalMode.type" />
           <zeebe:input source="http://localhost:8085/inbound/my-webhook-id" target="data.connectorMode.operation.settings.responseRetrievalMode.webhookUrl" />
-          <zeebe:input source="NONE" target="data.connectorMode.operation.settings.responseRetrievalMode.authorizationType" />
+          <zeebe:input source="=uuid()" target="data.connectorMode.operation.settings.responseRetrievalMode.token" />
+          <zeebe:input target="data.connectorMode.operation.settings.responseRetrievalMode.authenticationSchemes" />
+          <zeebe:input target="data.connectorMode.operation.settings.responseRetrievalMode.credentials" />
+          <zeebe:input source="=3" target="data.connectorMode.operation.settings.historyLength" />
           <zeebe:input source="PT1M" target="data.connectorMode.operation.settings.timeout" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
@@ -37,12 +40,17 @@
       <bpmn:outgoing>Flow_0stvn4w</bpmn:outgoing>
     </bpmn:exclusiveGateway>
     <bpmn:endEvent id="Event_1tgs63u" name="Completed synchronously">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:output source="=clientResponse.result" target="completedClientResponse" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
       <bpmn:incoming>Flow_0stvn4w</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:sequenceFlow id="Flow_0scwkpl" sourceRef="Event_1y152vy" targetRef="Activity_1cjjtz1" />
     <bpmn:sequenceFlow id="Flow_18xun8b" sourceRef="Activity_1cjjtz1" targetRef="Gateway_0fd6cdp" />
     <bpmn:sequenceFlow id="Flow_1tzvqtt" sourceRef="Gateway_0fd6cdp" targetRef="Wait_For_Completion">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=clientResponse.kind = "task" and list contains(["submitted", "working"], clientResponse.status.state)   </bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=clientResponse.result.kind = "task" and list contains(["submitted", "working"], clientResponse.result.status.state)   </bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_0stvn4w" sourceRef="Gateway_0fd6cdp" targetRef="Event_1tgs63u" />
     <bpmn:sequenceFlow id="Flow_197jjsv" sourceRef="Wait_For_Completion" targetRef="Event_0uya7bq" />
@@ -58,7 +66,7 @@
           <zeebe:property name="inbound.shouldValidateHmac" value="disabled" />
           <zeebe:property name="inbound.auth.type" value="NONE" />
           <zeebe:property name="activationCondition" value="=is defined(request.body.status.state) and not(list contains([&#34;submitted&#34;, &#34;working&#34;], request.body.status.state))" />
-          <zeebe:property name="correlationKeyExpression" value="=request.body.id" />
+          <zeebe:property name="correlationKeyExpression" value="=request.body.id + (if is defined(request.headers.`x-a2a-notification-token`) then (&#34;-&#34; + request.headers.`x-a2a-notification-token`) else &#34;&#34;)" />
           <zeebe:property name="deduplicationModeManualFlag" value="false" />
           <zeebe:property name="deduplicationMode" value="AUTO" />
           <zeebe:property name="resultVariable" value="" />
@@ -67,16 +75,16 @@
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_1tzvqtt</bpmn:incoming>
       <bpmn:outgoing>Flow_197jjsv</bpmn:outgoing>
-      <bpmn:messageEventDefinition id="MessageEventDefinition_07o2st3" messageRef="Message_0bldhbt" />
+      <bpmn:messageEventDefinition id="MessageEventDefinition_1oasoz1" messageRef="Message_1s86ifs" />
     </bpmn:intermediateCatchEvent>
     <bpmn:textAnnotation id="TextAnnotation_1buc8q1">
       <bpmn:text>Input: messageText</bpmn:text>
     </bpmn:textAnnotation>
     <bpmn:association id="Association_1cprgwa" associationDirection="None" sourceRef="Event_1y152vy" targetRef="TextAnnotation_1buc8q1" />
   </bpmn:process>
-  <bpmn:message id="Message_0bldhbt" name="c9411cf3-162a-49bd-98f3-87eddadb8381" zeebe:modelerTemplate="io.camunda.connectors.agenticai.a2a.client.webhook.intermediate.v0">
+  <bpmn:message id="Message_1s86ifs" name="181b4ff6-703b-447b-bddf-77bea6e357dc" zeebe:modelerTemplate="io.camunda.connectors.agenticai.a2a.client.webhook.intermediate.v0">
     <bpmn:extensionElements>
-      <zeebe:subscription correlationKey="=internal_clientResponse.id" />
+      <zeebe:subscription correlationKey="=internal_clientResponse.result.id + (if is defined(internal_clientResponse.pushNotificationData.token) then (&#34;-&#34; + internal_clientResponse.pushNotificationData.token) else &#34;&#34;)" />
     </bpmn:extensionElements>
   </bpmn:message>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
@@ -102,7 +110,7 @@
           <dc:Bounds x="576" y="295" width="71" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_0g9gwuf_di" bpmnElement="Wait_For_Completion">
+      <bpmndi:BPMNShape id="Event_0g68g4m_di" bpmnElement="Wait_For_Completion">
         <dc:Bounds x="652" y="132" width="36" height="36" />
         <bpmndi:BPMNLabel>
           <dc:Bounds x="642" y="175" width="56" height="27" />

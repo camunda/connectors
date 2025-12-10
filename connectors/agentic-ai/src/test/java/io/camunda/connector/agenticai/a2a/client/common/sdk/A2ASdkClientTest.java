@@ -19,6 +19,7 @@ import io.a2a.spec.Message;
 import io.a2a.spec.Task;
 import io.a2a.spec.TaskQueryParams;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.grpc.ManagedChannelFactory;
+import io.camunda.connector.api.error.ConnectorException;
 import org.junit.jupiter.api.Test;
 
 class A2ASdkClientTest {
@@ -36,7 +37,7 @@ class A2ASdkClientTest {
   }
 
   @Test
-  void shouldWrapSendMessageA2AClientExceptionInRuntimeException() throws A2AClientException {
+  void shouldWrapSendMessageA2AClientExceptionInConnectorException() throws A2AClientException {
     Client sdkClient = mock(Client.class);
     ManagedChannelFactory channelFactory = mock(ManagedChannelFactory.class);
     A2aSdkClient client = new A2aSdkClient(sdkClient, channelFactory);
@@ -46,7 +47,8 @@ class A2ASdkClientTest {
     doThrow(expectedException).when(sdkClient).sendMessage(message);
 
     assertThatThrownBy(() -> client.sendMessage(message))
-        .isInstanceOf(RuntimeException.class)
+        .isInstanceOf(ConnectorException.class)
+        .hasFieldOrPropertyWithValue("errorCode", "A2A_CLIENT_SEND_MESSAGE_FAILED")
         .hasCause(expectedException);
   }
 
@@ -66,7 +68,7 @@ class A2ASdkClientTest {
   }
 
   @Test
-  void shouldWrapGetTaskA2AClientExceptionInRuntimeException() throws A2AClientException {
+  void shouldWrapGetTaskA2AClientExceptionInConnectorException() throws A2AClientException {
     Client sdkClient = mock(Client.class);
     ManagedChannelFactory channelFactory = mock(ManagedChannelFactory.class);
     A2aSdkClient client = new A2aSdkClient(sdkClient, channelFactory);
@@ -77,7 +79,8 @@ class A2ASdkClientTest {
     doThrow(expectedException).when(sdkClient).getTask(request);
 
     assertThatThrownBy(() -> client.getTask(request))
-        .isInstanceOf(RuntimeException.class)
+        .isInstanceOf(ConnectorException.class)
+        .hasFieldOrPropertyWithValue("errorCode", "A2A_CLIENT_TASK_RETRIEVAL_FAILED")
         .hasCause(expectedException);
   }
 

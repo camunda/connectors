@@ -31,6 +31,7 @@ import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aSendMessageOp
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -40,8 +41,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EmptySource;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -120,15 +121,20 @@ class A2aMessageSenderTest {
   }
 
   @ParameterizedTest
-  @EnumSource(A2aResponseRetrievalMode.Notification.AuthorizationType.class)
-  void shouldPassNotificationModeWithAuthSchemeToClientFactory(
-      A2aResponseRetrievalMode.Notification.AuthorizationType authorizationType) {
-    String webhookUrl = "https://example.com/webhook";
-    var retrievalMode = new A2aResponseRetrievalMode.Notification(webhookUrl, authorizationType);
+  @NullSource
+  @MethodSource("provideAuthenticationSchemes")
+  void shouldPassNotificationModeWithAuthSchemeToClientFactory(List<String> authenticationSchemes) {
+    var webhookUrl = "https://example.com/webhook";
+    var credentials = "bXl1c2VyOm15cGFzc3dvcmQ=";
+    var token = "a-token";
+    var notification =
+        new A2aResponseRetrievalMode.Notification(
+            webhookUrl, token, authenticationSchemes, credentials);
+
     var operation =
         new SendMessageOperationConfiguration(
             A2aSendMessageOperationParametersBuilder.builder().text("hello").build(),
-            new A2aCommonSendMessageConfiguration(retrievalMode, 0, Duration.ofSeconds(1)));
+            new A2aCommonSendMessageConfiguration(notification, 0, Duration.ofSeconds(1)));
 
     MessageEvent clientEvent = newMessageEvent();
     var expectedResult = messageResult(MESSAGE_ID);
@@ -147,10 +153,20 @@ class A2aMessageSenderTest {
                   assertThat(config.blocking()).isFalse();
                   assertThat(config.pushNotificationConfig()).isNotNull();
                   assertThat(config.pushNotificationConfig().url()).isEqualTo(webhookUrl);
-                  assertThat(config.pushNotificationConfig().authScheme())
-                      .isEqualTo(authorizationType.toA2aSecurityScheme());
+                  assertThat(config.pushNotificationConfig().token()).isEqualTo(token);
+                  assertThat(config.pushNotificationConfig().authSchemes())
+                      .containsExactlyElementsOf(notification.authenticationSchemes());
+                  assertThat(config.pushNotificationConfig().credentials()).isEqualTo(credentials);
                 }));
     verify(client).close();
+  }
+
+  public static Stream<Arguments> provideAuthenticationSchemes() {
+    return Stream.of(
+        Arguments.of(List.of()),
+        Arguments.of(List.of("Basic")),
+        Arguments.of(List.of("Bearer", "CustomScheme1")),
+        Arguments.of(List.of("CustomSchemeA", "CustomSchemeB", "CustomSchemeC")));
   }
 
   @Test
@@ -160,7 +176,8 @@ class A2aMessageSenderTest {
     // Do not trigger consumer -> future never completes
     doAnswer(inv -> null).when(client).sendMessage(any());
     assertThatThrownBy(() -> messageSender.sendMessage(agentCard, operation))
-        .isInstanceOf(RuntimeException.class)
+        .isInstanceOf(ConnectorException.class)
+        .hasFieldOrPropertyWithValue("errorCode", "A2A_CLIENT_SEND_MESSAGE_RESPONSE_TIMEOUT")
         .hasMessageContaining("Timed out waiting for response from agent");
     verify(client).close();
   }

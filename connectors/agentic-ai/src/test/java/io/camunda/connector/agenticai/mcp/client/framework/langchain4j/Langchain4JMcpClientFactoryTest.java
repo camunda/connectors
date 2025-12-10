@@ -36,9 +36,6 @@ import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.MockedConstruction;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -67,16 +64,17 @@ class Langchain4JMcpClientFactoryTest {
 
   @Mock private Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory;
 
+  private Langchain4JMcpClientLoggingResolver loggingResolver;
   private Langchain4JMcpClientFactory factory;
 
   @BeforeEach
   void setUp() {
-    factory = new Langchain4JMcpClientFactory(headersSupplierFactory);
+    loggingResolver = new Langchain4JMcpClientLoggingResolver();
+    factory = new Langchain4JMcpClientFactory(loggingResolver, headersSupplierFactory);
   }
 
-  @ParameterizedTest
-  @ValueSource(booleans = {true, false})
-  void createsStdioMcpClient(boolean logEvents) {
+  @Test
+  void createsStdioMcpClient() {
     withMockedMcpClientBuilder(
         mockedMcpClientConstruction -> {
           try (MockedConstruction<StdioMcpTransport.Builder> mockedTransportBuilder =
@@ -85,7 +83,7 @@ class Langchain4JMcpClientFactoryTest {
                   withSettings().defaultAnswer(CALLS_REAL_METHODS),
                   (mock, context) -> doReturn(stdioMcpTransport).when(mock).build())) {
             final var stdioConfig =
-                createStdioMcpClientTransportConfiguration(List.of("arg1", "arg2"), logEvents);
+                createStdioMcpClientTransportConfiguration(List.of("arg1", "arg2"));
             final var client =
                 factory.createClient(
                     CLIENT_ID,
@@ -96,10 +94,40 @@ class Langchain4JMcpClientFactoryTest {
             final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
             verify(transportBuilder).command(List.of("command", "arg1", "arg2"));
             verify(transportBuilder).environment(stdioConfig.env());
-            verify(transportBuilder).logEvents(stdioConfig.logEvents());
+            verify(transportBuilder).logEvents(false);
 
             verifyMcpClientBuilder(
                 mockedMcpClientConstruction.constructed().getFirst(), stdioMcpTransport);
+          }
+        });
+  }
+
+  @Test
+  void configuresClientSpecificStdioLogging() {
+    loggingResolver.setLogStdioEvents(((clientId, config) -> !clientId.equals(CLIENT_ID)));
+
+    withMockedMcpClientBuilder(
+        mockedMcpClientConstruction -> {
+          try (MockedConstruction<StdioMcpTransport.Builder> mockedTransportBuilder =
+              mockConstruction(
+                  StdioMcpTransport.Builder.class,
+                  withSettings().defaultAnswer(CALLS_REAL_METHODS),
+                  (mock, context) -> doReturn(stdioMcpTransport).when(mock).build())) {
+            final var stdioConfig =
+                createStdioMcpClientTransportConfiguration(List.of("arg1", "arg2"));
+
+            factory.createClient(
+                CLIENT_ID,
+                createMcpClientConfiguration(McpClientType.STDIO, stdioConfig, null, null));
+            factory.createClient(
+                CLIENT_ID + "-2",
+                createMcpClientConfiguration(McpClientType.STDIO, stdioConfig, null, null));
+
+            final var transportBuilder1 = mockedTransportBuilder.constructed().get(0);
+            verify(transportBuilder1).logEvents(false);
+
+            final var transportBuilder2 = mockedTransportBuilder.constructed().get(1);
+            verify(transportBuilder2).logEvents(true);
           }
         });
   }
@@ -113,7 +141,7 @@ class Langchain4JMcpClientFactoryTest {
                   StdioMcpTransport.Builder.class,
                   withSettings().defaultAnswer(CALLS_REAL_METHODS),
                   (mock, context) -> doReturn(stdioMcpTransport).when(mock).build())) {
-            final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of(), false);
+            final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of());
             final var client =
                 factory.createClient(
                     CLIENT_ID,
@@ -124,7 +152,7 @@ class Langchain4JMcpClientFactoryTest {
             final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
             verify(transportBuilder).command(List.of("command"));
             verify(transportBuilder).environment(stdioConfig.env());
-            verify(transportBuilder).logEvents(stdioConfig.logEvents());
+            verify(transportBuilder).logEvents(false);
 
             verifyMcpClientBuilder(
                 mockedMcpClientConstruction.constructed().getFirst(), stdioMcpTransport);
@@ -132,9 +160,8 @@ class Langchain4JMcpClientFactoryTest {
         });
   }
 
-  @ParameterizedTest
-  @CsvSource({"true,true", "true,false", "false,true", "false,false"})
-  void createsStreamableHttpMcpClient(boolean logRequests, boolean logResponses) {
+  @Test
+  void createsStreamableHttpMcpClient() {
     withMockedMcpClientBuilder(
         mockedMcpClientConstruction -> {
           try (MockedConstruction<StreamableHttpMcpTransport.Builder> mockedTransportBuilder =
@@ -143,7 +170,7 @@ class Langchain4JMcpClientFactoryTest {
                   withSettings().defaultAnswer(CALLS_REAL_METHODS),
                   (mock, context) -> doReturn(streamableHttpMcpTransport).when(mock).build())) {
             final var streamableHttpTransportConfig =
-                createStreamableHttpMcpClientTransportConfiguration(logRequests, logResponses);
+                createStreamableHttpMcpClientTransportConfiguration();
             when(headersSupplierFactory.createHttpHeadersSupplier(streamableHttpTransportConfig))
                 .thenReturn(() -> EXPECTED_HEADERS);
 
@@ -159,8 +186,8 @@ class Langchain4JMcpClientFactoryTest {
             verify(transportBuilder).url(streamableHttpTransportConfig.url());
             verify(transportBuilder).timeout(streamableHttpTransportConfig.timeout());
             verify(transportBuilder).customHeaders(EXPECTED_HEADERS);
-            verify(transportBuilder).logRequests(streamableHttpTransportConfig.logRequests());
-            verify(transportBuilder).logResponses(streamableHttpTransportConfig.logResponses());
+            verify(transportBuilder).logRequests(false);
+            verify(transportBuilder).logResponses(false);
 
             verifyMcpClientBuilder(
                 mockedMcpClientConstruction.constructed().getFirst(), streamableHttpMcpTransport);
@@ -168,9 +195,45 @@ class Langchain4JMcpClientFactoryTest {
         });
   }
 
-  @ParameterizedTest
-  @CsvSource({"true,true", "true,false", "false,true", "false,false"})
-  void createsSseHttpMcpClient(boolean logRequests, boolean logResponses) {
+  @Test
+  void configuresClientSpecificStreamableHttpMcpClientLogging() {
+    loggingResolver.setLogHttpRequests(((clientId, config) -> clientId.equals(CLIENT_ID)));
+    loggingResolver.setLogHttpResponses(((clientId, config) -> !clientId.equals(CLIENT_ID)));
+
+    withMockedMcpClientBuilder(
+        mockedMcpClientConstruction -> {
+          try (MockedConstruction<StreamableHttpMcpTransport.Builder> mockedTransportBuilder =
+              mockConstruction(
+                  StreamableHttpMcpTransport.Builder.class,
+                  withSettings().defaultAnswer(CALLS_REAL_METHODS),
+                  (mock, context) -> doReturn(streamableHttpMcpTransport).when(mock).build())) {
+            final var streamableHttpTransportConfig =
+                createStreamableHttpMcpClientTransportConfiguration();
+            when(headersSupplierFactory.createHttpHeadersSupplier(streamableHttpTransportConfig))
+                .thenReturn(() -> EXPECTED_HEADERS);
+
+            factory.createClient(
+                CLIENT_ID,
+                createMcpClientConfiguration(
+                    McpClientType.HTTP, null, streamableHttpTransportConfig, null));
+            factory.createClient(
+                CLIENT_ID + "-2",
+                createMcpClientConfiguration(
+                    McpClientType.HTTP, null, streamableHttpTransportConfig, null));
+
+            final var transportBuilder1 = mockedTransportBuilder.constructed().get(0);
+            verify(transportBuilder1).logRequests(true);
+            verify(transportBuilder1).logResponses(false);
+
+            final var transportBuilder2 = mockedTransportBuilder.constructed().get(1);
+            verify(transportBuilder2).logRequests(false);
+            verify(transportBuilder2).logResponses(true);
+          }
+        });
+  }
+
+  @Test
+  void createsSseHttpMcpClient() {
     withMockedMcpClientBuilder(
         mockedMcpClientConstruction -> {
           try (MockedConstruction<HttpMcpTransport.Builder> mockedTransportBuilder =
@@ -178,8 +241,7 @@ class Langchain4JMcpClientFactoryTest {
                   HttpMcpTransport.Builder.class,
                   withSettings().defaultAnswer(CALLS_REAL_METHODS),
                   (mock, context) -> doReturn(sseMcpTransport).when(mock).build())) {
-            final var sseConfig =
-                createSseHttpMcpClientTransportConfiguration(logRequests, logResponses);
+            final var sseConfig = createSseHttpMcpClientTransportConfiguration();
             when(headersSupplierFactory.createHttpHeadersSupplier(sseConfig))
                 .thenReturn(() -> EXPECTED_HEADERS);
             final var client =
@@ -193,11 +255,44 @@ class Langchain4JMcpClientFactoryTest {
             verify(transportBuilder).sseUrl(sseConfig.url());
             verify(transportBuilder).timeout(sseConfig.timeout());
             verify(transportBuilder).customHeaders(EXPECTED_HEADERS);
-            verify(transportBuilder).logRequests(sseConfig.logRequests());
-            verify(transportBuilder).logResponses(sseConfig.logResponses());
+            verify(transportBuilder).logRequests(false);
+            verify(transportBuilder).logResponses(false);
 
             verifyMcpClientBuilder(
                 mockedMcpClientConstruction.constructed().getFirst(), sseMcpTransport);
+          }
+        });
+  }
+
+  @Test
+  void configuresClientSpecificSseHttpMcpClientLogging() {
+    loggingResolver.setLogHttpRequests(((clientId, config) -> clientId.equals(CLIENT_ID)));
+    loggingResolver.setLogHttpResponses(((clientId, config) -> !clientId.equals(CLIENT_ID)));
+
+    withMockedMcpClientBuilder(
+        mockedMcpClientConstruction -> {
+          try (MockedConstruction<HttpMcpTransport.Builder> mockedTransportBuilder =
+              mockConstruction(
+                  HttpMcpTransport.Builder.class,
+                  withSettings().defaultAnswer(CALLS_REAL_METHODS),
+                  (mock, context) -> doReturn(sseMcpTransport).when(mock).build())) {
+            final var sseConfig = createSseHttpMcpClientTransportConfiguration();
+            when(headersSupplierFactory.createHttpHeadersSupplier(sseConfig))
+                .thenReturn(() -> EXPECTED_HEADERS);
+
+            factory.createClient(
+                CLIENT_ID, createMcpClientConfiguration(McpClientType.SSE, null, null, sseConfig));
+            factory.createClient(
+                CLIENT_ID + "-2",
+                createMcpClientConfiguration(McpClientType.SSE, null, null, sseConfig));
+
+            final var transportBuilder1 = mockedTransportBuilder.constructed().get(0);
+            verify(transportBuilder1).logRequests(true);
+            verify(transportBuilder1).logResponses(false);
+
+            final var transportBuilder2 = mockedTransportBuilder.constructed().get(1);
+            verify(transportBuilder2).logRequests(false);
+            verify(transportBuilder2).logResponses(true);
           }
         });
   }
@@ -211,7 +306,7 @@ class Langchain4JMcpClientFactoryTest {
                   StdioMcpTransport.Builder.class,
                   withSettings().defaultAnswer(CALLS_REAL_METHODS),
                   (mock, context) -> doReturn(stdioMcpTransport).when(mock).build())) {
-            final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of(), true);
+            final var stdioConfig = createStdioMcpClientTransportConfiguration(List.of());
             final var client =
                 factory.createClient(
                     CLIENT_ID,
@@ -270,31 +365,25 @@ class Langchain4JMcpClientFactoryTest {
   }
 
   private static StdioMcpClientTransportConfiguration createStdioMcpClientTransportConfiguration(
-      List<String> args, boolean logEvents) {
-    return new StdioMcpClientTransportConfiguration(
-        "command", args, Map.of("ENV_VAR", "value"), logEvents);
+      List<String> args) {
+    return new StdioMcpClientTransportConfiguration("command", args, Map.of("ENV_VAR", "value"));
   }
 
   private static StreamableHttpMcpClientTransportConfiguration
-      createStreamableHttpMcpClientTransportConfiguration(
-          boolean logRequests, boolean logResponses) {
+      createStreamableHttpMcpClientTransportConfiguration() {
     return new StreamableHttpMcpClientTransportConfiguration(
         "http://localhost:123456/mcp",
         Map.of("X-Dummy", "Test"),
         BEARER_AUTHENTICATION,
-        Duration.ofSeconds(15),
-        logRequests,
-        logResponses);
+        Duration.ofSeconds(15));
   }
 
   private static SseHttpMcpClientTransportConfiguration
-      createSseHttpMcpClientTransportConfiguration(boolean logRequests, boolean logResponses) {
+      createSseHttpMcpClientTransportConfiguration() {
     return new SseHttpMcpClientTransportConfiguration(
         "http://localhost:123456/sse",
         Map.of("X-Dummy", "Test"),
         BEARER_AUTHENTICATION,
-        Duration.ofSeconds(15),
-        logRequests,
-        logResponses);
+        Duration.ofSeconds(15));
   }
 }

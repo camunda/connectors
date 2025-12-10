@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.a2a.client.common.sdk;
 
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import java.util.List;
 import javax.annotation.Nullable;
 
 @AgenticAiRecord
@@ -19,5 +20,6 @@ public record A2aSdkClientConfig(
     }
   }
 
-  public record PushNotificationConfig(String url, String authScheme) {}
+  public record PushNotificationConfig(
+      String url, String token, List<String> authSchemes, String credentials) {}
 }

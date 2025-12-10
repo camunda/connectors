@@ -12,14 +12,9 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import java.util.List;
 
-/**
- * Represents an Agent Card returned by the A2A client. <code>id</code> is a unique identifier for
- * the agent card and is used primarily for message correlation by the A2A inbound polling
- * connector.
- */
 @AgenticAiRecord
 @JsonDeserialize(builder = A2aAgentCard.A2aAgentCardJacksonProxyBuilder.class)
-public record A2aAgentCard(String id, String name, String description, List<AgentSkill> skills)
+public record A2aAgentCard(String name, String description, List<AgentSkill> skills)
     implements A2aResult {
 
   public static final String AGENT_CARD = "agentCard";

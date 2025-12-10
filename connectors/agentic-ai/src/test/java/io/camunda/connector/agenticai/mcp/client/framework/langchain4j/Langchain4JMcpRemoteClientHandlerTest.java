@@ -14,6 +14,8 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,8 +29,9 @@ import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpCli
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientListToolsOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientToolsConfiguration;
-import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.StandaloneModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientOptionsConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest.McpRemoteClientRequestData;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration;
@@ -118,7 +121,7 @@ class Langchain4JMcpRemoteClientHandlerTest {
       "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
   void throwsExceptionWhenOperationConversionFails(
       McpRemoteClientTransportConfiguration transport) {
-    final var request = createToolModeRequest(transport, LIST_TOOLS_OPERATION);
+    final var request = createToolModeRequest(transport, false, LIST_TOOLS_OPERATION);
 
     final var exception = new IllegalArgumentException("Failed to convert operation");
     when(operationConverter.convertOperation(request.data().connectorMode())).thenThrow(exception);
@@ -131,10 +134,12 @@ class Langchain4JMcpRemoteClientHandlerTest {
       "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
   void throwsExceptionWhenClientCouldNotBeCreated(McpRemoteClientTransportConfiguration transport) {
     final var exception = new IllegalArgumentException("Failed to create client");
-    when(remoteClientRegistry.getClient(CLIENT_ID, transport)).thenThrow(exception);
+    when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenThrow(exception);
 
     assertThatThrownBy(
-            () -> handler.handle(context, createToolModeRequest(transport, LIST_TOOLS_OPERATION)))
+            () ->
+                handler.handle(
+                    context, createToolModeRequest(transport, false, LIST_TOOLS_OPERATION)))
         .isEqualTo(exception);
   }
 
@@ -144,12 +149,14 @@ class Langchain4JMcpRemoteClientHandlerTest {
   void throwsExceptionWhenExecutorFails(McpRemoteClientTransportConfiguration transport) {
     final var exception = new IllegalArgumentException("Execution error");
 
-    when(remoteClientRegistry.getClient(CLIENT_ID, transport)).thenReturn(mcpClient);
+    when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
     when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
         .thenThrow(exception);
 
     assertThatThrownBy(
-            () -> handler.handle(context, createToolModeRequest(transport, LIST_TOOLS_OPERATION)))
+            () ->
+                handler.handle(
+                    context, createToolModeRequest(transport, false, LIST_TOOLS_OPERATION)))
         .isEqualTo(exception);
   }
 
@@ -160,10 +167,10 @@ class Langchain4JMcpRemoteClientHandlerTest {
     @MethodSource(
         "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
     void handlesListToolsRequest(McpRemoteClientTransportConfiguration transport) {
-      final var request = createToolModeRequest(transport, LIST_TOOLS_OPERATION);
+      final var request = createToolModeRequest(transport, false, LIST_TOOLS_OPERATION);
       final var expectedResult = new McpClientListToolsResult(List.of());
 
-      when(remoteClientRegistry.getClient(CLIENT_ID, transport)).thenReturn(mcpClient);
+      when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
               assertArg(
@@ -185,12 +192,13 @@ class Langchain4JMcpRemoteClientHandlerTest {
       final var request =
           createToolModeRequest(
               transport,
+              false,
               new McpClientOperationConfiguration(
                   "tools/call", Map.of("name", "test-tool", "arguments", arguments)));
       final var expectedResult =
           new McpClientCallToolResult("test-tool", List.of(textContent("Success")), false);
 
-      when(remoteClientRegistry.getClient(CLIENT_ID, transport)).thenReturn(mcpClient);
+      when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
               assertArg(
@@ -220,10 +228,10 @@ class Langchain4JMcpRemoteClientHandlerTest {
         "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
     void handlesListToolsRequest(McpRemoteClientTransportConfiguration transport) {
       final var request =
-          createStandaloneModeRequest(transport, new ListToolsOperationConfiguration());
+          createStandaloneModeRequest(transport, false, new ListToolsOperationConfiguration());
       final var expectedResult = new McpClientListToolsResult(List.of());
 
-      when(remoteClientRegistry.getClient(CLIENT_ID, transport)).thenReturn(mcpClient);
+      when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
               assertArg(
@@ -244,11 +252,11 @@ class Langchain4JMcpRemoteClientHandlerTest {
         McpRemoteClientTransportConfiguration transport, Map<String, Object> arguments) {
       final var request =
           createStandaloneModeRequest(
-              transport, new CallToolOperationConfiguration("test-tool", arguments));
+              transport, false, new CallToolOperationConfiguration("test-tool", arguments));
       final var expectedResult =
           new McpClientCallToolResult("test-tool", List.of(textContent("Success")), false);
 
-      when(remoteClientRegistry.getClient(CLIENT_ID, transport)).thenReturn(mcpClient);
+      when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
               assertArg(
@@ -275,11 +283,11 @@ class Langchain4JMcpRemoteClientHandlerTest {
     void handlesCallToolRequestWithNullArguments(McpRemoteClientTransportConfiguration transport) {
       final var request =
           createStandaloneModeRequest(
-              transport, new CallToolOperationConfiguration("test-tool", null));
+              transport, false, new CallToolOperationConfiguration("test-tool", null));
       final var expectedResult =
           new McpClientCallToolResult("test-tool", List.of(textContent("Success")), false);
 
-      when(remoteClientRegistry.getClient(CLIENT_ID, transport)).thenReturn(mcpClient);
+      when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
               assertArg(
@@ -300,20 +308,134 @@ class Langchain4JMcpRemoteClientHandlerTest {
     }
   }
 
+  @Nested
+  class CachingBehaviorTests {
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
+    void requestsClientWithCachingEnabledWhenClientCacheIsTrue(
+        McpRemoteClientTransportConfiguration transport) {
+      final var request = createToolModeRequest(transport, true, LIST_TOOLS_OPERATION);
+      final var expectedResult = new McpClientListToolsResult(List.of());
+
+      when(remoteClientRegistry.getClient(CLIENT_ID, transport, true)).thenReturn(mcpClient);
+      when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+      assertThat(result).isEqualTo(expectedResult);
+
+      verify(remoteClientRegistry, never()).closeClient(any(), any());
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
+    void closesNonCachedClientAfterExecution(McpRemoteClientTransportConfiguration transport) {
+      final var request = createToolModeRequest(transport, false, LIST_TOOLS_OPERATION);
+      final var expectedResult = new McpClientListToolsResult(List.of());
+
+      when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
+      when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+      assertThat(result).isEqualTo(expectedResult);
+
+      verify(remoteClientRegistry).closeClient(CLIENT_ID, mcpClient);
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
+    void requestsNonCachedClientWhenOptionsAreNull(
+        McpRemoteClientTransportConfiguration transport) {
+      final var request =
+          new McpRemoteClientRequest(
+              new McpRemoteClientRequestData(
+                  transport,
+                  null,
+                  new ToolModeConfiguration(LIST_TOOLS_OPERATION),
+                  EMPTY_FILTER_CONFIGURATION));
+
+      final var expectedResult = new McpClientListToolsResult(List.of());
+
+      when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
+      when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+      assertThat(result).isEqualTo(expectedResult);
+
+      verify(remoteClientRegistry).closeClient(CLIENT_ID, mcpClient);
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
+    void requestsNonCachedClientWhenClientCacheOptionIsNull(
+        McpRemoteClientTransportConfiguration transport) {
+      final var request =
+          new McpRemoteClientRequest(
+              new McpRemoteClientRequestData(
+                  transport,
+                  new McpRemoteClientOptionsConfiguration(null),
+                  new ToolModeConfiguration(LIST_TOOLS_OPERATION),
+                  EMPTY_FILTER_CONFIGURATION));
+
+      final var expectedResult = new McpClientListToolsResult(List.of());
+
+      when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
+      when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+      assertThat(result).isEqualTo(expectedResult);
+
+      verify(remoteClientRegistry).closeClient(CLIENT_ID, mcpClient);
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
+    void closesNonCachedClientEvenWhenExecutionFails(
+        McpRemoteClientTransportConfiguration transport) {
+      final var request = createToolModeRequest(transport, false, LIST_TOOLS_OPERATION);
+
+      when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
+      when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
+          .thenThrow(new RuntimeException("Execution failed"));
+
+      assertThatThrownBy(() -> handler.handle(context, request))
+          .isInstanceOf(RuntimeException.class)
+          .hasMessage("Execution failed");
+
+      verify(remoteClientRegistry).closeClient(CLIENT_ID, mcpClient);
+    }
+  }
+
   private McpRemoteClientRequest createToolModeRequest(
-      McpRemoteClientTransportConfiguration transport, McpClientOperationConfiguration operation) {
+      McpRemoteClientTransportConfiguration transport,
+      boolean clientCache,
+      McpClientOperationConfiguration operation) {
     return new McpRemoteClientRequest(
         new McpRemoteClientRequestData(
-            transport, new ToolModeConfiguration(operation), EMPTY_FILTER_CONFIGURATION));
+            transport,
+            new McpRemoteClientOptionsConfiguration(clientCache),
+            new ToolModeConfiguration(operation),
+            EMPTY_FILTER_CONFIGURATION));
   }
 
   private McpRemoteClientRequest createStandaloneModeRequest(
       McpRemoteClientTransportConfiguration transport,
+      boolean clientCache,
       McpStandaloneOperationConfiguration operation) {
     return new McpRemoteClientRequest(
         new McpRemoteClientRequestData(
             transport,
-            new McpConnectorModeConfiguration.StandaloneModeConfiguration(operation),
+            new McpRemoteClientOptionsConfiguration(clientCache),
+            new StandaloneModeConfiguration(operation),
             EMPTY_FILTER_CONFIGURATION));
   }
 

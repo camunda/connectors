@@ -8,12 +8,14 @@
 package io.camunda.connector.agenticai.a2a.client.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyMap;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.mockStatic;
 
 import io.a2a.A2A;
+import io.a2a.spec.A2AClientError;
 import io.a2a.spec.AgentCapabilities;
 import io.a2a.spec.AgentCard;
 import io.a2a.spec.AgentInterface;
@@ -21,6 +23,7 @@ import io.a2a.spec.AgentSkill;
 import io.a2a.spec.TransportProtocol;
 import io.camunda.connector.agenticai.a2a.client.common.model.A2aConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aAgentCard;
+import io.camunda.connector.api.error.ConnectorException;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -120,6 +123,26 @@ class A2aAgentCardFetcherTest {
             List.of(
                 new AgentInterface(TransportProtocol.JSONRPC.asString(), "http://localhost:9999")))
         .build();
+  }
+
+  @Test
+  void shouldWrapA2aClientErrorInConnectorException() {
+    final var location = "invalid/path.json";
+    final var request = buildConfiguration(location);
+    final var expectedException = new A2AClientError("Agent card not found");
+
+    try (MockedStatic<A2A> a2aStatic = mockStatic(A2A.class)) {
+      a2aStatic
+          .when(() -> A2A.getAgentCard(anyString(), any(), anyMap()))
+          .thenThrow(expectedException);
+
+      assertThatThrownBy(() -> agentCardFetcher.fetchAgentCard(request))
+          .isInstanceOf(ConnectorException.class)
+          .hasFieldOrPropertyWithValue(
+              "errorCode", "ERROR_CODE_A2A_CLIENT_AGENT_CARD_RETRIEVAL_FAILED")
+          .hasMessageContaining("Failed to load agent card from " + location)
+          .hasCause(expectedException);
+    }
   }
 
   private void assertAgentCard(

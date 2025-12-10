@@ -45,13 +45,13 @@
             <zeebe:property name="data.clientResponse" value="=internal_clientResponse" />
             <zeebe:property name="data.historyLength" value="3" />
             <zeebe:property name="data.processPollingInterval" value="PT5S" />
-            <zeebe:property name="data.taskPollingInterval" value="PT10S" />
-            <zeebe:property name="activationCondition" value="=if kind = &#34;task&#34; then&#10;  is defined(status.state) and not(list contains([&#34;submitted&#34;, &#34;working&#34;], status.state))&#10;else&#10;  true" />
-            <zeebe:property name="correlationKeyExpression" value="=if kind = &#34;message&#34; then&#10;  &#34;msg-&#34; + messageId&#10;else&#10;  &#34;task-&#34; + id" />
+            <zeebe:property name="data.taskPollingInterval" value="PT5S" />
+            <zeebe:property name="activationCondition" value="=if result.kind = &#34;task&#34; then&#10;  is defined(result.status.state) and not(list contains([&#34;submitted&#34;, &#34;working&#34;], result.status.state))&#10;else&#10;  true" />
+            <zeebe:property name="correlationKeyExpression" value="=pollingData.id" />
             <zeebe:property name="deduplicationModeManualFlag" value="false" />
             <zeebe:property name="deduplicationMode" value="AUTO" />
-            <zeebe:property name="resultVariable" value="toolCallResult" />
-            <zeebe:property name="resultExpression" value="" />
+            <zeebe:property name="resultVariable" value="" />
+            <zeebe:property name="resultExpression" value="={toolCallResult:result}" />
           </zeebe:properties>
         </bpmn:extensionElements>
         <bpmn:incoming>Flow_1r39k3c</bpmn:incoming>
@@ -117,13 +117,13 @@
             <zeebe:property name="data.clientResponse" value="=internal_clientResponse" />
             <zeebe:property name="data.historyLength" value="3" />
             <zeebe:property name="data.processPollingInterval" value="PT5S" />
-            <zeebe:property name="data.taskPollingInterval" value="PT10S" />
-            <zeebe:property name="activationCondition" value="=if kind = &#34;task&#34; then&#10;  is defined(status.state) and not(list contains([&#34;submitted&#34;, &#34;working&#34;], status.state))&#10;else&#10;  true" />
-            <zeebe:property name="correlationKeyExpression" value="=if kind = &#34;message&#34; then&#10;  &#34;msg-&#34; + messageId&#10;else&#10;  &#34;task-&#34; + id" />
+            <zeebe:property name="data.taskPollingInterval" value="PT5S" />
+            <zeebe:property name="activationCondition" value="=if result.kind = &#34;task&#34; then&#10;  is defined(result.status.state) and not(list contains([&#34;submitted&#34;, &#34;working&#34;], result.status.state))&#10;else&#10;  true" />
+            <zeebe:property name="correlationKeyExpression" value="=pollingData.id" />
             <zeebe:property name="deduplicationModeManualFlag" value="false" />
             <zeebe:property name="deduplicationMode" value="AUTO" />
-            <zeebe:property name="resultVariable" value="toolCallResult" />
-            <zeebe:property name="resultExpression" value="" />
+            <zeebe:property name="resultVariable" value="" />
+            <zeebe:property name="resultExpression" value="={toolCallResult:result}" />
           </zeebe:properties>
         </bpmn:extensionElements>
         <bpmn:incoming>Flow_19cr3gt</bpmn:incoming>
@@ -136,13 +136,13 @@
         <bpmn:outgoing>Flow_1pf4cdz</bpmn:outgoing>
       </bpmn:exclusiveGateway>
       <bpmn:sequenceFlow id="Flow_1r39k3c" sourceRef="Gateway_0nx3pm6" targetRef="Currency_Conversion_Agent_Completion">
-        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=agentResponse.kind = "task" and list contains(["submitted", "working"], agentResponse.status.state)</bpmn:conditionExpression>
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=agentResponse.result.kind = "task" and list contains(["submitted", "working"], agentResponse.result.status.state)</bpmn:conditionExpression>
       </bpmn:sequenceFlow>
       <bpmn:sequenceFlow id="Flow_1pf4cdz" sourceRef="Gateway_0nx3pm6" targetRef="Event_1skh6b8" />
       <bpmn:intermediateThrowEvent id="Event_1skh6b8" name="Completed synchronously">
         <bpmn:extensionElements>
           <zeebe:ioMapping>
-            <zeebe:output source="=agentResponse" target="toolCallResult" />
+            <zeebe:output source="=agentResponse.result" target="toolCallResult" />
           </zeebe:ioMapping>
         </bpmn:extensionElements>
         <bpmn:incoming>Flow_1pf4cdz</bpmn:incoming>
@@ -153,12 +153,12 @@
         <bpmn:outgoing>Flow_1v2wrpn</bpmn:outgoing>
       </bpmn:exclusiveGateway>
       <bpmn:sequenceFlow id="Flow_19cr3gt" sourceRef="Gateway_1evtgps" targetRef="Content_Writer_Agent_Completion">
-        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=agentResponse.kind = "task" and list contains(["submitted", "working"], agentResponse.status.state)</bpmn:conditionExpression>
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=agentResponse.result.kind = "task" and list contains(["submitted", "working"], agentResponse.result.status.state)</bpmn:conditionExpression>
       </bpmn:sequenceFlow>
       <bpmn:intermediateThrowEvent id="Event_04jtehr" name="Completed synchronously">
         <bpmn:extensionElements>
           <zeebe:ioMapping>
-            <zeebe:output source="=agentResponse" target="toolCallResult" />
+            <zeebe:output source="=agentResponse.result" target="toolCallResult" />
           </zeebe:ioMapping>
         </bpmn:extensionElements>
         <bpmn:incoming>Flow_1v2wrpn</bpmn:incoming>
@@ -221,12 +221,12 @@
   </bpmn:process>
   <bpmn:message id="Message_0ipekj8" name="8fa83750-e928-426d-a35f-94453e777fac" zeebe:modelerTemplate="io.camunda.connectors.agenticai.a2a.client.polling.intermediate.v0">
     <bpmn:extensionElements>
-      <zeebe:subscription correlationKey="=if internal_clientResponse.kind = &#34;message&#34; then&#10;  &#34;msg-&#34; + internal_clientResponse.messageId&#10;else&#10;  &#34;task-&#34; + internal_clientResponse.id" />
+      <zeebe:subscription correlationKey="=internal_clientResponse.pollingData.id" />
     </bpmn:extensionElements>
   </bpmn:message>
   <bpmn:message id="Message_0cmhox2" name="5f80ae3e-f5c1-43cc-a848-dddfba39a33b" zeebe:modelerTemplate="io.camunda.connectors.agenticai.a2a.client.polling.intermediate.v0">
     <bpmn:extensionElements>
-      <zeebe:subscription correlationKey="=if internal_clientResponse.kind = &#34;message&#34; then&#10;  &#34;msg-&#34; + internal_clientResponse.messageId&#10;else&#10;  &#34;task-&#34; + internal_clientResponse.id" />
+      <zeebe:subscription correlationKey="=internal_clientResponse.pollingData.id" />
     </bpmn:extensionElements>
   </bpmn:message>
   <bpmn:message id="Message_1obm25a" name="wait_for_it">

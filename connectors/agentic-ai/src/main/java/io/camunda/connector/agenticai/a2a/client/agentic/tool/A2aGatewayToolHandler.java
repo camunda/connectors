@@ -22,7 +22,6 @@ import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
-import io.camunda.connector.api.error.ConnectorException;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -218,7 +217,7 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
       return "This tool allows interaction with the remote A2A agent represented by the following agent card:\n%s"
           .formatted(agentCard);
     } catch (JsonProcessingException e) {
-      throw new ConnectorException(
+      throw new RuntimeException(
           "Failed to serialize A2A client tool description for tool %s: %s"
               .formatted(toolCallResult.name(), toolCallResult.content()),
           e);

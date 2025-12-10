@@ -177,6 +177,7 @@ else
             <zeebe:input source="sse" target="data.transport.type" />
             <zeebe:input source="https://mcp.deepwiki.com/sse" target="data.transport.sse.url" />
             <zeebe:input source="noAuth" target="data.transport.sse.authentication.type" />
+            <zeebe:input source="=false" target="data.options.clientCache" />
             <zeebe:input source="aiAgentTool" target="data.connectorMode.type" />
             <zeebe:input source="=toolCall.method" target="data.connectorMode.toolOperation.method" />
             <zeebe:input source="=toolCall.params" target="data.connectorMode.toolOperation.params" />
@@ -242,6 +243,7 @@ else
             <zeebe:input source="http" target="data.transport.type" />
             <zeebe:input source="https://remote.mcpservers.org/fetch/mcp" target="data.transport.http.url" />
             <zeebe:input source="noAuth" target="data.transport.http.authentication.type" />
+            <zeebe:input source="=false" target="data.options.clientCache" />
             <zeebe:input source="aiAgentTool" target="data.connectorMode.type" />
             <zeebe:input source="=toolCall.method" target="data.connectorMode.toolOperation.method" />
             <zeebe:input source="=toolCall.params" target="data.connectorMode.toolOperation.params" />

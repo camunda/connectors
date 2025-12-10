@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.a2a.client.outbound;
 
+import static io.camunda.connector.agenticai.a2a.client.common.A2aErrorCodes.ERROR_CODE_A2A_CLIENT_SEND_MESSAGE_RESPONSE_TIMEOUT;
+
 import io.a2a.client.ClientEvent;
 import io.a2a.spec.AgentCard;
 import io.a2a.spec.Message;
@@ -20,6 +22,7 @@ import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMes
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aCommonSendMessageConfiguration.A2aResponseRetrievalMode.Notification;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aSendMessageOperationParameters;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.SendMessageOperationConfiguration;
+import io.camunda.connector.api.error.ConnectorException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -29,7 +32,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
 
 public class A2aMessageSenderImpl implements A2aMessageSender {
   private final A2aDocumentToPartConverter documentToPartConverter;
@@ -69,15 +71,21 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
       try {
         return response.get(settings.timeout().toMillis(), TimeUnit.MILLISECONDS);
       } catch (TimeoutException e) {
-        // TODO: should be a ConnectorException with a specific error code?
-        throw new RuntimeException("Timed out waiting for response from agent.", e);
-      } catch (InterruptedException | ExecutionException e) {
+        throw new ConnectorException(
+            ERROR_CODE_A2A_CLIENT_SEND_MESSAGE_RESPONSE_TIMEOUT,
+            "Timed out waiting for response from agent.",
+            e);
+      } catch (InterruptedException e) {
+        // Re-interrupt the thread to preserve the interrupted status
+        Thread.currentThread().interrupt();
+        throw new RuntimeException(e.getCause() != null ? e.getCause() : e);
+      } catch (ExecutionException e) {
         throw new RuntimeException(e.getCause() != null ? e.getCause() : e);
       }
     }
   }
 
-  private static @NotNull A2aSdkClientConfig createA2aSdkClientConfig(
+  private static A2aSdkClientConfig createA2aSdkClientConfig(
       A2aCommonSendMessageConfiguration settings) {
     final var retrievalMode = settings.responseRetrievalMode();
 
@@ -85,7 +93,10 @@ public class A2aMessageSenderImpl implements A2aMessageSender {
     if (retrievalMode instanceof Notification notification) {
       pushNotificationConfig =
           new A2aSdkClientConfig.PushNotificationConfig(
-              notification.webhookUrl(), notification.authorizationType().toA2aSecurityScheme());
+              notification.webhookUrl(),
+              notification.token(),
+              notification.authenticationSchemes(),
+              notification.credentials());
     }
     final var blocking = retrievalMode instanceof A2aResponseRetrievalMode.Blocking;
     return new A2aSdkClientConfig(settings.historyLength(), blocking, pushNotificationConfig);

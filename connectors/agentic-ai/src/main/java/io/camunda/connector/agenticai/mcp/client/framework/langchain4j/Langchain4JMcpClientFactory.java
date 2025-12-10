@@ -15,22 +15,25 @@ import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
-import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientTransportConfiguration;
+import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StdioMcpClientTransportConfiguration;
 import java.util.ArrayList;
 import java.util.Optional;
 
 public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> {
 
+  private final Langchain4JMcpClientLoggingResolver loggingResolver;
   private final Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory;
 
   public Langchain4JMcpClientFactory(
+      Langchain4JMcpClientLoggingResolver loggingResolver,
       Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory) {
+    this.loggingResolver = loggingResolver;
     this.headersSupplierFactory = headersSupplierFactory;
   }
 
   @Override
   public McpClient createClient(String clientId, McpClientConfiguration config) {
-    final var transport = createTransport(config.transport());
+    final var transport = createTransport(clientId, config);
     final var builder = new DefaultMcpClient.Builder().key(clientId).transport(transport);
 
     Optional.ofNullable(config.initializationTimeout()).map(builder::initializationTimeout);
@@ -40,9 +43,9 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
     return builder.build();
   }
 
-  private McpTransport createTransport(McpClientTransportConfiguration transportConfig) {
-    return switch (transportConfig) {
-      case McpClientConfigurationProperties.StdioMcpClientTransportConfiguration stdio -> {
+  private McpTransport createTransport(String clientId, McpClientConfiguration config) {
+    return switch (config.transport()) {
+      case StdioMcpClientTransportConfiguration stdio -> {
         final var commandParts = new ArrayList<String>();
         commandParts.add(stdio.command());
         commandParts.addAll(stdio.args());
@@ -50,7 +53,7 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
         yield new StdioMcpTransport.Builder()
             .command(commandParts)
             .environment(stdio.env())
-            .logEvents(stdio.logEvents())
+            .logEvents(loggingResolver.logStdioEvents(clientId, config))
             .build();
       }
 
@@ -62,8 +65,8 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
                   headersSupplierFactory
                       .createHttpHeadersSupplier(http)
                       .get()) // TODO remove .get() call with L4J > 1.8.0
-              .logRequests(http.logRequests())
-              .logResponses(http.logResponses())
+              .logRequests(loggingResolver.logHttpRequests(clientId, config))
+              .logResponses(loggingResolver.logHttpResponses(clientId, config))
               .build();
 
       case McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration sse ->
@@ -74,8 +77,8 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
                   headersSupplierFactory
                       .createHttpHeadersSupplier(sse)
                       .get()) // TODO remove .get() call with L4J > 1.8.0
-              .logRequests(sse.logRequests())
-              .logResponses(sse.logResponses())
+              .logRequests(loggingResolver.logHttpRequests(clientId, config))
+              .logResponses(loggingResolver.logHttpResponses(clientId, config))
               .build();
     };
   }
