@@ -671,7 +671,7 @@
   }, {
     "id" : "provider.openaiCompatible.queryParameters",
     "label" : "Query Parameters",
-    "description" : "Map of Query Parameters to add to the request URL.",
+    "description" : "Map of query parameters to add to the request URL.",
     "optional" : true,
     "feel" : "required",
     "group" : "provider",
