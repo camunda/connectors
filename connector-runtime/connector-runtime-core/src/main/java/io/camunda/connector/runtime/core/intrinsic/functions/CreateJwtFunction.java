@@ -26,11 +26,21 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
+import java.util.regex.Pattern;
 
 public class CreateJwtFunction implements IntrinsicFunctionProvider {
 
   // Default expiration time of 10 minutes
   private static final long DEFAULT_EXPIRATION_SECONDS = 600L;
+
+  /**
+   * A pre-compiled pattern to remove PEM headers/footers and all whitespace characters. This makes
+   * the parsing more robust and efficient.
+   */
+  private static final Pattern PEM_KEY_PATTERN =
+      Pattern.compile("-----(BEGIN|END) (RSA )?PRIVATE KEY-----|\\s+");
+
+  private static final String RSA_ALGORITHM = "RSA";
 
   @IntrinsicFunction(name = "createJwt")
   public String execute(String privateKey, String clientId) {
@@ -57,18 +67,12 @@ public class CreateJwtFunction implements IntrinsicFunctionProvider {
   }
 
   private RSAPrivateKey parsePrivateKey(String privateKey) throws Exception {
-    // Remove PEM headers and whitespace
-    String keyContent =
-        privateKey
-            .replace("-----BEGIN PRIVATE KEY-----", "")
-            .replace("-----END PRIVATE KEY-----", "")
-            .replace("-----BEGIN RSA PRIVATE KEY-----", "")
-            .replace("-----END RSA PRIVATE KEY-----", "")
-            .replaceAll("\\s", "");
+    // Remove PEM headers/footers and all whitespace to isolate the Base64-encoded key
+    final String keyContent = PEM_KEY_PATTERN.matcher(privateKey).replaceAll("");
 
-    byte[] keyBytes = Base64.getDecoder().decode(keyContent);
-    PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
-    KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+    final byte[] keyBytes = Base64.getDecoder().decode(keyContent);
+    final PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
+    final KeyFactory keyFactory = KeyFactory.getInstance(RSA_ALGORITHM);
     return (RSAPrivateKey) keyFactory.generatePrivate(spec);
   }
 }
