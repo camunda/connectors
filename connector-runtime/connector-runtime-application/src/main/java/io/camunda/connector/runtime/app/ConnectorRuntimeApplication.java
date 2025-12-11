@@ -18,9 +18,8 @@ package io.camunda.connector.runtime.app;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.elasticsearch.autoconfigure.ElasticsearchRestClientAutoConfiguration;
 
-@SpringBootApplication(exclude = {ElasticsearchRestClientAutoConfiguration.class})
+@SpringBootApplication
 public class ConnectorRuntimeApplication {
 
   public static void main(String[] args) {
