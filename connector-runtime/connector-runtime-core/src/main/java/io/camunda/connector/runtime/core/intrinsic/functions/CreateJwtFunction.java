@@ -30,8 +30,8 @@ import java.util.regex.Pattern;
 
 public class CreateJwtFunction implements IntrinsicFunctionProvider {
 
-  // Default expiration time of 10 minutes
-  private static final long DEFAULT_EXPIRATION_SECONDS = 600L;
+  // Default expiration time of 1 minute
+  static final long DEFAULT_EXPIRATION_SECONDS = 60L;
 
   /**
    * A pre-compiled pattern to remove PEM headers/footers and all whitespace characters. This makes

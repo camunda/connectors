@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.intrinsic;
+package io.camunda.connector.runtime.core.intrinsic.functions;
 
+import static io.camunda.connector.runtime.core.intrinsic.functions.CreateJwtFunction.DEFAULT_EXPIRATION_SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import io.camunda.connector.runtime.core.intrinsic.functions.CreateJwtFunction;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
@@ -61,9 +61,9 @@ class CreateJwtFunctionTest {
     assertThat(decoded.getExpiresAt()).isNotNull();
     assertThat(decoded.getIssuedAt()).isNotNull();
 
-    // Verify expiration is exactly 10 minutes (600 seconds) from issued time
+    // Verify expiration is exactly 1 minute (60 seconds) from issued time
     long expirationDiff = decoded.getExpiresAt().getTime() - decoded.getIssuedAt().getTime();
-    assertThat(expirationDiff).isEqualTo(600_000L); // Exactly 600 seconds
+    assertThat(expirationDiff).isEqualTo(DEFAULT_EXPIRATION_SECONDS * 1000);
   }
 
   @Test
@@ -89,8 +89,8 @@ class CreateJwtFunctionTest {
     assertThat(decoded.getIssuedAt()).isNotNull();
     assertThat(decoded.getIssuer()).isEqualTo("test-client");
 
-    // Verify expiration is exactly 10 minutes (600 seconds) from issued time
+    // Verify expiration is exactly 1 minute (60 seconds) from issued time
     long expirationDiff = decoded.getExpiresAt().getTime() - decoded.getIssuedAt().getTime();
-    assertThat(expirationDiff).isEqualTo(600_000L); // Exactly 600 seconds
+    assertThat(expirationDiff).isEqualTo(DEFAULT_EXPIRATION_SECONDS * 1000);
   }
 }
