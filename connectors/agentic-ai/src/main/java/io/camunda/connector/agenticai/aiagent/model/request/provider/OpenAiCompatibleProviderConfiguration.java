@@ -48,7 +48,7 @@ public record OpenAiCompatibleProviderConfiguration(
           @TemplateProperty(
               group = "provider",
               label = "Query Parameters",
-              description = "Map of Query Parameters to add to the request URL.",
+              description = "Map of query parameters to add to the request URL.",
               feel = Property.FeelMode.required,
               optional = true)
           @Valid
