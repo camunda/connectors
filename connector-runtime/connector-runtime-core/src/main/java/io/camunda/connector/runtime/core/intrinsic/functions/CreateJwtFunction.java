@@ -43,7 +43,7 @@ public class CreateJwtFunction implements IntrinsicFunctionProvider {
   private static final String RSA_ALGORITHM = "RSA";
 
   @IntrinsicFunction(name = "createJwt")
-  public String execute(String privateKey, String clientId) {
+  public String execute(String privateKey, String appId) {
 
     try {
       RSAPrivateKey rsaPrivateKey = parsePrivateKey(privateKey);
@@ -56,7 +56,7 @@ public class CreateJwtFunction implements IntrinsicFunctionProvider {
       // Build JWT with RS256 algorithm
       Algorithm algorithm = Algorithm.RSA256(null, rsaPrivateKey);
       return JWT.create()
-          .withIssuer(clientId)
+          .withIssuer(appId)
           .withIssuedAt(Date.from(now))
           .withExpiresAt(Date.from(Instant.ofEpochSecond(expiresAt)))
           .sign(algorithm);
