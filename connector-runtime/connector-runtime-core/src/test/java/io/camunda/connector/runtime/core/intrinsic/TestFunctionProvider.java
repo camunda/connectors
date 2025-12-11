@@ -57,6 +57,6 @@ public class TestFunctionProvider implements IntrinsicFunctionProvider {
   @Test
   public void shouldFindIntrinsicFunctionProviderImpl() {
     var a = ServiceLoader.load(IntrinsicFunctionProvider.class);
-    assertEquals(5, a.stream().count());
+    assertEquals(6, a.stream().count());
   }
 }
