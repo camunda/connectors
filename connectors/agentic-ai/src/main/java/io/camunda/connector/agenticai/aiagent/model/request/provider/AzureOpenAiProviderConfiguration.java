@@ -37,7 +37,7 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String endpoint,
       @Valid @NotNull AzureAuthentication authentication,
-      @Valid @NotNull TimeoutConfiguration timeoutConfiguration,
+      @Valid TimeoutConfiguration timeouts,
       @Valid @NotNull AzureOpenAiModel model) {}
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")

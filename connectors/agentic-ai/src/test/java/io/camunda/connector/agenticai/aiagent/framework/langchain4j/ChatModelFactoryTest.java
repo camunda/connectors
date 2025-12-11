@@ -98,6 +98,10 @@ class ChatModelFactoryTest {
 
   private final ChatModelFactory chatModelFactory = new ChatModelFactoryImpl();
 
+  static Stream<TimeoutConfiguration> nullTimeouts() {
+    return Stream.of(new TimeoutConfiguration(null));
+  }
+
   @Nested
   class AnthropicChatModelFactoryTest {
 
@@ -168,6 +172,26 @@ class ChatModelFactoryTest {
             verify(builder, never()).temperature(anyDouble());
             verify(builder, never()).topP(anyDouble());
             verify(builder, never()).topK(anyInt());
+          });
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#nullTimeouts")
+    void createsAnthropicChatModelWithNullTimeouts(TimeoutConfiguration timeouts) {
+      final var providerConfig =
+          new AnthropicProviderConfiguration(
+              new AnthropicConnection(
+                  null,
+                  new AnthropicAuthentication(ANTHROPIC_API_KEY),
+                  timeouts,
+                  new AnthropicModel(ANTHROPIC_MODEL, null)));
+
+      testAnthropicChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder, never()).timeout(any());
           });
     }
 
@@ -281,6 +305,28 @@ class ChatModelFactoryTest {
             verify(builder, never()).maxTokens(anyInt());
             verify(builder, never()).temperature(anyDouble());
             verify(builder, never()).topP(anyDouble());
+          });
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#nullTimeouts")
+    void createsAzureOpenAiChatModelWithNullTimeouts(TimeoutConfiguration timeouts) {
+      final var providerConfig =
+          new AzureOpenAiProviderConfiguration(
+              new AzureOpenAiConnection(
+                  AZURE_OPENAI_ENDPOINT,
+                  new AzureClientCredentialsAuthentication(
+                      CLIENT_ID, CLIENT_SECRET, TENANT_ID, null),
+                  timeouts,
+                  new AzureOpenAiProviderConfiguration.AzureOpenAiModel(
+                      AZURE_OPENAI_DEPLOYMENT_NAME, null)));
+
+      testAzureOpenAiChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder, never()).timeout(any());
           });
     }
 
@@ -448,6 +494,27 @@ class ChatModelFactoryTest {
               assertThat(parameters.temperature()).isNull();
               assertThat(parameters.topP()).isNull();
             }
+          });
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#nullTimeouts")
+    void createsBedrockChatModelWithNullTimeouts(TimeoutConfiguration timeouts) {
+      final var providerConfig =
+          new BedrockProviderConfiguration(
+              new BedrockConnection(
+                  BEDROCK_REGION,
+                  null,
+                  new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+                  timeouts,
+                  new BedrockModel(BEDROCK_MODEL, null)));
+
+      testBedrockChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder.chatModelBuilder, never()).timeout(any());
           });
     }
 
@@ -722,6 +789,25 @@ class ChatModelFactoryTest {
           });
     }
 
+    @ParameterizedTest
+    @NullSource
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#nullTimeouts")
+    void createsOpenAiChatModelWithNullTimeouts(TimeoutConfiguration timeouts) {
+      final var providerConfig =
+          new OpenAiProviderConfiguration(
+              new OpenAiConnection(
+                  new OpenAiProviderConfiguration.OpenAiAuthentication(OPEN_AI_API_KEY, null, null),
+                  timeouts,
+                  new OpenAiProviderConfiguration.OpenAiModel(OPEN_AI_MODEL, null)));
+
+      testOpenAiChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder, never()).timeout(any());
+          });
+    }
+
     private void testOpenAiChatModelBuilder(
         OpenAiProviderConfiguration providerConfig,
         ThrowingConsumer<OpenAiChatModelBuilder> builderAssertions) {
@@ -852,6 +938,27 @@ class ChatModelFactoryTest {
               assertThat(parameters.topP()).isNull();
               assertThat(parameters.customParameters()).isEmpty();
             }
+          });
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#nullTimeouts")
+    void createsOpenAiCompatibleChatModelWithNullTimeouts(TimeoutConfiguration timeouts) {
+      final var providerConfig =
+          new OpenAiCompatibleProviderConfiguration(
+              new OpenAiCompatibleConnection(
+                  ENDPOINT,
+                  new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
+                  Map.of(),
+                  timeouts,
+                  new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(MODEL, null)));
+
+      testOpenAiCompatibleChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder, never()).timeout(any());
           });
     }
 

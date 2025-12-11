@@ -26,7 +26,7 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
 
   public record OpenAiConnection(
       @Valid @NotNull OpenAiAuthentication authentication,
-      @Valid @NotNull TimeoutConfiguration timeoutConfiguration,
+      @Valid TimeoutConfiguration timeouts,
       @Valid @NotNull OpenAiModel model) {}
 
   public record OpenAiAuthentication(

@@ -28,6 +28,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompa
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.api.error.ConnectorInputException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -67,13 +68,14 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
 
     final var builder =
         AnthropicChatModel.builder()
-            .timeout(connection.timeoutConfiguration().timeout())
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model());
 
-    if (connection.endpoint() != null) {
-      builder.baseUrl(connection.endpoint());
-    }
+    Optional.ofNullable(connection.timeouts())
+        .map(TimeoutConfiguration::timeout)
+        .ifPresent(builder::timeout);
+
+    Optional.ofNullable(connection.endpoint()).ifPresent(builder::baseUrl);
 
     final var modelParameters = connection.model().parameters();
     if (modelParameters != null) {
@@ -92,8 +94,11 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     final var builder =
         AzureOpenAiChatModel.builder()
             .endpoint(connection.endpoint())
-            .timeout(connection.timeoutConfiguration().timeout())
             .deploymentName(configuration.azureOpenAi().model().deploymentName());
+
+    Optional.ofNullable(connection.timeouts())
+        .map(TimeoutConfiguration::timeout)
+        .ifPresent(builder::timeout);
 
     switch (connection.authentication()) {
       case AzureApiKeyAuthentication azureApiKeyAuthentication ->
@@ -127,9 +132,12 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
 
     final var builder =
         BedrockChatModel.builder()
-            .timeout(connection.timeoutConfiguration().timeout())
             .client(createBedrockClient(connection))
             .modelId(connection.model().model());
+
+    Optional.ofNullable(connection.timeouts())
+        .map(TimeoutConfiguration::timeout)
+        .ifPresent(builder::timeout);
 
     return applyBedrockModelParametersIfPresent(connection, builder);
   }
@@ -148,7 +156,9 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       bedrockClientBuilder.endpointOverride(URI.create(connection.endpoint()));
     }
 
-    overrideClientConfigurationBuilder.apiCallTimeout(connection.timeoutConfiguration().timeout());
+    Optional.ofNullable(connection.timeouts())
+        .map(TimeoutConfiguration::timeout)
+        .ifPresent(overrideClientConfigurationBuilder::apiCallTimeout);
 
     bedrockClientBuilder.overrideConfiguration(overrideClientConfigurationBuilder.build());
 
@@ -216,9 +226,12 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
 
     final var builder =
         OpenAiChatModel.builder()
-            .timeout(connection.timeoutConfiguration().timeout())
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model());
+
+    Optional.ofNullable(connection.timeouts())
+        .map(TimeoutConfiguration::timeout)
+        .ifPresent(builder::timeout);
 
     Optional.ofNullable(connection.authentication().organizationId())
         .ifPresent(builder::organizationId);
@@ -245,9 +258,12 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
 
     final var builder =
         OpenAiChatModel.builder()
-            .timeout(connection.timeoutConfiguration().timeout())
             .modelName(connection.model().model())
             .baseUrl(connection.endpoint());
+
+    Optional.ofNullable(connection.timeouts())
+        .map(TimeoutConfiguration::timeout)
+        .ifPresent(builder::timeout);
 
     Optional.ofNullable(connection.authentication())
         .map(OpenAiCompatibleAuthentication::apiKey)

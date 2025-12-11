@@ -18,6 +18,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
+import org.springframework.lang.Nullable;
 
 @TemplateSubType(id = OPENAI_COMPATIBLE_ID, label = "OpenAI Compatible")
 public record OpenAiCompatibleProviderConfiguration(
@@ -55,6 +56,7 @@ public record OpenAiCompatibleProviderConfiguration(
           @Valid
           Map<@NotBlank String, String> queryParameters,
       @Valid @NotNull TimeoutConfiguration timeoutConfiguration,
+      @Valid @Nullable TimeoutConfiguration timeouts,
       @Valid @NotNull OpenAiCompatibleModel model) {}
 
   public record OpenAiCompatibleAuthentication(
