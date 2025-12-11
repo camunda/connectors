@@ -16,16 +16,9 @@ public record TimeoutConfiguration(
             group = "provider",
             label = "Timeout",
             description =
-                "Timeout specification for API calls to the model provider in ISO-8601 duration format (e.g., <code>PT60S</code> for 60 seconds).",
+                "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
             type = TemplateProperty.PropertyType.String,
             feel = Property.FeelMode.optional,
-            defaultValue = "PT60S",
-            defaultValueType = TemplateProperty.DefaultValueType.String,
-            constraints =
-                @TemplateProperty.PropertyConstraints(
-                    pattern =
-                        @TemplateProperty.Pattern(
-                            value = "PT(\\d+H)?(\\d+M)?(\\d+S)?",
-                            message = "must be a ISO-8601 duration")))
+            defaultValueType = TemplateProperty.DefaultValueType.String)
         @NotNull
         Duration timeout) {}

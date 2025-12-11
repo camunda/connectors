@@ -46,7 +46,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
               optional = true)
           String endpoint,
       @Valid @NotNull AwsAuthentication authentication,
-      @Valid @NotNull TimeoutConfiguration timeoutConfiguration,
+      @Valid TimeoutConfiguration timeouts,
       @Valid @NotNull BedrockModel model) {
 
     @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")

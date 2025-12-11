@@ -33,7 +33,7 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
               optional = true)
           String endpoint,
       @Valid @NotNull AnthropicAuthentication authentication,
-      @Valid @NotNull TimeoutConfiguration timeoutConfiguration,
+      @Valid TimeoutConfiguration timeouts,
       @Valid @NotNull AnthropicModel model) {}
 
   public record AnthropicAuthentication(
