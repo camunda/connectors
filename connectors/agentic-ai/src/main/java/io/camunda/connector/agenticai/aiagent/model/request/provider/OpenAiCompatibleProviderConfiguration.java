@@ -44,6 +44,15 @@ public record OpenAiCompatibleProviderConfiguration(
               feel = Property.FeelMode.required,
               optional = true)
           Map<String, String> headers,
+      @FEEL
+          @TemplateProperty(
+              group = "provider",
+              label = "Query Parameters",
+              description = "Map of Query Parameters to add to the request URL.",
+              feel = Property.FeelMode.required,
+              optional = true)
+          @Valid
+          Map<@NotBlank String, String> queryParameters,
       @Valid @NotNull OpenAiCompatibleModel model) {}
 
   public record OpenAiCompatibleAuthentication(
