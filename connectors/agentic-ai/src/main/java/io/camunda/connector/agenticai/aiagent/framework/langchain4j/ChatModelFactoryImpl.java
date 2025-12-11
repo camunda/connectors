@@ -232,16 +232,13 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       OpenAiCompatibleProviderConfiguration configuration) {
     final var connection = configuration.openaiCompatible();
 
-    final var customQueryParameters =
-        configuration.openaiCompatible().queryParameters() == null
-            ? Collections.<String, String>emptyMap()
-            : configuration.openaiCompatible().queryParameters();
-
     final var builder =
         OpenAiChatModel.builder()
             .modelName(connection.model().model())
-            .customQueryParams(customQueryParameters)
             .baseUrl(connection.endpoint());
+
+    Optional.ofNullable(configuration.openaiCompatible().queryParameters())
+                    .ifPresent(builder::customQueryParams);
 
     Optional.ofNullable(connection.authentication())
         .map(OpenAiCompatibleAuthentication::apiKey)
