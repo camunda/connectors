@@ -33,7 +33,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -238,7 +237,7 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
             .baseUrl(connection.endpoint());
 
     Optional.ofNullable(configuration.openaiCompatible().queryParameters())
-                    .ifPresent(builder::customQueryParams);
+        .ifPresent(builder::customQueryParams);
 
     Optional.ofNullable(connection.authentication())
         .map(OpenAiCompatibleAuthentication::apiKey)
