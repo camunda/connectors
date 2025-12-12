@@ -40,13 +40,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 public class L4JAiAgentConnectorElementTemplateRegressionTests extends BaseL4JAiAgentConnectorTest {
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "ai-agent.bpmn",
-        "ai-agent-8.8.0-alpha5.bpmn",
-        "ai-agent-8.8.0-alpha6.bpmn",
-        "ai-agent-8.8.0-alpha7.bpmn"
-      })
+  @ValueSource(strings = {"ai-agent.bpmn", "ai-agent-8.8.0.bpmn"})
   void executesAgentWithToolCallingAndUserFeedback(String processFile) throws Exception {
     final var initialUserPrompt = "Explore some of your tools!";
     final var expectedConversation =
