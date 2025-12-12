@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime;
 
 import io.camunda.client.impl.CamundaObjectMapper;
+import io.camunda.client.spring.configuration.CamundaAutoConfiguration;
 import io.camunda.client.spring.properties.CamundaClientProperties;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
@@ -48,7 +49,8 @@ import org.springframework.core.env.Environment;
 @AutoConfiguration
 @AutoConfigureBefore({
   OutboundConnectorsAutoConfiguration.class,
-  InboundConnectorsAutoConfiguration.class
+  InboundConnectorsAutoConfiguration.class,
+  CamundaAutoConfiguration.class
 })
 @EnableConfigurationProperties(ConnectorProperties.class)
 public class ConnectorsAutoConfiguration {
