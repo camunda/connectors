@@ -63,6 +63,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProvi
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -736,6 +737,7 @@ class ChatModelFactoryTest {
                   ENDPOINT,
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
                   Map.of("my-header", "my-value"),
+                  null,
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
                       MODEL, DEFAULT_MODEL_PARAMETERS)));
 
@@ -772,6 +774,7 @@ class ChatModelFactoryTest {
                   ENDPOINT,
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(null),
                   null,
+                  null,
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
                       MODEL, DEFAULT_MODEL_PARAMETERS)));
 
@@ -795,6 +798,7 @@ class ChatModelFactoryTest {
               new OpenAiCompatibleConnection(
                   ENDPOINT,
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
+                  Map.of(),
                   Map.of(),
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
                       MODEL, modelParameters)));
@@ -827,6 +831,7 @@ class ChatModelFactoryTest {
                   ENDPOINT,
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
                   Map.of("Authorization", authHeaderValue),
+                  Collections.emptyMap(),
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
                       MODEL, DEFAULT_MODEL_PARAMETERS)));
 
@@ -835,6 +840,39 @@ class ChatModelFactoryTest {
           (builder) -> {
             verify(builder).modelName(MODEL);
             verify(builder).baseUrl(ENDPOINT);
+            verify(builder).customHeaders(Map.of("Authorization", authHeaderValue));
+
+            // API key set then cleared due to Authorization header
+            final var ordered = inOrder(builder);
+            ordered.verify(builder).apiKey(API_KEY);
+            ordered.verify(builder).apiKey(null);
+
+            verify(builder, never()).organizationId(any());
+            verify(builder, never()).projectId(any());
+          });
+    }
+
+    @Test
+    void createsOpenAiCompatibleChatModelWithApiKeyAndHeaderAndQueryParameters() {
+      final var authHeaderValue = "Bearer token123";
+      final var customQueryParameters = Map.of("foo", "bar", "foo2", "bar2");
+      final var providerConfig =
+          new OpenAiCompatibleProviderConfiguration(
+              new OpenAiCompatibleConnection(
+                  ENDPOINT,
+                  new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
+                  Map.of("Authorization", authHeaderValue),
+                  customQueryParameters,
+                  new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
+                      MODEL, DEFAULT_MODEL_PARAMETERS)));
+
+      testOpenAiCompatibleChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder).modelName(MODEL);
+
+            verify(builder).baseUrl(ENDPOINT);
+            verify(builder).customQueryParams(customQueryParameters);
             verify(builder).customHeaders(Map.of("Authorization", authHeaderValue));
 
             // API key set then cleared due to Authorization header

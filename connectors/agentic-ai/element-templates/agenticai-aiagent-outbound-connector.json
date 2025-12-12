@@ -649,6 +649,23 @@
     },
     "type" : "String"
   }, {
+    "id" : "provider.openaiCompatible.queryParameters",
+    "label" : "Query Parameters",
+    "description" : "Map of query parameters to add to the request URL.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openaiCompatible.queryParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openaiCompatible",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "provider.anthropic.model.model",
     "label" : "Model",
     "description" : "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
