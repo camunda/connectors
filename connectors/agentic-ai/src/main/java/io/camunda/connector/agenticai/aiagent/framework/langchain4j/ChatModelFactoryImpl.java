@@ -236,7 +236,6 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
             .modelName(connection.model().model())
             .baseUrl(connection.endpoint());
 
-
     Optional.ofNullable(connection.authentication())
         .map(OpenAiCompatibleAuthentication::apiKey)
         .filter(StringUtils::isNotBlank)
@@ -253,8 +252,7 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
               }
             });
     Optional.ofNullable(connection.headers()).ifPresent(builder::customHeaders);
-    Optional.ofNullable(connection.queryParameters())
-            .ifPresent(builder::customQueryParams);
+    Optional.ofNullable(connection.queryParameters()).ifPresent(builder::customQueryParams);
 
     final var modelParameters = connection.model().parameters();
     if (modelParameters != null) {
