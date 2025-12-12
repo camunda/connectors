@@ -35,12 +35,12 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.jackson2.autoconfigure.Jackson2AutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 
 @AutoConfiguration
-@AutoConfigureBefore(JacksonAutoConfiguration.class)
+@AutoConfigureBefore(Jackson2AutoConfiguration.class)
 @Import(OutboundConnectorRuntimeConfiguration.class)
 public class OutboundConnectorsAutoConfiguration {
 

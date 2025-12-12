@@ -25,6 +25,7 @@
 
   <properties>
     <version.apache-tika>3.2.3</version.apache-tika>
+    <elasticsearch-rest-client.version>9.2.2</elasticsearch-rest-client.version>
   </properties>
 
   <dependencies>
@@ -119,6 +120,7 @@
     <dependency>
       <groupId>org.elasticsearch.client</groupId>
       <artifactId>elasticsearch-rest-client</artifactId>
+      <version>${elasticsearch-rest-client.version}</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
@@ -186,12 +188,12 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-autoconfigure</artifactId>
+      <artifactId>spring-boot-test</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-test</artifactId>
+      <artifactId>spring-boot-validation</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -213,21 +215,21 @@
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
         <version>${project.version}</version>
-      <configuration>
-        <connectors>
-          <connector>
-            <connectorClass>io.camunda.connector.EmbeddingsVectorDBFunction</connectorClass>
-            <files>
-              <file>
-                <templateId>io.camunda.connectors.EmbeddingsVectorDB.v1</templateId>
-                <templateFileName>embeddings-vector-database-outbound-connector.json</templateFileName>
-              </file>
-            </files>
-            <generateHybridTemplates>true</generateHybridTemplates>
-          </connector>
-        </connectors>
-        <versionHistoryEnabled>true</versionHistoryEnabled>
-      </configuration>
+        <configuration>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.EmbeddingsVectorDBFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.EmbeddingsVectorDB.v1</templateId>
+                  <templateFileName>embeddings-vector-database-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+          </connectors>
+          <versionHistoryEnabled>true</versionHistoryEnabled>
+        </configuration>
       </plugin>
     </plugins>
   </build>

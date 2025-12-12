@@ -21,8 +21,8 @@ import jakarta.annotation.Nullable;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.actuate.health.AbstractHealthIndicator;
-import org.springframework.boot.actuate.health.Health.Builder;
+import org.springframework.boot.health.contributor.AbstractHealthIndicator;
+import org.springframework.boot.health.contributor.Health.Builder;
 
 public class ProcessDefinitionImportHealthIndicator extends AbstractHealthIndicator {
 

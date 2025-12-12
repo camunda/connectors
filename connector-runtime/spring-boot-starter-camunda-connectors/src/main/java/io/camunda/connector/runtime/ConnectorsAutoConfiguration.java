@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime;
 
 import io.camunda.client.impl.CamundaObjectMapper;
+import io.camunda.client.spring.configuration.CamundaAutoConfiguration;
 import io.camunda.client.spring.properties.CamundaClientProperties;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
@@ -48,7 +49,8 @@ import org.springframework.core.env.Environment;
 @AutoConfiguration
 @AutoConfigureBefore({
   OutboundConnectorsAutoConfiguration.class,
-  InboundConnectorsAutoConfiguration.class
+  InboundConnectorsAutoConfiguration.class,
+  CamundaAutoConfiguration.class
 })
 @EnableConfigurationProperties(ConnectorProperties.class)
 public class ConnectorsAutoConfiguration {
@@ -63,6 +65,9 @@ public class ConnectorsAutoConfiguration {
 
   @Value("${camunda.connector.secretprovider.environment.tenantaware:false}")
   boolean environmentSecretProviderTenantAware;
+
+  @Value("${camunda.connector.secretprovider.environment.processdefinitionaware:false}")
+  boolean environmentSecretProviderProcessDefinitionAware;
 
   @Value(
       "${camunda.connector.secretprovider.console.endpoint:https://cluster-api.cloud.camunda.io/secrets}")
@@ -99,7 +104,10 @@ public class ConnectorsAutoConfiguration {
       matchIfMissing = true)
   public EnvironmentSecretProvider defaultSecretProvider(Environment environment) {
     return new EnvironmentSecretProvider(
-        environment, environmentSecretProviderPrefix, environmentSecretProviderTenantAware);
+        environment,
+        environmentSecretProviderPrefix,
+        environmentSecretProviderTenantAware,
+        environmentSecretProviderProcessDefinitionAware);
   }
 
   @Bean

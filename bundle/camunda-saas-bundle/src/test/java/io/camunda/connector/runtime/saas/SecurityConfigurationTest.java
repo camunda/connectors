@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.saas;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
@@ -32,16 +33,16 @@ import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalManagementPort;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -82,15 +83,17 @@ public class SecurityConfigurationTest {
   }
 
   @Test
-  @WithMockUser(authorities = "SCOPE_inbound:read")
   public void inboundEndpoint_auth_returns200() throws Exception {
-    mvc.perform(get("/inbound")).andExpect(status().isOk());
+    mvc.perform(
+            get("/inbound")
+                .with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_inbound:read"))))
+        .andExpect(status().isOk());
   }
 
   @Test
-  @WithMockUser(authorities = "SCOPE_WRONG")
   public void inboundEndpoint_wrongAuth_returns403() throws Exception {
-    mvc.perform(get("/inbound")).andExpect(status().isForbidden());
+    mvc.perform(get("/inbound").with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_WRONG"))))
+        .andExpect(status().isForbidden());
   }
 
   @Test
@@ -159,10 +162,10 @@ public class SecurityConfigurationTest {
     ResponseEntity<String> response =
         restTemplateBuilder
             .rootUri("http://localhost:" + managementPort + "/actuator")
-            .setConnectTimeout(Duration.ofSeconds(60))
-            .setReadTimeout(Duration.ofSeconds(60))
+            .connectTimeout(Duration.ofSeconds(60))
+            .readTimeout(Duration.ofSeconds(60))
             .build()
-            .exchange("/metrics", HttpMethod.GET, new HttpEntity<>(null), String.class);
+            .exchange("/metrics", HttpMethod.GET, new HttpEntity<>((Void) null), String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
   }

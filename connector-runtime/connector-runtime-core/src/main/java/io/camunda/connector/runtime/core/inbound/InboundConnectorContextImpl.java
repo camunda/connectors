@@ -348,7 +348,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
               getSecretHandler(),
               objectMapper,
               properties,
-              new SecretContext(connectorDetails.tenantId()));
+              new SecretContext(
+                  connectorDetails.tenantId(), connectorDetails.processDefinitionId()));
     }
     return propertiesWithSecrets;
   }

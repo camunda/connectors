@@ -57,14 +57,17 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.api.ThrowingConsumer;
 import org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.Resource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SlowTest
+@ExtendWith(MockitoExtension.class)
 abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
   @MockitoBean private ChatModelFactory chatModelFactory;
   @Mock protected ChatModel chatModel;
