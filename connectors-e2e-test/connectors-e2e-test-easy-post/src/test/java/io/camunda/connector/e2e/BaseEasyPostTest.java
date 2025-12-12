@@ -32,8 +32,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 public abstract class BaseEasyPostTest {
   protected static final String ELEMENT_TEMPLATE_PATH =
@@ -68,7 +68,7 @@ public abstract class BaseEasyPostTest {
 
   @Autowired CamundaClient camundaClient;
 
-  @MockBean ProcessDefinitionSearch processDefinitionSearch;
+  @MockitoBean ProcessDefinitionSearch processDefinitionSearch;
 
   @LocalServerPort int serverPort;
 

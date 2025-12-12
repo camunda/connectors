@@ -46,9 +46,11 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -57,6 +59,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SlowTest
 @TestPropertySource(properties = {"camunda.connector.agenticai.mcp.client.enabled=true"})
+@ExtendWith(MockitoExtension.class)
 public class McpStandaloneTests extends BaseAgenticAiTest {
 
   @Value("classpath:mcp-connectors-standalone.bpmn")

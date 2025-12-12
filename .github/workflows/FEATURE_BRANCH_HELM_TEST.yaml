@@ -1,4 +1,4 @@
-name: Helm integration tests
+name: Feature branch Helm test
 
 on:
   push:
@@ -100,11 +100,10 @@ jobs:
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle:${{ env.TAG }}
 
-  helm-integration-tests:
+  helm-test-branch:
     needs: [ build-image ]
-    name: Run Helm Integration Tests
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
     with:
-      connectors-version: ${{ needs.run-tests.outputs.connectors-version }}
+      connectors-version: ${{ needs.build-image.outputs.connectors-version }}
       release-branch: main

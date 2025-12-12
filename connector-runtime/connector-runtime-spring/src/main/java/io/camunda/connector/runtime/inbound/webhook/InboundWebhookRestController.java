@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.webhook;
 
 import static java.util.Collections.emptyMap;
+import static java.util.stream.Collectors.toMap;
 import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.HEAD;
@@ -127,11 +128,18 @@ public class InboundWebhookRestController {
         .getActiveWebhook(context)
         .map(
             connector -> {
+              // In Tomcat 11.0.12 (2025-10-07), the Coyote HTTP stack was updated to
+              // “store HTTP request headers using the original case for the header name rather
+              // than forcing it to lower case.”
+              // This breaks some webhook connectors that expect lowercase headers in expressions.
+              var lowercaseHeaders =
+                  headers.entrySet().stream()
+                      .collect(toMap(e -> e.getKey().toLowerCase(), Map.Entry::getValue));
               WebhookProcessingPayload payload =
                   new HttpServletRequestWebhookProcessingPayload(
                       httpServletRequest,
                       params,
-                      headers,
+                      lowercaseHeaders,
                       bodyAsByteArray,
                       getParts(httpServletRequest));
               return processWebhook(connector, payload);
