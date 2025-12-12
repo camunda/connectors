@@ -1,3 +1,4 @@
+# Do not rename this file, as the file name is part of the npm auth configuration. Learn more here: https://docs.npmjs.com/trusted-publishers
 name: Deploying npm package
 run-name: Deploying npm package version ${{ inputs.npm-package-version }}
 
@@ -8,6 +9,11 @@ on:
         description: 'New version number of the npm package to publish'
         type: string
         required: true
+
+permissions:
+  id-token: write  # Required for OIDC
+  contents: write
+  pull-requests: write
 
 jobs:
   build-test-publish:
@@ -54,8 +60,6 @@ jobs:
         if: success()
         working-directory: element-template-generator/npm
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Generate a GitHub token for connectors
         id: app-token
