@@ -9,72 +9,7 @@ package io.camunda.connector.idp.extraction.model;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public enum LlmModel {
-  CLAUDE("anthropic", getCommonSystemPrompt(), getCommonMessageTemplate(), false),
-  GEMINI(
-      "gemini",
-      """
-            %s
-
-            Respond with a json object, not an array.
-      """
-          .formatted(getCommonSystemPrompt()),
-      getMultimodalMessageTemplate(),
-      true),
-  LLAMA(
-      "meta",
-      """
-            <|begin_of_text|><|start_header_id|>system<|end_header_id|>
-            %s
-
-            You are a helpful assistant tasked with extracting variables from the provided text
-            using specific extraction instructions.
-            The output must be a flat JSON object, where each key is the variable name and its
-            corresponding value is the extracted value.
-
-            Your response should strictly adhere to this format:
-            {
-              "variable1": "value1",
-              "variable2": "value2"
-            }
-
-            Do not include any preamble, explanations, or additional text, and ensure the response is valid JSON.
-      """
-          .formatted(getCommonSystemInstruction()),
-      """
-            <|eot_id|><|start_header_id|>user<|end_header_id|>
-            Given the following functions, extract the needed variables based on the given prompt.
-            {
-              "name": "variable_extract",
-              "description": "extract value from a text using the provided prompts.",
-              "input_schema": {
-                "type": "object",
-                "properties": {
-                    "name": {
-                      "type": "string",
-                      "description": "the corresponding name in the variable taxonomy"
-                    },
-                    "value": {
-                      "type": "any",
-                      "description": "the extracted value found in the document text using the prompts"
-                    }
-                  }
-              }
-            }
-
-            Question: Given the variable_extract function and document text, extract the variables.
-            %s
-            Only respond with the function output, no preamble.
-            <|eot_id|><|start_header_id|>assistant<|end_header_id|>
-      """
-          .formatted(getCommonMessageTemplate()),
-      false),
-  TITAN("amazon", getCommonSystemPrompt(), getCommonMessageTemplate(), false);
-
-  private final String vendor;
-  private final String systemPrompt;
-  private final String messageTemplate;
-  private final boolean multimodal;
+public class LlmModel {
 
   private static final String EXTRACTED_TEXT_PLACEHOLDER_FOR_MESSAGE = "{{extractedText}}";
   private static final String TAXONOMY_PLACEHOLDER_FOR_MESSAGE = "{{taxonomy}}";
@@ -86,84 +21,106 @@ public enum LlmModel {
             </VAR>
       """;
 
-  LlmModel(String vendor, String systemPrompt, String messageTemplate, boolean multimodal) {
-    this.vendor = vendor;
-    this.systemPrompt = systemPrompt;
-    this.messageTemplate = messageTemplate;
-    this.multimodal = multimodal;
+  public static String getExtractionSystemInstruction() {
+    return """
+            You are a helpful assistant tasked with extracting variables from the provided document
+            using specific extraction instructions.
+
+            You will receive a document in one of the following formats:
+            - Extracted text from a document (between the <DOCUMENT_TEXT> tags)
+            - An image of a document
+            - A PDF file
+
+            Your task is to extract certain variables from the document content. The extraction instructions
+            are provided between the <EXTRACTION> tags. Every variable is represented by a <VAR> tag.
+            Each variable has:
+            - A <NAME> tag: the variable name
+            - A <PROMPT> tag: instructions on which data to extract and how
+
+            Analyze the document carefully and extract the requested variables according to the provided instructions.
+
+            Critical: in all cases -- respond in valid JSON format, without any preamble.
+            If you cannot extract a variable or all of them, just return null for that variable name.
+            The response json will be validated so we need to make sure its valid. Example response:
+            {
+              "<NAME>": "<EXTRACTED_VALUE>",
+              ...
+            }
+      """;
   }
 
-  public String getSystemPrompt() {
-    return systemPrompt;
-  }
-
-  public String getVendor() {
-    return vendor;
-  }
-
-  public boolean isMultimodal() {
-    return multimodal;
-  }
-
-  public String getMessage(List<TaxonomyItem> taxonomyItems) {
+  public static String getExtractionUserPrompt(List<TaxonomyItem> taxonomyItems) {
     String taxonomies =
         taxonomyItems.stream()
             .map(item -> String.format(SYSTEM_PROMPT_VARIABLE_TEMPLATE, item.name(), item.prompt()))
             .collect(Collectors.joining());
-    return messageTemplate.replace(TAXONOMY_PLACEHOLDER_FOR_MESSAGE, taxonomies);
+    return getMultimodalMessageTemplate().replace(TAXONOMY_PLACEHOLDER_FOR_MESSAGE, taxonomies);
   }
 
-  public String getMessage(String extractedText, List<TaxonomyItem> taxonomyItems) {
+  public static String getExtractionUserPrompt(
+      String extractedText, List<TaxonomyItem> taxonomyItems) {
     String taxonomies =
         taxonomyItems.stream()
             .map(item -> String.format(SYSTEM_PROMPT_VARIABLE_TEMPLATE, item.name(), item.prompt()))
             .collect(Collectors.joining());
 
-    return messageTemplate
+    return getCommonMessageTemplate()
         .replace(EXTRACTED_TEXT_PLACEHOLDER_FOR_MESSAGE, extractedText)
         .replace(TAXONOMY_PLACEHOLDER_FOR_MESSAGE, taxonomies);
   }
 
-  public boolean isSystemPromptAllowed() {
-    return this != TITAN;
-  }
-
-  public static LlmModel fromId(String id) {
-    String modelId = id.toLowerCase();
-    if (modelId.contains(CLAUDE.getVendor())) {
-      return CLAUDE;
-    } else if (modelId.contains(LLAMA.getVendor())) {
-      return LLAMA;
-    } else if (modelId.contains(TITAN.getVendor())) {
-      return TITAN;
-    } else if (modelId.contains(GEMINI.getVendor())) {
-      return GEMINI;
-    } else {
-      return CLAUDE;
+  public static String getClassificationSystemPrompt(boolean autoClassify) {
+    if (autoClassify) {
+      return getClassificationAutoClassifyPrompt().formatted(getBaseClassificationSystemPrompt());
     }
+    return getBaseClassificationSystemPrompt();
   }
 
-  private static String getCommonSystemInstruction() {
+  public static String getBaseClassificationSystemPrompt() {
     return """
-            You will receive extracted text from a PDF document. This text will be between the <DOCUMENT_TEXT> tags.
-            Your task is to extract certain variables from the text. The description how to extract the variables is
-            between the <EXTRACTION> tags. Every variable is represented by a <VAR> tag. Every variable has a name,
-            which is represented by the <NAME> tag, as well as instructions which data to extract, which is represented
-            by the <PROMPT> tag.
+            You are a document classification expert. You will need to analyze a document and classify it
+            into one of the provided document types.
+
+            Critical: in all cases -- respond only in this valid JSON format, without any preamble.
+            The response json will be validated so we need to make sure its valid:
+            {
+                "extractedValue": "<one of the listed document types>",
+                "confidence": "<HIGH or LOW>",
+                "reasoning": "<1-2 sentences on the reasoning behind your choice and confidence level."
+            }
       """;
   }
 
-  private static String getCommonSystemPrompt() {
+  public static String getClassificationAutoClassifyPrompt() {
     return """
             %s
 
-            Respond in JSON format, without any preamble. Example response:
-            {
-              "name": "John Smith",
-              "age": 32
-            }
-      """
-        .formatted(getCommonSystemInstruction());
+            You are free to classify outside the given types if you are confident the document does not match any of the listed document types.
+            You may classify it as a different type that better represents the document. Use the same case as the given types.
+
+      """;
+  }
+
+  public static String getClassificationUserPrompt(
+      List<String> documentTypes, String documentContent) {
+    return """
+        %s
+
+        The following is the document content:
+
+        %s
+
+        """
+        .formatted(getClassificationUserPrompt(documentTypes), documentContent);
+  }
+
+  public static String getClassificationUserPrompt(List<String> documentTypes) {
+    return """
+        Analyze this document and classify it into one of the following types:
+
+        %s
+        """
+        .formatted(String.join(", ", documentTypes));
   }
 
   private static String getCommonMessageTemplate() {
@@ -181,5 +138,33 @@ public enum LlmModel {
             <EXTRACTION>%s</EXTRACTION>
       """
         .formatted(TAXONOMY_PLACEHOLDER_FOR_MESSAGE);
+  }
+
+  public static String getJsonExtractionSystemPrompt() {
+    return """
+            You are a JSON cleanup expert. Your task is to extract and fix JSON from content that may contain:
+            - Preambles or introductory text before the JSON
+            - Markdown code blocks (```json or ```) wrapping the JSON
+            - Explanatory notes or comments within or around the JSON
+            - Additional text after the JSON
+            - Formatting issues or invalid JSON syntax
+
+            Your job is to:
+            1. Identify the JSON content
+            2. Fix any syntax errors to make it valid JSON
+            3. Return ONLY the cleaned, valid JSON
+
+            Critical: respond ONLY with the valid JSON object, without any preamble, explanation, or markdown formatting.
+            Do not wrap the response in code blocks or add any additional text.
+      """;
+  }
+
+  public static String getJsonExtractionUserPrompt(String content) {
+    return """
+        Clean up and extract the valid JSON from the following content:
+
+        %s
+        """
+        .formatted(content);
   }
 }

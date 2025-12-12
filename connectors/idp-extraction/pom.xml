@@ -184,8 +184,21 @@
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-core</artifactId>
     </dependency>
-    
-    <dependency>
+
+      <dependency>
+          <groupId>dev.langchain4j</groupId>
+          <artifactId>langchain4j-bedrock</artifactId>
+      </dependency>
+
+
+      <dependency>
+          <groupId>dev.langchain4j</groupId>
+          <artifactId>langchain4j-azure-open-ai</artifactId>
+          <version>1.8.0</version>
+      </dependency>
+
+
+      <dependency>
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-open-ai</artifactId>
     </dependency>
@@ -226,7 +239,37 @@
               <files>
                 <file>
                   <templateId>io.camunda.connectors.idp.extraction.v1</templateId>
-                  <templateFileName>idp-extraction-outbound-connector.json</templateFileName>
+                  <templateFileName>idp-extraction-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.idp.extraction.ClassificationConnectorFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.idp.classification.v1</templateId>
+                  <templateFileName>idp-classification-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.idp.extraction.UnstructuredExtractionConnectorFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.idp.unstructured-extraction.v1</templateId>
+                  <templateFileName>idp-unstructured-extraction-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.idp.extraction.StructuredExtractionConnectorFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.idp.structured-extraction.v1</templateId>
+                  <templateFileName>idp-structured-extraction-connector.json</templateFileName>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
