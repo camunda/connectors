@@ -10,6 +10,8 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -21,6 +23,7 @@ public class ImapServerProxy implements AutoCloseable {
   private final ServerSocket listen;
   private final ExecutorService pool = Executors.newCachedThreadPool();
   private final AtomicReference<Boolean> successMode = new AtomicReference<>(true);
+  private final Set<SocketPair> activePairs = ConcurrentHashMap.newKeySet();
 
   public ImapServerProxy(int listenPort, String backendHost, int backendPort) throws IOException {
     this.backendHost = backendHost;
@@ -51,33 +54,41 @@ public class ImapServerProxy implements AutoCloseable {
   private void proxy(Socket client) throws IOException {
     try (Socket backend = new Socket()) {
       backend.connect(new InetSocketAddress(backendHost, backendPort), 2000);
-      Future<?> f1 =
-          // All bytes coming from client are given to the server
-          pool.submit(
-              () -> {
-                try {
-                  pipeClientToServer(client.getInputStream(), backend.getOutputStream());
-                } catch (IOException e) {
-                  throw new RuntimeException(e);
-                }
-              });
-      Future<?> f2 =
-          // All bytes coming from server are given to the client
-          pool.submit(
-              () -> {
-                try {
-                  pipeServerToClient(backend.getInputStream(), client.getOutputStream());
-                } catch (IOException e) {
-                  throw new RuntimeException(e);
-                }
-              });
+
+      SocketPair pair = new SocketPair(client, backend);
+      activePairs.add(pair);
       try {
-        f1.get();
-      } catch (Exception ignored) {
-      }
-      try {
-        f2.get();
-      } catch (Exception ignored) {
+        Future<?> f1 =
+            // All bytes coming from client are given to the server
+            pool.submit(
+                () -> {
+                  try {
+                    pipeClientToServer(client.getInputStream(), backend.getOutputStream());
+                  } catch (IOException e) {
+                    throw new RuntimeException(e);
+                  }
+                });
+        Future<?> f2 =
+            // All bytes coming from server are given to the client
+            pool.submit(
+                () -> {
+                  try {
+                    pipeServerToClient(backend.getInputStream(), client.getOutputStream());
+                  } catch (IOException e) {
+                    throw new RuntimeException(e);
+                  }
+                });
+        try {
+          f1.get();
+        } catch (Exception ignored) {
+        }
+        try {
+          f2.get();
+        } catch (Exception ignored) {
+        }
+      } finally {
+        // Clean up when proxy is done
+        activePairs.remove(pair);
       }
     }
   }
@@ -118,6 +129,13 @@ public class ImapServerProxy implements AutoCloseable {
 
   public void cutConnection() {
     successMode.set(false);
+    activePairs.forEach(
+        pair -> {
+          try {
+            pair.backend.shutdownOutput();
+          } catch (IOException ignored) {
+          }
+        });
   }
 
   public void setOkProxy() {
@@ -128,5 +146,15 @@ public class ImapServerProxy implements AutoCloseable {
   public void close() throws Exception {
     listen.close();
     pool.shutdownNow();
+  }
+
+  private static class SocketPair {
+    final Socket client;
+    final Socket backend;
+
+    SocketPair(Socket client, Socket backend) {
+      this.client = client;
+      this.backend = backend;
+    }
   }
 }
