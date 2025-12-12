@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.model.request.provider.Azur
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
@@ -36,6 +37,7 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String endpoint,
       @Valid @NotNull AzureAuthentication authentication,
+      @Valid TimeoutConfiguration timeouts,
       @Valid @NotNull AzureOpenAiModel model) {}
 
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")

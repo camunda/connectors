@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model.request.provider;
 
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OPENAI_COMPATIBLE_ID;
 
+import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -44,6 +45,7 @@ public record OpenAiCompatibleProviderConfiguration(
               feel = Property.FeelMode.required,
               optional = true)
           Map<String, String> headers,
+      @Valid TimeoutConfiguration timeouts,
       @Valid @NotNull OpenAiCompatibleModel model) {}
 
   public record OpenAiCompatibleAuthentication(
