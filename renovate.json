@@ -55,7 +55,7 @@
     },
     {
       "matchBaseBranches": [
-        "release/*"
+        "stable/*"
       ],
       "matchUpdateTypes": [
         "major"
@@ -64,7 +64,7 @@
     },
     {
       "matchBaseBranches": [
-        "release/*"
+        "stable/*"
       ],
       "matchPackageNames": [
         "io.camunda*"
@@ -84,8 +84,8 @@
     },
     {
       "matchBaseBranches": [
-        "release/8.6",
-        "release/8.7"
+        "stable/8.6",
+        "stable/8.7"
       ],
       "enabled": false,
       "matchPackageNames": [
@@ -104,6 +104,6 @@
   ],
   "baseBranchPatterns": [
     "main",
-    "/^release\\/.*/"
+    "/^stable\\/.*/"
   ]
 }
