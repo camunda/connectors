@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.core.intrinsic.functions;
 
-import static io.camunda.connector.runtime.core.intrinsic.functions.CreateJwtFunction.DEFAULT_EXPIRATION_SECONDS;
+import static io.camunda.connector.runtime.core.intrinsic.functions.CreateGithubAppJwtFunction.DEFAULT_EXPIRATION_SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -28,9 +28,9 @@ import java.security.interfaces.RSAPrivateKey;
 import java.util.Base64;
 import org.junit.jupiter.api.Test;
 
-class CreateJwtFunctionTest {
+class CreateGithubAppJwtFunctionTest {
 
-  private final CreateJwtFunction function = new CreateJwtFunction();
+  private final CreateGithubAppJwtFunction function = new CreateGithubAppJwtFunction();
 
   @Test
   void shouldCreateJwtWithClientId() throws Exception {

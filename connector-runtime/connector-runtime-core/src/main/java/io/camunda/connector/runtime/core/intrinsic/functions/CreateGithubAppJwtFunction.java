@@ -28,7 +28,7 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.regex.Pattern;
 
-public class CreateJwtFunction implements IntrinsicFunctionProvider {
+public class CreateGithubAppJwtFunction implements IntrinsicFunctionProvider {
 
   // Default expiration time of 1 minute
   static final long DEFAULT_EXPIRATION_SECONDS = 60L;
