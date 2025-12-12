@@ -151,7 +151,7 @@
     "id" : "provider.anthropic.timeouts.timeout",
     "label" : "Timeout",
     "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
-    "optional" : false,
+    "optional" : true,
     "constraints" : {
       "notEmpty" : true
     },
@@ -312,7 +312,7 @@
     "id" : "provider.bedrock.timeouts.timeout",
     "label" : "Timeout",
     "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
-    "optional" : false,
+    "optional" : true,
     "constraints" : {
       "notEmpty" : true
     },
@@ -501,7 +501,7 @@
     "id" : "provider.azureOpenAi.timeouts.timeout",
     "label" : "Timeout",
     "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
-    "optional" : false,
+    "optional" : true,
     "constraints" : {
       "notEmpty" : true
     },
@@ -663,7 +663,7 @@
     "id" : "provider.openai.timeouts.timeout",
     "label" : "Timeout",
     "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
-    "optional" : false,
+    "optional" : true,
     "constraints" : {
       "notEmpty" : true
     },
@@ -737,7 +737,7 @@
     "id" : "provider.openaiCompatible.timeouts.timeout",
     "label" : "Timeout",
     "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
-    "optional" : false,
+    "optional" : true,
     "constraints" : {
       "notEmpty" : true
     },
