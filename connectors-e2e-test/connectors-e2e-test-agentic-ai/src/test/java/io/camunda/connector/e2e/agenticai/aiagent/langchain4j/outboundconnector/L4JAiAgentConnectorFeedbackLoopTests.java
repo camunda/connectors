@@ -111,8 +111,7 @@ public class L4JAiAgentConnectorFeedbackLoopTests extends BaseL4JAiAgentConnecto
             userSatisfiedFeedback()));
 
     final var zeebeTest =
-        createProcessInstance(Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
-            .waitForProcessCompletion();
+        createProcessInstance(Map.of("userPrompt", initialUserPrompt)).waitForProcessCompletion();
 
     assertLastChatRequest(2, expectedConversation);
 

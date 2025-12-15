@@ -104,7 +104,7 @@ public class L4JAiAgentJobWorkerElementTemplateRegressionTests extends BaseL4JAi
     final var processResource = resourceLoader.getResource("classpath:regression/" + processFile);
     final var zeebeTest =
         deployModel(Bpmn.readModelFromStream(processResource.getInputStream()))
-            .createInstance(Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
+            .createInstance(Map.of("userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
     assertLastChatRequest(expectedConversation, false);

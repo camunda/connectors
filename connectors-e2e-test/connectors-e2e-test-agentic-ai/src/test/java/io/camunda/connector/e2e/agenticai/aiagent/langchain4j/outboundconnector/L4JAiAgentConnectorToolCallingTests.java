@@ -145,7 +145,7 @@ public class L4JAiAgentConnectorToolCallingTests extends BaseL4JAiAgentConnector
         createProcessInstance(
                 elementTemplate ->
                     elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S"),
-                Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
+                Map.of("userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
     assertLastChatRequest(3, expectedConversation);

@@ -226,14 +226,12 @@ else
         <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=toolCallAllowed = false</bpmn:conditionExpression>
       </bpmn:sequenceFlow>
     </bpmn:adHocSubProcess>
-    <bpmn:exclusiveGateway id="Gateway_0d7bxjf" name="What to do?">
+    <bpmn:exclusiveGateway id="Gateway_0d7bxjf" name="What to do?" default="Flow_0ljlich">
       <bpmn:incoming>Flow_1lbh2cw</bpmn:incoming>
       <bpmn:outgoing>Flow_0ljlich</bpmn:outgoing>
       <bpmn:outgoing>Flow_12rg9de</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:sequenceFlow id="Flow_0ljlich" name="Execute agent" sourceRef="Gateway_0d7bxjf" targetRef="Gateway_1adi5t3">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=action = "executeAgent"</bpmn:conditionExpression>
-    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0ljlich" name="Execute agent" sourceRef="Gateway_0d7bxjf" targetRef="Gateway_1adi5t3" />
     <bpmn:serviceTask id="Resolve_Schema" name="Resolve Schema">
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="dummy" retries="3" />

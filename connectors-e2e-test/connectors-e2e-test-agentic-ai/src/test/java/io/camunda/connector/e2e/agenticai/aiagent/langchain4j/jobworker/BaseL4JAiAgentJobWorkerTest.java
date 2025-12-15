@@ -150,9 +150,8 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
                 .build(),
             userSatisfiedFeedback()));
 
-    final var processVariables =
-        new HashMap<>(
-            Map.<String, Object>of("action", "executeAgent", "userPrompt", initialUserPrompt));
+    final Map<String, Object> processVariables = new HashMap<>();
+    processVariables.put("userPrompt", initialUserPrompt);
     processVariables.putAll(extraProcessVariables);
 
     final var zeebeTest = createProcessInstance(process, elementTemplateModifier, processVariables);
@@ -274,9 +273,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
 
     final var zeebeTest =
         createProcessInstance(
-            process,
-            elementTemplateModifier,
-            Map.of("action", "executeAgent", "userPrompt", initialUserPrompt));
+            process, elementTemplateModifier, Map.of("userPrompt", initialUserPrompt));
 
     return Pair.of(expectedConversation, zeebeTest);
   }

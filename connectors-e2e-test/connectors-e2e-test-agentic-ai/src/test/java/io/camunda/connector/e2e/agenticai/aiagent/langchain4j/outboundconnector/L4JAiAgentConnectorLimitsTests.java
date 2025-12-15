@@ -79,8 +79,7 @@ public class L4JAiAgentConnectorLimitsTests extends BaseL4JAiAgentConnectorTest 
 
     final var zeebeTest =
         createProcessInstance(
-                elementTemplateModifier,
-                Map.of("action", "executeAgent", "userPrompt", "Write a haiku about the sea"))
+                elementTemplateModifier, Map.of("userPrompt", "Write a haiku about the sea"))
             .waitForActiveIncidents();
 
     assertIncident(

@@ -88,8 +88,6 @@ public class L4JAiAgentConnectorUserPromptDocumentsTests extends BaseL4JAiAgentC
                 elementTemplate ->
                     elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S"),
                 Map.of(
-                    "action",
-                    "executeAgent",
                     "userPrompt",
                     initialUserPrompt,
                     "downloadUrls",
@@ -143,8 +141,6 @@ public class L4JAiAgentConnectorUserPromptDocumentsTests extends BaseL4JAiAgentC
                 elementTemplate ->
                     elementTemplate.property("retryCount", "3").property("retryBackoff", "PT2S"),
                 Map.of(
-                    "action",
-                    "executeAgent",
                     "userPrompt",
                     initialUserPrompt,
                     "downloadUrls",
@@ -174,8 +170,6 @@ public class L4JAiAgentConnectorUserPromptDocumentsTests extends BaseL4JAiAgentC
     final var zeebeTest =
         createProcessInstance(
                 Map.of(
-                    "action",
-                    "executeAgent",
                     "userPrompt",
                     "Summarize the following document",
                     "downloadUrls",
