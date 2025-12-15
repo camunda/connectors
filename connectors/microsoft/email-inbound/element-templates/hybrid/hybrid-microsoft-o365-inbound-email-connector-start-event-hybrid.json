@@ -16,14 +16,20 @@
     "value" : "bpmn:StartEvent"
   },
   "engines" : {
-    "camunda" : "^8.7"
+    "camunda" : "^8.9"
   },
   "groups" : [ {
     "id" : "connectorType",
     "label" : "Connector type"
   }, {
-    "id" : "default",
-    "label" : "Properties"
+    "id" : "authentication",
+    "label" : "Authentication"
+  }, {
+    "id" : "pollingConfig",
+    "label" : "Polling Configuration"
+  }, {
+    "id" : "postprocessing",
+    "label" : "Postprocessing"
   }, {
     "id" : "activation",
     "label" : "Activation"
@@ -38,6 +44,226 @@
     "binding" : {
       "name" : "inbound.type",
       "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.tenantId",
+    "label" : "Tenant id",
+    "description" : "The tenant id. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.tenantId",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.clientId",
+    "label" : "Client id",
+    "description" : "The client if of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.clientId",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.clientSecret",
+    "label" : "Client secret",
+    "description" : "The client secret of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.clientSecret",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.userId",
+    "label" : "User ID/User Principal Name",
+    "description" : "The ID or Principal Name of the mailboxes owner.",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "data.userId",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.isUserId",
+    "label" : "Specified User ID",
+    "description" : "Did you specify a User ID?",
+    "optional" : false,
+    "feel" : "static",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "data.isUserId",
+      "type" : "zeebe:property"
+    },
+    "tooltip" : "To prevent name collisions, you can instead specify the folder ID. <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties' target='_blank'> See the folder Properties described in the API</a> ",
+    "type" : "Boolean"
+  }, {
+    "id" : "data.folderName",
+    "label" : "Folder Name/Folder ID",
+    "description" : "The folder name or folder ID. Folder names must be unique.",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "data.folderName",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.isFolderId",
+    "label" : "Specified folder ID",
+    "description" : "Did you specify a folder ID?",
+    "optional" : false,
+    "feel" : "static",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "data.isFolderId",
+      "type" : "zeebe:property"
+    },
+    "tooltip" : "To prevent name collisions, you can instead specify the folder ID. <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties' target='_blank'> See the folder Properties described in the API</a> ",
+    "type" : "Boolean"
+  }, {
+    "id" : "data.pollingInterval",
+    "label" : "Polling interval",
+    "optional" : false,
+    "value" : "PT30S",
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "data.pollingInterval",
+      "type" : "zeebe:property"
+    },
+    "tooltip" : "The interval between email polling requests, defined as ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
+    "type" : "String"
+  }, {
+    "id" : "data.fieldSelection.data.fieldSelection",
+    "label" : "Field Selection",
+    "value" : "simple",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "data.fieldSelection.data.fieldSelection",
+      "type" : "zeebe:property"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Simple configuration",
+      "value" : "simpleconfiguration"
+    }, {
+      "name" : "Advanced configuration",
+      "value" : "advancedconfiguration"
+    } ]
+  }, {
+    "id" : "data.fieldSelection.onlyUnread",
+    "label" : "Only unread",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "data.fieldSelection.onlyUnread",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "data.fieldSelection.data.fieldSelection",
+      "equals" : "simpleconfiguration",
+      "type" : "simple"
+    },
+    "type" : "Boolean"
+  }, {
+    "id" : "data.fieldSelection.earliestReceived",
+    "label" : "Earliest received",
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "data.fieldSelection.earliestReceived",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "data.fieldSelection.data.fieldSelection",
+      "equals" : "simpleconfiguration",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.fieldSelection.fields",
+    "label" : "Fields",
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "data.fieldSelection.fields",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "data.fieldSelection.data.fieldSelection",
+      "equals" : "advancedconfiguration",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.processingOperationDiscriminator",
+    "label" : "Postprocessing configuration",
+    "value" : "mark-read",
+    "group" : "postprocessing",
+    "binding" : {
+      "name" : "data.processingOperationDiscriminator",
+      "type" : "zeebe:property"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Delete",
+      "value" : "delete"
+    }, {
+      "name" : "Mark as Read",
+      "value" : "mark-read"
+    }, {
+      "name" : "Move to other folder",
+      "value" : "move"
+    } ]
+  }, {
+    "id" : "force",
+    "label" : "Tick if email should be really deleted.",
+    "optional" : false,
+    "feel" : "static",
+    "group" : "postprocessing",
+    "binding" : {
+      "name" : "force",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "data.processingOperationDiscriminator",
+      "equals" : "delete",
+      "type" : "simple"
+    },
+    "type" : "Boolean"
+  }, {
+    "id" : "targetFolder",
+    "label" : "Target folder",
+    "feel" : "optional",
+    "group" : "postprocessing",
+    "binding" : {
+      "name" : "targetFolder",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "data.processingOperationDiscriminator",
+      "equals" : "move",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
