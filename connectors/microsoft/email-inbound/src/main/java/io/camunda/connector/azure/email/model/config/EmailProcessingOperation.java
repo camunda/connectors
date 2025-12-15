@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.azure.email.model.config;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -15,8 +17,20 @@ import jakarta.validation.constraints.NotNull;
 @TemplateDiscriminatorProperty(
     label = "Postprocessing configuration",
     group = "postprocessing",
-    name = "pollingConfig.processingOperationDiscriminator",
+    name = "processingOperationDiscriminator",
     defaultValue = EmailProcessingOperation.MarkAsReadOperation.TYPE)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "processingOperationDiscriminator")
+@JsonSubTypes({
+  @JsonSubTypes.Type(
+      value = EmailProcessingOperation.DeleteOperation.class,
+      name = EmailProcessingOperation.DeleteOperation.TYPE),
+  @JsonSubTypes.Type(
+      value = EmailProcessingOperation.MarkAsReadOperation.class,
+      name = EmailProcessingOperation.MarkAsReadOperation.TYPE),
+  @JsonSubTypes.Type(
+      value = EmailProcessingOperation.MoveOperation.class,
+      name = EmailProcessingOperation.MoveOperation.TYPE),
+})
 public sealed interface EmailProcessingOperation {
 
   @TemplateSubType(id = DeleteOperation.TYPE, label = "Delete")
