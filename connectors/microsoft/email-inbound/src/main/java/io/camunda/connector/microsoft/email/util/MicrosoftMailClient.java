@@ -21,7 +21,7 @@ import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.microsoft.email.model.config.Folder;
-import io.camunda.connector.microsoft.email.model.config.MsInboundEmailProperties;
+import io.camunda.connector.microsoft.email.model.config.InboundAuthentication;
 import io.camunda.connector.microsoft.email.model.output.EmailMessage;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +33,7 @@ public class MicrosoftMailClient implements MailClient {
   private final GraphServiceClient client;
   private final UserItemRequestBuilder graphClient;
 
-  public MicrosoftMailClient(MsInboundEmailProperties properties) {
+  public MicrosoftMailClient(InboundAuthentication auth, String userId) {
     // The client credentials flow requires that you request the
     // /.default scope, and pre-configure your permissions on the
     // app registration in Azure. An administrator must grant consent
@@ -42,12 +42,12 @@ public class MicrosoftMailClient implements MailClient {
 
     final ClientSecretCredential credential =
         new ClientSecretCredentialBuilder()
-            .clientId(properties.authentication().clientId())
-            .tenantId(properties.authentication().tenantId())
-            .clientSecret(properties.authentication().clientSecret())
+            .clientId(auth.clientId())
+            .tenantId(auth.tenantId())
+            .clientSecret(auth.clientSecret())
             .build();
     client = new GraphServiceClient(credential, scopes);
-    graphClient = client.users().byUserId(properties.pollingConfig().userId());
+    graphClient = client.users().byUserId(userId);
   }
 
   private String getFolderId(Folder folder) {
