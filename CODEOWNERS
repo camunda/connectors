@@ -6,7 +6,12 @@
 /connectors/idp-extraction @camunda/connectors-idp @camunda/connectors
 /connectors/embeddings-vector-database @camunda/connectors-agentic-ai @camunda/connectors
 /connectors-e2e-test/connectors-e2e-test-agentic-ai @camunda/connectors-agentic-ai @camunda/connectors
+
 # These files are excluded so that Renovate can automatically merge dependency upgrades
-renovate.json5
-.ci/preview-environments/charts/c8sm/Chart.yaml
+renovate.json
+**/*.yaml
+**/*.yml
+**/Dockerfile
+**/docker-images.properties
+.tool-versions
 **/pom.xml
