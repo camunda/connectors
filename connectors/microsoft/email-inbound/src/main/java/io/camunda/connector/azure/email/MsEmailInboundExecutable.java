@@ -13,8 +13,6 @@ import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.azure.email.model.config.MsInboundEmailProperties;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import java.time.Duration;
-import java.util.concurrent.ScheduledExecutorService;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
