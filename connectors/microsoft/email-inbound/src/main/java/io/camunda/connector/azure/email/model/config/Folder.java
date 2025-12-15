@@ -28,4 +28,4 @@ public record Folder(
             tooltip =
                 "To prevent name collisions, you can instead specify the folder ID. <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties' target='_blank'> See the folder Properties described in the API</a> ")
         @FEEL
-    boolean isFolderId) {}
+        boolean isFolderId) {}
