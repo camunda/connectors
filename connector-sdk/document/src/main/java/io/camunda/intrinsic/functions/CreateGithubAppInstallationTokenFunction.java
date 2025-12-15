@@ -19,6 +19,8 @@ package io.camunda.intrinsic.functions;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.intrinsic.IntrinsicFunction;
+import io.camunda.intrinsic.IntrinsicFunctionProvider;
 import java.io.IOException;
 import java.io.StringReader;
 import java.security.KeyFactory;
@@ -30,8 +32,6 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
-
-import io.camunda.intrinsic.IntrinsicFunctionProvider;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
