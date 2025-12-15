@@ -20,14 +20,13 @@ import org.slf4j.LoggerFactory;
 public class EmailPollingWorker implements Runnable {
   private final InboundConnectorContext context;
   private final ScheduledExecutorService scheduler;
-  private final MsInboundEmailProperties properties;
   private final MailClient.OpaqueMessageFetcher fetcher;
   private static final Logger LOGGER = LoggerFactory.getLogger(EmailPollingWorker.class);
 
   public EmailPollingWorker(InboundConnectorContext context) {
     this.context = context;
-    this.properties = context.bindProperties(MsInboundEmailProperties.class);
-    MicrosoftMailClient client = new MicrosoftMailClient(properties);
+    MsInboundEmailProperties properties = context.bindProperties(MsInboundEmailProperties.class);
+    MicrosoftMailClient client = new MicrosoftMailClient(properties.authentication(), properties.pollingConfig().userId());
     var messageProcessor = new MessageProcessor(properties.operation(), client, context);
     // Doing this here to establish connection/access rights
     this.fetcher =
@@ -44,8 +43,16 @@ public class EmailPollingWorker implements Runnable {
   public void run() {
     try {
       fetcher.poll();
+      context.reportHealth(Health.up());
     } catch (RuntimeException e) {
       LOGGER.error("Uncaught exception in Microsoft Inbound Mail connector", e);
+      context.log(
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withTag("polling-error")
+                  .withMessage("Error polling emails: " + e.getMessage()));
+      context.reportHealth(Health.down(e));
     }
   }
 

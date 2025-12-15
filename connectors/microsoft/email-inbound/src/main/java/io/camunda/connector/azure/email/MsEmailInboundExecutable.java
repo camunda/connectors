@@ -41,8 +41,15 @@ public class MsEmailInboundExecutable
 
   @Override
   public void activate(InboundConnectorContext context) {
-    worker = new EmailPollingWorker(context);
     this.context = context;
+    try {
+      worker = new EmailPollingWorker(context);
+      context.reportHealth(Health.up());
+    } catch (Exception e) {
+      LOGGER.error("Failed to activate Microsoft O365 Email Inbound connector", e);
+      context.reportHealth(Health.down(e));
+      throw e;
+    }
   }
 
   @Override
