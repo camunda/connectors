@@ -6,17 +6,31 @@
  */
 package io.camunda.connector.azure.email.util;
 
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.azure.email.model.config.Folder;
 import io.camunda.connector.azure.email.model.output.EmailMessage;
 import java.util.List;
+import java.util.function.Consumer;
 
 public interface MailClient {
-  String getFolderIdByFolderName(String folderName);
+  String getFolderId(Folder folder);
 
-  List<EmailMessage> getMessages(String filterString);
+  /**
+   * This method polls the Mailserver once and returns all matching messages. It then returns a
+   * delta which needs to be passed to the funtion to continue from a given offset. This reduces the
+   * likelyhood of reprocessing messages
+   *
+   * @param filterString an OData filter string that restricts the Messages returned
+   * @param handler
+   * @return The delta token
+   */
+  String getMessages(String deltaToken, String filterString, Consumer<EmailMessage> handler);
 
   void deleteMessage(EmailMessage msg, boolean force);
 
   void markMessageRead(EmailMessage msg);
 
-  void moveMessage(EmailMessage msg, String targetFolderId);
+  void moveMessage(EmailMessage msg, Folder folder);
+
+  List<Document> fetchAttachments(EmailMessage msg);
 }
