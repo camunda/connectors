@@ -9,22 +9,32 @@ package io.camunda.connector.microsoft.email;
 
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.microsoft.email.model.config.MsInboundEmailProperties;
+import io.camunda.connector.microsoft.email.util.MailClient;
 import io.camunda.connector.microsoft.email.util.MicrosoftMailClient;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-// TODO: Use ScheduledExecutor
-// TODO: Use Delta polling
 public class EmailPollingWorker implements Runnable {
   private final InboundConnectorContext context;
   private final ScheduledExecutorService scheduler;
   private final MsInboundEmailProperties properties;
-  private String deltaToken = null;
+  private final MailClient.OpaqueMessageFetcher fetcher;
+  private static final Logger LOGGER = LoggerFactory.getLogger(EmailPollingWorker.class);
 
   public EmailPollingWorker(InboundConnectorContext context) {
     this.context = context;
     this.properties = context.bindProperties(MsInboundEmailProperties.class);
+    MicrosoftMailClient client = new MicrosoftMailClient(properties);
+    var messageProcessor = new MessageProcessor(properties, client, context);
+    // TODO: Don't do this here. This is a first call
+    this.fetcher =
+        client.constructMessageFetcher(
+            properties.pollingConfig().folder(),
+            properties.pollingConfig().getFilter(),
+            messageProcessor::handleMessage);
     this.scheduler = Executors.newSingleThreadScheduledExecutor();
     scheduler.scheduleWithFixedDelay(
         this, 0, properties.pollingConfig().pollingInterval().toMillis(), TimeUnit.MILLISECONDS);
@@ -32,14 +42,11 @@ public class EmailPollingWorker implements Runnable {
 
   @Override
   public void run() {
-    MicrosoftMailClient client = new MicrosoftMailClient(properties);
-    var messageProcessor = new MessageProcessor(properties, client, context);
-    deltaToken =
-        client.getMessages(
-            deltaToken,
-            properties.pollingConfig().folder(),
-            properties.pollingConfig().getFilter(),
-            messageProcessor::handleMessage);
+    try {
+      fetcher.poll();
+    } catch (RuntimeException e) {
+      LOGGER.error("Uncaught exception in Microsoft Inbound Mail connector", e);
+    }
   }
 
   public void forceShutdown() {

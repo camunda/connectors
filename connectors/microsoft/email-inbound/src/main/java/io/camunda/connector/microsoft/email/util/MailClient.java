@@ -7,25 +7,30 @@
 package io.camunda.connector.microsoft.email.util;
 
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.microsoft.email.model.config.Folder;
 import io.camunda.connector.microsoft.email.model.output.EmailMessage;
 import java.util.List;
 import java.util.function.Consumer;
 
 public interface MailClient {
+  interface OpaqueMessageFetcher {
+    void poll();
+  }
+
   String getFolderId(Folder folder);
 
   /**
-   * This method polls the Mailserver once and returns all matching messages. It then returns a
-   * delta which needs to be passed to the funtion to continue from a given offset. This reduces the
-   * likelyhood of reprocessing messages
+   * Construct a client that can be repeatedly polled to process messages using the handler It
+   * preserves its iteration position internally. As such, there should be no concurrent access to
+   * it
    *
    * @param filterString an OData filter string that restricts the Messages returned
-   * @param handler
-   * @return The delta token
+   * @param handler a function to which each received message will be passed
+   * @return the consuming client
    */
-  String getMessages(
-      String deltaToken, Folder folder, String filterString, Consumer<EmailMessage> handler);
+  OpaqueMessageFetcher constructMessageFetcher(
+      Folder folder, String filterString, Consumer<EmailMessage> handler);
 
   void deleteMessage(EmailMessage msg, boolean force);
 
@@ -33,5 +38,5 @@ public interface MailClient {
 
   void moveMessage(EmailMessage msg, Folder folder);
 
-  List<Document> fetchAttachments(EmailMessage msg);
+  List<Document> fetchAttachments(InboundConnectorContext context, EmailMessage msg);
 }
