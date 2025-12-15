@@ -8,13 +8,18 @@ package io.camunda.connector.microsoft.email.util;
 
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
+import com.microsoft.graph.models.Message;
 import com.microsoft.graph.serviceclient.GraphServiceClient;
 import com.microsoft.graph.users.item.UserItemRequestBuilder;
+import com.microsoft.graph.users.item.messages.item.MessageItemRequestBuilder;
+import com.microsoft.graph.users.item.messages.item.move.MovePostRequestBody;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.microsoft.email.model.config.Folder;
 import io.camunda.connector.microsoft.email.model.config.MsInboundEmailProperties;
 import io.camunda.connector.microsoft.email.model.output.EmailMessage;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class MicrosoftMailClient implements MailClient {
 
@@ -48,8 +53,7 @@ public class MicrosoftMailClient implements MailClient {
     };
   }
 
-  @Override
-  public String getFolderIdByFolderName(String folderName) {
+  private String getFolderIdByFolderName(String folderName) {
     var resp =
         graphClient
             .mailFolders()
@@ -70,18 +74,42 @@ public class MicrosoftMailClient implements MailClient {
   }
 
   @Override
-  public List<EmailMessage> getMessages(String filterString) {
-    return List.of();
+  public String getMessages(
+      String deltaToken, String filterString, Consumer<EmailMessage> handler) {
+    return null;
+  }
+
+  private MessageItemRequestBuilder constructCommonMessage(EmailMessage msg) {
+    return graphClient.messages().byMessageId(msg.id());
   }
 
   @Override
-  public void deleteMessage(EmailMessage msg, boolean force) {}
+  public void deleteMessage(EmailMessage msg, boolean force) {
+    if (force) constructCommonMessage(msg).permanentDelete();
+    else {
+      constructCommonMessage(msg).delete();
+    }
+  }
 
   @Override
-  public void markMessageRead(EmailMessage msg) {}
+  public void markMessageRead(EmailMessage msg) {
+    Message updatedMessage = new Message();
+    updatedMessage.setIsRead(true);
+    constructCommonMessage(msg).patch(updatedMessage);
+  }
 
   @Override
-  public void moveMessage(EmailMessage msg, String targetFolderId) {}
+  public void moveMessage(EmailMessage msg, Folder folder) {
+    String folderId = getFolderId(folder);
+    var body = new MovePostRequestBody();
+    body.setDestinationId(folderId);
+    constructCommonMessage(msg).move().post(body);
+  }
+
+  @Override
+  public List<Document> fetchAttachments(EmailMessage msg) {
+    return List.of();
+  }
 
   @Deprecated
   public UserItemRequestBuilder getClient() {

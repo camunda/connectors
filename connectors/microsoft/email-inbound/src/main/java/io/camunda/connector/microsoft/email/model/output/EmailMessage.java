@@ -14,6 +14,8 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 public record EmailMessage(
+    String id,
+    String conversationId,
     EmailAddress sender,
     List<EmailAddress> recipients,
     List<EmailAddress> cc,
@@ -28,6 +30,8 @@ public record EmailMessage(
 
   public EmailMessage(Message message, List<Document> documents) {
     this(
+        message.getId(),
+        message.getConversationId(),
         new EmailAddress(message.getSender()),
         transformList(message.getToRecipients()),
         transformList(message.getCcRecipients()),
@@ -40,8 +44,24 @@ public record EmailMessage(
         documents);
   }
 
+  public EmailMessage(EmailMessage message, List<Document> documents) {
+    this(
+        message.id,
+        message.conversationId,
+        message.sender,
+        message.recipients,
+        message.cc,
+        message.bcc,
+        message.subject,
+        message.body,
+        message.receivedDateTime,
+        documents);
+  }
+
   public static String[] getSelect() {
     return new String[] {
+      "id",
+      "conversationId",
       "sender",
       "toRecipients",
       "ccRecipients",
@@ -49,8 +69,7 @@ public record EmailMessage(
       "subject",
       "body",
       "receivedDateTime",
-      "hasAttachments",
-      "id"
+      "hasAttachments"
     };
   }
 }
