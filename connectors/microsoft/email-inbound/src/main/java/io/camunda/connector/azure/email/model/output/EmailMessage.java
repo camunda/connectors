@@ -15,6 +15,8 @@ import java.util.List;
 
 // FIXME: Try to return the Microsoft Message directly
 public record EmailMessage(
+    String id,
+    String conversationId,
     EmailAddress sender,
     List<EmailAddress> recipients,
     List<EmailAddress> cc,
@@ -35,9 +37,35 @@ public record EmailMessage(
     var bcc = transformList(message.getBccRecipients());
     String body = null;
     if (message.getBody() != null && message.getBody().getContent() != null) {
+      // TODO: Should we also preserve message type?
+      // Also is this too large by default? N8n only grabs bodyPreview
       body = message.getBody().getContent();
     }
     var receivedTime = message.getReceivedDateTime();
-    this(sender, recipients, cc, bcc, message.getSubject(), body, receivedTime, documents);
+    this(
+        message.getId(),
+        message.getConversationId(),
+        sender,
+        recipients,
+        cc,
+        bcc,
+        message.getSubject(),
+        body,
+        receivedTime,
+        documents);
+  }
+
+  public static String[] getSelect() {
+    return new String[] {
+      "conversationId",
+      "sender",
+      "toRecipients",
+      "ccRecipients",
+      "bccRecipients",
+      "subject",
+      "body",
+      "receivedDateTime",
+      "hasAttachments"
+    };
   }
 }

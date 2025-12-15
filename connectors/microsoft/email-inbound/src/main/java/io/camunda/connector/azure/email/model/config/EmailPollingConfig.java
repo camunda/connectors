@@ -29,4 +29,9 @@ public record EmailPollingConfig(
         @FEEL
         Duration pollingInterval,
     @NestedProperties() Folder folder,
-    @NestedProperties() FieldSelection fieldSelection) {}
+    @NestedProperties() FilterCriteria filterCriteria) {
+  public String getFilter() {
+
+    return filterCriteria.getFilterString();
+  }
+}

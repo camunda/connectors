@@ -13,7 +13,7 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 @TemplateDiscriminatorProperty(
     label = "Postprocessing configuration",
     group = "postprocessing",
-    name = "data.processingOperationDiscriminator",
+    name = "pollingConfig.processingOperationDiscriminator",
     defaultValue = EmailProcessingOperation.MarkAsReadOperation.TYPE)
 public sealed interface EmailProcessingOperation {
 

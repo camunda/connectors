@@ -7,8 +7,6 @@
 
 package io.camunda.connector.azure.email;
 
-import com.azure.identity.ClientSecretCredential;
-import com.azure.identity.ClientSecretCredentialBuilder;
 import com.microsoft.graph.core.tasks.PageIterator;
 import com.microsoft.graph.models.Message;
 import com.microsoft.graph.models.MessageCollectionResponse;
@@ -20,6 +18,7 @@ import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.azure.email.model.config.EmailProcessingOperation;
 import io.camunda.connector.azure.email.model.config.MsInboundEmailProperties;
 import io.camunda.connector.azure.email.model.output.EmailMessage;
+import io.camunda.connector.azure.email.util.MicrosoftMailClient;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,40 +40,31 @@ public class EmailPollingWorker implements Runnable {
 
   @Override
   public void run() {
-    // The client credentials flow requires that you request the
-    // /.default scope, and pre-configure your permissions on the
-    // app registration in Azure. An administrator must grant consent
-    // to those permissions beforehand.
-    final String[] scopes = new String[] {"https://graph.microsoft.com/.default"};
-    // FIXME: We currently allow users to query properties through filter
-    // that we don't map into the output response
-    final ClientSecretCredential credential =
-        new ClientSecretCredentialBuilder()
-            .clientId(properties.authentication().clientId())
-            .tenantId(properties.authentication().tenantId())
-            .clientSecret(properties.authentication().clientSecret())
-            .build();
-    final GraphServiceClient graphClient = new GraphServiceClient(credential, scopes);
-    //    graphClient.users().get(getRequestConfiguration -> getRequestConfiguration
-    //            .queryParameters.filter("principalName eq" + properties.data().userId() ));
+    MicrosoftMailClient client = new MicrosoftMailClient(properties);
+    String folderId = properties.pollingConfig().folder().folderName();
+    if (!properties.pollingConfig().folder().isFolderId()) {
+      folderId = client.getFolderIdByFolderName(folderId);
+    }
     MessageCollectionResponse messageResponse =
-        graphClient
-            .users()
-            .byUserId(properties.data().userId())
+        client
+            .getClient()
+            .mailFolders()
+            .byMailFolderId(folderId)
             .messages()
             // .delta() // TODO: Check if this works
             .get(
                 requestConfiguration -> {
                   requestConfiguration.headers.add("Prefer", "outlook.body-content-type=\"text\"");
-                  requestConfiguration.queryParameters.select =
-                      new String[] {properties.data().folder().folderName()};
+                  requestConfiguration.queryParameters.filter =
+                      properties.pollingConfig().getFilter();
+                  requestConfiguration.queryParameters.select = EmailMessage.getSelect();
                   requestConfiguration.queryParameters.top = 10;
                 });
     // FIXME: How do I get the @odata.deltaLink out of the iterator
     while (!shouldStop.get()) {
       final var pageIterator =
           new PageIterator.Builder<Message, MessageCollectionResponse>()
-              .client(graphClient)
+              .client(client.getGraphclient())
               .collectionPage(Objects.requireNonNull(messageResponse))
               .collectionPageFactory(MessageCollectionResponse::createFromDiscriminatorValue)
               .requestConfigurator(
@@ -82,13 +72,13 @@ public class EmailPollingWorker implements Runnable {
                     // Re-add the header and query parameters to subsequent requests
                     requestInfo.headers.add("Prefer", "outlook.body-content-type=\"text\"");
                     requestInfo.addQueryParameter(
-                        "%24select", properties.data().folder().folderName());
+                        "%24select", properties.pollingConfig().getFilter());
                     requestInfo.addQueryParameter("%24top", 10);
                     return requestInfo;
                   })
               .processPageItemCallback(
                   msg -> {
-                    this.handleMessage(graphClient, msg);
+                    this.handleMessage(client.getGraphclient(), msg);
                     return shouldStop.get();
                   });
       try {
@@ -101,7 +91,7 @@ public class EmailPollingWorker implements Runnable {
         return;
       }
       try {
-        Thread.sleep(properties.data().pollingInterval());
+        Thread.sleep(properties.pollingConfig().pollingInterval());
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         break;
@@ -140,7 +130,11 @@ public class EmailPollingWorker implements Runnable {
   // FIXME: Introduce interface for MSEmail Service
   private void postprocess(GraphServiceClient client, Message message) {
     var partialMessageRequest =
-        client.users().byUserId(properties.data().userId()).messages().byMessageId(message.getId());
+        client
+            .users()
+            .byUserId(properties.pollingConfig().userId())
+            .messages()
+            .byMessageId(message.getId());
     switch (properties.operation()) {
       case EmailProcessingOperation.MoveOperation m -> {
         var moveRequest = new MovePostRequestBody();
