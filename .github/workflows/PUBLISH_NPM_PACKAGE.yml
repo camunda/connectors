@@ -65,7 +65,7 @@ jobs:
           private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
 
       - name: Create pull request to main branch
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ steps.app-token.outputs.token }}
           branch: chore/bump-npm-package-version
