@@ -50,8 +50,7 @@ public class MicrosoftMailClient implements MailClient {
     graphClient = client.users().byUserId(properties.pollingConfig().userId());
   }
 
-  @Override
-  public String getFolderId(Folder folder) {
+  private String getFolderId(Folder folder) {
     if (folder.isFolderId()) {
       return folder.folderName();
     }
@@ -162,7 +161,7 @@ public class MicrosoftMailClient implements MailClient {
     if (constructCommonMessage(msg).attachments().count().get() == 0) {
       return List.of();
     }
-    var docs = new ArrayList<>();
+    ArrayList<Document> docs = new ArrayList<>();
     for (var attachment :
         Objects.requireNonNull(constructCommonMessage(msg).attachments().get().getValue())) {
       if (attachment instanceof FileAttachment file) {
