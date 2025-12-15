@@ -27,7 +27,7 @@
     "label" : "Authentication"
   }, {
     "id" : "pollingConfig",
-    "label" : "Polling Configuration"
+    "label" : "Listener Information"
   }, {
     "id" : "postprocessing",
     "label" : "Postprocessing"
@@ -109,44 +109,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.isUserId",
-    "label" : "Specified User ID",
-    "description" : "Did you specify a User ID?",
-    "optional" : false,
-    "feel" : "static",
-    "group" : "pollingConfig",
-    "binding" : {
-      "name" : "data.isUserId",
-      "type" : "zeebe:property"
-    },
-    "tooltip" : "To prevent name collisions, you can instead specify the folder ID. <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties' target='_blank'> See the folder Properties described in the API</a> ",
-    "type" : "Boolean"
-  }, {
-    "id" : "data.folderName",
-    "label" : "Folder Name/Folder ID",
-    "description" : "The folder name or folder ID. Folder names must be unique.",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "pollingConfig",
-    "binding" : {
-      "name" : "data.folderName",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "data.isFolderId",
-    "label" : "Specified folder ID",
-    "description" : "Did you specify a folder ID?",
-    "optional" : false,
-    "feel" : "static",
-    "group" : "pollingConfig",
-    "binding" : {
-      "name" : "data.isFolderId",
-      "type" : "zeebe:property"
-    },
-    "tooltip" : "To prevent name collisions, you can instead specify the folder ID. <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties' target='_blank'> See the folder Properties described in the API</a> ",
-    "type" : "Boolean"
-  }, {
     "id" : "data.pollingInterval",
     "label" : "Polling interval",
     "optional" : false,
@@ -160,6 +122,31 @@
     "tooltip" : "The interval between email polling requests, defined as ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
     "type" : "String"
   }, {
+    "id" : "data.folder.folderName",
+    "label" : "Folder Name/Folder ID",
+    "description" : "The folder name or folder ID. Folder names must be unique. Consider using the well-known folder IDs described here",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "data.folder.folderName",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.folder.isFolderId",
+    "label" : "Specified folder ID",
+    "description" : "Did you specify a folder ID?",
+    "optional" : false,
+    "feel" : "static",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "data.folder.isFolderId",
+      "type" : "zeebe:property"
+    },
+    "tooltip" : "To prevent name collisions, you can instead specify the folder ID. <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties' target='_blank'> See the folder Properties described in the API</a> ",
+    "type" : "Boolean"
+  }, {
     "id" : "data.fieldSelection.data.fieldSelection",
     "label" : "Field Selection",
     "value" : "simple",
@@ -170,11 +157,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Simple configuration",
-      "value" : "simpleconfiguration"
+      "name" : "Simple",
+      "value" : "simple"
     }, {
-      "name" : "Advanced configuration",
-      "value" : "advancedconfiguration"
+      "name" : "Advanced",
+      "value" : "advanced"
     } ]
   }, {
     "id" : "data.fieldSelection.onlyUnread",
@@ -186,7 +173,7 @@
     },
     "condition" : {
       "property" : "data.fieldSelection.data.fieldSelection",
-      "equals" : "simpleconfiguration",
+      "equals" : "simple",
       "type" : "simple"
     },
     "type" : "Boolean"
@@ -201,7 +188,7 @@
     },
     "condition" : {
       "property" : "data.fieldSelection.data.fieldSelection",
-      "equals" : "simpleconfiguration",
+      "equals" : "simple",
       "type" : "simple"
     },
     "type" : "String"
@@ -216,7 +203,7 @@
     },
     "condition" : {
       "property" : "data.fieldSelection.data.fieldSelection",
-      "equals" : "advancedconfiguration",
+      "equals" : "advanced",
       "type" : "simple"
     },
     "type" : "String"
@@ -257,12 +244,14 @@
     },
     "type" : "Boolean"
   }, {
-    "id" : "targetFolder",
-    "label" : "Target folder",
+    "id" : "targetFolder.folderName",
+    "label" : "Folder Name/Folder ID",
+    "description" : "The folder name or folder ID. Folder names must be unique. Consider using the well-known folder IDs described here",
+    "optional" : false,
     "feel" : "optional",
     "group" : "postprocessing",
     "binding" : {
-      "name" : "targetFolder",
+      "name" : "targetFolder.folderName",
       "type" : "zeebe:property"
     },
     "condition" : {
@@ -271,6 +260,24 @@
       "type" : "simple"
     },
     "type" : "String"
+  }, {
+    "id" : "targetFolder.isFolderId",
+    "label" : "Specified folder ID",
+    "description" : "Did you specify a folder ID?",
+    "optional" : false,
+    "feel" : "static",
+    "group" : "postprocessing",
+    "binding" : {
+      "name" : "targetFolder.isFolderId",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "data.processingOperationDiscriminator",
+      "equals" : "move",
+      "type" : "simple"
+    },
+    "tooltip" : "To prevent name collisions, you can instead specify the folder ID. <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties' target='_blank'> See the folder Properties described in the API</a> ",
+    "type" : "Boolean"
   }, {
     "id" : "activationCondition",
     "label" : "Activation condition",

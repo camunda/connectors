@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
     metadata = @ElementTemplate.Metadata(keywords = {"email", "Office365", "Outlook"}),
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
-      @ElementTemplate.PropertyGroup(id = "pollingConfig", label = "Polling Configuration"),
+      @ElementTemplate.PropertyGroup(id = "pollingConfig", label = "Listener Information"),
       @ElementTemplate.PropertyGroup(id = "postprocessing", label = "Postprocessing")
     })
 public class MsEmailInboundExecutable
