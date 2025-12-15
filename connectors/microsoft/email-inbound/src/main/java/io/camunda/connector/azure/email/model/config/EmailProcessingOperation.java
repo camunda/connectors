@@ -8,6 +8,7 @@ package io.camunda.connector.azure.email.model.config;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -33,7 +34,7 @@ public sealed interface EmailProcessingOperation {
 
   @TemplateSubType(id = DeleteOperation.TYPE, label = "Delete")
   record DeleteOperation(
-      @TemplateProperty(label = "Tick if email should be really deleted.") boolean force)
+      @TemplateProperty(label = "Tick if email should be really deleted.") @FEEL boolean force)
       implements EmailProcessingOperation {
     @TemplateProperty(ignore = true)
     public static final String TYPE = "delete";
