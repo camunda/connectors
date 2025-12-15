@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.microsoft.email;
 
-import com.microsoft.graph.models.Message;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.microsoft.email.model.config.EmailProcessingOperation;
@@ -25,6 +24,26 @@ public class MessageProcessor {
     this.properties = properties;
     this.client = client;
     this.context = context;
+  }
+
+  public void handleMessage(EmailMessage message) {
+    var shouldPostprocess =
+        switch (context.canActivate(message)) {
+          case ActivationCheckResult.Success _ -> correlate(message);
+          case ActivationCheckResult.Failure.NoMatchingElement e -> {
+            if (e.discardUnmatchedEvents()) {
+              yield ShouldPostprocess.NO;
+            }
+            yield ShouldPostprocess.YES;
+          }
+          case ActivationCheckResult.Failure.TooManyMatchingElements _ -> {
+            // TODO: log error
+            yield ShouldPostprocess.NO;
+          }
+        };
+    if (shouldPostprocess == ShouldPostprocess.YES) {
+      postprocess(message);
+    }
   }
 
   private void postprocess(EmailMessage message) {
@@ -66,33 +85,8 @@ public class MessageProcessor {
     };
   }
 
-  private List<Document> extractAttachments(Message message) {
-    // FIXME: Get attachments
-    return List.of();
-  }
-
   private enum ShouldPostprocess {
     YES,
     NO
-  }
-
-  public void handleMessage(EmailMessage message) {
-    var shouldPostprocess =
-        switch (context.canActivate(message)) {
-          case ActivationCheckResult.Success _ -> correlate(message);
-          case ActivationCheckResult.Failure.NoMatchingElement e -> {
-            if (e.discardUnmatchedEvents()) {
-              yield ShouldPostprocess.NO;
-            }
-            yield ShouldPostprocess.YES;
-          }
-          case ActivationCheckResult.Failure.TooManyMatchingElements _ -> {
-            // TODO: log error
-            yield ShouldPostprocess.NO;
-          }
-        };
-    if (shouldPostprocess == ShouldPostprocess.YES) {
-      postprocess(message);
-    }
   }
 }
