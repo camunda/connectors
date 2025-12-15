@@ -61,7 +61,7 @@
         <configuration>
           <connectors>
             <connector>
-              <connectorClass>io.camunda.connector.azure.email.MsEmailInboundExecutable</connectorClass>
+              <connectorClass>io.camunda.connector.microsoft.email.MsEmailInboundExecutable</connectorClass>
               <files>
                 <file>
                   <templateId>io.camunda.connectors.MSFT.O365.Mail.inbound.v1</templateId>
