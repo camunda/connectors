@@ -10,61 +10,47 @@ package io.camunda.connector.azure.email;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.azure.email.model.config.MsInboundEmailProperties;
 import io.camunda.connector.azure.email.util.MicrosoftMailClient;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 // TODO: Use ScheduledExecutor
 // TODO: Use Delta polling
 public class EmailPollingWorker implements Runnable {
   private final InboundConnectorContext context;
-  private final Thread thread;
-  private final AtomicBoolean shouldStop;
+  private final ScheduledExecutorService scheduler;
   private final MsInboundEmailProperties properties;
+  private String deltaToken = null;
 
   public EmailPollingWorker(InboundConnectorContext context) {
     this.context = context;
     this.properties = context.bindProperties(MsInboundEmailProperties.class);
-    this.shouldStop = new AtomicBoolean(false);
-    this.thread = Thread.startVirtualThread(this);
+    this.scheduler = Executors.newSingleThreadScheduledExecutor();
+    scheduler.scheduleWithFixedDelay(
+        this, 0, properties.pollingConfig().pollingInterval().toMillis(), TimeUnit.MILLISECONDS);
   }
 
   @Override
   public void run() {
     MicrosoftMailClient client = new MicrosoftMailClient(properties);
-    String folderId = client.getFolderId(properties.pollingConfig().folder());
-    // FIXME: How do I get the @odata.deltaLink out of the iterator
-    String token = null;
     var messageProcessor = new MessageProcessor(properties, client, context);
-    while (!shouldStop.get()) {
-      token =
-          client.getMessages(
-              token,
-              properties.pollingConfig().folder(),
-              properties.pollingConfig().getFilter(),
-              messageProcessor::handleMessage);
-      if (shouldStop.get()) {
-        return;
-      }
-      try {
-        Thread.sleep(properties.pollingConfig().pollingInterval());
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        break;
-      }
-      if (shouldStop.get()) {
-        return;
-      }
-    }
+    deltaToken =
+        client.getMessages(
+            deltaToken,
+            properties.pollingConfig().folder(),
+            properties.pollingConfig().getFilter(),
+            messageProcessor::handleMessage);
   }
 
   public void forceShutdown() {
-    thread.interrupt();
+    scheduler.shutdownNow();
   }
 
   public void shutdown() {
-    shouldStop.set(true);
+    scheduler.shutdown();
   }
 
   public boolean isShutdown() {
-    return thread.getState().equals(Thread.State.TERMINATED);
+    return scheduler.isShutdown();
   }
 }
