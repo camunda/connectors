@@ -252,6 +252,7 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
               }
             });
     Optional.ofNullable(connection.headers()).ifPresent(builder::customHeaders);
+    Optional.ofNullable(connection.queryParameters()).ifPresent(builder::customQueryParams);
 
     final var modelParameters = connection.model().parameters();
     if (modelParameters != null) {
