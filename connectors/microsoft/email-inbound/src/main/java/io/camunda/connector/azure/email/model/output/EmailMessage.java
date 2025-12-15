@@ -12,20 +12,25 @@ import com.microsoft.graph.models.Message;
 import io.camunda.connector.api.document.Document;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 
+// FIXME: Try to return the Microsoft Message directly
 public record EmailMessage(
-    EmailAddress sender,
-    List<EmailAddress> recipients,
-    List<EmailAddress> cc,
-    List<EmailAddress> bcc,
-    String subject,
-    String body,
-    OffsetDateTime receivedDateTime,
-    List<Document> attachments) {
+        EmailAddress sender,
+        List<EmailAddress> recipients,
+        List<EmailAddress> cc,
+        List<EmailAddress> bcc,
+        String subject,
+        String body,
+        OffsetDateTime receivedDateTime,
+        List<Document> attachments,
+        // FIXME: Do we need this?
+        Map<String, Object> additionalProperties
+) {
   public EmailMessage(Message message) {
     this(message, List.of());
   }
-
+  // FIXME: Dare to return null
   public EmailMessage(Message message, List<Document> documents) {
     var sender = new EmailAddress(message.getSender());
     var recipients = transformList(message.getToRecipients());
@@ -37,6 +42,6 @@ public record EmailMessage(
       body = message.getBody().getContent();
     }
     var receivedTime = message.getReceivedDateTime();
-    this(sender, recipients, cc, bcc, subject, body, receivedTime, documents);
+    this(sender, recipients, cc, bcc, subject, body, receivedTime, documents, null);
   }
 }

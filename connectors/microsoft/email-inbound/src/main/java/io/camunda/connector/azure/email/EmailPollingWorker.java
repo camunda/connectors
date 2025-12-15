@@ -4,35 +4,34 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.azure.email;
 
-import com.azure.identity.ClientSecretCredential;
-import com.azure.identity.ClientSecretCredentialBuilder;
-import com.microsoft.graph.core.tasks.PageIterator;
-import com.microsoft.graph.models.Message;
-import com.microsoft.graph.models.MessageCollectionResponse;
-import com.microsoft.graph.serviceclient.GraphServiceClient;
-import com.microsoft.graph.users.item.messages.item.move.MovePostRequestBody;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.inbound.*;
-import io.camunda.connector.azure.email.model.config.EmailProcessingOperation;
-import io.camunda.connector.azure.email.model.config.MsInboundEmailProperties;
-import io.camunda.connector.azure.email.model.output.EmailMessage;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-public class EmailPollingWorker implements Runnable {
+ package io.camunda.connector.azure.email;
+
+ import com.azure.identity.ClientSecretCredential;
+ import com.azure.identity.ClientSecretCredentialBuilder;
+ import com.microsoft.graph.core.tasks.PageIterator;
+ import com.microsoft.graph.models.Message;
+ import com.microsoft.graph.models.MessageCollectionResponse;
+ import com.microsoft.graph.serviceclient.GraphServiceClient;
+ import com.microsoft.graph.users.item.messages.item.move.MovePostRequestBody;
+ import io.camunda.connector.api.document.Document;
+ import io.camunda.connector.api.error.ConnectorException;
+ import io.camunda.connector.api.inbound.*;
+ import io.camunda.connector.azure.email.model.config.EmailProcessingOperation;
+ import io.camunda.connector.azure.email.model.config.MsInboundEmailProperties;
+ import io.camunda.connector.azure.email.model.output.EmailMessage;
+ import java.util.List;
+ import java.util.Objects;
+ import java.util.concurrent.atomic.AtomicBoolean;
+
+// TODO: Use ScheduledExecutor
+// TODO: Use Delta polling
+ public class EmailPollingWorker implements Runnable {
   private final InboundConnectorContext context;
   private final Thread thread;
   private final AtomicBoolean shouldStop;
   private final MsInboundEmailProperties properties;
-
-  private enum ShouldPostproces {
-    YES,
-    NO
-  }
 
   public EmailPollingWorker(InboundConnectorContext context) {
     this.context = context;
@@ -48,7 +47,8 @@ public class EmailPollingWorker implements Runnable {
     // app registration in Azure. An administrator must grant consent
     // to those permissions beforehand.
     final String[] scopes = new String[] {"https://graph.microsoft.com/.default"};
-
+    // FIXME: We currently allow users to query properties through filter
+    // that we don't map into the output response
     final ClientSecretCredential credential =
         new ClientSecretCredentialBuilder()
             .clientId(properties.authentication().clientId())
@@ -56,17 +56,22 @@ public class EmailPollingWorker implements Runnable {
             .clientSecret(properties.authentication().clientSecret())
             .build();
     final GraphServiceClient graphClient = new GraphServiceClient(credential, scopes);
+//    graphClient.users().get(getRequestConfiguration -> getRequestConfiguration
+//            .queryParameters.filter("principalName eq" + properties.data().userId() ));
     MessageCollectionResponse messageResponse =
         graphClient
             .users()
             .byUserId(properties.data().userId())
             .messages()
+ //.delta() // TODO: Check if this works
             .get(
                 requestConfiguration -> {
-                  requestConfiguration.headers.add("Prefer", "outlook.body-content-type=\"text\"");
-                  requestConfiguration.queryParameters.select = properties.data().selectAsArray();
+                  requestConfiguration.headers.add("Prefer",
+ "outlook.body-content-type=\"text\"");
+                  requestConfiguration.queryParameters.select = new String[]{properties.data().folderName()};
                   requestConfiguration.queryParameters.top = 10;
                 });
+   // FIXME: How do I get the @odata.deltaLink out of the iterator
     while (!shouldStop.get()) {
       final var pageIterator =
           new PageIterator.Builder<Message, MessageCollectionResponse>()
@@ -77,7 +82,7 @@ public class EmailPollingWorker implements Runnable {
                   requestInfo -> {
                     // Re-add the header and query parameters to subsequent requests
                     requestInfo.headers.add("Prefer", "outlook.body-content-type=\"text\"");
-                    requestInfo.addQueryParameter("%24select", properties.data().selectAsArray());
+                    requestInfo.addQueryParameter("%24select", properties.data().folderName());
                     requestInfo.addQueryParameter("%24top", 10);
                     return requestInfo;
                   })
@@ -107,6 +112,11 @@ public class EmailPollingWorker implements Runnable {
     }
   }
 
+  private enum ShouldPostproces {
+    YES,
+    NO
+  }
+
   private void handleMessage(GraphServiceClient client, Message message) {
     var shouldPostprocess =
         switch (context.canActivate(new EmailMessage(message))) {
@@ -126,10 +136,11 @@ public class EmailPollingWorker implements Runnable {
       postprocess(client, message);
     }
   }
-
+    // FIXME: Introduce interface for MSEmail Service
   private void postprocess(GraphServiceClient client, Message message) {
-    var partialMessageRequest =
-        client.users().byUserId(properties.data().userId()).messages().byMessageId(message.getId());
+    var partialMessageRequest = client.users()
+            .byUserId(properties.data().userId())
+            .messages().byMessageId(message.getId());
     switch (properties.operation()) {
       case EmailProcessingOperation.MoveOperation m -> {
         var moveRequest = new MovePostRequestBody();
@@ -157,11 +168,11 @@ public class EmailPollingWorker implements Runnable {
   }
 
   private ShouldPostproces correlate(Message message) {
-    List<Document> attachements = extractAttachments(message);
+    List<Document> attachments = extractAttachments(message);
     var correlationRequest =
         CorrelationRequest.builder()
-            .variables(new EmailMessage(message, attachements))
-            .messageId(message.getInternetMessageId())
+            .variables(new EmailMessage(message, attachments))
+            .messageId(message.getId())
             .build();
     return switch (this.context.correlate(correlationRequest)) {
       case CorrelationResult.Success _ -> ShouldPostproces.YES;
@@ -181,6 +192,7 @@ public class EmailPollingWorker implements Runnable {
   }
 
   private List<Document> extractAttachments(Message message) {
+    // FIXME: Get attachments
     return List.of();
   }
 
@@ -195,4 +207,4 @@ public class EmailPollingWorker implements Runnable {
   public boolean isShutdown() {
     return thread.getState().equals(Thread.State.TERMINATED);
   }
-}
+ }
