@@ -222,7 +222,6 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
     "group" : "pollingConfig",
     "binding" : {
       "name" : "pollingConfig.filterCriteria.filterString",

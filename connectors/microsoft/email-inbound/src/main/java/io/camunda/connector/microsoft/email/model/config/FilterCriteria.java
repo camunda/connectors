@@ -9,7 +9,6 @@ package io.camunda.connector.microsoft.email.model.config;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -65,8 +64,7 @@ public sealed interface FilterCriteria {
           @TemplateProperty(
               label = "OData Filter String",
               tooltip =
-                  "A custom OData filter expression. <a href='https://learn.microsoft.com/en-us/graph/filter-query-parameter' target='_blank'>See OData filter documentation</a>",
-              feel = Property.FeelMode.optional)
+                  "A custom OData filter expression. <a href='https://learn.microsoft.com/en-us/graph/filter-query-parameter' target='_blank'>See OData filter documentation</a>")
           String filterString)
       implements FilterCriteria {
     @TemplateProperty(ignore = true)
