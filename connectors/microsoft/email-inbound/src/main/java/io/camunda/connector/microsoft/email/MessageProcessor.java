@@ -10,26 +10,25 @@ import com.microsoft.graph.models.Message;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.microsoft.email.model.config.EmailProcessingOperation;
-import io.camunda.connector.microsoft.email.model.config.MsInboundEmailProperties;
 import io.camunda.connector.microsoft.email.model.output.EmailMessage;
 import io.camunda.connector.microsoft.email.util.MailClient;
 import java.util.List;
 
 public class MessageProcessor {
-  private final MsInboundEmailProperties properties;
+  private final EmailProcessingOperation operation;
   private final MailClient client;
   private final InboundConnectorContext context;
 
   public MessageProcessor(
-      MsInboundEmailProperties properties, MailClient client, InboundConnectorContext context) {
-    this.properties = properties;
+      EmailProcessingOperation operation, MailClient client, InboundConnectorContext context) {
+    this.operation = operation;
     this.client = client;
     this.context = context;
   }
 
   private void postprocess(EmailMessage message) {
 
-    switch (properties.operation()) {
+    switch (operation) {
       case EmailProcessingOperation.MoveOperation m -> {
         client.moveMessage(message, m.targetFolder());
       }

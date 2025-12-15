@@ -13,6 +13,7 @@ import io.camunda.connector.microsoft.email.model.output.EmailMessage;
 import io.camunda.connector.microsoft.email.util.MailClient;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,19 +21,35 @@ import org.slf4j.LoggerFactory;
 public class TestMailClient implements MailClient {
   private static final Logger LOGGER = LoggerFactory.getLogger(TestMailClient.class);
   private final Map<String, String> nameToIdMapping;
-  private final Map<String, List<EmailMessage>> mailboxState;
+  private final Map<String, List<InternalMessage>> mailboxState;
+
+  public record InternalMessage(EmailMessage msg, boolean isRead) {}
 
   public TestMailClient(
-      Map<String, List<EmailMessage>> mailboxState, Map<String, String> nameToIdMapping) {
+      Map<String, List<InternalMessage>> mailboxState, Map<String, String> nameToIdMapping) {
     this.mailboxState = mailboxState;
     this.nameToIdMapping = nameToIdMapping;
   }
 
-  record TestMessageFetcher(Folder folder, Consumer<EmailMessage> handler)
-      implements OpaqueMessageFetcher {
+  public class TestMessageFetcher implements OpaqueMessageFetcher {
+    private final Folder folder;
+    private final Consumer<EmailMessage> handler;
+    private final String filter;
+
+    private TestMessageFetcher(Folder folder, String filter, Consumer<EmailMessage> handler) {
+      this.folder = folder;
+      this.handler = handler;
+      this.filter = filter;
+    }
 
     @Override
-    public void poll() {}
+    public void poll() {
+      // TODO: this should run into ConcurrentModificationException
+      // How do we persist iteration state while the list is potentially but guaranteed to be
+      // modified
+      //
+      mailboxState.get(getFolderId(folder)).forEach(m -> handler.accept(m.msg()));
+    }
   }
 
   @Override
@@ -50,12 +67,12 @@ public class TestMailClient implements MailClient {
   @Override
   public OpaqueMessageFetcher constructMessageFetcher(
       Folder folder, String filterString, Consumer<EmailMessage> handler) {
-    return new TestMessageFetcher(folder, handler);
+    return new TestMessageFetcher(folder, filterString, handler);
   }
 
   @Override
   public void deleteMessage(EmailMessage msg, boolean force) {
-    mailboxState.values().forEach(l -> l.remove(msg));
+    mailboxState.values().forEach(l -> l.removeIf(e -> e.msg().equals(msg)));
   }
 
   @Override
@@ -65,13 +82,22 @@ public class TestMailClient implements MailClient {
 
   @Override
   public void moveMessage(EmailMessage msg, Folder folder) {
-    mailboxState
-        .values()
-        .forEach(
-            l -> {
-              l.remove(msg);
-            });
-    mailboxState.get(getFolderId(folder)).add(msg);
+    Optional<Boolean> readState =
+        mailboxState.values().stream()
+            // Map reduce because java doesn't like mutating local variables from inside lambdas
+            .map(
+                l -> {
+                  for (int index = 0; index < l.size(); index++) {
+                    var e = l.get(index);
+                    if (e.msg().equals(msg)) {
+                      l.remove(index);
+                      return Optional.of(e.isRead);
+                    }
+                  }
+                  return Optional.<Boolean>empty();
+                })
+            .reduce(Optional.empty(), (l, r) -> l.isPresent() ? l : r);
+    mailboxState.get(getFolderId(folder)).add(new InternalMessage(msg, readState.orElse(false)));
   }
 
   @Override
