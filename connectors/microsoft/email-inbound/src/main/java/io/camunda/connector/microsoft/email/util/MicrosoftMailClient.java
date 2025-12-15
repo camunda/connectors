@@ -9,6 +9,7 @@ package io.camunda.connector.microsoft.email.util;
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.microsoft.graph.core.tasks.PageIterator;
+import com.microsoft.graph.models.FileAttachment;
 import com.microsoft.graph.models.Message;
 import com.microsoft.graph.models.MessageCollectionResponse;
 import com.microsoft.graph.serviceclient.GraphServiceClient;
@@ -16,10 +17,13 @@ import com.microsoft.graph.users.item.UserItemRequestBuilder;
 import com.microsoft.graph.users.item.messages.item.MessageItemRequestBuilder;
 import com.microsoft.graph.users.item.messages.item.move.MovePostRequestBody;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.microsoft.email.model.config.Folder;
 import io.camunda.connector.microsoft.email.model.config.MsInboundEmailProperties;
 import io.camunda.connector.microsoft.email.model.output.EmailMessage;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -76,10 +80,26 @@ public class MicrosoftMailClient implements MailClient {
     return resp.getValue().getFirst().getId();
   }
 
-  // FIXME: How do I get the @odata.deltaLink out of the iterator
+  class PageIteratorMessageFetcher implements OpaqueMessageFetcher {
+    private final PageIterator<Message, MessageCollectionResponse> iterator;
+
+    PageIteratorMessageFetcher(PageIterator<Message, MessageCollectionResponse> iterator) {
+      this.iterator = iterator;
+    }
+
+    @Override
+    public void poll() {
+      try {
+        iterator.iterate();
+      } catch (ReflectiveOperationException e) {
+        throw new ConnectorException(e);
+      }
+    }
+  }
+
   @Override
-  public String getMessages(
-      String deltaToken, Folder folder, String filterString, Consumer<EmailMessage> handler) {
+  public OpaqueMessageFetcher constructMessageFetcher(
+      Folder folder, String filterString, Consumer<EmailMessage> handler) {
     MessageCollectionResponse messageResponse =
         graphClient
             .mailFolders()
@@ -112,12 +132,11 @@ public class MicrosoftMailClient implements MailClient {
                   return true;
                 });
     try {
-      pageIterator.build().iterate();
+      var iterator = pageIterator.build();
+      return new PageIteratorMessageFetcher(iterator);
     } catch (ReflectiveOperationException e) {
       throw new ConnectorException(e);
     }
-
-    return null;
   }
 
   private MessageItemRequestBuilder constructCommonMessage(EmailMessage msg) {
@@ -149,8 +168,24 @@ public class MicrosoftMailClient implements MailClient {
   }
 
   @Override
-  public List<Document> fetchAttachments(EmailMessage msg) {
-    return List.of();
+  public List<Document> fetchAttachments(InboundConnectorContext context, EmailMessage msg) {
+    if (constructCommonMessage(msg).attachments().count().get() == 0) {
+      return List.of();
+    }
+    var docs = new ArrayList<Document>();
+    for (var attachment :
+        Objects.requireNonNull(constructCommonMessage(msg).attachments().get().getValue())) {
+      if (attachment instanceof FileAttachment file) {
+        docs.add(
+            context.create(
+                DocumentCreationRequest.from(file.getContentBytes())
+                    .fileName(file.getName())
+                    .contentType(file.getContentType())
+                    .build()));
+      }
+      // TODO: log unsupported attachment
+    }
+    return docs;
   }
 
   @Deprecated

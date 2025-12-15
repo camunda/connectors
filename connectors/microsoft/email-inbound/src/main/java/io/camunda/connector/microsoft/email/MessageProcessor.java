@@ -43,7 +43,7 @@ public class MessageProcessor {
   }
 
   private ShouldPostprocess correlate(EmailMessage message) {
-    List<Document> attachments = client.fetchAttachments(message);
+    List<Document> attachments = client.fetchAttachments(context, message);
     var correlationRequest =
         CorrelationRequest.builder()
             .variables(new EmailMessage(message, attachments))
