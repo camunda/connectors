@@ -89,6 +89,10 @@
       <groupId>org.springframework</groupId>
       <artifactId>spring-web</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-core</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>com.google.cloud</groupId>
@@ -156,11 +160,6 @@
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.security</groupId>
-      <artifactId>spring-security-core</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -279,6 +278,7 @@
               <ignoredDependencies>
                 <dependency>com.fasterxml.jackson.core:jackson-databind</dependency>
                 <dependency>io.camunda.connector:connector-object-mapper</dependency>
+                <dependency>org.springframework.security:spring-security-core</dependency>
               </ignoredDependencies>
             </configuration>
           </execution>
