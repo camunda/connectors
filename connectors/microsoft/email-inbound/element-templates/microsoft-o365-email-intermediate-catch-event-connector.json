@@ -1,7 +1,7 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Microsoft O365 Inbound Email Connector (Intermediate Catch Event)",
-  "id" : "io.camunda.connectors.MSFT.O365.Mail.inbound:IntermediateCatchEvent",
+  "name" : "Microsoft O365 Email Intermediate Catch Event Connector",
+  "id" : "io.camunda.connectors.inbound.MSFT.O365.EmailIntermediate.v1",
   "description" : "Poll M365 Outlook emails",
   "metadata" : {
     "keywords" : [ "email", "Office365", "Outlook" ]

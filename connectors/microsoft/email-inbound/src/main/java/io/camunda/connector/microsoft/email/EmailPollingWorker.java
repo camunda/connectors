@@ -30,7 +30,7 @@ public class EmailPollingWorker implements Runnable {
   private final Thread thread;
   private final AtomicBoolean shouldStop;
   private final MsInboundEmailProperties properties;
-  private MicrosoftMailClient mailClient;
+  private MicrosoftMailClient client;
 
   public EmailPollingWorker(InboundConnectorContext context) {
     this.context = context;
@@ -41,12 +41,13 @@ public class EmailPollingWorker implements Runnable {
 
   @Override
   public void run() {
-    this.mailClient = new MicrosoftMailClient(properties);
-    String folderId = mailClient.getFolderId(properties.pollingConfig().folder());
+    client =
+        new MicrosoftMailClient(properties.authentication(), properties.pollingConfig().userId());
+    String folderId = client.getFolderId(properties.pollingConfig().folder());
     // FIXME: How do I get the @odata.deltaLink out of the iterator
     while (!shouldStop.get()) {
       MessageCollectionResponse messageResponse =
-          mailClient
+          client
               .getClient()
               .mailFolders()
               .byMailFolderId(folderId)
@@ -63,7 +64,7 @@ public class EmailPollingWorker implements Runnable {
                   });
       final var pageIterator =
           new PageIterator.Builder<Message, MessageCollectionResponse>()
-              .client(mailClient.getGraphclient())
+              .client(client.getGraphclient())
               .collectionPage(Objects.requireNonNull(messageResponse))
               .collectionPageFactory(MessageCollectionResponse::createFromDiscriminatorValue)
               .requestConfigurator(
@@ -77,7 +78,7 @@ public class EmailPollingWorker implements Runnable {
                   })
               .processPageItemCallback(
                   msg -> {
-                    this.handleMessage(mailClient.getGraphclient(), msg);
+                    this.handleMessage(client.getGraphclient(), msg);
                     return shouldStop.get();
                   });
       try {
@@ -137,7 +138,7 @@ public class EmailPollingWorker implements Runnable {
     switch (properties.operation()) {
       case EmailProcessingOperation.MoveOperation m -> {
         var moveRequest = new MovePostRequestBody();
-        moveRequest.setDestinationId(mailClient.getFolderId(m.targetFolder()));
+        moveRequest.setDestinationId(this.client.getFolderId(m.targetFolder()));
         partialMessageRequest.move().post(moveRequest);
       }
       case EmailProcessingOperation.MarkAsReadOperation markAsRead -> {
