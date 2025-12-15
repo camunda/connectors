@@ -18,11 +18,16 @@ package io.camunda.intrinsic.functions;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.intrinsic.IntrinsicFunction;
 import io.camunda.intrinsic.IntrinsicFunctionProvider;
 import java.io.IOException;
 import java.io.StringReader;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.Security;
@@ -40,17 +45,19 @@ public class CreateGithubAppInstallationTokenFunction implements IntrinsicFuncti
 
   // This is the default expiration time for the JWT, not the installation token.
   // GitHub documentation specifies a maximum of 1 minute.
-  static final long JWT_EXPIRATION_SECONDS = 60L;
+  private static final long JWT_EXPIRATION_SECONDS = 60L;
   private static final String RSA_ALGORITHM = "RSA";
   private static final String GITHUB_API_BASE_URL = "https://api.github.com";
   private static final String INSTALLATION_TOKEN_URL_FORMAT =
       GITHUB_API_BASE_URL + "/app/installations/%s/access_tokens";
   private static final String HEADER_ACCEPT = "Accept";
+  private static final String HEADER_AUTHORIZATION = "Authorization";
+  private static final String BEARER_PREFIX = "Bearer ";
   private static final String GITHUB_API_VERSION_ACCEPT_HEADER = "application/vnd.github.v3+json";
   public static final String RESPONSE_TOKEN_FIELD = "token";
 
   private final ObjectMapper objectMapper = new ObjectMapper();
-  HttpClient HTTP_CLIENT = new CustomApacheHttpClient();
+  private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
   static {
     Security.addProvider(new BouncyCastleProvider());
@@ -58,45 +65,65 @@ public class CreateGithubAppInstallationTokenFunction implements IntrinsicFuncti
 
   @IntrinsicFunction(name = "createGithubAppInstallationToken")
   public String execute(String privateKey, String appId, String installationId) {
-
     try {
-      RSAPrivateKey rsaPrivateKey = parsePrivateKey(privateKey);
-      Instant now = Instant.now();
-
-      // Build JWT with RS256 algorithm
-      Algorithm algorithm = Algorithm.RSA256(rsaPrivateKey);
-      var jwt =
-          JWT.create()
-              .withIssuer(appId)
-              .withIssuedAt(Date.from(now))
-              .withExpiresAt(now.plusSeconds(JWT_EXPIRATION_SECONDS))
-              .sign(algorithm);
-
-      final String url = String.format(INSTALLATION_TOKEN_URL_FORMAT, installationId);
-      var httpClientRequest = createInstallationAccessTokenRequest(jwt, url);
-      var response =
-          HTTP_CLIENT.execute(
-              httpClientRequest, ResponseMappers.asObject(() -> objectMapper, Map.class));
-
-      return (String) response.entity().get(RESPONSE_TOKEN_FIELD);
+      final String jwt = createJwt(privateKey, appId);
+      return getInstallationAccessToken(jwt, installationId);
     } catch (Exception e) {
-      throw new RuntimeException("Failed to create JWT: " + e.getMessage(), e);
+      throw new RuntimeException("Failed to generate GitHub App installation token", e);
     }
   }
 
-  private HttpClientRequest createInstallationAccessTokenRequest(String jwt, String url) {
-    var httpClientRequest = new HttpClientRequest();
-    httpClientRequest.setMethod(HttpMethod.POST);
-    httpClientRequest.setAuthentication(new BearerAuthentication(jwt));
-    httpClientRequest.setUrl(url);
-    httpClientRequest.setHeaders(Map.of(HEADER_ACCEPT, GITHUB_API_VERSION_ACCEPT_HEADER));
-    return httpClientRequest;
+  private String createJwt(String privateKey, String appId)
+      throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+    final RSAPrivateKey rsaPrivateKey = parsePrivateKey(privateKey);
+    final Instant now = Instant.now();
+    final Algorithm algorithm = Algorithm.RSA256(rsaPrivateKey);
+
+    return JWT.create()
+        .withIssuer(appId)
+        .withIssuedAt(Date.from(now))
+        .withExpiresAt(now.plusSeconds(JWT_EXPIRATION_SECONDS))
+        .sign(algorithm);
+  }
+
+  private String getInstallationAccessToken(String jwt, String installationId)
+      throws IOException, InterruptedException {
+    final String url = String.format(INSTALLATION_TOKEN_URL_FORMAT, installationId);
+    final HttpRequest request =
+        HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .header(HEADER_ACCEPT, GITHUB_API_VERSION_ACCEPT_HEADER)
+            .header(HEADER_AUTHORIZATION, BEARER_PREFIX + jwt)
+            .POST(HttpRequest.BodyPublishers.noBody())
+            .build();
+
+    final HttpResponse<String> response =
+        HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+    if (response.statusCode() >= 200 && response.statusCode() < 300) {
+      final Map<String, Object> body =
+          objectMapper.readValue(response.body(), new TypeReference<>() {});
+      final String token = (String) body.get(RESPONSE_TOKEN_FIELD);
+      if (token == null || token.isBlank()) {
+        throw new RuntimeException("Response from GitHub API did not contain a token");
+      }
+      return token;
+    } else {
+      throw new RuntimeException(
+          "Request to GitHub API failed with status code "
+              + response.statusCode()
+              + " and body: "
+              + response.body());
+    }
   }
 
   private RSAPrivateKey parsePrivateKey(String privateKey)
       throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
     try (PemReader pemReader = new PemReader(new StringReader(privateKey))) {
       PemObject pemObject = pemReader.readPemObject();
+      if (pemObject == null) {
+        throw new IllegalArgumentException("Failed to parse PEM, no content found");
+      }
       byte[] content = pemObject.getContent();
       PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(content);
       KeyFactory kf = KeyFactory.getInstance(RSA_ALGORITHM);
