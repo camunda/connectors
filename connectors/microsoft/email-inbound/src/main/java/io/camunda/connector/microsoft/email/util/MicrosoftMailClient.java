@@ -76,6 +76,7 @@ public class MicrosoftMailClient implements MailClient {
     return resp.getValue().getFirst().getId();
   }
 
+  // FIXME: How do I get the @odata.deltaLink out of the iterator
   @Override
   public String getMessages(
       String deltaToken, Folder folder, String filterString, Consumer<EmailMessage> handler) {
