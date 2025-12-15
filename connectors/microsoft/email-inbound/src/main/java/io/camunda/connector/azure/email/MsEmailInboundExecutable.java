@@ -36,22 +36,23 @@ public class MsEmailInboundExecutable
     implements InboundConnectorExecutable<InboundConnectorContext> {
   private static final Logger LOGGER = LoggerFactory.getLogger(MsEmailInboundExecutable.class);
 
-  // private EmailPollingWorker worker;
+  private EmailPollingWorker worker;
   private InboundConnectorContext context;
 
   @Override
   public void activate(InboundConnectorContext context) throws Exception {
-    // worker = new EmailPollingWorker(context);
+    worker = new EmailPollingWorker(context);
+    this.context = context;
   }
 
   @Override
   public void deactivate() throws Exception {
-    // worker.shutdown();
+    worker.shutdown();
     context.reportHealth(Health.down());
     Thread.sleep(Duration.ofMillis(800));
-    //    if (!worker.isShutdown()) {
-    //      LOGGER.debug("Executor service did not terminate gracefully, forcing shutdown");
-    //      worker.forceShutdown();
-    //    }
+    if (!worker.isShutdown()) {
+      LOGGER.debug("Executor service did not terminate gracefully, forcing shutdown");
+      worker.forceShutdown();
+    }
   }
 }

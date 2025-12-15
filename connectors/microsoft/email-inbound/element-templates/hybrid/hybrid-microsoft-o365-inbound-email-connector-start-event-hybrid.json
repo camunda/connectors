@@ -92,62 +92,64 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.userId",
+    "id" : "pollingConfig.userId",
     "label" : "User ID/User Principal Name",
     "description" : "The ID or Principal Name of the mailboxes owner.",
     "optional" : false,
     "feel" : "optional",
     "group" : "pollingConfig",
     "binding" : {
-      "name" : "data.userId",
+      "name" : "pollingConfig.userId",
       "type" : "zeebe:property"
     },
     "type" : "String"
   }, {
-    "id" : "data.pollingInterval",
+    "id" : "pollingConfig.pollingInterval",
     "label" : "Polling interval",
     "optional" : false,
     "value" : "PT30S",
     "feel" : "optional",
     "group" : "pollingConfig",
     "binding" : {
-      "name" : "data.pollingInterval",
+      "name" : "pollingConfig.pollingInterval",
       "type" : "zeebe:property"
     },
     "tooltip" : "The interval between email polling requests, defined as ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
     "type" : "String"
   }, {
-    "id" : "data.folder.folderName",
+    "id" : "pollingConfig.folder.folderName",
     "label" : "Folder Name/Folder ID",
     "description" : "The folder name or folder ID. Folder names must be unique. Consider using the well-known folder IDs described here",
     "optional" : false,
+    "value" : "inbox",
     "feel" : "optional",
     "group" : "pollingConfig",
     "binding" : {
-      "name" : "data.folder.folderName",
+      "name" : "pollingConfig.folder.folderName",
       "type" : "zeebe:property"
     },
     "type" : "String"
   }, {
-    "id" : "data.folder.isFolderId",
+    "id" : "pollingConfig.folder.isFolderId",
     "label" : "Specified folder ID",
     "description" : "Did you specify a folder ID?",
     "optional" : false,
-    "feel" : "static",
+    "value" : true,
+    "feel" : "optional",
     "group" : "pollingConfig",
     "binding" : {
-      "name" : "data.folder.isFolderId",
+      "name" : "pollingConfig.folder.isFolderId",
       "type" : "zeebe:property"
     },
     "tooltip" : "To prevent name collisions, you can instead specify the folder ID. <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties' target='_blank'> See the folder Properties described in the API</a> ",
     "type" : "Boolean"
   }, {
-    "id" : "data.fieldSelection.data.fieldSelection",
-    "label" : "Field Selection",
+    "id" : "pollingConfig.filterCriteria.filterSpecification",
+    "label" : "Filter Specification",
     "value" : "simple",
     "group" : "pollingConfig",
     "binding" : {
-      "name" : "data.fieldSelection.data.fieldSelection",
+      "name" : "pollingConfig.filterCriteria.filterSpecification",
       "type" : "zeebe:property"
     },
     "type" : "Dropdown",
@@ -159,56 +161,56 @@
       "value" : "advanced"
     } ]
   }, {
-    "id" : "data.fieldSelection.onlyUnread",
+    "id" : "pollingConfig.filterCriteria.onlyUnread",
     "label" : "Only unread",
     "group" : "pollingConfig",
     "binding" : {
-      "name" : "data.fieldSelection.onlyUnread",
+      "name" : "pollingConfig.filterCriteria.onlyUnread",
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "data.fieldSelection.data.fieldSelection",
+      "property" : "pollingConfig.filterCriteria.filterSpecification",
       "equals" : "simple",
       "type" : "simple"
     },
     "type" : "Boolean"
   }, {
-    "id" : "data.fieldSelection.earliestReceived",
+    "id" : "pollingConfig.filterCriteria.earliestReceived",
     "label" : "Earliest received",
     "feel" : "optional",
     "group" : "pollingConfig",
     "binding" : {
-      "name" : "data.fieldSelection.earliestReceived",
+      "name" : "pollingConfig.filterCriteria.earliestReceived",
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "data.fieldSelection.data.fieldSelection",
+      "property" : "pollingConfig.filterCriteria.filterSpecification",
       "equals" : "simple",
       "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "data.fieldSelection.fields",
-    "label" : "Fields",
+    "id" : "pollingConfig.filterCriteria.filterString",
+    "label" : "Filter string",
     "feel" : "optional",
     "group" : "pollingConfig",
     "binding" : {
-      "name" : "data.fieldSelection.fields",
+      "name" : "pollingConfig.filterCriteria.filterString",
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "data.fieldSelection.data.fieldSelection",
+      "property" : "pollingConfig.filterCriteria.filterSpecification",
       "equals" : "advanced",
       "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "data.processingOperationDiscriminator",
+    "id" : "pollingConfig.processingOperationDiscriminator",
     "label" : "Postprocessing configuration",
     "value" : "mark-read",
     "group" : "postprocessing",
     "binding" : {
-      "name" : "data.processingOperationDiscriminator",
+      "name" : "pollingConfig.processingOperationDiscriminator",
       "type" : "zeebe:property"
     },
     "type" : "Dropdown",
@@ -233,7 +235,7 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "data.processingOperationDiscriminator",
+      "property" : "pollingConfig.processingOperationDiscriminator",
       "equals" : "delete",
       "type" : "simple"
     },
@@ -243,6 +245,7 @@
     "label" : "Folder Name/Folder ID",
     "description" : "The folder name or folder ID. Folder names must be unique. Consider using the well-known folder IDs described here",
     "optional" : false,
+    "value" : "inbox",
     "feel" : "optional",
     "group" : "postprocessing",
     "binding" : {
@@ -250,7 +253,7 @@
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "data.processingOperationDiscriminator",
+      "property" : "pollingConfig.processingOperationDiscriminator",
       "equals" : "move",
       "type" : "simple"
     },
@@ -260,14 +263,15 @@
     "label" : "Specified folder ID",
     "description" : "Did you specify a folder ID?",
     "optional" : false,
-    "feel" : "static",
+    "value" : true,
+    "feel" : "optional",
     "group" : "postprocessing",
     "binding" : {
       "name" : "targetFolder.isFolderId",
       "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "data.processingOperationDiscriminator",
+      "property" : "pollingConfig.processingOperationDiscriminator",
       "equals" : "move",
       "type" : "simple"
     },
