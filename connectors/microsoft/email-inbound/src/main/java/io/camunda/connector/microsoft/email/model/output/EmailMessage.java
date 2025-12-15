@@ -13,7 +13,6 @@ import io.camunda.connector.api.document.Document;
 import java.time.OffsetDateTime;
 import java.util.List;
 
-// FIXME: Try to return the Microsoft Message directly
 public record EmailMessage(
     String id,
     String conversationId,
@@ -29,7 +28,6 @@ public record EmailMessage(
     this(message, List.of());
   }
 
-  // FIXME: Dare to return null
   public EmailMessage(Message message, List<Document> documents) {
     var sender = new EmailAddress(message.getSender());
     var recipients = transformList(message.getToRecipients());

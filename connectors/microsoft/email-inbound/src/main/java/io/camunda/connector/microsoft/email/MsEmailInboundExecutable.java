@@ -40,7 +40,7 @@ public class MsEmailInboundExecutable
   private InboundConnectorContext context;
 
   @Override
-  public void activate(InboundConnectorContext context) throws Exception {
+  public void activate(InboundConnectorContext context) {
     worker = new EmailPollingWorker(context);
     this.context = context;
   }

@@ -10,7 +10,7 @@ import com.microsoft.graph.models.Recipient;
 import java.util.List;
 import java.util.Optional;
 
-// Move mapping external to record
+// TODO: Move mapping external to record
 // Clean core
 public record EmailAddress(String name, String address) {
   public EmailAddress(Recipient recipient) {
@@ -19,12 +19,6 @@ public record EmailAddress(String name, String address) {
     if (recipient != null && recipient.getEmailAddress() != null) {
       name = recipient.getEmailAddress().getName();
       address = recipient.getEmailAddress().getAddress();
-    }
-    if (name == null) {
-      name = "";
-    }
-    if (address == null) {
-      address = "";
     }
     this(name, address);
   }
