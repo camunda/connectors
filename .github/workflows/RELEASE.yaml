@@ -126,7 +126,7 @@ jobs:
 
       - name: Upload detailed surefire reports
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: surefire-reports
           path: '**/target/surefire-reports/*.xml'
@@ -157,7 +157,7 @@ jobs:
           RELEASE_BRANCH: ${{ needs.setup.outputs.releaseBranch }}
 
       - name: Upload repository
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: repository
           path: .
@@ -239,7 +239,7 @@ jobs:
           echo "Maven release is enabled (skip-maven-release: ${{ inputs.skip-maven-release }})"
           
       - name: Download repository
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: repository
 
@@ -340,7 +340,7 @@ jobs:
           echo "Docker release is enabled (skip-docker-release: ${{ inputs.skip-docker-release }})"
           
       - name: Download repository
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: repository
 
@@ -484,7 +484,7 @@ jobs:
       contents: write
     steps:
       - name: Download repository
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: repository
 
