@@ -9,9 +9,17 @@ package io.camunda.connector.microsoft.email.model.config;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@TemplateDiscriminatorProperty(
+    label = "Postprocessing configuration",
+    group = "postprocessing",
+    name = "processingOperationDiscriminator",
+    defaultValue = EmailProcessingOperation.MarkAsReadOperation.TYPE)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "processingOperationDiscriminator")
 @JsonSubTypes({
   @JsonSubTypes.Type(
       value = EmailProcessingOperation.DeleteOperation.class,
@@ -23,26 +31,29 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
       value = EmailProcessingOperation.MoveOperation.class,
       name = EmailProcessingOperation.MoveOperation.TYPE),
 })
-@TemplateDiscriminatorProperty(
-    label = "Postprocessing action",
-    group = "postprocessing",
-    name = "type",
-    defaultValue = "simple",
-    description = "Specify the Email postprocessing strategy.")
 public sealed interface EmailProcessingOperation {
 
   @TemplateSubType(id = DeleteOperation.TYPE, label = "Delete")
-  record DeleteOperation(boolean force) implements EmailProcessingOperation {
+  record DeleteOperation(
+      @TemplateProperty(
+              label = "Force delete (email is permanently deleted)",
+              defaultValue = "false",
+              defaultValueType = TemplateProperty.DefaultValueType.Boolean)
+          boolean force)
+      implements EmailProcessingOperation {
+    @TemplateProperty(ignore = true)
     public static final String TYPE = "delete";
   }
 
   @TemplateSubType(id = MarkAsReadOperation.TYPE, label = "Mark as Read")
   record MarkAsReadOperation() implements EmailProcessingOperation {
+    @TemplateProperty(ignore = true)
     public static final String TYPE = "mark-read";
   }
 
   @TemplateSubType(id = MoveOperation.TYPE, label = "Move to other folder")
-  record MoveOperation(String targetFolder) implements EmailProcessingOperation {
+  record MoveOperation(@Valid @NotNull Folder targetFolder) implements EmailProcessingOperation {
+    @TemplateProperty(ignore = true)
     public static final String TYPE = "move";
   }
 }

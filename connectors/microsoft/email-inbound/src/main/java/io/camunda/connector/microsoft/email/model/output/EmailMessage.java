@@ -39,4 +39,18 @@ public record EmailMessage(
         message.getReceivedDateTime(),
         documents);
   }
+
+  public static String[] getSelect() {
+    return new String[] {
+      "sender",
+      "toRecipients",
+      "ccRecipients",
+      "bccRecipients",
+      "subject",
+      "body",
+      "receivedDateTime",
+      "hasAttachments",
+      "id"
+    };
+  }
 }
