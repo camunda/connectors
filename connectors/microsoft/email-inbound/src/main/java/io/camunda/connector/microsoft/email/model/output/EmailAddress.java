@@ -10,6 +10,8 @@ import com.microsoft.graph.models.Recipient;
 import java.util.List;
 import java.util.Optional;
 
+// Move mapping external to record
+// Clean core
 public record EmailAddress(String name, String address) {
   public EmailAddress(Recipient recipient) {
     this(

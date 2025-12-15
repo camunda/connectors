@@ -8,13 +8,21 @@ package io.camunda.connector.microsoft.email.model.config;
 
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.time.Duration;
-import java.util.List;
 
-public record EmailListenerConfig(
-    String userId,
-    List<String> select,
+public record EmailPollingConfig(
+    @TemplateProperty(
+            label = "User ID/User Principal Name",
+            feel = Property.FeelMode.optional,
+            description = "The ID or Principal Name of the mailboxes owner.")
+        @NotBlank
+        @FEEL
+        String userId,
+    @NestedProperties() @Valid Folder folder,
     @TemplateProperty(
             id = "pollingInterval",
             label = "Polling interval",
@@ -22,11 +30,12 @@ public record EmailListenerConfig(
             defaultValue = "PT30S",
             tooltip =
                 "The interval between email polling requests, defined as ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
-            binding = @TemplateProperty.PropertyBinding(name = "data.pollingInterval"),
             feel = Property.FeelMode.optional)
         @FEEL
-        Duration pollingInterval) {
-  public String[] selectAsArray() {
-    return this.select.toArray(new String[0]);
+        Duration pollingInterval,
+    @NestedProperties() @Valid FilterCriteria filterCriteria) {
+  public String getFilter() {
+
+    return filterCriteria.getFilterString();
   }
 }

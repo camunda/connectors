@@ -14,5 +14,6 @@ import jakarta.validation.constraints.NotNull;
 public record MsInboundEmailProperties(
     @TemplateProperty(group = "authentication", id = "type") @Valid @NotNull
         InboundAuthentication authentication,
-    @NestedProperties(addNestedPath = false) @Valid EmailListenerConfig data,
-    @TemplateProperty(group = "postprocessing") EmailProcessingOperation operation) {}
+    @NestedProperties(group = "pollingConfig") @Valid EmailPollingConfig pollingConfig,
+    @NestedProperties(group = "postprocessing") @Valid @NotNull
+        EmailProcessingOperation operation) {}

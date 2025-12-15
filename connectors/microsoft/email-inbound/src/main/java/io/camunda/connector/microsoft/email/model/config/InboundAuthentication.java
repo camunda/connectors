@@ -24,7 +24,7 @@ public record InboundAuthentication(
         @TemplateProperty(
             group = "authentication",
             description =
-                "The client if of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+                "The client id of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
             feel = Property.FeelMode.optional)
         @NotBlank
         String clientId,
