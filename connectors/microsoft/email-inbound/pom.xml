@@ -45,4 +45,46 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>element-template-generator-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.microsoft.email.MsEmailInboundExecutable</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.MSFT.O365.Mail.inbound.v1</templateId>
+                  <templateFileName>o365-inbound-email-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+          </connectors>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>analyze-dependencies</id>
+            <configuration>
+              <ignoredDependencies>
+                <dependency>ch.qos.logback:logback-classic:jar</dependency>
+                <dependency>com.microsoft.kiota:microsoft-kiota-abstractions</dependency>
+                <dependency>com.microsoft.graph:microsoft-graph-core</dependency>
+              </ignoredDependencies>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+
+  </build>
+
 </project>

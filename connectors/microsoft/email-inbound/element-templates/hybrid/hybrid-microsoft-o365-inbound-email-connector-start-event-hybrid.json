@@ -1,0 +1,77 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Hybrid Microsoft O365 Inbound Email Connector (Start Event)",
+  "id" : "io.camunda.connectors.MSFT.O365.Mail.inbound:StartEvent-hybrid",
+  "description" : "Poll M365 Outlook emails",
+  "metadata" : {
+    "keywords" : [ "email", "Office365", "Outlook" ]
+  },
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:StartEvent" ],
+  "elementType" : {
+    "value" : "bpmn:StartEvent"
+  },
+  "engines" : {
+    "camunda" : "^8.7"
+  },
+  "groups" : [ {
+    "id" : "connectorType",
+    "label" : "Connector type"
+  }, {
+    "id" : "default",
+    "label" : "Properties"
+  }, {
+    "id" : "activation",
+    "label" : "Activation"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  } ],
+  "properties" : [ {
+    "id" : "connectorType",
+    "value" : "io.camunda:connector-o365-email-inbound:1",
+    "group" : "connectorType",
+    "binding" : {
+      "name" : "inbound.type",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "activationCondition",
+    "label" : "Activation condition",
+    "description" : "Condition under which the Connector triggers. Leave empty to catch all events",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "activation",
+    "binding" : {
+      "name" : "activationCondition",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "name" : "resultVariable",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "name" : "resultExpression",
+      "type" : "zeebe:property"
+    },
+    "type" : "Text"
+  } ]
+}
