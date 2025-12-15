@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.aiagent.model.request.provider.shared;
 
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 
 public record TimeoutConfiguration(
@@ -21,5 +20,4 @@ public record TimeoutConfiguration(
             feel = Property.FeelMode.optional,
             optional = true,
             defaultValueType = TemplateProperty.DefaultValueType.String)
-        @NotNull
         Duration timeout) {}

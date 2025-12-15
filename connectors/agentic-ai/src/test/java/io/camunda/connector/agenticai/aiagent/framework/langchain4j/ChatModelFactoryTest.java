@@ -952,6 +952,7 @@ class ChatModelFactoryTest {
                   ENDPOINT,
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
                   Map.of(),
+                  Map.of(),
                   timeouts,
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(MODEL, null)));
 
