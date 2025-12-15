@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.microsoft.email.model;
+package io.camunda.connector.microsoft.email.model.config;
 
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
@@ -13,12 +13,12 @@ import java.time.Duration;
 import java.util.List;
 
 public record EmailListenerConfig(
-    String id,
+    String userId,
     List<String> select,
     @TemplateProperty(
             id = "pollingInterval",
             label = "Polling interval",
-            group = "config",
+            group = "pollingConfig",
             defaultValue = "PT30S",
             tooltip =
                 "The interval between email polling requests, defined as ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
