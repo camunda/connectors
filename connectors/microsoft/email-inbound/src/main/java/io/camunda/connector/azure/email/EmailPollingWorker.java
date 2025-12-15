@@ -10,16 +10,11 @@ package io.camunda.connector.azure.email;
 import com.microsoft.graph.core.tasks.PageIterator;
 import com.microsoft.graph.models.Message;
 import com.microsoft.graph.models.MessageCollectionResponse;
-import com.microsoft.graph.serviceclient.GraphServiceClient;
-import com.microsoft.graph.users.item.messages.item.move.MovePostRequestBody;
-import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.*;
-import io.camunda.connector.azure.email.model.config.EmailProcessingOperation;
 import io.camunda.connector.azure.email.model.config.MsInboundEmailProperties;
 import io.camunda.connector.azure.email.model.output.EmailMessage;
 import io.camunda.connector.azure.email.util.MicrosoftMailClient;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -41,27 +36,25 @@ public class EmailPollingWorker implements Runnable {
   @Override
   public void run() {
     MicrosoftMailClient client = new MicrosoftMailClient(properties);
-    String folderId = properties.pollingConfig().folder().folderName();
-    if (!properties.pollingConfig().folder().isFolderId()) {
-      folderId = client.getFolderIdByFolderName(folderId);
-    }
+    String folderId = client.getFolderId(properties.pollingConfig().folder());
     // FIXME: How do I get the @odata.deltaLink out of the iterator
     while (!shouldStop.get()) {
       MessageCollectionResponse messageResponse =
-              client
+          client
               .getClient()
               .mailFolders()
               .byMailFolderId(folderId)
               .messages()
               // .delta() // TODO: Check if this works
               .get(
-                      requestConfiguration -> {
-                        requestConfiguration.headers.add("Prefer", "outlook.body-content-type=\"text\"");
-                        requestConfiguration.queryParameters.filter =
-                                properties.pollingConfig().getFilter();
-                        requestConfiguration.queryParameters.select = EmailMessage.getSelect();
-                        requestConfiguration.queryParameters.top = 10;
-                      });
+                  requestConfiguration -> {
+                    requestConfiguration.headers.add(
+                        "Prefer", "outlook.body-content-type=\"text\"");
+                    requestConfiguration.queryParameters.filter =
+                        properties.pollingConfig().getFilter();
+                    requestConfiguration.queryParameters.select = EmailMessage.getSelect();
+                    requestConfiguration.queryParameters.top = 10;
+                  });
       final var pageIterator =
           new PageIterator.Builder<Message, MessageCollectionResponse>()
               .client(client.getGraphclient())
@@ -78,7 +71,8 @@ public class EmailPollingWorker implements Runnable {
                   })
               .processPageItemCallback(
                   msg -> {
-                    this.handleMessage(client.getGraphclient(), msg);
+                    new MessageProcessor(properties, client, context)
+                        .handleMessage(new EmailMessage(msg));
                     return shouldStop.get();
                   });
       try {
@@ -100,94 +94,6 @@ public class EmailPollingWorker implements Runnable {
         return;
       }
     }
-  }
-
-  private enum ShouldPostproces {
-    YES,
-    NO
-  }
-
-  private void handleMessage(GraphServiceClient client, Message message) {
-    var shouldPostprocess =
-        switch (context.canActivate(new EmailMessage(message))) {
-          case ActivationCheckResult.Success _ -> correlate(message);
-          case ActivationCheckResult.Failure.NoMatchingElement e -> {
-            if (e.discardUnmatchedEvents()) {
-              yield ShouldPostproces.NO;
-            }
-            yield ShouldPostproces.YES;
-          }
-          case ActivationCheckResult.Failure.TooManyMatchingElements _ -> {
-            // TODO: log error
-            yield ShouldPostproces.NO;
-          }
-        };
-    if (shouldPostprocess == ShouldPostproces.YES) {
-      postprocess(client, message);
-    }
-  }
-
-  // FIXME: Introduce interface for MSEmail Service
-  private void postprocess(GraphServiceClient client, Message message) {
-    var partialMessageRequest =
-        client
-            .users()
-            .byUserId(properties.pollingConfig().userId())
-            .messages()
-            .byMessageId(message.getId());
-    switch (properties.operation()) {
-      case EmailProcessingOperation.MoveOperation m -> {
-        var moveRequest = new MovePostRequestBody();
-        // FIXME: We should consider mapping from targetFolder name
-        // to ID, because AFAICT folder IDs are not exposed in the Outlook UI
-        moveRequest.setDestinationId(m.targetFolder().folderName());
-        partialMessageRequest.move().post(moveRequest);
-      }
-      case EmailProcessingOperation.MarkAsReadOperation _ -> {
-        message.setIsRead(true);
-        partialMessageRequest.patch(message);
-      }
-      case EmailProcessingOperation.DeleteOperation d -> {
-        if (d.force()) {
-          partialMessageRequest.delete();
-        } else {
-          var moveRequest = new MovePostRequestBody();
-          // See well-known folder names here:
-          // https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0
-          moveRequest.setDestinationId("deletedItems");
-          partialMessageRequest.move().post(moveRequest);
-        }
-      }
-    }
-  }
-
-  private ShouldPostproces correlate(Message message) {
-    List<Document> attachments = extractAttachments(message);
-    var correlationRequest =
-        CorrelationRequest.builder()
-            .variables(new EmailMessage(message, attachments))
-            .messageId(message.getId())
-            .build();
-    return switch (this.context.correlate(correlationRequest)) {
-      case CorrelationResult.Success _ -> ShouldPostproces.YES;
-      case CorrelationResult.Failure f -> {
-        switch (f.handlingStrategy()) {
-          case CorrelationFailureHandlingStrategy.ForwardErrorToUpstream _ -> {
-            // Log error as we can't propagate up
-            yield ShouldPostproces.NO;
-          }
-          case CorrelationFailureHandlingStrategy.Ignore _ -> {
-            // Log info
-            yield ShouldPostproces.YES;
-          }
-        }
-      }
-    };
-  }
-
-  private List<Document> extractAttachments(Message message) {
-    // FIXME: Get attachments
-    return List.of();
   }
 
   public void forceShutdown() {

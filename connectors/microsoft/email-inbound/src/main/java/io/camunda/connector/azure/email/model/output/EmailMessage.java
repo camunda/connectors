@@ -55,6 +55,20 @@ public record EmailMessage(
         documents);
   }
 
+  public EmailMessage(EmailMessage message, List<Document> documents) {
+    this(
+        message.id,
+        message.conversationId,
+        message.sender,
+        message.recipients,
+        message.cc,
+        message.bcc,
+        message.subject,
+        message.body,
+        message.receivedDateTime,
+        documents);
+  }
+
   public static String[] getSelect() {
     return new String[] {
       "conversationId",
