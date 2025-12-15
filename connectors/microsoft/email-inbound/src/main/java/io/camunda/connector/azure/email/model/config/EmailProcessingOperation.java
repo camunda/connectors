@@ -19,7 +19,7 @@ public sealed interface EmailProcessingOperation {
 
   @TemplateSubType(id = DeleteOperation.TYPE, label = "Delete")
   record DeleteOperation(
-      @TemplateProperty(label = "Tick if email should be really deleted.", defaultValue = "false") boolean force)
+      @TemplateProperty(label = "Tick if email should be really deleted.") boolean force)
       implements EmailProcessingOperation {
     @TemplateProperty(ignore = true)
     public static final String TYPE = "delete";
@@ -32,7 +32,7 @@ public sealed interface EmailProcessingOperation {
   }
 
   @TemplateSubType(id = MoveOperation.TYPE, label = "Move to other folder")
-  record MoveOperation(String targetFolder) implements EmailProcessingOperation {
+  record MoveOperation(Folder targetFolder) implements EmailProcessingOperation {
     @TemplateProperty(ignore = true)
     public static final String TYPE = "move";
   }

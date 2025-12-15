@@ -8,6 +8,7 @@ package io.camunda.connector.azure.email.model.config;
 
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 
@@ -19,6 +20,7 @@ import java.util.Arrays;
 public sealed interface FieldSelection {
   String[] getFieldsArray();
 
+  @TemplateSubType(id = FieldSelection.SimpleConfiguration.TYPE, label = "Simple")
   record SimpleConfiguration(boolean onlyUnread, OffsetDateTime earliestReceived)
       implements FieldSelection {
     @TemplateProperty(ignore = true)
@@ -30,6 +32,7 @@ public sealed interface FieldSelection {
     }
   }
 
+  @TemplateSubType(id = FieldSelection.AdvancedConfiguration.TYPE, label = "Advanced")
   record AdvancedConfiguration(String fields) implements FieldSelection {
     @TemplateProperty(ignore = true)
     public static final String TYPE = "advanced";

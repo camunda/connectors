@@ -5,29 +5,28 @@
  * except in compliance with the proprietary license.
  */
 
+package io.camunda.connector.azure.email;
 
- package io.camunda.connector.azure.email;
-
- import com.azure.identity.ClientSecretCredential;
- import com.azure.identity.ClientSecretCredentialBuilder;
- import com.microsoft.graph.core.tasks.PageIterator;
- import com.microsoft.graph.models.Message;
- import com.microsoft.graph.models.MessageCollectionResponse;
- import com.microsoft.graph.serviceclient.GraphServiceClient;
- import com.microsoft.graph.users.item.messages.item.move.MovePostRequestBody;
- import io.camunda.connector.api.document.Document;
- import io.camunda.connector.api.error.ConnectorException;
- import io.camunda.connector.api.inbound.*;
- import io.camunda.connector.azure.email.model.config.EmailProcessingOperation;
- import io.camunda.connector.azure.email.model.config.MsInboundEmailProperties;
- import io.camunda.connector.azure.email.model.output.EmailMessage;
- import java.util.List;
- import java.util.Objects;
- import java.util.concurrent.atomic.AtomicBoolean;
+import com.azure.identity.ClientSecretCredential;
+import com.azure.identity.ClientSecretCredentialBuilder;
+import com.microsoft.graph.core.tasks.PageIterator;
+import com.microsoft.graph.models.Message;
+import com.microsoft.graph.models.MessageCollectionResponse;
+import com.microsoft.graph.serviceclient.GraphServiceClient;
+import com.microsoft.graph.users.item.messages.item.move.MovePostRequestBody;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.inbound.*;
+import io.camunda.connector.azure.email.model.config.EmailProcessingOperation;
+import io.camunda.connector.azure.email.model.config.MsInboundEmailProperties;
+import io.camunda.connector.azure.email.model.output.EmailMessage;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 // TODO: Use ScheduledExecutor
 // TODO: Use Delta polling
- public class EmailPollingWorker implements Runnable {
+public class EmailPollingWorker implements Runnable {
   private final InboundConnectorContext context;
   private final Thread thread;
   private final AtomicBoolean shouldStop;
@@ -56,22 +55,22 @@
             .clientSecret(properties.authentication().clientSecret())
             .build();
     final GraphServiceClient graphClient = new GraphServiceClient(credential, scopes);
-//    graphClient.users().get(getRequestConfiguration -> getRequestConfiguration
-//            .queryParameters.filter("principalName eq" + properties.data().userId() ));
+    //    graphClient.users().get(getRequestConfiguration -> getRequestConfiguration
+    //            .queryParameters.filter("principalName eq" + properties.data().userId() ));
     MessageCollectionResponse messageResponse =
         graphClient
             .users()
             .byUserId(properties.data().userId())
             .messages()
- //.delta() // TODO: Check if this works
+            // .delta() // TODO: Check if this works
             .get(
                 requestConfiguration -> {
-                  requestConfiguration.headers.add("Prefer",
- "outlook.body-content-type=\"text\"");
-                  requestConfiguration.queryParameters.select = new String[]{properties.data().folderName()};
+                  requestConfiguration.headers.add("Prefer", "outlook.body-content-type=\"text\"");
+                  requestConfiguration.queryParameters.select =
+                      new String[] {properties.data().folder().folderName()};
                   requestConfiguration.queryParameters.top = 10;
                 });
-   // FIXME: How do I get the @odata.deltaLink out of the iterator
+    // FIXME: How do I get the @odata.deltaLink out of the iterator
     while (!shouldStop.get()) {
       final var pageIterator =
           new PageIterator.Builder<Message, MessageCollectionResponse>()
@@ -82,7 +81,8 @@
                   requestInfo -> {
                     // Re-add the header and query parameters to subsequent requests
                     requestInfo.headers.add("Prefer", "outlook.body-content-type=\"text\"");
-                    requestInfo.addQueryParameter("%24select", properties.data().folderName());
+                    requestInfo.addQueryParameter(
+                        "%24select", properties.data().folder().folderName());
                     requestInfo.addQueryParameter("%24top", 10);
                     return requestInfo;
                   })
@@ -136,17 +136,17 @@
       postprocess(client, message);
     }
   }
-    // FIXME: Introduce interface for MSEmail Service
+
+  // FIXME: Introduce interface for MSEmail Service
   private void postprocess(GraphServiceClient client, Message message) {
-    var partialMessageRequest = client.users()
-            .byUserId(properties.data().userId())
-            .messages().byMessageId(message.getId());
+    var partialMessageRequest =
+        client.users().byUserId(properties.data().userId()).messages().byMessageId(message.getId());
     switch (properties.operation()) {
       case EmailProcessingOperation.MoveOperation m -> {
         var moveRequest = new MovePostRequestBody();
         // FIXME: We should consider mapping from targetFolder name
         // to ID, because AFAICT folder IDs are not exposed in the Outlook UI
-        moveRequest.setDestinationId(m.targetFolder());
+        moveRequest.setDestinationId(m.targetFolder().folderName());
         partialMessageRequest.move().post(moveRequest);
       }
       case EmailProcessingOperation.MarkAsReadOperation _ -> {
@@ -207,4 +207,4 @@
   public boolean isShutdown() {
     return thread.getState().equals(Thread.State.TERMINATED);
   }
- }
+}

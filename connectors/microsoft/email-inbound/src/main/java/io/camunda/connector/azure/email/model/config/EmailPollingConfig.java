@@ -19,23 +19,6 @@ public record EmailPollingConfig(
             description = "The ID or Principal Name of the mailboxes owner.")
         String userId,
     @TemplateProperty(
-            label = "Specified User ID",
-            description = "Did you specify a User ID?",
-            tooltip =
-                "To prevent name collisions, you can instead specify the folder ID. <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties' target='_blank'> See the folder Properties described in the API</a> ")
-        boolean isUserId,
-    @TemplateProperty(
-            label = "Folder Name/Folder ID",
-            feel = Property.FeelMode.optional,
-            description = "The folder name or folder ID. Folder names must be unique.")
-        String folderName,
-    @TemplateProperty(
-            label = "Specified folder ID",
-            description = "Did you specify a folder ID?",
-            tooltip =
-                "To prevent name collisions, you can instead specify the folder ID. <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties' target='_blank'> See the folder Properties described in the API</a> ")
-        boolean isFolderId,
-    @TemplateProperty(
             id = "pollingInterval",
             label = "Polling interval",
             group = "pollingConfig",
@@ -45,4 +28,5 @@ public record EmailPollingConfig(
             feel = Property.FeelMode.optional)
         @FEEL
         Duration pollingInterval,
+    @NestedProperties() Folder folder,
     @NestedProperties() FieldSelection fieldSelection) {}
