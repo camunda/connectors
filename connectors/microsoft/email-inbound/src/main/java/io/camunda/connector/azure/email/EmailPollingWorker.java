@@ -7,15 +7,9 @@
 
 package io.camunda.connector.azure.email;
 
-import com.microsoft.graph.core.tasks.PageIterator;
-import com.microsoft.graph.models.Message;
-import com.microsoft.graph.models.MessageCollectionResponse;
-import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.azure.email.model.config.MsInboundEmailProperties;
-import io.camunda.connector.azure.email.model.output.EmailMessage;
 import io.camunda.connector.azure.email.util.MicrosoftMailClient;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 // TODO: Use ScheduledExecutor
@@ -38,49 +32,15 @@ public class EmailPollingWorker implements Runnable {
     MicrosoftMailClient client = new MicrosoftMailClient(properties);
     String folderId = client.getFolderId(properties.pollingConfig().folder());
     // FIXME: How do I get the @odata.deltaLink out of the iterator
+    String token = null;
+    var messageProcessor = new MessageProcessor(properties, client, context);
     while (!shouldStop.get()) {
-      MessageCollectionResponse messageResponse =
-          client
-              .getClient()
-              .mailFolders()
-              .byMailFolderId(folderId)
-              .messages()
-              // .delta() // TODO: Check if this works
-              .get(
-                  requestConfiguration -> {
-                    requestConfiguration.headers.add(
-                        "Prefer", "outlook.body-content-type=\"text\"");
-                    requestConfiguration.queryParameters.filter =
-                        properties.pollingConfig().getFilter();
-                    requestConfiguration.queryParameters.select = EmailMessage.getSelect();
-                    requestConfiguration.queryParameters.top = 10;
-                  });
-      final var pageIterator =
-          new PageIterator.Builder<Message, MessageCollectionResponse>()
-              .client(client.getGraphclient())
-              .collectionPage(Objects.requireNonNull(messageResponse))
-              .collectionPageFactory(MessageCollectionResponse::createFromDiscriminatorValue)
-              .requestConfigurator(
-                  requestInfo -> {
-                    // Re-add the header and query parameters to subsequent requests
-                    requestInfo.headers.add("Prefer", "outlook.body-content-type=\"text\"");
-                    requestInfo.addQueryParameter(
-                        "%24select", properties.pollingConfig().getFilter());
-                    requestInfo.addQueryParameter("%24top", 10);
-                    return requestInfo;
-                  })
-              .processPageItemCallback(
-                  msg -> {
-                    new MessageProcessor(properties, client, context)
-                        .handleMessage(new EmailMessage(msg));
-                    return shouldStop.get();
-                  });
-      try {
-        pageIterator.build().iterate();
-      } catch (ReflectiveOperationException e) {
-        context.reportHealth(Health.down(e));
-        throw new ConnectorException(e);
-      }
+      token =
+          client.getMessages(
+              token,
+              properties.pollingConfig().folder(),
+              properties.pollingConfig().getFilter(),
+              messageProcessor::handleMessage);
       if (shouldStop.get()) {
         return;
       }
