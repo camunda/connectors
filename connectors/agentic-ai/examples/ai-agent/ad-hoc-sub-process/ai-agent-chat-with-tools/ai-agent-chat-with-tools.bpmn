@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_18jxukq" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.41.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_18jxukq" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.42.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
   <bpmn:process id="ai-agent-chat-with-tools" name="AI Agent Chat With Tools" isExecutable="true">
     <bpmn:startEvent id="StartEvent_1">
       <bpmn:extensionElements>
@@ -45,11 +45,11 @@
         <zeebe:taskDefinition type="io.camunda.agenticai:aiagent-job-worker:1" retries="3" />
         <zeebe:ioMapping>
           <zeebe:input source="bedrock" target="provider.type" />
-          <zeebe:input source="us-east-1" target="provider.bedrock.region" />
+          <zeebe:input source="eu-central-1" target="provider.bedrock.region" />
           <zeebe:input source="credentials" target="provider.bedrock.authentication.type" />
           <zeebe:input source="{{secrets.AWS_BEDROCK_ACCESS_KEY}}" target="provider.bedrock.authentication.accessKey" />
           <zeebe:input source="{{secrets.AWS_BEDROCK_SECRET_KEY}}" target="provider.bedrock.authentication.secretKey" />
-          <zeebe:input source="us.anthropic.claude-sonnet-4-20250514-v1:0" target="provider.bedrock.model.model" />
+          <zeebe:input source="eu.anthropic.claude-sonnet-4-5-20250929-v1:0" target="provider.bedrock.model.model" />
           <zeebe:input source="=&#34;You are a helpful, generic chat agent which can answer a wide amount of questions based on your knowledge and an optional set of available tools.&#10;&#10;If tools are provided, you should prefer them instead of guessing an answer. You can call the same tool multiple times by providing different input values. Don&#39;t guess any tools which were not explicitely configured. If no tool matches the request, try to generate an answer. If you&#39;re not able to find a good answer, return with a message stating why you&#39;re not able to.&#10;&#10;If you are prompted to interact with a person, never guess contact details, but use available user/person lookup tools instead and return with an error if you&#39;re not able to look up appropriate data.&#10;&#10;Thinking, step by step, before you execute your tools, you think using the template `&#60;thinking&#62;&#60;context&#62;&#60;/context&#62;&#60;reflection&#62;&#60;/reflection&#62;&#60;/thinking&#62;`&#34;" target="data.systemPrompt.prompt" />
           <zeebe:input source="=if (is defined(followUpInput)) then followUpInput else inputText" target="data.userPrompt.prompt" />
           <zeebe:input source="=if (is defined(followUpInput) or is defined(followUpDocuments)) then followUpDocuments else inputDocuments" target="data.userPrompt.documents" />
