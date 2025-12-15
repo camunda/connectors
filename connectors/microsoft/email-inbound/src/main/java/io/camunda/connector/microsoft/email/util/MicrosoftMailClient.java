@@ -8,7 +8,9 @@ package io.camunda.connector.microsoft.email.util;
 
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
+import com.microsoft.graph.core.tasks.PageIterator;
 import com.microsoft.graph.models.Message;
+import com.microsoft.graph.models.MessageCollectionResponse;
 import com.microsoft.graph.serviceclient.GraphServiceClient;
 import com.microsoft.graph.users.item.UserItemRequestBuilder;
 import com.microsoft.graph.users.item.messages.item.MessageItemRequestBuilder;
@@ -19,6 +21,7 @@ import io.camunda.connector.microsoft.email.model.config.Folder;
 import io.camunda.connector.microsoft.email.model.config.MsInboundEmailProperties;
 import io.camunda.connector.microsoft.email.model.output.EmailMessage;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public class MicrosoftMailClient implements MailClient {
@@ -75,7 +78,44 @@ public class MicrosoftMailClient implements MailClient {
 
   @Override
   public String getMessages(
-      String deltaToken, String filterString, Consumer<EmailMessage> handler) {
+      String deltaToken, Folder folder, String filterString, Consumer<EmailMessage> handler) {
+    MessageCollectionResponse messageResponse =
+        graphClient
+            .mailFolders()
+            .byMailFolderId(getFolderId(folder))
+            .messages()
+            .get(
+                requestConfiguration -> {
+                  requestConfiguration.headers.add("Prefer", "outlook.body-content-type=\"text\"");
+                  requestConfiguration.queryParameters.filter = filterString;
+                  requestConfiguration.queryParameters.select = EmailMessage.getSelect();
+                  requestConfiguration.queryParameters.top = 10;
+                });
+    final var pageIterator =
+        new PageIterator.Builder<Message, MessageCollectionResponse>()
+            .client(client)
+            .collectionPage(Objects.requireNonNull(messageResponse))
+            .collectionPageFactory(MessageCollectionResponse::createFromDiscriminatorValue)
+            .requestConfigurator(
+                requestInfo -> {
+                  // Re-add the header and query parameters to subsequent requests
+                  requestInfo.headers.add("Prefer", "outlook.body-content-type=\"text\"");
+                  requestInfo.addQueryParameter("%24select", filterString);
+                  requestInfo.addQueryParameter("%24top", 10);
+                  return requestInfo;
+                })
+            .processPageItemCallback(
+                msg -> {
+                  var myMsg = new EmailMessage(msg);
+                  handler.accept(myMsg);
+                  return true;
+                });
+    try {
+      pageIterator.build().iterate();
+    } catch (ReflectiveOperationException e) {
+      throw new ConnectorException(e);
+    }
+
     return null;
   }
 
@@ -85,8 +125,9 @@ public class MicrosoftMailClient implements MailClient {
 
   @Override
   public void deleteMessage(EmailMessage msg, boolean force) {
-    if (force) constructCommonMessage(msg).permanentDelete();
-    else {
+    if (force) {
+      constructCommonMessage(msg).permanentDelete();
+    } else {
       constructCommonMessage(msg).delete();
     }
   }

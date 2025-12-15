@@ -24,7 +24,8 @@ public interface MailClient {
    * @param handler
    * @return The delta token
    */
-  String getMessages(String deltaToken, String filterString, Consumer<EmailMessage> handler);
+  String getMessages(
+      String deltaToken, Folder folder, String filterString, Consumer<EmailMessage> handler);
 
   void deleteMessage(EmailMessage msg, boolean force);
 
