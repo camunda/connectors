@@ -2,3 +2,4 @@ io.camunda.intrinsic.functions.Base64Function
 io.camunda.intrinsic.functions.CreateLinkFunction
 io.camunda.intrinsic.functions.GetJsonFunction
 io.camunda.intrinsic.functions.GetTextFunction
+io.camunda.intrinsic.functions.CreateGithubAppInstallationTokenFunction

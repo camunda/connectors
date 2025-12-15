@@ -20,6 +20,10 @@
       <artifactId>zeebe-client-java</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.camunda.feel</groupId>
       <artifactId>feel-engine</artifactId>
     </dependency>
