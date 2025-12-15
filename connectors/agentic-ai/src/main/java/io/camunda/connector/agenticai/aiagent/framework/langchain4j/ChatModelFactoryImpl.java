@@ -28,6 +28,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompa
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.api.error.ConnectorInputException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -37,6 +38,7 @@ import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
@@ -69,9 +71,11 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model());
 
-    if (connection.endpoint() != null) {
-      builder.baseUrl(connection.endpoint());
-    }
+    Optional.ofNullable(connection.timeouts())
+        .map(TimeoutConfiguration::timeout)
+        .ifPresent(builder::timeout);
+
+    Optional.ofNullable(connection.endpoint()).ifPresent(builder::baseUrl);
 
     final var modelParameters = connection.model().parameters();
     if (modelParameters != null) {
@@ -91,6 +95,10 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
         AzureOpenAiChatModel.builder()
             .endpoint(connection.endpoint())
             .deploymentName(configuration.azureOpenAi().model().deploymentName());
+
+    Optional.ofNullable(connection.timeouts())
+        .map(TimeoutConfiguration::timeout)
+        .ifPresent(builder::timeout);
 
     switch (connection.authentication()) {
       case AzureApiKeyAuthentication azureApiKeyAuthentication ->
@@ -127,6 +135,10 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
             .client(createBedrockClient(connection))
             .modelId(connection.model().model());
 
+    Optional.ofNullable(connection.timeouts())
+        .map(TimeoutConfiguration::timeout)
+        .ifPresent(builder::timeout);
+
     return applyBedrockModelParametersIfPresent(connection, builder);
   }
 
@@ -134,13 +146,22 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       BedrockProviderConfiguration.BedrockConnection connection) {
     var bedrockClientBuilder =
         BedrockRuntimeClient.builder().region(Region.of(connection.region()));
+    var overrideClientConfigurationBuilder = ClientOverrideConfiguration.builder();
 
     var authenticationCustomizer = AwsBedrockRuntimeAuthenticationCustomizer.createFor(connection);
-    authenticationCustomizer.provideAuthenticationMechanism(bedrockClientBuilder);
+    authenticationCustomizer.provideAuthenticationMechanism(
+        bedrockClientBuilder, overrideClientConfigurationBuilder);
 
     if (connection.endpoint() != null) {
       bedrockClientBuilder.endpointOverride(URI.create(connection.endpoint()));
     }
+
+    Optional.ofNullable(connection.timeouts())
+        .map(TimeoutConfiguration::timeout)
+        .ifPresent(overrideClientConfigurationBuilder::apiCallTimeout);
+
+    bedrockClientBuilder.overrideConfiguration(overrideClientConfigurationBuilder.build());
+
     return bedrockClientBuilder.build();
   }
 
@@ -208,6 +229,10 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model());
 
+    Optional.ofNullable(connection.timeouts())
+        .map(TimeoutConfiguration::timeout)
+        .ifPresent(builder::timeout);
+
     Optional.ofNullable(connection.authentication().organizationId())
         .ifPresent(builder::organizationId);
     Optional.ofNullable(connection.authentication().projectId()).ifPresent(builder::projectId);
@@ -253,6 +278,10 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
             });
     Optional.ofNullable(connection.headers()).ifPresent(builder::customHeaders);
     Optional.ofNullable(connection.queryParameters()).ifPresent(builder::customQueryParams);
+
+    Optional.ofNullable(connection.timeouts())
+        .map(TimeoutConfiguration::timeout)
+        .ifPresent(builder::timeout);
 
     final var modelParameters = connection.model().parameters();
     if (modelParameters != null) {

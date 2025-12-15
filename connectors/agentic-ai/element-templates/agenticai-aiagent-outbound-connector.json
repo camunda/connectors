@@ -143,6 +143,23 @@
     },
     "type" : "String"
   }, {
+    "id" : "provider.anthropic.timeouts.timeout",
+    "label" : "Timeout",
+    "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.anthropic.timeouts.timeout",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "anthropic",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "provider.bedrock.region",
     "label" : "Region",
     "description" : "Specify the AWS region (example: <code>eu-west-1</code>)",
@@ -281,6 +298,23 @@
         "equals" : "bedrock",
         "type" : "simple"
       } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.bedrock.timeouts.timeout",
+    "label" : "Timeout",
+    "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.bedrock.timeouts.timeout",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "bedrock",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -453,6 +487,23 @@
     },
     "type" : "String"
   }, {
+    "id" : "provider.azureOpenAi.timeouts.timeout",
+    "label" : "Timeout",
+    "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.azureOpenAi.timeouts.timeout",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "azureOpenAi",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "provider.googleVertexAi.projectId",
     "label" : "Project ID",
     "description" : "Specify Google Cloud project ID",
@@ -595,6 +646,23 @@
     },
     "type" : "String"
   }, {
+    "id" : "provider.openai.timeouts.timeout",
+    "label" : "Timeout",
+    "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openai.timeouts.timeout",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openai",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "provider.openaiCompatible.endpoint",
     "label" : "API endpoint",
     "optional" : false,
@@ -657,6 +725,23 @@
     "group" : "provider",
     "binding" : {
       "name" : "provider.openaiCompatible.queryParameters",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "provider.type",
+      "equals" : "openaiCompatible",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "provider.openaiCompatible.timeouts.timeout",
+    "label" : "Timeout",
+    "description" : "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "provider",
+    "binding" : {
+      "name" : "provider.openaiCompatible.timeouts.timeout",
       "type" : "zeebe:input"
     },
     "condition" : {
