@@ -44,7 +44,7 @@ public class MicrosoftMailClient implements MailClient {
     var resp =
         graphClient
             .mailFolders()
-            .get(c -> c.queryParameters.filter = "displayName eq " + folderName);
+            .get(c -> c.queryParameters.filter = "displayName eq '" + folderName + "'");
     // TODO: Should we specify the name of the user mailbox in the error message?
     if (resp.getValue().size() > 1) {
       throw new ConnectorException("Folder name " + folderName + " matches more than one folder.");
