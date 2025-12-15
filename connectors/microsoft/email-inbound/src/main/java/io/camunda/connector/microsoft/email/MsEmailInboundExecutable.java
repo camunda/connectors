@@ -10,6 +10,7 @@ import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.microsoft.email.model.config.MsInboundEmailProperties;
 import java.time.Duration;
@@ -34,6 +35,23 @@ import org.slf4j.LoggerFactory;
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "pollingConfig", label = "Listener Information"),
       @ElementTemplate.PropertyGroup(id = "postprocessing", label = "Postprocessing")
+    },
+    elementTypes = {
+      @ElementTemplate.ConnectorElementType(
+          appliesTo = BpmnType.START_EVENT,
+          elementType = BpmnType.MESSAGE_START_EVENT,
+          templateIdOverride = "io.camunda.connectors.inbound.MSFT.O365.EmailMessageStart.v1",
+          templateNameOverride = "Microsoft O365 Email Message Start Event Connector"),
+      @ElementTemplate.ConnectorElementType(
+          appliesTo = {BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT},
+          elementType = BpmnType.INTERMEDIATE_CATCH_EVENT,
+          templateIdOverride = "io.camunda.connectors.inbound.MSFT.O365.EmailIntermediate.v1",
+          templateNameOverride = "Microsoft O365 Email Intermediate Catch Event Connector"),
+      @ElementTemplate.ConnectorElementType(
+          appliesTo = BpmnType.BOUNDARY_EVENT,
+          elementType = BpmnType.BOUNDARY_EVENT,
+          templateIdOverride = "io.camunda.connectors.inbound.MSFT.O365.EmailBoundary.v1",
+          templateNameOverride = "Microsoft O365 Email Boundary Event Connector")
     })
 public class MsEmailInboundExecutable
     implements InboundConnectorExecutable<InboundConnectorContext> {
@@ -44,8 +62,15 @@ public class MsEmailInboundExecutable
 
   @Override
   public void activate(InboundConnectorContext context) {
-    worker = new EmailPollingWorker(context);
     this.context = context;
+    try {
+      worker = new EmailPollingWorker(context);
+      context.reportHealth(Health.up());
+    } catch (Exception e) {
+      LOGGER.error("Failed to activate Microsoft O365 Email Inbound connector", e);
+      context.reportHealth(Health.down(e));
+      throw e;
+    }
   }
 
   @Override

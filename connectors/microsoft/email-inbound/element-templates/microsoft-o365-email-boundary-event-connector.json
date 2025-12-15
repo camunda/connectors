@@ -1,7 +1,7 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Microsoft O365 Inbound Email Connector (Boundary Event)",
-  "id" : "io.camunda.connectors.MSFT.O365.Mail.inbound:BoundaryEvent",
+  "name" : "Microsoft O365 Email Boundary Event Connector",
+  "id" : "io.camunda.connectors.inbound.MSFT.O365.EmailBoundary.v1",
   "description" : "Poll M365 Outlook emails",
   "metadata" : {
     "keywords" : [ "email", "Office365", "Outlook" ]

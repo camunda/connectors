@@ -1,7 +1,7 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Microsoft O365 Inbound Email Connector (Intermediate Catch Event)",
-  "id" : "io.camunda.connectors.MSFT.O365.Mail.inbound:IntermediateCatchEvent-hybrid",
+  "name" : "Microsoft O365 Email Message Start Event Connector",
+  "id" : "io.camunda.connectors.inbound.MSFT.O365.EmailMessageStart.v1",
   "description" : "Poll M365 Outlook emails",
   "metadata" : {
     "keywords" : [ "email", "Office365", "Outlook" ]
@@ -12,18 +12,15 @@
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent" ],
+  "appliesTo" : [ "bpmn:StartEvent" ],
   "elementType" : {
-    "value" : "bpmn:IntermediateCatchEvent",
+    "value" : "bpmn:StartEvent",
     "eventDefinition" : "bpmn:MessageEventDefinition"
   },
   "engines" : {
     "camunda" : "^8.9"
   },
   "groups" : [ {
-    "id" : "connectorType",
-    "label" : "Connector type"
-  }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
@@ -44,14 +41,12 @@
     "label" : "Output mapping"
   } ],
   "properties" : [ {
-    "id" : "connectorType",
     "value" : "io.camunda:connector-o365-email-inbound:1",
-    "group" : "connectorType",
     "binding" : {
       "name" : "inbound.type",
       "type" : "zeebe:property"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "authentication.tenantId",
     "label" : "Tenant id",
@@ -365,6 +360,24 @@
     },
     "type" : "String"
   }, {
+    "id" : "correlationRequired",
+    "label" : "Subprocess correlation required",
+    "description" : "Indicates whether correlation is required. This is needed for event-based subprocess message start events",
+    "value" : "notRequired",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "correlationRequired",
+      "type" : "zeebe:property"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Correlation not required",
+      "value" : "notRequired"
+    }, {
+      "name" : "Correlation required",
+      "value" : "required"
+    } ]
+  }, {
     "id" : "correlationKeyProcess",
     "label" : "Correlation key (process)",
     "description" : "Sets up the correlation key from process variables",
@@ -376,6 +389,11 @@
     "binding" : {
       "name" : "correlationKey",
       "type" : "bpmn:Message#zeebe:subscription#property"
+    },
+    "condition" : {
+      "property" : "correlationRequired",
+      "equals" : "required",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -391,17 +409,10 @@
       "name" : "correlationKeyExpression",
       "type" : "zeebe:property"
     },
-    "type" : "String"
-  }, {
-    "id" : "messageIdExpression",
-    "label" : "Message ID expression",
-    "description" : "Expression to extract unique identifier of a message",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "correlation",
-    "binding" : {
-      "name" : "messageIdExpression",
-      "type" : "zeebe:property"
+    "condition" : {
+      "property" : "correlationRequired",
+      "equals" : "required",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -420,6 +431,18 @@
     "group" : "correlation",
     "binding" : {
       "name" : "messageTtl",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "messageIdExpression",
+    "label" : "Message ID expression",
+    "description" : "Expression to extract unique identifier of a message",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "messageIdExpression",
       "type" : "zeebe:property"
     },
     "type" : "String"

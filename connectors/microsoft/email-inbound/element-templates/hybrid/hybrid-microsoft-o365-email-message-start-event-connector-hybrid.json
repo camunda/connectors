@@ -1,7 +1,7 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Microsoft O365 Inbound Email Connector (Message Start Event)",
-  "id" : "io.camunda.connectors.MSFT.O365.Mail.inbound:MessageStartEvent",
+  "name" : "Hybrid Microsoft O365 Email Message Start Event Connector",
+  "id" : "io.camunda.connectors.inbound.MSFT.O365.EmailMessageStart.v1-hybrid",
   "description" : "Poll M365 Outlook emails",
   "metadata" : {
     "keywords" : [ "email", "Office365", "Outlook" ]
@@ -21,6 +21,9 @@
     "camunda" : "^8.9"
   },
   "groups" : [ {
+    "id" : "connectorType",
+    "label" : "Connector type"
+  }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
@@ -41,12 +44,14 @@
     "label" : "Output mapping"
   } ],
   "properties" : [ {
+    "id" : "connectorType",
     "value" : "io.camunda:connector-o365-email-inbound:1",
+    "group" : "connectorType",
     "binding" : {
       "name" : "inbound.type",
       "type" : "zeebe:property"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "authentication.tenantId",
     "label" : "Tenant id",
