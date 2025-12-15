@@ -45,23 +45,24 @@ public class EmailPollingWorker implements Runnable {
     if (!properties.pollingConfig().folder().isFolderId()) {
       folderId = client.getFolderIdByFolderName(folderId);
     }
-    MessageCollectionResponse messageResponse =
-        client
-            .getClient()
-            .mailFolders()
-            .byMailFolderId(folderId)
-            .messages()
-            // .delta() // TODO: Check if this works
-            .get(
-                requestConfiguration -> {
-                  requestConfiguration.headers.add("Prefer", "outlook.body-content-type=\"text\"");
-                  requestConfiguration.queryParameters.filter =
-                      properties.pollingConfig().getFilter();
-                  requestConfiguration.queryParameters.select = EmailMessage.getSelect();
-                  requestConfiguration.queryParameters.top = 10;
-                });
     // FIXME: How do I get the @odata.deltaLink out of the iterator
     while (!shouldStop.get()) {
+      MessageCollectionResponse messageResponse =
+          client
+              .getClient()
+              .mailFolders()
+              .byMailFolderId(folderId)
+              .messages()
+              // .delta() // TODO: Check if this works
+              .get(
+                  requestConfiguration -> {
+                    requestConfiguration.headers.add(
+                        "Prefer", "outlook.body-content-type=\"text\"");
+                    requestConfiguration.queryParameters.filter =
+                        properties.pollingConfig().getFilter();
+                    requestConfiguration.queryParameters.select = EmailMessage.getSelect();
+                    requestConfiguration.queryParameters.top = 10;
+                  });
       final var pageIterator =
           new PageIterator.Builder<Message, MessageCollectionResponse>()
               .client(client.getGraphclient())
