@@ -46,8 +46,8 @@ public class ImapServerProxy implements AutoCloseable {
   private void handle(Socket client) {
     try (client) {
       proxy(client);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+    } catch (IOException ignored) {
+      // Ignore
     }
   }
 
@@ -64,8 +64,8 @@ public class ImapServerProxy implements AutoCloseable {
                 () -> {
                   try {
                     pipeClientToServer(client.getInputStream(), backend.getOutputStream());
-                  } catch (IOException e) {
-                    throw new RuntimeException(e);
+                  } catch (IOException ignored) {
+                    // Ignore
                   }
                 });
         Future<?> f2 =
@@ -74,8 +74,8 @@ public class ImapServerProxy implements AutoCloseable {
                 () -> {
                   try {
                     pipeServerToClient(backend.getInputStream(), client.getOutputStream());
-                  } catch (IOException e) {
-                    throw new RuntimeException(e);
+                  } catch (IOException ignored) {
+                    // Ignore
                   }
                 });
         try {
