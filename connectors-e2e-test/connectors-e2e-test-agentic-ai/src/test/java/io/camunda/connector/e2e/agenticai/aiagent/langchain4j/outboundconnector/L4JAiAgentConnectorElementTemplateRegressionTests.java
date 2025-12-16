@@ -121,6 +121,6 @@ public class L4JAiAgentConnectorElementTemplateRegressionTests extends BaseL4JAi
                 .hasNoResponseMessage()
                 .hasNoResponseJson());
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(2);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
   }
 }

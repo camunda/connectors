@@ -106,7 +106,7 @@ public class L4JAiAgentJobWorkerUserPromptDocumentsTests extends BaseL4JAiAgentJ
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(1);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
   }
 
   @Test
@@ -160,7 +160,7 @@ public class L4JAiAgentJobWorkerUserPromptDocumentsTests extends BaseL4JAiAgentJ
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(1);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
   }
 
   @Test

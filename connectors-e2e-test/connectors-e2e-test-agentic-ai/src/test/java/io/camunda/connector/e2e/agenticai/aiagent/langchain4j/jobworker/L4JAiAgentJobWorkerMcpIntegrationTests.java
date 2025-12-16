@@ -305,7 +305,7 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(2);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
 
     verify(aMcpClient).listTools();
     verify(aHttpRemoteMcpClient).listTools();

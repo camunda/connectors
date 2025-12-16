@@ -127,7 +127,7 @@ public class L4JAiAgentJobWorkerFeedbackLoopTests extends BaseL4JAiAgentJobWorke
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(2);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
   }
 
   @Test

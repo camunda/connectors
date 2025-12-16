@@ -119,7 +119,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
                 .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
                 .satisfies(agentResponseAssertions));
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(1);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
 
     return zeebeTest;
   }
@@ -197,7 +197,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
                 .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
                 .satisfies(agentResponseAssertions));
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(2);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
 
     return zeebeTest;
   }

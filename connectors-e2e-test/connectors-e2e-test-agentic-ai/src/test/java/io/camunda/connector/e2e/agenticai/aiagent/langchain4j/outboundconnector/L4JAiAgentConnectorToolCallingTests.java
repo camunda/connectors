@@ -161,6 +161,6 @@ public class L4JAiAgentConnectorToolCallingTests extends BaseL4JAiAgentConnector
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(2);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
   }
 }

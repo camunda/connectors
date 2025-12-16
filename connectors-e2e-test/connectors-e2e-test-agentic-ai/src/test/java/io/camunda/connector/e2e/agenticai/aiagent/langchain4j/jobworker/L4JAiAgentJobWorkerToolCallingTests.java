@@ -160,6 +160,6 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(2);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
   }
 }
