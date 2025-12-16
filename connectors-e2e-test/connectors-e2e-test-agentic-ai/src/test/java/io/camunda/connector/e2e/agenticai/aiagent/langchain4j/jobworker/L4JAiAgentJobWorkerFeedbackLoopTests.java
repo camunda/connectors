@@ -113,8 +113,7 @@ public class L4JAiAgentJobWorkerFeedbackLoopTests extends BaseL4JAiAgentJobWorke
             userSatisfiedFeedback()));
 
     final var zeebeTest =
-        createProcessInstance(Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
-            .waitForProcessCompletion();
+        createProcessInstance(Map.of("userPrompt", initialUserPrompt)).waitForProcessCompletion();
 
     assertLastChatRequest(expectedConversation);
 
@@ -128,14 +127,12 @@ public class L4JAiAgentJobWorkerFeedbackLoopTests extends BaseL4JAiAgentJobWorke
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(2);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
   }
 
   @Test
   void raisesIncidentWhenUserPromptIsEmpty() throws Exception {
-    final var zeebeTest =
-        createProcessInstance(Map.of("action", "executeAgent", "userPrompt", ""))
-            .waitForActiveIncidents();
+    final var zeebeTest = createProcessInstance(Map.of("userPrompt", "")).waitForActiveIncidents();
 
     assertIncident(
         zeebeTest,
@@ -156,7 +153,7 @@ public class L4JAiAgentJobWorkerFeedbackLoopTests extends BaseL4JAiAgentJobWorke
                 elementTemplate ->
                     elementTemplate.property(
                         "errorExpression", "=jobError(\"Job error: \" + error.message)"),
-                Map.of("action", "executeAgent", "userPrompt", ""))
+                Map.of("userPrompt", ""))
             .waitForActiveIncidents();
 
     assertIncident(

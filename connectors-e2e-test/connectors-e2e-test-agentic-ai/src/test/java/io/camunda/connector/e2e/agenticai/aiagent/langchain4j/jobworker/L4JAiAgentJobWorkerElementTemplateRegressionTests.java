@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.outboundconnector;
+package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,7 +28,7 @@ import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
+import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.util.List;
@@ -37,10 +37,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @SlowTest
-public class L4JAiAgentConnectorElementTemplateRegressionTests extends BaseL4JAiAgentConnectorTest {
+public class L4JAiAgentJobWorkerElementTemplateRegressionTests extends BaseL4JAiAgentJobWorkerTest {
 
   @ParameterizedTest
-  @ValueSource(strings = {"ai-agent-task.bpmn", "ai-agent-task-8.8.0.bpmn"})
+  @ValueSource(strings = {"ai-agent-process.bpmn", "ai-agent-process-8.8.0.bpmn"})
   void executesAgentWithToolCallingAndUserFeedback(String processFile) throws Exception {
     final var initialUserPrompt = "Explore some of your tools!";
     final var expectedConversation =
@@ -107,15 +107,14 @@ public class L4JAiAgentConnectorElementTemplateRegressionTests extends BaseL4JAi
             .createInstance(Map.of("userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
-    assertLastChatRequest(3, expectedConversation, false);
+    assertLastChatRequest(expectedConversation, false);
 
     String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
-            AgentResponseAssert.assertThat(agentResponse)
+            JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
-                .hasNoToolCalls()
                 .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
                 .hasResponseText(expectedResponseText)
                 .hasNoResponseMessage()

@@ -119,7 +119,7 @@ abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
                 .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
                 .satisfies(agentResponseAssertions));
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(1);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
 
     return zeebeTest;
   }
@@ -150,9 +150,8 @@ abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
                 .build(),
             userSatisfiedFeedback()));
 
-    final var processVariables =
-        new HashMap<>(
-            Map.<String, Object>of("action", "executeAgent", "userPrompt", initialUserPrompt));
+    final Map<String, Object> processVariables = new HashMap<>();
+    processVariables.put("userPrompt", initialUserPrompt);
     processVariables.putAll(extraProcessVariables);
 
     final var zeebeTest = createProcessInstance(process, elementTemplateModifier, processVariables);
@@ -199,7 +198,7 @@ abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
                 .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
                 .satisfies(agentResponseAssertions));
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(2);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
 
     return zeebeTest;
   }
@@ -275,9 +274,7 @@ abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
 
     final var zeebeTest =
         createProcessInstance(
-            process,
-            elementTemplateModifier,
-            Map.of("action", "executeAgent", "userPrompt", initialUserPrompt));
+            process, elementTemplateModifier, Map.of("userPrompt", initialUserPrompt));
 
     return Pair.of(expectedConversation, zeebeTest);
   }
