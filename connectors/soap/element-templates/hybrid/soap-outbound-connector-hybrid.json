@@ -154,7 +154,7 @@
     } ]
   }, {
     "id" : "authentication.certificate.certificateType",
-    "label" : "Authentication",
+    "label" : "Certificate type",
     "description" : "From where the certificate is obtained",
     "group" : "authentication",
     "binding" : {
@@ -231,6 +231,9 @@
     "label" : "Keystore location",
     "description" : "The keystore to use",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "authentication",
     "binding" : {
@@ -254,6 +257,9 @@
     "label" : "Keystore password",
     "description" : "The password to access the keystore",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "authentication",
     "binding" : {
@@ -277,6 +283,9 @@
     "label" : "Certificate alias",
     "description" : "The alias for the certificate in the keystore",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "authentication",
     "binding" : {
@@ -300,6 +309,9 @@
     "label" : "Certificate password",
     "description" : "The password to access the certificate",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "authentication",
     "binding" : {
@@ -318,32 +330,6 @@
       } ]
     },
     "type" : "String"
-  }, {
-    "id" : "authentication.useBinarySecurityToken",
-    "label" : "Use binary security token",
-    "description" : "Whether a binary security token should be inserted",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.useBinarySecurityToken",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.authentication",
-      "equals" : "signature",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Yes",
-      "value" : "Yes"
-    }, {
-      "name" : "No",
-      "value" : "No"
-    } ]
   }, {
     "id" : "authentication.signatureAlgorithm",
     "label" : "Signature algorithm",
@@ -379,23 +365,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "authentication.canonicalizationAlgorithm",
-    "label" : "Canonicalization algorithm",
-    "description" : "Fully qualified name of an alternative canonicalization algorithm (this field has no effect)",
-    "optional" : true,
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.canonicalizationAlgorithm",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.authentication",
-      "equals" : "signature",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
     "id" : "authentication.timestamp",
     "label" : "Timestamp timeout in seconds",
     "description" : "If set, adds a timestamp header with the given timeout",
@@ -415,7 +384,7 @@
   }, {
     "id" : "authentication.encryptionParts",
     "label" : "Signature parts",
-    "description" : "Array of signature parts with namespace, localName, encryptionModifier and id. If ID is given, namespace and localName are ignored. The encryptionModifier can be omitted",
+    "description" : "Array of signature parts with namespace and localName",
     "optional" : true,
     "feel" : "required",
     "group" : "authentication",
