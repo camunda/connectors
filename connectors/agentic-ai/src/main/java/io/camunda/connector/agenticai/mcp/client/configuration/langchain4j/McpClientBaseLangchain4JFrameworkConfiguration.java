@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientLoggingResolver;
 import io.camunda.connector.http.client.authentication.OAuthService;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -42,7 +43,7 @@ public class McpClientBaseLangchain4JFrameworkConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public Langchain4JMcpClientHeadersSupplierFactory langchain4JMcpClientHeadersSupplierFactory(
-      ObjectMapper objectMapper) {
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new Langchain4JMcpClientHeadersSupplierFactory(
         new OAuthService(), new CustomApacheHttpClient(), objectMapper);
   }
@@ -58,7 +59,8 @@ public class McpClientBaseLangchain4JFrameworkConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public Langchain4JMcpClientExecutor langchain4JMcpClientExecutor(
-      ObjectMapper objectMapper, ToolSpecificationConverter toolSpecificationConverter) {
+      @ConnectorsObjectMapper ObjectMapper objectMapper,
+      ToolSpecificationConverter toolSpecificationConverter) {
     return new Langchain4JMcpClientExecutor(objectMapper, toolSpecificationConverter);
   }
 }

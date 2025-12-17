@@ -47,7 +47,7 @@ jobs:
             secret/data/products/connectors/ci/common ARTIFACTORY_USR | NEXUS_USER;
             secret/data/products/connectors/ci/common FOSSA_API_KEY;
       - name: Restore Maven cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
@@ -70,10 +70,10 @@ jobs:
             }]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
       - name: Setup fossa-cli
-        uses: camunda/infra-global-github-actions/fossa/setup@c7794826624039d8cb9ddeaa38c9dfb2781e34ba
+        uses: camunda/infra-global-github-actions/fossa/setup@39cfd357d270487b9f1ac02bbdbcfc7ae4e19d97
       - name: Get context info
         id: info
-        uses: camunda/infra-global-github-actions/fossa/info@c7794826624039d8cb9ddeaa38c9dfb2781e34ba
+        uses: camunda/infra-global-github-actions/fossa/info@39cfd357d270487b9f1ac02bbdbcfc7ae4e19d97
       - name: Adjust pom.xml files for FOSSA
         run: |
           # The parent/pom.xml must be the actual root, otherwise, FOSSA won't detect the hierarchy correctly
@@ -85,7 +85,7 @@ jobs:
             'del(.project.modules.module[] | select(. == "parent"))' \
             pom.xml
       - name: Analyze project
-        uses: camunda/infra-global-github-actions/fossa/analyze@c7794826624039d8cb9ddeaa38c9dfb2781e34ba
+        uses: camunda/infra-global-github-actions/fossa/analyze@39cfd357d270487b9f1ac02bbdbcfc7ae4e19d97
         with:
           api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           branch: ${{  steps.info.outputs.head-ref }}
@@ -95,7 +95,7 @@ jobs:
       # It does not fail for pre-existing issues already present in the base branch.
       - name: Check Pull Request for new License Issues
         if: steps.info.outputs.is-pull-request == 'true'
-        uses: camunda/infra-global-github-actions/fossa/pr-check@c7794826624039d8cb9ddeaa38c9dfb2781e34ba
+        uses: camunda/infra-global-github-actions/fossa/pr-check@39cfd357d270487b9f1ac02bbdbcfc7ae4e19d97
         with:
           api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           base-ref: ${{ steps.info.outputs.base-ref }}

@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.mcp.discovery.configuration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolHandler;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -27,7 +28,8 @@ public class McpDiscoveryConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public McpClientGatewayToolHandler mcpClientGatewayToolHandler(ObjectMapper objectMapper) {
+  public McpClientGatewayToolHandler mcpClientGatewayToolHandler(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new McpClientGatewayToolHandler(objectMapper);
   }
 }

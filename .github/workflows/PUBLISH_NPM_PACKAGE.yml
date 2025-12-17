@@ -57,10 +57,17 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Create pull request to main branch
-        uses: peter-evans/create-pull-request@v7
+      - name: Generate a GitHub token for connectors
+        id: app-token
+        uses: actions/create-github-app-token@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
+
+      - name: Create pull request to main branch
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ steps.app-token.outputs.token }}
           branch: chore/bump-npm-package-version
           commit-message: "ci: bump npm package version to ${{ inputs.npm-package-version }}"
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>

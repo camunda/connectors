@@ -214,108 +214,6 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <version>${plugin.version.maven-shade-plugin}</version>
-        <dependencies>
-          <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-maven-plugin</artifactId>
-            <version>${version.spring-boot}</version>
-          </dependency>
-        </dependencies>
-        <configuration>
-          <shadedArtifactAttached>true</shadedArtifactAttached>
-          <shadedClassifierName>with-dependencies</shadedClassifierName>
-          <!-- no need for this since we are not consuming this artifact downstream -->
-          <createDependencyReducedPom>false</createDependencyReducedPom>
-          <transformers>
-            <!-- This is needed if you have dependencies that use Service Loader. Most Google Cloud client libraries does. -->
-            <transformer
-              implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-            <!-- This is needed to not repeat licenses in the META-INF directory -->
-            <transformer
-              implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
-            <!-- This is needed to merge existing NOTICE files and keep them downstream -->
-            <transformer
-              implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
-              <addHeader>false</addHeader>
-            </transformer>
-            <transformer
-              implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-              <resource>META-INF/spring.handlers</resource>
-            </transformer>
-            <transformer
-              implementation="org.springframework.boot.maven.PropertiesMergingResourceTransformer">
-              <resource>META-INF/spring.factories</resource>
-            </transformer>
-            <transformer
-              implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-              <resource>META-INF/spring-autoconfigure-metadata.properties</resource>
-            </transformer>
-            <transformer
-              implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-              <resource>
-                META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
-              </resource>
-            </transformer>
-            <transformer
-              implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-              <resource>META-INF/spring.schemas</resource>
-            </transformer>
-            <transformer
-              implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-              <resource>META-INF/additional-spring-configuration-metadata.json</resource>
-            </transformer>
-            <transformer
-              implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-              <resource>META-INF/spring.tooling</resource>
-            </transformer>
-            <transformer
-              implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-              <resource>META-INF/spring-configuration-metadata.json</resource>
-            </transformer>
-            <transformer
-              implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-              <resource>META-INF/io.netty.versions.properties</resource>
-            </transformer>
-            <transformer
-              implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-              <mainClass>io.camunda.connector.runtime.app.ConnectorRuntimeApplication</mainClass>
-            </transformer>
-          </transformers>
-          <artifactSet>
-            <excludes>
-              <!-- Classes provided by JSR-250 artifact are fully covered by javax.annotation-api artifact
-                   that comes with google-cloud-secretmanager (dependency of connector-runtime-cloud) -->
-              <exclude>javax.annotation:jsr250-api</exclude>
-            </excludes>
-          </artifactSet>
-          <filters>
-            <filter>
-              <artifact>*:*</artifact>
-              <excludes>
-                <exclude>module-info.class</exclude>
-                <exclude>META-INF/versions/9/module-info.class</exclude>
-                <exclude>META-INF/DEPENDENCIES</exclude>
-                <exclude>META-INF/MANIFEST.MF</exclude>
-                <exclude>META-INF/*.SF</exclude>
-                <exclude>META-INF/*.DSA</exclude>
-                <exclude>META-INF/*.RSA</exclude>
-              </excludes>
-            </filter>
-          </filters>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
         <version>2.9.1</version>
@@ -355,6 +253,23 @@
             <configuration>
               <classifier>javadoc</classifier>
               <classesDirectory>${basedir}/main/resources/javadoc</classesDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <version>${version.spring-boot}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>repackage</goal>
+            </goals>
+            <configuration>
+              <mainClass>
+                io.camunda.connector.runtime.app.ConnectorRuntimeApplication
+              </mainClass>
             </configuration>
           </execution>
         </executions>

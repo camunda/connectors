@@ -12,6 +12,7 @@ import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -62,7 +63,10 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompa
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import java.net.URI;
+import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -89,7 +93,14 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClientBuilde
 
 @ExtendWith(MockitoExtension.class)
 class ChatModelFactoryTest {
+  private static final TimeoutConfiguration MODEL_TIMEOUT =
+      new TimeoutConfiguration(Duration.ofSeconds(30));
+
   private final ChatModelFactory chatModelFactory = new ChatModelFactoryImpl();
+
+  static Stream<TimeoutConfiguration> nullTimeouts() {
+    return Stream.of(new TimeoutConfiguration(null));
+  }
 
   @Nested
   class AnthropicChatModelFactoryTest {
@@ -107,11 +118,13 @@ class ChatModelFactoryTest {
               new AnthropicConnection(
                   null,
                   new AnthropicAuthentication(ANTHROPIC_API_KEY),
+                  MODEL_TIMEOUT,
                   new AnthropicModel(ANTHROPIC_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testAnthropicChatModelBuilder(
           providerConfig,
           (builder) -> {
+            verify(builder).timeout(MODEL_TIMEOUT.timeout());
             verify(builder).apiKey(ANTHROPIC_API_KEY);
             verify(builder).modelName(ANTHROPIC_MODEL);
             verify(builder, never()).baseUrl(any());
@@ -129,6 +142,7 @@ class ChatModelFactoryTest {
               new AnthropicConnection(
                   "https://my-custom-endpoint.local",
                   new AnthropicAuthentication(ANTHROPIC_API_KEY),
+                  MODEL_TIMEOUT,
                   new AnthropicModel(ANTHROPIC_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testAnthropicChatModelBuilder(
@@ -148,6 +162,7 @@ class ChatModelFactoryTest {
               new AnthropicConnection(
                   null,
                   new AnthropicAuthentication(ANTHROPIC_API_KEY),
+                  MODEL_TIMEOUT,
                   new AnthropicModel(ANTHROPIC_MODEL, modelParameters)));
 
       testAnthropicChatModelBuilder(
@@ -157,6 +172,26 @@ class ChatModelFactoryTest {
             verify(builder, never()).temperature(anyDouble());
             verify(builder, never()).topP(anyDouble());
             verify(builder, never()).topK(anyInt());
+          });
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#nullTimeouts")
+    void createsAnthropicChatModelWithNullTimeouts(TimeoutConfiguration timeouts) {
+      final var providerConfig =
+          new AnthropicProviderConfiguration(
+              new AnthropicConnection(
+                  null,
+                  new AnthropicAuthentication(ANTHROPIC_API_KEY),
+                  timeouts,
+                  new AnthropicModel(ANTHROPIC_MODEL, null)));
+
+      testAnthropicChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder, never()).timeout(any());
           });
     }
 
@@ -206,12 +241,14 @@ class ChatModelFactoryTest {
               new AzureOpenAiConnection(
                   AZURE_OPENAI_ENDPOINT,
                   new AzureApiKeyAuthentication(AZURE_OPENAI_API_KEY),
+                  MODEL_TIMEOUT,
                   new AzureOpenAiProviderConfiguration.AzureOpenAiModel(
                       AZURE_OPENAI_DEPLOYMENT_NAME, DEFAULT_MODEL_PARAMETERS)));
 
       testAzureOpenAiChatModelBuilder(
           providerConfig,
           (builder) -> {
+            verify(builder).timeout(MODEL_TIMEOUT.timeout());
             verify(builder).apiKey(AZURE_OPENAI_API_KEY);
             verify(builder).maxTokens(DEFAULT_MODEL_PARAMETERS.maxTokens());
             verify(builder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
@@ -230,6 +267,7 @@ class ChatModelFactoryTest {
                   AZURE_OPENAI_ENDPOINT,
                   new AzureClientCredentialsAuthentication(
                       CLIENT_ID, CLIENT_SECRET, TENANT_ID, authorityHost),
+                  MODEL_TIMEOUT,
                   new AzureOpenAiProviderConfiguration.AzureOpenAiModel(
                       AZURE_OPENAI_DEPLOYMENT_NAME, DEFAULT_MODEL_PARAMETERS)));
 
@@ -257,6 +295,7 @@ class ChatModelFactoryTest {
                   AZURE_OPENAI_ENDPOINT,
                   new AzureClientCredentialsAuthentication(
                       CLIENT_ID, CLIENT_SECRET, TENANT_ID, null),
+                  MODEL_TIMEOUT,
                   new AzureOpenAiProviderConfiguration.AzureOpenAiModel(
                       AZURE_OPENAI_DEPLOYMENT_NAME, modelParameters)));
 
@@ -266,6 +305,28 @@ class ChatModelFactoryTest {
             verify(builder, never()).maxTokens(anyInt());
             verify(builder, never()).temperature(anyDouble());
             verify(builder, never()).topP(anyDouble());
+          });
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#nullTimeouts")
+    void createsAzureOpenAiChatModelWithNullTimeouts(TimeoutConfiguration timeouts) {
+      final var providerConfig =
+          new AzureOpenAiProviderConfiguration(
+              new AzureOpenAiConnection(
+                  AZURE_OPENAI_ENDPOINT,
+                  new AzureClientCredentialsAuthentication(
+                      CLIENT_ID, CLIENT_SECRET, TENANT_ID, null),
+                  timeouts,
+                  new AzureOpenAiProviderConfiguration.AzureOpenAiModel(
+                      AZURE_OPENAI_DEPLOYMENT_NAME, null)));
+
+      testAzureOpenAiChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder, never()).timeout(any());
           });
     }
 
@@ -318,6 +379,7 @@ class ChatModelFactoryTest {
                   BEDROCK_REGION,
                   null,
                   new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+                  MODEL_TIMEOUT,
                   new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testCreateBedrockChatModelWithCredentials(
@@ -337,6 +399,7 @@ class ChatModelFactoryTest {
                   null,
                   new AwsAuthentication.AwsStaticCredentialsAuthentication(
                       BEDROCK_ACCESS_KEY, BEDROCK_SECRET_KEY),
+                  MODEL_TIMEOUT,
                   new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testCreateBedrockChatModelWithCredentials(
@@ -361,19 +424,26 @@ class ChatModelFactoryTest {
                   BEDROCK_REGION,
                   null,
                   new AwsAuthentication.AwsApiKeyAuthentication(BEDROCK_API_KEY),
+                  MODEL_TIMEOUT,
                   new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testBedrockChatModelBuilder(
           providerConfig,
           (builders) -> {
+            verify(builders.chatModelBuilder).timeout(MODEL_TIMEOUT.timeout());
+
             var clientBuilder = builders.clientBuilder;
 
             var overrideConfigurationCaptor =
                 ArgumentCaptor.forClass(ClientOverrideConfiguration.class);
-            verify(clientBuilder).overrideConfiguration(overrideConfigurationCaptor.capture());
+            verify(clientBuilder, atLeastOnce())
+                .overrideConfiguration(overrideConfigurationCaptor.capture());
 
             assertThat(overrideConfigurationCaptor.getValue().headers())
                 .containsEntry("Authorization", List.of("Bearer " + BEDROCK_API_KEY));
+            assertThat(overrideConfigurationCaptor.getValue().apiCallTimeout())
+                .isPresent()
+                .contains(MODEL_TIMEOUT.timeout());
           });
     }
 
@@ -385,6 +455,7 @@ class ChatModelFactoryTest {
                   BEDROCK_REGION,
                   "https://my-custom-endpoint.local",
                   new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+                  MODEL_TIMEOUT,
                   new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testBedrockChatModelBuilder(
@@ -405,6 +476,7 @@ class ChatModelFactoryTest {
                   BEDROCK_REGION,
                   null,
                   new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+                  MODEL_TIMEOUT,
                   new BedrockModel(BEDROCK_MODEL, modelParameters)));
 
       testBedrockChatModelBuilder(
@@ -422,6 +494,27 @@ class ChatModelFactoryTest {
               assertThat(parameters.temperature()).isNull();
               assertThat(parameters.topP()).isNull();
             }
+          });
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#nullTimeouts")
+    void createsBedrockChatModelWithNullTimeouts(TimeoutConfiguration timeouts) {
+      final var providerConfig =
+          new BedrockProviderConfiguration(
+              new BedrockConnection(
+                  BEDROCK_REGION,
+                  null,
+                  new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+                  timeouts,
+                  new BedrockModel(BEDROCK_MODEL, null)));
+
+      testBedrockChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder.chatModelBuilder, never()).timeout(any());
           });
     }
 
@@ -623,12 +716,14 @@ class ChatModelFactoryTest {
           new OpenAiProviderConfiguration(
               new OpenAiConnection(
                   new OpenAiProviderConfiguration.OpenAiAuthentication(OPEN_AI_API_KEY, null, null),
+                  MODEL_TIMEOUT,
                   new OpenAiProviderConfiguration.OpenAiModel(
                       OPEN_AI_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testOpenAiChatModelBuilder(
           providerConfig,
           (builder) -> {
+            verify(builder).timeout(MODEL_TIMEOUT.timeout());
             verify(builder).apiKey(OPEN_AI_API_KEY);
             verify(builder).modelName(OPEN_AI_MODEL);
             verify(builder, never()).baseUrl(any());
@@ -653,6 +748,7 @@ class ChatModelFactoryTest {
               new OpenAiConnection(
                   new OpenAiProviderConfiguration.OpenAiAuthentication(
                       OPEN_AI_API_KEY, "MY_ORG_ID", "MY_PROJECT_ID"),
+                  MODEL_TIMEOUT,
                   new OpenAiProviderConfiguration.OpenAiModel(
                       OPEN_AI_MODEL, DEFAULT_MODEL_PARAMETERS)));
 
@@ -672,6 +768,7 @@ class ChatModelFactoryTest {
           new OpenAiProviderConfiguration(
               new OpenAiConnection(
                   new OpenAiProviderConfiguration.OpenAiAuthentication(OPEN_AI_API_KEY, null, null),
+                  MODEL_TIMEOUT,
                   new OpenAiProviderConfiguration.OpenAiModel(OPEN_AI_MODEL, modelParameters)));
 
       testOpenAiChatModelBuilder(
@@ -689,6 +786,25 @@ class ChatModelFactoryTest {
               assertThat(parameters.temperature()).isNull();
               assertThat(parameters.topP()).isNull();
             }
+          });
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#nullTimeouts")
+    void createsOpenAiChatModelWithNullTimeouts(TimeoutConfiguration timeouts) {
+      final var providerConfig =
+          new OpenAiProviderConfiguration(
+              new OpenAiConnection(
+                  new OpenAiProviderConfiguration.OpenAiAuthentication(OPEN_AI_API_KEY, null, null),
+                  timeouts,
+                  new OpenAiProviderConfiguration.OpenAiModel(OPEN_AI_MODEL, null)));
+
+      testOpenAiChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder, never()).timeout(any());
           });
     }
 
@@ -736,12 +852,15 @@ class ChatModelFactoryTest {
                   ENDPOINT,
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
                   Map.of("my-header", "my-value"),
+                  null,
+                  MODEL_TIMEOUT,
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
                       MODEL, DEFAULT_MODEL_PARAMETERS)));
 
       testOpenAiCompatibleChatModelBuilder(
           providerConfig,
           (builder) -> {
+            verify(builder).timeout(MODEL_TIMEOUT.timeout());
             verify(builder).modelName(MODEL);
             verify(builder).baseUrl(ENDPOINT);
             verify(builder).apiKey(API_KEY);
@@ -772,6 +891,8 @@ class ChatModelFactoryTest {
                   ENDPOINT,
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(null),
                   null,
+                  null,
+                  MODEL_TIMEOUT,
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
                       MODEL, DEFAULT_MODEL_PARAMETERS)));
 
@@ -796,6 +917,8 @@ class ChatModelFactoryTest {
                   ENDPOINT,
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
                   Map.of(),
+                  Map.of(),
+                  MODEL_TIMEOUT,
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
                       MODEL, modelParameters)));
 
@@ -818,6 +941,28 @@ class ChatModelFactoryTest {
           });
     }
 
+    @ParameterizedTest
+    @NullSource
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#nullTimeouts")
+    void createsOpenAiCompatibleChatModelWithNullTimeouts(TimeoutConfiguration timeouts) {
+      final var providerConfig =
+          new OpenAiCompatibleProviderConfiguration(
+              new OpenAiCompatibleConnection(
+                  ENDPOINT,
+                  new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
+                  Map.of(),
+                  Map.of(),
+                  timeouts,
+                  new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(MODEL, null)));
+
+      testOpenAiCompatibleChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder, never()).timeout(any());
+          });
+    }
+
     @Test
     void createsOpenAiCompatibleChatModelWithApiKeyAndAuthorizationHeader() {
       final var authHeaderValue = "Bearer token123";
@@ -827,6 +972,8 @@ class ChatModelFactoryTest {
                   ENDPOINT,
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
                   Map.of("Authorization", authHeaderValue),
+                  Collections.emptyMap(),
+                  MODEL_TIMEOUT,
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
                       MODEL, DEFAULT_MODEL_PARAMETERS)));
 
@@ -835,6 +982,40 @@ class ChatModelFactoryTest {
           (builder) -> {
             verify(builder).modelName(MODEL);
             verify(builder).baseUrl(ENDPOINT);
+            verify(builder).customHeaders(Map.of("Authorization", authHeaderValue));
+
+            // API key set then cleared due to Authorization header
+            final var ordered = inOrder(builder);
+            ordered.verify(builder).apiKey(API_KEY);
+            ordered.verify(builder).apiKey(null);
+
+            verify(builder, never()).organizationId(any());
+            verify(builder, never()).projectId(any());
+          });
+    }
+
+    @Test
+    void createsOpenAiCompatibleChatModelWithApiKeyAndHeaderAndQueryParameters() {
+      final var authHeaderValue = "Bearer token123";
+      final var customQueryParameters = Map.of("foo", "bar", "foo2", "bar2");
+      final var providerConfig =
+          new OpenAiCompatibleProviderConfiguration(
+              new OpenAiCompatibleConnection(
+                  ENDPOINT,
+                  new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication(API_KEY),
+                  Map.of("Authorization", authHeaderValue),
+                  customQueryParameters,
+                  null,
+                  new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(
+                      MODEL, DEFAULT_MODEL_PARAMETERS)));
+
+      testOpenAiCompatibleChatModelBuilder(
+          providerConfig,
+          (builder) -> {
+            verify(builder).modelName(MODEL);
+
+            verify(builder).baseUrl(ENDPOINT);
+            verify(builder).customQueryParams(customQueryParameters);
             verify(builder).customHeaders(Map.of("Authorization", authHeaderValue));
 
             // API key set then cleared due to Authorization header

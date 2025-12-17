@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.intrinsic;
+package io.camunda.connector.runtime.core.intrinsic.functions;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -23,7 +23,6 @@ import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
-import io.camunda.connector.runtime.core.intrinsic.functions.GetJsonFunction;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 

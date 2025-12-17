@@ -290,10 +290,7 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
             userSatisfiedFeedback()));
 
     final var zeebeTest =
-        createProcessInstance(
-                testProcessWithMcp,
-                e -> e,
-                Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
+        createProcessInstance(testProcessWithMcp, e -> e, Map.of("userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
     assertLastChatRequest(3, expectedConversation);
@@ -309,7 +306,7 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(2);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
 
     verify(aMcpClient).listTools();
     verify(aHttpRemoteMcpClient).listTools();

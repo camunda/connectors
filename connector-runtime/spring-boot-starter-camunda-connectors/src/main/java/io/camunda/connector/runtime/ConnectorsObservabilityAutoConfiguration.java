@@ -21,10 +21,10 @@ import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImporter;
 import io.camunda.connector.runtime.metrics.ContextAwareLogbackMetrics;
 import io.micrometer.core.instrument.binder.logging.LogbackMetrics;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.autoconfigure.metrics.LogbackMetricsAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.micrometer.metrics.autoconfigure.logging.logback.LogbackMetricsAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 
 @AutoConfiguration

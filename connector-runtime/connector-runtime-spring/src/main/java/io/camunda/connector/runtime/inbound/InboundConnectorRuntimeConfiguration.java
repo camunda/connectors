@@ -21,6 +21,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
@@ -79,7 +80,7 @@ public class InboundConnectorRuntimeConfiguration {
   public InboundCorrelationHandler inboundCorrelationHandler(
       final CamundaClient camundaClient,
       final FeelEngineWrapper feelEngine,
-      final ObjectMapper objectMapper,
+      @ConnectorsObjectMapper final ObjectMapper objectMapper,
       final ConnectorsInboundMetrics connectorsInboundMetrics) {
     return new MeteredInboundCorrelationHandler(
         camundaClient, feelEngine, objectMapper, messageTtl, connectorsInboundMetrics);
@@ -87,7 +88,7 @@ public class InboundConnectorRuntimeConfiguration {
 
   @Bean
   public InboundConnectorContextFactory springInboundConnectorContextFactory(
-      ObjectMapper mapper,
+      @ConnectorsObjectMapper ObjectMapper mapper,
       InboundCorrelationHandler correlationHandler,
       SecretProviderAggregator secretProviderAggregator,
       @Autowired(required = false) ValidationProvider validationProvider,

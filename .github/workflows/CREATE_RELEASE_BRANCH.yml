@@ -20,7 +20,7 @@ jobs:
           fetch-depth: 0
 
       - name: Restore cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
@@ -54,7 +54,7 @@ jobs:
           RELEASE_VERSION: ${{ github.event.inputs.version }}
 
       - name: Create pull request to main branch
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ steps.set-snapshot-version.outputs.branchName }}
