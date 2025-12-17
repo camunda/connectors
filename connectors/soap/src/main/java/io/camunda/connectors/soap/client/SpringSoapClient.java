@@ -191,10 +191,12 @@ public class SpringSoapClient implements SoapClient {
         securityInterceptor.setSecurementSignatureCrypto(crypto);
         securityInterceptor.setValidationSignatureCrypto(crypto);
       }
-      securityInterceptor.setSecurementSignatureParts(
-          signature.encryptionParts().stream()
-              .map(part -> String.format("{}{%s}%s;", part.namespace(), part.localName()))
-              .collect(Collectors.joining("")));
+      if (signature.encryptionParts() != null && !signature.encryptionParts().isEmpty()) {
+        securityInterceptor.setSecurementSignatureParts(
+            signature.encryptionParts().stream()
+                .map(part -> String.format("{}{%s}%s;", part.namespace(), part.localName()))
+                .collect(Collectors.joining("")));
+      }
       securityInterceptor.setSecurementMustUnderstand(true);
       ofNullable(signature.digestAlgorithm())
           .ifPresent(securityInterceptor::setSecurementSignatureDigestAlgorithm);
