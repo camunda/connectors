@@ -15,7 +15,7 @@ USER root
 # Use the /opt/custom to mount your own connectors, secret providers, or include other jars into the classpath
 RUN mkdir /opt/app && mkdir /opt/custom
 
-COPY target/*.jar /opt/app/
+COPY target/*-with-dependencies.jar /opt/app/
 
 # Using the start script from the base connector runtime image
 COPY start.sh /start.sh

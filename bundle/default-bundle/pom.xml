@@ -267,6 +267,7 @@
               <goal>repackage</goal>
             </goals>
             <configuration>
+              <classifier>with-dependencies</classifier>
               <mainClass>
                 io.camunda.connector.runtime.app.ConnectorRuntimeApplication
               </mainClass>

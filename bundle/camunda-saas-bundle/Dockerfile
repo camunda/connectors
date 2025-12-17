@@ -4,7 +4,7 @@ VOLUME /tmp
 
 RUN mkdir /opt/app
 
-COPY target/*.jar /opt/app/
+COPY target/*-with-dependencies.jar /opt/app/
 
 RUN apt-get update && \
     apt-get upgrade -y && \
