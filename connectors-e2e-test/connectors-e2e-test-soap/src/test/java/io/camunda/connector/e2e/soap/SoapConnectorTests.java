@@ -218,7 +218,7 @@ public class SoapConnectorTests extends SoapConnectorBaseTest {
             .willReturn(new ResponseDefinitionBuilder().withBody(NUMBER_OF_WORDS_RESPONSE)));
 
     String keystoreLocation =
-        Objects.requireNonNull(getClass().getResource("/keystore.jks")).toURI().toString();
+        Objects.requireNonNull(SoapConnectorTests.class.getResource("/keystore.jks")).toURI().toString();
 
     var elementTemplate =
         ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
