@@ -75,7 +75,7 @@ public class L4JAiAgentJobWorkerLimitsTests extends BaseL4JAiAgentJobWorkerTest 
     final var zeebeTest =
         createProcessInstance(
                 elementTemplate -> elementTemplate.property("errorExpression", errorExpression),
-                Map.of("action", "executeAgent", "userPrompt", "Write a haiku about the sea"))
+                Map.of("userPrompt", "Write a haiku about the sea"))
             .waitForProcessCompletion();
 
     assertThat(zeebeTest.getProcessInstanceEvent())
@@ -91,8 +91,7 @@ public class L4JAiAgentJobWorkerLimitsTests extends BaseL4JAiAgentJobWorkerTest 
 
     final var zeebeTest =
         createProcessInstance(
-                elementTemplateModifier,
-                Map.of("action", "executeAgent", "userPrompt", "Write a haiku about the sea"))
+                elementTemplateModifier, Map.of("userPrompt", "Write a haiku about the sea"))
             .waitForActiveIncidents();
 
     assertIncident(

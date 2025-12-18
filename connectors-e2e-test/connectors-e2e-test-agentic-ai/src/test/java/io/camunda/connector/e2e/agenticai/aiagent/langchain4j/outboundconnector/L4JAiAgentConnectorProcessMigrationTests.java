@@ -188,8 +188,6 @@ public class L4JAiAgentConnectorProcessMigrationTests extends BaseL4JAiAgentConn
             testProcess,
             e -> e,
             Map.of(
-                "action",
-                "executeAgent",
                 "userPrompt",
                 "Calculate the superflux product of 5 and 3 and call the complex tool."));
 

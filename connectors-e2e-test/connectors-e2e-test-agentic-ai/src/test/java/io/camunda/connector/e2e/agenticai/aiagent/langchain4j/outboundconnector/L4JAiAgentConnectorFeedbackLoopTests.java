@@ -111,8 +111,7 @@ public class L4JAiAgentConnectorFeedbackLoopTests extends BaseL4JAiAgentConnecto
             userSatisfiedFeedback()));
 
     final var zeebeTest =
-        createProcessInstance(Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
-            .waitForProcessCompletion();
+        createProcessInstance(Map.of("userPrompt", initialUserPrompt)).waitForProcessCompletion();
 
     assertLastChatRequest(2, expectedConversation);
 
@@ -127,6 +126,6 @@ public class L4JAiAgentConnectorFeedbackLoopTests extends BaseL4JAiAgentConnecto
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(2);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
   }
 }

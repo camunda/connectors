@@ -47,9 +47,8 @@ public class CreateGithubAppInstallationTokenFunction implements IntrinsicFuncti
   // GitHub documentation specifies a maximum of 1 minute.
   private static final long JWT_EXPIRATION_SECONDS = 60L;
   private static final String RSA_ALGORITHM = "RSA";
-  private static final String GITHUB_API_BASE_URL = "https://api.github.com";
-  private static final String INSTALLATION_TOKEN_URL_FORMAT =
-      GITHUB_API_BASE_URL + "/app/installations/%s/access_tokens";
+  private static final String DEFAULT_GITHUB_API_BASE_URL = "https://api.github.com";
+  private static final String INSTALLATION_TOKEN_URL_FORMAT = "/app/installations/%s/access_tokens";
   private static final String HEADER_ACCEPT = "Accept";
   private static final String HEADER_AUTHORIZATION = "Authorization";
   private static final String BEARER_PREFIX = "Bearer ";
@@ -59,8 +58,19 @@ public class CreateGithubAppInstallationTokenFunction implements IntrinsicFuncti
   private final ObjectMapper objectMapper = new ObjectMapper();
   private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
+  private final String baseUrl;
+
   static {
     Security.addProvider(new BouncyCastleProvider());
+  }
+
+  public CreateGithubAppInstallationTokenFunction() {
+    this(DEFAULT_GITHUB_API_BASE_URL);
+  }
+
+  // Package-private constructor for testing
+  CreateGithubAppInstallationTokenFunction(String baseUrl) {
+    this.baseUrl = baseUrl;
   }
 
   @IntrinsicFunction(name = "createGithubAppInstallationToken")
@@ -88,7 +98,7 @@ public class CreateGithubAppInstallationTokenFunction implements IntrinsicFuncti
 
   private String getInstallationAccessToken(String jwt, String installationId)
       throws IOException, InterruptedException {
-    final String url = String.format(INSTALLATION_TOKEN_URL_FORMAT, installationId);
+    final String url = baseUrl + String.format(INSTALLATION_TOKEN_URL_FORMAT, installationId);
     final HttpRequest request =
         HttpRequest.newBuilder()
             .uri(URI.create(url))
@@ -119,15 +129,68 @@ public class CreateGithubAppInstallationTokenFunction implements IntrinsicFuncti
 
   private RSAPrivateKey parsePrivateKey(String privateKey)
       throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
-    try (PemReader pemReader = new PemReader(new StringReader(privateKey))) {
+    String normalizedKey = normalizePrivateKey(privateKey);
+    try (PemReader pemReader = new PemReader(new StringReader(normalizedKey))) {
       PemObject pemObject = pemReader.readPemObject();
       if (pemObject == null) {
-        throw new IllegalArgumentException("Failed to parse PEM, no content found");
+        throw new IllegalArgumentException(
+            "Failed to parse PEM, no content found. "
+                + "Ensure the private key is properly formatted with BEGIN/END markers.");
       }
       byte[] content = pemObject.getContent();
       PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(content);
       KeyFactory kf = KeyFactory.getInstance(RSA_ALGORITHM);
       return (RSAPrivateKey) kf.generatePrivate(spec);
     }
+  }
+
+  // Package-private for testing
+  String normalizePrivateKey(String privateKey) {
+    // Handle escaped newlines from environment variables
+    String normalized = privateKey.replace("\\n", "\n");
+
+    // Trim any leading/trailing whitespace
+    normalized = normalized.trim();
+
+    // If the key already has proper newlines, just ensure consistent formatting
+    if (normalized.contains("\n")) {
+      // Clean up any irregular spacing around headers
+      normalized =
+          normalized
+              .replaceAll(
+                  "\\s*-----BEGIN RSA PRIVATE KEY-----\\s*", "-----BEGIN RSA PRIVATE KEY-----\n")
+              .replaceAll(
+                  "\\s*-----END RSA PRIVATE KEY-----\\s*", "\n-----END RSA PRIVATE KEY-----");
+      return normalized;
+    }
+
+    // If it's a single-line key, we need to add proper newlines
+    String beginMarker = "-----BEGIN RSA PRIVATE KEY-----";
+    String endMarker = "-----END RSA PRIVATE KEY-----";
+
+    int beginIndex = normalized.indexOf(beginMarker);
+    int endIndex = normalized.indexOf(endMarker);
+
+    if (beginIndex == -1 || endIndex == -1 || endIndex <= beginIndex) {
+      // Invalid format, return as-is and let the parser handle the error
+      return normalized;
+    }
+
+    String content =
+        normalized
+            .substring(beginIndex + beginMarker.length(), endIndex)
+            .replaceAll("\\s+", ""); // Remove all whitespace from the base64 content
+
+    // Format with 64-character lines as per PEM standard
+    StringBuilder formatted = new StringBuilder();
+    formatted.append(beginMarker).append("\n");
+
+    for (int i = 0; i < content.length(); i += 64) {
+      formatted.append(content, i, Math.min(content.length(), i + 64)).append("\n");
+    }
+
+    formatted.append(endMarker);
+
+    return formatted.toString();
   }
 }

@@ -27,7 +27,7 @@
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
-      <artifactId>spring-web</artifactId>
+      <artifactId>spring-webmvc</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -231,4 +231,18 @@
     </dependency>
 
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <configuration>
+          <ignoredDependencies>
+<dependency>org.springframework:spring-webmvc</dependency>
+            <dependency>org.springframework:spring-web</dependency>
+          </ignoredDependencies>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

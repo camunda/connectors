@@ -82,7 +82,7 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
+      <artifactId>spring-boot-starter-webmvc</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -91,10 +91,6 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-health</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-jackson2</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -218,6 +214,15 @@
       <artifactId>jackson-databind</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-jackson2</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -238,7 +243,7 @@
               <ignoredDependencies>
                 <!-- needed in runtime but not directly referenced in the code -->
                 <ignoredDependency>org.springframework.boot:spring-boot-configuration-processor</ignoredDependency>
-                <ignoredDependency>org.springframework.boot:spring-boot-starter-web</ignoredDependency>
+                <ignoredDependency>org.springframework.boot:spring-boot-starter-webmvc</ignoredDependency>
                 <ignoredDependency>org.springframework.boot:spring-boot-starter-actuator</ignoredDependency>
               </ignoredDependencies>
             </configuration>

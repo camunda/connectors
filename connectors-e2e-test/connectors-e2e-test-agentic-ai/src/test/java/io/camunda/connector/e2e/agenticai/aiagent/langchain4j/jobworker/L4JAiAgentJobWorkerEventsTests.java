@@ -77,9 +77,7 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
 
     final var zeebeTest =
         createProcessInstance(
-            testProcessWithEvent,
-            e -> e,
-            Map.of("action", "executeAgent", "userPrompt", initialUserPrompt));
+            testProcessWithEvent, e -> e, Map.of("userPrompt", initialUserPrompt));
 
     zeebeTest.waitForProcessCompletion();
 
@@ -95,7 +93,7 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(1);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
   }
 
   @Test
@@ -165,7 +163,7 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
             testProcessWithEvent,
             e ->
                 interruptToolCalls ? e.property("data.events.behavior", "INTERRUPT_TOOL_CALLS") : e,
-            Map.of("action", "executeAgent", "userPrompt", initialUserPrompt));
+            Map.of("userPrompt", initialUserPrompt));
 
     publishMessageWithDelay();
 
@@ -183,7 +181,7 @@ public class L4JAiAgentJobWorkerEventsTests extends BaseL4JAiAgentJobWorkerTest 
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(1);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
   }
 
   private void publishMessage() {

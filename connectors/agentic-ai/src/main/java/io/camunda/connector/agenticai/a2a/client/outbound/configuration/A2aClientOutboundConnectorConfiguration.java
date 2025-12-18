@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.a2a.client.outbound.A2aSendMessageResponse
 import io.camunda.connector.agenticai.a2a.client.outbound.A2aSendMessageResponseHandlerImpl;
 import io.camunda.connector.agenticai.a2a.client.outbound.convert.A2aDocumentToPartConverter;
 import io.camunda.connector.agenticai.a2a.client.outbound.convert.A2aDocumentToPartConverterImpl;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -34,7 +35,8 @@ import org.springframework.context.annotation.Import;
 public class A2aClientOutboundConnectorConfiguration {
   @Bean
   @ConditionalOnMissingBean
-  public A2aDocumentToPartConverter a2aDocumentToPartConverter(ObjectMapper objectMapper) {
+  public A2aDocumentToPartConverter a2aDocumentToPartConverter(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new A2aDocumentToPartConverterImpl(objectMapper);
   }
 
@@ -60,7 +62,7 @@ public class A2aClientOutboundConnectorConfiguration {
   public A2aClientRequestHandler a2aClientRequestHandler(
       A2aAgentCardFetcher agentCardFetcher,
       A2aMessageSender a2aMessageSender,
-      ObjectMapper objectMapper) {
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new A2aClientRequestHandlerImpl(agentCardFetcher, a2aMessageSender, objectMapper);
   }
 

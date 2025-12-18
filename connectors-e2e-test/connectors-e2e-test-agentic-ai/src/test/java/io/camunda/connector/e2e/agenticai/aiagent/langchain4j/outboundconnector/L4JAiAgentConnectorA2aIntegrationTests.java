@@ -196,6 +196,6 @@ public class L4JAiAgentConnectorA2aIntegrationTests extends BaseL4JAiAgentConnec
                 .hasResponseMessageText(expectedResponseText)
                 .hasResponseText(expectedResponseText));
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(2);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
   }
 }

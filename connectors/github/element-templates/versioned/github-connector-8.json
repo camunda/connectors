@@ -2,9 +2,9 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "GitHub Outbound Connector",
   "id": "io.camunda.connectors.GitHub.v1",
-  "version": 9,
+  "version": 8,
   "engines": {
-    "camunda": "^8.7"
+    "camunda": "^8.3"
   },
   "description": "Manage GitHub issues, branches, releases, and more",
   "metadata": {
@@ -433,117 +433,21 @@
       }
     },
     {
-      "label": "Authentication type",
-      "id": "authentication.authType",
-      "group": "authentication",
-      "type": "Dropdown",
-      "value": "pat",
-      "choices": [
-        {
-          "name": "Personal Access Token",
-          "value": "pat"
-        },
-        {
-          "name": "GitHub App",
-          "value": "github_app"
-        }
-      ],
-      "binding": {
-        "type": "zeebe:input",
-        "name": "authentication.authType"
-      }
-    },
-    {
       "label": "GitHub personal token",
-      "id": "authentication.pat",
       "group": "authentication",
       "description": "GitHub personal token, needs repository and workflow scope",
       "type": "String",
       "feel": "optional",
-      "optional": true,
-      "value": "",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "authentication.pat"
-      },
-      "constraints": {
-        "notEmpty": false
-      },
-      "condition": {
-        "property": "authentication.authType",
-        "equals": "pat"
-      }
-    },
-    {
-      "id": "authentication.githubAppPrivateKey",
-      "label": "Private Key",
-      "group": "authentication",
-      "description": "The private key of your GitHub App. It is recommended to use a secret for this value.",
-      "type": "String",
-      "feel": "optional",
-      "value": "",
-      "optional": true,
-      "binding": {
-        "type": "zeebe:input",
-        "name": "authentication.githubAppPrivateKey"
-      },
-      "constraints": {
-        "notEmpty": false
-      },
-      "condition": {
-        "property": "authentication.authType",
-        "equals": "github_app"
-      }
-    },
-    {
-      "id": "authentication.githubAppAppId",
-      "label": "App ID",
-      "group": "authentication",
-      "description": "The ID of your GitHub App.",
-      "type": "String",
-      "feel": "optional",
-      "value": "",
-      "optional": true,
-      "binding": {
-        "type": "zeebe:input",
-        "name": "authentication.githubAppAppId"
-      },
-      "constraints": {
-        "notEmpty": false
-      },
-      "condition": {
-        "property": "authentication.authType",
-        "equals": "github_app"
-      }
-    },
-    {
-      "id": "authentication.githubAppInstallationId",
-      "label": "Installation ID",
-      "group": "authentication",
-      "description": "The installation ID for your GitHub App.",
-      "type": "String",
-      "feel": "optional",
-      "value": "",
-      "optional": true,
-      "binding": {
-        "type": "zeebe:input",
-        "name": "authentication.githubAppInstallationId"
-      },
-      "constraints": {
-        "notEmpty": false
-      },
-      "condition": {
-        "property": "authentication.authType",
-        "equals": "github_app"
-      }
-    },
-    {
-      "group": "authentication",
-      "type": "Hidden",
-      "value": "= if authType = \"github_app\" then {\"camunda.function.type\":\"createGithubAppInstallationToken\",\"params\":[githubAppPrivateKey,githubAppAppId,githubAppInstallationId]} else pat",
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.token"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "bearer"
       }
     },
     {
@@ -2362,6 +2266,7 @@
         },
         "notEmpty": false
       },
+      
       "optional": true,
       "condition": {
         "property": "reposOperationType",
@@ -2519,7 +2424,7 @@
         "name": "authorEmail"
       },
       "constraints": {
-        "notEmpty": true
+          "notEmpty": true
       },
       "condition": {
         "property": "useCustomAuthor",

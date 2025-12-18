@@ -14,19 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.search;
+package io.camunda.connector.runtime.annotation;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
-import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import org.springframework.beans.factory.annotation.Qualifier;
 
-@Configuration
-public class ProcessInstanceClientConfiguration {
-  @Bean
-  public ProcessInstanceClient springProcessInstanceClient(
-      SearchQueryClient searchQueryClient, @ConnectorsObjectMapper ObjectMapper mapper) {
-    return new ProcessInstanceClientImpl(searchQueryClient, mapper);
-  }
-}
+/**
+ * Qualifier annotation for the Connectors-specific ObjectMapper bean.
+ *
+ * <p>This ObjectMapper includes FEEL support, document modules, and intrinsic functions configured
+ * for Camunda Connectors. Use this annotation when injecting ObjectMapper in connector-related
+ * code.
+ */
+@Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD})
+@Retention(RetentionPolicy.RUNTIME)
+@Qualifier
+public @interface ConnectorsObjectMapper {}

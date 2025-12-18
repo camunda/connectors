@@ -25,6 +25,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStoreImpl;
@@ -43,7 +44,7 @@ public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
   public DefaultOutboundConnectorFactory outboundConnectorConfigurationRegistry(
-      ObjectMapper mapper,
+      @ConnectorsObjectMapper ObjectMapper mapper,
       ValidationProvider validationProvider,
       Environment environment,
       List<OutboundConnectorFunction> functions,
@@ -77,7 +78,7 @@ public class OutboundConnectorRuntimeConfiguration {
       ValidationProvider validationProvider,
       MetricsRecorder metricsRecorder,
       DocumentFactory documentFactory,
-      ObjectMapper objectMapper) {
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new OutboundConnectorManager(
         jobWorkerManager,
         connectorFactory,

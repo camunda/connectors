@@ -48,8 +48,8 @@ import org.springframework.core.io.Resource;
 @Import(CamundaDocumentTestConfiguration.class)
 public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
 
-  private JobWorker jobWorker;
-  protected final AtomicInteger jobWorkerCounter = new AtomicInteger(0);
+  private JobWorker userFeedbackJobWorker;
+  protected final AtomicInteger userFeedbackJobWorkerCounter = new AtomicInteger(0);
   protected final AtomicReference<Map<String, Object>> userFeedbackVariables =
       new AtomicReference<>(Collections.emptyMap());
 
@@ -73,14 +73,14 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
   @BeforeEach
   void openUserFeedbackJobWorker() {
     userFeedbackVariables.set(Collections.emptyMap());
-    jobWorkerCounter.set(0);
-    jobWorker =
+    userFeedbackJobWorkerCounter.set(0);
+    userFeedbackJobWorker =
         camundaClient
             .newWorker()
             .jobType("user_feedback")
             .handler(
                 (client, job) -> {
-                  jobWorkerCounter.incrementAndGet();
+                  userFeedbackJobWorkerCounter.incrementAndGet();
                   client
                       .newCompleteCommand(job.getKey())
                       .variables(userFeedbackVariables.get())
@@ -92,8 +92,8 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
 
   @AfterEach
   void closeUserFeedbackJobWorker() {
-    if (jobWorker != null) {
-      jobWorker.close();
+    if (userFeedbackJobWorker != null) {
+      userFeedbackJobWorker.close();
     }
   }
 
