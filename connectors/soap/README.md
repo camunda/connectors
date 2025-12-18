@@ -1,5 +1,22 @@
 # SOAP Connector
 
+The SOAP Connector can create the XML structure of a SOAP request either by
+filling variables into an XML Template snippet or by generating the XML from a
+JSON structure. 
+
+The **Template** works twofold: 
+1. The XML template contains XML with placeholders surrounded by double curly
+braces like `<applicationId>{{applicationId}}</applicationId>` 
+2. The Context contains a JSON object providing values for the placeholders. The
+context can reference process variables of all complexity and use FEEL
+expressions. For example `{applicationId: myComplexVar.firstLevel.appID}`.
+
+The **XML compatible JSON** allows to provide a JSON structure with variable
+parts, that will be converted to XML by the connector. Required namespaces can
+be given as JSON objects separately. See
+[Example 2](#example-2-xml-compatible-json-with-pre-defined-namespaces) for more
+details.
+
 ## Connection
 
 Enter your SOAP service URL in the field **Service URL**, for example `https://myservice.com/service/MyService.wso`.
@@ -143,7 +160,7 @@ To extract the `MyResponseObjectField` value into its own variable, you can do:
 
 ## Usage examples
 
-### Example 1
+### Example 1: XML compatible JSON
 
 For example, imagine you want to send the following SOAP request:
 
@@ -162,7 +179,9 @@ Body:
 </soap:Envelope>
 ```
 
-In your BPMN diagram, set the field **Service URL** as `https://myservice:8888/webservice.wso`, and **SOAP body** as:
+In your BPMN diagram, set the field **Service URL** as
+`https://myservice:8888/webservice.wso`, and **SOAP body** as **XML compatible
+JSON** using the **JSON definition**:
 
 ```json
 {
@@ -172,7 +191,7 @@ In your BPMN diagram, set the field **Service URL** as `https://myservice:8888/w
 }
 ```
 
-### Example 2: Pre-defined namespaces
+### Example 2: XML compatible JSON with pre-defined namespaces
 
 Consider a namespace is defined within your objects, and you want to send the following request:
 
@@ -191,7 +210,9 @@ Body:
 </soap:Envelope>
 ```
 
-In your BPMN diagram, set the field **Service URL** as `https://myservice:8888/webservice.wso`, and **SOAP body** as:
+In your BPMN diagram, set the field **Service URL** as
+`https://myservice:8888/webservice.wso`, and **SOAP body** as **XML compatible
+JSON** using the **JSON definition**:
 
 ```json
 {
@@ -214,7 +235,7 @@ For the given example, it should be set as:
 }
 ```
 
-### Example 3: Using templates
+### Example 3: Using XML templates
 
 As an alternative, you can use templates to send SOAP messages.
 
@@ -299,7 +320,7 @@ The below tables shows an example on how to fill in the properties for signing t
 </tr>
 <tr>
 <td>Timestamp timeout in seconds</td>
-<td>SuperSecretKeystorePassword</td>
+<td>60</td>
 </tr>
 <tr>
 <td>Signature parts</td>
