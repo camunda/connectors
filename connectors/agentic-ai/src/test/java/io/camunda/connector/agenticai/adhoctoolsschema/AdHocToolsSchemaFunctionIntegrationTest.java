@@ -28,7 +28,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGen
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolSchemaGenerator;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolverImpl;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ToolsConfiguration.ProcessDefinitionConfiguration.RetriesConfiguration;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ToolsProperties.ProcessDefinitionProperties.RetriesProperties;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.error.ConnectorException;
@@ -77,7 +77,7 @@ class AdHocToolsSchemaFunctionIntegrationTest {
   void setUp() throws IOException {
     final var procsssDefinitionClient =
         new ProcessDefinitionClient(
-            camundaClient, new RetriesConfiguration(4, Duration.ofMillis(500)));
+            camundaClient, new RetriesProperties(4, Duration.ofMillis(500)));
     final var toolElementsResolver =
         new CamundaClientProcessDefinitionAdHocToolElementsResolver(
             procsssDefinitionClient, parameterExtractor);

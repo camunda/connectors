@@ -334,4 +334,11 @@ public class AgenticAiConnectorsAutoConfiguration {
   public AiAgentJobWorker aiAgentJobWorker(AiAgentJobWorkerHandler jobWorkerHandler) {
     return new AiAgentJobWorker(jobWorkerHandler);
   }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AgenticAiConnectorsConfigurationProperties.ChatModelProperties chatModelProperties(
+      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties) {
+    return agenticAiConnectorsConfigurationProperties.aiagent().chatModel();
+  }
 }

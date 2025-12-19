@@ -70,6 +70,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -96,7 +98,11 @@ class ChatModelFactoryTest {
   private static final TimeoutConfiguration MODEL_TIMEOUT =
       new TimeoutConfiguration(Duration.ofSeconds(30));
 
-  private final ChatModelFactory chatModelFactory = new ChatModelFactoryImpl();
+  private final ChatModelFactory chatModelFactory =
+      new ChatModelFactoryImpl(
+          new AgenticAiConnectorsConfigurationProperties.ChatModelProperties(
+              new AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties(
+                  Duration.ofMinutes(3))));
 
   static Stream<TimeoutConfiguration> nullTimeouts() {
     return Stream.of(new TimeoutConfiguration(null));
@@ -189,10 +195,7 @@ class ChatModelFactoryTest {
                   new AnthropicModel(ANTHROPIC_MODEL, null)));
 
       testAnthropicChatModelBuilder(
-          providerConfig,
-          (builder) -> {
-            verify(builder, never()).timeout(any());
-          });
+          providerConfig, (builder) -> verify(builder).timeout(Duration.ofMinutes(3)));
     }
 
     private void testAnthropicChatModelBuilder(
@@ -324,10 +327,7 @@ class ChatModelFactoryTest {
                       AZURE_OPENAI_DEPLOYMENT_NAME, null)));
 
       testAzureOpenAiChatModelBuilder(
-          providerConfig,
-          (builder) -> {
-            verify(builder, never()).timeout(any());
-          });
+          providerConfig, (builder) -> verify(builder).timeout(Duration.ofMinutes(3)));
     }
 
     private void testAzureOpenAiChatModelBuilder(
@@ -513,9 +513,7 @@ class ChatModelFactoryTest {
 
       testBedrockChatModelBuilder(
           providerConfig,
-          (builder) -> {
-            verify(builder.chatModelBuilder, never()).timeout(any());
-          });
+          (builder) -> verify(builder.chatModelBuilder).timeout(Duration.ofMinutes(3)));
     }
 
     private void testCreateBedrockChatModelWithCredentials(
@@ -802,10 +800,7 @@ class ChatModelFactoryTest {
                   new OpenAiProviderConfiguration.OpenAiModel(OPEN_AI_MODEL, null)));
 
       testOpenAiChatModelBuilder(
-          providerConfig,
-          (builder) -> {
-            verify(builder, never()).timeout(any());
-          });
+          providerConfig, (builder) -> verify(builder).timeout(Duration.ofMinutes(3)));
     }
 
     private void testOpenAiChatModelBuilder(
@@ -957,10 +952,7 @@ class ChatModelFactoryTest {
                   new OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel(MODEL, null)));
 
       testOpenAiCompatibleChatModelBuilder(
-          providerConfig,
-          (builder) -> {
-            verify(builder, never()).timeout(any());
-          });
+          providerConfig, (builder) -> verify(builder).timeout(Duration.ofMinutes(3)));
     }
 
     @Test

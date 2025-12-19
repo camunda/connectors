@@ -29,11 +29,13 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompa
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.api.error.ConnectorInputException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -42,9 +44,18 @@ import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
+import static java.util.function.Predicate.not;
+
 public class ChatModelFactoryImpl implements ChatModelFactory {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ChatModelFactoryImpl.class);
+
+  private final AgenticAiConnectorsConfigurationProperties.ChatModelProperties chatModelProperties;
+
+  public ChatModelFactoryImpl(
+      AgenticAiConnectorsConfigurationProperties.ChatModelProperties chatModelProperties) {
+    this.chatModelProperties = chatModelProperties;
+  }
 
   @Override
   public ChatModel createChatModel(ProviderConfiguration providerConfiguration) {
@@ -69,11 +80,8 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     final var builder =
         AnthropicChatModel.builder()
             .apiKey(connection.authentication().apiKey())
-            .modelName(connection.model().model());
-
-    Optional.ofNullable(connection.timeouts())
-        .map(TimeoutConfiguration::timeout)
-        .ifPresent(builder::timeout);
+            .modelName(connection.model().model())
+            .timeout(deriveTimeoutSetting(connection.timeouts()));
 
     Optional.ofNullable(connection.endpoint()).ifPresent(builder::baseUrl);
 
@@ -94,11 +102,8 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     final var builder =
         AzureOpenAiChatModel.builder()
             .endpoint(connection.endpoint())
-            .deploymentName(configuration.azureOpenAi().model().deploymentName());
-
-    Optional.ofNullable(connection.timeouts())
-        .map(TimeoutConfiguration::timeout)
-        .ifPresent(builder::timeout);
+            .deploymentName(configuration.azureOpenAi().model().deploymentName())
+            .timeout(deriveTimeoutSetting(connection.timeouts()));
 
     switch (connection.authentication()) {
       case AzureApiKeyAuthentication azureApiKeyAuthentication ->
@@ -133,11 +138,8 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     final var builder =
         BedrockChatModel.builder()
             .client(createBedrockClient(connection))
-            .modelId(connection.model().model());
-
-    Optional.ofNullable(connection.timeouts())
-        .map(TimeoutConfiguration::timeout)
-        .ifPresent(builder::timeout);
+            .modelId(connection.model().model())
+            .timeout(deriveTimeoutSetting(connection.timeouts()));
 
     return applyBedrockModelParametersIfPresent(connection, builder);
   }
@@ -156,9 +158,7 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
       bedrockClientBuilder.endpointOverride(URI.create(connection.endpoint()));
     }
 
-    Optional.ofNullable(connection.timeouts())
-        .map(TimeoutConfiguration::timeout)
-        .ifPresent(overrideClientConfigurationBuilder::apiCallTimeout);
+    overrideClientConfigurationBuilder.apiCallTimeout(deriveTimeoutSetting(connection.timeouts()));
 
     bedrockClientBuilder.overrideConfiguration(overrideClientConfigurationBuilder.build());
 
@@ -227,11 +227,8 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     final var builder =
         OpenAiChatModel.builder()
             .apiKey(connection.authentication().apiKey())
-            .modelName(connection.model().model());
-
-    Optional.ofNullable(connection.timeouts())
-        .map(TimeoutConfiguration::timeout)
-        .ifPresent(builder::timeout);
+            .modelName(connection.model().model())
+            .timeout(deriveTimeoutSetting(connection.timeouts()));
 
     Optional.ofNullable(connection.authentication().organizationId())
         .ifPresent(builder::organizationId);
@@ -259,7 +256,8 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     final var builder =
         OpenAiChatModel.builder()
             .modelName(connection.model().model())
-            .baseUrl(connection.endpoint());
+            .baseUrl(connection.endpoint())
+            .timeout(deriveTimeoutSetting(connection.timeouts()));
 
     Optional.ofNullable(connection.authentication())
         .map(OpenAiCompatibleAuthentication::apiKey)
@@ -279,10 +277,6 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     Optional.ofNullable(connection.headers()).ifPresent(builder::customHeaders);
     Optional.ofNullable(connection.queryParameters()).ifPresent(builder::customQueryParams);
 
-    Optional.ofNullable(connection.timeouts())
-        .map(TimeoutConfiguration::timeout)
-        .ifPresent(builder::timeout);
-
     final var modelParameters = connection.model().parameters();
     if (modelParameters != null) {
       final var requestParametersBuilder = OpenAiChatRequestParameters.builder();
@@ -298,5 +292,13 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     }
 
     return builder;
+  }
+
+  private Duration deriveTimeoutSetting(TimeoutConfiguration timeoutConfiguration) {
+    return Optional.ofNullable(timeoutConfiguration)
+        .map(TimeoutConfiguration::timeout)
+        .filter(not(timeout -> timeout.equals(Duration.ZERO)))
+        .or(() -> Optional.of(chatModelProperties.api().defaultTimeout()))
+        .get();
   }
 }
