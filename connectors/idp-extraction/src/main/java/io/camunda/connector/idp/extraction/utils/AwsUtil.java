@@ -36,7 +36,7 @@ public class AwsUtil {
     if (authType.equals("credentials")) {
       return StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey));
     } else {
-      return DefaultCredentialsProvider.create();
+      return DefaultCredentialsProvider.builder().build();
     }
   }
 
@@ -45,7 +45,7 @@ public class AwsUtil {
       return StaticCredentialsProvider.create(
           AwsBasicCredentials.create(sca.accessKey(), sca.secretKey()));
     } else {
-      return DefaultCredentialsProvider.create();
+      return DefaultCredentialsProvider.builder().build();
     }
   }
 

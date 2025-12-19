@@ -9,7 +9,7 @@ package io.camunda.connector.idp.extraction.request.common.extraction;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
-import org.jetbrains.annotations.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(id = "documentIntelligence", label = "Azure Document Intelligence extractor")
 public record DocumentIntelligenceExtractorRequest(
