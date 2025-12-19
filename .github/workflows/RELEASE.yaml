@@ -23,6 +23,11 @@ on:
         required: false
         type: boolean
         default: false
+      notify-prs:
+        description: 'Notify PRs that they have been released'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
 
@@ -237,7 +242,7 @@ jobs:
       - name: Log Maven release status
         run: |
           echo "Maven release is enabled (skip-maven-release: ${{ inputs.skip-maven-release }})"
-          
+
       - name: Download repository
         uses: actions/download-artifact@v7
         with:
@@ -338,7 +343,7 @@ jobs:
       - name: Log Docker release status
         run: |
           echo "Docker release is enabled (skip-docker-release: ${{ inputs.skip-docker-release }})"
-          
+
       - name: Download repository
         uses: actions/download-artifact@v7
         with:
@@ -587,3 +592,26 @@ jobs:
           revision-id: ${{ steps.fossa-context.outputs.head-revision }}
           attribution-format: "TXT"
           sbom-format: "CYCLONEDX_JSON"
+
+  notify-prs-released:
+    name: Notify PRs that they have been released
+    needs:
+      - bundle-and-build-changelog
+    uses: ./.github/workflows/NOTIFY_PRS_RELEASED.yml
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    if: |
+      inputs.notify-prs &&
+      !contains(inputs.version, 'rc') &&
+      needs.setup.result == 'success' &&
+      (needs.maven-release.result == 'success' || needs.maven-release.result == 'skipped') &&
+      (needs.docker-release.result == 'success' || needs.docker-release.result == 'skipped') &&
+      needs.bundle-and-build-changelog.result == 'success' &&
+      (needs.helm-deploy.result == 'success' || needs.helm-deploy.result == 'skipped') &&
+      (needs.fossa_release.result == 'success' || needs.fossa_release.result == 'skipped')
+
+    with:
+      version: ${{ inputs.version }}

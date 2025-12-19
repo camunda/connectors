@@ -53,10 +53,18 @@ jobs:
         id: extract_prs
         run: |
           # Extract all PR numbers from the release body
-          # The changelog-action format includes PR links like: (#1234)
-          # We extract all numbers that follow the pattern (#NUMBER)
+          # Supports two formats:
+          # 1. (#1234) - Standard changelog format
+          # 2. (PR #1234 by @username) - Extended format
           
-          PR_NUMBERS=$(grep -oE '\(#[0-9]+\)' release_body.txt | grep -oE '[0-9]+' | sort -u)
+          # Extract format 1: (#1234)
+          FORMAT1=$(grep -oE '\(#[0-9]+\)' release_body.txt | grep -oE '[0-9]+' || true)
+          
+          # Extract format 2: (PR #1234 by @username)
+          FORMAT2=$(grep -oE '\(PR #[0-9]+' release_body.txt | grep -oE '[0-9]+' || true)
+          
+          # Combine both formats, remove duplicates, and sort
+          PR_NUMBERS=$(echo -e "$FORMAT1\n$FORMAT2" | grep -v '^$' | sort -u)
           
           if [ -z "$PR_NUMBERS" ]; then
             echo "No PR numbers found in release notes"
