@@ -105,6 +105,7 @@ public class GcpDocumentAiExtractionClient implements TextExtractor, MlExtractor
     }
   }
 
+  @Override
   public StructuredExtractionResponse runDocumentAnalysis(
       io.camunda.connector.api.document.Document document) {
     try {

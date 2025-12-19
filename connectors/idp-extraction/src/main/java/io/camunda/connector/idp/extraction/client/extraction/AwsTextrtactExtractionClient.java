@@ -85,6 +85,7 @@ public class AwsTextrtactExtractionClient implements TextExtractor, MlExtractor,
     }
   }
 
+  @Override
   public String extract(Document document) {
     try {
       S3Object s3Object = AwsUtil.buildS3ObjectFromDocument(document, bucketName, s3AsyncClient);
@@ -101,6 +102,7 @@ public class AwsTextrtactExtractionClient implements TextExtractor, MlExtractor,
     }
   }
 
+  @Override
   public StructuredExtractionResponse runDocumentAnalysis(Document document) {
     try {
       S3Object s3Object = AwsUtil.buildS3ObjectFromDocument(document, bucketName, s3AsyncClient);

@@ -44,6 +44,7 @@ public class AzureDocumentIntelligenceExtractionClient implements TextExtractor,
     LOGGER.debug("AzureDocumentIntelligenceExtractionClient closed");
   }
 
+  @Override
   public String extract(Document document) {
     try {
       SyncPoller<AnalyzeOperationDetails, AnalyzeResult> analyzePoller;
