@@ -81,6 +81,24 @@ jobs:
           echo "Found $PR_COUNT PRs to notify"
           echo "pr_count=$PR_COUNT" >> $GITHUB_OUTPUT
 
+      - name: Create release label
+        if: steps.extract_prs.outputs.pr_count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          LABEL_NAME="released/$VERSION"
+          
+          # Check if label exists, create if it doesn't
+          if ! gh label list --json name --jq '.[].name' | grep -q "^${LABEL_NAME}$"; then
+            echo "Creating label: $LABEL_NAME"
+            gh label create "$LABEL_NAME" --description "Released in version $VERSION" --color "0e8a16" || {
+              echo "Warning: Failed to create label (may already exist or insufficient permissions)"
+            }
+          else
+            echo "Label $LABEL_NAME already exists"
+          fi
+
       - name: Post comments and labels on PRs
         if: steps.extract_prs.outputs.pr_count != '0'
         env:
@@ -103,7 +121,7 @@ jobs:
                 echo "Warning: Failed to post comment on PR #$PR_NUMBER (it may be from a fork or deleted)"
               }
           
-              # Add label (create if it doesn't exist)
+              # Add label
               gh pr edit "$PR_NUMBER" --add-label "$LABEL_NAME" || {
                 echo "Warning: Failed to add label to PR #$PR_NUMBER (it may be from a fork or deleted)"
               }
