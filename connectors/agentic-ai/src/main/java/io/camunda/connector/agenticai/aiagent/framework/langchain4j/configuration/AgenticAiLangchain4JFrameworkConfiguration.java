@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCal
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverterImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverterImpl;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -36,8 +37,9 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatModelFactory langchain4JChatModelFactory() {
-    return new ChatModelFactoryImpl();
+  public ChatModelFactory langchain4JChatModelFactory(
+      AgenticAiConnectorsConfigurationProperties.ChatModelProperties chatModelProperties) {
+    return new ChatModelFactoryImpl(chatModelProperties);
   }
 
   @Bean
