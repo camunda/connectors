@@ -101,7 +101,7 @@ jobs:
           java-version: '21.0.9'
 
       - name: Restore cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
@@ -126,7 +126,7 @@ jobs:
 
       - name: Upload detailed surefire reports
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: surefire-reports
           path: '**/target/surefire-reports/*.xml'
@@ -157,7 +157,7 @@ jobs:
           RELEASE_BRANCH: ${{ needs.setup.outputs.releaseBranch }}
 
       - name: Upload repository
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: repository
           path: .
@@ -214,7 +214,7 @@ jobs:
 
       - name: Create pull request to main branch
         if: steps.version_check.outputs.is_first_minor == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: chore/version-bump-docs-links
@@ -239,7 +239,7 @@ jobs:
           echo "Maven release is enabled (skip-maven-release: ${{ inputs.skip-maven-release }})"
           
       - name: Download repository
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: repository
 
@@ -292,7 +292,7 @@ jobs:
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
 
       - name: Restore cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
@@ -340,7 +340,7 @@ jobs:
           echo "Docker release is enabled (skip-docker-release: ${{ inputs.skip-docker-release }})"
           
       - name: Download repository
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: repository
 
@@ -484,7 +484,7 @@ jobs:
       contents: write
     steps:
       - name: Download repository
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: repository
 
@@ -567,16 +567,16 @@ jobs:
             secret/data/products/connectors/ci/common FOSSA_API_KEY;
       - name: Get FOSSA context
         id: fossa-context
-        uses: camunda/infra-global-github-actions/fossa/info@c7794826624039d8cb9ddeaa38c9dfb2781e34ba
+        uses: camunda/infra-global-github-actions/fossa/info@39cfd357d270487b9f1ac02bbdbcfc7ae4e19d97
       - name: Wait for FOSSA scan completion
-        uses: camunda/infra-global-github-actions/fossa/wait-for-scan@c7794826624039d8cb9ddeaa38c9dfb2781e34ba
+        uses: camunda/infra-global-github-actions/fossa/wait-for-scan@39cfd357d270487b9f1ac02bbdbcfc7ae4e19d97
         with:
           api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           branch: ${{ steps.fossa-context.outputs.head-ref }}
           project-id: "custom+50756/camunda/connectors"
           revision-id: ${{ steps.fossa-context.outputs.head-revision }}
       - name: Create FOSSA releases and generate reports
-        uses: camunda/infra-global-github-actions/fossa/release@c7794826624039d8cb9ddeaa38c9dfb2781e34ba
+        uses: camunda/infra-global-github-actions/fossa/release@39cfd357d270487b9f1ac02bbdbcfc7ae4e19d97
         with:
           api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           branch: ${{ steps.fossa-context.outputs.head-ref }}

@@ -1,3 +1,4 @@
+# Do not rename this file, as the file name is part of the npm auth configuration. Learn more here: https://docs.npmjs.com/trusted-publishers
 name: Deploying npm package
 run-name: Deploying npm package version ${{ inputs.npm-package-version }}
 
@@ -8,6 +9,11 @@ on:
         description: 'New version number of the npm package to publish'
         type: string
         required: true
+
+permissions:
+  id-token: write  # Required for OIDC
+  contents: write
+  pull-requests: write
 
 jobs:
   build-test-publish:
@@ -54,13 +60,18 @@ jobs:
         if: success()
         working-directory: element-template-generator/npm
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Generate a GitHub token for connectors
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
 
       - name: Create pull request to main branch
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           branch: chore/bump-npm-package-version
           commit-message: "ci: bump npm package version to ${{ inputs.npm-package-version }}"
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>

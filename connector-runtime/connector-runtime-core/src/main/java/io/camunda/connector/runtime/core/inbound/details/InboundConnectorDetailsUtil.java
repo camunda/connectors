@@ -42,14 +42,29 @@ public class InboundConnectorDetailsUtil {
           extractTenantId(groupedElements),
           deduplicationId,
           extractRawProperties(groupedElements),
-          groupedElements);
+          groupedElements,
+          extractProcessDefinitionId(groupedElements));
     } catch (Exception e) {
       var anyElement = groupedElements.getFirst();
       var tenantId = anyElement.element().tenantId();
+      var processDefinitionId = anyElement.element().bpmnProcessId();
       var type = anyElement.type();
       return new InvalidInboundConnectorDetails(
-          groupedElements, e, tenantId, deduplicationId, type);
+          groupedElements, e, tenantId, deduplicationId, type, processDefinitionId);
     }
+  }
+
+  private static String extractProcessDefinitionId(List<InboundConnectorElement> elements) {
+    if (elements.stream()
+            .map(InboundConnectorElement::element)
+            .map(ProcessElementWithRuntimeData::bpmnProcessId)
+            .distinct()
+            .count()
+        > 1) {
+      throw new IllegalArgumentException(
+          "All elements in a group must have the same process definition ID");
+    }
+    return elements.getFirst().element().bpmnProcessId();
   }
 
   private static String extractType(List<InboundConnectorElement> elements) {

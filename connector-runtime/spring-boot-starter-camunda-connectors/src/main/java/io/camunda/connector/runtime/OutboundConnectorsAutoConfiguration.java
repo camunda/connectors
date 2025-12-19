@@ -16,31 +16,20 @@
  */
 package io.camunda.connector.runtime;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.jobhandling.CamundaClientExecutorService;
 import io.camunda.client.metrics.MeteredCamundaClientExecutorService;
-import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
-import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer.DocumentModuleSettings;
-import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
-import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 
 @AutoConfiguration
-@AutoConfigureBefore(JacksonAutoConfiguration.class)
 @Import(OutboundConnectorRuntimeConfiguration.class)
 public class OutboundConnectorsAutoConfiguration {
 
@@ -57,27 +46,5 @@ public class OutboundConnectorsAutoConfiguration {
     var scheduler = Executors.newSingleThreadScheduledExecutor();
     return new MeteredCamundaClientExecutorService(
         scheduler, true, vThreadExecutor, true, meterRegistry);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public ObjectMapper objectMapper(DocumentFactory documentFactory) {
-    final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
-    // default intrinsic function contains a pointer of the copy
-    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
-
-    // The deserializer module contains the function executor, which contains the pointer of the
-    // object mapper
-    var jacksonModuleDocumentDeserializer =
-        new JacksonModuleDocumentDeserializer(
-            documentFactory, functionExecutor, DocumentModuleSettings.create());
-
-    // We register the deserializer module which contains the function executor, which contains the
-    // pointer of the object mapper
-    // we are overloading
-    return copy.registerModules(
-        jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(),
-        new JacksonModuleDocumentSerializer());
   }
 }

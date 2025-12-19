@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.search;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,7 +26,7 @@ import org.springframework.context.annotation.Configuration;
 public class ProcessInstanceClientConfiguration {
   @Bean
   public ProcessInstanceClient springProcessInstanceClient(
-      SearchQueryClient searchQueryClient, ObjectMapper mapper) {
+      SearchQueryClient searchQueryClient, @ConnectorsObjectMapper ObjectMapper mapper) {
     return new ProcessInstanceClientImpl(searchQueryClient, mapper);
   }
 }

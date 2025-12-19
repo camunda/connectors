@@ -42,7 +42,7 @@ public interface AwsBedrockRuntimeAuthenticationCustomizer {
   }
 
   private static AwsBedrockRuntimeAuthenticationCustomizer defaultCredentials() {
-    return bedrockBuilder ->
+    return (bedrockBuilder, overrideConfigurationBuilder) ->
         bedrockBuilder.credentialsProvider(DefaultCredentialsProvider.builder().build());
   }
 
@@ -54,22 +54,23 @@ public interface AwsBedrockRuntimeAuthenticationCustomizer {
             staticCredentialsAuthentication.accessKey(),
             staticCredentialsAuthentication.secretKey());
 
-    return bedrockBuilder ->
+    return (bedrockBuilder, overrideConfigurationBuilder) ->
         bedrockBuilder.credentialsProvider(StaticCredentialsProvider.create(awsCredentials));
   }
 
   private static AwsBedrockRuntimeAuthenticationCustomizer apiKey(
       BedrockProviderConfiguration.AwsAuthentication.AwsApiKeyAuthentication apiKeyAuthentication) {
-    return bedrockBuilder ->
-        bedrockBuilder
-            .credentialsProvider(AnonymousCredentialsProvider.create())
-            .putAuthScheme(NoAuthAuthScheme.create())
-            .overrideConfiguration(
-                ClientOverrideConfiguration.builder()
-                    .headers(
-                        Map.of("Authorization", List.of("Bearer " + apiKeyAuthentication.apiKey())))
-                    .build());
+    return (bedrockBuilder, overrideConfigurationBuilder) -> {
+      bedrockBuilder
+          .credentialsProvider(AnonymousCredentialsProvider.create())
+          .putAuthScheme(NoAuthAuthScheme.create());
+
+      overrideConfigurationBuilder.headers(
+          Map.of("Authorization", List.of("Bearer " + apiKeyAuthentication.apiKey())));
+    };
   }
 
-  void provideAuthenticationMechanism(BedrockRuntimeClientBuilder runtime);
+  void provideAuthenticationMechanism(
+      BedrockRuntimeClientBuilder runtime,
+      ClientOverrideConfiguration.Builder overrideConfigurationBuilder);
 }

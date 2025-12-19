@@ -1,4 +1,4 @@
-name: Build branch for preview env deployment
+name: Feature branch Helm test
 
 on:
   push:
@@ -7,7 +7,8 @@ on:
       - '!main'
 
 jobs:
-  run-tests:
+  build-image:
+    name: Build and Publish Connectors Docker Image
     runs-on: ubuntu-latest
     outputs:
       connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
@@ -29,7 +30,7 @@ jobs:
             secret/data/products/connectors/ci/common REGISTRY_MINIMUS_PSW;
 
       - name: Restore cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
@@ -99,11 +100,10 @@ jobs:
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle:${{ env.TAG }}
 
-  helm-deploy:
-    needs: [ run-tests ]
-    name: Run Helm Integration Tests
+  helm-test-branch:
+    needs: [ build-image ]
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
     with:
-      connectors-version: ${{ needs.run-tests.outputs.connectors-version }}
+      connectors-version: ${{ needs.build-image.outputs.connectors-version }}
       release-branch: main

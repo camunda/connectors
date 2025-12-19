@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aClientCommonConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverter;
 import io.camunda.connector.agenticai.a2a.client.inbound.webhook.A2aClientWebhookExecutable;
+import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -28,7 +29,7 @@ public class A2aClientWebhookConfiguration {
   @Scope("prototype")
   @ConditionalOnMissingBean
   public A2aClientWebhookExecutable a2aClientWebhookExecutable(
-      A2aSdkObjectConverter objectConverter, ObjectMapper objectMapper) {
+      A2aSdkObjectConverter objectConverter, @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new A2aClientWebhookExecutable(objectConverter, objectMapper);
   }
 }

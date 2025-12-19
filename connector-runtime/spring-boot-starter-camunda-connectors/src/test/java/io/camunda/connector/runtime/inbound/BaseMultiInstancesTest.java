@@ -45,9 +45,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 import org.springframework.boot.builder.SpringApplicationBuilder;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.restclient.RestTemplateBuilder;
+import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
+import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
+import tools.jackson.databind.json.JsonMapper;
 
 abstract class BaseMultiInstancesTest {
   final InboundExecutableRegistry executableRegistry1 =
@@ -101,7 +105,16 @@ abstract class BaseMultiInstancesTest {
     }
   }
 
-  protected final TestRestTemplate restTemplate = new TestRestTemplate();
+  // TestRestTemplate defaults ot make use of jackson 3 which comes with different defaults than
+  // jackson 2, in particular it could not deserialize instances of
+  // io.camunda.connector.api.inbound.Health anymore due to breaking changes in the default setup
+  final TestRestTemplate restTemplate =
+      new TestRestTemplate(
+          new RestTemplateBuilder()
+              .messageConverters(
+                  // needed to deserialze object to String, which some tests do
+                  new StringHttpMessageConverter(),
+                  new JacksonJsonHttpMessageConverter(JsonMapper.builderWithJackson2Defaults())));
 
   ConfigurableApplicationContext context1;
   ConfigurableApplicationContext context2;

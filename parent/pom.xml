@@ -87,11 +87,11 @@ limitations under the License.</license.inlineheader>
     <version.jackson-datatype-jsr310>2.20.1</version.jackson-datatype-jsr310>
     <version.hibernate-validator>9.1.0.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
-    <version.json>20250107</version.json>
+    <version.json>20250517</version.json>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
 
-    <version.spring-boot>3.5.8</version.spring-boot>
+    <version.spring-boot>4.0.0</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>7.4.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.21</version.logback>
 
@@ -106,7 +106,7 @@ limitations under the License.</license.inlineheader>
     <version.localstack>2.0.2</version.localstack>
 
     <version.okhttp>4.12.0</version.okhttp>
-    <version.opensearch-client>2.9.0</version.opensearch-client>
+    <version.opensearch-client>3.4.0</version.opensearch-client>
 
     <version.google-api-client>2.8.1</version.google-api-client>
 
@@ -139,7 +139,7 @@ limitations under the License.</license.inlineheader>
     <version.microsoft-graph-core>3.6.5</version.microsoft-graph-core>
     <version.azure-identity>1.18.1</version.azure-identity>
     <version.azure-core>1.57.0</version.azure-core>
-    <version.azure-cosmos>4.71.0-beta.1</version.azure-cosmos>
+    <version.azure-cosmos>4.76.0</version.azure-cosmos>
 
     <version.bouncycastle>1.83</version.bouncycastle>
     <version.box-sdk>4.16.4</version.box-sdk>
@@ -419,6 +419,12 @@ limitations under the License.</license.inlineheader>
         <groupId>com.google.cloud</groupId>
         <artifactId>spring-cloud-gcp-logging</artifactId>
         <version>${version.spring-cloud-gcp-starter-logging}</version>
+      </dependency>
+
+      <dependency>
+          <groupId>com.auth0</groupId>
+          <artifactId>java-jwt</artifactId>
+          <version>${version.auth0.jwt}</version>
       </dependency>
 
       <dependency>

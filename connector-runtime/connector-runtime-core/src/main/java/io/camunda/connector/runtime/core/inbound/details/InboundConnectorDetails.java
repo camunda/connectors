@@ -42,12 +42,15 @@ public sealed interface InboundConnectorDetails {
 
   String tenantId();
 
+  String processDefinitionId();
+
   record InvalidInboundConnectorDetails(
       List<InboundConnectorElement> connectorElements,
       Throwable error,
       String tenantId,
       String deduplicationId,
-      String type)
+      String type,
+      String processDefinitionId)
       implements InboundConnectorDetails {}
 
   record ValidInboundConnectorDetails(
@@ -55,6 +58,7 @@ public sealed interface InboundConnectorDetails {
       String tenantId,
       String deduplicationId,
       @JsonIgnore Map<String, String> rawPropertiesWithoutKeywords,
-      List<InboundConnectorElement> connectorElements)
+      List<InboundConnectorElement> connectorElements,
+      String processDefinitionId)
       implements InboundConnectorDetails {}
 }

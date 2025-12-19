@@ -57,14 +57,17 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.api.ThrowingConsumer;
 import org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.Resource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SlowTest
+@ExtendWith(MockitoExtension.class)
 abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
   @MockitoBean private ChatModelFactory chatModelFactory;
   @Mock protected ChatModel chatModel;
@@ -116,7 +119,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
                 .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
                 .satisfies(agentResponseAssertions));
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(1);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
 
     return zeebeTest;
   }
@@ -147,9 +150,8 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
                 .build(),
             userSatisfiedFeedback()));
 
-    final var processVariables =
-        new HashMap<>(
-            Map.<String, Object>of("action", "executeAgent", "userPrompt", initialUserPrompt));
+    final Map<String, Object> processVariables = new HashMap<>();
+    processVariables.put("userPrompt", initialUserPrompt);
     processVariables.putAll(extraProcessVariables);
 
     final var zeebeTest = createProcessInstance(process, elementTemplateModifier, processVariables);
@@ -195,7 +197,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
                 .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
                 .satisfies(agentResponseAssertions));
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(2);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
 
     return zeebeTest;
   }
@@ -271,9 +273,7 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
 
     final var zeebeTest =
         createProcessInstance(
-            process,
-            elementTemplateModifier,
-            Map.of("action", "executeAgent", "userPrompt", initialUserPrompt));
+            process, elementTemplateModifier, Map.of("userPrompt", initialUserPrompt));
 
     return Pair.of(expectedConversation, zeebeTest);
   }

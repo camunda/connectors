@@ -40,13 +40,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 public class L4JAiAgentConnectorElementTemplateRegressionTests extends BaseL4JAiAgentConnectorTest {
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "ai-agent.bpmn",
-        "ai-agent-8.8.0-alpha5.bpmn",
-        "ai-agent-8.8.0-alpha6.bpmn",
-        "ai-agent-8.8.0-alpha7.bpmn"
-      })
+  @ValueSource(strings = {"ai-agent-task.bpmn", "ai-agent-task-8.8.0.bpmn"})
   void executesAgentWithToolCallingAndUserFeedback(String processFile) throws Exception {
     final var initialUserPrompt = "Explore some of your tools!";
     final var expectedConversation =
@@ -110,7 +104,7 @@ public class L4JAiAgentConnectorElementTemplateRegressionTests extends BaseL4JAi
     final var processResource = resourceLoader.getResource("classpath:regression/" + processFile);
     final var zeebeTest =
         deployModel(Bpmn.readModelFromStream(processResource.getInputStream()))
-            .createInstance(Map.of("action", "executeAgent", "userPrompt", initialUserPrompt))
+            .createInstance(Map.of("userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
     assertLastChatRequest(3, expectedConversation, false);
@@ -127,6 +121,6 @@ public class L4JAiAgentConnectorElementTemplateRegressionTests extends BaseL4JAi
                 .hasNoResponseMessage()
                 .hasNoResponseJson());
 
-    assertThat(jobWorkerCounter.get()).isEqualTo(2);
+    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
   }
 }
