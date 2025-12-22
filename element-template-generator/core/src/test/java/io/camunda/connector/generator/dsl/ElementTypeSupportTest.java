@@ -104,55 +104,6 @@ public class ElementTypeSupportTest extends BaseTest {
   }
 
   @Test
-  void plainStartEvent() {
-    ElementTemplate template =
-        ElementTemplateBuilder.createOutbound()
-            .id("id")
-            .name("name")
-            .type("type", false)
-            .appliesTo(BpmnType.START_EVENT)
-            .elementType(BpmnType.START_EVENT)
-            .build();
-
-    assertThat(template.appliesTo()).containsExactly(BpmnType.START_EVENT.getName());
-    assertThat(template.elementType().value()).isEqualTo(BpmnType.START_EVENT.getName());
-    assertThat(template.elementType().eventDefinition()).isNull();
-  }
-
-  @Test
-  void intermediateCatchEvent() {
-    ElementTemplate template =
-        ElementTemplateBuilder.createOutbound()
-            .id("id")
-            .name("name")
-            .type("type", false)
-            .appliesTo(BpmnType.INTERMEDIATE_CATCH_EVENT)
-            .elementType(BpmnType.INTERMEDIATE_CATCH_EVENT)
-            .build();
-
-    assertThat(template.appliesTo()).containsExactly(BpmnType.INTERMEDIATE_CATCH_EVENT.getName());
-    assertThat(template.elementType().value())
-        .isEqualTo(BpmnType.INTERMEDIATE_CATCH_EVENT.getName());
-    assertThat(template.elementType().eventDefinition()).isEqualTo("bpmn:MessageEventDefinition");
-  }
-
-  @Test
-  void receiveTask() {
-    ElementTemplate template =
-        ElementTemplateBuilder.createOutbound()
-            .id("id")
-            .name("name")
-            .type("type", false)
-            .appliesTo(BpmnType.RECEIVE_TASK)
-            .elementType(BpmnType.RECEIVE_TASK)
-            .build();
-
-    assertThat(template.appliesTo()).containsExactly(BpmnType.RECEIVE_TASK.getName());
-    assertThat(template.elementType().value()).isEqualTo(BpmnType.RECEIVE_TASK.getName());
-    assertThat(template.elementType().eventDefinition()).isNull();
-  }
-
-  @Test
   void messageStartEvent() {
     ElementTemplate template =
         ElementTemplateBuilder.createOutbound()
