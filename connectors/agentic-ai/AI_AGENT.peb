@@ -1,4 +1,4 @@
-{% extends "../CONNECTOR_README_LAYOUT.peb" %}
+{% extends "CONNECTOR_README_LAYOUT.peb" %}
 
 {% block content %}
 Find the user documentation in our [Camunda Documentation](https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/).
