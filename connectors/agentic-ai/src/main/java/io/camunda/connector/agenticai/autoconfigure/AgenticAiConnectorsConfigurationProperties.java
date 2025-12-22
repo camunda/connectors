@@ -17,11 +17,9 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "camunda.connector.agenticai")
 public record AgenticAiConnectorsConfigurationProperties(
-    @Valid @DefaultValue ToolsProperties tools,
-    @Valid @DefaultValue AiAgentProperties aiagent) {
+    @Valid @DefaultValue ToolsProperties tools, @Valid @DefaultValue AiAgentProperties aiagent) {
 
-  public record AiAgentProperties(
-      @Valid  @DefaultValue ChatModelProperties chatModel) {}
+  public record AiAgentProperties(@Valid @DefaultValue ChatModelProperties chatModel) {}
 
   public record ChatModelProperties(@Valid @DefaultValue ApiProperties api) {
 
