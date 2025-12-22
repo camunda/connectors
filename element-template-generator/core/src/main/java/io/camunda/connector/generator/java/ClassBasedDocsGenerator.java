@@ -44,14 +44,16 @@ import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.pebbletemplates.pebble.PebbleEngine;
 import io.pebbletemplates.pebble.extension.core.DisallowExtensionCustomizerBuilder;
+import io.pebbletemplates.pebble.loader.ClasspathLoader;
+import io.pebbletemplates.pebble.loader.DelegatingLoader;
 import io.pebbletemplates.pebble.loader.FileLoader;
 import io.pebbletemplates.pebble.template.PebbleTemplate;
-import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -142,6 +144,15 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
             connectorDefinition, GeneratorConfiguration.DEFAULT);
 
     var model = buildTemplateModel(template, templateGenerationContext);
+    var path = Path.of(configuration.templatePath());
+
+    // Create loaders for both filesystem and classpath
+    FileLoader fileLoader = new FileLoader(path.getParent().toAbsolutePath().toString());
+
+    ClasspathLoader classpathLoader = new ClasspathLoader();
+    classpathLoader.setPrefix("templates/");
+
+    DelegatingLoader delegatingLoader = new DelegatingLoader(List.of(fileLoader, classpathLoader));
 
     PebbleEngine engine =
         new PebbleEngine.Builder()
@@ -149,13 +160,12 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
                 new DisallowExtensionCustomizerBuilder()
                     .disallowedTokenParserTags(List.of("include"))
                     .build()) // Security fix for https://www.cve.org/CVERecord?id=CVE-2025-1686
-            .loader(new FileLoader())
+            .loader(delegatingLoader)
             .autoEscaping(false)
             .extension(new DocsPebbleExtension())
             .build();
 
-    var absolute = new File(configuration.templatePath()).getAbsolutePath();
-    PebbleTemplate compiledTemplate = engine.getTemplate(absolute);
+    PebbleTemplate compiledTemplate = engine.getTemplate(path.getFileName().toString());
     var output = renderTemplate(model, compiledTemplate);
 
     return new Doc(configuration.outputPath(), output);

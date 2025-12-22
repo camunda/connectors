@@ -1,4 +1,4 @@
-{% extends "../../CONNECTOR_README_LAYOUT.peb" %}
+{% extends "CONNECTOR_README_LAYOUT.peb" %}
 
 {% block content %}
 # Camunda HTTP JSON Connector
