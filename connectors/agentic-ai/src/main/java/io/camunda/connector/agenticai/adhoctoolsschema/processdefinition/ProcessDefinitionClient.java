@@ -21,8 +21,7 @@ public class ProcessDefinitionClient {
   private final CamundaClient camundaClient;
   private final RetriesProperties retriesProperties;
 
-  public ProcessDefinitionClient(
-      CamundaClient camundaClient, RetriesProperties retriesProperties) {
+  public ProcessDefinitionClient(CamundaClient camundaClient, RetriesProperties retriesProperties) {
     this.camundaClient = camundaClient;
     this.retriesProperties = retriesProperties;
   }
