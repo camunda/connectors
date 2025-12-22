@@ -64,14 +64,13 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProvi
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -100,9 +99,12 @@ class ChatModelFactoryTest {
 
   private final ChatModelFactory chatModelFactory =
       new ChatModelFactoryImpl(
-          new AgenticAiConnectorsConfigurationProperties.ChatModelProperties(
-              new AgenticAiConnectorsConfigurationProperties.ChatModelProperties.ApiProperties(
-                  Duration.ofMinutes(3))));
+          new AgenticAiConnectorsConfigurationProperties(
+              null,
+              new AgenticAiConnectorsConfigurationProperties.AiAgentProperties(
+                  new AgenticAiConnectorsConfigurationProperties.ChatModelProperties(
+                      new AgenticAiConnectorsConfigurationProperties.ChatModelProperties
+                          .ApiProperties(Duration.ofMinutes(3))))));
 
   static Stream<TimeoutConfiguration> nullTimeouts() {
     return Stream.of(new TimeoutConfiguration(null));

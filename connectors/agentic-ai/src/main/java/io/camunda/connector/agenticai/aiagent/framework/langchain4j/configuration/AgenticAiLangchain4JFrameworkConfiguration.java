@@ -38,8 +38,8 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ChatModelFactory langchain4JChatModelFactory(
-      AgenticAiConnectorsConfigurationProperties.ChatModelProperties chatModelProperties) {
-    return new ChatModelFactoryImpl(chatModelProperties);
+      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties) {
+    return new ChatModelFactoryImpl(agenticAiConnectorsConfigurationProperties);
   }
 
   @Bean
