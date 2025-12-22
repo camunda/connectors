@@ -12,6 +12,7 @@ import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -63,6 +64,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProvi
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.assertj.core.api.ThrowingConsumer;
@@ -84,12 +86,16 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClientBuilder;
 
 @ExtendWith(MockitoExtension.class)
 class ChatModelFactoryTest {
+
+  private static final Duration EXPECTED_DEFAULT_TIMEOUT = Duration.ofMinutes(3);
+
   private final ChatModelFactory chatModelFactory = new ChatModelFactoryImpl();
 
   @Nested
@@ -113,6 +119,7 @@ class ChatModelFactoryTest {
       testAnthropicChatModelBuilder(
           providerConfig,
           (builder) -> {
+            verify(builder).timeout(EXPECTED_DEFAULT_TIMEOUT);
             verify(builder).apiKey(ANTHROPIC_API_KEY);
             verify(builder).modelName(ANTHROPIC_MODEL);
             verify(builder, never()).baseUrl(any());
@@ -213,6 +220,7 @@ class ChatModelFactoryTest {
       testAzureOpenAiChatModelBuilder(
           providerConfig,
           (builder) -> {
+            verify(builder).timeout(EXPECTED_DEFAULT_TIMEOUT);
             verify(builder).apiKey(AZURE_OPENAI_API_KEY);
             verify(builder).maxTokens(DEFAULT_MODEL_PARAMETERS.maxTokens());
             verify(builder).temperature(DEFAULT_MODEL_PARAMETERS.temperature());
@@ -366,8 +374,18 @@ class ChatModelFactoryTest {
                 .credentialsProvider(credentialsProviderArgumentCaptor.capture());
             credentialsProviderAssertions.accept(credentialsProviderArgumentCaptor.getValue());
 
+            var overrideConfigurationCaptor =
+                ArgumentCaptor.forClass(ClientOverrideConfiguration.class);
+            verify(builders.clientBuilder, atLeastOnce())
+                .overrideConfiguration(overrideConfigurationCaptor.capture());
+
+            assertThat(overrideConfigurationCaptor.getValue().apiCallTimeout())
+                .isPresent()
+                .contains(EXPECTED_DEFAULT_TIMEOUT);
+
             verify(builders.chatModelBuilder).client(builders.clientResultCaptor.getResult());
             verify(builders.chatModelBuilder).modelId(BEDROCK_MODEL);
+            verify(builders.chatModelBuilder).timeout(EXPECTED_DEFAULT_TIMEOUT);
 
             verify(builders.chatModelBuilder)
                 .defaultRequestParameters(modelParametersArgumentCaptor.capture());
@@ -605,6 +623,7 @@ class ChatModelFactoryTest {
       testOpenAiChatModelBuilder(
           providerConfig,
           (builder) -> {
+            verify(builder).timeout(EXPECTED_DEFAULT_TIMEOUT);
             verify(builder).apiKey(OPEN_AI_API_KEY);
             verify(builder).modelName(OPEN_AI_MODEL);
             verify(builder, never()).baseUrl(any());
@@ -718,6 +737,7 @@ class ChatModelFactoryTest {
       testOpenAiCompatibleChatModelBuilder(
           providerConfig,
           (builder) -> {
+            verify(builder).timeout(EXPECTED_DEFAULT_TIMEOUT);
             verify(builder).modelName(MODEL);
             verify(builder).baseUrl(ENDPOINT);
             verify(builder).apiKey(API_KEY);
