@@ -183,6 +183,50 @@
         </configuration>
       </plugin>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>${plugin.version.maven-shade-plugin}</version>
+        <executions>
+          <execution>
+            <id>legal-aggregate</id>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <shadedArtifactAttached>false</shadedArtifactAttached>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <transformers>
+                <transformer
+                  implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
+                <transformer
+                  implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
+                  <addHeader>false</addHeader>
+                </transformer>
+                <transformer
+                  implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>META-INF/io.netty.versions.properties</resource>
+                </transformer>
+              </transformers>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>module-info.class</exclude>
+                    <exclude>META-INF/versions/9/module-info.class</exclude>
+                    <exclude>META-INF/DEPENDENCIES</exclude>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
         <version>${version.spring-boot}</version>
@@ -203,18 +247,26 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>analyze-dependencies</id>
             <configuration>
               <ignoredDependencies>
                 <dependency>com.fasterxml.jackson.core:jackson-databind</dependency>
                 <dependency>io.camunda.connector:connector-object-mapper</dependency>
                 <dependency>org.springframework.security:spring-security-core</dependency>
+                <dependency>org.springframework.boot:spring-boot</dependency>
+                <dependency>org.springframework.security:spring-security-oauth2-resource-server</dependency>
+                <dependency>org.springframework:spring-beans</dependency>
+                <dependency>org.springframework.boot:spring-boot-autoconfigure</dependency>
+                <dependency>org.springframework:spring-webmvc</dependency>
+                <dependency>org.springframework:spring-context</dependency>
+                <dependency>org.springframework:spring-core</dependency>
+                <dependency>org.springframework:spring-web</dependency>
+                <dependency>com.google.cloud:spring-cloud-gcp-starter-logging</dependency>
+                <dependency>org.slf4j:slf4j-api</dependency>
+                <dependency>io.camunda.connector:connector-core</dependency>
+                <dependency>io.camunda:camunda-client-java</dependency>
+                <dependency>javax.annotation:javax.annotation-api</dependency>
               </ignoredDependencies>
             </configuration>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>
