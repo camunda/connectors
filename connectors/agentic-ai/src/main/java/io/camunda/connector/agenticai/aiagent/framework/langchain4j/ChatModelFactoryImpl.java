@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 
-import static java.util.function.Predicate.not;
-
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
@@ -298,7 +296,7 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     var derivedTimeout =
         Optional.ofNullable(timeoutConfiguration)
             .map(TimeoutConfiguration::timeout)
-            .filter(not(timeout -> timeout.equals(Duration.ZERO)))
+            .filter(Duration::isPositive)
             .or(() -> Optional.of(chatModelProperties.api().defaultTimeout()))
             .get();
 

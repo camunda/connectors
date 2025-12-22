@@ -106,8 +106,11 @@ class ChatModelFactoryTest {
                       new AgenticAiConnectorsConfigurationProperties.ChatModelProperties
                           .ApiProperties(Duration.ofMinutes(3))))));
 
-  static Stream<TimeoutConfiguration> nullTimeouts() {
-    return Stream.of(new TimeoutConfiguration(null), new TimeoutConfiguration(Duration.ZERO));
+  static Stream<TimeoutConfiguration> defaultTimeoutYieldingConfigs() {
+    return Stream.of(
+        new TimeoutConfiguration(null),
+        new TimeoutConfiguration(Duration.ZERO),
+        new TimeoutConfiguration(Duration.ofMinutes(-5)));
   }
 
   @Nested
@@ -186,7 +189,7 @@ class ChatModelFactoryTest {
     @ParameterizedTest
     @NullSource
     @MethodSource(
-        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#nullTimeouts")
+        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#defaultTimeoutYieldingConfigs")
     void createsAnthropicChatModelWithNullTimeouts(TimeoutConfiguration timeouts) {
       final var providerConfig =
           new AnthropicProviderConfiguration(
@@ -316,7 +319,7 @@ class ChatModelFactoryTest {
     @ParameterizedTest
     @NullSource
     @MethodSource(
-        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#nullTimeouts")
+        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#defaultTimeoutYieldingConfigs")
     void createsAzureOpenAiChatModelWithNullTimeouts(TimeoutConfiguration timeouts) {
       final var providerConfig =
           new AzureOpenAiProviderConfiguration(
@@ -502,7 +505,7 @@ class ChatModelFactoryTest {
     @ParameterizedTest
     @NullSource
     @MethodSource(
-        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#nullTimeouts")
+        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#defaultTimeoutYieldingConfigs")
     void createsBedrockChatModelWithNullTimeouts(TimeoutConfiguration timeouts) {
       final var providerConfig =
           new BedrockProviderConfiguration(
@@ -792,7 +795,7 @@ class ChatModelFactoryTest {
     @ParameterizedTest
     @NullSource
     @MethodSource(
-        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#nullTimeouts")
+        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#defaultTimeoutYieldingConfigs")
     void createsOpenAiChatModelWithNullTimeouts(TimeoutConfiguration timeouts) {
       final var providerConfig =
           new OpenAiProviderConfiguration(
@@ -941,7 +944,7 @@ class ChatModelFactoryTest {
     @ParameterizedTest
     @NullSource
     @MethodSource(
-        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#nullTimeouts")
+        "io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryTest#defaultTimeoutYieldingConfigs")
     void createsOpenAiCompatibleChatModelWithNullTimeouts(TimeoutConfiguration timeouts) {
       final var providerConfig =
           new OpenAiCompatibleProviderConfiguration(
