@@ -34,6 +34,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -41,12 +42,19 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
 public class ChatModelFactoryImpl implements ChatModelFactory {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ChatModelFactoryImpl.class);
+
+  // Increasing the default timeout reasonably to avoid timeouts reported by several customers
+  // Version 8.9 behavior allows customization of the timeouts on the process definitions, however
+  // it was not easily backportable, thus a simple backport of the actual functionality for version
+  // 8.8
+  private static final Duration DEFAULT_MODEL_CALL_TIMEOUT = Duration.ofMinutes(3);
 
   @Override
   public ChatModel createChatModel(ProviderConfiguration providerConfiguration) {
@@ -71,7 +79,8 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     final var builder =
         AnthropicChatModel.builder()
             .apiKey(connection.authentication().apiKey())
-            .modelName(connection.model().model());
+            .modelName(connection.model().model())
+            .timeout(DEFAULT_MODEL_CALL_TIMEOUT);
 
     if (connection.endpoint() != null) {
       builder.baseUrl(connection.endpoint());
@@ -94,7 +103,8 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     final var builder =
         AzureOpenAiChatModel.builder()
             .endpoint(connection.endpoint())
-            .deploymentName(configuration.azureOpenAi().model().deploymentName());
+            .deploymentName(configuration.azureOpenAi().model().deploymentName())
+            .timeout(DEFAULT_MODEL_CALL_TIMEOUT);
 
     switch (connection.authentication()) {
       case AzureApiKeyAuthentication azureApiKeyAuthentication ->
@@ -136,6 +146,10 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
                       StaticCredentialsProvider.create(
                           AwsBasicCredentials.create(sca.accessKey(), sca.secretKey()));
                 })
+            .overrideConfiguration(
+                ClientOverrideConfiguration.builder()
+                    .apiCallTimeout(DEFAULT_MODEL_CALL_TIMEOUT)
+                    .build())
             .region(Region.of(connection.region()));
 
     if (connection.endpoint() != null) {
@@ -145,7 +159,8 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     final var builder =
         BedrockChatModel.builder()
             .client(bedrockClientBuilder.build())
-            .modelId(connection.model().model());
+            .modelId(connection.model().model())
+            .timeout(DEFAULT_MODEL_CALL_TIMEOUT);
 
     final var modelParameters = connection.model().parameters();
     if (modelParameters != null) {
@@ -205,7 +220,8 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     final var builder =
         OpenAiChatModel.builder()
             .apiKey(connection.authentication().apiKey())
-            .modelName(connection.model().model());
+            .modelName(connection.model().model())
+            .timeout(DEFAULT_MODEL_CALL_TIMEOUT);
 
     Optional.ofNullable(connection.authentication().organizationId())
         .ifPresent(builder::organizationId);
@@ -233,6 +249,7 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     final var builder =
         OpenAiChatModel.builder()
             .modelName(connection.model().model())
+            .timeout(DEFAULT_MODEL_CALL_TIMEOUT)
             .baseUrl(connection.endpoint());
 
     Optional.ofNullable(connection.authentication())
