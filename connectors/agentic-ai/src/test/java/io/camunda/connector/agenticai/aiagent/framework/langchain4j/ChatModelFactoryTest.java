@@ -107,7 +107,7 @@ class ChatModelFactoryTest {
                           .ApiProperties(Duration.ofMinutes(3))))));
 
   static Stream<TimeoutConfiguration> nullTimeouts() {
-    return Stream.of(new TimeoutConfiguration(null));
+    return Stream.of(new TimeoutConfiguration(null), new TimeoutConfiguration(Duration.ZERO));
   }
 
   @Nested
