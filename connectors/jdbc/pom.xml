@@ -36,7 +36,7 @@
     <dependency>
       <groupId>org.jdbi</groupId>
       <artifactId>jdbi3-core</artifactId>
-      <version>3.50.0</version>
+      <version>3.51.0</version>
     </dependency>
 
     <dependency>
@@ -60,7 +60,7 @@
     <dependency>
       <groupId>org.mariadb.jdbc</groupId>
       <artifactId>mariadb-java-client</artifactId>
-      <version>3.5.6</version>
+      <version>3.5.7</version>
     </dependency>
 
     <dependency>
