@@ -6,5 +6,8 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model.result;
 
-public sealed interface McpClientResult
-    permits McpClientListToolsResult, McpClientCallToolResult, McpClientListResourcesResult {}
+import io.camunda.connector.agenticai.model.tool.ResourceDescription;
+import java.util.List;
+
+public record McpClientListResourcesResult(List<ResourceDescription> resources)
+    implements McpClientResult {}

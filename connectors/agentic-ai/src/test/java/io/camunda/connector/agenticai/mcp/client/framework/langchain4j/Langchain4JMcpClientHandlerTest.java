@@ -19,6 +19,7 @@ import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpClientOperationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
+import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientListToolsOperation;

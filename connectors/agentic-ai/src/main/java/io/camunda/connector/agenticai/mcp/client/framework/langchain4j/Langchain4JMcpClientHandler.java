@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.mcp.client.McpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.McpClientOperationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
+import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;

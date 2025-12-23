@@ -780,11 +780,14 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "List Tools",
-      "value" : "tools/list"
-    }, {
       "name" : "Call Tool",
       "value" : "tools/call"
+    }, {
+      "name" : "List Resources",
+      "value" : "resources/list"
+    }, {
+      "name" : "List Tools",
+      "value" : "tools/list"
     } ]
   }, {
     "id" : "data.connectorMode.operation.toolName",

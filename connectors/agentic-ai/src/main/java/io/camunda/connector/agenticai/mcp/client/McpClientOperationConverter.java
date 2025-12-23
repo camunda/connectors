@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation.McpClientCallToolOperationParams;
+import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientListResourcesOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientListToolsOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.StandaloneModeConfiguration;
@@ -79,6 +80,8 @@ public class McpClientOperationConverter {
       case CallToolOperationConfiguration callTool ->
           new McpClientCallToolOperation(
               new McpClientCallToolOperationParams(callTool.toolName(), callTool.toolArguments()));
+      case McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration ignored ->
+          new McpClientListResourcesOperation();
     };
   }
 }

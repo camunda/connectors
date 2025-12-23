@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.mcp.client.McpRemoteClientHandler;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
 import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
+import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientOptionsConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
