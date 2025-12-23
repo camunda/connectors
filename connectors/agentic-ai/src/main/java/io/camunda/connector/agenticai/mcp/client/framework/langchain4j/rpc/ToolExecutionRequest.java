@@ -10,7 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.service.tool.ToolExecutionResult;
-import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
+import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
@@ -27,11 +27,11 @@ record ToolExecutionRequest(ObjectMapper objectMapper) {
 
   public McpClientCallToolResult execute(
       McpClient client,
-      McpToolNameFilter toolNameFilter,
+      AllowDenyList toolNameFilter,
       McpClientOperation.McpClientCallToolOperation.McpClientCallToolOperationParams params) {
 
     final var toolExecutionRequest = createToolExecutionRequest(params);
-    if (!toolNameFilter.test(toolExecutionRequest.name())) {
+    if (!toolNameFilter.isPassing(toolExecutionRequest.name())) {
       LOGGER.error(
           "MCP({}): Tool '{}' is not included in the filter {}.",
           client.key(),
