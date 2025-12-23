@@ -8,10 +8,13 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.service.tool.ToolExecutionResult;
+<<<<<<<< HEAD:connectors/agentic-ai/src/main/java/io/camunda/connector/agenticai/mcp/client/framework/langchain4j/rpc/ToolCallRequest.java
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
+========
+import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
+>>>>>>>> eb80e1261 (feat(agentic-ai): Add list resources call to mcp clients standalone mode):connectors/agentic-ai/src/main/java/io/camunda/connector/agenticai/mcp/client/framework/langchain4j/rpc/ToolExecutionRequest.java
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
@@ -23,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+<<<<<<<< HEAD:connectors/agentic-ai/src/main/java/io/camunda/connector/agenticai/mcp/client/framework/langchain4j/rpc/ToolCallRequest.java
 final class ToolCallRequest {
   private static final Logger LOGGER = LoggerFactory.getLogger(ToolCallRequest.class);
   private final ObjectMapper objectMapper;
@@ -34,6 +38,14 @@ final class ToolCallRequest {
   public McpClientCallToolResult execute(
       McpClient client,
       AllowDenyList toolNameFilter,
+========
+record ToolExecutionRequest(ObjectMapper objectMapper) {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ToolExecutionRequest.class);
+
+  public McpClientCallToolResult execute(
+      McpClient client,
+      McpToolNameFilter toolNameFilter,
+>>>>>>>> eb80e1261 (feat(agentic-ai): Add list resources call to mcp clients standalone mode):connectors/agentic-ai/src/main/java/io/camunda/connector/agenticai/mcp/client/framework/langchain4j/rpc/ToolExecutionRequest.java
       McpClientOperation.McpClientCallToolOperation.McpClientCallToolOperationParams params) {
 
     final var toolExecutionRequest = createToolExecutionRequest(params);
@@ -84,7 +96,11 @@ final class ToolCallRequest {
     }
   }
 
+<<<<<<<< HEAD:connectors/agentic-ai/src/main/java/io/camunda/connector/agenticai/mcp/client/framework/langchain4j/rpc/ToolCallRequest.java
   private ToolExecutionRequest createToolExecutionRequest(
+========
+  private dev.langchain4j.agent.tool.ToolExecutionRequest createToolExecutionRequest(
+>>>>>>>> eb80e1261 (feat(agentic-ai): Add list resources call to mcp clients standalone mode):connectors/agentic-ai/src/main/java/io/camunda/connector/agenticai/mcp/client/framework/langchain4j/rpc/ToolExecutionRequest.java
       McpClientOperation.McpClientCallToolOperation.McpClientCallToolOperationParams params) {
     if (params == null || params.name() == null) {
       throw new IllegalArgumentException("Tool name must not be null");
@@ -93,7 +109,7 @@ final class ToolCallRequest {
     final var arguments = Optional.ofNullable(params.arguments()).orElseGet(Collections::emptyMap);
 
     try {
-      return ToolExecutionRequest.builder()
+      return dev.langchain4j.agent.tool.ToolExecutionRequest.builder()
           .name(params.name())
           .arguments(objectMapper.writeValueAsString(arguments))
           .build();

@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
-import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
+import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientListToolsOperation;
@@ -26,14 +26,12 @@ public class Langchain4JMcpClientExecutor {
   }
 
   public McpClientResult execute(
-      McpClient client, McpClientOperation operation, FilterOptions filterOptions) {
+      McpClient client, McpClientOperation operation, McpToolNameFilter toolNameFilter) {
     return switch (operation) {
       case McpClientListToolsOperation ignored ->
-          new ListToolsRequest(toolSpecificationConverter)
-              .execute(client, filterOptions.toolFilters());
+          new ListToolsRequest(toolSpecificationConverter).execute(client, toolNameFilter);
       case McpClientCallToolOperation callTool ->
-          new ToolCallRequest(objectMapper)
-              .execute(client, filterOptions.toolFilters(), callTool.params());
+          new ToolExecutionRequest(objectMapper).execute(client, toolNameFilter, callTool.params());
       case McpClientOperation.McpClientListResourcesOperation ignored ->
           new ListResourcesRequest().execute(client);
     };

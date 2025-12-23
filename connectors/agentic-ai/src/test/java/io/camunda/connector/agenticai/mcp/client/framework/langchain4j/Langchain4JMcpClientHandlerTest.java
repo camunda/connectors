@@ -18,8 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpClientOperationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
-import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
-import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
+import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation;
@@ -59,7 +58,8 @@ class Langchain4JMcpClientHandlerTest {
 
   private static final McpClientToolsConfiguration EMPTY_FILTER_CONFIGURATION =
       new McpClientToolsConfiguration(List.of(), List.of());
-  private static final FilterOptions EMPTY_FILTER = FilterOptionsBuilder.builder().build();
+  private static final McpToolNameFilter EMPTY_FILTER =
+      McpToolNameFilter.from(EMPTY_FILTER_CONFIGURATION);
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
