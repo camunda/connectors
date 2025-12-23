@@ -23,7 +23,8 @@ import static org.mockito.Mockito.when;
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
-import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
+import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
+import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationConfiguration;
@@ -88,8 +89,7 @@ class Langchain4JMcpRemoteClientHandlerTest {
 
   private static final McpClientToolsConfiguration EMPTY_FILTER_CONFIGURATION =
       new McpClientToolsConfiguration(List.of(), List.of());
-  private static final McpToolNameFilter EMPTY_FILTER =
-      McpToolNameFilter.from(EMPTY_FILTER_CONFIGURATION);
+  private static final FilterOptions EMPTY_FILTER = FilterOptionsBuilder.builder().build();
 
   @Mock private McpRemoteClientRegistry<McpClient> remoteClientRegistry;
   @Mock private Langchain4JMcpClientExecutor clientExecutor;
