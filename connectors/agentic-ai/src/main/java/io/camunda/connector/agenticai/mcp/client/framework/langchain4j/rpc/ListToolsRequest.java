@@ -8,23 +8,18 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
-import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
+import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.Collections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class ListToolsRequest {
+record ListToolsRequest(ToolSpecificationConverter toolSpecificationConverter) {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ListToolsRequest.class);
-  private final ToolSpecificationConverter toolSpecificationConverter;
 
-  ListToolsRequest(ToolSpecificationConverter toolSpecificationConverter) {
-    this.toolSpecificationConverter = toolSpecificationConverter;
-  }
-
-  public McpClientListToolsResult execute(McpClient client, AllowDenyList toolNameFilter) {
+  public McpClientListToolsResult execute(McpClient client, McpToolNameFilter toolNameFilter) {
     LOGGER.debug("MCP({}): Executing list tools", client.key());
 
     final var toolSpecifications = client.listTools();
@@ -35,7 +30,7 @@ final class ListToolsRequest {
 
     final var filteredToolSpecifications =
         toolSpecifications.stream()
-            .filter(toolSpecification -> toolNameFilter.isPassing(toolSpecification.name()))
+            .filter(toolSpecification -> toolNameFilter.test(toolSpecification.name()))
             .toList();
     final var filteredToolDefinitions =
         filteredToolSpecifications.stream()

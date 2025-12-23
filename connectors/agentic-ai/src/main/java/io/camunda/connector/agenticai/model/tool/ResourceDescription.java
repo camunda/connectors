@@ -1,0 +1,24 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.agenticai.model.tool;
+
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+import io.camunda.connector.agenticai.model.AgenticAiRecord;
+
+@AgenticAiRecord
+@JsonDeserialize(builder = ResourceDescription.ResourceDescriptionBuilderJacksonProxyBuilder.class)
+public record ResourceDescription(String uri, String name, String description, String mimeType) {
+
+  public static ResourceDescriptionBuilder builder() {
+    return ResourceDescriptionBuilder.builder();
+  }
+
+  @JsonPOJOBuilder(withPrefix = "")
+  public static class ResourceDescriptionBuilderJacksonProxyBuilder
+      extends ResourceDescriptionBuilder {}
+}
