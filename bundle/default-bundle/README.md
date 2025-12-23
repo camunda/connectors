@@ -4,7 +4,7 @@
 
 ### Option 1: Maven / IDE
 
-1. Launch via IDE by running the `io.camunda.connector.runtime.app.LocalConnectorRuntime` class
+1. Launch via IDE by running the `io.camunda.connector.runtime.app.`LocalConnectorRuntime class
 2. Configure by adding `application.properties` to `src/test/resources`
 
 ### Option 2: Command Line
