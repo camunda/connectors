@@ -40,8 +40,8 @@ import java.util.Map;
     defaultValue = LIST_TOOLS_ID)
 public sealed interface McpStandaloneOperationConfiguration
     permits McpStandaloneOperationConfiguration.CallToolOperationConfiguration,
-        McpStandaloneOperationConfiguration.ListToolsOperationConfiguration,
-        McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration {
+        McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration,
+        McpStandaloneOperationConfiguration.ListToolsOperationConfiguration {
 
   @TemplateSubType(id = LIST_TOOLS_ID, label = "List Tools")
   record ListToolsOperationConfiguration() implements McpStandaloneOperationConfiguration {
