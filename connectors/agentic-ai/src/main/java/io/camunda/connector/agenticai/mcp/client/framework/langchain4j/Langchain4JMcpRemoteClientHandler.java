@@ -11,7 +11,9 @@ import io.camunda.connector.agenticai.mcp.client.McpClientOperationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientHandler;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
-import io.camunda.connector.agenticai.mcp.client.McpToolNameFilter;
+import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
+import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
+import io.camunda.connector.agenticai.mcp.client.filters.McpToolNameFilter;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientOptionsConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest;
@@ -55,11 +57,22 @@ public class Langchain4JMcpRemoteClientHandler implements McpRemoteClientHandler
 
     try {
       client = remoteClientRegistry.getClient(clientId, request.data().transport(), cacheable);
-      return clientExecutor.execute(client, operation, toolNameFilter);
+      return clientExecutor.execute(client, operation, buildFilterOptions(request));
     } finally {
       if (!cacheable && client != null) {
         remoteClientRegistry.closeClient(clientId, client);
       }
     }
+  }
+
+  private FilterOptions buildFilterOptions(McpRemoteClientRequest mcpClientRequest) {
+    final var filterOptionsBuilder = FilterOptionsBuilder.builder();
+
+    Optional.ofNullable(mcpClientRequest.data().tools())
+        .ifPresent(
+            toolsFilterConfig ->
+                filterOptionsBuilder.toolFilters(toolsFilterConfig.toAllowDenyList()));
+
+    return filterOptionsBuilder.build();
   }
 }
