@@ -12,10 +12,6 @@ import java.util.List;
 @AgenticAiRecord
 public record AllowDenyList(List<String> allowed, List<String> denied) {
 
-  public static AllowDenyList allowingEverything() {
-    return new AllowDenyList(List.of(), List.of());
-  }
-
   public boolean isPassing(String toolName) {
     return (allowed.isEmpty() || allowed.contains(toolName)) && !denied.contains(toolName);
   }
