@@ -16,7 +16,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.CamundaFuture;
 import io.camunda.client.api.command.ClientHttpException;
 import io.camunda.client.api.fetch.ProcessDefinitionGetXmlRequest;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ToolsConfiguration.ProcessDefinitionConfiguration.RetriesConfiguration;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ToolsProperties.ProcessDefinitionProperties.RetriesProperties;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -31,8 +31,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ProcessDefinitionClientTest {
   private static final Long PROCESS_DEFINITION_KEY = 123456L;
   private static final String PROCESS_DEFINITION_XML = "<bpmn>...</bpmn>";
-  private static final RetriesConfiguration RETRIES_CONFIGURATION =
-      new RetriesConfiguration(2, Duration.ofMillis(100));
+  private static final RetriesProperties RETRIES_CONFIGURATION =
+      new RetriesProperties(2, Duration.ofMillis(100));
 
   @Mock private CamundaClient camundaClient;
   @Mock private ProcessDefinitionGetXmlRequest xmlRequest;
@@ -93,7 +93,7 @@ class ProcessDefinitionClientTest {
   void shouldNotRetryWhenNotConfigured() {
     final var clientWithoutRetries =
         new ProcessDefinitionClient(
-            camundaClient, new RetriesConfiguration(0, Duration.ofMillis(100)));
+            camundaClient, new RetriesProperties(0, Duration.ofMillis(100)));
 
     when(camundaClient.newProcessDefinitionGetXmlRequest(PROCESS_DEFINITION_KEY))
         .thenReturn(xmlRequest);
