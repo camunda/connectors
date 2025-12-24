@@ -6,31 +6,26 @@
  */
 package io.camunda.connector.idp.extraction.service;
 
+import static io.camunda.connector.idp.extraction.error.IdpErrorCodes.JSON_PARSING_FAILED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.output.TokenUsage;
+import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.idp.extraction.caller.AzureAiFoundryCaller;
-import io.camunda.connector.idp.extraction.caller.AzureDocumentIntelligenceCaller;
-import io.camunda.connector.idp.extraction.caller.BedrockCaller;
-import io.camunda.connector.idp.extraction.caller.OpenAiSpecCaller;
-import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
-import io.camunda.connector.idp.extraction.caller.VertexCaller;
-import io.camunda.connector.idp.extraction.model.ExtractionRequest;
+import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
+import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
 import io.camunda.connector.idp.extraction.model.ExtractionResult;
-import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
-import io.camunda.connector.idp.extraction.supplier.BedrockRuntimeClientSupplier;
-import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
-import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
-import io.camunda.connector.idp.extraction.util.ExtractionTestUtils;
-import java.util.Map;
-import org.assertj.core.api.InstanceOfAssertFactories;
+import io.camunda.connector.idp.extraction.model.TaxonomyItem;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,343 +33,576 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class UnstructuredServiceTest {
-
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-  @Mock private PollingTextractCaller pollingTextractCaller;
-  @Mock private BedrockCaller bedrockCaller;
-  @Mock private AzureAiFoundryCaller azureAiFoundryCaller;
-  @Mock private AzureDocumentIntelligenceCaller azureDocumentIntelligenceCaller;
-  @Mock private OpenAiSpecCaller openAiSpecCaller;
+class UnstructuredServiceTest {
 
   private UnstructuredService unstructuredService;
 
+  @Mock private AiClient aiClient;
+
+  @Mock private TextExtractor textExtractor;
+
+  @Mock private Document document;
+
   @BeforeEach
   void setUp() {
-    TextractClientSupplier textractClientSupplier = new TextractClientSupplier();
-    S3ClientSupplier s3ClientSupplier = new S3ClientSupplier();
-    BedrockRuntimeClientSupplier bedrockRuntimeClientSupplier = new BedrockRuntimeClientSupplier();
-    ObjectMapper objectMapper = new ObjectMapper();
-    VertexCaller vertexCaller = new VertexCaller();
-
-    // Initialize service with constructor injection
-    unstructuredService =
-        new UnstructuredService(
-            textractClientSupplier,
-            s3ClientSupplier,
-            bedrockRuntimeClientSupplier,
-            pollingTextractCaller,
-            bedrockCaller,
-            vertexCaller,
-            objectMapper,
-            azureAiFoundryCaller,
-            azureDocumentIntelligenceCaller,
-            openAiSpecCaller);
+    unstructuredService = new UnstructuredService();
   }
 
   @Test
-  void extractUsingAws_ReturnsCorrectResult() throws Exception {
+  void extract_shouldSucceed_whenMultimodalPathWithValidJsonResponse() throws Exception {
     // given
-    var request = prepareExtractionRequest();
-    var expectedResponseJson =
+    String jsonResponse =
         """
-            {
-            	"sum": "$12.25",
-            	"supplier": "Camunda Inc."
-            }
+        {
+          "invoiceNumber": "INV-12345",
+          "totalAmount": "1000.00",
+          "vendorName": "Acme Corp"
+        }
         """;
 
-    when(pollingTextractCaller.call(any(), any(), any(), any()))
-        .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any(), any())).thenReturn(expectedResponseJson);
+    List<TaxonomyItem> taxonomyItems =
+        List.of(
+            new TaxonomyItem("invoiceNumber", "Extract the invoice number"),
+            new TaxonomyItem("totalAmount", "Extract the total amount"),
+            new TaxonomyItem("vendorName", "Extract the vendor name"));
+
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(chatResponse);
 
     // when
-    var result = unstructuredService.extract(request);
+    Object result = unstructuredService.extract(null, aiClient, taxonomyItems, document);
 
     // then
-    assertExtractionResult(result, expectedResponseJson);
+    assertThat(result).isInstanceOf(ExtractionResult.class);
+    ExtractionResult extractionResult = (ExtractionResult) result;
+
+    assertThat(extractionResult.extractedFields()).hasSize(3);
+    assertThat(extractionResult.extractedFields().get("invoiceNumber").toString())
+        .contains("INV-12345");
+    assertThat(extractionResult.extractedFields().get("totalAmount").toString())
+        .contains("1000.00");
+    assertThat(extractionResult.extractedFields().get("vendorName").toString())
+        .contains("Acme Corp");
+    assertThat(extractionResult.metadata()).isNotNull();
+
+    verify(aiClient).chat(anyString(), anyString(), eq(document));
   }
 
   @Test
-  void
-      extractUsingAws_ReturnsPartiallyCorrectResult_whenLlmResponseIsMissingValueForSomeTaxonomyItems()
-          throws Exception {
+  void extract_shouldSucceed_whenTextExtractionPathWithValidJsonResponse() throws Exception {
     // given
-    var request = prepareExtractionRequest();
-    var expectedResponseJson =
+    String extractedText = "Invoice #INV-12345\nTotal: $1000.00\nVendor: Acme Corp";
+    String jsonResponse =
         """
-            {
-            	"sum": "$12.25"
-            }
+        {
+          "invoiceNumber": "INV-12345",
+          "totalAmount": "1000.00",
+          "vendorName": "Acme Corp"
+        }
         """;
 
-    when(pollingTextractCaller.call(any(), any(), any(), any()))
-        .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any(), any())).thenReturn(expectedResponseJson);
+    List<TaxonomyItem> taxonomyItems =
+        List.of(
+            new TaxonomyItem("invoiceNumber", "Extract the invoice number"),
+            new TaxonomyItem("totalAmount", "Extract the total amount"),
+            new TaxonomyItem("vendorName", "Extract the vendor name"));
+
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+
+    when(textExtractor.extract(document)).thenReturn(extractedText);
+    when(aiClient.chat(anyString(), anyString())).thenReturn(chatResponse);
 
     // when
-    var result = unstructuredService.extract(request);
+    Object result = unstructuredService.extract(textExtractor, aiClient, taxonomyItems, document);
 
     // then
-    assertExtractionResult(result, expectedResponseJson);
+    assertThat(result).isInstanceOf(ExtractionResult.class);
+    ExtractionResult extractionResult = (ExtractionResult) result;
+
+    assertThat(extractionResult.extractedFields()).hasSize(3);
+    assertThat(extractionResult.extractedFields().get("invoiceNumber").toString())
+        .contains("INV-12345");
+    assertThat(extractionResult.extractedFields().get("totalAmount").toString())
+        .contains("1000.00");
+    assertThat(extractionResult.extractedFields().get("vendorName").toString())
+        .contains("Acme Corp");
+
+    verify(textExtractor).extract(document);
+    verify(aiClient).chat(anyString(), anyString());
   }
 
   @Test
-  void extractUsingAws_ReturnsCorrectResult_whenLlmResponseContainsNestedResponseObject()
-      throws Exception {
+  void extract_shouldSucceed_whenResponseWrappedInMarkdownCodeBlock() throws Exception {
     // given
-    var request = prepareExtractionRequest();
-
-    when(pollingTextractCaller.call(any(), any(), any(), any()))
-        .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any(), any()))
-        .thenReturn(
-            """
-                   {
-                     "response": {
-                                   "sum": "$12.25",
-                                   "supplier": "Camunda Inc."
-                                 }
-                   }
-               """);
-
-    // when
-    var result = unstructuredService.extract(request);
-
-    // then
-    var expectedResponseJson =
+    String jsonResponse =
         """
-            {
-              "sum": "$12.25",
-              "supplier": "Camunda Inc."
-            }
+        ```json
+        {
+          "invoiceNumber": "INV-12345",
+          "totalAmount": "1000.00"
+        }
+        ```
         """;
-    assertExtractionResult(result, expectedResponseJson);
-  }
 
-  @Test
-  void extractUsingAws_ReturnsCorrectResult_whenLlmResponseContainsObjectAsValueForTaxonomyItem()
-      throws Exception {
-    // given
-    var request = prepareExtractionRequest();
+    List<TaxonomyItem> taxonomyItems =
+        List.of(
+            new TaxonomyItem("invoiceNumber", "Extract the invoice number"),
+            new TaxonomyItem("totalAmount", "Extract the total amount"));
 
-    when(pollingTextractCaller.call(any(), any(), any(), any()))
-        .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any(), any()))
-        .thenReturn(
-            """
-                   {
-                     "sum": "$12.25",
-                     "supplier": {
-                                   "id": 12345,
-                                   "name": "Camunda Inc.",
-                                   "city": "Berlin",
-                                   "country": "Germany"
-                                 }
-                   }
-               """);
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(chatResponse);
 
     // when
-    var result = unstructuredService.extract(request);
+    Object result = unstructuredService.extract(null, aiClient, taxonomyItems, document);
 
     // then
-    var expectedResponseJson =
-        """
-            {
-              "sum": "$12.25",
-              "supplier": {
-                            "id": 12345,
-                            "name": "Camunda Inc.",
-                            "city": "Berlin",
-                            "country": "Germany"
-                          }
-            }
-        """;
-    assertExtractionResult(result, expectedResponseJson);
+    ExtractionResult extractionResult = (ExtractionResult) result;
+
+    assertThat(extractionResult.extractedFields()).hasSize(2);
+    assertThat(extractionResult.extractedFields().get("invoiceNumber").toString())
+        .contains("INV-12345");
+    assertThat(extractionResult.extractedFields().get("totalAmount").toString())
+        .contains("1000.00");
   }
 
   @Test
-  void
-      extractUsingAws_ReturnsCorrectResult_whenLlmResponseContainsNestedObjectAsValueForTaxonomyItem()
-          throws Exception {
+  void extract_shouldSucceed_whenResponseContainsThinkingTags() throws Exception {
     // given
-    var request = prepareExtractionRequest();
+    String jsonResponse =
+        """
+        <thinking>Let me analyze this document...</thinking>
+        {
+          "invoiceNumber": "INV-12345",
+          "totalAmount": "1000.00"
+        }
+        """;
 
-    when(pollingTextractCaller.call(any(), any(), any(), any()))
-        .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any(), any()))
-        .thenReturn(
-            """
-                   {
-                     "response": {
-                                   "sum": "$12.25",
-                                   "supplier": {
-                                                 "id": 12345,
-                                                 "name": "Camunda Inc.",
-                                                 "city": "Berlin",
-                                                 "country": "Germany"
-                                               }
-                                 }
-                   }
-               """);
+    List<TaxonomyItem> taxonomyItems =
+        List.of(
+            new TaxonomyItem("invoiceNumber", "Extract the invoice number"),
+            new TaxonomyItem("totalAmount", "Extract the total amount"));
+
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(chatResponse);
 
     // when
-    var result = unstructuredService.extract(request);
+    Object result = unstructuredService.extract(null, aiClient, taxonomyItems, document);
 
     // then
-    var expectedResponseJson =
-        """
-            {
-              "sum": "$12.25",
-              "supplier": {
-                            "id": 12345,
-                            "name": "Camunda Inc.",
-                            "city": "Berlin",
-                            "country": "Germany"
-                          }
-            }
-        """;
-    assertExtractionResult(result, expectedResponseJson);
+    ExtractionResult extractionResult = (ExtractionResult) result;
+
+    assertThat(extractionResult.extractedFields()).hasSize(2);
+    assertThat(extractionResult.extractedFields().get("invoiceNumber").toString())
+        .contains("INV-12345");
+    assertThat(extractionResult.extractedFields().get("totalAmount").toString())
+        .contains("1000.00");
   }
 
   @Test
-  void
-      extractUsingAws_ReturnsCorrectResult_whenLlmResponseContainsNestedResponseWithValidStringifiedObject()
-          throws Exception {
+  void extract_shouldSucceed_whenResponseHasNestedResponseWrapper() throws Exception {
     // given
-    var request = prepareExtractionRequest();
+    String jsonResponse =
+        """
+        {
+          "response": {
+            "invoiceNumber": "INV-12345",
+            "totalAmount": "1000.00"
+          }
+        }
+        """;
 
-    when(pollingTextractCaller.call(any(), any(), any(), any()))
-        .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any(), any()))
-        .thenReturn(
-            """
-                   {
-                     "response": "\\n\\n{\\"sum\\":\\"$12.25\\",\\"supplier\\":\\"Camunda Inc.\\"}"
-                   }
-               """);
+    List<TaxonomyItem> taxonomyItems =
+        List.of(
+            new TaxonomyItem("invoiceNumber", "Extract the invoice number"),
+            new TaxonomyItem("totalAmount", "Extract the total amount"));
+
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(chatResponse);
 
     // when
-    var result = unstructuredService.extract(request);
+    Object result = unstructuredService.extract(null, aiClient, taxonomyItems, document);
 
     // then
-    var expectedResponseJson =
-        """
-            {
-            	"sum": "$12.25",
-            	"supplier": "Camunda Inc."
-            }
-        """;
-    assertExtractionResult(result, expectedResponseJson);
+    ExtractionResult extractionResult = (ExtractionResult) result;
+
+    assertThat(extractionResult.extractedFields()).hasSize(2);
+    assertThat(extractionResult.extractedFields().get("invoiceNumber").toString())
+        .contains("INV-12345");
+    assertThat(extractionResult.extractedFields().get("totalAmount").toString())
+        .contains("1000.00");
   }
 
   @Test
-  void
-      extractUsingAws_ShouldThrowConnectorException_whenLlmResponseContainsInvalidStringifiedObject()
-          throws Exception {
+  void extract_shouldSucceed_whenResponseHasNestedResponseWrapperAsString() throws Exception {
     // given
-    var request = prepareExtractionRequest();
+    String nestedJson =
+        """
+        {
+          "invoiceNumber": "INV-12345",
+          "totalAmount": "1000.00"
+        }
+        """;
+    String jsonResponse = "{\"response\": " + "\"" + nestedJson.replace("\"", "\\\"") + "\"}";
+    String cleanedResponse = nestedJson;
 
-    when(pollingTextractCaller.call(any(), any(), any(), any()))
-        .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any(), any()))
-        .thenReturn(
-            """
-                        {
-                        """);
+    List<TaxonomyItem> taxonomyItems =
+        List.of(
+            new TaxonomyItem("invoiceNumber", "Extract the invoice number"),
+            new TaxonomyItem("totalAmount", "Extract the total amount"));
+
+    ChatResponse initialResponse = createChatResponse(jsonResponse);
+    ChatResponse cleanupResponse = createChatResponse(cleanedResponse);
+
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(initialResponse);
+    when(aiClient.chat(anyString(), anyString())).thenReturn(cleanupResponse);
+
+    // when
+    Object result = unstructuredService.extract(null, aiClient, taxonomyItems, document);
+
+    // then
+    ExtractionResult extractionResult = (ExtractionResult) result;
+
+    assertThat(extractionResult.extractedFields()).hasSize(2);
+    assertThat(extractionResult.extractedFields().get("invoiceNumber").toString())
+        .contains("INV-12345");
+    assertThat(extractionResult.extractedFields().get("totalAmount").toString())
+        .contains("1000.00");
+
+    // Verify initial call with document
+    verify(aiClient).chat(anyString(), anyString(), any(Document.class));
+    // Verify cleanup call without document
+    verify(aiClient).chat(anyString(), anyString());
+  }
+
+  @Test
+  void extract_shouldAttemptCleanup_whenInitialParsingFails() throws Exception {
+    // given
+    String malformedResponse = "Here's the data: {\"invoiceNumber\": \"INV-12345\"";
+    String cleanedResponse =
+        """
+        {
+          "invoiceNumber": "INV-12345",
+          "totalAmount": "1000.00"
+        }
+        """;
+
+    List<TaxonomyItem> taxonomyItems =
+        List.of(
+            new TaxonomyItem("invoiceNumber", "Extract the invoice number"),
+            new TaxonomyItem("totalAmount", "Extract the total amount"));
+
+    ChatResponse initialResponse = createChatResponse(malformedResponse);
+    ChatResponse cleanupResponse = createChatResponse(cleanedResponse);
+
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(initialResponse);
+    when(aiClient.chat(anyString(), anyString())).thenReturn(cleanupResponse);
+
+    // when
+    Object result = unstructuredService.extract(null, aiClient, taxonomyItems, document);
+
+    // then
+    ExtractionResult extractionResult = (ExtractionResult) result;
+
+    assertThat(extractionResult.extractedFields()).hasSize(2);
+    assertThat(extractionResult.extractedFields().get("invoiceNumber").toString())
+        .contains("INV-12345");
+    assertThat(extractionResult.extractedFields().get("totalAmount").toString())
+        .contains("1000.00");
+
+    // Verify initial call with document
+    verify(aiClient).chat(anyString(), anyString(), any(Document.class));
+    // Verify cleanup call without document
+    verify(aiClient).chat(anyString(), anyString());
+  }
+
+  @Test
+  void extract_shouldThrowException_whenResponseIsNotJsonObject() throws Exception {
+    // given
+    String jsonResponse = "[]"; // Array instead of object
+
+    List<TaxonomyItem> taxonomyItems =
+        List.of(
+            new TaxonomyItem("invoiceNumber", "Extract the invoice number"),
+            new TaxonomyItem("totalAmount", "Extract the total amount"));
+
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+    ChatResponse cleanupResponse = createChatResponse(jsonResponse); // Cleanup also fails
+
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(chatResponse);
+    when(aiClient.chat(anyString(), anyString())).thenReturn(cleanupResponse);
 
     // when & then
-    assertThatThrownBy(() -> unstructuredService.extract(request))
+    assertThatThrownBy(() -> unstructuredService.extract(null, aiClient, taxonomyItems, document))
         .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("Failed to parse the JSON response");
+        .hasFieldOrPropertyWithValue("errorCode", JSON_PARSING_FAILED)
+        .hasMessageContaining("Failed to parse JSON even after cleanup attempt");
   }
 
   @Test
-  void extractUsingAws_ShouldThrowConnectorException_whenLlmResponseIsNotJsonObject()
-      throws Exception {
+  void extract_shouldThrowException_whenCleanupAlsoFails() throws Exception {
     // given
-    var request = prepareExtractionRequest();
+    String malformedResponse = "This is not JSON at all!";
 
-    when(pollingTextractCaller.call(any(), any(), any(), any()))
-        .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any(), any()))
-        .thenReturn(
-            """
-                        []
-                        """);
+    List<TaxonomyItem> taxonomyItems =
+        List.of(
+            new TaxonomyItem("invoiceNumber", "Extract the invoice number"),
+            new TaxonomyItem("totalAmount", "Extract the total amount"));
+
+    ChatResponse initialResponse = createChatResponse(malformedResponse);
+    ChatResponse cleanupResponse = createChatResponse("Still not valid JSON!");
+
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(initialResponse);
+    when(aiClient.chat(anyString(), anyString())).thenReturn(cleanupResponse);
 
     // when & then
-    assertThatThrownBy(() -> unstructuredService.extract(request))
+    assertThatThrownBy(() -> unstructuredService.extract(null, aiClient, taxonomyItems, document))
         .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("LLM response is not a JSON object");
+        .hasFieldOrPropertyWithValue("errorCode", JSON_PARSING_FAILED)
+        .hasMessageContaining("Failed to parse JSON even after cleanup attempt");
   }
 
   @Test
-  void
-      extractUsingAws_ShouldThrowConnectorException_whenLlmResponseContainsNestedResponseWithInvalidStringifiedObject()
-          throws Exception {
-    // given
-    var request = prepareExtractionRequest();
+  void extract_shouldHandleMissingOptionalFields() throws Exception {
+    // given - response with only some fields
+    String jsonResponse =
+        """
+        {
+          "invoiceNumber": "INV-12345"
+        }
+        """;
 
-    when(pollingTextractCaller.call(any(), any(), any(), any()))
-        .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any(), any()))
-        .thenReturn(
-            """
-                        {
-                          "response": "{"
-                        }
-                        """);
+    List<TaxonomyItem> taxonomyItems =
+        List.of(
+            new TaxonomyItem("invoiceNumber", "Extract the invoice number"),
+            new TaxonomyItem("totalAmount", "Extract the total amount"),
+            new TaxonomyItem("vendorName", "Extract the vendor name"));
 
-    // when & then
-    assertThatThrownBy(() -> unstructuredService.extract(request))
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("Failed to parse the JSON response");
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(chatResponse);
+
+    // when
+    Object result = unstructuredService.extract(null, aiClient, taxonomyItems, document);
+
+    // then
+    ExtractionResult extractionResult = (ExtractionResult) result;
+
+    // Only the field present in the response should be included
+    assertThat(extractionResult.extractedFields()).hasSize(1);
+    assertThat(extractionResult.extractedFields().get("invoiceNumber").toString())
+        .contains("INV-12345");
+    assertThat(extractionResult.extractedFields()).doesNotContainKey("totalAmount");
+    assertThat(extractionResult.extractedFields()).doesNotContainKey("vendorName");
   }
 
   @Test
-  void
-      extractUsingAws_ShouldThrowConnectorException_whenLlmResponseContainsNestedResponseWithJsonArray()
-          throws Exception {
+  void extract_shouldSucceed_whenResponseHasBothThinkingTagsAndMarkdown() throws Exception {
     // given
-    var request = prepareExtractionRequest();
+    String jsonResponse =
+        """
+        <thinking>Analyzing the document structure...</thinking>
+        ```json
+        {
+          "invoiceNumber": "INV-12345",
+          "totalAmount": "1000.00"
+        }
+        ```
+        """;
 
-    when(pollingTextractCaller.call(any(), any(), any(), any()))
-        .thenReturn("Test extracted text from test document.pdf");
-    when(bedrockCaller.call(any(), any(), any(), any()))
-        .thenReturn(
-            """
-                        {
-                          "response": []
-                        }
-                        """);
+    List<TaxonomyItem> taxonomyItems =
+        List.of(
+            new TaxonomyItem("invoiceNumber", "Extract the invoice number"),
+            new TaxonomyItem("totalAmount", "Extract the total amount"));
 
-    // when & then
-    assertThatThrownBy(() -> unstructuredService.extract(request))
-        .isInstanceOf(ConnectorException.class)
-        .hasMessageContaining("LLM response is neither a JSON object nor a string");
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(chatResponse);
+
+    // when
+    Object result = unstructuredService.extract(null, aiClient, taxonomyItems, document);
+
+    // then
+    ExtractionResult extractionResult = (ExtractionResult) result;
+
+    assertThat(extractionResult.extractedFields()).hasSize(2);
+    assertThat(extractionResult.extractedFields().get("invoiceNumber").toString())
+        .contains("INV-12345");
+    assertThat(extractionResult.extractedFields().get("totalAmount").toString())
+        .contains("1000.00");
   }
 
-  private void assertExtractionResult(Object result, String expectedResponse)
-      throws JsonProcessingException {
-    var expected =
-        OBJECT_MAPPER.convertValue(
-            OBJECT_MAPPER.readTree(expectedResponse),
-            new TypeReference<Map<String, JsonNode>>() {});
+  @Test
+  void extract_shouldHandleSingleTaxonomyItem() throws Exception {
+    // given
+    String jsonResponse =
+        """
+        {
+          "invoiceNumber": "INV-12345"
+        }
+        """;
 
-    assertThat(result)
-        .isNotNull()
-        .isInstanceOf(ExtractionResult.class)
-        .asInstanceOf(InstanceOfAssertFactories.type(ExtractionResult.class))
-        .satisfies(
-            extractionResult ->
-                assertThat(extractionResult.extractedFields())
-                    .containsExactlyInAnyOrderEntriesOf(expected));
+    List<TaxonomyItem> taxonomyItems =
+        List.of(new TaxonomyItem("invoiceNumber", "Extract the invoice number"));
+
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(chatResponse);
+
+    // when
+    Object result = unstructuredService.extract(null, aiClient, taxonomyItems, document);
+
+    // then
+    ExtractionResult extractionResult = (ExtractionResult) result;
+
+    assertThat(extractionResult.extractedFields()).hasSize(1);
+    assertThat(extractionResult.extractedFields().get("invoiceNumber").toString())
+        .contains("INV-12345");
   }
 
-  private ExtractionRequest prepareExtractionRequest() {
-    AwsProvider baseRequest = ExtractionTestUtils.createDefaultAwsProvider();
-    return new ExtractionRequest(ExtractionTestUtils.TEXTRACT_EXTRACTION_REQUEST_DATA, baseRequest);
+  @Test
+  void extract_shouldNotUnwrapResponseKey_whenItIsATaxonomyItem() throws Exception {
+    // given - "response" is actually a valid taxonomy item name
+    String jsonResponse =
+        """
+        {
+          "response": "This is the response field",
+          "invoiceNumber": "INV-12345"
+        }
+        """;
+
+    List<TaxonomyItem> taxonomyItems =
+        List.of(
+            new TaxonomyItem("response", "Extract the response"),
+            new TaxonomyItem("invoiceNumber", "Extract the invoice number"));
+
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(chatResponse);
+
+    // when
+    Object result = unstructuredService.extract(null, aiClient, taxonomyItems, document);
+
+    // then
+    ExtractionResult extractionResult = (ExtractionResult) result;
+
+    assertThat(extractionResult.extractedFields()).hasSize(2);
+    assertThat(extractionResult.extractedFields().get("response").toString())
+        .contains("This is the response field");
+    assertThat(extractionResult.extractedFields().get("invoiceNumber").toString())
+        .contains("INV-12345");
+  }
+
+  @Test
+  void extract_shouldHandleComplexNestedJson() throws Exception {
+    // given
+    String jsonResponse =
+        """
+        {
+          "invoiceNumber": "INV-12345",
+          "lineItems": [
+            {"description": "Item 1", "price": 100},
+            {"description": "Item 2", "price": 200}
+          ],
+          "metadata": {
+            "createdDate": "2023-01-01",
+            "modifiedDate": "2023-01-02"
+          }
+        }
+        """;
+
+    List<TaxonomyItem> taxonomyItems =
+        List.of(
+            new TaxonomyItem("invoiceNumber", "Extract the invoice number"),
+            new TaxonomyItem("lineItems", "Extract the line items"),
+            new TaxonomyItem("metadata", "Extract the metadata"));
+
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(chatResponse);
+
+    // when
+    Object result = unstructuredService.extract(null, aiClient, taxonomyItems, document);
+
+    // then
+    ExtractionResult extractionResult = (ExtractionResult) result;
+
+    assertThat(extractionResult.extractedFields()).hasSize(3);
+    assertThat(extractionResult.extractedFields().get("invoiceNumber").toString())
+        .contains("INV-12345");
+    assertThat(extractionResult.extractedFields().get("lineItems")).isInstanceOf(JsonNode.class);
+    assertThat(extractionResult.extractedFields().get("metadata")).isInstanceOf(JsonNode.class);
+  }
+
+  @Test
+  void extract_shouldHandleEmptyJsonResponse() throws Exception {
+    // given
+    String jsonResponse = "{}";
+
+    List<TaxonomyItem> taxonomyItems =
+        List.of(
+            new TaxonomyItem("invoiceNumber", "Extract the invoice number"),
+            new TaxonomyItem("totalAmount", "Extract the total amount"));
+
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(chatResponse);
+
+    // when
+    Object result = unstructuredService.extract(null, aiClient, taxonomyItems, document);
+
+    // then
+    ExtractionResult extractionResult = (ExtractionResult) result;
+
+    // No fields should be present
+    assertThat(extractionResult.extractedFields()).isEmpty();
+  }
+
+  @Test
+  void extract_shouldHandleSpecialCharactersInFieldNames() throws Exception {
+    // given
+    String jsonResponse =
+        """
+        {
+          "invoice_number": "INV-12345",
+          "total-amount": "1000.00",
+          "vendor.name": "Acme Corp"
+        }
+        """;
+
+    List<TaxonomyItem> taxonomyItems =
+        List.of(
+            new TaxonomyItem("invoice_number", "Extract the invoice number"),
+            new TaxonomyItem("total-amount", "Extract the total amount"),
+            new TaxonomyItem("vendor.name", "Extract the vendor name"));
+
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(chatResponse);
+
+    // when
+    Object result = unstructuredService.extract(null, aiClient, taxonomyItems, document);
+
+    // then
+    ExtractionResult extractionResult = (ExtractionResult) result;
+
+    assertThat(extractionResult.extractedFields()).hasSize(3);
+    assertThat(extractionResult.extractedFields().get("invoice_number").toString())
+        .contains("INV-12345");
+    assertThat(extractionResult.extractedFields().get("total-amount").toString())
+        .contains("1000.00");
+    assertThat(extractionResult.extractedFields().get("vendor.name").toString())
+        .contains("Acme Corp");
+  }
+
+  // Helper methods
+
+  private ChatResponse createChatResponse(String responseText) {
+    AiMessage aiMessage = AiMessage.from(responseText);
+    TokenUsage tokenUsage = new TokenUsage(100, 50);
+    return ChatResponse.builder().aiMessage(aiMessage).tokenUsage(tokenUsage).build();
   }
 }

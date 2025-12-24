@@ -6,96 +6,40 @@
  */
 package io.camunda.connector.idp.extraction.service;
 
-import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.idp.extraction.caller.DocumentAiCaller;
-import io.camunda.connector.idp.extraction.caller.PollingTextractCaller;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.idp.extraction.client.extraction.base.MlExtractor;
 import io.camunda.connector.idp.extraction.model.*;
-import io.camunda.connector.idp.extraction.model.providers.AwsProvider;
-import io.camunda.connector.idp.extraction.model.providers.GcpProvider;
-import io.camunda.connector.idp.extraction.supplier.S3ClientSupplier;
-import io.camunda.connector.idp.extraction.supplier.TextractClientSupplier;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StructuredService implements ExtractionService {
+public class StructuredService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(StructuredService.class);
-  private final PollingTextractCaller pollingTextractCaller;
-  private final DocumentAiCaller documentAiCaller;
-  private final TextractClientSupplier textractClientSupplier;
-  private final S3ClientSupplier s3ClientSupplier;
 
-  public StructuredService() {
-    this.pollingTextractCaller = new PollingTextractCaller();
-    this.documentAiCaller = new DocumentAiCaller();
-    this.textractClientSupplier = new TextractClientSupplier();
-    this.s3ClientSupplier = new S3ClientSupplier();
-  }
+  public StructuredService() {}
 
-  public StructuredService(
-      PollingTextractCaller pollingTextractCaller,
-      DocumentAiCaller documentAiCaller,
-      TextractClientSupplier textractClientSupplier,
-      S3ClientSupplier s3ClientSupplier) {
-    this.pollingTextractCaller = pollingTextractCaller;
-    this.documentAiCaller = documentAiCaller;
-    this.textractClientSupplier = textractClientSupplier;
-    this.s3ClientSupplier = s3ClientSupplier;
-  }
+  public Object extract(
+      MlExtractor mlExtractor,
+      List<String> includedFields,
+      Map<String, String> renameMappings,
+      String delimiter,
+      Document document) {
+    long startTime = System.currentTimeMillis();
+    LOGGER.info("Starting {} document analysis", mlExtractor.getClass().getSimpleName());
 
-  @Override
-  public Object extract(ExtractionRequest extractionRequest) {
-    final var input = extractionRequest.input();
-    return switch (extractionRequest.baseRequest()) {
-      case AwsProvider aws -> extractUsingTextract(input, aws);
-      case GcpProvider gcp -> extractUsingGcp(input, gcp);
-      default ->
-          throw new IllegalStateException(
-              "Unsupported provider for structured extraction: " + extractionRequest.baseRequest());
-    };
-  }
+    StructuredExtractionResponse results = mlExtractor.runDocumentAnalysis(document);
+    StructuredExtractionResult processedResults =
+        processExtractedData(results, includedFields, renameMappings, delimiter);
 
-  private StructuredExtractionResult extractUsingTextract(
-      ExtractionRequestData input, AwsProvider baseRequest) {
-    try {
-      long startTime = System.currentTimeMillis();
-
-      StructuredExtractionResponse results =
-          pollingTextractCaller.extractKeyValuePairsWithConfidence(
-              input.document(),
-              baseRequest.getS3BucketName(),
-              textractClientSupplier.getTextractClient(baseRequest),
-              s3ClientSupplier.getAsyncS3Client(baseRequest));
-
-      StructuredExtractionResult processedResults = processExtractedData(results, input);
-
-      long endTime = System.currentTimeMillis();
-      LOGGER.info("Aws content extraction took {} ms", (endTime - startTime));
-      return processedResults;
-    } catch (Exception e) {
-      LOGGER.error("Document extraction failed: {}", e.getMessage());
-      throw new ConnectorException(e);
-    }
-  }
-
-  private StructuredExtractionResult extractUsingGcp(
-      ExtractionRequestData input, GcpProvider provider) {
-    try {
-      long startTime = System.currentTimeMillis();
-
-      StructuredExtractionResponse results =
-          documentAiCaller.extractKeyValuePairsWithConfidence(input, provider);
-      StructuredExtractionResult processedResults = processExtractedData(results, input);
-
-      long endTime = System.currentTimeMillis();
-      LOGGER.info("Document AI content extraction took {} ms", (endTime - startTime));
-      return processedResults;
-    } catch (Exception e) {
-      LOGGER.error("Document extraction failed: {}", e.getMessage());
-      throw new ConnectorException(e);
-    }
+    long endTime = System.currentTimeMillis();
+    LOGGER.info(
+        "{} document analysis took {} ms",
+        mlExtractor.getClass().getSimpleName(),
+        (endTime - startTime));
+    return processedResults;
   }
 
   /**
@@ -104,11 +48,13 @@ public class StructuredService implements ExtractionService {
    *
    * @param response The StructuredExtractionResponse containing both extracted fields and
    *     confidence scores
-   * @param input The extraction request data containing filtering rules
    * @return A StructuredExtractionResult with processed extracted fields and confidence scores
    */
   private StructuredExtractionResult processExtractedData(
-      StructuredExtractionResponse response, ExtractionRequestData input) {
+      StructuredExtractionResponse response,
+      List<String> includedFields,
+      Map<String, String> renameMappings,
+      String delimiter) {
     Map<String, Object> parsedResults = new HashMap<>();
     Map<String, Object> processedConfidenceScores = new HashMap<>();
     Map<String, Polygon> processedGeometry = new HashMap<>();
@@ -120,19 +66,19 @@ public class StructuredService implements ExtractionService {
             (key, value) -> {
               String variableName;
               // Check if key variable should be overridden by renameMappings value
-              if (input.renameMappings() != null && input.renameMappings().containsKey(key)) {
-                variableName = input.renameMappings().get(key);
+              if (renameMappings != null && renameMappings.containsKey(key)) {
+                variableName = renameMappings.get(key);
               } else {
-                variableName = formatZeebeVariableName(key, input.delimiter());
+                variableName = formatZeebeVariableName(key, delimiter);
               }
               Object confidenceScore = response.confidenceScore().get(key);
 
               // Check if field should be included based on includedFields filter
               boolean shouldInclude;
-              if (input.includedFields() == null || input.includedFields().isEmpty()) {
+              if (includedFields == null || includedFields.isEmpty()) {
                 shouldInclude = true;
               } else {
-                shouldInclude = input.includedFields().contains(key);
+                shouldInclude = includedFields.contains(key);
               }
 
               // Include the field if it should be included and value is not null

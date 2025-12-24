@@ -11,7 +11,7 @@ import io.camunda.connector.idp.extraction.model.providers.azure.AiFoundryConfig
 import io.camunda.connector.idp.extraction.model.providers.azure.DocumentIntelligenceConfiguration;
 
 @TemplateSubType(id = "azure", label = "Azure Provider")
-public final class AzureProvider implements ProviderConfig {
+public final class AzureProvider implements ProviderConfig, ExtractorConfig {
 
   private DocumentIntelligenceConfiguration documentIntelligenceConfiguration;
   private AiFoundryConfig aiFoundryConfig;
