@@ -20,7 +20,7 @@ record ListResourcesRequest() {
   public McpClientListResourcesResult execute(McpClient client) {
     LOGGER.debug("MCP({}): Executing list resources", client.key());
 
-    var fetchedResources = client.listResourceTemplates();
+    var fetchedResources = client.listResources();
 
     var result =
         new McpClientListResourcesResult(
@@ -30,7 +30,7 @@ record ListResourcesRequest() {
                     .map(
                         fr ->
                             new ResourceDescription(
-                                fr.uriTemplate(), fr.name(), fr.description(), fr.mimeType()))
+                                fr.uri(), fr.name(), fr.description(), fr.mimeType()))
                     .toList());
 
     LOGGER.debug("MCP({}): Resolved list of resources: {}", client.key(), result.names());
