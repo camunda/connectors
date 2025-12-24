@@ -316,6 +316,17 @@ class ChatMessageConverterTest {
   }
 
   @Test
+  void toAssistantMessage_ignoresBlankText() {
+    final var aiMessage = AiMessage.builder().text("   ").build();
+
+    final var chatResponse = new ChatResponse.Builder().aiMessage(aiMessage).build();
+
+    final var result = chatMessageConverter.toAssistantMessage(chatResponse);
+
+    assertThat(result.content()).isEmpty();
+  }
+
+  @Test
   void toAssistantMessage_convertsFromChatResponse_withoutMetadata() {
     final var chatResponse =
         new ChatResponse.Builder().aiMessage(AiMessage.builder().build()).build();
