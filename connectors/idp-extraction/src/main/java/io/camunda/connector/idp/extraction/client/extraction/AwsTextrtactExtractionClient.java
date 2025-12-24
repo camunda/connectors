@@ -74,13 +74,20 @@ public class AwsTextrtactExtractionClient implements TextExtractor, MlExtractor,
 
   @Override
   public void close() {
-    if (textractClient != null && s3AsyncClient != null) {
+    if (textractClient != null) {
       try {
         textractClient.close();
-        s3AsyncClient.close();
-        LOGGER.debug("TextractClient and S3AsyncClient closed successfully");
+        LOGGER.debug("TextractClient closed successfully");
       } catch (Exception e) {
-        LOGGER.warn("Error while closing TextractClient/S3AsyncClient", e);
+        LOGGER.warn("Error while closing TextractClient", e);
+      }
+    }
+    if (s3AsyncClient != null) {
+      try {
+        s3AsyncClient.close();
+        LOGGER.debug("S3AsyncClient closed successfully");
+      } catch (Exception e) {
+        LOGGER.warn("Error while closing S3AsyncClient", e);
       }
     }
   }

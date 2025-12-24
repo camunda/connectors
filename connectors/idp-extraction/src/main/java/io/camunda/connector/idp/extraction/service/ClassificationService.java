@@ -138,6 +138,6 @@ public class ClassificationService {
     String confidence = dataNode.has("confidence") ? dataNode.get("confidence").asText() : null;
     String reasoning = dataNode.has("reasoning") ? dataNode.get("reasoning").asText() : null;
 
-    return new ClassificationResult(extractedValue, confidence, reasoning, aiResponse.metadata());
+    return new ClassificationResult(extractedValue, confidence, reasoning, aiResponse.tokenUsage());
   }
 }

@@ -47,31 +47,26 @@ public abstract class AiClient {
     try {
       DocumentLinkParameters linkParams = new DocumentLinkParameters(Duration.ofMinutes(2));
       String documentLink = document.generateLink(linkParams);
-
-      // Check if it's an image type
-      if (contentType.startsWith("image/")) {
-        message =
-            UserMessage.from(TextContent.from(userMessageText), ImageContent.from(documentLink));
-      } else {
-        // Treat everything else as PDF (including explicit application/pdf)
-        message =
-            UserMessage.from(TextContent.from(userMessageText), PdfFileContent.from(documentLink));
-      }
+      message = asUserMessage(userMessageText, contentType, documentLink);
     } catch (Exception e) {
       // Fallback to base64 if link generation fails
       String base64Content = document.asBase64();
-
-      if (contentType.startsWith("image/")) {
-        message =
-            UserMessage.from(
-                TextContent.from(userMessageText), ImageContent.from(base64Content, contentType));
-      } else {
-        message =
-            UserMessage.from(
-                TextContent.from(userMessageText), PdfFileContent.from(base64Content, contentType));
-      }
+      message = asUserMessage(userMessageText, contentType, base64Content);
     }
 
     return chatModel.chat(systemMessage, message);
+  }
+
+  private UserMessage asUserMessage(
+      String userMessageText, String contentType, String documentContent) {
+    // Check if it's an image type
+    if (contentType.startsWith("image/")) {
+      return UserMessage.from(
+          TextContent.from(userMessageText), ImageContent.from(documentContent));
+    } else {
+      // Treat everything else as PDF (including explicit application/pdf)
+      return UserMessage.from(
+          TextContent.from(userMessageText), PdfFileContent.from(documentContent));
+    }
   }
 }

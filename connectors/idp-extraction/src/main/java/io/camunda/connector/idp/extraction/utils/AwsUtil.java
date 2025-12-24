@@ -33,7 +33,7 @@ public class AwsUtil {
 
   public static AwsCredentialsProvider credentialsProvider(
       String authType, String accessKey, String secretKey) {
-    if (authType.equals("credentials")) {
+    if ("credentials".equals(authType)) {
       return StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey));
     } else {
       return DefaultCredentialsProvider.builder().build();
