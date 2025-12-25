@@ -193,7 +193,7 @@ public record SoapConnectorInput(
     @TemplateSubType(id = "usernameToken", label = "WSS username token")
     record UsernameToken(
         @TemplateProperty(label = "Username", group = "authentication") @NotNull String username,
-        @TemplateProperty(label = "Password", group = "authentication") @NotNull String password,
+        @TemplateProperty(label = "Password", group = "authentication") String password,
         @TemplateProperty(label = "Encoded", group = "authentication", type = PropertyType.Dropdown)
             @NotNull
             SoapConnectorInput.YesNo encoded)
