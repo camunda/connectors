@@ -76,7 +76,7 @@ limitations under the License.</license.inlineheader>
     <!-- Third party dependencies -->
 
     <!-- gRPC version has to be equal or greater than the one from the Camunda client -->
-    <version.grpc>1.77.0</version.grpc>
+    <version.grpc>1.78.0</version.grpc>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.21.0</version.mockito>
@@ -94,12 +94,12 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.23</version.logback>
 
     <version.aws-java-sdk>1.12.796</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.40.13</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.40.16</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.796</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.40.13</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.40.16</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.40.13</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.40.16</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.4</version.localstack>
 
@@ -152,7 +152,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.5.0</version.auth0.jwt>
     <version.auth0.jwks>0.23.0</version.auth0.jwks>
     
-    <version.langchain4j>1.9.1</version.langchain4j>
+    <version.langchain4j>1.10.0</version.langchain4j>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.6.2</plugin.version.maven-enforcer-plugin>
