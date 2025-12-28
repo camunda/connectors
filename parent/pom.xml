@@ -92,12 +92,12 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.23</version.logback>
 
     <version.aws-java-sdk>1.12.796</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.40.13</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.40.16</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.796</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.40.13</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.40.16</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.40.13</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.40.16</version.aws-sdk-secretsmanager>
 
     <version.google-api-client>2.8.1</version.google-api-client>
 
