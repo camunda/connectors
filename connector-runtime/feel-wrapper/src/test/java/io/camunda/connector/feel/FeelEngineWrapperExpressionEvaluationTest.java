@@ -300,14 +300,15 @@ class FeelEngineWrapperExpressionEvaluationTest {
   @Test
   void failJobFunctionWithAllParameters() {
     // given
-    final var resultExpression = "=jobError(message, {}, job.retries - 1, @\"PT1M\")";
+    final var resultExpression =
+        "=jobError(message, {\"key\": \"value\"}, job.retries - 1, @\"PT1M\")";
     final var variables = Map.of("message", "some Message", "job", Map.of("retries", 3));
     // when
     final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
     assertThat(result)
         .containsEntry("retries", 2)
         .containsEntry("retryBackoff", Duration.ofMinutes(1))
-        .containsEntry("variables", Collections.emptyMap())
+        .containsEntry("variables", Map.of("key", "value"))
         .containsEntry("errorType", "jobError")
         .containsEntry("errorMessage", "some Message");
   }
@@ -315,14 +316,14 @@ class FeelEngineWrapperExpressionEvaluationTest {
   @Test
   void failJobFunctionWithoutRetryBackoff() {
     // given
-    final var resultExpression = "=jobError(message, {}, 2)";
+    final var resultExpression = "=jobError(message, {\"key\": \"value\"}, 2)";
     final var variables = Map.of("message", "some Message");
     // when
     final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
     assertThat(result)
         .containsEntry("retries", 2)
         .containsEntry("retryBackoff", Duration.ZERO)
-        .containsEntry("variables", Collections.emptyMap())
+        .containsEntry("variables", Map.of("key", "value"))
         .containsEntry("errorType", "jobError")
         .containsEntry("errorMessage", "some Message");
   }
@@ -355,6 +356,35 @@ class FeelEngineWrapperExpressionEvaluationTest {
         .containsEntry("variables", Collections.emptyMap())
         .containsEntry("errorType", "jobError")
         .containsEntry("errorMessage", "some Message");
+  }
+
+  @Test
+  void failJobFunctionWithExpressionInVariables() {
+    // given - variables map contains an expression that should be evaluated
+    final var resultExpression = "=jobError(message, {\"expr\": 1 + 5})";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    // then - the expression should be evaluated to 6 (Java Integer)
+    assertThat(result)
+        .containsEntry("errorType", "jobError")
+        .containsEntry("errorMessage", "some Message");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> resultVariables = (Map<String, Object>) result.get("variables");
+    assertThat(resultVariables).containsEntry("expr", 6);
+  }
+
+  @Test
+  void failJobFunctionVariablesShouldContainJavaStrings() {
+    // given - variables map contains a string value
+    final var resultExpression = "=jobError(message, {\"key\": \"value\"})";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    // then - the variables should contain Java String, not ValString
+    @SuppressWarnings("unchecked")
+    Map<String, Object> resultVariables = (Map<String, Object>) result.get("variables");
+    assertThat(resultVariables.get("key")).isInstanceOf(String.class).isEqualTo("value");
   }
 
   @Test
