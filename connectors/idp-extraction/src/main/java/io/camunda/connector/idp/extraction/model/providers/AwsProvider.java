@@ -16,7 +16,7 @@ import io.camunda.connector.idp.extraction.model.providers.aws.TextExtractionEng
 import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(id = "aws", label = "Amazon Web Services Provider")
-public final class AwsProvider extends AwsBaseRequest implements ProviderConfig {
+public final class AwsProvider extends AwsBaseRequest implements ProviderConfig, ExtractorConfig {
 
   @TemplateProperty(
       id = "s3BucketName",
