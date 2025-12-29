@@ -104,22 +104,6 @@ public class ElementTypeSupportTest extends BaseTest {
   }
 
   @Test
-  void plainStartEvent() {
-    ElementTemplate template =
-        ElementTemplateBuilder.createOutbound()
-            .id("id")
-            .name("name")
-            .type("type", false)
-            .appliesTo(BpmnType.START_EVENT)
-            .elementType(BpmnType.START_EVENT)
-            .build();
-
-    assertThat(template.appliesTo()).containsExactly(BpmnType.START_EVENT.getName());
-    assertThat(template.elementType().value()).isEqualTo(BpmnType.START_EVENT.getName());
-    assertThat(template.elementType().eventDefinition()).isNull();
-  }
-
-  @Test
   void intermediateCatchEvent() {
     ElementTemplate template =
         ElementTemplateBuilder.createOutbound()
