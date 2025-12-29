@@ -22,13 +22,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.camunda.feel.context.Context;
 import org.camunda.feel.context.Context.StaticContext;
 import org.camunda.feel.context.JavaFunction;
 import org.camunda.feel.context.JavaFunctionProvider;
 import org.camunda.feel.syntaxtree.Val;
+import org.camunda.feel.syntaxtree.ValBoolean;
 import org.camunda.feel.syntaxtree.ValContext;
 import org.camunda.feel.syntaxtree.ValDayTimeDuration;
+import org.camunda.feel.syntaxtree.ValList;
+import org.camunda.feel.syntaxtree.ValNull$;
 import org.camunda.feel.syntaxtree.ValNumber;
 import org.camunda.feel.syntaxtree.ValString;
 import scala.collection.JavaConverters;
@@ -172,11 +176,61 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
     java.util.Map<String, Object> javaMap = new HashMap<>();
     javaMap.put(ERROR_TYPE_PROPERTY, JOB_ERROR_TYPE_VALUE);
     javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(0), message.value());
-    javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(1), JavaConverters.asJava(variables.properties()));
+    javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(1), valContextToJavaMap(variables));
     javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(2), retries.value());
     javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(3), retryBackoff.value());
     return new ValContext(
         new Context.StaticContext(Map.from(JavaConverters.asScala(javaMap)), Map$.MODULE$.empty()));
+  }
+
+  /**
+   * Converts a ValContext to a Java Map, recursively converting all Val types to their Java
+   * equivalents.
+   */
+  @SuppressWarnings("unchecked")
+  private static java.util.Map<String, Object> valContextToJavaMap(ValContext valContext) {
+    scala.collection.immutable.Map<String, Object> scalaMap =
+        (scala.collection.immutable.Map<String, Object>)
+            (scala.collection.immutable.Map<?, ?>)
+                valContext.context().variableProvider().getVariables();
+    java.util.Map<String, Object> javaValMap = JavaConverters.asJava(scalaMap);
+    return javaValMap.entrySet().stream()
+        .collect(
+            Collectors.toMap(
+                java.util.Map.Entry::getKey,
+                e -> e.getValue() instanceof Val ? valToJava((Val) e.getValue()) : e.getValue()));
+  }
+
+  /** Converts a FEEL Val type to its Java equivalent. */
+  private static Object valToJava(Val val) {
+    if (val instanceof ValString valString) {
+      return valString.value();
+    } else if (val instanceof ValNumber valNumber) {
+      // Convert Scala BigDecimal to Java - use intValue for small integers
+      BigDecimal bd = valNumber.value();
+      if (bd.isValidInt()) {
+        return bd.intValue();
+      } else if (bd.isValidLong()) {
+        return bd.longValue();
+      } else {
+        return bd.doubleValue();
+      }
+    } else if (val instanceof ValBoolean valBoolean) {
+      return valBoolean.value();
+    } else if (val instanceof ValContext valContext) {
+      return valContextToJavaMap(valContext);
+    } else if (val instanceof ValList valList) {
+      return JavaConverters.asJava(valList.items()).stream()
+          .map(FeelConnectorFunctionProvider::valToJava)
+          .collect(Collectors.toList());
+    } else if (val instanceof ValDayTimeDuration valDuration) {
+      return valDuration.value();
+    } else if (val == ValNull$.MODULE$) {
+      return null;
+    } else {
+      // For any other Val types, return the raw value if accessible, or the Val itself
+      return val;
+    }
   }
 
   private static String toString(List<Val> arguments, int index) {
