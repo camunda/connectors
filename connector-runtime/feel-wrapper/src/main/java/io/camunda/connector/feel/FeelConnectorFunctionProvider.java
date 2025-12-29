@@ -141,7 +141,9 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
     java.util.Map<String, Object> javaMap = new HashMap<>();
     javaMap.put(ERROR_TYPE_PROPERTY, JOB_ERROR_TYPE_VALUE);
     javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(0), message.value());
-    javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(1), JavaConverters.asJava(variables.properties()));
+    javaMap.put(
+        JOB_ERROR_FUNCTION_ARGUMENTS.get(1),
+        JavaConverters.asJava(variables.context().variableProvider().getVariables()));
     javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(2), retries.value());
     javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(3), retryBackoff.value());
     return new ValContext(

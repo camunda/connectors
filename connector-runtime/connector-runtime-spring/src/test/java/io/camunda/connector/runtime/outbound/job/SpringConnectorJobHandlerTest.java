@@ -1127,6 +1127,29 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
+    void shouldCreateJobError_WithVariablesSetOnFailedJob() throws Exception {
+      // Given
+      var errorExpression =
+          """
+          jobError("MyError", {"myVar": "myVal"})
+          """;
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new ConnectorException("CONNECTION_ERROR", "connection failed");
+              });
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .executeAndCaptureResult(jobHandler, false, false);
+      // then
+      assertThat(result.getErrorMessage()).isEqualTo("MyError");
+      assertThat(result.getVariables()).containsEntry("myVar", "myVal");
+      assertThat(result.getVariables()).containsEntry("error", "MyError");
+    }
+
+    @Test
     void shouldCreateBpmnError_UsingExceptionCodeAsSecondConditionAfterResponseProperty()
         throws Exception {
       // given

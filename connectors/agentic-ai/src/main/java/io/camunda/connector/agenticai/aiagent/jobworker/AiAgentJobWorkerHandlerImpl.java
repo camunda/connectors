@@ -36,6 +36,7 @@ import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.outbound.job.OutboundConnectorExceptionHandler;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -138,16 +139,19 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
       final CounterMetricsContext counterMetricsContext) {
     switch (connectorError) {
       case BpmnError bpmnError -> throwBpmnError(jobClient, job, bpmnError, counterMetricsContext);
-      case JobError jobError ->
-          failJob(
-              jobClient,
-              job,
-              new ErrorResult(
-                  Map.of("error", jobError.errorMessage()),
-                  new RuntimeException(jobError.errorMessage()),
-                  jobError.retries(),
-                  jobError.retryBackoff()),
-              counterMetricsContext);
+      case JobError jobError -> {
+        var variables = new HashMap<>(jobError.variables());
+        variables.put("error", jobError.errorMessage());
+        failJob(
+            jobClient,
+            job,
+            new ErrorResult(
+                variables,
+                new RuntimeException(jobError.errorMessage()),
+                jobError.retries(),
+                jobError.retryBackoff()),
+            counterMetricsContext);
+      }
     }
   }
 
