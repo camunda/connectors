@@ -24,6 +24,12 @@ repos:
         entry: bash -c 'mvn spotless:check; rc=$?; if [[ $rc -ne 0 ]]; then mvn spotless:apply &>/dev/null; echo "Files were reformatted"; fi; exit $rc'
         always_run: true
         files: ^$
+      - id: action-lint
+        files: ^.github/workflows/.*$
+        name: Github Action Lint
+        # Ignore "Declare and assign separately to avoid masking return values" (SC2155)"
+        entry: actionlint -shellcheck "shellcheck -e SC2155"
+        language: system
   - repo: https://github.com/renovatebot/pre-commit-hooks
     rev: 41.116.8
     hooks:

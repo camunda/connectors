@@ -1,11 +1,13 @@
 name: Release a new version
 run-name: Release a new version ${{ inputs.version }}
-
+# Note that this workflow will follow the steps specified in the branch
+# you started it from, but will create and operate on the stable/release branches
+# as specified in the version to be released.
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release (e.g., 8.7.0, 8.7.1). Make sure to select the correct branch.'
+        description: 'Version to release (e.g., 8.7.0-alpha5-rc2, 8.9.1-rc1, 8.10.1)'
         required: true
         type: string
       skip-maven-release:
@@ -31,15 +33,43 @@ on:
 
 jobs:
 
+  prepare-branch:
+    name: Prepare release branch
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      releaseBranch: ${{ steps.manage_branch.outputs.release_branch }}
+      isPrerelease: ${{ steps.manage_branch.outputs.is_prerelease }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.PROTECTED_BRANCH_PAT }}
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+      
+      - name: Manage release branch
+        id: manage_branch
+        run: |
+          node .github/workflows/scripts/release-branch-manager.js "${{ inputs.version }}"
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+      
+      - name: Push release branch if newly created
+        run: |
+          # Push the branch to ensure it exists remotely for the release
+          git push origin ${{ steps.manage_branch.outputs.release_branch }} || true
+
   create-release:
     name: Create GitHub Release
+    needs: prepare-branch
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ needs.prepare-branch.outputs.releaseBranch }}
           fetch-depth: 0
 
       - name: Create GitHub Release
@@ -48,10 +78,11 @@ jobs:
           tag_name: ${{ inputs.version }}
           name: ${{ inputs.version }}
           draft: false
+          # Make it a release later after changelog is generated
           prerelease: false
           make_latest: ${{ inputs.latest && 'true' || 'false' }}
           generate_release_notes: false
-          target_commitish: ${{ github.ref }}
+          target_commitish: ${{ needs.prepare-branch.outputs.releaseBranch }}
           body: |
             ## 🚧 Release in Progress
             
@@ -62,42 +93,39 @@ jobs:
             This message will be replaced with the full changelog once the release process completes.
 
   setup:
-    needs: create-release
+    needs: [prepare-branch, create-release]
     name: Prepare the repository
     runs-on: ubuntu-latest
     permissions:
       contents: write
       checks: write
     outputs:
-      tagType: ${{ steps.prev_version.outputs.release_type }}
-      releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
+      releaseBranch: ${{ needs.prepare-branch.outputs.releaseBranch }}
       previousTag: ${{ steps.prev_version.outputs.previous_version }}
+      isPrerelease: ${{ needs.prepare-branch.outputs.isPrerelease }}
+      pushLatest: ${{ steps.should_push_latest.outputs.result }}
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.ref }}
+          token: ${{ secrets.PROTECTED_BRANCH_PAT }}
+          ref: ${{ needs.prepare-branch.outputs.releaseBranch }}
           fetch-depth: 0
+      
       - name: Identify previous release version
         id: prev_version
         uses: camunda/infra-global-github-actions/previous-version@main
         with:
           version: "${{ inputs.version }}"
           verbose: 'false'
-      # We will update this branch by setting the new version and pushing it
-      - name: Determine release branch name
-        id: determine_release_branch
+      
+      - name: Determine if should push latest tags
+        id: should_push_latest
         run: |
-          releaseBranch=$( git branch --contains ${RELEASE_VERSION} --format='%(refname:short)' )
-          git checkout "$releaseBranch"
-          echo "releaseBranch=$releaseBranch" >> $GITHUB_OUTPUT
-        env:
-          RELEASE_VERSION: ${{ inputs.version }}
-
-      - uses: actions/checkout@v6
-        with:
-          token: ${{ secrets.PROTECTED_BRANCH_PAT }}
-          ref: ${{ github.ref }}
-          fetch-depth: 0
+          if [[ "${{ inputs.latest }}" == "true" && "${{ needs.prepare-branch.outputs.isPrerelease }}" != "true" ]]; then
+            echo "result=true" >> $GITHUB_OUTPUT
+          else
+            echo "result=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Prepare Java and Maven settings
         uses: actions/setup-java@v5
@@ -159,7 +187,7 @@ jobs:
           git push --force origin ${RELEASE_VERSION}
         env:
           RELEASE_VERSION: ${{ inputs.version }}
-          RELEASE_BRANCH: ${{ needs.setup.outputs.releaseBranch }}
+          RELEASE_BRANCH: ${{ needs.prepare-branch.outputs.releaseBranch }}
 
       - name: Upload repository
         uses: actions/upload-artifact@v6
@@ -181,6 +209,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: ${{ needs.setup.outputs.releaseBranch }}
 
       - name: Fetch main branch
         run: git fetch origin main
@@ -417,16 +446,17 @@ jobs:
 
       - name: Log latest tag push decision
         run: |
-          echo "Tag type: ${{ needs.setup.outputs.tagType }}"
+          echo "Is Prerelease: ${{ needs.setup.outputs.isPrerelease }}"
           echo "Latest input: ${{ inputs.latest }}"
-          if [[ "${{ inputs.latest }}" == "true" && "${{ needs.setup.outputs.tagType }}" == "NORMAL" ]]; then
+          echo "Push Latest: ${{ needs.setup.outputs.pushLatest }}"
+          if [[ "${{ needs.setup.outputs.pushLatest }}" == "true" ]]; then
             echo "Will push 'latest' tags for all images"
           else
-            echo "Will NOT push 'latest' tags (either latest not requested or not a NORMAL release)"
+            echo "Will NOT push 'latest' tags (either latest not requested or is a pre-release)"
           fi
 
       - name: Build and Push Docker Image tag latest - connector-runtime
-        if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
+        if: ${{ needs.setup.outputs.pushLatest == 'true' }}
         uses: docker/build-push-action@v6
         with:
           context: connector-runtime/connector-runtime-application/
@@ -436,7 +466,7 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag latest - bundle-default
-        if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
+        if: ${{ needs.setup.outputs.pushLatest == 'true' }}
         uses: docker/build-push-action@v6
         with:
           context: bundle/default-bundle/
@@ -446,7 +476,7 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag latest - bundle-saas
-        if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
+        if: ${{ needs.setup.outputs.pushLatest == 'true' }}
         uses: docker/build-push-action@v6
         with:
           context: bundle/camunda-saas-bundle/
@@ -458,7 +488,7 @@ jobs:
       # Update README in Dockerhub
 
       - name: Push README to Dockerhub - bundle-default
-        if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
+        if: ${{ needs.setup.outputs.pushLatest == 'true' }}
         uses: christian-korneck/update-container-description-action@v1
         env:
           DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
@@ -470,7 +500,7 @@ jobs:
           short_description: 'Camunda out-of-the-box Connectors Bundle'
 
       - name: Push README to Dockerhub - bundle-saas
-        if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
+        if: ${{ needs.setup.outputs.pushLatest == 'true' }}
         uses: christian-korneck/update-container-description-action@v1
         env:
           DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
@@ -513,8 +543,8 @@ jobs:
       - name: Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          prerelease: ${{ needs.setup.outputs.tagType != 'NORMAL' }}
-          make_latest: ${{ (inputs.latest && needs.setup.outputs.tagType == 'NORMAL') && 'true' || 'false' }}
+          prerelease: ${{ needs.setup.outputs.isPrerelease == 'true' }}
+          make_latest: ${{ needs.setup.outputs.pushLatest == 'true' }}
           body: ${{ steps.changelog.outputs.changes }}
           tag_name: ${{ inputs.version }}
           files: |
@@ -596,7 +626,12 @@ jobs:
   notify-prs-released:
     name: Notify PRs that they have been released
     needs:
+      - setup
+      - maven-release
+      - docker-release
       - bundle-and-build-changelog
+      - helm-deploy
+      - fossa_release
     uses: ./.github/workflows/NOTIFY_PRS_RELEASED.yml
     permissions:
       contents: read
