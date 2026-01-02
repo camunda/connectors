@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.adhoctoolsschema.processdefinition;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ToolsConfiguration.ProcessDefinitionConfiguration.RetriesConfiguration;
+import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties.ToolsProperties.ProcessDefinitionProperties.RetriesProperties;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.Duration;
 import org.slf4j.Logger;
@@ -19,18 +19,17 @@ public class ProcessDefinitionClient {
       "AD_HOC_SUB_PROCESS_XML_FETCH_ERROR";
 
   private final CamundaClient camundaClient;
-  private final RetriesConfiguration retriesConfiguration;
+  private final RetriesProperties retriesProperties;
 
-  public ProcessDefinitionClient(
-      CamundaClient camundaClient, RetriesConfiguration retriesConfiguration) {
+  public ProcessDefinitionClient(CamundaClient camundaClient, RetriesProperties retriesProperties) {
     this.camundaClient = camundaClient;
-    this.retriesConfiguration = retriesConfiguration;
+    this.retriesProperties = retriesProperties;
   }
 
   public String getProcessDefinitionXml(Long processDefinitionKey) {
     Exception lastException = null;
 
-    int maxAttempts = 1 + retriesConfiguration.maxRetries();
+    int maxAttempts = 1 + retriesProperties.maxRetries();
     for (int attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         if (attempt > 1) {
@@ -61,7 +60,7 @@ public class ProcessDefinitionClient {
         "Retrying to fetch process definition XML for process definition key {}. Attempt {}/{}. Waiting for {}.",
         processDefinitionKey,
         attempt,
-        1 + retriesConfiguration.maxRetries(),
+        1 + retriesProperties.maxRetries(),
         retryDelay);
 
     try {
@@ -76,7 +75,7 @@ public class ProcessDefinitionClient {
   }
 
   private Duration exponentialBackoffRetryDelay(int attempt) {
-    return retriesConfiguration
+    return retriesProperties
         .initialRetryDelay()
         .multipliedBy(Math.round(Math.pow(2, attempt - 2))); // 2^0 (x1), 2^1 (x2), 2^2 (x4), ...
   }
