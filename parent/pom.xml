@@ -168,7 +168,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.5.0</version.auth0.jwt>
     <version.auth0.jwks>0.23.0</version.auth0.jwks>
     
-    <version.langchain4j>1.9.1</version.langchain4j>
+    <version.langchain4j>1.10.0</version.langchain4j>
 
     <version.scala>2.13.18</version.scala>
 
