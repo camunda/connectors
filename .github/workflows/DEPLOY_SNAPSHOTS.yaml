@@ -111,7 +111,7 @@ jobs:
           echo "::notice::Docker version will be: ${MINOR_VERSION}-SNAPSHOT"
 
       - name: Build Artifacts
-        run: mvn -B compile generate-sources source:jar javadoc:jar deploy -DskipTests
+        run: mvn -q -B compile generate-sources source:jar javadoc:jar deploy -DskipTests
         env:
           MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
@@ -173,7 +173,15 @@ jobs:
           else
             echo "::notice::Pushed Docker image for connector-runtime: ${{ steps.maven_version.outputs.docker_version }} (versioned only, skipped unversioned SNAPSHOT)"
           fi
-
+      - name: Analyze disk usage after building connector-runtime image
+        run: docker system df || true
+      - name: Check overall filesystem disk usage
+        run: |
+          echo "=== Overall ==="
+          df -h
+          echo ""
+          echo "=== Workspace top consumers ==="
+          du -h -d 2 $GITHUB_WORKSPACE | sort -hr | head -20        
       - name: Build and Push Docker Image - bundle-default
         uses: docker/build-push-action@v6
         with:
