@@ -32,7 +32,7 @@ public class Langchain4JMcpClientExecutor {
           new ListToolsRequest(toolSpecificationConverter)
               .execute(client, filterOptions.toolFilters());
       case McpClientCallToolOperation callTool ->
-          new ToolExecutionRequest(objectMapper)
+          new ToolCallRequest(objectMapper)
               .execute(client, filterOptions.toolFilters(), callTool.params());
       case McpClientOperation.McpClientListResourcesOperation ignored ->
           new ListResourcesRequest().execute(client);
