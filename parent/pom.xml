@@ -93,13 +93,13 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>7.4.2</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.23</version.logback>
 
-    <version.aws-java-sdk>1.12.796</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.40.16</version.software-aws-java-sdk>
-    <version.aws-java-sdk-sts>1.12.796</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.40.16</version.software-aws-java-sdk-sts>
+    <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
+    <version.software-aws-java-sdk>2.41.2</version.software-aws-java-sdk>
+    <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.41.2</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.40.16</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.41.2</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.4</version.localstack>
 
@@ -159,7 +159,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-exec-plugin>3.6.3</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.1.4</plugin.version.maven-install-plugin>
     <plugin.version.license>5.0.0</plugin.version.license>
-    <plugin.version.license.codehaus>2.7.0</plugin.version.license.codehaus>
+    <plugin.version.license.codehaus>2.7.1</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.4.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.1</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.4</plugin.version.maven-surefire-plugin>
