@@ -13,7 +13,6 @@ import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
-import io.camunda.connector.agenticai.mcp.client.filters.McpToolNameFilter;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientOptionsConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest;
@@ -49,7 +48,6 @@ public class Langchain4JMcpRemoteClientHandler implements McpRemoteClientHandler
             .map(McpRemoteClientOptionsConfiguration::clientCache)
             .orElse(false);
     final var operation = operationConverter.convertOperation(request.data().connectorMode());
-    final var toolNameFilter = McpToolNameFilter.from(request.data().tools());
 
     LOGGER.debug("MCP({}): Handling operation '{}' on remote client", clientId, operation.method());
 
