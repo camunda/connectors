@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.reset;
@@ -36,13 +35,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class ToolExecutionRequestTest {
+class ToolCallRequestTest {
 
   private static final AllowDenyList EMPTY_FILTER = AllowDenyListBuilder.builder().build();
 
   @Mock private McpClient mcpClient;
 
-  private final ToolExecutionRequest testee = new ToolExecutionRequest(new ObjectMapper());
+  private final ToolCallRequest testee = new ToolCallRequest(new ObjectMapper());
 
   @Test
   void executesTool_whenToolAllowedByFilter() {
