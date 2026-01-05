@@ -69,50 +69,6 @@ class ListResourcesRequestTest {
                     .containsExactly(resourceDescription1, resourceDescription2));
   }
 
-  //
-  //    @Test
-  //    void filtersTools_whenFilterConfigured() {
-  //      final var toolSpec1 = createToolSpecification("allowed-tool", "Allowed tool");
-  //      final var toolSpec2 = createToolSpecification("blocked-tool", "Blocked tool");
-  //      final var toolDefinition1 = createToolDefinition("allowed-tool", "Allowed tool");
-  //      final var filter =
-  //          McpToolNameFilter.from(
-  //              new McpClientToolsConfiguration(List.of("allowed-tool"), List.of()));
-  //
-  //      when(mcpClient.listTools()).thenReturn(List.of(toolSpec1, toolSpec2));
-  //
-  // when(toolSpecificationConverter.asToolDefinition(toolSpec1)).thenReturn(toolDefinition1);
-  //
-  //      final var result = executor.execute(mcpClient, new McpClientListToolsOperation(),
-  // filter);
-  //
-  //      assertThat(result)
-  //          .isInstanceOfSatisfying(
-  //              McpClientListToolsResult.class,
-  //              res -> {
-  //                assertThat(res.toolDefinitions()).containsExactly(toolDefinition1);
-  //              });
-  //    }
-  //
-  //    @Test
-  //    void returnsEmptyList_whenAllToolsFiltered() {
-  //      final var toolSpec1 = createToolSpecification("blocked-tool1", "Blocked tool 1");
-  //      final var toolSpec2 = createToolSpecification("blocked-tool2", "Blocked tool 2");
-  //      final var filter =
-  //          McpToolNameFilter.from(
-  //              new McpClientToolsConfiguration(List.of("allowed-tool"), List.of()));
-  //
-  //      when(mcpClient.listTools()).thenReturn(List.of(toolSpec1, toolSpec2));
-  //
-  //      final var result = executor.execute(mcpClient, new McpClientListToolsOperation(),
-  // filter);
-  //
-  //      assertThat(result)
-  //          .isInstanceOfSatisfying(
-  //              McpClientListToolsResult.class, res ->
-  // assertThat(res.toolDefinitions()).isEmpty());
-  //    }
-
   private McpResource createMcpResource(
       String uri, String name, String description, String mimeType) {
     return new McpResource(uri, name, description, mimeType);
