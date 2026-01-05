@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.service.tool.ToolExecutionResult;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
@@ -22,8 +23,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-record ToolExecutionRequest(ObjectMapper objectMapper) {
-  private static final Logger LOGGER = LoggerFactory.getLogger(ToolExecutionRequest.class);
+record ToolCallRequest(ObjectMapper objectMapper) {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ToolCallRequest.class);
 
   public McpClientCallToolResult execute(
       McpClient client,
@@ -78,7 +79,7 @@ record ToolExecutionRequest(ObjectMapper objectMapper) {
     }
   }
 
-  private dev.langchain4j.agent.tool.ToolExecutionRequest createToolExecutionRequest(
+  private ToolExecutionRequest createToolExecutionRequest(
       McpClientOperation.McpClientCallToolOperation.McpClientCallToolOperationParams params) {
     if (params == null || params.name() == null) {
       throw new IllegalArgumentException("Tool name must not be null");
@@ -87,7 +88,7 @@ record ToolExecutionRequest(ObjectMapper objectMapper) {
     final var arguments = Optional.ofNullable(params.arguments()).orElseGet(Collections::emptyMap);
 
     try {
-      return dev.langchain4j.agent.tool.ToolExecutionRequest.builder()
+      return ToolExecutionRequest.builder()
           .name(params.name())
           .arguments(objectMapper.writeValueAsString(arguments))
           .build();
