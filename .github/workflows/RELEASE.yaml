@@ -77,6 +77,8 @@ jobs:
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
+      - name: Install asdf & tools
+        uses: asdf-vm/actions/install@v4
       - name: Identify previous release version
         id: prev_version
         uses: camunda/infra-global-github-actions/previous-version@main
