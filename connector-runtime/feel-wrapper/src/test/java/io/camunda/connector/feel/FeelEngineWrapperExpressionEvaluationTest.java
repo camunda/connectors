@@ -308,7 +308,6 @@ class FeelEngineWrapperExpressionEvaluationTest {
     assertThat(result)
         .containsEntry("retries", 2)
         .containsEntry("retryBackoff", Duration.ofMinutes(1))
-        .containsEntry("variables", Map.of("key", "value"))
         .containsEntry("errorType", "jobError")
         .containsEntry("errorMessage", "some Message");
   }
@@ -323,7 +322,6 @@ class FeelEngineWrapperExpressionEvaluationTest {
     assertThat(result)
         .containsEntry("retries", 2)
         .containsEntry("retryBackoff", Duration.ZERO)
-        .containsEntry("variables", Map.of("key", "value"))
         .containsEntry("errorType", "jobError")
         .containsEntry("errorMessage", "some Message");
   }
@@ -338,7 +336,6 @@ class FeelEngineWrapperExpressionEvaluationTest {
     assertThat(result)
         .containsEntry("retries", 0)
         .containsEntry("retryBackoff", Duration.ZERO)
-        .containsEntry("variables", Collections.emptyMap())
         .containsEntry("errorType", "jobError")
         .containsEntry("errorMessage", "some Message");
   }
@@ -353,7 +350,6 @@ class FeelEngineWrapperExpressionEvaluationTest {
     assertThat(result)
         .containsEntry("retries", 0)
         .containsEntry("retryBackoff", Duration.ZERO)
-        .containsEntry("variables", Collections.emptyMap())
         .containsEntry("errorType", "jobError")
         .containsEntry("errorMessage", "some Message");
   }
