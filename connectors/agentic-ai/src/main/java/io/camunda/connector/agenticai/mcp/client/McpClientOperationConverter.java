@@ -37,6 +37,7 @@ public class McpClientOperationConverter {
       case McpStandaloneOperationConfiguration.McpArgumentsOperation withArgumentsOperation ->
           McpClientOperation.withParams(
               withArgumentsOperation.method(), withArgumentsOperation.parameters());
+      default -> throw new IllegalStateException("Unexpected operation type: " + operation);
     };
   }
 }
