@@ -1,6 +1,6 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "IDP Unstructured Extraction outbound Connector",
+  "name" : "IDP Unstructured Extraction Outbound Connector",
   "id" : "io.camunda.connector.IdpUnstructuredExtractionOutBoundTemplate.v1",
   "description" : "Execute IDP Unstructured Extraction requests",
   "metadata" : {
@@ -53,40 +53,43 @@
     "label" : "Taxonomy Items",
     "description" : "Array of taxonomy items",
     "optional" : false,
-    "value" : "= input.taxonomyItems",
+    "value" : "=[\n  {name: \"\", prompt: \"\"},\n  {name: \"\", prompt: \"\"}\n]",
+    "feel" : "optional",
     "group" : "input",
     "binding" : {
       "name" : "input.taxonomyItems",
       "type" : "zeebe:input"
     },
-    "type" : "Hidden"
+    "type" : "Text"
   }, {
     "id" : "input.converseData",
-    "label" : "AWS Bedrock Converse Parameters",
-    "description" : "Specify the parameters for AWS Bedrock",
+    "label" : "Ai converse parameters",
+    "description" : "Specify the parameters for the ai conversation",
     "optional" : false,
-    "value" : "= input.converseData",
+    "value" : "={\n  modelId: \"\",\n  temperature: 0.5,\n  topP: 0.9\n}",
+    "feel" : "optional",
     "group" : "input",
     "binding" : {
       "name" : "input.converseData",
       "type" : "zeebe:input"
     },
-    "type" : "Hidden"
+    "type" : "Text"
   }, {
     "id" : "input.document",
     "label" : "Document",
     "description" : "Specify the document",
     "optional" : false,
-    "value" : "= input.document",
+    "value" : "=document",
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "input",
     "binding" : {
       "name" : "input.document",
       "type" : "zeebe:input"
     },
-    "type" : "Hidden"
+    "type" : "Text"
   }, {
     "id" : "extractor.type",
     "label" : "Text extraction providers",

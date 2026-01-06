@@ -16,11 +16,11 @@ public class DocumentRequestData {
       id = "document",
       label = "Document",
       group = "input",
-      type = TemplateProperty.PropertyType.Hidden,
+      type = TemplateProperty.PropertyType.Text,
       description = "Specify the document",
-      defaultValue = "= input.document",
+      defaultValue = "=document",
       binding = @TemplateProperty.PropertyBinding(name = "document"),
-      feel = Property.FeelMode.disabled,
+      feel = Property.FeelMode.optional,
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
   @NotNull
   Document document;

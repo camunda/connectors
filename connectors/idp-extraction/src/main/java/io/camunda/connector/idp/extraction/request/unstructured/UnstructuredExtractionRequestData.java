@@ -18,22 +18,22 @@ public class UnstructuredExtractionRequestData extends DocumentRequestData {
       id = "taxonomyItems",
       label = "Taxonomy Items",
       group = "input",
-      type = TemplateProperty.PropertyType.Hidden,
+      type = TemplateProperty.PropertyType.Text,
       description = "Array of taxonomy items",
-      defaultValue = "= input.taxonomyItems",
+      defaultValue = "=[\n  {name: \"\", prompt: \"\"},\n  {name: \"\", prompt: \"\"}\n]",
       binding = @TemplateProperty.PropertyBinding(name = "taxonomyItems"),
-      feel = Property.FeelMode.disabled)
+      feel = Property.FeelMode.optional)
   List<TaxonomyItem> taxonomyItems;
 
   @TemplateProperty(
       id = "converseData",
-      label = "AWS Bedrock Converse Parameters",
+      label = "Ai converse parameters",
       group = "input",
-      type = TemplateProperty.PropertyType.Hidden,
-      description = "Specify the parameters for AWS Bedrock",
-      defaultValue = "= input.converseData",
+      type = TemplateProperty.PropertyType.Text,
+      description = "Specify the parameters for the ai conversation",
+      defaultValue = "={\n  modelId: \"\",\n  temperature: 0.5,\n  topP: 0.9\n}",
       binding = @TemplateProperty.PropertyBinding(name = "converseData"),
-      feel = Property.FeelMode.disabled)
+      feel = Property.FeelMode.optional)
   ConverseData converseData;
 
   public List<TaxonomyItem> getTaxonomyItems() {

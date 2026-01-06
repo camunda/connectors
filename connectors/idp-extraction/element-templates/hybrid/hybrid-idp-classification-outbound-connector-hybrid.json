@@ -1,6 +1,6 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid IDP classification outbound Connector",
+  "name" : "Hybrid IDP Classification Outbound Connector",
   "id" : "io.camunda.connector.IdpClassificationOutBoundTemplate.v1-hybrid",
   "description" : "Execute IDP classification requests",
   "metadata" : {
@@ -58,52 +58,65 @@
     "label" : "AWS Bedrock Converse Parameters",
     "description" : "Specify the parameters for AWS Bedrock",
     "optional" : false,
-    "value" : "= input.converseData",
+    "value" : "={\n  modelId: \"\",\n  temperature: 0.5,\n  topP: 0.9\n}",
+    "feel" : "optional",
     "group" : "input",
     "binding" : {
       "name" : "input.converseData",
       "type" : "zeebe:input"
     },
-    "type" : "Hidden"
+    "type" : "Text"
   }, {
     "id" : "input.documentTypes",
     "label" : "Document types",
     "description" : "The possible classification types considered by the model",
     "optional" : false,
-    "value" : "= input.documentTypes",
+    "value" : "=[\n  \"\"\n]",
+    "feel" : "optional",
     "group" : "input",
     "binding" : {
       "name" : "input.documentTypes",
       "type" : "zeebe:input"
     },
-    "type" : "Hidden"
+    "type" : "Text"
   }, {
     "id" : "input.autoClassify",
     "label" : "Auto classify",
     "description" : "The model can classify as a type not in the list if confidence is high.",
     "optional" : false,
-    "value" : "= input.autoClassify",
-    "group" : "input",
-    "binding" : {
-      "name" : "input.autoClassify",
-      "type" : "zeebe:input"
-    },
-    "type" : "Hidden"
-  }, {
-    "id" : "input.document",
-    "label" : "Document",
-    "description" : "Specify the document",
-    "optional" : false,
-    "value" : "= input.document",
+    "value" : "false",
     "constraints" : {
       "notEmpty" : true
     },
     "group" : "input",
     "binding" : {
+      "name" : "input.autoClassify",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "No",
+      "value" : "false"
+    }, {
+      "name" : "Yes",
+      "value" : "true"
+    } ]
+  }, {
+    "id" : "input.document",
+    "label" : "Document",
+    "description" : "Specify the document",
+    "optional" : false,
+    "value" : "=document",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
       "name" : "input.document",
       "type" : "zeebe:input"
     },
-    "type" : "Hidden"
+    "type" : "Text"
   }, {
     "id" : "extractor.type",
     "label" : "Text extraction providers",

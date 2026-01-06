@@ -20,7 +20,7 @@ import io.camunda.connector.idp.extraction.service.ClassificationService;
 @ElementTemplate(
     engineVersion = "^8.9",
     id = "io.camunda.connector.IdpClassificationOutBoundTemplate.v1",
-    name = "IDP classification outbound Connector",
+    name = "IDP Classification Outbound Connector",
     version = 2,
     description = "Execute IDP classification requests",
     icon = "classification-icon.svg",

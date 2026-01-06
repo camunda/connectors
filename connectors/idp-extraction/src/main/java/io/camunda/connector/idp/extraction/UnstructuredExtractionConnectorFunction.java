@@ -25,7 +25,7 @@ import io.camunda.connector.idp.extraction.service.UnstructuredService;
 @ElementTemplate(
     engineVersion = "^8.9",
     id = "io.camunda.connector.IdpUnstructuredExtractionOutBoundTemplate.v1",
-    name = "IDP Unstructured Extraction outbound Connector",
+    name = "IDP Unstructured Extraction Outbound Connector",
     version = 2,
     description = "Execute IDP Unstructured Extraction requests",
     icon = "unstructured-icon.svg",

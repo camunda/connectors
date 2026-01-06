@@ -79,7 +79,7 @@ public class UnstructuredService {
 
     return new ExtractionResult(
         buildResponseJsonIfPossible(aiResponse.aiMessage().text(), taxonomyItems, aiClient),
-        aiResponse.metadata());
+        aiResponse.tokenUsage());
   }
 
   private Map<String, Object> buildResponseJsonIfPossible(

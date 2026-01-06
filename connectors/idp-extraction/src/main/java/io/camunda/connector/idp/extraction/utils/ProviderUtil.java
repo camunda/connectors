@@ -123,6 +123,10 @@ public class ProviderUtil {
   }
 
   public static TextExtractor getTextExtractor(@Valid ExtractionProvider extractor) {
+    if (extractor == null) {
+      throw new IllegalArgumentException(
+          "ExtractionProvider argument 'extractor' must not be null");
+    }
     return switch (extractor) {
       case DocumentIntelligenceExtractorRequest docIntelligenceRequest ->
           new AzureDocumentIntelligenceExtractionClient(

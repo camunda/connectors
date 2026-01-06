@@ -1,6 +1,6 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid IDP Structured Extraction outbound Connector",
+  "name" : "Hybrid IDP Structured Extraction Outbound Connector",
   "id" : "io.camunda.connector.IdpStructuredExtractionOutBoundTemplate.v1-hybrid",
   "description" : "Execute IDP Structured Extraction requests",
   "metadata" : {
@@ -55,52 +55,54 @@
     "label" : "Included Fields",
     "description" : "List of fields that should be returned from the extraction",
     "optional" : false,
-    "value" : "= input.includedFields",
+    "value" : "=[\n  \n]",
+    "feel" : "optional",
     "group" : "input",
     "binding" : {
       "name" : "input.includedFields",
       "type" : "zeebe:input"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "input.renameMappings",
     "label" : "Rename mappings",
     "description" : "List of keys that should be renamed and not be given the default name",
     "optional" : false,
-    "value" : "= input.renameMappings",
+    "value" : "={\n  \n}",
+    "feel" : "optional",
     "group" : "input",
     "binding" : {
       "name" : "input.renameMappings",
       "type" : "zeebe:input"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "input.delimiter",
     "label" : "delimiter",
     "description" : "The delimiter used for the variable name of the extracted field",
     "optional" : false,
-    "value" : "= input.delimiter",
     "group" : "input",
     "binding" : {
       "name" : "input.delimiter",
       "type" : "zeebe:input"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "input.document",
     "label" : "Document",
     "description" : "Specify the document",
     "optional" : false,
-    "value" : "= input.document",
+    "value" : "=document",
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "input",
     "binding" : {
       "name" : "input.document",
       "type" : "zeebe:input"
     },
-    "type" : "Hidden"
+    "type" : "Text"
   }, {
     "id" : "extractor.type",
     "label" : "Text extraction providers",

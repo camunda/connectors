@@ -17,32 +17,37 @@ public class ClassificationRequestData extends DocumentRequestData {
       id = "converseData",
       label = "AWS Bedrock Converse Parameters",
       group = "input",
-      type = TemplateProperty.PropertyType.Hidden,
+      type = TemplateProperty.PropertyType.Text,
       description = "Specify the parameters for AWS Bedrock",
-      defaultValue = "= input.converseData",
+      defaultValue = "={\n  modelId: \"\",\n  temperature: 0.5,\n  topP: 0.9\n}",
       binding = @TemplateProperty.PropertyBinding(name = "converseData"),
-      feel = Property.FeelMode.disabled)
+      feel = Property.FeelMode.optional)
   ConverseData converseData;
 
   @TemplateProperty(
       id = "documentTypes",
       label = "Document types",
       group = "input",
-      type = TemplateProperty.PropertyType.Hidden,
+      type = TemplateProperty.PropertyType.Text,
       description = "The possible classification types considered by the model",
-      defaultValue = "= input.documentTypes",
+      defaultValue = "=[\n  \"\"\n]",
       binding = @TemplateProperty.PropertyBinding(name = "documentTypes"),
-      feel = Property.FeelMode.disabled)
+      feel = Property.FeelMode.optional)
   List<String> documentTypes;
 
   @TemplateProperty(
       id = "autoClassify",
       label = "Auto classify",
       group = "input",
-      type = TemplateProperty.PropertyType.Hidden,
+      type = TemplateProperty.PropertyType.Dropdown,
       description = "The model can classify as a type not in the list if confidence is high.",
-      defaultValue = "= input.autoClassify",
+      defaultValue = "false",
+      constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
       binding = @TemplateProperty.PropertyBinding(name = "autoClassify"),
+      choices = {
+        @TemplateProperty.DropdownPropertyChoice(label = "No", value = "false"),
+        @TemplateProperty.DropdownPropertyChoice(label = "Yes", value = "true")
+      },
       feel = Property.FeelMode.disabled)
   boolean autoClassify;
 

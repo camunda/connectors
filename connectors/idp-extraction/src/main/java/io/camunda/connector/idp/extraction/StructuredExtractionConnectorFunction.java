@@ -23,7 +23,7 @@ import io.camunda.connector.idp.extraction.service.StructuredService;
 @ElementTemplate(
     engineVersion = "^8.9",
     id = "io.camunda.connector.IdpStructuredExtractionOutBoundTemplate.v1",
-    name = "IDP Structured Extraction outbound Connector",
+    name = "IDP Structured Extraction Outbound Connector",
     version = 2,
     description = "Execute IDP Structured Extraction requests",
     icon = "structured-icon.svg",
