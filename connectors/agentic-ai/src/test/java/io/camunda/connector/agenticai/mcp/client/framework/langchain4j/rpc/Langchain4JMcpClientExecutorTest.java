@@ -14,9 +14,7 @@ import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientListResourcesOperation;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientListToolsOperation;
+import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourcesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
@@ -47,7 +45,7 @@ class Langchain4JMcpClientExecutorTest {
 
   @Test
   void returnsMcpListToolsResult_whenListToolsExecuted() {
-    final var operation = new McpClientListToolsOperation();
+    final var operation = McpClientOperation.withoutParams("tools/list");
     final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
 
     assertThat(result).isInstanceOf(McpClientListToolsResult.class);
@@ -55,7 +53,9 @@ class Langchain4JMcpClientExecutorTest {
 
   @Test
   void returnsMcpCallToolResult_whenCallToolsExecuted() {
-    final var operation = McpClientCallToolOperation.create("test-tool", Map.of("arg1", "value1"));
+    final var operation =
+        McpClientOperation.withParams(
+            "tools/call", Map.of("name", "test-tool", "arguments", Map.of("arg1", "value1")));
     final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
 
     assertThat(result).isInstanceOf(McpClientCallToolResult.class);
@@ -63,7 +63,7 @@ class Langchain4JMcpClientExecutorTest {
 
   @Test
   void returnsMcpListResourcesResult_whenListResourcesExecuted() {
-    final var operation = new McpClientListResourcesOperation();
+    final var operation = McpClientOperation.withoutParams("resources/list");
     final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
 
     assertThat(result).isInstanceOf(McpClientListResourcesResult.class);

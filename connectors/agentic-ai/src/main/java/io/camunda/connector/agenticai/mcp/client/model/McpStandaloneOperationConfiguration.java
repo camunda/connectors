@@ -43,16 +43,38 @@ import java.util.Map;
     description = "The type of operation to perform.",
     defaultValue = LIST_TOOLS_ID)
 public sealed interface McpStandaloneOperationConfiguration
-    permits McpStandaloneOperationConfiguration.CallToolOperationConfiguration,
-        McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration,
+    permits McpStandaloneOperationConfiguration.ListToolsOperationConfiguration,
+        McpStandaloneOperationConfiguration.CallToolOperationConfiguration,
         McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration,
-        McpStandaloneOperationConfiguration.ListToolsOperationConfiguration {
+        McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration {
+
+  sealed interface McpArgumentsOperation
+      permits McpStandaloneOperationConfiguration.CallToolOperationConfiguration {
+
+    String method();
+
+    Map<String, Object> parameters();
+  }
+
+  sealed interface McpNoArgumentsOperation
+      permits McpStandaloneOperationConfiguration.ListToolsOperationConfiguration,
+          McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration,
+          McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration {
+
+    String method();
+  }
 
   @TemplateSubType(id = LIST_TOOLS_ID, label = "List Tools")
-  record ListToolsOperationConfiguration() implements McpStandaloneOperationConfiguration {
+  record ListToolsOperationConfiguration()
+      implements McpStandaloneOperationConfiguration, McpNoArgumentsOperation {
 
     @TemplateProperty(ignore = true)
     public static final String LIST_TOOLS_ID = "tools/list";
+
+    @Override
+    public String method() {
+      return LIST_TOOLS_ID;
+    }
   }
 
   @TemplateSubType(id = CALL_TOOL_ID, label = "Call Tool")
@@ -75,24 +97,48 @@ public sealed interface McpStandaloneOperationConfiguration
               feel = Property.FeelMode.required,
               optional = true)
           Map<String, Object> toolArguments)
-      implements McpStandaloneOperationConfiguration {
+      implements McpArgumentsOperation, McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String CALL_TOOL_ID = "tools/call";
+
+    @Override
+    public String method() {
+      return CALL_TOOL_ID;
+    }
+
+    @Override
+    public Map<String, Object> parameters() {
+      if (toolArguments == null || toolArguments.isEmpty()) {
+        return Map.of("name", toolName);
+      }
+      return Map.of("name", toolName, "arguments", toolArguments);
+    }
   }
 
   @TemplateSubType(id = LIST_RESOURCES_ID, label = "List Resources")
-  record ListResourcesOperationConfiguration() implements McpStandaloneOperationConfiguration {
+  record ListResourcesOperationConfiguration()
+      implements McpNoArgumentsOperation, McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String LIST_RESOURCES_ID = "resources/list";
+
+    @Override
+    public String method() {
+      return LIST_RESOURCES_ID;
+    }
   }
 
-  @TemplateSubType(id = LIST_RESOURCES_ID, label = "List Resource Templates")
+  @TemplateSubType(id = LIST_RESOURCE_TEMPLATES_ID, label = "List Resource Templates")
   record ListResourceTemplatesOperationConfiguration()
-      implements McpStandaloneOperationConfiguration {
+      implements McpNoArgumentsOperation, McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String LIST_RESOURCE_TEMPLATES_ID = "resources/templates/list";
+
+    @Override
+    public String method() {
+      return LIST_RESOURCE_TEMPLATES_ID;
+    }
   }
 }
