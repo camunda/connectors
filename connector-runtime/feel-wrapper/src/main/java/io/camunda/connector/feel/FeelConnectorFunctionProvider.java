@@ -19,7 +19,6 @@ package io.camunda.connector.feel;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import org.camunda.feel.context.Context;
@@ -138,16 +137,20 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
 
   private static ValContext createJobErrorContext(
       ValString message, ValContext variables, ValNumber retries, ValDayTimeDuration retryBackoff) {
-    java.util.Map<String, Object> javaMap = new HashMap<>();
-    javaMap.put(ERROR_TYPE_PROPERTY, JOB_ERROR_TYPE_VALUE);
-    javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(0), message.value());
-    javaMap.put(
-        JOB_ERROR_FUNCTION_ARGUMENTS.get(1),
-        JavaConverters.asJava(variables.context().variableProvider().getVariables()));
-    javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(2), retries.value());
-    javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(3), retryBackoff.value());
     return new ValContext(
-        new Context.StaticContext(Map.from(JavaConverters.asScala(javaMap)), Map$.MODULE$.empty()));
+        new Context.StaticContext(
+            new Map.Map5<>(
+                ERROR_TYPE_PROPERTY,
+                JOB_ERROR_TYPE_VALUE,
+                JOB_ERROR_FUNCTION_ARGUMENTS.get(0),
+                message.value(),
+                JOB_ERROR_FUNCTION_ARGUMENTS.get(1),
+                JavaConverters.asJava(variables.context().variableProvider().getVariables()),
+                JOB_ERROR_FUNCTION_ARGUMENTS.get(2),
+                retries.value(),
+                JOB_ERROR_FUNCTION_ARGUMENTS.get(3),
+                retryBackoff.value()),
+            Map$.MODULE$.empty()));
   }
 
   private static String toString(List<Val> arguments, int index) {
