@@ -16,7 +16,7 @@ defaults:
 jobs:
   deploy-snapshots:
     name: Deploy snapshot artifacts
-    runs-on: ubuntu-latest
+    runs-on: gcp-core-2-default
     concurrency:
       group: deploy-snapshots-${{ github.ref }}
       cancel-in-progress: true
@@ -25,7 +25,8 @@ jobs:
       branch: ${{ steps.version.outputs.branch }}
     steps:
       - uses: actions/checkout@v5
-
+      - name: Install asdf & tools
+        uses: asdf-vm/actions/install@v4
       - name: Determine branch and version
         id: version
         run: |
