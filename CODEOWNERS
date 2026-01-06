@@ -1,7 +1,14 @@
 # These owners will be the default owners for everything in the repo.
-* @camunda/connectors 
+* @camunda/connectors
 
 # These files are excluded so that Renovate can automatically merge dependency upgrades
-renovate.json5
-.ci/preview-environments/charts/c8sm/Chart.yaml
+renovate.json
+**/*.yaml
+**/*.yml
+.github/**/*.yaml
+.github/**/*.yml
+.ci/preview-environments/charts/c8sm/*.yaml
+**/Dockerfile
+**/docker-images.properties
+.tool-versions
 **/pom.xml
