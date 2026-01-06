@@ -82,6 +82,9 @@ public class McpClientOperationConverter {
               new McpClientCallToolOperationParams(callTool.toolName(), callTool.toolArguments()));
       case McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration ignored ->
           new McpClientListResourcesOperation();
+      case McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration
+              ignored ->
+          null;
     };
   }
 }

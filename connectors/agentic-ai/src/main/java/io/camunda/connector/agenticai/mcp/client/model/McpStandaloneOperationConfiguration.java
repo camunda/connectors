@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client.model;
 
 import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.CallToolOperationConfiguration.CALL_TOOL_ID;
+import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration.LIST_RESOURCE_TEMPLATES_ID;
 import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration.LIST_RESOURCES_ID;
 import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListToolsOperationConfiguration.LIST_TOOLS_ID;
 
@@ -30,7 +31,10 @@ import java.util.Map;
       name = CALL_TOOL_ID),
   @JsonSubTypes.Type(
       value = McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration.class,
-      name = LIST_RESOURCES_ID)
+      name = LIST_RESOURCES_ID),
+  @JsonSubTypes.Type(
+      value = McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration.class,
+      name = LIST_RESOURCE_TEMPLATES_ID)
 })
 @TemplateDiscriminatorProperty(
     group = "operation",
@@ -40,8 +44,9 @@ import java.util.Map;
     defaultValue = LIST_TOOLS_ID)
 public sealed interface McpStandaloneOperationConfiguration
     permits McpStandaloneOperationConfiguration.CallToolOperationConfiguration,
-        McpStandaloneOperationConfiguration.ListToolsOperationConfiguration,
-        McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration {
+        McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration,
+        McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration,
+        McpStandaloneOperationConfiguration.ListToolsOperationConfiguration {
 
   @TemplateSubType(id = LIST_TOOLS_ID, label = "List Tools")
   record ListToolsOperationConfiguration() implements McpStandaloneOperationConfiguration {
@@ -81,5 +86,13 @@ public sealed interface McpStandaloneOperationConfiguration
 
     @TemplateProperty(ignore = true)
     public static final String LIST_RESOURCES_ID = "resources/list";
+  }
+
+  @TemplateSubType(id = LIST_RESOURCES_ID, label = "List Resource Templates")
+  record ListResourceTemplatesOperationConfiguration()
+      implements McpStandaloneOperationConfiguration {
+
+    @TemplateProperty(ignore = true)
+    public static final String LIST_RESOURCE_TEMPLATES_ID = "resources/templates/list";
   }
 }
