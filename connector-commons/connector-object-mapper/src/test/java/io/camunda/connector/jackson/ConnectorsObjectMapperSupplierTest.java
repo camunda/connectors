@@ -18,6 +18,7 @@ package io.camunda.connector.jackson;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.annotation.JsonEnumDefaultValue;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
@@ -64,4 +65,21 @@ class ConnectorsObjectMapperSupplierTest {
   }
 
   private record TestRecordWithString(String value) {}
+
+  @Test
+  void unknownEnumValueShouldBeDeserializedUsingDefaultValue() throws JsonProcessingException {
+    final var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+    final var json = "{\"status\":\"PAUSED\"}";
+    var actual = objectMapper.readValue(json, TestRecordWithEnum.class);
+    assertThat(actual.status()).isEqualTo(TestStatus.UNKNOWN);
+  }
+
+  private enum TestStatus {
+    ACTIVE,
+    INACTIVE,
+    @JsonEnumDefaultValue
+    UNKNOWN
+  }
+
+  private record TestRecordWithEnum(TestStatus status) {}
 }
