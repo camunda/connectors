@@ -25,7 +25,6 @@ import java.time.LocalDate;
 import java.util.Collections;
 import java.util.Map;
 import org.assertj.core.api.Assertions;
-import org.camunda.feel.syntaxtree.ValString;
 import org.json.JSONException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -310,8 +309,8 @@ class FeelEngineWrapperExpressionEvaluationTest {
         .containsEntry("retries", 2)
         .containsEntry("retryBackoff", Duration.ofMinutes(1))
         .containsEntry("variables", Map.of("key", "value"))
-        .containsEntry("errorType", new ValString("jobError"))
-        .containsEntry("errorMessage", new ValString("some Message"));
+        .containsEntry("errorType", "jobError")
+        .containsEntry("errorMessage", "some Message");
   }
 
   @Test
@@ -325,8 +324,8 @@ class FeelEngineWrapperExpressionEvaluationTest {
         .containsEntry("retries", 2)
         .containsEntry("retryBackoff", Duration.ZERO)
         .containsEntry("variables", Map.of("key", "value"))
-        .containsEntry("errorType", new ValString("jobError"))
-        .containsEntry("errorMessage", new ValString("some Message"));
+        .containsEntry("errorType", "jobError")
+        .containsEntry("errorMessage", "some Message");
   }
 
   @Test
@@ -340,8 +339,8 @@ class FeelEngineWrapperExpressionEvaluationTest {
         .containsEntry("retries", 0)
         .containsEntry("retryBackoff", Duration.ZERO)
         .containsEntry("variables", Collections.emptyMap())
-        .containsEntry("errorType", new ValString("jobError"))
-        .containsEntry("errorMessage", new ValString("some Message"));
+        .containsEntry("errorType", "jobError")
+        .containsEntry("errorMessage", "some Message");
   }
 
   @Test
@@ -355,8 +354,8 @@ class FeelEngineWrapperExpressionEvaluationTest {
         .containsEntry("retries", 0)
         .containsEntry("retryBackoff", Duration.ZERO)
         .containsEntry("variables", Collections.emptyMap())
-        .containsEntry("errorType", new ValString("jobError"))
-        .containsEntry("errorMessage", new ValString("some Message"));
+        .containsEntry("errorType", "jobError")
+        .containsEntry("errorMessage", "some Message");
   }
 
   @Test
