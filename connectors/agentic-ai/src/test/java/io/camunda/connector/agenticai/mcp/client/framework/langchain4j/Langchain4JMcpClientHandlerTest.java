@@ -150,15 +150,15 @@ class Langchain4JMcpClientHandlerTest {
                       assertThat(operation)
                           .isInstanceOfSatisfying(
                               McpClientOperation.McpClientOperationImpl.class,
-                              op -> assertThat(op.parameters())
-                                  .containsEntry("name", "test-tool")
-                                  .hasEntrySatisfying(
-                                      "arguments",
-                                      args -> assertThat(args)
-                                          .asInstanceOf(
-                                              InstanceOfAssertFactories
-                                                  .MAP)
-                                          .containsExactlyEntriesOf(arguments)))),
+                              op ->
+                                  assertThat(op.parameters())
+                                      .containsEntry("name", "test-tool")
+                                      .hasEntrySatisfying(
+                                          "arguments",
+                                          args ->
+                                              assertThat(args)
+                                                  .asInstanceOf(InstanceOfAssertFactories.MAP)
+                                                  .containsExactlyEntriesOf(arguments)))),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -212,13 +212,15 @@ class Langchain4JMcpClientHandlerTest {
                       assertThat(operation)
                           .isInstanceOfSatisfying(
                               McpClientOperation.McpClientOperationImpl.class,
-                              op -> assertThat(op.parameters())
-                                  .containsEntry("name", "test-tool")
-                                  .hasEntrySatisfying(
-                                      "arguments",
-                                      args -> assertThat(args)
-                                          .asInstanceOf(InstanceOfAssertFactories.MAP)
-                                          .containsExactlyEntriesOf(arguments)))),
+                              op ->
+                                  assertThat(op.parameters())
+                                      .containsEntry("name", "test-tool")
+                                      .hasEntrySatisfying(
+                                          "arguments",
+                                          args ->
+                                              assertThat(args)
+                                                  .asInstanceOf(InstanceOfAssertFactories.MAP)
+                                                  .containsExactlyEntriesOf(arguments)))),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 

@@ -206,15 +206,15 @@ class Langchain4JMcpRemoteClientHandlerTest {
                       assertThat(operation)
                           .isInstanceOfSatisfying(
                               McpClientOperation.McpClientOperationImpl.class,
-                              op -> assertThat(op.parameters())
-                                  .containsEntry("name", "test-tool")
-                                  .hasEntrySatisfying(
-                                      "arguments",
-                                      args -> assertThat(args)
-                                          .asInstanceOf(
-                                              InstanceOfAssertFactories
-                                                  .MAP)
-                                          .containsExactlyEntriesOf(arguments)))),
+                              op ->
+                                  assertThat(op.parameters())
+                                      .containsEntry("name", "test-tool")
+                                      .hasEntrySatisfying(
+                                          "arguments",
+                                          args ->
+                                              assertThat(args)
+                                                  .asInstanceOf(InstanceOfAssertFactories.MAP)
+                                                  .containsExactlyEntriesOf(arguments)))),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -276,9 +276,10 @@ class Langchain4JMcpRemoteClientHandlerTest {
                                     .containsEntry("name", "test-tool")
                                     .hasEntrySatisfying(
                                         "arguments",
-                                        args -> assertThat(args)
-                                            .asInstanceOf(InstanceOfAssertFactories.MAP)
-                                            .containsExactlyEntriesOf(arguments));
+                                        args ->
+                                            assertThat(args)
+                                                .asInstanceOf(InstanceOfAssertFactories.MAP)
+                                                .containsExactlyEntriesOf(arguments));
                               })),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
@@ -306,9 +307,10 @@ class Langchain4JMcpRemoteClientHandlerTest {
                       assertThat(operation)
                           .isInstanceOfSatisfying(
                               McpClientOperation.McpClientOperationImpl.class,
-                              op -> assertThat(op.parameters())
-                                  .containsEntry("name", "test-tool")
-                                  .doesNotContainKey("arguments"))),
+                              op ->
+                                  assertThat(op.parameters())
+                                      .containsEntry("name", "test-tool")
+                                      .doesNotContainKey("arguments"))),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
