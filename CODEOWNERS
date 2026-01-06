@@ -11,6 +11,9 @@
 renovate.json
 **/*.yaml
 **/*.yml
+.github/**/*.yaml
+.github/**/*.yml
+.ci/preview-environments/charts/c8sm/*.yaml
 **/Dockerfile
 **/docker-images.properties
 .tool-versions
