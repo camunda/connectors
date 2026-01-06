@@ -310,6 +310,8 @@ class FeelEngineWrapperExpressionEvaluationTest {
         .containsEntry("retryBackoff", Duration.ofMinutes(1))
         .containsEntry("errorType", "jobError")
         .containsEntry("errorMessage", "some Message");
+    assertThat((Map<String, Object>) result.get("variables"))
+        .containsEntry("key", "value");
   }
 
   @Test
@@ -324,6 +326,8 @@ class FeelEngineWrapperExpressionEvaluationTest {
         .containsEntry("retryBackoff", Duration.ZERO)
         .containsEntry("errorType", "jobError")
         .containsEntry("errorMessage", "some Message");
+    assertThat((Map<String, Object>) result.get("variables"))
+        .containsEntry("key", "value");
   }
 
   @Test
