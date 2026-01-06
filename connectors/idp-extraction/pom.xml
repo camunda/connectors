@@ -80,28 +80,7 @@
 
     <dependency>
       <groupId>com.google.cloud</groupId>
-      <artifactId>google-cloud-storage</artifactId>
-      <version>${version.google-cloud-storage}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.google.cloud</groupId>
-      <artifactId>google-cloud-vertexai</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-document-ai</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>com.google.cloud</groupId>
-      <artifactId>google-cloud-core</artifactId>
     </dependency>
 
     <dependency>
@@ -157,35 +136,24 @@
     </dependency>
 
     <dependency>
-      <groupId>com.azure</groupId>
-      <artifactId>azure-ai-inference</artifactId>
-      <version>1.0.0-beta.5</version>
-      <exclusions>
-        <exclusion>
-          <groupId>io.vertx</groupId>
-          <artifactId>vertx-core</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-
-    <dependency>
-      <groupId>com.azure</groupId>
-      <artifactId>azure-ai-openai</artifactId>
-      <version>1.0.0-beta.16</version>
-      <exclusions>
-        <exclusion>
-          <groupId>io.vertx</groupId>
-          <artifactId>vertx-core</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-
-    <dependency>
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-core</artifactId>
     </dependency>
-    
-    <dependency>
+
+      <dependency>
+          <groupId>dev.langchain4j</groupId>
+          <artifactId>langchain4j-bedrock</artifactId>
+      </dependency>
+
+
+      <dependency>
+          <groupId>dev.langchain4j</groupId>
+          <artifactId>langchain4j-azure-open-ai</artifactId>
+          <version>1.8.0</version>
+      </dependency>
+
+
+      <dependency>
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-open-ai</artifactId>
     </dependency>
@@ -226,7 +194,37 @@
               <files>
                 <file>
                   <templateId>io.camunda.connectors.idp.extraction.v1</templateId>
-                  <templateFileName>idp-extraction-outbound-connector.json</templateFileName>
+                  <templateFileName>idp-extraction-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.idp.extraction.ClassificationConnectorFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.idp.classification.v1</templateId>
+                  <templateFileName>idp-classification-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.idp.extraction.UnstructuredExtractionConnectorFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.idp.unstructured-extraction.v1</templateId>
+                  <templateFileName>idp-unstructured-extraction-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.idp.extraction.StructuredExtractionConnectorFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.idp.structured-extraction.v1</templateId>
+                  <templateFileName>idp-structured-extraction-connector.json</templateFileName>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>

@@ -13,7 +13,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(id = "gcp", label = "GCP Provider")
-public final class GcpProvider implements ProviderConfig {
+public final class GcpProvider implements ProviderConfig, ExtractorConfig {
 
   @Valid @NotNull private GcpAuthentication authentication;
 

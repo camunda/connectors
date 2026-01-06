@@ -1,0 +1,585 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Hybrid IDP Structured Extraction Outbound Connector",
+  "id" : "io.camunda.connector.IdpStructuredExtractionOutBoundTemplate.v1-hybrid",
+  "description" : "Execute IDP Structured Extraction requests",
+  "metadata" : {
+    "keywords" : [ ]
+  },
+  "documentationRef" : "https://docs.camunda.io/docs/guides/",
+  "version" : 2,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.9"
+  },
+  "groups" : [ {
+    "id" : "taskDefinitionType",
+    "label" : "Task definition type"
+  }, {
+    "id" : "input",
+    "label" : "Input message data"
+  }, {
+    "id" : "extractor",
+    "label" : "Extractor selection"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "id" : "taskDefinitionType",
+    "value" : "io.camunda:idp-structured-connector-template:1",
+    "group" : "taskDefinitionType",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.includedFields",
+    "label" : "Included Fields",
+    "description" : "List of fields that should be returned from the extraction",
+    "optional" : false,
+    "value" : "=[\n  \n]",
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.includedFields",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.renameMappings",
+    "label" : "Rename mappings",
+    "description" : "List of keys that should be renamed and not be given the default name",
+    "optional" : false,
+    "value" : "={\n  \n}",
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.renameMappings",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.delimiter",
+    "label" : "delimiter",
+    "description" : "The delimiter used for the variable name of the extracted field",
+    "optional" : false,
+    "group" : "input",
+    "binding" : {
+      "name" : "input.delimiter",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.document",
+    "label" : "Document",
+    "description" : "Specify the document",
+    "optional" : false,
+    "value" : "=document",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.document",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "extractor.type",
+    "label" : "Text extraction providers",
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Apache PdfBox text extractor",
+      "value" : "pdfBox"
+    }, {
+      "name" : "In-model text extractor (multimodal)",
+      "value" : "multimodal"
+    }, {
+      "name" : "Azure Document Intelligence extractor",
+      "value" : "documentIntelligence"
+    }, {
+      "name" : "GCP DocumentAI extractor",
+      "value" : "documentAi"
+    }, {
+      "name" : "AWS Textract extractor",
+      "value" : "textract"
+    } ]
+  }, {
+    "id" : "extractor.endpoint",
+    "label" : "Azure Document Intelligence Endpoint",
+    "description" : "Specify the endpoint of the Azure Document Intelligence",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.endpoint",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "extractor.type",
+      "equals" : "documentIntelligence",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "extractor.apiKey",
+    "label" : "Azure Document Intelligence API Key",
+    "description" : "Specify the API key of the Azure Document Intelligence",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "extractor.type",
+      "equals" : "documentIntelligence",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "extractor.authType",
+    "label" : "Type",
+    "optional" : false,
+    "value" : "refresh",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.authType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "extractor.type",
+      "equals" : "documentAi",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Bearer token",
+      "value" : "bearer"
+    }, {
+      "name" : "Refresh token",
+      "value" : "refresh"
+    }, {
+      "name" : "Service account",
+      "value" : "service_account"
+    } ]
+  }, {
+    "id" : "extractor.bearerToken",
+    "label" : "Bearer token",
+    "description" : "Enter a valid Google API Bearer token",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.bearerToken",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "extractor.authType",
+        "equals" : "bearer",
+        "type" : "simple"
+      }, {
+        "property" : "extractor.type",
+        "equals" : "documentAi",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "extractor.oauthClientId",
+    "label" : "Client ID",
+    "description" : "Enter Google API Client ID",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.oauthClientId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "extractor.authType",
+        "equals" : "refresh",
+        "type" : "simple"
+      }, {
+        "property" : "extractor.type",
+        "equals" : "documentAi",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "extractor.oauthClientSecret",
+    "label" : "Client secret",
+    "description" : "Enter Google API client Secret",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.oauthClientSecret",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "extractor.authType",
+        "equals" : "refresh",
+        "type" : "simple"
+      }, {
+        "property" : "extractor.type",
+        "equals" : "documentAi",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "extractor.oauthRefreshToken",
+    "label" : "Refresh token",
+    "description" : "Enter a valid Google API refresh token",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.oauthRefreshToken",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "extractor.authType",
+        "equals" : "refresh",
+        "type" : "simple"
+      }, {
+        "property" : "extractor.type",
+        "equals" : "documentAi",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "extractor.serviceAccountJson",
+    "label" : "Service account json",
+    "description" : "Enter a the contents of your service account json file",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.serviceAccountJson",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "extractor.authType",
+        "equals" : "service_account",
+        "type" : "simple"
+      }, {
+        "property" : "extractor.type",
+        "equals" : "documentAi",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "extractor.documentAiRegion",
+    "label" : "Region",
+    "description" : "Select the region for Document AI",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "extractor.type",
+      "equals" : "documentAi",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "EU",
+      "value" : "eu"
+    }, {
+      "name" : "US",
+      "value" : "us"
+    } ]
+  }, {
+    "id" : "extractor.projectId",
+    "label" : "Project ID",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.projectId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "extractor.type",
+      "equals" : "documentAi",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "extractor.processorId",
+    "label" : "Processor ID",
+    "description" : "The id of the processor used to parse the document",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.processorId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "extractor.type",
+      "equals" : "documentAi",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "extractor.awsAuthType",
+    "label" : "Authentication type",
+    "optional" : false,
+    "value" : "credentials",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.awsAuthType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "extractor.type",
+      "equals" : "textract",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Credentials",
+      "value" : "credentials"
+    }, {
+      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
+      "value" : "defaultCredentialsChain"
+    } ]
+  }, {
+    "id" : "extractor.accessKey",
+    "label" : "Access key",
+    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.accessKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "extractor.awsAuthType",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "extractor.type",
+        "equals" : "textract",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "extractor.secretKey",
+    "label" : "Secret key",
+    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.secretKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "extractor.awsAuthType",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "extractor.type",
+        "equals" : "textract",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "extractor.region",
+    "label" : "Region",
+    "description" : "Specify the AWS region",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "extractor.type",
+      "equals" : "textract",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "extractor.bucketName",
+    "label" : "AWS S3 Bucket name",
+    "description" : "Specify the name of the AWS S3 bucket where document will be stored temporarily during Textract analysis",
+    "optional" : false,
+    "value" : "idp-extraction-connector",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "extractor",
+    "binding" : {
+      "name" : "extractor.bucketName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "extractor.type",
+      "equals" : "textract",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "2",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connector.IdpStructuredExtractionOutBoundTemplate.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE5LjE3ODkiIGhlaWdodD0iMTkuMTc4OSIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4wMSIgc3R5bGU9Im1peC1ibGVuZC1tb2RlOm11bHRpcGx5Ii8+CjxwYXRoIGQ9Ik0xNi43ODA2IDcuMTkyMDhIMTEuOTg1OVYyLjM5NzM3SDE2Ljc4MDZWNy4xOTIwOFpNMTMuMTg0NiA1Ljk5MzRIMTUuNTgxOVYzLjU5NjA1SDEzLjE4NDZWNS45OTM0WiIgZmlsbD0iI0ZDNUQwRCIvPgo8cGF0aCBkPSJNMTAuMTg3OSA4Ljk5MDFWNS4zOTQwN0g1LjM5MzE4VjEzLjc4NDhIMTMuNzgzOVY4Ljk5MDFIMTAuMTg3OVpNNi41OTE4NiA2LjU5Mjc0SDguOTg5MjFWOC45OTAxSDYuNTkxODZWNi41OTI3NFpNOC45ODkyMSAxMi41ODYxSDYuNTkxODZWMTAuMTg4OEg4Ljk4OTIxVjEyLjU4NjFaTTEyLjU4NTIgMTIuNTg2MUgxMC4xODc5VjEwLjE4ODhIMTIuNTg1MlYxMi41ODYxWiIgZmlsbD0iI0ZDNUQwRCIvPgo8cGF0aCBkPSJNMTUuNTgxOSAxNi43ODE1SDMuNTk1MTZDMy4yNzczNyAxNi43ODExIDIuOTcyNjkgMTYuNjU0NyAyLjc0Nzk3IDE2LjQzQzIuNTIzMjYgMTYuMjA1MyAyLjM5Njg1IDE1LjkwMDYgMi4zOTY0OCAxNS41ODI4VjMuNTk2MDVDMi4zOTY4NSAzLjI3ODI1IDIuNTIzMjYgMi45NzM1NyAyLjc0Nzk3IDIuNzQ4ODZDMi45NzI2OSAyLjUyNDE0IDMuMjc3MzcgMi4zOTc3MyAzLjU5NTE2IDIuMzk3MzdIOS41ODg1NVYzLjU5NjA1SDMuNTk1MTZWMTUuNTgyOEgxNS41ODE5VjkuNTg5NDRIMTYuNzgwNlYxNS41ODI4QzE2Ljc4MDMgMTUuOTAwNiAxNi42NTM5IDE2LjIwNTMgMTYuNDI5MSAxNi40M0MxNi4yMDQ0IDE2LjY1NDcgMTUuODk5NyAxNi43ODExIDE1LjU4MTkgMTYuNzgxNVoiIGZpbGw9IiMxNjE2MTYiLz4KPC9zdmc+Cg=="
+  }
+}
