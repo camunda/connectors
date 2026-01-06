@@ -23,6 +23,11 @@ on:
         required: false
         type: boolean
         default: false
+      notify-prs:
+        description: 'Notify PRs that they have been released'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
 
@@ -59,7 +64,7 @@ jobs:
   setup:
     needs: create-release
     name: Prepare the repository
-    runs-on: ubuntu-latest
+    runs-on: gcp-core-2-release
     permissions:
       contents: write
       checks: write
@@ -72,6 +77,8 @@ jobs:
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
+      - name: Install asdf & tools
+        uses: asdf-vm/actions/install@v4
       - name: Identify previous release version
         id: prev_version
         uses: camunda/infra-global-github-actions/previous-version@main
@@ -237,7 +244,7 @@ jobs:
       - name: Log Maven release status
         run: |
           echo "Maven release is enabled (skip-maven-release: ${{ inputs.skip-maven-release }})"
-          
+
       - name: Download repository
         uses: actions/download-artifact@v7
         with:
@@ -338,7 +345,7 @@ jobs:
       - name: Log Docker release status
         run: |
           echo "Docker release is enabled (skip-docker-release: ${{ inputs.skip-docker-release }})"
-          
+
       - name: Download repository
         uses: actions/download-artifact@v7
         with:
@@ -567,16 +574,16 @@ jobs:
             secret/data/products/connectors/ci/common FOSSA_API_KEY;
       - name: Get FOSSA context
         id: fossa-context
-        uses: camunda/infra-global-github-actions/fossa/info@39cfd357d270487b9f1ac02bbdbcfc7ae4e19d97
+        uses: camunda/infra-global-github-actions/fossa/info@084e5ba9fa9dc519fea77acdcf87305fa8635b8e
       - name: Wait for FOSSA scan completion
-        uses: camunda/infra-global-github-actions/fossa/wait-for-scan@39cfd357d270487b9f1ac02bbdbcfc7ae4e19d97
+        uses: camunda/infra-global-github-actions/fossa/wait-for-scan@084e5ba9fa9dc519fea77acdcf87305fa8635b8e
         with:
           api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           branch: ${{ steps.fossa-context.outputs.head-ref }}
           project-id: "custom+50756/camunda/connectors"
           revision-id: ${{ steps.fossa-context.outputs.head-revision }}
       - name: Create FOSSA releases and generate reports
-        uses: camunda/infra-global-github-actions/fossa/release@39cfd357d270487b9f1ac02bbdbcfc7ae4e19d97
+        uses: camunda/infra-global-github-actions/fossa/release@084e5ba9fa9dc519fea77acdcf87305fa8635b8e
         with:
           api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           branch: ${{ steps.fossa-context.outputs.head-ref }}
@@ -587,3 +594,26 @@ jobs:
           revision-id: ${{ steps.fossa-context.outputs.head-revision }}
           attribution-format: "TXT"
           sbom-format: "CYCLONEDX_JSON"
+
+  notify-prs-released:
+    name: Notify PRs that they have been released
+    needs:
+      - bundle-and-build-changelog
+    uses: ./.github/workflows/NOTIFY_PRS_RELEASED.yml
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    if: |
+      inputs.notify-prs &&
+      !contains(inputs.version, 'rc') &&
+      needs.setup.result == 'success' &&
+      (needs.maven-release.result == 'success' || needs.maven-release.result == 'skipped') &&
+      (needs.docker-release.result == 'success' || needs.docker-release.result == 'skipped') &&
+      needs.bundle-and-build-changelog.result == 'success' &&
+      (needs.helm-deploy.result == 'success' || needs.helm-deploy.result == 'skipped') &&
+      (needs.fossa_release.result == 'success' || needs.fossa_release.result == 'skipped')
+
+    with:
+      version: ${{ inputs.version }}

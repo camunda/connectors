@@ -1,0 +1,156 @@
+name: Notify PRs of Release
+run-name: Notify PRs included in release ${{ inputs.version }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version to notify PRs about (e.g., 8.8.4)'
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      version:
+        description: 'Release version to notify PRs about (e.g., 8.8.4)'
+        required: true
+        type: string
+
+jobs:
+  notify-prs:
+    name: Notify PRs about release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get release body
+        id: get_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          # Fetch the release body
+          RELEASE_BODY=$(gh release view "$VERSION" --json body --jq '.body')
+          
+          if [ -z "$RELEASE_BODY" ]; then
+            echo "Error: Could not fetch release body for version $VERSION"
+            exit 1
+          fi
+          
+          # Save to file for easier processing
+          echo "$RELEASE_BODY" > release_body.txt
+          
+          echo "Release body saved to release_body.txt"
+
+      - name: Extract PR numbers
+        id: extract_prs
+        run: |
+          # Extract all PR numbers from the release body
+          # Supports two formats:
+          # 1. (#1234) - Standard changelog format
+          # 2. (PR #1234 by @username) - Extended format
+          
+          # Extract format 1: (#1234)
+          FORMAT1=$(grep -oE '\(#[0-9]+\)' release_body.txt | grep -oE '[0-9]+' || true)
+          
+          # Extract format 2: (PR #1234 by @username)
+          FORMAT2=$(grep -oE '\(PR #[0-9]+' release_body.txt | grep -oE '[0-9]+' || true)
+          
+          # Combine both formats, remove duplicates, and sort
+          PR_NUMBERS=$(echo -e "$FORMAT1\n$FORMAT2" | grep -v '^$' | sort -u)
+          
+          if [ -z "$PR_NUMBERS" ]; then
+            echo "No PR numbers found in release notes"
+            echo "pr_count=0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Count PRs
+          PR_COUNT=$(echo "$PR_NUMBERS" | wc -l | xargs)
+          
+          # Save to file for the next step
+          echo "$PR_NUMBERS" > pr_numbers.txt
+          
+          echo "Found $PR_COUNT PRs to notify"
+          echo "pr_count=$PR_COUNT" >> $GITHUB_OUTPUT
+
+      - name: Create release label
+        if: steps.extract_prs.outputs.pr_count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          LABEL_NAME="released/$VERSION"
+          
+          # Check if label exists, create if it doesn't
+          if ! gh label list --json name --jq '.[].name' | grep -q "^${LABEL_NAME}$"; then
+            echo "Creating label: $LABEL_NAME"
+            gh label create "$LABEL_NAME" --description "Released in version $VERSION" --color "0e8a16" || {
+              echo "Warning: Failed to create label (may already exist or insufficient permissions)"
+            }
+          else
+            echo "Label $LABEL_NAME already exists"
+          fi
+
+      - name: Post comments and labels on PRs
+        if: steps.extract_prs.outputs.pr_count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/$VERSION"
+          LABEL_NAME="released/$VERSION"
+          
+          echo "Posting comments and labels on PRs..."
+          
+          while IFS= read -r PR_NUMBER; do
+            if [ -n "$PR_NUMBER" ]; then
+              echo "Processing PR #$PR_NUMBER"
+          
+              # Post comment
+              gh pr comment "$PR_NUMBER" --body "🎉 This pull request has been included in release [\`$VERSION\`]($RELEASE_URL)!
+
+          Thank you for your contribution! 🚀" || {
+                echo "Warning: Failed to post comment on PR #$PR_NUMBER (it may be from a fork or deleted)"
+              }
+          
+              # Add label
+              gh pr edit "$PR_NUMBER" --add-label "$LABEL_NAME" || {
+                echo "Warning: Failed to add label to PR #$PR_NUMBER (it may be from a fork or deleted)"
+              }
+          
+              # Small delay to avoid rate limiting
+              sleep 1
+            fi
+          done < pr_numbers.txt
+          
+          echo "Finished posting comments and labels"
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ -f pr_numbers.txt ]; then
+            PR_COUNT=$(wc -l < pr_numbers.txt | xargs)
+            echo "### Release Notification Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- **Release Version:** ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **PRs Notified:** $PR_COUNT" >> $GITHUB_STEP_SUMMARY
+            echo "- **Release URL:** https://github.com/${{ github.repository }}/releases/tag/${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### PR Numbers:" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat pr_numbers.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### No PRs Found" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "No PR numbers were found in the release notes for version ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
