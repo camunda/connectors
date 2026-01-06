@@ -11,8 +11,6 @@ import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientListToolsOperation;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
 
 public class Langchain4JMcpClientExecutor {
@@ -27,15 +25,15 @@ public class Langchain4JMcpClientExecutor {
 
   public McpClientResult execute(
       McpClient client, McpClientOperation operation, FilterOptions filterOptions) {
-    return switch (operation) {
-      case McpClientListToolsOperation ignored ->
+    return switch (operation.method()) {
+      case LIST_TOOLS ->
           new ListToolsRequest(toolSpecificationConverter)
               .execute(client, filterOptions.toolFilters());
-      case McpClientCallToolOperation callTool ->
+      case CALL_TOOL ->
           new ToolCallRequest(objectMapper)
-              .execute(client, filterOptions.toolFilters(), callTool.params());
-      case McpClientOperation.McpClientListResourcesOperation ignored ->
-          new ListResourcesRequest().execute(client);
+              .execute(client, filterOptions.toolFilters(), operation.parameters());
+      case LIST_RESOURCES -> new ListResourcesRequest().execute(client);
+      case LIST_RESOURCE_TEMPLATES -> throw new UnsupportedOperationException();
     };
   }
 }

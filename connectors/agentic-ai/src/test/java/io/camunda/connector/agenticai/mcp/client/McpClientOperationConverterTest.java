@@ -8,10 +8,9 @@ package io.camunda.connector.agenticai.mcp.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.InstanceOfAssertFactories.MAP;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientListToolsOperation;
+import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.StandaloneModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration;
@@ -28,8 +27,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class McpClientOperationConverterTest {
 
-  private final McpClientOperationConverter converter =
-      new McpClientOperationConverter(new ObjectMapper());
+  private final McpClientOperationConverter converter = new McpClientOperationConverter();
 
   @Nested
   class ToolModeTests {
@@ -44,9 +42,7 @@ class McpClientOperationConverterTest {
               ConnectorException.class,
               ex -> {
                 assertThat(ex.getErrorCode()).isEqualTo("MCP_CLIENT_UNSUPPORTED_OPERATION");
-                assertThat(ex)
-                    .hasMessage(
-                        "Unsupported MCP operation 'invalid'. Supported operations: 'tools/list', 'tools/call'");
+                assertThat(ex).hasMessageStartingWith("Unsupported MCP operation 'invalid'");
               });
     }
 
@@ -57,7 +53,10 @@ class McpClientOperationConverterTest {
 
       var result = converter.convertOperation(modeConfiguration);
 
-      assertThat(result).isInstanceOf(McpClientListToolsOperation.class);
+      var expected =
+          new McpClientOperation.McpClientOperationImpl(
+              McpClientOperation.Operation.LIST_TOOLS, Map.of());
+      assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -71,11 +70,11 @@ class McpClientOperationConverterTest {
 
       assertThat(result)
           .isInstanceOfSatisfying(
-              McpClientCallToolOperation.class,
-              operation -> {
-                assertThat(operation.params().name()).isEqualTo("test-tool");
-                assertThat(operation.params().arguments()).containsEntry("key", "value");
-              });
+              McpClientOperation.McpClientOperationImpl.class,
+              operation ->
+                  assertThat(operation.parameters())
+                      .containsEntry("name", "test-tool")
+                      .containsEntry("arguments", Map.of("key", "value")));
     }
 
     @Test
@@ -88,11 +87,11 @@ class McpClientOperationConverterTest {
 
       assertThat(result)
           .isInstanceOfSatisfying(
-              McpClientCallToolOperation.class,
-              operation -> {
-                assertThat(operation.params().name()).isEqualTo("test-tool");
-                assertThat(operation.params().arguments()).isNull();
-              });
+              McpClientOperation.McpClientOperationImpl.class,
+              operation ->
+                  assertThat(operation.parameters())
+                      .containsEntry("name", "test-tool")
+                      .doesNotContainKey("arguments"));
     }
 
     @ParameterizedTest
@@ -108,30 +107,16 @@ class McpClientOperationConverterTest {
 
       assertThat(result)
           .isInstanceOfSatisfying(
-              McpClientCallToolOperation.class,
-              operation -> {
-                assertThat(operation.params().name()).isEqualTo("test-tool");
-                assertThat(operation.params().arguments()).containsExactlyEntriesOf(arguments);
-              });
-    }
-
-    @Test
-    void throwsExceptionOnInvalidCallToolOperationParams() {
-      var modeConfiguration =
-          new ToolModeConfiguration(
-              new McpClientOperationConfiguration(
-                  "tools/call", Map.of("name", List.of("foo", "bar"), "something", "else")));
-
-      assertThatThrownBy(() -> converter.convertOperation(modeConfiguration))
-          .isInstanceOfSatisfying(
-              ConnectorException.class,
-              ex -> {
-                assertThat(ex.getErrorCode()).isEqualTo("MCP_CLIENT_INVALID_PARAMS");
-                assertThat(ex)
-                    .hasMessageStartingWith("Unable to convert parameters passed to MCP client:")
-                    .hasMessageContaining(
-                        "Cannot deserialize value of type `java.lang.String` from Array value");
-              });
+              McpClientOperation.McpClientOperationImpl.class,
+              operation ->
+                  assertThat(operation.parameters())
+                      .containsEntry("name", "test-tool")
+                      .hasEntrySatisfying(
+                          "arguments",
+                          args ->
+                              assertThat(args)
+                                  .asInstanceOf(MAP)
+                                  .containsExactlyEntriesOf(arguments)));
     }
   }
 
@@ -145,7 +130,10 @@ class McpClientOperationConverterTest {
 
       var result = converter.convertOperation(modeConfiguration);
 
-      assertThat(result).isInstanceOf(McpClientListToolsOperation.class);
+      var expected =
+          new McpClientOperation.McpClientOperationImpl(
+              McpClientOperation.Operation.LIST_TOOLS, Map.of());
+      assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -158,11 +146,11 @@ class McpClientOperationConverterTest {
 
       assertThat(result)
           .isInstanceOfSatisfying(
-              McpClientCallToolOperation.class,
-              operation -> {
-                assertThat(operation.params().name()).isEqualTo("test-tool");
-                assertThat(operation.params().arguments()).containsEntry("key", "value");
-              });
+              McpClientOperation.McpClientOperationImpl.class,
+              operation ->
+                  assertThat(operation.parameters())
+                      .containsEntry("name", "test-tool")
+                      .containsEntry("arguments", Map.of("key", "value")));
     }
 
     @Test
@@ -174,11 +162,11 @@ class McpClientOperationConverterTest {
 
       assertThat(result)
           .isInstanceOfSatisfying(
-              McpClientCallToolOperation.class,
-              operation -> {
-                assertThat(operation.params().name()).isEqualTo("test-tool");
-                assertThat(operation.params().arguments()).isNull();
-              });
+              McpClientOperation.McpClientOperationImpl.class,
+              operation ->
+                  assertThat(operation.parameters())
+                      .containsEntry("name", "test-tool")
+                      .doesNotContainKey("arguments"));
     }
 
     @Test
@@ -191,11 +179,11 @@ class McpClientOperationConverterTest {
 
       assertThat(result)
           .isInstanceOfSatisfying(
-              McpClientCallToolOperation.class,
-              operation -> {
-                assertThat(operation.params().name()).isEqualTo("test-tool");
-                assertThat(operation.params().arguments()).isEmpty();
-              });
+              McpClientOperation.McpClientOperationImpl.class,
+              operation ->
+                  assertThat(operation.parameters())
+                      .containsEntry("name", "test-tool")
+                      .doesNotContainKey("arguments"));
     }
 
     @ParameterizedTest
@@ -210,11 +198,16 @@ class McpClientOperationConverterTest {
 
       assertThat(result)
           .isInstanceOfSatisfying(
-              McpClientCallToolOperation.class,
-              op -> {
-                assertThat(op.params().name()).isEqualTo("test-tool");
-                assertThat(op.params().arguments()).containsExactlyEntriesOf(arguments);
-              });
+              McpClientOperation.McpClientOperationImpl.class,
+              operation ->
+                  assertThat(operation.parameters())
+                      .containsEntry("name", "test-tool")
+                      .hasEntrySatisfying(
+                          "arguments",
+                          args ->
+                              assertThat(args)
+                                  .asInstanceOf(MAP)
+                                  .containsExactlyEntriesOf(arguments)));
     }
   }
 

@@ -19,8 +19,9 @@ import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.service.tool.ToolExecutionResult;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
+import io.camunda.connector.api.error.ConnectorException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -51,8 +52,7 @@ class ToolCallRequestTest {
         testee.execute(
             mcpClient,
             EMPTY_FILTER,
-            new McpClientOperation.McpClientCallToolOperation.McpClientCallToolOperationParams(
-                "test-tool", Map.of("arg1", "value1")));
+            Map.of("name", "test-tool", "arguments", Map.of("arg1", "value1")));
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -69,12 +69,13 @@ class ToolCallRequestTest {
   void handlesEmptyArguments(Map<String, Object> arguments) {
     when(mcpClient.executeTool(any())).thenReturn(toolExecutionResult("Success with no args"));
 
-    final var result =
-        testee.execute(
-            mcpClient,
-            EMPTY_FILTER,
-            new McpClientOperation.McpClientCallToolOperation.McpClientCallToolOperationParams(
-                "test-tool", arguments));
+    final var parameters = new LinkedHashMap<String, Object>();
+    parameters.put("name", "test-tool");
+    if (arguments != null) {
+      parameters.put("arguments", arguments);
+    }
+
+    final var result = testee.execute(mcpClient, EMPTY_FILTER, parameters);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -92,11 +93,7 @@ class ToolCallRequestTest {
     when(mcpClient.executeTool(any())).thenReturn(toolExecutionResult("Successful result"));
 
     final var result =
-        testee.execute(
-            mcpClient,
-            EMPTY_FILTER,
-            new McpClientOperation.McpClientCallToolOperation.McpClientCallToolOperationParams(
-                toolName, arguments));
+        testee.execute(mcpClient, EMPTY_FILTER, Map.of("name", toolName, "arguments", arguments));
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -117,8 +114,7 @@ class ToolCallRequestTest {
         testee.execute(
             mcpClient,
             EMPTY_FILTER,
-            new McpClientOperation.McpClientCallToolOperation.McpClientCallToolOperationParams(
-                "test-tool", Map.of("arg1", "value1")));
+            Map.of("name", "test-tool", "arguments", Map.of("arg1", "value1")));
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -133,16 +129,13 @@ class ToolCallRequestTest {
   }
 
   @Test
-  void throwsException_whenToolNameIsNull() {
+  void throwsException_whenToolNameIsNotPresent() {
     reset(mcpClient);
 
     assertThatThrownBy(
             () ->
                 testee.execute(
-                    mcpClient,
-                    EMPTY_FILTER,
-                    new McpClientOperation.McpClientCallToolOperation
-                        .McpClientCallToolOperationParams(null, Map.of("arg1", "value1"))))
+                    mcpClient, EMPTY_FILTER, Map.of("arguments", Map.of("arg1", "value1"))))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Tool name must not be null");
   }
@@ -155,8 +148,7 @@ class ToolCallRequestTest {
         testee.execute(
             mcpClient,
             filter,
-            new McpClientOperation.McpClientCallToolOperation.McpClientCallToolOperationParams(
-                "blocked-tool", Map.of("arg1", "value1")));
+            Map.of("name", "blocked-tool", "arguments", Map.of("arg1", "value1")));
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -172,6 +164,25 @@ class ToolCallRequestTest {
   }
 
   @Test
+  void throwsException_whenInvalidCallToolOperationParamsProvided() {
+    assertThatThrownBy(
+            () ->
+                testee.execute(
+                    mcpClient,
+                    EMPTY_FILTER,
+                    Map.of("name", List.of("foo", "bar"), "something", "else")))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            ex -> {
+              assertThat(ex.getErrorCode()).isEqualTo("MCP_CLIENT_INVALID_PARAMS");
+              assertThat(ex)
+                  .hasMessageStartingWith("Unable to convert parameters passed to MCP client:")
+                  .hasMessageContaining(
+                      "Cannot deserialize value of type `java.lang.String` from Array value");
+            });
+  }
+
+  @Test
   void returnsError_whenToolExcludedInFilter() {
     final var filter = AllowDenyListBuilder.builder().denied(List.of("blocked-tool")).build();
 
@@ -179,8 +190,7 @@ class ToolCallRequestTest {
         testee.execute(
             mcpClient,
             filter,
-            new McpClientOperation.McpClientCallToolOperation.McpClientCallToolOperationParams(
-                "blocked-tool", Map.of("arg1", "value1")));
+            Map.of("name", "blocked-tool", "arguments", Map.of("arg1", "value1")));
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -203,8 +213,7 @@ class ToolCallRequestTest {
         testee.execute(
             mcpClient,
             EMPTY_FILTER,
-            new McpClientOperation.McpClientCallToolOperation.McpClientCallToolOperationParams(
-                "failing-tool", Map.of("arg1", "value1")));
+            Map.of("name", "failing-tool", "arguments", Map.of("arg1", "value1")));
 
     assertThat(result)
         .isInstanceOfSatisfying(

@@ -6,64 +6,74 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.*;
+import io.camunda.connector.api.error.ConnectorException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "method")
-@JsonSubTypes({
-  @JsonSubTypes.Type(
-      value = McpClientOperation.McpClientListToolsOperation.class,
-      name = McpClientOperation.McpClientListToolsOperation.METHOD),
-  @JsonSubTypes.Type(
-      value = McpClientOperation.McpClientCallToolOperation.class,
-      name = McpClientOperation.McpClientCallToolOperation.METHOD)
-})
-public sealed interface McpClientOperation
-    permits McpClientOperation.McpClientCallToolOperation,
-        McpClientOperation.McpClientListResourcesOperation,
-        McpClientOperation.McpClientListToolsOperation {
-  String method();
+public sealed interface McpClientOperation permits McpClientOperation.McpClientOperationImpl {
 
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  record McpClientListToolsOperation() implements McpClientOperation {
-    public static final String METHOD = "tools/list";
+  Operation method();
 
-    @Override
-    public String method() {
-      return METHOD;
-    }
+  Map<String, Object> parameters();
+
+  static McpClientOperationImpl withoutParams(String method) {
+    Operation operation =
+        Operation.valueFrom(method);
+    return new McpClientOperationImpl(operation, Collections.emptyMap());
   }
 
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  record McpClientCallToolOperation(McpClientCallToolOperationParams params)
+  static McpClientOperationImpl withParams(String method, Map<String, Object> params) {
+    Operation operation =
+        Operation.valueFrom(method);
+    return new McpClientOperationImpl(operation, params);
+  }
+
+  record McpClientOperationImpl(
+      @JsonIgnore Operation operation,
+      @JsonInclude(JsonInclude.Include.NON_EMPTY) @JsonProperty("params")
+          Map<String, Object> parameters)
       implements McpClientOperation {
-    public static final String METHOD = "tools/call";
 
     @Override
-    public String method() {
-      return METHOD;
+    @JsonGetter("method")
+    public Operation method() {
+      return operation;
     }
-
-    public static McpClientCallToolOperation create(String name, Map<String, Object> arguments) {
-      return new McpClientCallToolOperation(new McpClientCallToolOperationParams(name, arguments));
-    }
-
-    public record McpClientCallToolOperationParams(String name, Map<String, Object> arguments) {}
   }
 
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  record McpClientListResourcesOperation() implements McpClientOperation {
-    public static final String METHOD = "resources/list";
+  enum Operation {
+    LIST_TOOLS("tools/list"),
+    CALL_TOOL("tools/call"),
+    LIST_RESOURCES("resources/list"),
+    LIST_RESOURCE_TEMPLATES("resources/templates/list");
 
-    @Override
-    public String method() {
-      return METHOD;
+    public static String supportedOperations() {
+      return Arrays.stream(Operation.values())
+          .map(op -> op.methodName)
+          .collect(Collectors.joining("', '"));
+    }
+
+    @JsonCreator
+    public static Operation valueFrom(String method) {
+      for (Operation operation : values()) {
+        if (operation.methodName.equals(method)) {
+          return operation;
+        }
+      }
+      throw new ConnectorException(
+          "MCP_CLIENT_UNSUPPORTED_OPERATION",
+          String.format(
+              "Unsupported MCP operation '%s'. Supported operations: '%s'",
+              method, String.join("', '", supportedOperations())));
+    }
+
+    @JsonValue private final String methodName;
+
+    Operation(String methodName) {
+      this.methodName = methodName;
     }
   }
 }
