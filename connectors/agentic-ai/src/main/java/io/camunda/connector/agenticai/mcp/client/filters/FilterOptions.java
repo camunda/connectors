@@ -6,14 +6,12 @@
  */
 package io.camunda.connector.agenticai.mcp.client.filters;
 
+import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.soabase.recordbuilder.core.RecordBuilder;
-import java.util.List;
 
-@RecordBuilder
-public record FilterOptions(AllowDenyList toolFilters, AllowDenyList resourceFilters) {
-  public FilterOptions {
-    toolFilters = toolFilters == null ? new AllowDenyList(List.of(), List.of()) : toolFilters;
-    resourceFilters =
-        resourceFilters == null ? new AllowDenyList(List.of(), List.of()) : resourceFilters;
-  }
-}
+@AgenticAiRecord
+public record FilterOptions(
+    @RecordBuilder.Initializer(source = AllowDenyList.class, value = "allowingEverything")
+        AllowDenyList toolFilters,
+    @RecordBuilder.Initializer(source = AllowDenyList.class, value = "allowingEverything")
+        AllowDenyList resourceFilters) {}
