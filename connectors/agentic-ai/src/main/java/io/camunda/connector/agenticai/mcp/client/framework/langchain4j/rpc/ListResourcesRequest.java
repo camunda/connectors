@@ -13,7 +13,7 @@ import java.util.Collections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-record ListResourcesRequest() {
+final class ListResourcesRequest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ListResourcesRequest.class);
 
@@ -33,7 +33,10 @@ record ListResourcesRequest() {
                                 fr.uri(), fr.name(), fr.description(), fr.mimeType()))
                     .toList());
 
-    LOGGER.debug("MCP({}): Resolved list of resources: {}", client.key(), result.names());
+    LOGGER.debug(
+        "MCP({}): Resolved list of resources: {}",
+        client.key(),
+        result.resources().stream().map(ResourceDescription::name).toList());
 
     return result;
   }

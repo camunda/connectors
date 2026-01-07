@@ -778,11 +778,11 @@
       "name" : "Call Tool",
       "value" : "tools/call"
     }, {
-      "name" : "List Resources",
-      "value" : "resources/list"
-    }, {
       "name" : "List Tools",
       "value" : "tools/list"
+    }, {
+      "name" : "List Resources",
+      "value" : "resources/list"
     } ]
   }, {
     "id" : "data.connectorMode.operation.toolName",
