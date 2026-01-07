@@ -176,7 +176,7 @@ public class L4JAiAgentConnectorA2aIntegrationTests extends BaseL4JAiAgentConnec
                 testSupport.initialUserPrompt));
 
     // manually trigger process definition import to register the webhook
-    processDefinitionImporter.scheduleImport();
+    processDefinitionImporter.scheduleLatestVersionImport();
     waitForElementActivation(zeebeTest, WEBHOOK_ELEMENT_ID);
 
     postWithDelay(

@@ -16,10 +16,19 @@
  */
 package io.camunda.connector.runtime.inbound.state;
 
+import java.util.List;
 import java.util.Map;
 
-public record ProcessImportResult(
-    Map<ProcessDefinitionIdentifier, ProcessDefinitionVersion> processDefinitionVersions) {
+public sealed interface ProcessImportResult {
+
+  record LatestVersions(
+      Map<ProcessDefinitionIdentifier, ProcessDefinitionVersion> processDefinitionVersions)
+      implements ProcessImportResult {}
+
+  record ActiveVersions(
+      Map<ProcessDefinitionIdentifier, List<ProcessDefinitionVersion>> processDefinitionVersions)
+      implements ProcessImportResult {}
+
   public record ProcessDefinitionIdentifier(String bpmnProcessId, String tenantId) {}
 
   public record ProcessDefinitionVersion(long processDefinitionKey, int version) {}

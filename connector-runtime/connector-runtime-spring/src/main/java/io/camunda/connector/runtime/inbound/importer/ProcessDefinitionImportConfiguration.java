@@ -31,10 +31,17 @@ public class ProcessDefinitionImportConfiguration {
   }
 
   @Bean
+  public MessageSubscriptionSearch messageSubscriptionSearch(SearchQueryClient client) {
+    return new MessageSubscriptionSearch(client);
+  }
+
+  @Bean
   public ProcessDefinitionImporter processDefinitionImporter(
       ProcessStateStore stateStore,
       ProcessDefinitionSearch search,
+      MessageSubscriptionSearch messageSubscriptionSearch,
       ConnectorsInboundMetrics connectorsInboundMetrics) {
-    return new ProcessDefinitionImporter(stateStore, search, connectorsInboundMetrics);
+    return new ProcessDefinitionImporter(
+        stateStore, search, messageSubscriptionSearch, connectorsInboundMetrics);
   }
 }

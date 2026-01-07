@@ -33,7 +33,8 @@ public class ProcessDefinitionImporter {
 
   private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionImporter.class);
   private final ProcessStateStore stateStore;
-  private final ProcessDefinitionSearch search;
+  private final ProcessDefinitionSearch processDefinitionSearch;
+  private final MessageSubscriptionSearch messageSubscriptionSearch;
   private final ConnectorsInboundMetrics connectorsInboundMetrics;
 
   private boolean ready = true;
@@ -41,17 +42,19 @@ public class ProcessDefinitionImporter {
   @Autowired
   public ProcessDefinitionImporter(
       ProcessStateStore stateStore,
-      ProcessDefinitionSearch search,
+      ProcessDefinitionSearch processDefinitionSearch,
+      MessageSubscriptionSearch messageSubscriptionSearch,
       ConnectorsInboundMetrics connectorsInboundMetrics) {
     this.stateStore = stateStore;
-    this.search = search;
+    this.processDefinitionSearch = processDefinitionSearch;
+    this.messageSubscriptionSearch = messageSubscriptionSearch;
     this.connectorsInboundMetrics = connectorsInboundMetrics;
   }
 
   @Scheduled(fixedDelayString = "${camunda.connector.polling.interval:5000}")
-  public synchronized void scheduleImport() {
+  public synchronized void scheduleLatestVersionImport() {
     try {
-      var result = search.query();
+      var result = processDefinitionSearch.query();
       handleImportedDefinitions(result);
       ready = true;
     } catch (Exception e) {
@@ -82,6 +85,38 @@ public class ProcessDefinitionImporter {
       stateStore.update(result);
     } catch (Exception e) {
       LOG.error("Failed to handle imported definitions", e);
+    }
+  }
+
+  @Scheduled(
+      fixedDelayString = "${camunda.connector.polling.interval:5000}",
+      initialDelayString = "${camunda.connector.polling.initial-delay:2500}")
+  public synchronized void scheduleMessageSubscriptionImport() {
+    try {
+      var result = messageSubscriptionSearch.query();
+      LOG.trace("Handle of the imported message subscriptions starts...");
+      meter(result.size());
+      // Currently, we do not store message subscriptions in the state store,
+      // but we could extend this in the future if needed.
+      LOG.trace("Imported {} message subscriptions", result.size());
+    } catch (Exception e) {
+      LOG.error("Failed to import message subscriptions", e);
+    }
+  }
+
+  public void handleImportedMessageSubscriptions(
+      List<io.camunda.client.api.search.response.MessageSubscription> subscriptions) {
+    if (subscriptions.isEmpty()) {
+      return;
+    }
+    LOG.trace("Handle of the imported message subscriptions starts...");
+    try {
+      meter(subscriptions.size());
+      // Currently, we do not store message subscriptions in the state store,
+      // but we could extend this in the future if needed.
+      LOG.trace("Imported {} message subscriptions", subscriptions.size());
+    } catch (Exception e) {
+      LOG.error("Failed to handle imported message subscriptions", e);
     }
   }
 

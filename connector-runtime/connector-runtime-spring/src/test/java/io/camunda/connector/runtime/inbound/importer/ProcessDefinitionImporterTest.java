@@ -61,8 +61,8 @@ public class ProcessDefinitionImporterTest {
     when(search.query()).thenReturn(first).thenReturn(second);
 
     // when
-    importer.scheduleImport();
-    importer.scheduleImport();
+    importer.scheduleLatestVersionImport();
+    importer.scheduleLatestVersionImport();
 
     // then
     ArgumentCaptor<ProcessImportResult> captor = ArgumentCaptor.forClass(ProcessImportResult.class);

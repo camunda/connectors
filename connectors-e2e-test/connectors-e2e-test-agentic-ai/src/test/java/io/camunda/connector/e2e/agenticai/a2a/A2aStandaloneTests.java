@@ -292,7 +292,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
 
   private void waitForWebhookElementActivation(ZeebeTest zeebeTest) {
     // manually trigger process definition import to register the webhook
-    processDefinitionImporter.scheduleImport();
+    processDefinitionImporter.scheduleLatestVersionImport();
     waitForElementActivation(zeebeTest, WEBHOOK_ELEMENT_ID);
   }
 

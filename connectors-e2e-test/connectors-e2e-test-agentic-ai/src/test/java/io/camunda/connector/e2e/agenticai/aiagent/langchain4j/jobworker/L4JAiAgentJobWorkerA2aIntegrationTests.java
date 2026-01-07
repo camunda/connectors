@@ -176,7 +176,7 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
                 testSupport.initialUserPrompt));
 
     // manually trigger process definition import to register the webhook
-    processDefinitionImporter.scheduleImport();
+    processDefinitionImporter.scheduleLatestVersionImport();
     waitForElementActivation(zeebeTest, WEBHOOK_ELEMENT_ID);
     postWithDelay(
         webhookUrl, testFileContent("exchange-rate-agent-webhook-payload.json").get(), 100);

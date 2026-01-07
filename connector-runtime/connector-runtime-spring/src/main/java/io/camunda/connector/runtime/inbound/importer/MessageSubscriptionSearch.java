@@ -16,40 +16,32 @@
  */
 package io.camunda.connector.runtime.inbound.importer;
 
-import io.camunda.client.api.search.response.ProcessDefinition;
+import io.camunda.client.api.search.response.MessageSubscription;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Stateful component that issues a process connectorDetails search based on the previous pagination
- * index.
- */
-public class ProcessDefinitionSearch {
+public class MessageSubscriptionSearch {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionSearch.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MessageSubscriptionSearch.class);
   private final SearchQueryClient searchQueryClient;
 
-  public ProcessDefinitionSearch(SearchQueryClient searchQueryClient) {
+  public MessageSubscriptionSearch(SearchQueryClient searchQueryClient) {
     this.searchQueryClient = searchQueryClient;
   }
 
-  /**
-   * Query process elements from Camunda. Guaranteed to return only the latest deployed version of
-   * each process connectorDetails.
-   */
-  public List<ProcessDefinition> query() {
-    LOG.trace("Query process deployments...");
+  public List<MessageSubscription> query() {
+    LOG.trace("Query message subscriptions...");
 
-    var processDefinitions =
+    var messageSubscriptions =
         PaginatedSearch.queryAllPages(
-            LOG, "process definitions", searchQueryClient::queryProcessDefinitions);
+            LOG, "message subscriptions", searchQueryClient::queryMessageSubscriptions);
 
     LOG.debug(
-        "Fetching process definitions has been correctly executed: {} definitions found",
-        processDefinitions.size());
+        "Fetching message subscriptions has been correctly executed: {} subscriptions found",
+        messageSubscriptions.size());
 
-    return processDefinitions;
+    return messageSubscriptions;
   }
 }

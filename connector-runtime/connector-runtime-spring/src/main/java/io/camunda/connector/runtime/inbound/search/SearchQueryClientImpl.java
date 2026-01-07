@@ -49,6 +49,17 @@ public class SearchQueryClientImpl implements SearchQueryClient {
   }
 
   @Override
+  public SearchResponse<MessageSubscription> queryMessageSubscriptions(String paginationIndex) {
+    final var query = camundaClient.newMessageSubscriptionSearchRequest();
+    if (paginationIndex != null) {
+      query.page(p -> p.limit(limit).after(paginationIndex));
+    } else {
+      query.page(p -> p.limit(limit));
+    }
+    return query.send().join();
+  }
+
+  @Override
   public SearchResponse<ElementInstance> queryActiveFlowNodes(
       long processDefinitionKey, String elementId, String paginationIndex) {
     final var query =
