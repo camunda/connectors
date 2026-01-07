@@ -7,30 +7,38 @@
 package io.camunda.connector.agenticai.autoconfigure;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.validation.annotation.Validated;
 
 @Validated
 @ConfigurationProperties(prefix = "camunda.connector.agenticai")
 public record AgenticAiConnectorsConfigurationProperties(
-    @Valid @NotNull @DefaultValue ToolsConfiguration tools) {
+    @Valid @DefaultValue ToolsProperties tools, @Valid @DefaultValue AiAgentProperties aiagent) {
 
-  public record ToolsConfiguration(
-      @Valid @NotNull @DefaultValue ProcessDefinitionConfiguration processDefinition) {
+  public record AiAgentProperties(@Valid @DefaultValue ChatModelProperties chatModel) {}
 
-    public record ProcessDefinitionConfiguration(
-        @Valid @NotNull @DefaultValue RetriesConfiguration retries,
-        @Valid @NotNull @DefaultValue CacheConfiguration cache) {
+  public record ChatModelProperties(@Valid @DefaultValue ApiProperties api) {
 
-      public record RetriesConfiguration(
+    public record ApiProperties(@DefaultValue("PT3M") Duration defaultTimeout) {}
+  }
+
+  public record ToolsProperties(
+      @Valid @DefaultValue @NestedConfigurationProperty
+          ProcessDefinitionProperties processDefinition) {
+
+    public record ProcessDefinitionProperties(
+        @Valid @DefaultValue RetriesProperties retries,
+        @Valid @DefaultValue CacheProperties cache) {
+
+      public record RetriesProperties(
           @DefaultValue("4") @PositiveOrZero Integer maxRetries,
           @DefaultValue("PT0.5S") Duration initialRetryDelay) {}
 
-      public record CacheConfiguration(
+      public record CacheProperties(
           @DefaultValue("true") boolean enabled,
           @DefaultValue("100") @PositiveOrZero Long maximumSize,
           @DefaultValue("PT10M") Duration expireAfterWrite) {}
