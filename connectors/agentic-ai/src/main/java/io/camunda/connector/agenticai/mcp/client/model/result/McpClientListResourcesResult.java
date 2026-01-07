@@ -10,9 +10,4 @@ import io.camunda.connector.agenticai.model.tool.ResourceDescription;
 import java.util.List;
 
 public record McpClientListResourcesResult(List<ResourceDescription> resources)
-    implements McpClientResult {
-
-  public List<String> names() {
-    return resources.stream().map(ResourceDescription::name).toList();
-  }
-}
+    implements McpClientResult {}
