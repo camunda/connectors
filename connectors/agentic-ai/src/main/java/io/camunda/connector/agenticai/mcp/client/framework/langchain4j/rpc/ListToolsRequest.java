@@ -15,9 +15,14 @@ import java.util.Collections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-record ListToolsRequest(ToolSpecificationConverter toolSpecificationConverter) {
+final class ListToolsRequest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ListToolsRequest.class);
+  private final ToolSpecificationConverter toolSpecificationConverter;
+
+  ListToolsRequest(ToolSpecificationConverter toolSpecificationConverter) {
+    this.toolSpecificationConverter = toolSpecificationConverter;
+  }
 
   public McpClientListToolsResult execute(McpClient client, AllowDenyList toolNameFilter) {
     LOGGER.debug("MCP({}): Executing list tools", client.key());
