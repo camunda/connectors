@@ -337,7 +337,7 @@
     "id" : "input.analyzeQueries",
     "label" : "Analyze queries",
     "optional" : false,
-    "value" : "=true",
+    "value" : true,
     "constraints" : {
       "notEmpty" : true
     },
@@ -360,14 +360,14 @@
     },
     "condition" : {
       "property" : "input.analyzeQueries",
-      "equals" : "=true",
+      "equals" : true,
       "type" : "simple"
     },
     "type" : "String"
   }, {
     "id" : "input.outputConfigS3Bucket",
     "label" : "Output S3 bucket",
-    "description" : "The name of the bucket your output will go to",
+    "description" : "The name of the bucket your output will go to.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -387,7 +387,7 @@
   }, {
     "id" : "input.outputConfigS3Prefix",
     "label" : "Output S3 prefix",
-    "description" : "The prefix of the object key that the output will be saved to",
+    "description" : "The prefix of the object key that the output will be saved to.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -407,7 +407,7 @@
   }, {
     "id" : "input.clientRequestToken",
     "label" : "Client request token",
-    "description" : "The idempotent token that you use to identify the start request",
+    "description" : "The idempotent token that you use to identify the start request.",
     "optional" : true,
     "feel" : "optional",
     "group" : "advanced",
@@ -424,7 +424,7 @@
   }, {
     "id" : "input.jobTag",
     "label" : "Job tag",
-    "description" : "An identifier that you specify that's included in the completion notification published to the Amazon SNS topic",
+    "description" : "An identifier that you specify that's included in the completion notification published to the Amazon SNS topic.",
     "optional" : true,
     "feel" : "optional",
     "group" : "advanced",
@@ -441,7 +441,7 @@
   }, {
     "id" : "input.kmsKeyId",
     "label" : "KMS key ID",
-    "description" : "The KMS key used to encrypt the inference results",
+    "description" : "The KMS key used to encrypt the inference results.",
     "optional" : true,
     "feel" : "optional",
     "group" : "advanced",
@@ -458,7 +458,7 @@
   }, {
     "id" : "input.notificationChannelRoleArn",
     "label" : "Notification channel role ARN",
-    "description" : "The Amazon SNS topic role ARN that you want Amazon Textract to publish the completion status of the operation to",
+    "description" : "The Amazon SNS topic role ARN that you want Amazon Textract to publish the completion status of the operation to.",
     "optional" : true,
     "feel" : "optional",
     "group" : "advanced",
@@ -475,7 +475,7 @@
   }, {
     "id" : "input.notificationChannelSnsTopicArn",
     "label" : "Notification channel SNS topic ARN",
-    "description" : "The Amazon SNS topic ARN that you want Amazon Textract to publish the completion status of the operation to",
+    "description" : "The Amazon SNS topic ARN that you want Amazon Textract to publish the completion status of the operation to.",
     "optional" : true,
     "feel" : "optional",
     "group" : "advanced",
