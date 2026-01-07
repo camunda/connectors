@@ -20,6 +20,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Map;
+import java.util.Optional;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -48,25 +49,12 @@ public sealed interface McpStandaloneOperationConfiguration
         McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration,
         McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration {
 
-  sealed interface McpArgumentsOperation
-      permits McpStandaloneOperationConfiguration.CallToolOperationConfiguration {
+  String method();
 
-    String method();
-
-    Map<String, Object> parameters();
-  }
-
-  sealed interface McpNoArgumentsOperation
-      permits McpStandaloneOperationConfiguration.ListToolsOperationConfiguration,
-          McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration,
-          McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration {
-
-    String method();
-  }
+  Optional<Map<String, Object>> parameters();
 
   @TemplateSubType(id = LIST_TOOLS_ID, label = "List Tools")
-  record ListToolsOperationConfiguration()
-      implements McpStandaloneOperationConfiguration, McpNoArgumentsOperation {
+  record ListToolsOperationConfiguration() implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String LIST_TOOLS_ID = "tools/list";
@@ -74,6 +62,11 @@ public sealed interface McpStandaloneOperationConfiguration
     @Override
     public String method() {
       return LIST_TOOLS_ID;
+    }
+
+    @Override
+    public Optional<Map<String, Object>> parameters() {
+      return Optional.empty();
     }
   }
 
@@ -97,7 +90,7 @@ public sealed interface McpStandaloneOperationConfiguration
               feel = Property.FeelMode.required,
               optional = true)
           Map<String, Object> toolArguments)
-      implements McpArgumentsOperation, McpStandaloneOperationConfiguration {
+      implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String CALL_TOOL_ID = "tools/call";
@@ -108,17 +101,16 @@ public sealed interface McpStandaloneOperationConfiguration
     }
 
     @Override
-    public Map<String, Object> parameters() {
+    public Optional<Map<String, Object>> parameters() {
       if (toolArguments == null || toolArguments.isEmpty()) {
-        return Map.of("name", toolName);
+        return Optional.of(Map.of("name", toolName));
       }
-      return Map.of("name", toolName, "arguments", toolArguments);
+      return Optional.of(Map.of("name", toolName, "arguments", toolArguments));
     }
   }
 
   @TemplateSubType(id = LIST_RESOURCES_ID, label = "List Resources")
-  record ListResourcesOperationConfiguration()
-      implements McpNoArgumentsOperation, McpStandaloneOperationConfiguration {
+  record ListResourcesOperationConfiguration() implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String LIST_RESOURCES_ID = "resources/list";
@@ -127,11 +119,16 @@ public sealed interface McpStandaloneOperationConfiguration
     public String method() {
       return LIST_RESOURCES_ID;
     }
+
+    @Override
+    public Optional<Map<String, Object>> parameters() {
+      return Optional.empty();
+    }
   }
 
   @TemplateSubType(id = LIST_RESOURCE_TEMPLATES_ID, label = "List Resource Templates")
   record ListResourceTemplatesOperationConfiguration()
-      implements McpNoArgumentsOperation, McpStandaloneOperationConfiguration {
+      implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String LIST_RESOURCE_TEMPLATES_ID = "resources/templates/list";
@@ -139,6 +136,11 @@ public sealed interface McpStandaloneOperationConfiguration
     @Override
     public String method() {
       return LIST_RESOURCE_TEMPLATES_ID;
+    }
+
+    @Override
+    public Optional<Map<String, Object>> parameters() {
+      return Optional.empty();
     }
   }
 }

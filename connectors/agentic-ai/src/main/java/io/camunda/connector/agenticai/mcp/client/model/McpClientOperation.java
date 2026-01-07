@@ -19,14 +19,13 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
 
   Map<String, Object> parameters();
 
-  static McpClientOperationImpl withoutParams(String method) {
-    Operation operation = Operation.valueFrom(method);
-    return new McpClientOperationImpl(operation, Collections.emptyMap());
+  static McpClientOperationImpl of(String method) {
+    return of(method, Collections.emptyMap());
   }
 
-  static McpClientOperationImpl withParams(String method, Map<String, Object> params) {
+  static McpClientOperationImpl of(String method, Map<String, Object> parameters) {
     Operation operation = Operation.valueFrom(method);
-    return new McpClientOperationImpl(operation, params);
+    return new McpClientOperationImpl(operation, parameters);
   }
 
   record McpClientOperationImpl(

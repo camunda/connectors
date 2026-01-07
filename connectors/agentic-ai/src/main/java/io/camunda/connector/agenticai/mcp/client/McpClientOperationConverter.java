@@ -7,37 +7,32 @@
 package io.camunda.connector.agenticai.mcp.client;
 
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
+import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.StandaloneModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration;
+import java.util.Collections;
 
 public class McpClientOperationConverter {
 
   public McpClientOperation convertOperation(McpConnectorModeConfiguration connectorMode) {
     return switch (connectorMode) {
-      case ToolModeConfiguration toolMode -> convertToolModeOperation(toolMode);
-
+      case ToolModeConfiguration toolMode -> convertToolModeOperation(toolMode.toolOperation());
       case StandaloneModeConfiguration standaloneMode ->
           convertStandaloneModeOperation(standaloneMode.operation());
     };
   }
 
-  private McpClientOperation convertToolModeOperation(ToolModeConfiguration toolMode) {
-    final var toolOperation = toolMode.toolOperation();
-
-    return McpClientOperation.withParams(toolOperation.method(), toolOperation.params());
+  private McpClientOperation convertToolModeOperation(
+      McpClientOperationConfiguration toolModeOperation) {
+    return McpClientOperation.of(toolModeOperation.method(), toolModeOperation.params());
   }
 
   private McpClientOperation convertStandaloneModeOperation(
-      McpStandaloneOperationConfiguration operation) {
-    return switch (operation) {
-      case McpStandaloneOperationConfiguration.McpNoArgumentsOperation noArgumentsOperation ->
-          McpClientOperation.withoutParams(noArgumentsOperation.method());
-      case McpStandaloneOperationConfiguration.McpArgumentsOperation withArgumentsOperation ->
-          McpClientOperation.withParams(
-              withArgumentsOperation.method(), withArgumentsOperation.parameters());
-      default -> throw new IllegalStateException("Unexpected operation type: " + operation);
-    };
+      McpStandaloneOperationConfiguration standaloneOperation) {
+    return McpClientOperation.of(
+        standaloneOperation.method(),
+        standaloneOperation.parameters().orElseGet(Collections::emptyMap));
   }
 }

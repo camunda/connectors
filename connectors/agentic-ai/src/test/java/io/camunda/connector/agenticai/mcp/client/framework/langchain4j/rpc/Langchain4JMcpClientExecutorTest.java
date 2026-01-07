@@ -45,7 +45,7 @@ class Langchain4JMcpClientExecutorTest {
 
   @Test
   void returnsMcpListToolsResult_whenListToolsExecuted() {
-    final var operation = McpClientOperation.withoutParams("tools/list");
+    final var operation = McpClientOperation.of("tools/list");
     final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
 
     assertThat(result).isInstanceOf(McpClientListToolsResult.class);
@@ -54,7 +54,7 @@ class Langchain4JMcpClientExecutorTest {
   @Test
   void returnsMcpCallToolResult_whenCallToolsExecuted() {
     final var operation =
-        McpClientOperation.withParams(
+        McpClientOperation.of(
             "tools/call", Map.of("name", "test-tool", "arguments", Map.of("arg1", "value1")));
     final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
 
@@ -63,7 +63,7 @@ class Langchain4JMcpClientExecutorTest {
 
   @Test
   void returnsMcpListResourcesResult_whenListResourcesExecuted() {
-    final var operation = McpClientOperation.withoutParams("resources/list");
+    final var operation = McpClientOperation.of("resources/list");
     final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
 
     assertThat(result).isInstanceOf(McpClientListResourcesResult.class);
