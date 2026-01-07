@@ -35,7 +35,7 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
   private static final Logger LOGGER = LoggerFactory.getLogger(McpClientGatewayToolHandler.class);
 
   private static final McpClientOperation LIST_TOOLS_OPERATION =
-      McpClientOperation.withoutParams("tools/list");
+      McpClientOperation.of("tools/list");
 
   public static final String GATEWAY_TYPE = "mcpClient";
 
@@ -185,7 +185,7 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
                     toolCall.id(),
                     toolCallIdentifier.elementName(),
                     mcpClientOperationAsMap(
-                        McpClientOperation.withParams(
+                        McpClientOperation.of(
                             "tools/call",
                             Map.of(
                                 "name",
