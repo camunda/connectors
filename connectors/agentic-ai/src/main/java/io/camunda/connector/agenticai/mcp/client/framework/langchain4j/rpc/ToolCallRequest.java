@@ -25,8 +25,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-record ToolCallRequest(ObjectMapper objectMapper) {
+final class ToolCallRequest {
   private static final Logger LOGGER = LoggerFactory.getLogger(ToolCallRequest.class);
+  private final ObjectMapper objectMapper;
+
+  ToolCallRequest(ObjectMapper objectMapper) {
+    this.objectMapper = objectMapper;
+  }
 
   public McpClientCallToolResult execute(
       McpClient client,
