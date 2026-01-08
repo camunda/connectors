@@ -33,7 +33,10 @@ public class Langchain4JMcpClientExecutor {
           new ToolCallRequest(objectMapper)
               .execute(client, filterOptions.toolFilters(), operation.parameters());
       case LIST_RESOURCES -> new ListResourcesRequest().execute(client);
-      case LIST_RESOURCE_TEMPLATES -> throw new UnsupportedOperationException();
+      case LIST_RESOURCE_TEMPLATES -> new ListResourceTemplatesRequest().execute(client);
+      case READ_RESOURCE, LIST_PROMPTS, GET_PROMPT ->
+          throw new UnsupportedOperationException(
+              "This operation is not supported yet: " + operation.method().methodName());
     };
   }
 }
