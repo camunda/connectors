@@ -262,20 +262,20 @@ class Langchain4JMcpClientHandlerTest {
     @Test
     void handlesListResourcesRequest() {
       final var request =
-              createStandaloneModeRequest(
-                      new McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration());
+          createStandaloneModeRequest(
+              new McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration());
       final var expectedResult = new McpClientListToolsResult(List.of());
 
       when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
               assertArg(
-                      operation ->
-                              assertThat(operation)
-                                      .returns(LIST_RESOURCES, McpClientOperation::method)
-                                      .returns(Map.of(), McpClientOperation::parameters)),
+                  operation ->
+                      assertThat(operation)
+                          .returns(LIST_RESOURCES, McpClientOperation::method)
+                          .returns(Map.of(), McpClientOperation::parameters)),
               eq(EMPTY_FILTER)))
-              .thenReturn(expectedResult);
+          .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
 
@@ -285,20 +285,21 @@ class Langchain4JMcpClientHandlerTest {
     @Test
     void handlesListResourceTemplatesRequest() {
       final var request =
-              createStandaloneModeRequest(
-                      new McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration());
+          createStandaloneModeRequest(
+              new McpStandaloneOperationConfiguration
+                  .ListResourceTemplatesOperationConfiguration());
       final var expectedResult = new McpClientListResourceTemplatesResult(List.of());
 
       when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
       when(clientExecutor.execute(
               eq(mcpClient),
               assertArg(
-                      operation ->
-                              assertThat(operation)
-                                      .returns(LIST_RESOURCE_TEMPLATES, McpClientOperation::method)
-                                      .returns(Map.of(), McpClientOperation::parameters)),
+                  operation ->
+                      assertThat(operation)
+                          .returns(LIST_RESOURCE_TEMPLATES, McpClientOperation::method)
+                          .returns(Map.of(), McpClientOperation::parameters)),
               eq(EMPTY_FILTER)))
-              .thenReturn(expectedResult);
+          .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
 
