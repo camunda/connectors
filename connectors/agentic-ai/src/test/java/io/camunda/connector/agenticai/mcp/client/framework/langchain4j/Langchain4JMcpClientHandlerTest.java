@@ -290,6 +290,29 @@ class Langchain4JMcpClientHandlerTest {
 
       assertThat(result).isEqualTo(expectedResult);
     }
+
+    @Test
+    void handlesListPromptsRequest() {
+      final var request =
+          createStandaloneModeRequest(
+              new McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration());
+      final var expectedResult = new McpClientListResourceTemplatesResult(List.of());
+
+      when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(
+                  operation ->
+                      assertThat(operation)
+                          .returns(LIST_PROMPTS, McpClientOperation::method)
+                          .returns(Map.of(), McpClientOperation::parameters)),
+              eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
   }
 
   private McpClientRequest createToolModeRequest(McpClientOperationConfiguration operation) {

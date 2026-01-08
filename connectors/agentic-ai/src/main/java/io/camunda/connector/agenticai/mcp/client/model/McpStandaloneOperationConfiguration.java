@@ -35,7 +35,10 @@ import java.util.Optional;
       name = LIST_RESOURCES_ID),
   @JsonSubTypes.Type(
       value = McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration.class,
-      name = LIST_RESOURCE_TEMPLATES_ID)
+      name = LIST_RESOURCE_TEMPLATES_ID),
+  @JsonSubTypes.Type(
+      value = McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration.class,
+      name = McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration.LIST_PROMPTS_ID)
 })
 @TemplateDiscriminatorProperty(
     group = "operation",
@@ -44,10 +47,11 @@ import java.util.Optional;
     description = "The type of operation to perform.",
     defaultValue = LIST_TOOLS_ID)
 public sealed interface McpStandaloneOperationConfiguration
-    permits McpStandaloneOperationConfiguration.ListToolsOperationConfiguration,
-        McpStandaloneOperationConfiguration.CallToolOperationConfiguration,
+    permits McpStandaloneOperationConfiguration.CallToolOperationConfiguration,
+        McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration,
+        McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration,
         McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration,
-        McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration {
+        McpStandaloneOperationConfiguration.ListToolsOperationConfiguration {
 
   String method();
 
@@ -140,6 +144,23 @@ public sealed interface McpStandaloneOperationConfiguration
 
     @Override
     public Optional<Map<String, Object>> params() {
+      return Optional.empty();
+    }
+  }
+
+  @TemplateSubType(id = "LIST_PROMPTS_ID", label = "List Prompts")
+  record ListPromptsOperationConfiguration() implements McpStandaloneOperationConfiguration {
+
+    @TemplateProperty(ignore = true)
+    public static final String LIST_PROMPTS_ID = "prompts/list";
+
+    @Override
+    public String method() {
+      return LIST_PROMPTS_ID;
+    }
+
+    @Override
+    public Optional<Map<String, Object>> parameters() {
       return Optional.empty();
     }
   }

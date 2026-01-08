@@ -16,10 +16,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpe
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
-import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
-import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
-import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourcesResult;
-import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.*;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -85,6 +82,14 @@ class Langchain4JMcpClientExecutorTest {
     assertThat(result).isInstanceOf(McpClientListResourceTemplatesResult.class);
   }
 
+  @Test
+  void returnsMcpListPromptsResult_whenListPromptsExecuted() {
+    final var operation = McpClientOperation.of("prompts/list");
+    final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
+
+    assertThat(result).isInstanceOf(McpClientListPromptsResult.class);
+  }
+
   @ParameterizedTest
   @MethodSource("unsupportedOperations")
   void throwsUnsupportedOperationException_whenUnsupportedOperationIsAttempted(
@@ -97,7 +102,6 @@ class Langchain4JMcpClientExecutorTest {
   }
 
   private static Stream<Arguments> unsupportedOperations() {
-    return Stream.of(
-        Arguments.of("resources/read"), Arguments.of("prompts/list"), Arguments.of("prompts/get"));
+    return Stream.of(Arguments.of("resources/read"), Arguments.of("prompts/get"));
   }
 }

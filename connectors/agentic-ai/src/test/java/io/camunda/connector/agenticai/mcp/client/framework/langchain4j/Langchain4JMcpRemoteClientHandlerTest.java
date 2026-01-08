@@ -354,6 +354,33 @@ class Langchain4JMcpRemoteClientHandlerTest {
 
       assertThat(result).isEqualTo(expectedResult);
     }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
+    void handlesListPromptsRequest(McpRemoteClientTransportConfiguration transport) {
+      final var request =
+          createStandaloneModeRequest(
+              transport,
+              false,
+              new McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration());
+      final var expectedResult = new McpClientListResourceTemplatesResult(List.of());
+
+      when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(
+                  operation ->
+                      assertThat(operation)
+                          .returns(LIST_PROMPTS, McpClientOperation::method)
+                          .returns(Map.of(), McpClientOperation::parameters)),
+              eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
   }
 
   @Nested
