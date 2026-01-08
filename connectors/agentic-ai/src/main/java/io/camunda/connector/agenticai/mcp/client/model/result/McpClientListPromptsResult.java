@@ -6,9 +6,6 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model.result;
 
-public sealed interface McpClientResult
-    permits McpClientCallToolResult,
-        McpClientListPromptsResult,
-        McpClientListResourceTemplatesResult,
-        McpClientListResourcesResult,
-        McpClientListToolsResult {}
+import java.util.List;
+
+public record McpClientListPromptsResult(List<Prompt> prompts) implements McpClientResult {}
