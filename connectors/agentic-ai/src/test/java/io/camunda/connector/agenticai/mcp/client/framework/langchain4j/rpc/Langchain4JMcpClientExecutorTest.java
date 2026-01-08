@@ -22,14 +22,12 @@ import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResou
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import java.util.Map;
 import java.util.stream.Stream;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -41,7 +39,9 @@ class Langchain4JMcpClientExecutorTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Mock private ToolSpecificationConverter toolSpecificationConverter;
-  @Mock(strictness = Mock.Strictness.LENIENT) private McpClient mcpClient;
+
+  @Mock(strictness = Mock.Strictness.LENIENT)
+  private McpClient mcpClient;
 
   private Langchain4JMcpClientExecutor executor;
 
@@ -87,7 +87,8 @@ class Langchain4JMcpClientExecutorTest {
 
   @ParameterizedTest
   @MethodSource("unsupportedOperations")
-  void throwsUnsupportedOperationException_whenUnsupportedOperationIsAttempted(String unsupportedMethod) {
+  void throwsUnsupportedOperationException_whenUnsupportedOperationIsAttempted(
+      String unsupportedMethod) {
     final var operation = McpClientOperation.of(unsupportedMethod);
 
     assertThatThrownBy(() -> executor.execute(mcpClient, operation, EMPTY_FILTER))
@@ -97,8 +98,6 @@ class Langchain4JMcpClientExecutorTest {
 
   private static Stream<Arguments> unsupportedOperations() {
     return Stream.of(
-        Arguments.of("resources/read"),
-        Arguments.of("prompts/list"),
-        Arguments.of("prompts/get"));
+        Arguments.of("resources/read"), Arguments.of("prompts/list"), Arguments.of("prompts/get"));
   }
 }

@@ -12,9 +12,7 @@ import static org.mockito.Mockito.when;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.McpResourceTemplate;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
-import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourcesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceTemplate;
-
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
