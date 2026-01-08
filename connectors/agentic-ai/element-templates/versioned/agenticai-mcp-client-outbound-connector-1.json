@@ -1,12 +1,12 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid MCP Client (early access)",
-  "id" : "io.camunda.connectors.agenticai.mcp.client.v0-hybrid",
+  "name" : "MCP Client (early access)",
+  "id" : "io.camunda.connectors.agenticai.mcp.client.v0",
   "description" : "MCP (Model Context Protocol) client using MCP connections configured on the connector runtime.",
   "metadata" : {
     "keywords" : [ ]
   },
-  "version" : 2,
+  "version" : 1,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -19,9 +19,6 @@
     "camunda" : "^8.9"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "client",
     "label" : "MCP Client"
   }, {
@@ -49,14 +46,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda.agenticai:mcpclient:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "value" : "mcpClient",
     "binding" : {
@@ -124,9 +119,6 @@
     }, {
       "name" : "List Tools",
       "value" : "tools/list"
-    }, {
-      "name" : "List Resources",
-      "value" : "resources/list"
     } ]
   }, {
     "id" : "data.connectorMode.operation.toolName",
@@ -246,7 +238,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "2",
+    "value" : "1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",

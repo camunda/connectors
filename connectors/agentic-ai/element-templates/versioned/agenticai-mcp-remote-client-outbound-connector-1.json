@@ -6,7 +6,7 @@
   "metadata" : {
     "keywords" : [ ]
   },
-  "version" : 2,
+  "version" : 1,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -780,9 +780,6 @@
     }, {
       "name" : "List Tools",
       "value" : "tools/list"
-    }, {
-      "name" : "List Resources",
-      "value" : "resources/list"
     } ]
   }, {
     "id" : "data.connectorMode.operation.toolName",
@@ -902,7 +899,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "2",
+    "value" : "1",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
