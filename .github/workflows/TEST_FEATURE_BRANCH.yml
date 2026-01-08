@@ -108,13 +108,13 @@ jobs:
         run: mvn --batch-mode clean test -PcheckFormat -Dquickly
 
       - name: Publish Test Report
-        if: always()
+        if: always() && steps.internal.outputs.internal == 'true'
         uses: scacap/action-surefire-report@v1
         with:
           check_name: 'Publish Test Report'
 
       - name: Upload detailed surefire reports
-        if: always()
+        if: always() && steps.internal.outputs.internal == 'true'
         uses: actions/upload-artifact@v6
         with:
           name: surefire-reports
