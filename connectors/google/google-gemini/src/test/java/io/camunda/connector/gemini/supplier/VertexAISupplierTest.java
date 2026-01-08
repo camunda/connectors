@@ -45,7 +45,7 @@ class VertexAISupplierTest {
     return new GeminiRequestData(
         "project",
         "region",
-        ModelVersion.GEMINI_1_5_FLASH_001,
+        ModelVersion.GEMINI_2_5_FLASH,
         List.of("text"),
         "systemInstr",
         false,
