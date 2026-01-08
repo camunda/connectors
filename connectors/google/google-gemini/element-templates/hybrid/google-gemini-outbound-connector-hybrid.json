@@ -194,26 +194,23 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "gemini-1.5-flash-001",
-      "value" : "GEMINI_1_5_FLASH_001"
+      "name" : "gemini-2.5-pro",
+      "value" : "GEMINI_2_5_PRO"
     }, {
-      "name" : "gemini-1.5-flash-002",
-      "value" : "GEMINI_1_5_FLASH_002"
+      "name" : "gemini-2.5-flash",
+      "value" : "GEMINI_2_5_FLASH"
     }, {
-      "name" : "gemini-1.5-pro-001",
-      "value" : "GEMINI_1_5_PRO_001"
+      "name" : "gemini-2.5-flash-image",
+      "value" : "GEMINI_2_5_FLASH_IMAGE"
     }, {
-      "name" : "gemini-1.5-pro-002",
-      "value" : "GEMINI_1_5_PRO_002"
+      "name" : "gemini-2.5-flash-lite",
+      "value" : "GEMINI_2_5_FLASH_LITE"
     }, {
-      "name" : "gemini-1.0-pro-001",
-      "value" : "GEMINI_1_0_PRO_001"
+      "name" : "gemini-2.0-flash",
+      "value" : "GEMINI_2_0_FLASH"
     }, {
-      "name" : "gemini-1.0-pro-002",
-      "value" : "GEMINI_1_0_PRO_002"
-    }, {
-      "name" : "gemini-1.0-pro-vision-001",
-      "value" : "GEMINI_1_0_PRO_VISION_001"
+      "name" : "gemini-2.0-flash-lite",
+      "value" : "GEMINI_2_0_FLASH_LITE"
     } ]
   }, {
     "id" : "input.prompts",
@@ -242,7 +239,7 @@
     },
     "condition" : {
       "property" : "input.model",
-      "oneOf" : [ "GEMINI_1_5_FLASH_001", "GEMINI_1_5_FLASH_002", "GEMINI_1_5_PRO_001", "GEMINI_1_5_PRO_002", "GEMINI_1_0_PRO_002" ],
+      "oneOf" : [ "GEMINI_2_5_PRO", "GEMINI_2_5_FLASH", "GEMINI_2_5_FLASH_IMAGE", "GEMINI_2_5_FLASH_LITE", "GEMINI_2_0_FLASH", "GEMINI_2_0_FLASH_LITE" ],
       "type" : "simple"
     },
     "tooltip" : "System instructions inform how the model should respond. Use them to give the model context to understand the task, provide more custom responses and adhere to specific guidelines. Instructions apply each time you send a request to the model.<a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/learn/prompts/system-instructions?hl=en\" Learn more about system instructions </a>",
@@ -503,11 +500,6 @@
     "binding" : {
       "name" : "input.topK",
       "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "input.model",
-      "equals" : "GEMINI_1_0_PRO_001",
-      "type" : "simple"
     },
     "tooltip" : "Top-K specifies the number of candidate tokens when the model is selecting an output token. Use a lower value for less random responses and a higher value for more random responses.",
     "type" : "Number"
