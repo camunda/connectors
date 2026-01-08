@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model.result;
 
-import io.camunda.connector.agenticai.model.tool.ResourceDescription;
 import java.util.List;
 
 public record McpClientListResourcesResult(List<ResourceDescription> resources)
