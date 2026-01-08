@@ -140,7 +140,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
     }
 
     final var aiMessage = chatResponse.aiMessage();
-    if (aiMessage.text() != null) {
+    if (StringUtils.isNotBlank(aiMessage.text())) {
       builder.content(List.of(TextContent.textContent(aiMessage.text())));
     }
 
