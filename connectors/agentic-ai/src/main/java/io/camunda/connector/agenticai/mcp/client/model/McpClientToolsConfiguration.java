@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model;
 
+import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
+import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -31,4 +33,9 @@ public record McpClientToolsConfiguration(
             type = TemplateProperty.PropertyType.Text,
             feel = Property.FeelMode.required,
             optional = true)
-        List<String> excluded) {}
+        List<String> excluded) {
+
+  public AllowDenyList toAllowDenyList() {
+    return AllowDenyListBuilder.builder().allowed(included).denied(excluded).build();
+  }
+}

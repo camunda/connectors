@@ -22,8 +22,9 @@ import java.util.Map;
       name = McpClientOperation.McpClientCallToolOperation.METHOD)
 })
 public sealed interface McpClientOperation
-    permits McpClientOperation.McpClientListToolsOperation,
-        McpClientOperation.McpClientCallToolOperation {
+    permits McpClientOperation.McpClientCallToolOperation,
+        McpClientOperation.McpClientListResourcesOperation,
+        McpClientOperation.McpClientListToolsOperation {
   String method();
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -53,5 +54,16 @@ public sealed interface McpClientOperation
     }
 
     public record McpClientCallToolOperationParams(String name, Map<String, Object> arguments) {}
+  }
+
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  record McpClientListResourcesOperation() implements McpClientOperation {
+    public static final String METHOD = "resources/list";
+
+    @Override
+    public String method() {
+      return METHOD;
+    }
   }
 }
