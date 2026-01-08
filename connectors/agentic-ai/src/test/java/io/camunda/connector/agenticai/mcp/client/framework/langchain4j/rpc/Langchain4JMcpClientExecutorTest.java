@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,12 +17,19 @@ import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourcesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import java.util.Map;
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -33,7 +41,7 @@ class Langchain4JMcpClientExecutorTest {
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Mock private ToolSpecificationConverter toolSpecificationConverter;
-  @Mock private McpClient mcpClient;
+  @Mock(strictness = Mock.Strictness.LENIENT) private McpClient mcpClient;
 
   private Langchain4JMcpClientExecutor executor;
 
@@ -67,5 +75,30 @@ class Langchain4JMcpClientExecutorTest {
     final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
 
     assertThat(result).isInstanceOf(McpClientListResourcesResult.class);
+  }
+
+  @Test
+  void returnsMcpListResourceTemplatesResult_whenListResourceTemplatesExecuted() {
+    final var operation = McpClientOperation.of("resources/templates/list");
+    final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
+
+    assertThat(result).isInstanceOf(McpClientListResourceTemplatesResult.class);
+  }
+
+  @ParameterizedTest
+  @MethodSource("unsupportedOperations")
+  void throwsUnsupportedOperationException_whenUnsupportedOperationIsAttempted(String unsupportedMethod) {
+    final var operation = McpClientOperation.of(unsupportedMethod);
+
+    assertThatThrownBy(() -> executor.execute(mcpClient, operation, EMPTY_FILTER))
+        .isInstanceOf(UnsupportedOperationException.class)
+        .hasMessageContaining("This operation is not supported yet: " + unsupportedMethod);
+  }
+
+  private static Stream<Arguments> unsupportedOperations() {
+    return Stream.of(
+        Arguments.of("resources/read"),
+        Arguments.of("prompts/list"),
+        Arguments.of("prompts/get"));
   }
 }

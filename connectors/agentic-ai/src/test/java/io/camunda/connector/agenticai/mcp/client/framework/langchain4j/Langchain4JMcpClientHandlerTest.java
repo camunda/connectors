@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
 
-import static io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.Operation.LIST_TOOLS;
+import static io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.Operation.*;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -31,6 +31,7 @@ import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfigura
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.List;
@@ -252,6 +253,52 @@ class Langchain4JMcpClientHandlerTest {
                                       .doesNotContainKey("arguments"))),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @Test
+    void handlesListResourcesRequest() {
+      final var request =
+              createStandaloneModeRequest(
+                      new McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration());
+      final var expectedResult = new McpClientListToolsResult(List.of());
+
+      when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(
+                      operation ->
+                              assertThat(operation)
+                                      .returns(LIST_RESOURCES, McpClientOperation::method)
+                                      .returns(Map.of(), McpClientOperation::parameters)),
+              eq(EMPTY_FILTER)))
+              .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @Test
+    void handlesListResourceTemplatesRequest() {
+      final var request =
+              createStandaloneModeRequest(
+                      new McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration());
+      final var expectedResult = new McpClientListResourceTemplatesResult(List.of());
+
+      when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(
+                      operation ->
+                              assertThat(operation)
+                                      .returns(LIST_RESOURCE_TEMPLATES, McpClientOperation::method)
+                                      .returns(Map.of(), McpClientOperation::parameters)),
+              eq(EMPTY_FILTER)))
+              .thenReturn(expectedResult);
 
       final var result = handler.handle(context, request);
 

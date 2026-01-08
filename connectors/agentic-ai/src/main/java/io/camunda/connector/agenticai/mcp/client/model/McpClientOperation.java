@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public sealed interface McpClientOperation permits McpClientOperation.McpClientOperationImpl {
 
@@ -45,10 +46,13 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
     LIST_TOOLS("tools/list"),
     CALL_TOOL("tools/call"),
     LIST_RESOURCES("resources/list"),
-    LIST_RESOURCE_TEMPLATES("resources/templates/list");
+    LIST_RESOURCE_TEMPLATES("resources/templates/list"),
+    READ_RESOURCE("resources/read"),
+    LIST_PROMPTS("prompts/list"),
+    GET_PROMPT("prompts/get");
 
     public static String supportedOperations() {
-      return Arrays.stream(Operation.values())
+      return Stream.of(LIST_TOOLS, CALL_TOOL, LIST_RESOURCES, LIST_RESOURCE_TEMPLATES)
           .map(op -> op.methodName)
           .collect(Collectors.joining("', '"));
     }
@@ -71,6 +75,10 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
 
     Operation(String methodName) {
       this.methodName = methodName;
+    }
+
+    public String methodName() {
+      return methodName;
     }
   }
 }
