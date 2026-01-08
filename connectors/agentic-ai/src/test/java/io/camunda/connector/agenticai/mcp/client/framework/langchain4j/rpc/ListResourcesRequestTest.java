@@ -7,13 +7,12 @@
 package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.McpResource;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourcesResult;
-import io.camunda.connector.agenticai.model.tool.ResourceDescription;
+import io.camunda.connector.agenticai.mcp.client.model.result.ResourceDescription;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
