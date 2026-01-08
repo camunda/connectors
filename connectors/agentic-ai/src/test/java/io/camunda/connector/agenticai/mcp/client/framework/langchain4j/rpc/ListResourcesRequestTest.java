@@ -12,8 +12,6 @@ import static org.mockito.Mockito.when;
 
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.McpResource;
-import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
-import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourcesResult;
 import io.camunda.connector.agenticai.model.tool.ResourceDescription;
 import java.util.Collections;
@@ -26,11 +24,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ListResourcesRequestTest {
 
-  private static final AllowDenyList EMPTY_FILTER = AllowDenyListBuilder.builder().build();
-
   @Mock private McpClient mcpClient;
 
-  private ListResourcesRequest testee = new ListResourcesRequest();
+  private final ListResourcesRequest testee = new ListResourcesRequest();
 
   @Test
   void returnsEmptyList_whenNoResourcesAvailable() {
