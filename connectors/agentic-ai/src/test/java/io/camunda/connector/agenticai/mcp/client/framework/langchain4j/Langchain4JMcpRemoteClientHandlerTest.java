@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
 
-import static io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.Operation.*;
-import static io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.Operation.LIST_RESOURCE_TEMPLATES;
+import static io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpMethod.*;
+import static io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpMethod.LIST_RESOURCE_TEMPLATES;
 import static io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration.*;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;

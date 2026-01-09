@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 
 public sealed interface McpClientOperation permits McpClientOperation.McpClientOperationImpl {
 
-  Operation method();
+  McpMethod method();
 
   Map<String, Object> params();
 
@@ -24,24 +24,11 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
   }
 
   static McpClientOperation of(String method, Map<String, Object> parameters) {
-    Operation operation = Operation.valueFrom(method);
+    McpMethod operation = McpMethod.valueFrom(method);
     return new McpClientOperationImpl(operation, parameters);
   }
 
-  record McpClientOperationImpl(
-      @JsonIgnore Operation operation,
-      @JsonInclude(JsonInclude.Include.NON_EMPTY) @JsonProperty("params")
-          Map<String, Object> params)
-      implements McpClientOperation {
-
-    @Override
-    @JsonGetter("method")
-    public Operation method() {
-      return operation;
-    }
-  }
-
-  enum Operation {
+  enum McpMethod {
     LIST_TOOLS("tools/list"),
     CALL_TOOL("tools/call"),
     LIST_RESOURCES("resources/list"),
@@ -57,8 +44,8 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
     }
 
     @JsonCreator
-    public static Operation valueFrom(String method) {
-      for (Operation operation : values()) {
+    public static McpMethod valueFrom(String method) {
+      for (McpMethod operation : values()) {
         if (operation.methodName.equals(method)) {
           return operation;
         }
@@ -72,7 +59,7 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
 
     @JsonValue private final String methodName;
 
-    Operation(String methodName) {
+    McpMethod(String methodName) {
       this.methodName = methodName;
     }
 
@@ -80,4 +67,8 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
       return methodName;
     }
   }
+
+  record McpClientOperationImpl(
+      McpMethod method, @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> params)
+      implements McpClientOperation {}
 }
