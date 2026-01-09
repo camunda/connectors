@@ -37,7 +37,7 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
     LIST_PROMPTS("prompts/list"),
     GET_PROMPT("prompts/get");
 
-    public static String supportedOperations() {
+    private static String supportedMethods() {
       return Stream.of(LIST_TOOLS, CALL_TOOL, LIST_RESOURCES, LIST_RESOURCE_TEMPLATES)
           .map(op -> op.methodName)
           .collect(Collectors.joining("', '"));
@@ -54,7 +54,7 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
           "MCP_CLIENT_UNSUPPORTED_OPERATION",
           String.format(
               "Unsupported MCP method '%s'. Supported operations: '%s'",
-              rawMethod, String.join("', '", supportedOperations())));
+              rawMethod, String.join("', '", supportedMethods())));
     }
 
     @JsonValue private final String methodName;
