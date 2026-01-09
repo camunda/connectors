@@ -1,4 +1,3 @@
-
 name: Integration test
 
 on:
@@ -32,52 +31,142 @@ jobs:
     runs-on: ubuntu-latest
     name: Prepare inputs
     outputs:
+      connectors-registry: ${{ steps.determine-connectors-version.outputs.connectors-registry }}
+      connectors-repository: ${{ steps.determine-connectors-version.outputs.connectors-repository }}
       connectors-version: ${{ steps.determine-connectors-version.outputs.connectors-version }}
       helm-dir: ${{ steps.determine-helm-dir.outputs.helm-dir }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install jq
         run: sudo apt-get install jq
 
+      - name: Log workflow context
+        run: |
+          echo "=== Workflow Context ==="
+          echo "github.ref: ${{ github.ref }}"
+          echo "github.ref_name: ${{ github.ref_name }}"
+          echo "github.event_name: ${{ github.event_name }}"
+          echo "inputs.connectors-version: '${{ inputs.connectors-version }}'"
+          echo "inputs.helm-dir: '${{ inputs.helm-dir }}'"
+          echo "inputs.release-branch: '${{ inputs.release-branch }}'"
+
       - name: Determine current Maven project version
         id: maven-version
         run: |
-          echo "version=$(grep -oPm1 "(?<=<version>)[^<]+" "pom.xml")" >> $GITHUB_OUTPUT
+          MAVEN_VERSION=$(grep -oPm1 "(?<=<version>)[^<]+" "pom.xml")
+          echo "Detected Maven project version: ${MAVEN_VERSION}"
+          echo "version=${MAVEN_VERSION}" >> $GITHUB_OUTPUT
 
       - name: Determine version of the Connectors image to use
         id: determine-connectors-version
         run: |
-          if [ -z "${{ inputs.connectors-version }}" ]; then
-            if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-              echo "connectors-version=SNAPSHOT" >> $GITHUB_OUTPUT
-            else
-              echo "connectors-version=${{ steps.maven-version.outputs.version }}" >> $GITHUB_OUTPUT
-            fi
+          echo "=== Determining Connectors version ==="
+          echo "Checking conditions..."
+          echo "  - inputs.connectors-version is set: ${{ inputs.connectors-version != '' }}"
+          echo "  - github.ref == refs/heads/main: ${{ github.ref == 'refs/heads/main' }}"
+          echo "  - Maven project version: ${{ steps.maven-version.outputs.version }}"
+          
+          # Defaults: internal registry for feature branches and explicit versions
+          REGISTRY="registry.camunda.cloud"
+          REPOSITORY="team-connectors/connectors-bundle"
+          
+          if [ -n "${{ inputs.connectors-version }}" ]; then
+            # Explicit version provided
+            echo ">>> Branch taken: EXPLICIT VERSION PROVIDED"
+            echo "Using explicit connectors-version input: '${{ inputs.connectors-version }}'"
+            VERSION="${{ inputs.connectors-version }}"
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            # Main branch: use Docker Hub public image (empty registry)
+            echo ">>> Branch taken: MAIN BRANCH"
+            echo "Using Docker Hub public image with SNAPSHOT version"
+            REGISTRY=""
+            REPOSITORY="camunda/connectors-bundle"
+            VERSION="SNAPSHOT"
           else
-            echo "connectors-version=${{ inputs.connectors-version }}" >> $GITHUB_OUTPUT
+            # Feature branch: use Maven project version
+            echo ">>> Branch taken: FEATURE BRANCH"
+            echo "Using Maven project version from internal registry"
+            VERSION="${{ steps.maven-version.outputs.version }}"
           fi
+          
+          echo ""
+          echo "=== Resolved Connectors Image Configuration ==="
+          echo "Registry: '${REGISTRY}'"
+          echo "Repository: '${REPOSITORY}'"
+          echo "Version/Tag: '${VERSION}'"
+          
+          {
+            echo "connectors-registry=${REGISTRY}"
+            echo "connectors-repository=${REPOSITORY}"
+            echo "connectors-version=${VERSION}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Determine Helm chart directory to use
         id: determine-helm-dir
         run: |
+          echo "=== Determining Helm chart directory ==="
+          echo "Checking conditions..."
+          echo "  - inputs.helm-dir is set: ${{ inputs.helm-dir != '' }}"
+          echo "  - inputs.release-branch: '${{ inputs.release-branch }}'"
+          echo "  - github.ref_name: '${{ github.ref_name }}'"
+          
           if [ -z "${{ inputs.helm-dir }}" ]; then
-            helm_dir_from_map=$(jq -r ".[\"${{ inputs.release-branch || github.ref_name }}\"]" .github/workflows/helm-git-refs.json)
+            echo ">>> Branch taken: LOOKUP FROM helm-git-refs.json"
+            LOOKUP_KEY="${{ inputs.release-branch || github.ref_name }}"
+            echo "Initial lookup key: '${LOOKUP_KEY}'"
+            
+            # Transform release-x.y.z branches to their base branch for lookup
+            # Format: release-x.y.z(-alphaN)?(-rcM)?
+            if [[ "$LOOKUP_KEY" =~ ^release-([0-9]+)\.([0-9]+)\.[0-9]+ ]]; then
+              MAJOR="${BASH_REMATCH[1]}"
+              MINOR="${BASH_REMATCH[2]}"
+              if [[ "$LOOKUP_KEY" == *"alpha"* ]]; then
+                # Alpha releases use main as base
+                LOOKUP_KEY="main"
+                echo "Detected alpha release branch, using 'main' as lookup key"
+              else
+                # Regular releases (including RC) use stable/x.y as base
+                LOOKUP_KEY="stable/${MAJOR}.${MINOR}"
+                echo "Detected release branch, transformed to '${LOOKUP_KEY}'"
+              fi
+            fi
+            
+            echo "Final lookup key: '${LOOKUP_KEY}'"
+            helm_dir_from_map=$(jq -r ".[\"${LOOKUP_KEY}\"]" .github/workflows/helm-git-refs.json)
+            echo "Found helm-dir: '${helm_dir_from_map}'"
             if [ -z "$helm_dir_from_map" ] || [ "$helm_dir_from_map" == "null" ]; then
               echo "::error::Could not determine Helm chart dir to use, please provide helm-dir input or adjust the mappings in .github/workflows/helm-git-refs.json"
               exit 1
             fi
             echo "helm-dir=$helm_dir_from_map" >> $GITHUB_OUTPUT
           else
+            echo ">>> Branch taken: EXPLICIT HELM-DIR PROVIDED"
+            echo "Using explicit helm-dir input: '${{ inputs.helm-dir }}'"
             echo "helm-dir=${{ inputs.helm-dir }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Log results
         run: |
-          echo "Connectors version: ${{ steps.determine-connectors-version.outputs.connectors-version }}"
-          echo "Helm dir: ${{ steps.determine-helm-dir.outputs.helm-dir }}"
+          echo ""
+          echo "=========================================="
+          echo "=== FINAL RESOLVED CONFIGURATION ==="
+          echo "=========================================="
+          echo "Connectors registry: '${{ steps.determine-connectors-version.outputs.connectors-registry }}'"
+          echo "Connectors repository: '${{ steps.determine-connectors-version.outputs.connectors-repository }}'"
+          echo "Connectors version: '${{ steps.determine-connectors-version.outputs.connectors-version }}'"
+          echo "Helm dir: '${{ steps.determine-helm-dir.outputs.helm-dir }}'"
+          echo ""
+          if [ -n "${{ steps.determine-connectors-version.outputs.connectors-registry }}" ]; then
+            FULL_IMAGE="${{ steps.determine-connectors-version.outputs.connectors-registry }}/${{ steps.determine-connectors-version.outputs.connectors-repository }}:${{ steps.determine-connectors-version.outputs.connectors-version }}"
+          else
+            FULL_IMAGE="${{ steps.determine-connectors-version.outputs.connectors-repository }}:${{ steps.determine-connectors-version.outputs.connectors-version }}"
+          fi
+          echo "Full Docker image: ${FULL_IMAGE}"
+          echo "=========================================="
 
   helm-deploy:
+    if: github.ref != 'refs/heads/main' && !contains(github.event.pull_request.labels.*.name, 'skip-helm-deploy')
     needs: prepare-inputs
     name: Helm chart Integration Tests
     uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@main
@@ -85,8 +174,24 @@ jobs:
     with:
       identifier: connectors-int-${{ github.run_id }}
       camunda-helm-dir: ${{ needs.prepare-inputs.outputs.helm-dir }}
+      camunda-helm-git-ref: main
+      # test-enabled enables testing generally, both IT and E2E tests.
       test-enabled: true
+      # e2e-enabled is our way to disable E2E tests if needed.
+      e2e-enabled: true
+      # This scenario installs a full Camunda 8 cluster with Keycloak and Elasticsearch being external. 
+      # This keycloak realm and elasticsearch prefixes are all randomly generated at installation time.
+      scenario: keycloak-original
+      shortname: keyco
+      # Github does not guarantee that the cleanup job will run. So we need to use flags. Within the helm CI the max ttl for a namespace is set.
+      # That max ttl can be overridden by setting the deployment-ttl to a non-empty value.
+      # When always-delete-namespace is true, and ttl is empty, the namespace is deleted after the test run.
+      # If ttl is non-empty, the namespace is not deleted after the test run.
+      deployment-ttl: ""
+      always-delete-namespace: true
       extra-values: |
         connectors:
           image:
+            registry: ${{ needs.prepare-inputs.outputs.connectors-registry }}
+            repository: ${{ needs.prepare-inputs.outputs.connectors-repository }}
             tag: ${{ needs.prepare-inputs.outputs.connectors-version }}
