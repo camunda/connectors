@@ -23,9 +23,9 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
     return of(method, Collections.emptyMap());
   }
 
-  static McpClientOperation of(String method, Map<String, Object> parameters) {
+  static McpClientOperation of(String method, Map<String, Object> params) {
     McpMethod operation = McpMethod.valueFrom(method);
-    return new McpClientOperationImpl(operation, parameters);
+    return new McpClientOperationImpl(operation, params);
   }
 
   enum McpMethod {
@@ -44,17 +44,17 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
     }
 
     @JsonCreator
-    public static McpMethod valueFrom(String method) {
-      for (McpMethod operation : values()) {
-        if (operation.methodName.equals(method)) {
-          return operation;
+    public static McpMethod valueFrom(String rawMethod) {
+      for (McpMethod method : values()) {
+        if (method.methodName.equals(rawMethod)) {
+          return method;
         }
       }
       throw new ConnectorException(
           "MCP_CLIENT_UNSUPPORTED_OPERATION",
           String.format(
-              "Unsupported MCP operation '%s'. Supported operations: '%s'",
-              method, String.join("', '", supportedOperations())));
+              "Unsupported MCP method '%s'. Supported operations: '%s'",
+              rawMethod, String.join("', '", supportedOperations())));
     }
 
     @JsonValue private final String methodName;
