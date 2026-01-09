@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
 
+import static io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpMethod.*;
+import static io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpMethod.LIST_RESOURCE_TEMPLATES;
 import static io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration.*;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -18,17 +20,13 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
-import io.camunda.connector.agenticai.mcp.client.McpClientOperationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientListToolsOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientToolsConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.StandaloneModeConfiguration;
@@ -44,12 +42,14 @@ import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationCon
 import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.CallToolOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListToolsOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -58,7 +58,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Answers;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -91,12 +90,6 @@ class Langchain4JMcpRemoteClientHandlerTest {
       new McpClientToolsConfiguration(List.of(), List.of());
   private static final FilterOptions EMPTY_FILTER = FilterOptionsBuilder.builder().build();
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
-
-  @Spy
-  private final McpClientOperationConverter operationConverter =
-      new McpClientOperationConverter(objectMapper);
-
   @Mock private McpRemoteClientRegistry<McpClient> remoteClientRegistry;
   @Mock private Langchain4JMcpClientExecutor clientExecutor;
 
@@ -112,22 +105,7 @@ class Langchain4JMcpRemoteClientHandlerTest {
     when(context.getJobContext().getProcessDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
     when(context.getJobContext().getElementId()).thenReturn(ELEMENT_ID);
 
-    handler =
-        new Langchain4JMcpRemoteClientHandler(
-            operationConverter, remoteClientRegistry, clientExecutor);
-  }
-
-  @ParameterizedTest
-  @MethodSource(
-      "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
-  void throwsExceptionWhenOperationConversionFails(
-      McpRemoteClientTransportConfiguration transport) {
-    final var request = createToolModeRequest(transport, false, LIST_TOOLS_OPERATION);
-
-    final var exception = new IllegalArgumentException("Failed to convert operation");
-    when(operationConverter.convertOperation(request.data().connectorMode())).thenThrow(exception);
-
-    assertThatThrownBy(() -> handler.handle(context, request)).isEqualTo(exception);
+    handler = new Langchain4JMcpRemoteClientHandler(remoteClientRegistry, clientExecutor);
   }
 
   @ParameterizedTest
@@ -176,7 +154,9 @@ class Langchain4JMcpRemoteClientHandlerTest {
               eq(mcpClient),
               assertArg(
                   operation ->
-                      assertThat(operation).isInstanceOf(McpClientListToolsOperation.class)),
+                      assertThat(operation)
+                          .returns(LIST_TOOLS, McpClientOperation::method)
+                          .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -206,12 +186,16 @@ class Langchain4JMcpRemoteClientHandlerTest {
                   operation ->
                       assertThat(operation)
                           .isInstanceOfSatisfying(
-                              McpClientCallToolOperation.class,
-                              op -> {
-                                assertThat(op.params().name()).isEqualTo("test-tool");
-                                assertThat(op.params().arguments())
-                                    .containsExactlyEntriesOf(arguments);
-                              })),
+                              McpClientOperation.McpClientOperationImpl.class,
+                              op ->
+                                  assertThat(op.params())
+                                      .containsEntry("name", "test-tool")
+                                      .hasEntrySatisfying(
+                                          "arguments",
+                                          args ->
+                                              assertThat(args)
+                                                  .asInstanceOf(InstanceOfAssertFactories.MAP)
+                                                  .containsExactlyEntriesOf(arguments)))),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -237,7 +221,9 @@ class Langchain4JMcpRemoteClientHandlerTest {
               eq(mcpClient),
               assertArg(
                   operation ->
-                      assertThat(operation).isInstanceOf(McpClientListToolsOperation.class)),
+                      assertThat(operation)
+                          .returns(LIST_TOOLS, McpClientOperation::method)
+                          .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -264,11 +250,17 @@ class Langchain4JMcpRemoteClientHandlerTest {
                   operation ->
                       assertThat(operation)
                           .isInstanceOfSatisfying(
-                              McpClientCallToolOperation.class,
+                              McpClientOperation.McpClientOperationImpl.class,
                               op -> {
-                                assertThat(op.params().name()).isEqualTo("test-tool");
-                                assertThat(op.params().arguments())
-                                    .containsExactlyEntriesOf(arguments);
+                                assertThat(op.method()).isEqualTo(CALL_TOOL);
+                                assertThat(op.params())
+                                    .containsEntry("name", "test-tool")
+                                    .hasEntrySatisfying(
+                                        "arguments",
+                                        args ->
+                                            assertThat(args)
+                                                .asInstanceOf(InstanceOfAssertFactories.MAP)
+                                                .containsExactlyEntriesOf(arguments));
                               })),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
@@ -295,11 +287,66 @@ class Langchain4JMcpRemoteClientHandlerTest {
                   operation ->
                       assertThat(operation)
                           .isInstanceOfSatisfying(
-                              McpClientCallToolOperation.class,
-                              op -> {
-                                assertThat(op.params().name()).isEqualTo("test-tool");
-                                assertThat(op.params().arguments()).isNull();
-                              })),
+                              McpClientOperation.McpClientOperationImpl.class,
+                              op ->
+                                  assertThat(op.params())
+                                      .containsEntry("name", "test-tool")
+                                      .doesNotContainKey("arguments"))),
+              eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
+    void handlesListResourcesRequest(McpRemoteClientTransportConfiguration transport) {
+      final var request =
+          createStandaloneModeRequest(
+              transport,
+              false,
+              new McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration());
+      final var expectedResult = new McpClientListToolsResult(List.of());
+
+      when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(
+                  operation ->
+                      assertThat(operation)
+                          .returns(LIST_RESOURCES, McpClientOperation::method)
+                          .returns(Map.of(), McpClientOperation::params)),
+              eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
+    void handlesListResourceTemplatesRequest(McpRemoteClientTransportConfiguration transport) {
+      final var request =
+          createStandaloneModeRequest(
+              transport,
+              false,
+              new McpStandaloneOperationConfiguration
+                  .ListResourceTemplatesOperationConfiguration());
+      final var expectedResult = new McpClientListResourceTemplatesResult(List.of());
+
+      when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(
+                  operation ->
+                      assertThat(operation)
+                          .returns(LIST_RESOURCE_TEMPLATES, McpClientOperation::method)
+                          .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 

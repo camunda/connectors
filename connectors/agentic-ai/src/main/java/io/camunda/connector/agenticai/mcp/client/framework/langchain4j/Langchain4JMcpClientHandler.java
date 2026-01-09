@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
 
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpClientHandler;
-import io.camunda.connector.agenticai.mcp.client.McpClientOperationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
@@ -23,15 +22,11 @@ import org.slf4j.LoggerFactory;
 public class Langchain4JMcpClientHandler implements McpClientHandler {
   private static final Logger LOGGER = LoggerFactory.getLogger(Langchain4JMcpClientHandler.class);
 
-  private final McpClientOperationConverter operationConverter;
   private final McpClientRegistry<McpClient> clientRegistry;
   private final Langchain4JMcpClientExecutor clientExecutor;
 
   public Langchain4JMcpClientHandler(
-      McpClientOperationConverter operationConverter,
-      McpClientRegistry<McpClient> clientRegistry,
-      Langchain4JMcpClientExecutor clientExecutor) {
-    this.operationConverter = operationConverter;
+      McpClientRegistry<McpClient> clientRegistry, Langchain4JMcpClientExecutor clientExecutor) {
     this.clientRegistry = clientRegistry;
     this.clientExecutor = clientExecutor;
   }
@@ -39,7 +34,7 @@ public class Langchain4JMcpClientHandler implements McpClientHandler {
   @Override
   public McpClientResult handle(OutboundConnectorContext context, McpClientRequest request) {
     final var clientId = request.data().client().clientId();
-    final var operation = operationConverter.convertOperation(request.data().connectorMode());
+    final var operation = request.data().connectorMode().toMcpClientOperation();
 
     LOGGER.debug(
         "MCP({}): Handling operation '{}' on runtime-configured client",
