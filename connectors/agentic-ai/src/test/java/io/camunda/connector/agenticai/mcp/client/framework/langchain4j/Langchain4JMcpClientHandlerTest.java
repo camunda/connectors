@@ -108,7 +108,7 @@ class Langchain4JMcpClientHandlerTest {
                   operation ->
                       assertThat(operation)
                           .returns(LIST_TOOLS, McpClientOperation::method)
-                          .returns(Map.of(), McpClientOperation::parameters)),
+                          .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -137,7 +137,7 @@ class Langchain4JMcpClientHandlerTest {
                           .isInstanceOfSatisfying(
                               McpClientOperation.McpClientOperationImpl.class,
                               op ->
-                                  assertThat(op.parameters())
+                                  assertThat(op.params())
                                       .containsEntry("name", "test-tool")
                                       .hasEntrySatisfying(
                                           "arguments",
@@ -170,7 +170,7 @@ class Langchain4JMcpClientHandlerTest {
                   operation ->
                       assertThat(operation)
                           .returns(LIST_TOOLS, McpClientOperation::method)
-                          .returns(Map.of(), McpClientOperation::parameters)),
+                          .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -199,7 +199,7 @@ class Langchain4JMcpClientHandlerTest {
                           .isInstanceOfSatisfying(
                               McpClientOperation.McpClientOperationImpl.class,
                               op ->
-                                  assertThat(op.parameters())
+                                  assertThat(op.params())
                                       .containsEntry("name", "test-tool")
                                       .hasEntrySatisfying(
                                           "arguments",
@@ -233,7 +233,7 @@ class Langchain4JMcpClientHandlerTest {
                           .isInstanceOfSatisfying(
                               McpClientOperation.McpClientOperationImpl.class,
                               op ->
-                                  assertThat(op.parameters())
+                                  assertThat(op.params())
                                       .containsEntry("name", "test-tool")
                                       .doesNotContainKey("arguments"))),
               eq(EMPTY_FILTER)))
@@ -258,7 +258,7 @@ class Langchain4JMcpClientHandlerTest {
                   operation ->
                       assertThat(operation)
                           .returns(LIST_RESOURCES, McpClientOperation::method)
-                          .returns(Map.of(), McpClientOperation::parameters)),
+                          .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -282,7 +282,7 @@ class Langchain4JMcpClientHandlerTest {
                   operation ->
                       assertThat(operation)
                           .returns(LIST_RESOURCE_TEMPLATES, McpClientOperation::method)
-                          .returns(Map.of(), McpClientOperation::parameters)),
+                          .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 

@@ -64,7 +64,7 @@ public sealed interface McpConnectorModeConfiguration
 
     @Override
     public McpClientOperation toMcpClientOperation() {
-      return McpClientOperation.of(operation.method(), operation.parameters().orElseGet(Map::of));
+      return McpClientOperation.of(operation.method(), operation.params().orElseGet(Map::of));
     }
   }
 }
