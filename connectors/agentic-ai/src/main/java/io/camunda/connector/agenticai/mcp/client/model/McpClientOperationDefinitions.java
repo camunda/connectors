@@ -20,7 +20,7 @@ public class McpClientOperationDefinitions {
    * @return McpClientOperation instance for listing tools
    */
   public static McpClientOperation listTools() {
-    return McpClientOperation.of(McpClientOperation.Operation.LIST_TOOLS.methodName());
+    return McpClientOperation.of(McpClientOperation.McpMethod.LIST_TOOLS.methodName());
   }
 
   /**
@@ -32,7 +32,7 @@ public class McpClientOperationDefinitions {
    */
   public static McpClientOperation callTool(String toolName, Map<String, Object> toolArguments) {
     return McpClientOperation.of(
-        McpClientOperation.Operation.CALL_TOOL.methodName(),
+        McpClientOperation.McpMethod.CALL_TOOL.methodName(),
         Map.of(
             "name", toolName,
             "arguments", toolArguments));
