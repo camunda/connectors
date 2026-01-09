@@ -3,19 +3,30 @@ name: Integration test
 on:
   workflow_call:
     inputs:
+      image-source:
+        description: 'Where the connector image is hosted: dockerhub or artifactory'
+        required: true
+        type: string
       connectors-version:
-        description: 'The version of the Connectors to test. If not provided, the version is determined based on the Maven project version. On main branch, the default is SNAPSHOT'
-        required: false
+        description: 'The version/tag of the Connectors image to test'
+        required: true
         type: string
       release-branch:
-        description: 'Connectors release branch containing code to test. If not provided, the Helm directory is determined based on the ref this workflow was triggered on (see helm-git-refs.json)'
-        required: false
+        description: 'Connectors release branch containing code to test. Used to determine the Helm chart directory via helm-git-refs.json'
+        required: true
         type: string
   workflow_dispatch:
     inputs:
+      image-source:
+        description: 'Where the connector image is hosted'
+        required: true
+        type: choice
+        options:
+          - dockerhub
+          - artifactory
       connectors-version:
-        description: 'The version of the Connectors to test. If not provided, the version is determined based on the Maven project version. On main branch, the default is SNAPSHOT'
-        required: false
+        description: 'The version/tag of the Connectors image to test'
+        required: true
       helm-dir:
         description: 'The camunda-platform-helm/charts directory of the Helm chart to test against. If not provided, the directory is determined based on the ref this workflow was triggered on (see helm-git-refs.json)'
         required: false
@@ -47,48 +58,30 @@ jobs:
           echo "github.ref: ${{ github.ref }}"
           echo "github.ref_name: ${{ github.ref_name }}"
           echo "github.event_name: ${{ github.event_name }}"
+          echo "inputs.image-source: '${{ inputs.image-source }}'"
           echo "inputs.connectors-version: '${{ inputs.connectors-version }}'"
           echo "inputs.helm-dir: '${{ inputs.helm-dir }}'"
           echo "inputs.release-branch: '${{ inputs.release-branch }}'"
 
-      - name: Determine current Maven project version
-        id: maven-version
-        run: |
-          MAVEN_VERSION=$(grep -oPm1 "(?<=<version>)[^<]+" "pom.xml")
-          echo "Detected Maven project version: ${MAVEN_VERSION}"
-          echo "version=${MAVEN_VERSION}" >> $GITHUB_OUTPUT
-
       - name: Determine version of the Connectors image to use
         id: determine-connectors-version
         run: |
-          echo "=== Determining Connectors version ==="
-          echo "Checking conditions..."
-          echo "  - inputs.connectors-version is set: ${{ inputs.connectors-version != '' }}"
-          echo "  - github.ref == refs/heads/main: ${{ github.ref == 'refs/heads/main' }}"
-          echo "  - Maven project version: ${{ steps.maven-version.outputs.version }}"
+          echo "=== Determining Connectors image source ==="
+          echo "inputs.image-source: '${{ inputs.image-source }}'"
+          echo "inputs.connectors-version: '${{ inputs.connectors-version }}'"
           
-          # Defaults: internal registry for feature branches and explicit versions
-          REGISTRY="registry.camunda.cloud"
-          REPOSITORY="team-connectors/connectors-bundle"
-          
-          if [ -n "${{ inputs.connectors-version }}" ]; then
-            # Explicit version provided
-            echo ">>> Branch taken: EXPLICIT VERSION PROVIDED"
-            echo "Using explicit connectors-version input: '${{ inputs.connectors-version }}'"
-            VERSION="${{ inputs.connectors-version }}"
-          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            # Main branch: use Docker Hub public image (empty registry)
-            echo ">>> Branch taken: MAIN BRANCH"
-            echo "Using Docker Hub public image with SNAPSHOT version"
+          if [[ "${{ inputs.image-source }}" == "dockerhub" ]]; then
             REGISTRY=""
             REPOSITORY="camunda/connectors-bundle"
-            VERSION="SNAPSHOT"
+          elif [[ "${{ inputs.image-source }}" == "artifactory" ]]; then
+            REGISTRY="registry.camunda.cloud"
+            REPOSITORY="team-connectors/connectors-bundle"
           else
-            # Feature branch: use Maven project version
-            echo ">>> Branch taken: FEATURE BRANCH"
-            echo "Using Maven project version from internal registry"
-            VERSION="${{ steps.maven-version.outputs.version }}"
+            echo "::error::Invalid image-source '${{ inputs.image-source }}'. Must be 'dockerhub' or 'artifactory'"
+            exit 1
           fi
+          
+          VERSION="${{ inputs.connectors-version }}"
           
           echo ""
           echo "=== Resolved Connectors Image Configuration ==="
