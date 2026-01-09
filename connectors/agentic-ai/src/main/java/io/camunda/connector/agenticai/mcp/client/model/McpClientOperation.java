@@ -51,7 +51,7 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
         }
       }
       throw new ConnectorException(
-          "MCP_CLIENT_UNSUPPORTED_OPERATION",
+          "MCP_CLIENT_UNSUPPORTED_METHOD",
           String.format(
               "Unsupported MCP method '%s'. Supported operations: '%s'",
               rawMethod, String.join("', '", supportedMethods())));
