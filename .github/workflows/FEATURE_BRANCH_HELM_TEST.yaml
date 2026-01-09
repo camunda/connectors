@@ -105,5 +105,6 @@ jobs:
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
     with:
+      image-source: artifactory
       connectors-version: ${{ needs.build-image.outputs.connectors-version }}
       release-branch: main
