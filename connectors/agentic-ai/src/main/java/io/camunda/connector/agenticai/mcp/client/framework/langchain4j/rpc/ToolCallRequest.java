@@ -35,7 +35,7 @@ final class ToolCallRequest {
   public McpClientCallToolResult execute(
       McpClient client, AllowDenyList toolNameFilter, Map<String, Object> params) {
 
-    final var parameters = parseParameters(params);
+    final var parameters = parseParams(params);
     final var toolExecutionRequest = createToolExecutionRequest(parameters);
     if (!toolNameFilter.isPassing(toolExecutionRequest.name())) {
       LOGGER.error(
@@ -85,7 +85,7 @@ final class ToolCallRequest {
     }
   }
 
-  private ToolExecutionParameters parseParameters(Map<String, Object> params) {
+  private ToolExecutionParameters parseParams(Map<String, Object> params) {
     try {
       return objectMapper.convertValue(params, ToolExecutionParameters.class);
     } catch (IllegalArgumentException ex) {
@@ -95,22 +95,22 @@ final class ToolCallRequest {
     }
   }
 
-  private ToolExecutionRequest createToolExecutionRequest(ToolExecutionParameters parameters) {
-    if (parameters == null || parameters.name() == null) {
+  private ToolExecutionRequest createToolExecutionRequest(ToolExecutionParameters params) {
+    if (params == null || params.name() == null) {
       throw new IllegalArgumentException("Tool name must not be null");
     }
 
     final var arguments =
-        Optional.ofNullable(parameters.arguments()).orElseGet(Collections::emptyMap);
+        Optional.ofNullable(params.arguments()).orElseGet(Collections::emptyMap);
 
     try {
       return ToolExecutionRequest.builder()
-          .name(parameters.name())
+          .name(params.name())
           .arguments(objectMapper.writeValueAsString(arguments))
           .build();
     } catch (JsonProcessingException e) {
       throw new RuntimeException(
-          "Failed to create tool execution request for tool '%s'".formatted(parameters.name()), e);
+          "Failed to create tool execution request for tool '%s'".formatted(params.name()), e);
     }
   }
 
