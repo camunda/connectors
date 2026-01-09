@@ -786,11 +786,11 @@
       "name" : "List Tools",
       "value" : "tools/list"
     }, {
-      "name" : "List Resource Templates",
-      "value" : "resources/templates/list"
-    }, {
       "name" : "List Resources",
       "value" : "resources/list"
+    }, {
+      "name" : "List Resource Templates",
+      "value" : "resources/templates/list"
     }, {
       "name" : "List Prompts",
       "value" : "prompts/list"

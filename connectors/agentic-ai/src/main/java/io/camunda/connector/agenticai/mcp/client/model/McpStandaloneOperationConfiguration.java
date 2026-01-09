@@ -50,8 +50,8 @@ import java.util.Optional;
 public sealed interface McpStandaloneOperationConfiguration
     permits McpStandaloneOperationConfiguration.CallToolOperationConfiguration,
         McpStandaloneOperationConfiguration.ListToolsOperationConfiguration,
-        McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration,
         McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration,
+        McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration,
         McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration {
 
   String method();
