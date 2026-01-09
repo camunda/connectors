@@ -161,7 +161,7 @@ public sealed interface McpStandaloneOperationConfiguration
     }
 
     @Override
-    public Optional<Map<String, Object>> parameters() {
+    public Optional<Map<String, Object>> params() {
       return Optional.empty();
     }
   }
