@@ -93,7 +93,7 @@ class Langchain4JMcpClientExecutorTest {
 
     assertThatThrownBy(() -> executor.execute(mcpClient, operation, EMPTY_FILTER))
         .isInstanceOf(UnsupportedOperationException.class)
-        .hasMessageContaining("This operation is not supported yet: " + unsupportedMethod);
+        .hasMessageContaining("This method is not supported yet: " + unsupportedMethod);
   }
 
   private static Stream<Arguments> unsupportedOperations() {

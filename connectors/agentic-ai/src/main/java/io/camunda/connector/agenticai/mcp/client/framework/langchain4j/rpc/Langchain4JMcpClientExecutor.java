@@ -36,7 +36,7 @@ public class Langchain4JMcpClientExecutor {
       case LIST_RESOURCE_TEMPLATES -> new ListResourceTemplatesRequest().execute(client);
       case READ_RESOURCE, LIST_PROMPTS, GET_PROMPT ->
           throw new UnsupportedOperationException(
-              "This operation is not supported yet: " + operation.method().methodName());
+              "This method is not supported yet: " + operation.method().methodName());
     };
   }
 }
