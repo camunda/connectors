@@ -532,6 +532,7 @@ jobs:
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
     with:
+      image-source: dockerhub
       connectors-version: ${{ inputs.version }}
       release-branch: ${{ needs.setup.outputs.releaseBranch }}
 
