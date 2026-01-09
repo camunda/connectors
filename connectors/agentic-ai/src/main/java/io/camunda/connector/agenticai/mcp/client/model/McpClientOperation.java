@@ -17,7 +17,7 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
 
   Operation method();
 
-  Map<String, Object> parameters();
+  Map<String, Object> params();
 
   static McpClientOperation of(String method) {
     return of(method, Collections.emptyMap());
@@ -31,7 +31,7 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
   record McpClientOperationImpl(
       @JsonIgnore Operation operation,
       @JsonInclude(JsonInclude.Include.NON_EMPTY) @JsonProperty("params")
-          Map<String, Object> parameters)
+          Map<String, Object> params)
       implements McpClientOperation {
 
     @Override

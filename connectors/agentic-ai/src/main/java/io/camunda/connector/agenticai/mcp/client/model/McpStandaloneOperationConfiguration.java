@@ -51,7 +51,7 @@ public sealed interface McpStandaloneOperationConfiguration
 
   String method();
 
-  Optional<Map<String, Object>> parameters();
+  Optional<Map<String, Object>> params();
 
   @TemplateSubType(id = LIST_TOOLS_ID, label = "List Tools")
   record ListToolsOperationConfiguration() implements McpStandaloneOperationConfiguration {
@@ -65,7 +65,7 @@ public sealed interface McpStandaloneOperationConfiguration
     }
 
     @Override
-    public Optional<Map<String, Object>> parameters() {
+    public Optional<Map<String, Object>> params() {
       return Optional.empty();
     }
   }
@@ -101,7 +101,7 @@ public sealed interface McpStandaloneOperationConfiguration
     }
 
     @Override
-    public Optional<Map<String, Object>> parameters() {
+    public Optional<Map<String, Object>> params() {
       if (toolArguments == null || toolArguments.isEmpty()) {
         return Optional.of(Map.of("name", toolName));
       }
@@ -121,7 +121,7 @@ public sealed interface McpStandaloneOperationConfiguration
     }
 
     @Override
-    public Optional<Map<String, Object>> parameters() {
+    public Optional<Map<String, Object>> params() {
       return Optional.empty();
     }
   }
@@ -139,7 +139,7 @@ public sealed interface McpStandaloneOperationConfiguration
     }
 
     @Override
-    public Optional<Map<String, Object>> parameters() {
+    public Optional<Map<String, Object>> params() {
       return Optional.empty();
     }
   }
