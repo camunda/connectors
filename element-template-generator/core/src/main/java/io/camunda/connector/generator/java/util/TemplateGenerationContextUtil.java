@@ -39,7 +39,6 @@ public class TemplateGenerationContextUtil {
 
   private static final Set<BpmnType> INBOUND_SUPPORTED_ELEMENT_TYPES =
       Set.of(
-          BpmnType.START_EVENT,
           BpmnType.INTERMEDIATE_CATCH_EVENT,
           BpmnType.MESSAGE_START_EVENT,
           BpmnType.BOUNDARY_EVENT,
@@ -51,8 +50,6 @@ public class TemplateGenerationContextUtil {
   private static final Set<GeneratorConfiguration.ConnectorElementType>
       INBOUND_DEFAULT_ELEMENT_TYPES =
           Set.of(
-              new GeneratorConfiguration.ConnectorElementType(
-                  Set.of(BpmnType.START_EVENT), BpmnType.START_EVENT, null, null),
               new GeneratorConfiguration.ConnectorElementType(
                   Set.of(BpmnType.INTERMEDIATE_CATCH_EVENT, BpmnType.INTERMEDIATE_THROW_EVENT),
                   BpmnType.INTERMEDIATE_CATCH_EVENT,
