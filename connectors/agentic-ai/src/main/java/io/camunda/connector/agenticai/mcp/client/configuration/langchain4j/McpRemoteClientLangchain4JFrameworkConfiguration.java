@@ -8,7 +8,6 @@ package io.camunda.connector.agenticai.mcp.client.configuration.langchain4j;
 
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
-import io.camunda.connector.agenticai.mcp.client.McpClientOperationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientHandler;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfigurationProperties;
@@ -42,10 +41,8 @@ public class McpRemoteClientLangchain4JFrameworkConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public McpRemoteClientHandler langchain4JMcpRemoteClientHandler(
-      McpClientOperationConverter operationConverter,
       McpRemoteClientRegistry<McpClient> remoteClientRegistry,
       Langchain4JMcpClientExecutor mcpClientExecutor) {
-    return new Langchain4JMcpRemoteClientHandler(
-        operationConverter, remoteClientRegistry, mcpClientExecutor);
+    return new Langchain4JMcpRemoteClientHandler(remoteClientRegistry, mcpClientExecutor);
   }
 }

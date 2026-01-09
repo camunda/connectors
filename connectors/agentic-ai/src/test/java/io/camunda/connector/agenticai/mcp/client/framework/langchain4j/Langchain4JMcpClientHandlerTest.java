@@ -16,7 +16,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import dev.langchain4j.mcp.client.McpClient;
-import io.camunda.connector.agenticai.mcp.client.McpClientOperationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
@@ -45,7 +44,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,9 +59,6 @@ class Langchain4JMcpClientHandlerTest {
       new McpClientToolsConfiguration(List.of(), List.of());
   private static final FilterOptions EMPTY_FILTER = FilterOptionsBuilder.builder().build();
 
-  @Spy
-  private final McpClientOperationConverter operationConverter = new McpClientOperationConverter();
-
   @Mock private McpClientRegistry<McpClient> clientRegistry;
   @Mock private Langchain4JMcpClientExecutor clientExecutor;
 
@@ -74,17 +69,7 @@ class Langchain4JMcpClientHandlerTest {
 
   @BeforeEach
   void setUp() {
-    handler = new Langchain4JMcpClientHandler(operationConverter, clientRegistry, clientExecutor);
-  }
-
-  @Test
-  void throwsExceptionWhenOperationConversionFails() {
-    final var request = createToolModeRequest(LIST_TOOLS_OPERATION);
-
-    final var exception = new IllegalArgumentException("Failed to convert operation");
-    when(operationConverter.convertOperation(request.data().connectorMode())).thenThrow(exception);
-
-    assertThatThrownBy(() -> handler.handle(context, request)).isEqualTo(exception);
+    handler = new Langchain4JMcpClientHandler(clientRegistry, clientExecutor);
   }
 
   @Test

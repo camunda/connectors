@@ -16,6 +16,8 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import java.util.Map;
+import org.apache.commons.collections4.MapUtils;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -36,12 +38,21 @@ public sealed interface McpConnectorModeConfiguration
     permits McpConnectorModeConfiguration.StandaloneModeConfiguration,
         McpConnectorModeConfiguration.ToolModeConfiguration {
 
+  McpClientOperation toMcpClientOperation();
+
   @TemplateSubType(id = AI_AGENT_TOOL_ID, label = "AI Agent tool")
   record ToolModeConfiguration(@Valid @NotNull McpClientOperationConfiguration toolOperation)
       implements McpConnectorModeConfiguration {
 
     @TemplateProperty(ignore = true)
     public static final String AI_AGENT_TOOL_ID = "aiAgentTool";
+
+    @Override
+    public McpClientOperation toMcpClientOperation() {
+      return MapUtils.isEmpty(toolOperation.params())
+          ? McpClientOperation.of(toolOperation.method())
+          : McpClientOperation.of(toolOperation.method(), toolOperation.params());
+    }
   }
 
   @TemplateSubType(id = STANDALONE_ID, label = "Standalone")
@@ -50,5 +61,10 @@ public sealed interface McpConnectorModeConfiguration
 
     @TemplateProperty(ignore = true)
     public static final String STANDALONE_ID = "standalone";
+
+    @Override
+    public McpClientOperation toMcpClientOperation() {
+      return McpClientOperation.of(operation.method(), operation.parameters().orElseGet(Map::of));
+    }
   }
 }

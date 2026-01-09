@@ -21,7 +21,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import dev.langchain4j.mcp.client.McpClient;
-import io.camunda.connector.agenticai.mcp.client.McpClientOperationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
@@ -59,7 +58,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Answers;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -92,9 +90,6 @@ class Langchain4JMcpRemoteClientHandlerTest {
       new McpClientToolsConfiguration(List.of(), List.of());
   private static final FilterOptions EMPTY_FILTER = FilterOptionsBuilder.builder().build();
 
-  @Spy
-  private final McpClientOperationConverter operationConverter = new McpClientOperationConverter();
-
   @Mock private McpRemoteClientRegistry<McpClient> remoteClientRegistry;
   @Mock private Langchain4JMcpClientExecutor clientExecutor;
 
@@ -110,22 +105,7 @@ class Langchain4JMcpRemoteClientHandlerTest {
     when(context.getJobContext().getProcessDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
     when(context.getJobContext().getElementId()).thenReturn(ELEMENT_ID);
 
-    handler =
-        new Langchain4JMcpRemoteClientHandler(
-            operationConverter, remoteClientRegistry, clientExecutor);
-  }
-
-  @ParameterizedTest
-  @MethodSource(
-      "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
-  void throwsExceptionWhenOperationConversionFails(
-      McpRemoteClientTransportConfiguration transport) {
-    final var request = createToolModeRequest(transport, false, LIST_TOOLS_OPERATION);
-
-    final var exception = new IllegalArgumentException("Failed to convert operation");
-    when(operationConverter.convertOperation(request.data().connectorMode())).thenThrow(exception);
-
-    assertThatThrownBy(() -> handler.handle(context, request)).isEqualTo(exception);
+    handler = new Langchain4JMcpRemoteClientHandler(remoteClientRegistry, clientExecutor);
   }
 
   @ParameterizedTest
