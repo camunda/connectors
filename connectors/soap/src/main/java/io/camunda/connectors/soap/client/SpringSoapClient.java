@@ -136,8 +136,8 @@ public class SpringSoapClient implements SoapClient {
   private ClientInterceptor[] buildInterceptors(
       String soapHeader, Authentication authentication, Map<String, String> namespaces) {
     List<ClientInterceptor> interceptorList = new ArrayList<>();
-    handleAuthentication(authentication).ifPresent(interceptorList::add);
     handleSoapHeader(soapHeader, namespaces).ifPresent(interceptorList::add);
+    handleAuthentication(authentication).ifPresent(interceptorList::add);
     interceptorList.add(new LoggingInterceptor());
     return interceptorList.toArray(new ClientInterceptor[0]);
   }
@@ -191,10 +191,12 @@ public class SpringSoapClient implements SoapClient {
         securityInterceptor.setSecurementSignatureCrypto(crypto);
         securityInterceptor.setValidationSignatureCrypto(crypto);
       }
-      securityInterceptor.setSecurementSignatureParts(
-          signature.encryptionParts().stream()
-              .map(part -> String.format("{}{%s}%s;", part.namespace(), part.localName()))
-              .collect(Collectors.joining("")));
+      if (signature.encryptionParts() != null && !signature.encryptionParts().isEmpty()) {
+        securityInterceptor.setSecurementSignatureParts(
+            signature.encryptionParts().stream()
+                .map(part -> String.format("{}{%s}%s;", part.namespace(), part.localName()))
+                .collect(Collectors.joining("")));
+      }
       securityInterceptor.setSecurementMustUnderstand(true);
       ofNullable(signature.digestAlgorithm())
           .ifPresent(securityInterceptor::setSecurementSignatureDigestAlgorithm);

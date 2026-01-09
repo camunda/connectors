@@ -1,51 +1,168 @@
 # SOAP Connector
 
-## Define SOAP Message
+The SOAP Connector can create the XML structure of a SOAP request either by
+filling variables into an XML Template snippet or by generating the XML from a
+JSON structure. 
 
-### HTTP
+The **Template** works twofold: 
+1. The XML template contains XML with placeholders surrounded by double curly
+braces like `<applicationId>{{applicationId}}</applicationId>` 
+2. The Context contains a JSON object providing values for the placeholders. The
+context can reference process variables of all complexity and use FEEL
+expressions. For example `{applicationId: myComplexVar.firstLevel.appID}`.
 
-The HTTP connection can be configured just like in the http-json-connector.
+The **XML compatible JSON** allows to provide a JSON structure with variable
+parts, that will be converted to XML by the connector. Required namespaces can
+be given as JSON objects separately. See
+[Example 2](#example-2-xml-compatible-json-with-pre-defined-namespaces) for more
+details.
 
-Input fields:
+## Connection
 
-* `serviceUrl`: The URL where the service runs
-* `connectionTimeoutInSeconds`: Sets the timeout in seconds to establish a connection or 0 for an infinite timeout
+Enter your SOAP service URL in the field **Service URL**, for example `https://myservice.com/service/MyService.wso`.
 
-### SOAP Envelope
+## Authentication
 
-The SOAP Envelope is generated from a template, additional namespaces are added to the envelope. Also, the SOAP version can be configured.
+Select the authentication type from the **Authentication** dropdown.
 
-Input fields:
+### None
 
-* `namespaces`: The namespaces that should be declared on the SOAP Envelope
-* `soapVersion`: The SOAP version the service uses
-* `soapVersion.soapAction`: The SOAPAction HTTP header to be used in the request, applies to SOAP 1.1 only
+Use **None** if the SOAP service does not require authentication.
 
-### SOAP Header
+### WSS username token
 
-The SOAP Header can be extended by headers defined in FEEL.
+Use **WSS username token** in the **Authentication** dropdown when the requested SOAP endpoint requires
+[username token extension](https://docs.oasis-open.org/wss/v1.1/wss-v1.1-spec-pr-UsernameTokenProfile-01.htm#_Toc104276211).
 
-The input can be a template string plus context or a xml-compatible json structure (defined in feel)
+Enter **Username**, **Password**, and indicate if the password is encoded.
 
-### SOAP Body
+:::note
+The **SOAP connector** currently supports only `SHA-1` password encoding.
+:::
 
-The SOAP Body is templated using mustache with a body template and a context that is mapped from the process variables.
+### WSS signature
 
-The input can be a template string plus context or a xml-compatible json structure (defined in feel)
+Use the **WSS signature** in the **Authentication** dropdown when the requested SOAP endpoint requires a message to be
+cryptographically signed with a [signature](http://docs.oasis-open.org/wss-m/wss/v1.1.1/cs01/wss-SOAPMessageSecurity-v1.1.1-cs01.html#_Toc307407954).
 
-### Authentication
+Enter all necessary fields according to your service specification:
 
-All current authentication mechanisms are:
+- **Certificate type**: From where the certificate is obtained.
+  - **Single certificate**: A single certificate can be specified.
+    - **Certificate**: The X.509 certificate to use to sign the request.
+    - **Private key**: The private key for the certificate.
+  - **Keystore certificate**: The certificate is stored in a keystore file.
+    - **Keystore location**: Path to the keystore file. For that a keystore file needs to be mounted to the connector container on the specified path.
+    - **Keystore password**: Password of the keystore.
+    - **Certificate alias**: Which certificate from the keystore should be used to sign the SOAP message
+    - **Certificate password**: Password of the certificate.
+- **Signature algorithm**: The signature algorithm to use. The default is set by the data in the certificate.
+- **Digest algorithm**: The signature digest algorithm to use. The default is SHA-1.
+- **Timestamp timeout in seconds**: Adds a timestamp to the SOAP header, which is valid for the given time in seconds.
+- **Signature parts**: Defines which parts of the SOAP message should be signed. If no signature parts are specified, the SOAP body is signed by default.
 
-* WSS username token
-* WSS signature
-* None
+## SOAP message
 
-### Examples
+### SOAP version
 
-#### Example 1
+Select the desired version of the SOAP service.
 
-For example, you would like to send a following SOAP request:
+### SOAPAction HTTP header
+
+Enter the SOAPAction HTTP header that will be used in the request. Leave this value blank if the SOAPAction HTTP header
+won't be used in your request. This field is only required by SOAP version 1.1.
+
+### SOAP header
+
+From the dropdown, select whether the **SOAP header** is required, and if so, in which format you wish to provide it.
+
+### SOAP body
+
+From the **SOAP body** dropdown, select whether you will provide the SOAP request body in a form of **Template**, or
+**XML compatible JSON**.
+
+#### Template
+
+When **Template** is chosen, enter the **XML template** value, for example `<camunda:Param><camunda:ParamType>{{paramValue}}</camunda:ParamType></camunda:Param>`.
+
+Enter the **XML template context** value, for example `={paramValue: 1234567890}`, and enter the **Namespaces** value, for example `={"camunda":"http://my.service.com/webservicesserver/"}`.
+
+#### XML compatible JSON
+
+When **XML compatible JSON** is chosen, enter the **JSON definition**, for example
+
+```json
+= {
+  "camunda:Object01": {
+    "camunda:Object02": myObjectValue
+  }
+}
+```
+
+Enter the **Namespaces** value, for example `={"camunda":"http://my.service.com/webservicesserver/"}`.
+
+### Timeout
+The **Connection timeout in seconds** determines the time frame in which the client will try to establish a connection with the server. If you do not specify a value, the system uses the default of 20 seconds. For cases where you need to wait indefinitely, set this value to 0.
+
+## Output mapping
+
+### Result variable
+
+You can export a complete response from a SOAP call into a dedicated variable accessible anywhere in a process.
+To do so, input a variable name in the **Result variable** field. Use a unique name to avoid
+overwriting variables.
+
+A typical response may look like as follows:
+
+```json
+{
+  "Envelope": {
+    "Header": {
+      "MyHeader": "Header value"
+    },
+    "Body": {
+      "MyResponseObject": {
+        "MyResponseObjectField": "My result value"
+      }
+    }
+  }
+}
+```
+
+### Result expression
+
+Additionally, you can choose to unpack the content of your `response` into multiple process variables using the **Result expression**, which is a [FEEL Context Expression](/components/modeler/feel/language-guide/feel-context-expressions.md).
+
+Given SOAP service response that looks like as follows:
+
+```json
+{
+  "Envelope": {
+    "Header": {
+      "MyHeader": "Header value"
+    },
+    "Body": {
+      "MyResponseObject": {
+        "MyResponseObjectField": "My result value"
+      }
+    }
+  }
+}
+```
+
+To extract the `MyResponseObjectField` value into its own variable, you can do:
+
+```
+= {
+    MyResponseObjectResult: response.Envelope.Body.MyResponseObject.MyResponseObjectField
+}
+```
+
+## Usage examples
+
+### Example 1: XML compatible JSON
+
+For example, imagine you want to send the following SOAP request:
 
 URL: `https://myservice:8888/webservice.wso`
 
@@ -61,7 +178,10 @@ Body:
   </soap:Body>
 </soap:Envelope>
 ```
-In order to do so, in your BPMN diagram, set the field **Service URL** as `https://myservice:8888/webservice.wso`, and **SOAP body** as
+
+In your BPMN diagram, set the field **Service URL** as
+`https://myservice:8888/webservice.wso`, and **SOAP body** as **XML compatible
+JSON** using the **JSON definition**:
 
 ```json
 {
@@ -71,9 +191,9 @@ In order to do so, in your BPMN diagram, set the field **Service URL** as `https
 }
 ```
 
-#### Example 2: pre-defined namespaces
+### Example 2: XML compatible JSON with pre-defined namespaces
 
-Consider a namespace is defined within your objects, and you wish to send the following request:
+Consider a namespace is defined within your objects, and you want to send the following request:
 
 URL: `https://myservice:8888/webservice.wso`
 
@@ -83,14 +203,16 @@ Body:
 <?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
-    <Object01 mlns="http://www.my.namespace.com/namespace/">
+    <Object01 xmlns="http://www.my.namespace.com/namespace/">
       <Object02>12345</Object02>
     </Object01>
   </soap:Body>
 </soap:Envelope>
 ```
 
-In order to do so, in your BPMN diagram, set the field **Service URL** as `https://myservice:8888/webservice.wso`, and **SOAP body** as
+In your BPMN diagram, set the field **Service URL** as
+`https://myservice:8888/webservice.wso`, and **SOAP body** as **XML compatible
+JSON** using the **JSON definition**:
 
 ```json
 {
@@ -100,9 +222,11 @@ In order to do so, in your BPMN diagram, set the field **Service URL** as `https
 }
 ```
 
-Please, pay attention, that here we introduced a new `ns:` prefix. Prefix, can be any arbitrary string, that is not defined as namespace.
+:::note
+Here, we introduced a new `ns:` prefix. The prefix can be any arbitrary string that is not defined as a namespace.
+:::
 
-Now, you'll need to associate a namespace. You can do it by setting the following value at the **Namespaces** field.
+Now, you'll need to associate a namespace. Set the following value at the **Namespaces** field.
 For the given example, it should be set as:
 
 ```json
@@ -111,7 +235,7 @@ For the given example, it should be set as:
 }
 ```
 
-#### Example 3: using templates
+### Example 3: Using XML templates
 
 As an alternative, you can use templates to send SOAP messages.
 
@@ -130,9 +254,9 @@ Body:
 </soap:Envelope>
 ```
 
-For that, set the **SOAP body** dropdown to **Template**.
+Set the **SOAP body** dropdown to **Template**.
 
-In the **XML template** field define the template, for example as:
+In the **XML template** field, define the template. For example:
 
 ```xml
 <Object01>
@@ -140,15 +264,86 @@ In the **XML template** field define the template, for example as:
 </Object01>
 ```
 
-In the **XML template context** field define context JSON, for example:
+In the **XML template context** field, define context JSON. For example:
 
 ```json
 {
-  myObjectValue: 12345
+  "myObjectValue": 12345
 }
 ```
 
-### Running
+### Example 4: Using WSS signature with keystore
+The below tables shows an example on how to fill in the properties for signing the SOAP message with a WSS signature using a keystore certificate.
+
+<table>
+<tr>
+<td>
+
+**Property**
+</td>
+<td>
+
+**Example**
+</td>
+</tr>
+<tr>
+<td>Authentication</td>
+<td>WSS signature</td>
+</tr>
+<tr>
+<td>Certificate type</td>
+<td>Keystore certificate</td>
+</tr>
+<tr>
+<td>Keystore location</td>
+<td>/opt/certificates/keystore.jks</td>
+</tr>
+<tr>
+<td>Keystore password</td>
+<td>SuperSecretKeystorePassword</td>
+</tr>
+<tr>
+<td>Certificate alias</td>
+<td>mycert</td>
+</tr>
+<tr>
+<td>Certificate password</td>
+<td>SuperSecretCertificatePassword</td>
+</tr>
+<tr>
+<td>Signature algorithm</td>
+<td></td>
+</tr>
+<tr>
+<td>Digest algorithm</td>
+<td></td>
+</tr>
+<tr>
+<td>Timestamp timeout in seconds</td>
+<td>60</td>
+</tr>
+<tr>
+<td>Signature parts</td>
+<td>
+
+```json 
+[
+    {
+      "namespace": "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd",
+      "localName": "UsernameToken"
+    },
+    {
+      "namespace": "http://contracts.company.com/services/AccountFulfilment",
+      "localName": "getAccountRequest"
+    }
+]
+```
+</td>
+</tr>
+</table>
+
+
+## Running
 
 1. Build or download 'fat' jar.
 2. Run as a custom Connector.
