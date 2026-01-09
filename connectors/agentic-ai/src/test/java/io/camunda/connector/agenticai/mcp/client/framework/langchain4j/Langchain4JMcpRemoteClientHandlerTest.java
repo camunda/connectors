@@ -373,7 +373,7 @@ class Langchain4JMcpRemoteClientHandlerTest {
                   operation ->
                       assertThat(operation)
                           .returns(LIST_PROMPTS, McpClientOperation::method)
-                          .returns(Map.of(), McpClientOperation::parameters)),
+                          .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
