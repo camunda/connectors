@@ -100,8 +100,7 @@ final class ToolCallRequest {
       throw new IllegalArgumentException("Tool name must not be null");
     }
 
-    final var arguments =
-        Optional.ofNullable(params.arguments()).orElseGet(Collections::emptyMap);
+    final var arguments = Optional.ofNullable(params.arguments()).orElseGet(Collections::emptyMap);
 
     try {
       return ToolExecutionRequest.builder()
