@@ -46,12 +46,15 @@ import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
+import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.io.File;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,6 +64,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
@@ -74,6 +79,7 @@ import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
 @ExtendWith(MockitoExtension.class)
+@DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
 public class HttpTests {
 
   @RegisterExtension
@@ -86,6 +92,8 @@ public class HttpTests {
   @MockitoBean ProcessDefinitionSearch processDefinitionSearch;
 
   @Autowired ProcessStateStore stateStore;
+
+  @Autowired WebhookConnectorRegistry webhookConnectorRegistry;
 
   @MockitoBean SearchQueryClient searchQueryClient;
 
@@ -355,6 +363,12 @@ public class HttpTests {
                 new ProcessDefinitionVersion(
                     processDef.getProcessDefinitionKey(), processDef.getVersion()))));
 
+    // Wait for webhook to be activated before starting the process
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(10))
+        .pollInterval(Duration.ofMillis(100))
+        .until(() -> webhookConnectorRegistry.getActiveWebhook("test-webhook").isPresent());
+
     var bpmnTest =
         ZeebeTest.with(camundaClient).deploy(model).createInstance().waitForProcessCompletion();
 
@@ -384,6 +398,12 @@ public class HttpTests {
                     processDef.getProcessDefinitionId(), processDef.getTenantId()),
                 new ProcessDefinitionVersion(
                     processDef.getProcessDefinitionKey(), processDef.getVersion()))));
+
+    // Wait for webhook to be activated before starting the process
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(10))
+        .pollInterval(Duration.ofMillis(100))
+        .until(() -> webhookConnectorRegistry.getActiveWebhook("test-webhook").isPresent());
 
     var bpmnTest =
         ZeebeTest.with(camundaClient).deploy(model).createInstance().waitForProcessCompletion();
