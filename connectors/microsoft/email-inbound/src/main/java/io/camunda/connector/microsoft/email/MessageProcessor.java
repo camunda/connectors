@@ -26,6 +26,54 @@ public class MessageProcessor {
     this.context = context;
   }
 
+  public void handleMessage(EmailMessage message) {
+    context.log(
+        activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag("new-email")
+                .withMessage("Processing email: " + message.id()));
+    var shouldPostprocess =
+        switch (context.canActivate(message)) {
+          case ActivationCheckResult.Success success -> correlate(message);
+          case ActivationCheckResult.Failure.NoMatchingElement e -> {
+            if (e.discardUnmatchedEvents()) {
+              context.log(
+                  activity ->
+                      activity
+                          .withSeverity(Severity.INFO)
+                          .withTag("NoMatchingElement")
+                          .withMessage(
+                              "No matching activation condition. Discarding unmatched email: "
+                                  + message.id()));
+              yield ShouldPostprocess.NO;
+            }
+            context.log(
+                activity ->
+                    activity
+                        .withSeverity(Severity.INFO)
+                        .withTag("NoMatchingElement")
+                        .withMessage(
+                            "No matching activation condition. Not discarding unmatched email: "
+                                + message.id()));
+            yield ShouldPostprocess.YES;
+          }
+          case ActivationCheckResult.Failure.TooManyMatchingElements failure -> {
+            context.log(
+                activity ->
+                    activity
+                        .withSeverity(Severity.ERROR)
+                        .withTag("TooManyMatchingElements")
+                        .withMessage(
+                            "Too many matching activation conditions. Email: " + message.id()));
+            yield ShouldPostprocess.NO;
+          }
+        };
+    if (shouldPostprocess == ShouldPostprocess.YES) {
+      postprocess(message);
+    }
+  }
+
   private void postprocess(EmailMessage message) {
 
     switch (operation) {
@@ -54,11 +102,28 @@ public class MessageProcessor {
       case CorrelationResult.Failure f -> {
         switch (f.handlingStrategy()) {
           case CorrelationFailureHandlingStrategy.ForwardErrorToUpstream forwardError -> {
-            // Log error as we can't propagate up
+            context.log(
+                activity ->
+                    activity
+                        .withSeverity(Severity.ERROR)
+                        .withTag(ActivityLogTag.MESSAGE)
+                        .withMessage(
+                            "Error processing email: "
+                                + message.id()
+                                + ", message: "
+                                + f.message()));
             yield ShouldPostprocess.NO;
           }
           case CorrelationFailureHandlingStrategy.Ignore ignore -> {
-            // Log info
+            context.log(
+                activity ->
+                    activity
+                        .withSeverity(Severity.INFO)
+                        .withTag(ActivityLogTag.MESSAGE)
+                        .withMessage(
+                            "No correlation condition was met for email: "
+                                + message.id()
+                                + ". `Ignore unmatched event` was selected. Continuing.."));
             yield ShouldPostprocess.YES;
           }
         }
@@ -74,25 +139,5 @@ public class MessageProcessor {
   private enum ShouldPostprocess {
     YES,
     NO
-  }
-
-  public void handleMessage(EmailMessage message) {
-    var shouldPostprocess =
-        switch (context.canActivate(message)) {
-          case ActivationCheckResult.Success success -> correlate(message);
-          case ActivationCheckResult.Failure.NoMatchingElement e -> {
-            if (e.discardUnmatchedEvents()) {
-              yield ShouldPostprocess.NO;
-            }
-            yield ShouldPostprocess.YES;
-          }
-          case ActivationCheckResult.Failure.TooManyMatchingElements failure -> {
-            // TODO: log error
-            yield ShouldPostprocess.NO;
-          }
-        };
-    if (shouldPostprocess == ShouldPostprocess.YES) {
-      postprocess(message);
-    }
   }
 }
