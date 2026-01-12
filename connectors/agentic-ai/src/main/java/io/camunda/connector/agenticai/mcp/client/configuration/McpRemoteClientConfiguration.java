@@ -22,7 +22,7 @@ import org.springframework.context.annotation.Import;
     value = "camunda.connector.agenticai.mcp.remote-client.enabled",
     matchIfMissing = true)
 @EnableConfigurationProperties(McpRemoteClientConfigurationProperties.class)
-@Import({McpClientBaseConfiguration.class, McpRemoteClientLangchain4JFrameworkConfiguration.class})
+@Import(McpRemoteClientLangchain4JFrameworkConfiguration.class)
 public class McpRemoteClientConfiguration {
 
   @Bean

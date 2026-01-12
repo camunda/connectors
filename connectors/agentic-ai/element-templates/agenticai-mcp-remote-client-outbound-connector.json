@@ -775,14 +775,17 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Call Tool",
-      "value" : "tools/call"
-    }, {
       "name" : "List Tools",
       "value" : "tools/list"
     }, {
+      "name" : "Call Tool",
+      "value" : "tools/call"
+    }, {
       "name" : "List Resources",
       "value" : "resources/list"
+    }, {
+      "name" : "List Resource Templates",
+      "value" : "resources/templates/list"
     } ]
   }, {
     "id" : "data.connectorMode.operation.toolName",

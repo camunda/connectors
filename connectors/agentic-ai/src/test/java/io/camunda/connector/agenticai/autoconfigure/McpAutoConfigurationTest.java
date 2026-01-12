@@ -13,7 +13,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.McpClientFunction;
 import io.camunda.connector.agenticai.mcp.client.McpClientHandler;
-import io.camunda.connector.agenticai.mcp.client.McpClientOperationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientFunction;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientHandler;
@@ -32,7 +31,6 @@ public class McpAutoConfigurationTest {
   private static final List<Class<?>> SHARED_MCP_CLIENT_BEANS =
       List.of(
           McpClientFactory.class,
-          McpClientOperationConverter.class,
           Langchain4JMcpClientLoggingResolver.class,
           Langchain4JMcpClientHeadersSupplierFactory.class,
           Langchain4JMcpClientExecutor.class);
