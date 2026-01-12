@@ -25,7 +25,7 @@ import org.springframework.context.annotation.Import;
     value = "camunda.connector.agenticai.mcp.client.enabled",
     matchIfMissing = false)
 @EnableConfigurationProperties(McpClientConfigurationProperties.class)
-@Import(McpClientLangchain4JFrameworkConfiguration.class)
+@Import({McpClientLangchain4JFrameworkConfiguration.class, McpDocumentHandlerConfiguration.class})
 public class McpClientConfiguration {
 
   @Bean

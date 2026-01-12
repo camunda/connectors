@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
+import io.camunda.connector.agenticai.mcp.client.McpClientResultDocumentHandler;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientLoggingResolver;
@@ -60,7 +61,9 @@ public class McpClientBaseLangchain4JFrameworkConfiguration {
   @ConditionalOnMissingBean
   public Langchain4JMcpClientExecutor langchain4JMcpClientExecutor(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
-      ToolSpecificationConverter toolSpecificationConverter) {
-    return new Langchain4JMcpClientExecutor(objectMapper, toolSpecificationConverter);
+      ToolSpecificationConverter toolSpecificationConverter,
+      McpClientResultDocumentHandler mcpClientResultDocumentHandler) {
+    return new Langchain4JMcpClientExecutor(
+        objectMapper, toolSpecificationConverter, mcpClientResultDocumentHandler);
   }
 }

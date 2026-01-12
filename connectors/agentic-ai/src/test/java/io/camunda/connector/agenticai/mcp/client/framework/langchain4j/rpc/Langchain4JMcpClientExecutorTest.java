@@ -10,13 +10,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.McpGetPromptResult;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.mcp.client.McpClientResultDocumentHandler;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
@@ -42,15 +42,21 @@ class Langchain4JMcpClientExecutorTest {
 
   @Mock private ToolSpecificationConverter toolSpecificationConverter;
 
-  @Mock(strictness = Mock.Strictness.LENIENT)
-  private McpClient mcpClient;
+  @Mock private McpClientResultDocumentHandler mcpClientResultDocumentHandler;
+
+  @Mock private McpClient mcpClient;
 
   private Langchain4JMcpClientExecutor executor;
 
   @BeforeEach
   void setUp() {
-    executor = new Langchain4JMcpClientExecutor(objectMapper, toolSpecificationConverter);
-    when(mcpClient.key()).thenReturn("test-client");
+    executor =
+        new Langchain4JMcpClientExecutor(
+            objectMapper, toolSpecificationConverter, mcpClientResultDocumentHandler);
+    lenient().when(mcpClient.key()).thenReturn("test-client");
+    lenient()
+        .when(mcpClientResultDocumentHandler.transformBinariesToDocumentsIfPresent(any()))
+        .thenAnswer(invocation -> invocation.getArgument(0));
   }
 
   @Test

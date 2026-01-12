@@ -7,14 +7,10 @@
 package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.langchain4j.mcp.client.McpClient;
-import dev.langchain4j.mcp.client.McpTextContent;
+import dev.langchain4j.mcp.client.*;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientGetPromptResult;
 import io.camunda.connector.api.error.ConnectorException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import org.apache.commons.collections4.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,25 +46,7 @@ final class GetPromptRequest {
           result.messages().size());
 
       return new McpClientGetPromptResult(
-          result.description(),
-          result.messages().stream()
-              .map(
-                  message -> {
-                    final var content = message.content();
-                    if (content instanceof McpTextContent textContent) {
-                      return new McpClientGetPromptResult.PromptMessage(
-                          message.role().toString(), textContent.text());
-                    } else {
-                      LOGGER.warn(
-                          "MCP({}): Prompt '{}' contains unsupported content type '{}' - only text content is supported. Skipping this content.",
-                          client.key(),
-                          parameters.name(),
-                          content.getClass().getSimpleName());
-                      return null;
-                    }
-                  })
-              .filter(Objects::nonNull)
-              .toList());
+          result.description(), result.messages().stream().map(this::map).toList());
     } catch (Exception e) {
       LOGGER.error("MCP({}): Failed to get prompt '{}'", client.key(), parameters.name(), e);
       throw new ConnectorException(
@@ -76,6 +54,42 @@ final class GetPromptRequest {
           "Error getting prompt '%s': %s".formatted(parameters.name(), e.getMessage()),
           e);
     }
+  }
+
+  private McpClientGetPromptResult.PromptMessage map(McpPromptMessage promptMessage) {
+    final var content = promptMessage.content();
+
+    if (content instanceof McpImageContent mcpImageContent) {
+      return new McpClientGetPromptResult.BinaryMessage(
+          promptMessage.role().name(),
+          Base64.getDecoder().decode(mcpImageContent.data()),
+          mcpImageContent.mimeType());
+    }
+
+    if (content instanceof McpTextContent mcpTextContent) {
+      return new McpClientGetPromptResult.TextMessage(
+          promptMessage.role().name(), mcpTextContent.text());
+    }
+
+    if (content instanceof McpEmbeddedResource mcpEmbeddedResource) {
+      return new McpClientGetPromptResult.EmbeddedResourceMessage(
+          promptMessage.role().name(),
+          switch (mcpEmbeddedResource.resource()) {
+            case McpBlobResourceContents mcpBlobResourceContents ->
+                new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource.BlobResource(
+                    mcpBlobResourceContents.uri(),
+                    Base64.getDecoder().decode(mcpBlobResourceContents.blob()),
+                    mcpBlobResourceContents.mimeType());
+            case McpTextResourceContents mcpTextResourceContents ->
+                new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource.TextResource(
+                    mcpTextResourceContents.uri(),
+                    mcpTextResourceContents.text(),
+                    mcpTextResourceContents.mimeType());
+          });
+    }
+
+    throw new UnsupportedOperationException(
+        "Unsupported prompt message content type: %s".formatted(content.getType()));
   }
 
   private GetPromptParameters parseParameters(Map<String, Object> params) {
