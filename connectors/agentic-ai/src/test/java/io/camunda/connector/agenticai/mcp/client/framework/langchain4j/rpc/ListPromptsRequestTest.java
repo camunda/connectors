@@ -36,7 +36,8 @@ class ListPromptsRequestTest {
 
     assertThat(result)
         .isInstanceOfSatisfying(
-            McpClientListPromptsResult.class, res -> assertThat(res.promptDescriptions()).isEmpty());
+            McpClientListPromptsResult.class,
+            res -> assertThat(res.promptDescriptions()).isEmpty());
   }
 
   @Test
