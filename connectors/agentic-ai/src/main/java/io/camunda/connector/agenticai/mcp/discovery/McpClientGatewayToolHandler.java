@@ -14,8 +14,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDefinitionUpdates;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientListToolsOperation;
+import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationDefinitions;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
@@ -37,7 +36,6 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
   private static final Logger LOGGER = LoggerFactory.getLogger(McpClientGatewayToolHandler.class);
 
   public static final String GATEWAY_TYPE = "mcpClient";
-
   public static final String PROPERTY_MCP_CLIENTS = "mcpClients";
   public static final String MCP_TOOLS_DISCOVERY_PREFIX = MCP_PREFIX + "toolsList_";
 
@@ -72,7 +70,8 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
             PROPERTY_MCP_CLIENTS,
             mcpGatewayToolDefinitions.stream().map(GatewayToolDefinition::name).toList());
 
-    final var listToolsOperation = mcpClientOperationAsMap(new McpClientListToolsOperation());
+    final var listToolsOperation =
+        mcpClientOperationAsMap(McpClientOperationDefinitions.listTools());
     List<ToolCall> discoveryToolCalls =
         mcpGatewayToolDefinitions.stream()
             .map(
@@ -184,7 +183,7 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
                     toolCall.id(),
                     toolCallIdentifier.elementName(),
                     mcpClientOperationAsMap(
-                        McpClientCallToolOperation.create(
+                        McpClientOperationDefinitions.callTool(
                             toolCallIdentifier.mcpToolName(), toolCall.arguments())));
               }
 

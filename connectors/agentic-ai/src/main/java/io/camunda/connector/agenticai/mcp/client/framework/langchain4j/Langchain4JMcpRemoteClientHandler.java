@@ -7,7 +7,6 @@
 package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
 
 import dev.langchain4j.mcp.client.McpClient;
-import io.camunda.connector.agenticai.mcp.client.McpClientOperationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientHandler;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
@@ -27,15 +26,12 @@ public class Langchain4JMcpRemoteClientHandler implements McpRemoteClientHandler
   private static final Logger LOGGER =
       LoggerFactory.getLogger(Langchain4JMcpRemoteClientHandler.class);
 
-  private final McpClientOperationConverter operationConverter;
   private final McpRemoteClientRegistry<McpClient> remoteClientRegistry;
   private final Langchain4JMcpClientExecutor clientExecutor;
 
   public Langchain4JMcpRemoteClientHandler(
-      McpClientOperationConverter operationConverter,
       McpRemoteClientRegistry<McpClient> remoteClientRegistry,
       Langchain4JMcpClientExecutor clientExecutor) {
-    this.operationConverter = operationConverter;
     this.remoteClientRegistry = remoteClientRegistry;
     this.clientExecutor = clientExecutor;
   }
@@ -47,7 +43,7 @@ public class Langchain4JMcpRemoteClientHandler implements McpRemoteClientHandler
         Optional.ofNullable(request.data().options())
             .map(McpRemoteClientOptionsConfiguration::clientCache)
             .orElse(false);
-    final var operation = operationConverter.convertOperation(request.data().connectorMode());
+    final var operation = request.data().connectorMode().toMcpClientOperation();
 
     LOGGER.debug("MCP({}): Handling operation '{}' on remote client", clientId, operation.method());
 

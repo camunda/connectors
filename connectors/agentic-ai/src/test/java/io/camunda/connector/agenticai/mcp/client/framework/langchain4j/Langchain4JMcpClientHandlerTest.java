@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
 
+import static io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpMethod.*;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -14,16 +15,12 @@ import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
-import io.camunda.connector.agenticai.mcp.client.McpClientOperationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientCallToolOperation;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpClientListToolsOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest.McpClientRequestData;
@@ -33,11 +30,13 @@ import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfigura
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -45,7 +44,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,12 +59,6 @@ class Langchain4JMcpClientHandlerTest {
       new McpClientToolsConfiguration(List.of(), List.of());
   private static final FilterOptions EMPTY_FILTER = FilterOptionsBuilder.builder().build();
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
-
-  @Spy
-  private final McpClientOperationConverter operationConverter =
-      new McpClientOperationConverter(objectMapper);
-
   @Mock private McpClientRegistry<McpClient> clientRegistry;
   @Mock private Langchain4JMcpClientExecutor clientExecutor;
 
@@ -77,17 +69,7 @@ class Langchain4JMcpClientHandlerTest {
 
   @BeforeEach
   void setUp() {
-    handler = new Langchain4JMcpClientHandler(operationConverter, clientRegistry, clientExecutor);
-  }
-
-  @Test
-  void throwsExceptionWhenOperationConversionFails() {
-    final var request = createToolModeRequest(LIST_TOOLS_OPERATION);
-
-    final var exception = new IllegalArgumentException("Failed to convert operation");
-    when(operationConverter.convertOperation(request.data().connectorMode())).thenThrow(exception);
-
-    assertThatThrownBy(() -> handler.handle(context, request)).isEqualTo(exception);
+    handler = new Langchain4JMcpClientHandler(clientRegistry, clientExecutor);
   }
 
   @Test
@@ -124,7 +106,9 @@ class Langchain4JMcpClientHandlerTest {
               eq(mcpClient),
               assertArg(
                   operation ->
-                      assertThat(operation).isInstanceOf(McpClientListToolsOperation.class)),
+                      assertThat(operation)
+                          .returns(LIST_TOOLS, McpClientOperation::method)
+                          .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -151,12 +135,16 @@ class Langchain4JMcpClientHandlerTest {
                   operation ->
                       assertThat(operation)
                           .isInstanceOfSatisfying(
-                              McpClientCallToolOperation.class,
-                              op -> {
-                                assertThat(op.params().name()).isEqualTo("test-tool");
-                                assertThat(op.params().arguments())
-                                    .containsExactlyEntriesOf(arguments);
-                              })),
+                              McpClientOperation.McpClientOperationImpl.class,
+                              op ->
+                                  assertThat(op.params())
+                                      .containsEntry("name", "test-tool")
+                                      .hasEntrySatisfying(
+                                          "arguments",
+                                          args ->
+                                              assertThat(args)
+                                                  .asInstanceOf(InstanceOfAssertFactories.MAP)
+                                                  .containsExactlyEntriesOf(arguments)))),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -180,7 +168,9 @@ class Langchain4JMcpClientHandlerTest {
               eq(mcpClient),
               assertArg(
                   operation ->
-                      assertThat(operation).isInstanceOf(McpClientListToolsOperation.class)),
+                      assertThat(operation)
+                          .returns(LIST_TOOLS, McpClientOperation::method)
+                          .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -207,12 +197,16 @@ class Langchain4JMcpClientHandlerTest {
                   operation ->
                       assertThat(operation)
                           .isInstanceOfSatisfying(
-                              McpClientCallToolOperation.class,
-                              op -> {
-                                assertThat(op.params().name()).isEqualTo("test-tool");
-                                assertThat(op.params().arguments())
-                                    .containsExactlyEntriesOf(arguments);
-                              })),
+                              McpClientOperation.McpClientOperationImpl.class,
+                              op ->
+                                  assertThat(op.params())
+                                      .containsEntry("name", "test-tool")
+                                      .hasEntrySatisfying(
+                                          "arguments",
+                                          args ->
+                                              assertThat(args)
+                                                  .asInstanceOf(InstanceOfAssertFactories.MAP)
+                                                  .containsExactlyEntriesOf(arguments)))),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
@@ -237,11 +231,58 @@ class Langchain4JMcpClientHandlerTest {
                   operation ->
                       assertThat(operation)
                           .isInstanceOfSatisfying(
-                              McpClientCallToolOperation.class,
-                              op -> {
-                                assertThat(op.params().name()).isEqualTo("test-tool");
-                                assertThat(op.params().arguments()).isNull();
-                              })),
+                              McpClientOperation.McpClientOperationImpl.class,
+                              op ->
+                                  assertThat(op.params())
+                                      .containsEntry("name", "test-tool")
+                                      .doesNotContainKey("arguments"))),
+              eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @Test
+    void handlesListResourcesRequest() {
+      final var request =
+          createStandaloneModeRequest(
+              new McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration());
+      final var expectedResult = new McpClientListToolsResult(List.of());
+
+      when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(
+                  operation ->
+                      assertThat(operation)
+                          .returns(LIST_RESOURCES, McpClientOperation::method)
+                          .returns(Map.of(), McpClientOperation::params)),
+              eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @Test
+    void handlesListResourceTemplatesRequest() {
+      final var request =
+          createStandaloneModeRequest(
+              new McpStandaloneOperationConfiguration
+                  .ListResourceTemplatesOperationConfiguration());
+      final var expectedResult = new McpClientListResourceTemplatesResult(List.of());
+
+      when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(
+                  operation ->
+                      assertThat(operation)
+                          .returns(LIST_RESOURCE_TEMPLATES, McpClientOperation::method)
+                          .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 

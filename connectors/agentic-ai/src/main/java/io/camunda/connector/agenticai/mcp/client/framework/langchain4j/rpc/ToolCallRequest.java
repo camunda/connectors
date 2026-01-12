@@ -12,12 +12,13 @@ import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.service.tool.ToolExecutionResult;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.error.ConnectorException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -32,11 +33,10 @@ final class ToolCallRequest {
   }
 
   public McpClientCallToolResult execute(
-      McpClient client,
-      AllowDenyList toolNameFilter,
-      McpClientOperation.McpClientCallToolOperation.McpClientCallToolOperationParams params) {
+      McpClient client, AllowDenyList toolNameFilter, Map<String, Object> params) {
 
-    final var toolExecutionRequest = createToolExecutionRequest(params);
+    final var parameters = parseParams(params);
+    final var toolExecutionRequest = createToolExecutionRequest(parameters);
     if (!toolNameFilter.isPassing(toolExecutionRequest.name())) {
       LOGGER.error(
           "MCP({}): Tool '{}' is not included in the filter {}.",
@@ -55,11 +55,12 @@ final class ToolCallRequest {
     LOGGER.debug(
         "MCP({}): Executing tool '{}' with arguments: {}",
         client.key(),
-        params.name(),
-        params.arguments());
+        parameters.name(),
+        parameters.arguments());
 
     try {
       final var result = client.executeTool(toolExecutionRequest);
+
       LOGGER.debug(
           "MCP({}): Successfully executed tool '{}'", client.key(), toolExecutionRequest.name());
 
@@ -84,8 +85,17 @@ final class ToolCallRequest {
     }
   }
 
-  private ToolExecutionRequest createToolExecutionRequest(
-      McpClientOperation.McpClientCallToolOperation.McpClientCallToolOperationParams params) {
+  private ToolExecutionParameters parseParams(Map<String, Object> params) {
+    try {
+      return objectMapper.convertValue(params, ToolExecutionParameters.class);
+    } catch (IllegalArgumentException ex) {
+      throw new ConnectorException(
+          "MCP_CLIENT_INVALID_PARAMS",
+          "Unable to convert parameters passed to MCP client: %s".formatted(ex.getMessage()));
+    }
+  }
+
+  private ToolExecutionRequest createToolExecutionRequest(ToolExecutionParameters params) {
     if (params == null || params.name() == null) {
       throw new IllegalArgumentException("Tool name must not be null");
     }
@@ -102,4 +112,6 @@ final class ToolCallRequest {
           "Failed to create tool execution request for tool '%s'".formatted(params.name()), e);
     }
   }
+
+  record ToolExecutionParameters(String name, Map<String, Object> arguments) {}
 }

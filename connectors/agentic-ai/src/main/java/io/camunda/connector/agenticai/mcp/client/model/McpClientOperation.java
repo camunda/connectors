@@ -6,64 +6,69 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.*;
+import io.camunda.connector.api.error.ConnectorException;
+import java.util.Collections;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "method")
-@JsonSubTypes({
-  @JsonSubTypes.Type(
-      value = McpClientOperation.McpClientListToolsOperation.class,
-      name = McpClientOperation.McpClientListToolsOperation.METHOD),
-  @JsonSubTypes.Type(
-      value = McpClientOperation.McpClientCallToolOperation.class,
-      name = McpClientOperation.McpClientCallToolOperation.METHOD)
-})
-public sealed interface McpClientOperation
-    permits McpClientOperation.McpClientCallToolOperation,
-        McpClientOperation.McpClientListResourcesOperation,
-        McpClientOperation.McpClientListToolsOperation {
-  String method();
+public sealed interface McpClientOperation permits McpClientOperation.McpClientOperationImpl {
 
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  record McpClientListToolsOperation() implements McpClientOperation {
-    public static final String METHOD = "tools/list";
+  McpMethod method();
 
-    @Override
-    public String method() {
-      return METHOD;
+  Map<String, Object> params();
+
+  static McpClientOperation of(String method) {
+    return of(method, Collections.emptyMap());
+  }
+
+  static McpClientOperation of(String method, Map<String, Object> params) {
+    McpMethod operation = McpMethod.valueFrom(method);
+    return new McpClientOperationImpl(operation, params);
+  }
+
+  enum McpMethod {
+    LIST_TOOLS("tools/list"),
+    CALL_TOOL("tools/call"),
+    LIST_RESOURCES("resources/list"),
+    LIST_RESOURCE_TEMPLATES("resources/templates/list"),
+    READ_RESOURCE("resources/read"),
+    LIST_PROMPTS("prompts/list"),
+    GET_PROMPT("prompts/get");
+
+    private static String supportedMethods() {
+      return Stream.of(LIST_TOOLS, CALL_TOOL, LIST_RESOURCES, LIST_RESOURCE_TEMPLATES)
+          .map(op -> op.methodName)
+          .collect(Collectors.joining("', '"));
+    }
+
+    @JsonCreator
+    public static McpMethod valueFrom(String rawMethod) {
+      for (McpMethod method : values()) {
+        if (method.methodName.equals(rawMethod)) {
+          return method;
+        }
+      }
+      throw new ConnectorException(
+          "MCP_CLIENT_UNSUPPORTED_METHOD",
+          String.format(
+              "Unsupported MCP method '%s'. Supported operations: '%s'",
+              rawMethod, supportedMethods()));
+    }
+
+    @JsonValue private final String methodName;
+
+    McpMethod(String methodName) {
+      this.methodName = methodName;
+    }
+
+    public String methodName() {
+      return methodName;
     }
   }
 
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  record McpClientCallToolOperation(McpClientCallToolOperationParams params)
-      implements McpClientOperation {
-    public static final String METHOD = "tools/call";
-
-    @Override
-    public String method() {
-      return METHOD;
-    }
-
-    public static McpClientCallToolOperation create(String name, Map<String, Object> arguments) {
-      return new McpClientCallToolOperation(new McpClientCallToolOperationParams(name, arguments));
-    }
-
-    public record McpClientCallToolOperationParams(String name, Map<String, Object> arguments) {}
-  }
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  record McpClientListResourcesOperation() implements McpClientOperation {
-    public static final String METHOD = "resources/list";
-
-    @Override
-    public String method() {
-      return METHOD;
-    }
-  }
+  record McpClientOperationImpl(
+      McpMethod method, @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> params)
+      implements McpClientOperation {}
 }
