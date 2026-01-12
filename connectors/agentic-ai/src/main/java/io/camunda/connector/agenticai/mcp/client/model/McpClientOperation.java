@@ -54,7 +54,7 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
           "MCP_CLIENT_UNSUPPORTED_METHOD",
           String.format(
               "Unsupported MCP method '%s'. Supported operations: '%s'",
-              rawMethod, String.join("', '", supportedMethods())));
+              rawMethod, supportedMethods()));
     }
 
     @JsonValue private final String methodName;

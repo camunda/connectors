@@ -34,7 +34,7 @@ final class ListResourceTemplatesRequest {
                     .toList());
 
     LOGGER.debug(
-        "MCP({}): Resolved list of resource templatesa: {}",
+        "MCP({}): Resolved list of resource templates: {}",
         client.key(),
         result.resourceTemplates().stream().map(ResourceTemplate::name).toList());
 
