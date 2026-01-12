@@ -388,6 +388,72 @@ class FeelEngineWrapperExpressionEvaluationTest {
   }
 
   @Test
+  void failJobFunctionWithNestedContext() {
+    // given - variables contain a nested context
+    final var resultExpression = "=jobError(message, {\"nested\": {\"key\": \"value\"}})";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    // then - nested context should be converted to Java Map
+    @SuppressWarnings("unchecked")
+    Map<String, Object> resultVariables = (Map<String, Object>) result.get("variables");
+    assertThat(resultVariables.get("nested")).isInstanceOf(Map.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> nestedMap = (Map<String, Object>) resultVariables.get("nested");
+    assertThat(nestedMap.get("key")).isInstanceOf(String.class).isEqualTo("value");
+  }
+
+  @Test
+  void failJobFunctionWithList() {
+    // given - variables contain a list
+    final var resultExpression = "=jobError(message, {\"items\": [1, 2, 3]})";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    // then - list should be converted to Java List with Integer values
+    @SuppressWarnings("unchecked")
+    Map<String, Object> resultVariables = (Map<String, Object>) result.get("variables");
+    assertThat(resultVariables.get("items")).isInstanceOf(java.util.List.class);
+    @SuppressWarnings("unchecked")
+    java.util.List<Object> items = (java.util.List<Object>) resultVariables.get("items");
+    assertThat(items).containsExactly(1, 2, 3);
+    assertThat(items.get(0)).isInstanceOf(Integer.class);
+  }
+
+  @Test
+  void failJobFunctionWithMixedTypes() {
+    // given - variables contain mixed types: string, number, boolean
+    final var resultExpression =
+        "=jobError(message, {\"str\": \"text\", \"num\": 42, \"bool\": true})";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    // then - all types should be properly converted
+    @SuppressWarnings("unchecked")
+    Map<String, Object> resultVariables = (Map<String, Object>) result.get("variables");
+    assertThat(resultVariables.get("str")).isInstanceOf(String.class).isEqualTo("text");
+    assertThat(resultVariables.get("num")).isInstanceOf(Integer.class).isEqualTo(42);
+    assertThat(resultVariables.get("bool")).isInstanceOf(Boolean.class).isEqualTo(true);
+  }
+
+  @Test
+  void failJobFunctionWithLargeNumbers() {
+    // given - variables contain numbers of different ranges
+    final var resultExpression =
+        "=jobError(message, {\"int\": 100, \"long\": 9999999999, \"decimal\": 3.14159})";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    // then - numbers should be converted to appropriate Java types
+    @SuppressWarnings("unchecked")
+    Map<String, Object> resultVariables = (Map<String, Object>) result.get("variables");
+    assertThat(resultVariables.get("int")).isInstanceOf(Integer.class).isEqualTo(100);
+    assertThat(resultVariables.get("long")).isInstanceOf(Long.class).isEqualTo(9999999999L);
+    // Note: FEEL may represent 3.14159 as a double
+    assertThat(resultVariables.get("decimal")).isInstanceOf(Number.class);
+  }
+
+  @Test
   void bpmnErrorFunctionWithVarsButWrongDatatype() {
     // given
     final var resultExpression = "=bpmnError(\"test\", \"test\", \"test\")";
