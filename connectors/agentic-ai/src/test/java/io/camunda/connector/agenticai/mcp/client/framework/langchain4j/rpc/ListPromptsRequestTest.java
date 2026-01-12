@@ -41,7 +41,7 @@ class ListPromptsRequestTest {
   }
 
   @Test
-  void returnsPromptDescriptions_whenResourcesAvailable() {
+  void returnsPromptDescriptions_whenPromptsAvailable() {
     final var mcpPrompt1 =
         createMcpPrompt(
             "code_review",
