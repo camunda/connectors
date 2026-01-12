@@ -7,9 +7,12 @@
 package io.camunda.connector.microsoft.email;
 
 import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.inbound.ActivityLogTag;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.ProcessElement;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.microsoft.email.model.config.MsInboundEmailProperties;
@@ -63,11 +66,34 @@ public class MsEmailInboundExecutable
   @Override
   public void activate(InboundConnectorContext context) {
     this.context = context;
+    context.log(
+        activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.CONSUMER)
+                .withMessage(
+                    "Microsoft O365 Email connector activation requested for process "
+                        + context.getDefinition().elements().stream()
+                            .map(ProcessElement::bpmnProcessId)
+                            .toList()));
     try {
       worker = new EmailPollingWorker(context);
       context.reportHealth(Health.up());
+      context.log(
+          activity ->
+              activity
+                  .withSeverity(Severity.INFO)
+                  .withTag(ActivityLogTag.CONSUMER)
+                  .withMessage("Microsoft O365 Email connector activated successfully"));
     } catch (Exception e) {
       LOGGER.error("Failed to activate Microsoft O365 Email Inbound connector", e);
+      context.log(
+          activity ->
+              activity
+                  .withSeverity(Severity.ERROR)
+                  .withTag(ActivityLogTag.CONSUMER)
+                  .withMessage(
+                      "Microsoft O365 Email connector activation failed: " + e.getMessage()));
       context.reportHealth(Health.down(e));
       throw e;
     }
@@ -75,6 +101,12 @@ public class MsEmailInboundExecutable
 
   @Override
   public void deactivate() throws Exception {
+    context.log(
+        activity ->
+            activity
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.CONSUMER)
+                .withMessage("Microsoft O365 Email connector deactivation requested"));
     worker.shutdown();
     context.reportHealth(Health.down());
     Thread.sleep(Duration.ofMillis(800));
