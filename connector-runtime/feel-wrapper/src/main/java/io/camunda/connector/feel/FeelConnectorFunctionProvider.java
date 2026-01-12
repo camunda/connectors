@@ -173,7 +173,7 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
 
   private static ValContext createJobErrorContext(
       ValString message, ValContext variables, ValNumber retries, ValDayTimeDuration retryBackoff) {
-    java.util.Map<String, Object> javaMap = new HashMap<>();
+    var javaMap = new HashMap<String, Object>();
     javaMap.put(ERROR_TYPE_PROPERTY, JOB_ERROR_TYPE_VALUE);
     javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(0), message.value());
     javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(1), valContextToJavaMap(variables));
@@ -186,14 +186,19 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
   /**
    * Converts a ValContext to a Java Map, recursively converting all Val types to their Java
    * equivalents.
+   *
+   * <p>This method is necessary because FEEL expressions can produce ValContext objects containing
+   * Val-wrapped values (ValString, ValNumber, etc.), but the JobError handling expects pure Java
+   * types. This conversion ensures that assertions and equality checks work correctly with standard
+   * Java types instead of Scala FEEL types.
+   *
+   * @param valContext the FEEL ValContext to convert
+   * @return a Java Map with all Val types converted to their Java equivalents
    */
   @SuppressWarnings("unchecked")
   private static java.util.Map<String, Object> valContextToJavaMap(ValContext valContext) {
-    scala.collection.immutable.Map<String, Object> scalaMap =
-        (scala.collection.immutable.Map<String, Object>)
-            (scala.collection.immutable.Map<?, ?>)
-                valContext.context().variableProvider().getVariables();
-    java.util.Map<String, Object> javaValMap = JavaConverters.asJava(scalaMap);
+    var scalaMap = (Map<String, Object>) valContext.context().variableProvider().getVariables();
+    var javaValMap = JavaConverters.asJava(scalaMap);
     return javaValMap.entrySet().stream()
         .collect(
             Collectors.toMap(
@@ -201,20 +206,32 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
                 e -> e.getValue() instanceof Val ? valToJava((Val) e.getValue()) : e.getValue()));
   }
 
-  /** Converts a FEEL Val type to its Java equivalent. */
+  /**
+   * Converts a FEEL Val type to its Java equivalent.
+   *
+   * <p>This method recursively converts FEEL value types to their standard Java representations:
+   *
+   * <ul>
+   *   <li>ValString → String
+   *   <li>ValNumber → Integer, Long, or Double (depending on value range)
+   *   <li>ValBoolean → Boolean
+   *   <li>ValContext → Map&lt;String, Object&gt;
+   *   <li>ValList → List&lt;Object&gt;
+   *   <li>ValDayTimeDuration → Duration
+   *   <li>ValNull → null
+   * </ul>
+   *
+   * <p>This conversion is essential for proper equality checks and assertions, as FEEL Val types
+   * are Scala-based wrappers that don't compare equal to their Java equivalents.
+   *
+   * @param val the FEEL Val to convert
+   * @return the Java equivalent of the Val, or the Val itself if no conversion is defined
+   */
   private static Object valToJava(Val val) {
     if (val instanceof ValString valString) {
       return valString.value();
     } else if (val instanceof ValNumber valNumber) {
-      // Convert Scala BigDecimal to Java - use intValue for small integers
-      BigDecimal bd = valNumber.value();
-      if (bd.isValidInt()) {
-        return bd.intValue();
-      } else if (bd.isValidLong()) {
-        return bd.longValue();
-      } else {
-        return bd.doubleValue();
-      }
+      return convertValNumberToJava(valNumber);
     } else if (val instanceof ValBoolean valBoolean) {
       return valBoolean.value();
     } else if (val instanceof ValContext valContext) {
@@ -228,8 +245,35 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
     } else if (val == ValNull$.MODULE$) {
       return null;
     } else {
-      // For any other Val types, return the raw value if accessible, or the Val itself
+      // For any other Val types, return the Val itself
+      // This maintains backward compatibility for unsupported types
       return val;
+    }
+  }
+
+  /**
+   * Converts a ValNumber to the most appropriate Java numeric type.
+   *
+   * <p>The conversion strategy prioritizes the smallest type that can represent the value without
+   * loss of precision:
+   *
+   * <ol>
+   *   <li>Integer if the value fits in an int
+   *   <li>Long if the value fits in a long
+   *   <li>Double for all other values
+   * </ol>
+   *
+   * @param valNumber the FEEL number to convert
+   * @return Integer, Long, or Double depending on the value's range
+   */
+  private static Object convertValNumberToJava(ValNumber valNumber) {
+    BigDecimal bd = valNumber.value();
+    if (bd.isValidInt()) {
+      return bd.intValue();
+    } else if (bd.isValidLong()) {
+      return bd.longValue();
+    } else {
+      return bd.doubleValue();
     }
   }
 

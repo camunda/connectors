@@ -1154,6 +1154,31 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
+    void shouldCreateJobError_WithErrorKeyInVariables_ErrorMessageTakesPrecedence()
+        throws Exception {
+      // Given - user provides an "error" key that should be overwritten
+      var errorExpression =
+          """
+          jobError("ActualError", {"error": "UserProvidedError", "otherVar": "value"})
+          """;
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new ConnectorException("CONNECTION_ERROR", "connection failed");
+              });
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .executeAndCaptureResult(jobHandler, false, false);
+      // then - error message takes precedence over user-provided "error" key
+      assertThat(result.getErrorMessage()).isEqualTo("ActualError");
+      assertThat(result.getVariables()).containsEntry("error", "ActualError");
+      assertThat(result.getVariables()).containsEntry("otherVar", "value");
+      assertThat(result.getVariables()).doesNotContainValue("UserProvidedError");
+    }
+
+    @Test
     void shouldCreateBpmnError_UsingExceptionCodeAsSecondConditionAfterResponseProperty()
         throws Exception {
       // given

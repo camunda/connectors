@@ -42,7 +42,6 @@ import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
-import java.util.HashMap;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -245,13 +244,11 @@ public class SpringConnectorJobHandler implements JobHandler {
       }
       case JobError jobError -> {
         LOGGER.debug("Throwing incident for job {}", job.getKey());
-        var variables = new HashMap<>(jobError.variables());
-        variables.put("error", jobError.errorMessage());
         failJob(
             client,
             job,
             new ConnectorResult.ErrorResult(
-                variables,
+                jobError.variablesWithErrorMessage(),
                 new RuntimeException(jobError.errorMessage()),
                 jobError.retries(),
                 jobError.retryBackoff()),
