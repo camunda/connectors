@@ -87,6 +87,7 @@ final class ToolCallRequest {
 
   private ToolExecutionParameters parseParams(Map<String, Object> params) {
     try {
+      // TODO: Replace with manual parsing to skip serialization and immediate deserialization
       return objectMapper.convertValue(params, ToolExecutionParameters.class);
     } catch (IllegalArgumentException ex) {
       throw new ConnectorException(
