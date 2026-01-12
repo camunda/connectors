@@ -29,7 +29,7 @@ class ListPromptsRequestTest {
   private final ListPromptsRequest testee = new ListPromptsRequest();
 
   @Test
-  void returnsEmptyList_whenNoResourcesAvailable() {
+  void returnsEmptyList_whenNoPromptsAvailable() {
     when(mcpClient.listPrompts()).thenReturn(Collections.emptyList());
 
     final var result = testee.execute(mcpClient);
@@ -41,7 +41,7 @@ class ListPromptsRequestTest {
   }
 
   @Test
-  void returnsResourceDescriptions_whenResourcesAvailable() {
+  void returnsPromptDescriptions_whenResourcesAvailable() {
     final var mcpPrompt1 =
         createMcpPrompt(
             "code_review",

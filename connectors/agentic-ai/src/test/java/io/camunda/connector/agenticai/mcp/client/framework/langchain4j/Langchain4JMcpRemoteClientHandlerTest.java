@@ -42,6 +42,7 @@ import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationCon
 import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.CallToolOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListToolsOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListPromptsResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -364,7 +365,7 @@ class Langchain4JMcpRemoteClientHandlerTest {
               transport,
               false,
               new McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration());
-      final var expectedResult = new McpClientListResourceTemplatesResult(List.of());
+      final var expectedResult = new McpClientListPromptsResult(List.of());
 
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(

@@ -30,6 +30,7 @@ import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfigura
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListPromptsResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -296,7 +297,7 @@ class Langchain4JMcpClientHandlerTest {
       final var request =
           createStandaloneModeRequest(
               new McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration());
-      final var expectedResult = new McpClientListResourceTemplatesResult(List.of());
+      final var expectedResult = new McpClientListPromptsResult(List.of());
 
       when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
       when(clientExecutor.execute(
