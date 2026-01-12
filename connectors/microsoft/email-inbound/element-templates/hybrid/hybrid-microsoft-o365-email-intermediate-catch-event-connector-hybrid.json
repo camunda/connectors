@@ -165,30 +165,12 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Simple",
-      "value" : "simple"
-    }, {
       "name" : "Advanced",
       "value" : "advanced"
+    }, {
+      "name" : "Simple",
+      "value" : "simple"
     } ]
-  }, {
-    "id" : "pollingConfig.filterCriteria.onlyUnread",
-    "label" : "Only Unread",
-    "optional" : false,
-    "value" : true,
-    "feel" : "static",
-    "group" : "pollingConfig",
-    "binding" : {
-      "name" : "pollingConfig.filterCriteria.onlyUnread",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "pollingConfig.filterCriteria.filterSpecification",
-      "equals" : "simple",
-      "type" : "simple"
-    },
-    "tooltip" : "Only fetch unread emails",
-    "type" : "Boolean"
   }, {
     "id" : "pollingConfig.filterCriteria.filterString",
     "label" : "Filter string",
@@ -207,6 +189,24 @@
       "type" : "simple"
     },
     "type" : "String"
+  }, {
+    "id" : "pollingConfig.filterCriteria.onlyUnread",
+    "label" : "Only Unread",
+    "optional" : false,
+    "value" : true,
+    "feel" : "static",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "pollingConfig.filterCriteria.onlyUnread",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "pollingConfig.filterCriteria.filterSpecification",
+      "equals" : "simple",
+      "type" : "simple"
+    },
+    "tooltip" : "Only fetch unread emails",
+    "type" : "Boolean"
   }, {
     "id" : "operation.processingOperationDiscriminator",
     "label" : "Postprocessing configuration",

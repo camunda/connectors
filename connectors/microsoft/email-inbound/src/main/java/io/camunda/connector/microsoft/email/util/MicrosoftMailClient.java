@@ -87,7 +87,6 @@ public class MicrosoftMailClient implements MailClient {
   @Override
   public OpaqueMessageFetcher constructMessageFetcher(
       Folder folder, String filterString, Consumer<EmailMessage> handler) {
-    // TODO: Try to refetch with exponential backoff
     DeltaGetResponse messageResponse =
         graphClient
             .mailFolders()
