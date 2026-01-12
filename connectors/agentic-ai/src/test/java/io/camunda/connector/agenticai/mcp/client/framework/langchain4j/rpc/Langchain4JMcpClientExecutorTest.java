@@ -8,15 +8,20 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
+import dev.langchain4j.mcp.client.McpGetPromptResult;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.result.*;
+import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -90,6 +95,21 @@ class Langchain4JMcpClientExecutorTest {
     assertThat(result).isInstanceOf(McpClientListPromptsResult.class);
   }
 
+  @Test
+  void returnsMcpGetPromptResult_whenGetPromptExecuted() {
+    final var operation = McpClientOperation.of("prompts/get", Map.of("name", "test-prompt"));
+
+    // Mock the getPrompt call to return an empty result
+    McpGetPromptResult mockResult = mock(McpGetPromptResult.class);
+    when(mockResult.description()).thenReturn("Test prompt");
+    when(mockResult.messages()).thenReturn(Collections.emptyList());
+    when(mcpClient.getPrompt(eq("test-prompt"), any())).thenReturn(mockResult);
+
+    final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
+
+    assertThat(result).isInstanceOf(McpClientGetPromptResult.class);
+  }
+
   @ParameterizedTest
   @MethodSource("unsupportedOperations")
   void throwsUnsupportedOperationException_whenUnsupportedOperationIsAttempted(
@@ -98,10 +118,10 @@ class Langchain4JMcpClientExecutorTest {
 
     assertThatThrownBy(() -> executor.execute(mcpClient, operation, EMPTY_FILTER))
         .isInstanceOf(UnsupportedOperationException.class)
-        .hasMessageContaining("This method is not supported yet: " + unsupportedMethod);
+        .hasMessageContaining("This method is not supported yet: " + operation.method());
   }
 
   private static Stream<Arguments> unsupportedOperations() {
-    return Stream.of(Arguments.of("resources/read"), Arguments.of("prompts/get"));
+    return Stream.of(Arguments.of("resources/read"));
   }
 }
