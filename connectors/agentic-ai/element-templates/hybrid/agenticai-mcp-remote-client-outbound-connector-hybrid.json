@@ -791,6 +791,9 @@
     }, {
       "name" : "List Resource Templates",
       "value" : "resources/templates/list"
+    }, {
+      "name" : "List Prompts",
+      "value" : "prompts/list"
     } ]
   }, {
     "id" : "data.connectorMode.operation.toolName",

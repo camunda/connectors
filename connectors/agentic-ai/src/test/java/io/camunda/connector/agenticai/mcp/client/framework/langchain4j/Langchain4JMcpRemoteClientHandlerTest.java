@@ -42,6 +42,7 @@ import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationCon
 import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.CallToolOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListToolsOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListPromptsResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -346,6 +347,33 @@ class Langchain4JMcpRemoteClientHandlerTest {
                   operation ->
                       assertThat(operation)
                           .returns(LIST_RESOURCE_TEMPLATES, McpClientOperation::method)
+                          .returns(Map.of(), McpClientOperation::params)),
+              eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
+    void handlesListPromptsRequest(McpRemoteClientTransportConfiguration transport) {
+      final var request =
+          createStandaloneModeRequest(
+              transport,
+              false,
+              new McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration());
+      final var expectedResult = new McpClientListPromptsResult(List.of());
+
+      when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(
+                  operation ->
+                      assertThat(operation)
+                          .returns(LIST_PROMPTS, McpClientOperation::method)
                           .returns(Map.of(), McpClientOperation::params)),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);

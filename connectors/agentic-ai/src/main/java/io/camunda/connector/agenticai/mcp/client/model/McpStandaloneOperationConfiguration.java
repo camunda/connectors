@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client.model;
 
 import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.CallToolOperationConfiguration.CALL_TOOL_ID;
+import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration.LIST_PROMPTS_ID;
 import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration.LIST_RESOURCE_TEMPLATES_ID;
 import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration.LIST_RESOURCES_ID;
 import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListToolsOperationConfiguration.LIST_TOOLS_ID;
@@ -35,7 +36,10 @@ import java.util.Optional;
       name = LIST_RESOURCES_ID),
   @JsonSubTypes.Type(
       value = McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration.class,
-      name = LIST_RESOURCE_TEMPLATES_ID)
+      name = LIST_RESOURCE_TEMPLATES_ID),
+  @JsonSubTypes.Type(
+      value = McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration.class,
+      name = LIST_PROMPTS_ID)
 })
 @TemplateDiscriminatorProperty(
     group = "operation",
@@ -47,7 +51,8 @@ public sealed interface McpStandaloneOperationConfiguration
     permits McpStandaloneOperationConfiguration.ListToolsOperationConfiguration,
         McpStandaloneOperationConfiguration.CallToolOperationConfiguration,
         McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration,
-        McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration {
+        McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration,
+        McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration {
 
   String method();
 
@@ -136,6 +141,23 @@ public sealed interface McpStandaloneOperationConfiguration
     @Override
     public String method() {
       return LIST_RESOURCE_TEMPLATES_ID;
+    }
+
+    @Override
+    public Optional<Map<String, Object>> params() {
+      return Optional.empty();
+    }
+  }
+
+  @TemplateSubType(id = LIST_PROMPTS_ID, label = "List Prompts")
+  record ListPromptsOperationConfiguration() implements McpStandaloneOperationConfiguration {
+
+    @TemplateProperty(ignore = true)
+    public static final String LIST_PROMPTS_ID = "prompts/list";
+
+    @Override
+    public String method() {
+      return LIST_PROMPTS_ID;
     }
 
     @Override
