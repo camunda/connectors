@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.McpPromptArgument;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListPromptsResult;
-import io.camunda.connector.agenticai.mcp.client.model.result.Prompt;
+import io.camunda.connector.agenticai.mcp.client.model.result.PromptDescription;
 import java.util.Collections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +30,7 @@ final class ListPromptsRequest {
                 : fetchedPrompts.stream()
                     .map(
                         fr ->
-                            new Prompt(
+                            new PromptDescription(
                                 fr.name(),
                                 fr.description(),
                                 fr.arguments().stream().map(this::from).toList()))
@@ -39,13 +39,13 @@ final class ListPromptsRequest {
     LOGGER.debug(
         "MCP({}): Resolved list of prompts: {}",
         client.key(),
-        result.prompts().stream().map(Prompt::name).toList());
+        result.promptDescriptions().stream().map(PromptDescription::name).toList());
 
     return result;
   }
 
-  private Prompt.PromptArgument from(McpPromptArgument mcpPromptArgument) {
-    return new Prompt.PromptArgument(
+  private PromptDescription.PromptArgument from(McpPromptArgument mcpPromptArgument) {
+    return new PromptDescription.PromptArgument(
         mcpPromptArgument.name(), mcpPromptArgument.description(), mcpPromptArgument.required());
   }
 }

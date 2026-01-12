@@ -13,7 +13,7 @@ import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.McpPrompt;
 import dev.langchain4j.mcp.client.McpPromptArgument;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListPromptsResult;
-import io.camunda.connector.agenticai.mcp.client.model.result.Prompt;
+import io.camunda.connector.agenticai.mcp.client.model.result.PromptDescription;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ class ListPromptsRequestTest {
 
     assertThat(result)
         .isInstanceOfSatisfying(
-            McpClientListPromptsResult.class, res -> assertThat(res.prompts()).isEmpty());
+            McpClientListPromptsResult.class, res -> assertThat(res.promptDescriptions()).isEmpty());
   }
 
   @Test
@@ -53,7 +53,7 @@ class ListPromptsRequestTest {
         createPrompt(
             "code_review",
             "Asks the LLM to analyze code quality and suggest improvements",
-            List.of(new Prompt.PromptArgument("code", "The code to review", true)));
+            List.of(new PromptDescription.PromptArgument("code", "The code to review", true)));
     final var prompt2 =
         createPrompt("four_eyes_review", "Asks the LLM to judge something", List.of());
 
@@ -64,7 +64,7 @@ class ListPromptsRequestTest {
     assertThat(result)
         .isInstanceOfSatisfying(
             McpClientListPromptsResult.class,
-            res -> assertThat(res.prompts()).containsExactly(prompt1, prompt2));
+            res -> assertThat(res.promptDescriptions()).containsExactly(prompt1, prompt2));
   }
 
   private McpPrompt createMcpPrompt(
@@ -72,8 +72,8 @@ class ListPromptsRequestTest {
     return new McpPrompt(name, description, List.copyOf(arguments));
   }
 
-  private Prompt createPrompt(
-      String name, String description, List<Prompt.PromptArgument> arguments) {
-    return new Prompt(name, description, List.copyOf(arguments));
+  private PromptDescription createPrompt(
+      String name, String description, List<PromptDescription.PromptArgument> arguments) {
+    return new PromptDescription(name, description, List.copyOf(arguments));
   }
 }

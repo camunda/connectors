@@ -48,8 +48,8 @@ import java.util.Optional;
     description = "The type of operation to perform.",
     defaultValue = LIST_TOOLS_ID)
 public sealed interface McpStandaloneOperationConfiguration
-    permits McpStandaloneOperationConfiguration.CallToolOperationConfiguration,
-        McpStandaloneOperationConfiguration.ListToolsOperationConfiguration,
+    permits McpStandaloneOperationConfiguration.ListToolsOperationConfiguration,
+        McpStandaloneOperationConfiguration.CallToolOperationConfiguration,
         McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration,
         McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration,
         McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration {
