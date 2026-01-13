@@ -17,7 +17,6 @@
 package io.camunda.connector.e2e;
 
 import static org.apache.kafka.clients.admin.AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG;
-import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
@@ -25,7 +24,6 @@ import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
 import io.camunda.connector.test.utils.DockerImages;
 import java.io.File;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -34,7 +32,6 @@ import org.apache.kafka.clients.admin.NewPartitions;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -59,10 +56,7 @@ public class BaseKafkaTest {
 
   @Autowired CamundaClient camundaClient;
 
-  @MockitoBean ProcessDefinitionSearch processDefinitionSearch;
-
-  @Autowired
-  ProcessStateManager processStateManager;
+  @Autowired ProcessStateManager processStateManager;
 
   @MockitoBean SearchQueryClient searchQueryClient;
 
@@ -84,11 +78,6 @@ public class BaseKafkaTest {
     if (kafkaContainer != null) {
       kafkaContainer.stop();
     }
-  }
-
-  @BeforeEach
-  void beforeEach() {
-    when(processDefinitionSearch.query()).thenReturn(Collections.emptyList());
   }
 
   private static void createTopics(String... topics) {
