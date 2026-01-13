@@ -49,6 +49,17 @@ public class SearchQueryClientImpl implements SearchQueryClient {
   }
 
   @Override
+  public SearchResponse<MessageSubscription> queryMessageSubscriptions(String paginationIndex) {
+    final var query = camundaClient.newMessageSubscriptionSearchRequest();
+    if (paginationIndex != null) {
+      query.page(p -> p.limit(limit).after(paginationIndex));
+    } else {
+      query.page(p -> p.limit(limit));
+    }
+    return query.send().join();
+  }
+
+  @Override
   public SearchResponse<ElementInstance> queryActiveFlowNodes(
       long processDefinitionKey, String elementId, String paginationIndex) {
     final var query =
@@ -90,5 +101,10 @@ public class SearchQueryClientImpl implements SearchQueryClient {
     final String xml =
         camundaClient.newProcessDefinitionGetXmlRequest(processDefinitionKey).send().join();
     return Bpmn.readModelFromStream(new ByteArrayInputStream(xml.getBytes()));
+  }
+
+  @Override
+  public ProcessDefinition getProcessDefinition(long processDefinitionKey) {
+    return camundaClient.newProcessDefinitionGetRequest(processDefinitionKey).send().join();
   }
 }
