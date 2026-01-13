@@ -18,6 +18,7 @@ package io.camunda.connector.e2e;
 
 import static io.camunda.connector.e2e.BpmnFile.replace;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
@@ -26,11 +27,13 @@ import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionId;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,10 +86,10 @@ public class InboundEmailTests extends BaseEmailTest {
     processStateManager.update(
         new ImportResult(
             Map.of(
-                new ImportResult.ProcessDefinitionIdentifier(
+                new ProcessDefinitionId(
                     processDef.getProcessDefinitionId(), processDef.getTenantId()),
-                new ImportResult.ProcessDefinitionVersion(
-                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
+                Set.of(1L)),
+            ImportResult.ImportType.LATEST_VERSIONS));
 
     var bpmnTest = ZeebeTest.with(camundaClient).deploy(model).createInstance();
 
@@ -106,5 +109,7 @@ public class InboundEmailTests extends BaseEmailTest {
         .thenReturn(camundaClient.getConfiguration().getDefaultTenantId());
     when(processDef.getProcessDefinitionId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
+    when(processDef.getVersion()).thenReturn(1);
+    lenient().when(searchQueryClient.getProcessDefinition(1L)).thenReturn(processDef);
   }
 }
