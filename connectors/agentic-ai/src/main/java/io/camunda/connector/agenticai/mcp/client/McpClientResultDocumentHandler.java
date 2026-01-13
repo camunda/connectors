@@ -24,6 +24,18 @@ public class McpClientResultDocumentHandler {
     this.documentFactory = documentFactory;
   }
 
+  /**
+   * Converts any storable MCP data in the given client result into Camunda documents, if present.
+   *
+   * <p>Therefor, the subtype of {@link McpClientResult} must be as well an instance of {@link
+   * McpClientResultWithStorableData}. The decision logic, on which data is storable and how to
+   * convert it into documents, is implemented in the respective target class.
+   *
+   * @param clientResult the client result to convert potentially storable data for
+   * @return the <tt>clientResult</tt> if it is not an instance of {@link
+   *     McpClientResultWithStorableData}, otherwise a new instance holding references to created
+   *     documents for any storable data
+   */
   public McpClientResult convertBinariesToDocumentsIfPresent(McpClientResult clientResult) {
     if (!(clientResult instanceof McpClientResultWithStorableData documentContainer)) {
       LOGGER.debug(
