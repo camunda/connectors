@@ -22,9 +22,9 @@ import static org.mockito.Mockito.when;
 import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.e2e.helper.KafkaTestProducer;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult.ProcessDefinitionIdentifier;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult.ProcessDefinitionVersion;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
@@ -84,8 +84,8 @@ public class InboundKafkaTests extends BaseKafkaTest {
             BpmnFile.Replace.replace("kafkaTopic", TOPIC));
 
     mockProcessDefinition(model);
-    processStateStore.update(
-        new ProcessImportResult(
+    processStateManager.update(
+        new ImportResult(
             Map.of(
                 new ProcessDefinitionIdentifier(
                     processDef.getProcessDefinitionId(), processDef.getTenantId()),
@@ -127,8 +127,8 @@ public class InboundKafkaTests extends BaseKafkaTest {
             BpmnFile.Replace.replace("kafkaTopic", TOPIC));
 
     mockProcessDefinition(model);
-    processStateStore.update(
-        new ProcessImportResult(
+    processStateManager.update(
+        new ImportResult(
             Map.of(
                 new ProcessDefinitionIdentifier(
                     processDef.getProcessDefinitionId(), processDef.getTenantId()),

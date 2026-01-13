@@ -19,7 +19,6 @@ package io.camunda.connector.e2e;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.test.utils.DockerImages;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
