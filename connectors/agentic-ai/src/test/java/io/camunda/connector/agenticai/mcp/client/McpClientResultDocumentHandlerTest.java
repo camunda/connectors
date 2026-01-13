@@ -50,7 +50,7 @@ class McpClientResultDocumentHandlerTest {
   @MethodSource("mcpClientResultsWithoutBinaryDocumentContainers")
   void passesThrough_whenNoBinaryDocumentContainer(
       McpClientResult givenResult, McpClientResult expectedAfterTransformation) {
-    final var transformedResult = testee.transformBinariesToDocumentsIfPresent(givenResult);
+    final var transformedResult = testee.convertBinariesToDocumentsIfPresent(givenResult);
 
     assertThat(expectedAfterTransformation).isEqualTo(transformedResult);
   }
@@ -72,7 +72,7 @@ class McpClientResultDocumentHandlerTest {
               }
             });
 
-    final var transformedResult = testee.transformBinariesToDocumentsIfPresent(givenResult);
+    final var transformedResult = testee.convertBinariesToDocumentsIfPresent(givenResult);
 
     assertThat(expectedAfterTransformation).usingRecursiveComparison().isEqualTo(transformedResult);
   }

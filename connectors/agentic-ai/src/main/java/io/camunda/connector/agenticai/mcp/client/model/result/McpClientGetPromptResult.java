@@ -16,7 +16,7 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
     implements McpClientResult, McpClientResultWithStorableData {
 
   @Override
-  public McpClientGetPromptResult transformStorableMcpResultData(
+  public McpClientGetPromptResult convertStorableMcpResultData(
       DocumentFactory documentFactory, McpDocumentSettings documentSettings) {
     var messagesWithDocumentReferences =
         messages.stream()
