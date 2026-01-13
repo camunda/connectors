@@ -130,7 +130,7 @@ class GetPromptRequestTest {
             exception -> {
               assertThat(exception.getErrorCode()).isEqualTo("MCP_CLIENT_INVALID_PARAMS");
               assertThat(exception.getMessage())
-                  .isEqualTo("Incorrect format for prompt arguments. Expecting object.");
+                  .isEqualTo("Incorrect format for prompt arguments. Expecting an object.");
             });
   }
 
