@@ -21,7 +21,7 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>secretsmanager</artifactId>
-      <version>${version.aws-sdk-secretsmanager}</version>
+      <version>${version.aws-sdk2}</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
