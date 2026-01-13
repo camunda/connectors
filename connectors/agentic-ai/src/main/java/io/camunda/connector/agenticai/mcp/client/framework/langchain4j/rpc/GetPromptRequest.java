@@ -105,7 +105,7 @@ final class GetPromptRequest {
     if (!(paramsArguments instanceof Map promptArguments)) {
       throw new ConnectorException(
           "MCP_CLIENT_INVALID_PARAMS",
-          "Incorrect format for prompt arguments. Expecting an object");
+          "Incorrect format for prompt arguments. Expecting an object.");
     }
 
     return new GetPromptParameters(promptName, promptArguments);
