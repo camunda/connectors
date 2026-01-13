@@ -128,6 +128,9 @@
     }, {
       "name" : "List Prompts",
       "value" : "prompts/list"
+    }, {
+      "name" : "Get Prompt",
+      "value" : "prompts/get"
     } ]
   }, {
     "id" : "data.connectorMode.operation.toolName",
@@ -170,6 +173,55 @@
       "allMatch" : [ {
         "property" : "data.connectorMode.operation.type",
         "equals" : "tools/call",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.connectorMode.operation.promptName",
+    "label" : "Prompt name",
+    "description" : "The name of the prompt to get.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.operation.promptName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.type",
+        "equals" : "prompts/get",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.connectorMode.operation.promptArguments",
+    "label" : "Prompt arguments",
+    "description" : "The arguments to pass to the prompt generation.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.operation.promptArguments",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.type",
+        "equals" : "prompts/get",
         "type" : "simple"
       }, {
         "property" : "data.connectorMode.type",
