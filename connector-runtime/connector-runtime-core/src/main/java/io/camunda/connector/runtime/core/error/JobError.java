@@ -43,6 +43,9 @@ public record JobError(
    * @return a new mutable map containing all variables plus the error message under the "error" key
    */
   public Map<String, Object> variablesWithErrorMessage() {
+    if (variables == null) {
+      return Map.of("error", errorMessage);
+    }
     var result = new HashMap<>(variables);
     if (variables.containsKey("error")) {
       LOGGER.debug(
