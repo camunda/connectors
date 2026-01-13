@@ -69,7 +69,9 @@ public class Importers {
     LOGGER.debug("Starting import of ACTIVE versions");
 
     Map<ProcessDefinitionId, Set<Long>> result =
-        PaginatedSearchUtil.queryAllPages(searchQueryClient::queryMessageSubscriptions).stream()
+        PaginatedSearchUtil.queryAllPages(searchQueryClient::queryMessageSubscriptions)
+            .stream()
+            .filter(Importers::isProcessDefinitionKeyNotNull)
             .collect(
                 Collectors.groupingBy(
                     subscription ->
@@ -91,5 +93,23 @@ public class Importers {
             .orElse("none"));
 
     return new ImportResult(result, ImportType.HAVE_ACTIVE_SUBSCRIPTIONS);
+  }
+
+  // Backward compatibility filter & warning when we run against older Camunda versions
+  private static boolean warningAlreadyLogged = false;
+
+  private static boolean isProcessDefinitionKeyNotNull(MessageSubscription subscription) {
+    if (subscription.getProcessDefinitionKey() != null) {
+      return true;
+    }
+    if (!warningAlreadyLogged) {
+      LOGGER.warn(
+          "Imported MessageSubscription without processDefinitionKey. "
+              + "This is a version compatibility issue. "
+              + "Inbound connectors relying on active subscriptions may not work as expected. "
+              + "Upgrade to Camunda Platform 8.9+ to remove this warning.");
+      warningAlreadyLogged = true;
+    }
+    return false;
   }
 }
