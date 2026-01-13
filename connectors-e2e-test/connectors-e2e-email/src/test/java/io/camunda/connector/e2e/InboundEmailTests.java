@@ -24,8 +24,8 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
-import io.camunda.connector.runtime.inbound.state.model.ImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -58,8 +58,7 @@ public class InboundEmailTests extends BaseEmailTest {
 
   @MockitoBean SearchQueryClient searchQueryClient;
   @Autowired CamundaClient camundaClient;
-  @Autowired
-  ProcessStateManager processStateManager;
+  @Autowired ProcessStateManager processStateManager;
   @MockitoBean private ProcessDefinition processDef;
 
   @BeforeEach
