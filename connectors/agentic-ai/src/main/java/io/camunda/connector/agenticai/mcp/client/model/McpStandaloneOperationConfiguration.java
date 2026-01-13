@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client.model;
 
 import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.CallToolOperationConfiguration.CALL_TOOL_ID;
+import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.GetPromptOperationConfiguration.GET_PROMPT_ID;
 import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration.LIST_PROMPTS_ID;
 import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration.LIST_RESOURCE_TEMPLATES_ID;
 import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration.LIST_RESOURCES_ID;
@@ -39,7 +40,10 @@ import java.util.Optional;
       name = LIST_RESOURCE_TEMPLATES_ID),
   @JsonSubTypes.Type(
       value = McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration.class,
-      name = LIST_PROMPTS_ID)
+      name = LIST_PROMPTS_ID),
+  @JsonSubTypes.Type(
+      value = McpStandaloneOperationConfiguration.GetPromptOperationConfiguration.class,
+      name = GET_PROMPT_ID)
 })
 @TemplateDiscriminatorProperty(
     group = "operation",
@@ -52,7 +56,8 @@ public sealed interface McpStandaloneOperationConfiguration
         McpStandaloneOperationConfiguration.CallToolOperationConfiguration,
         McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration,
         McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration,
-        McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration {
+        McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration,
+        McpStandaloneOperationConfiguration.GetPromptOperationConfiguration {
 
   String method();
 
@@ -163,6 +168,45 @@ public sealed interface McpStandaloneOperationConfiguration
     @Override
     public Optional<Map<String, Object>> params() {
       return Optional.empty();
+    }
+  }
+
+  @TemplateSubType(id = GET_PROMPT_ID, label = "Get Prompt")
+  record GetPromptOperationConfiguration(
+      @FEEL
+          @TemplateProperty(
+              group = "operation",
+              label = "Prompt name",
+              description = "The name of the prompt to get.",
+              type = TemplateProperty.PropertyType.String,
+              feel = Property.FeelMode.optional,
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+          @NotBlank
+          String promptName,
+      @FEEL
+          @TemplateProperty(
+              group = "operation",
+              label = "Prompt arguments",
+              description = "The arguments to pass to the prompt generation.",
+              feel = Property.FeelMode.required,
+              optional = true)
+          Map<String, Object> promptArguments)
+      implements McpStandaloneOperationConfiguration {
+
+    @TemplateProperty(ignore = true)
+    public static final String GET_PROMPT_ID = "prompts/get";
+
+    @Override
+    public String method() {
+      return GET_PROMPT_ID;
+    }
+
+    @Override
+    public Optional<Map<String, Object>> params() {
+      if (promptArguments == null || promptArguments.isEmpty()) {
+        return Optional.of(Map.of("name", promptName));
+      }
+      return Optional.of(Map.of("name", promptName, "arguments", promptArguments));
     }
   }
 }
