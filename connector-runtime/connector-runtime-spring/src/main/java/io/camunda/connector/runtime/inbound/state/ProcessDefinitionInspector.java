@@ -31,8 +31,8 @@ import io.camunda.connector.runtime.core.inbound.correlation.MessageStartEventCo
 import io.camunda.connector.runtime.core.inbound.correlation.ProcessCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionId;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionVersion;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.BaseElement;
 import io.camunda.zeebe.model.bpmn.instance.BoundaryEvent;
@@ -85,11 +85,10 @@ public class ProcessDefinitionInspector {
   }
 
   public List<InboundConnectorElement> findInboundConnectors(
-      ProcessDefinitionIdentifier identifier, ProcessDefinitionVersion version) {
+      ProcessDefinitionId identifier, long processDefinitionKey) {
 
-    LOG.debug("Checking {} (version {}) for connectors.", identifier, version.version());
-    BpmnModelInstance modelInstance =
-        searchQueryClient.getProcessModel(version.processDefinitionKey());
+    LOG.debug("Checking {} (key {}) for connectors.", identifier, processDefinitionKey);
+    BpmnModelInstance modelInstance = searchQueryClient.getProcessModel(processDefinitionKey);
 
     var processes =
         modelInstance.getDefinitions().getChildElementsByType(Process.class).stream()
@@ -97,13 +96,28 @@ public class ProcessDefinitionInspector {
             .findFirst();
 
     return processes.stream()
-        .flatMap(process -> inspectBpmnProcess(process, identifier, version).stream())
+        .flatMap(process -> inspectBpmnProcess(process, identifier, processDefinitionKey).stream())
         .toList();
   }
 
   private List<InboundConnectorElement> inspectBpmnProcess(
-      Process process, ProcessDefinitionIdentifier identifier, ProcessDefinitionVersion version) {
+      Process process, ProcessDefinitionId identifier, long processDefinitionKey) {
     Collection<BaseElement> inboundEligibleElements = retrieveEligibleElementsFromProcess(process);
+    if (inboundEligibleElements.isEmpty()) {
+      LOG.debug(
+          "No inbound eligible elements found in process {} (key {})",
+          identifier.bpmnProcessId(),
+          processDefinitionKey);
+      return Collections.emptyList();
+    }
+
+    // We have to resolve the process definition to get the version number for data completeness
+    // In general it is not possible to get it from previously fetched data (only possible for
+    // latest version imports, not for active version imports). Thus +1 call per process here,
+    // but only if inbound connectors are found => should not be too bad for performance.
+    var processDefinition = searchQueryClient.getProcessDefinition(processDefinitionKey);
+    var version =
+        new ProcessDefinitionVersion(processDefinitionKey, processDefinition.getVersion());
 
     List<InboundConnectorElement> discoveredInboundConnectors = new ArrayList<>();
     for (BaseElement element : inboundEligibleElements) {
@@ -181,7 +195,7 @@ public class ProcessDefinitionInspector {
   private Optional<ProcessCorrelationPoint> getCorrelationPointForElement(
       BaseElement element,
       Process process,
-      ProcessDefinitionIdentifier identifier,
+      ProcessDefinitionId identifier,
       ProcessDefinitionVersion version) {
     try {
       if (element instanceof StartEvent se) {

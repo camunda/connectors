@@ -41,8 +41,10 @@ import io.camunda.connector.runtime.inbound.search.ProcessInstanceClientConfigur
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClientImpl;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
-import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
-import io.camunda.connector.runtime.inbound.state.TenantAwareProcessStateStoreImpl;
+import io.camunda.connector.runtime.inbound.state.ProcessStateContainer;
+import io.camunda.connector.runtime.inbound.state.ProcessStateContainerImpl;
+import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
+import io.camunda.connector.runtime.inbound.state.ProcessStateManagerImpl;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -157,8 +159,15 @@ public class InboundConnectorRuntimeConfiguration {
   }
 
   @Bean
-  public ProcessStateStore processStateStore(
-      InboundExecutableRegistry registry, ProcessDefinitionInspector inspector) {
-    return new TenantAwareProcessStateStoreImpl(inspector, registry);
+  public ProcessStateContainer processStateContainer() {
+    return new ProcessStateContainerImpl();
+  }
+
+  @Bean
+  public ProcessStateManager processStateManager(
+      InboundExecutableRegistry registry,
+      ProcessDefinitionInspector inspector,
+      ProcessStateContainer processStateContainer) {
+    return new ProcessStateManagerImpl(processStateContainer, inspector, registry);
   }
 }
