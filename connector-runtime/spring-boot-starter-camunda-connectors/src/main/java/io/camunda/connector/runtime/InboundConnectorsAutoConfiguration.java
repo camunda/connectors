@@ -21,17 +21,11 @@ import io.camunda.connector.runtime.inbound.InboundConnectorRuntimeConfiguration
 import io.camunda.connector.runtime.instances.InstanceForwardingConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @AutoConfiguration
 @AutoConfigureAfter({CamundaAutoConfiguration.class, OutboundConnectorsAutoConfiguration.class})
-@ConditionalOnProperty(
-    prefix = "camunda.connector.polling",
-    name = "enabled",
-    havingValue = "true",
-    matchIfMissing = true)
 @Import({InboundConnectorRuntimeConfiguration.class, InstanceForwardingConfiguration.class})
 @EnableScheduling
 public class InboundConnectorsAutoConfiguration {}
