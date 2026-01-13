@@ -37,7 +37,7 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>bedrockruntime</artifactId>
-      <version>${version.software-aws-java-sdk}</version>
+      <version>${version.aws-sdk2}</version>
     </dependency>
 
     <dependency>
