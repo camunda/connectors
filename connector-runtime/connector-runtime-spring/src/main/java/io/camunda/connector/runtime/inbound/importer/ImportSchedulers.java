@@ -21,12 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 
-/**
- * Utility class for schedulers used to import process data needed for inbound connectors.
- *
- * <p>All scheduled methods must run on a single thread to avoid concurrent modifications of the
- * process state store.
- */
+/** Utility class for schedulers used to import process data needed for inbound connectors. */
 public class ImportSchedulers {
 
   private static final Logger LOG = LoggerFactory.getLogger(ImportSchedulers.class);
