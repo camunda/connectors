@@ -69,8 +69,7 @@ public class Importers {
     LOGGER.debug("Starting import of ACTIVE versions");
 
     Map<ProcessDefinitionId, Set<Long>> result =
-        PaginatedSearchUtil.queryAllPages(searchQueryClient::queryMessageSubscriptions)
-            .stream()
+        PaginatedSearchUtil.queryAllPages(searchQueryClient::queryMessageSubscriptions).stream()
             .filter(Importers::isProcessDefinitionKeyNotNull)
             .collect(
                 Collectors.groupingBy(
