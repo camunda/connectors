@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.mcp.client;
 
 import io.camunda.connector.agenticai.mcp.client.model.McpDocumentSettings;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
-import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResultWithBinaries;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResultWithStorableData;
 import io.camunda.connector.api.document.DocumentFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +25,7 @@ public class McpClientResultDocumentHandler {
   }
 
   public McpClientResult transformBinariesToDocumentsIfPresent(McpClientResult clientResult) {
-    if (!(clientResult instanceof McpClientResultWithBinaries documentContainer)) {
+    if (!(clientResult instanceof McpClientResultWithStorableData documentContainer)) {
       LOGGER.debug(
           "MCP: Client result is not a CamundaDocumentContainer, skipping document transformation.");
 
@@ -34,7 +34,7 @@ public class McpClientResultDocumentHandler {
 
     LOGGER.debug("Transforming potential binary content to documents.");
 
-    return documentContainer.transformBinaryContentToDocuments(
+    return documentContainer.transformStorableMcpResultData(
         documentFactory, new McpDocumentSettings(java.time.Duration.ofHours(1)));
   }
 }

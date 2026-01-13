@@ -7,31 +7,221 @@
 package io.camunda.connector.agenticai.mcp.client;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.argumentSet;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
-import io.camunda.connector.agenticai.mcp.client.model.result.McpClientGetPromptResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.*;
+import io.camunda.connector.agenticai.model.message.content.TextContent;
+import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.runtime.test.document.TestDocument;
+import io.camunda.connector.runtime.test.document.TestDocumentMetadata;
+import java.time.*;
 import java.util.List;
-import org.junit.jupiter.api.Test;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
+import org.jspecify.annotations.NonNull;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class McpClientResultDocumentHandlerTest {
+
+  private static final Clock CURRENT_CLOCK =
+      Clock.fixed(
+          LocalDateTime.of(2025, Month.DECEMBER, 1, 9, 00)
+              .atZone(ZoneId.systemDefault())
+              .toInstant(),
+          ZoneId.systemDefault());
 
   @Mock private DocumentFactory documentFactory;
 
-  private final McpClientResultDocumentHandler testee =
-      new McpClientResultDocumentHandler(documentFactory);
+  @InjectMocks private McpClientResultDocumentHandler testee;
 
-  @Test
-  void passesThrough_whenNoBinaryDocumentContainer() {
-    final var givenResult =
+  @ParameterizedTest
+  @MethodSource("mcpClientResultsWithoutBinaryDocumentContainers")
+  void passesThrough_whenNoBinaryDocumentContainer(
+      McpClientResult givenResult, McpClientResult expectedAfterTransformation) {
+    final var transformedResult = testee.transformBinariesToDocumentsIfPresent(givenResult);
+
+    assertThat(expectedAfterTransformation).isEqualTo(transformedResult);
+  }
+
+  @ParameterizedTest
+  @MethodSource("mcpClientResultsWithBinaryDocumentContainers")
+  void transformsBinaryDocumentContainers_whenPresent(
+      McpClientResult givenResult, McpClientResult expectedAfterTransformation) {
+    var callCount = new AtomicInteger(0);
+    when(documentFactory.create(any()))
+        .thenAnswer(
+            i -> {
+              var request = i.getArgument(0, DocumentCreationRequest.class);
+
+              try (var is = request.content()) {
+                var id = "doc-id-" + callCount.getAndIncrement();
+                return new TestDocument(
+                    is.readAllBytes(), createDocumentMetadata(request), null, id);
+              }
+            });
+
+    final var transformedResult = testee.transformBinariesToDocumentsIfPresent(givenResult);
+
+    assertThat(expectedAfterTransformation).usingRecursiveComparison().isEqualTo(transformedResult);
+  }
+
+  static Stream<Arguments> mcpClientResultsWithoutBinaryDocumentContainers() {
+    return Stream.of(
+        argumentSet(
+            "List tools",
+            new McpClientListToolsResult(
+                List.of(
+                    new ToolDefinition(
+                        "get-commits",
+                        "Get Commits",
+                        Map.of("owner", "string", "repo", "string")))),
+            new McpClientListToolsResult(
+                List.of(
+                    new ToolDefinition(
+                        "get-commits",
+                        "Get Commits",
+                        Map.of("owner", "string", "repo", "string"))))),
+        argumentSet(
+            "Call tool",
+            new McpClientCallToolResult(
+                "get-commits", List.of(new TextContent("text", Map.of())), false),
+            new McpClientCallToolResult(
+                "get-commits", List.of(new TextContent("text", Map.of())), false)),
+        argumentSet(
+            "List resource templates",
+            new McpClientListResourceTemplatesResult(
+                List.of(
+                    new ResourceTemplate(
+                        "uri-{name}",
+                        "Resource Template",
+                        "A resource template",
+                        "application/json"))),
+            new McpClientListResourceTemplatesResult(
+                List.of(
+                    new ResourceTemplate(
+                        "uri-{name}",
+                        "Resource Template",
+                        "A resource template",
+                        "application/json")))),
+        argumentSet(
+            "List resources",
+            new McpClientListResourcesResult(
+                List.of(
+                    new ResourceDescription(
+                        "uri", "resource-1", "A resource", "application/json"))),
+            new McpClientListResourcesResult(
+                List.of(
+                    new ResourceDescription(
+                        "uri", "resource-1", "A resource", "application/json")))),
+        argumentSet(
+            "List prompts",
+            new McpClientListPromptsResult(
+                List.of(
+                    new PromptDescription(
+                        "code_review",
+                        "Code review",
+                        List.of(
+                            new PromptDescription.PromptArgument(
+                                "file", "File to review", true))))),
+            new McpClientListPromptsResult(
+                List.of(
+                    new PromptDescription(
+                        "code_review",
+                        "Code review",
+                        List.of(
+                            new PromptDescription.PromptArgument(
+                                "file", "File to review", true)))))),
+        argumentSet(
+            "Get single prompt - empty result",
+            new McpClientGetPromptResult("Code review", List.of()),
+            new McpClientGetPromptResult("Code review", List.of())),
+        argumentSet(
+            "Get single prompt - no storable mcp data",
+            new McpClientGetPromptResult(
+                "Code review",
+                List.of(
+                    new McpClientGetPromptResult.TextMessage(
+                        "USER", "Please review the following code."))),
+            new McpClientGetPromptResult(
+                "Code review",
+                List.of(
+                    new McpClientGetPromptResult.TextMessage(
+                        "USER", "Please review the following code.")))));
+  }
+
+  static Stream<Arguments> mcpClientResultsWithBinaryDocumentContainers() {
+    return Stream.of(getSinglePromptWithAllPossibleMessageTypes());
+  }
+
+  static Arguments getSinglePromptWithAllPossibleMessageTypes() {
+    var input =
         new McpClientGetPromptResult(
             "Code review",
             List.of(
                 new McpClientGetPromptResult.TextMessage(
-                    "USER", "Please review the following code.")));
+                    "USER", "Please review the following code."),
+                new McpClientGetPromptResult.BlobMessage(
+                    "ASSISTANT", "byte data".getBytes(), "application/pdf"),
+                new McpClientGetPromptResult.EmbeddedResourceMessage(
+                    "USER",
+                    new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource
+                        .TextResource("uri", "Some text", "text/plain")),
+                new McpClientGetPromptResult.EmbeddedResourceMessage(
+                    "ASSISTANT",
+                    new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource
+                        .BlobResource("uri", "blob data".getBytes(), "application/octet-stream"))));
 
-    final var transformedResult = testee.transformBinariesToDocumentsIfPresent(givenResult);
+    var expected =
+        new McpClientGetPromptResult(
+            "Code review",
+            List.of(
+                new McpClientGetPromptResult.TextMessage(
+                    "USER", "Please review the following code."),
+                new McpClientGetPromptResult.CamundaDocumentReferenceMessage(
+                    "ASSISTANT",
+                    new TestDocument(
+                        "byte data".getBytes(),
+                        createDocumentMetadata("application/pdf", Duration.ofHours(1)),
+                        null,
+                        "doc-id-0")),
+                new McpClientGetPromptResult.EmbeddedResourceMessage(
+                    "USER",
+                    new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource
+                        .TextResource("uri", "Some text", "text/plain")),
+                new McpClientGetPromptResult.EmbeddedResourceMessage(
+                    "ASSISTANT",
+                    new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource
+                        .CamundaDocumentReference(
+                        "uri",
+                        new TestDocument(
+                            "blob data".getBytes(),
+                            createDocumentMetadata("application/octet-stream", Duration.ofHours(1)),
+                            null,
+                            "doc-id-1")))));
 
-    assertThat(givenResult).isEqualTo(transformedResult);
+    return argumentSet("Get single prompt - all message types", input, expected);
+  }
+
+  private static @NonNull TestDocumentMetadata createDocumentMetadata(
+      DocumentCreationRequest request) {
+    return createDocumentMetadata(request.contentType(), request.timeToLive());
+  }
+
+  private static @NonNull TestDocumentMetadata createDocumentMetadata(
+      String mimeType, Duration timeToLive) {
+    return new TestDocumentMetadata(
+        mimeType, OffsetDateTime.now(CURRENT_CLOCK).plus(timeToLive), null, null, null, null, null);
   }
 }
