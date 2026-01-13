@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 final class GetPromptRequest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GetPromptRequest.class);
+  public static final String MCP_CLIENT_INVALID_PARAMS_KEY = "MCP_CLIENT_INVALID_PARAMS";
 
   public McpClientGetPromptResult execute(McpClient client, Map<String, Object> params) {
     final var parameters = parseParameters(params);
@@ -89,22 +90,22 @@ final class GetPromptRequest {
   private GetPromptParameters parseParameters(Map<String, Object> params) {
     if (MapUtils.isEmpty(params)) {
       throw new ConnectorException(
-          "MCP_CLIENT_INVALID_PARAMS", "Parameters for get prompt request cannot be empty.");
+          MCP_CLIENT_INVALID_PARAMS_KEY, "Parameters for get prompt request cannot be empty.");
     }
 
     if (!params.containsKey("name")) {
       throw new ConnectorException(
-          "MCP_CLIENT_INVALID_PARAMS", "Prompt name is required in params.");
+              MCP_CLIENT_INVALID_PARAMS_KEY, "Prompt name is required in params.");
     }
 
     if (!(params.get("name") instanceof String promptName)) {
-      throw new ConnectorException("MCP_CLIENT_INVALID_PARAMS", "Prompt name must be a string.");
+      throw new ConnectorException(MCP_CLIENT_INVALID_PARAMS_KEY, "Prompt name must be a string.");
     }
 
     var paramsArguments = params.getOrDefault("arguments", Collections.emptyMap());
     if (!(paramsArguments instanceof Map promptArguments)) {
       throw new ConnectorException(
-          "MCP_CLIENT_INVALID_PARAMS",
+          MCP_CLIENT_INVALID_PARAMS_KEY,
           "Incorrect format for prompt arguments. Expecting an object.");
     }
 
