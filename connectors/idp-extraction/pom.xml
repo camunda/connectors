@@ -46,19 +46,19 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>bedrockruntime</artifactId>
-      <version>${version.software-aws-java-sdk}</version>
+      <version>${version.aws-sdk2}</version>
     </dependency>
 
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>textract</artifactId>
-      <version>${version.software-aws-java-sdk}</version>
+      <version>${version.aws-sdk2}</version>
     </dependency>
 
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>s3</artifactId>
-      <version>${version.software-aws-java-sdk}</version>
+      <version>${version.aws-sdk2}</version>
     </dependency>
 
     <dependency>
