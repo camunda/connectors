@@ -16,11 +16,36 @@
  */
 package io.camunda.connector.runtime.inbound.state;
 
-public interface ProcessStateStore {
+class MutableProcessVersionState {
+  private boolean isLatest;
+  private boolean hasActiveSubscriptions;
 
-  /**
-   * Update the process state based on the latest versions of the process definitions.
-   * Implementations must be idempotent.
-   */
-  void update(ProcessImportResult processDefinitions);
+  public static MutableProcessVersionState init() {
+    return new MutableProcessVersionState(false, false);
+  }
+
+  private MutableProcessVersionState(boolean isLatest, boolean hasActiveSubscriptions) {
+    this.isLatest = isLatest;
+    this.hasActiveSubscriptions = hasActiveSubscriptions;
+  }
+
+  public boolean isLatest() {
+    return isLatest;
+  }
+
+  public void setLatest(boolean latest) {
+    isLatest = latest;
+  }
+
+  public boolean hasActiveSubscriptions() {
+    return hasActiveSubscriptions;
+  }
+
+  public void setHasActiveSubscriptions(boolean active) {
+    this.hasActiveSubscriptions = active;
+  }
+
+  public boolean isInactive() {
+    return !isLatest && !hasActiveSubscriptions;
+  }
 }

@@ -16,11 +16,13 @@
  */
 package io.camunda.connector.runtime.inbound.state;
 
-import java.util.Map;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult;
 
-public record ProcessImportResult(
-    Map<ProcessDefinitionIdentifier, ProcessDefinitionVersion> processDefinitionVersions) {
-  public record ProcessDefinitionIdentifier(String bpmnProcessId, String tenantId) {}
+public interface ProcessStateManager {
 
-  public record ProcessDefinitionVersion(long processDefinitionKey, int version) {}
+  /**
+   * Update the process state based on the latest versions of the process definitions.
+   * Implementations must be idempotent.
+   */
+  void update(ImportResult processDefinitions);
 }
