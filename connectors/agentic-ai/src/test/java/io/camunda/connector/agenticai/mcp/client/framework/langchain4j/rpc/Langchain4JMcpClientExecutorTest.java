@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,7 +20,6 @@ import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.result.*;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
