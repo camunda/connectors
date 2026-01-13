@@ -96,12 +96,10 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.21</version.logback>
 
     <version.aws-java-sdk>1.12.794</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.40.0</version.software-aws-java-sdk>
+    <version.aws-sdk2>2.41.6</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.40.0</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.40.0</version.aws-sdk-secretsmanager>
 
     <version.localstack>2.0.2</version.localstack>
 
@@ -455,37 +453,37 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>bedrockruntime</artifactId>
-        <version>${version.software-aws-java-sdk}</version>
+        <version>${version.aws-sdk2}</version>
       </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>sdk-core</artifactId>
-        <version>${version.software-aws-java-sdk}</version>
+        <version>${version.aws-sdk2}</version>
       </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>aws-core</artifactId>
-        <version>${version.software-aws-java-sdk}</version>
+        <version>${version.aws-sdk2}</version>
       </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>auth</artifactId>
-        <version>${version.software-aws-java-sdk}</version>
+        <version>${version.aws-sdk2}</version>
       </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>regions</artifactId>
-        <version>${version.software-aws-java-sdk}</version>
+        <version>${version.aws-sdk2}</version>
       </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>http-auth-spi</artifactId>
-        <version>${version.software-aws-java-sdk}</version>
+        <version>${version.aws-sdk2}</version>
       </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>http-auth</artifactId>
-        <version>${version.software-aws-java-sdk}</version>
+        <version>${version.aws-sdk2}</version>
       </dependency>
 
       <dependency>
