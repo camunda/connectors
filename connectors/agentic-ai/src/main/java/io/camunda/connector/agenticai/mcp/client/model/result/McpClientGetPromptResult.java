@@ -13,10 +13,10 @@ import io.camunda.connector.api.document.DocumentFactory;
 import java.util.List;
 
 public record McpClientGetPromptResult(String description, List<PromptMessage> messages)
-    implements McpClientResult, McpClientResultWithBinaries {
+    implements McpClientResult, McpClientResultWithStorableData {
 
   @Override
-  public McpClientGetPromptResult transformBinaryContentToDocuments(
+  public McpClientGetPromptResult transformStorableMcpResultData(
       DocumentFactory documentFactory, McpDocumentSettings documentSettings) {
     var messagesWithDocumentReferences =
         messages.stream()
@@ -33,11 +33,12 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
       DocumentFactory documentFactory,
       McpDocumentSettings documentSettings,
       PromptMessage message) {
-    if (!(message instanceof DocumentHoldingMessage documentHoldingMessage)) {
+    if (!(message instanceof StorableMcpDataContainer storableMcpDataContainer)) {
       return message;
     }
 
-    return documentHoldingMessage.replaceWithDocumentReference(documentFactory, documentSettings);
+    return (PromptMessage)
+        storableMcpDataContainer.replaceWithDocumentReference(documentFactory, documentSettings);
   }
 
   private static Document createDocument(
@@ -49,21 +50,24 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
             .build());
   }
 
+  /**
+   * General interface for messages that are part of a retrieved prompt.
+   *
+   * <p>Those can contain text or other content, like binaries, or references to Camunda documents.
+   */
   public sealed interface PromptMessage {
 
     String role();
   }
 
-  public sealed interface DocumentHoldingMessage extends PromptMessage {
-
-    PromptMessage replaceWithDocumentReference(
-        DocumentFactory documentFactory, McpDocumentSettings documentSettings);
-  }
-
+  /** Text messages hold plain textual content. */
   public record TextMessage(String role, String text) implements PromptMessage {}
 
-  public record BinaryMessage(String role, byte[] data, String mimeType)
-      implements DocumentHoldingMessage {
+  /**
+   * Blob messages hold arbitrary binary data which is supposed to be stored as a Camunda document.
+   */
+  public record BlobMessage(String role, byte[] data, String mimeType)
+      implements PromptMessage, StorableMcpDataContainer<PromptMessage> {
 
     @Override
     public PromptMessage replaceWithDocumentReference(
@@ -74,8 +78,12 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
     }
   }
 
+  /**
+   * Embedded resource messages can either contain textual or binary content. Only embedded binary
+   * resources are stored in the Camunda document store.
+   */
   public record EmbeddedResourceMessage(String role, EmbeddedResource resource)
-      implements DocumentHoldingMessage {
+      implements PromptMessage, StorableMcpDataContainer<PromptMessage> {
 
     @Override
     public PromptMessage replaceWithDocumentReference(
@@ -89,7 +97,7 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
               documentFactory, documentSettings, blobResource.blob(), blobResource.mimeType());
 
       return new EmbeddedResourceMessage(
-          role, new EmbeddedResource.CamundaDocumentReference(document));
+          role, new EmbeddedResource.CamundaDocumentReference(blobResource.uri, document));
     }
 
     public sealed interface EmbeddedResource {
@@ -98,10 +106,14 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
 
       record TextResource(String uri, String text, String mimeType) implements EmbeddedResource {}
 
-      record CamundaDocumentReference(Document data) implements EmbeddedResource {}
+      record CamundaDocumentReference(String uri, Document data) implements EmbeddedResource {}
     }
   }
 
+  /**
+   * Message holding a reference to a Camunda document. This record is a result of transforming
+   * prompt messages of type {@link BlobMessage}>
+   */
   public record CamundaDocumentReferenceMessage(String role, Document data)
       implements PromptMessage {}
 }

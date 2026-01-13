@@ -60,7 +60,7 @@ final class GetPromptRequest {
     final var content = promptMessage.content();
 
     if (content instanceof McpImageContent mcpImageContent) {
-      return new McpClientGetPromptResult.BinaryMessage(
+      return new McpClientGetPromptResult.BlobMessage(
           promptMessage.role().name(),
           Base64.getDecoder().decode(mcpImageContent.data()),
           mcpImageContent.mimeType());

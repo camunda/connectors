@@ -195,11 +195,11 @@ class GetPromptRequestTest {
             List.of(new McpPromptMessage(McpRole.USER, new McpTextContent("some text")))),
         Arguments.argumentSet(
             "with image",
-            McpClientGetPromptResult.BinaryMessage.class,
-            (Consumer<McpClientGetPromptResult.BinaryMessage>)
-                (McpClientGetPromptResult.BinaryMessage binaryMessage) -> {
-                  assertThat(binaryMessage.role()).isEqualTo("USER");
-                  assertThat(binaryMessage.data())
+            McpClientGetPromptResult.BlobMessage.class,
+            (Consumer<McpClientGetPromptResult.BlobMessage>)
+                (McpClientGetPromptResult.BlobMessage blobMessage) -> {
+                  assertThat(blobMessage.role()).isEqualTo("USER");
+                  assertThat(blobMessage.data())
                       .isEqualTo("some binary".getBytes(StandardCharsets.UTF_8));
                 },
             List.of(
