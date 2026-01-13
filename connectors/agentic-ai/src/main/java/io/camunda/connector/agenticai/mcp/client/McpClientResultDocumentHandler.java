@@ -24,17 +24,19 @@ public class McpClientResultDocumentHandler {
     this.documentFactory = documentFactory;
   }
 
-  public McpClientResult transformBinariesToDocumentsIfPresent(McpClientResult clientResult) {
+  public McpClientResult convertBinariesToDocumentsIfPresent(McpClientResult clientResult) {
     if (!(clientResult instanceof McpClientResultWithStorableData documentContainer)) {
       LOGGER.debug(
-          "MCP: Client result is not a CamundaDocumentContainer, skipping document transformation.");
+          "MCP: Client result is not a container for storable mcp data. Skipping document conversion.");
 
       return clientResult;
     }
 
-    LOGGER.debug("Transforming potential binary content to documents.");
+    LOGGER.debug(
+        "Attempting to convert storable mcp data into Camunda documents for client result of type {}.",
+        clientResult.getClass().getSimpleName());
 
-    return documentContainer.transformStorableMcpResultData(
+    return documentContainer.convertStorableMcpResultData(
         documentFactory, new McpDocumentSettings(java.time.Duration.ofHours(1)));
   }
 }

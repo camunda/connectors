@@ -55,7 +55,7 @@ class Langchain4JMcpClientExecutorTest {
             objectMapper, toolSpecificationConverter, mcpClientResultDocumentHandler);
     lenient().when(mcpClient.key()).thenReturn("test-client");
     lenient()
-        .when(mcpClientResultDocumentHandler.transformBinariesToDocumentsIfPresent(any()))
+        .when(mcpClientResultDocumentHandler.convertBinariesToDocumentsIfPresent(any()))
         .thenAnswer(invocation -> invocation.getArgument(0));
   }
 

@@ -33,7 +33,7 @@ public class Langchain4JMcpClientExecutor {
       McpClient client, McpClientOperation operation, FilterOptions filterOptions) {
     var result = executeRequest(client, operation, filterOptions);
 
-    return clientResultDocumentHandler.transformBinariesToDocumentsIfPresent(result);
+    return clientResultDocumentHandler.convertBinariesToDocumentsIfPresent(result);
   }
 
   private @NonNull McpClientResult executeRequest(

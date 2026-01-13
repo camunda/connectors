@@ -21,7 +21,7 @@ public interface McpClientResultWithStorableData {
    * @return a new instance of the result holding references to the created documents, if eligible
    *     data is present, otherwise itself.
    */
-  McpClientResult transformStorableMcpResultData(
+  McpClientResult convertStorableMcpResultData(
       DocumentFactory documentFactory, McpDocumentSettings settings);
 
   /**
