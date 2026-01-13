@@ -17,18 +17,20 @@
 package io.camunda.connector.e2e;
 
 import static io.camunda.connector.e2e.BpmnFile.replace;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.runtime.inbound.state.model.ImportResult;
-import io.camunda.connector.runtime.inbound.state.model.ImportResult.ProcessDefinitionIdentifier;
-import io.camunda.connector.runtime.inbound.state.model.ImportResult.ProcessDefinitionVersion;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionId;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
@@ -36,6 +38,7 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -69,8 +72,7 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
   private static ConnectionFactory factory;
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
-  @Autowired
-  ProcessStateManager processStateManager;
+  @Autowired ProcessStateManager processStateManager;
 
   @BeforeAll
   public static void setup() throws IOException, TimeoutException {
@@ -162,11 +164,13 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
 
   private ImportResult mockProcessDefinition(BpmnModelInstance model) {
     when(searchQueryClient.getProcessModel(1)).thenReturn(model);
+    var processDef = mock(ProcessDefinition.class);
+    lenient().when(processDef.getVersion()).thenReturn(1);
+    when(searchQueryClient.getProcessDefinition(1)).thenReturn(processDef);
     var bpmnId = model.getModelElementsByType(Process.class).stream().findFirst().get().getId();
     var tenantId = camundaClient.getConfiguration().getDefaultTenantId();
     return new ImportResult(
-        Map.of(
-            new ProcessDefinitionIdentifier(bpmnId, tenantId),
-            new ProcessDefinitionVersion(1L, 1)));
+        Map.of(new ProcessDefinitionId(bpmnId, tenantId), Set.of(1L)),
+        ImportResult.ImportType.LATEST_VERSIONS);
   }
 }

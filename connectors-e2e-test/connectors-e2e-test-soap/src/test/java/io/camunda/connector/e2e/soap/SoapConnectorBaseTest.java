@@ -17,7 +17,6 @@
 package io.camunda.connector.e2e.soap;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
@@ -27,13 +26,10 @@ import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
-import java.util.Collections;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 public abstract class SoapConnectorBaseTest {
 
@@ -92,8 +88,6 @@ public abstract class SoapConnectorBaseTest {
   @TempDir File tempDir;
   @Autowired CamundaClient camundaClient;
 
-  @MockitoBean ProcessDefinitionSearch processDefinitionSearch;
-
   @LocalServerPort int serverPort;
 
   protected BpmnModelInstance getBpmnModelInstance(final String serviceTaskName) {
@@ -106,11 +100,6 @@ public abstract class SoapConnectorBaseTest {
         .zeebeOutput("=response", "response")
         .endEvent()
         .done();
-  }
-
-  @BeforeEach
-  void beforeEach() {
-    when(processDefinitionSearch.query()).thenReturn(Collections.emptyList());
   }
 
   protected ZeebeTest setupTestWithBpmnModel(String taskName, File elementTemplate) {

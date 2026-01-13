@@ -51,10 +51,9 @@ import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.io.File;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.Map;
-import org.awaitility.Awaitility;
 import java.util.Set;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -345,6 +344,8 @@ public class HttpTests {
         .thenReturn(camundaClient.getConfiguration().getDefaultTenantId());
     when(processDef.getProcessDefinitionId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
+    when(processDef.getVersion()).thenReturn(1);
+    when(searchQueryClient.getProcessDefinition(1L)).thenReturn(processDef);
 
     // Deploy the webhook
     stateStore.update(
@@ -381,6 +382,8 @@ public class HttpTests {
         .thenReturn(camundaClient.getConfiguration().getDefaultTenantId());
     when(processDef.getProcessDefinitionId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
+    when(processDef.getVersion()).thenReturn(1);
+    when(searchQueryClient.getProcessDefinition(1L)).thenReturn(processDef);
 
     // Deploy the webhook
     stateStore.update(
