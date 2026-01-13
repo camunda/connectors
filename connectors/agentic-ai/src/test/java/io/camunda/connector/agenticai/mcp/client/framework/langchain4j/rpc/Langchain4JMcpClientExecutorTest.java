@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.result.*;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -103,13 +104,9 @@ class Langchain4JMcpClientExecutorTest {
 
   @Test
   void returnsMcpGetPromptResult_whenGetPromptExecuted() {
+    when(mcpClient.getPrompt(anyString(), any()))
+        .thenReturn(new McpGetPromptResult("Code review", List.of()));
     final var operation = McpClientOperation.of("prompts/get", Map.of("name", "test-prompt"));
-
-    // Mock the getPrompt call to return an empty result
-    McpGetPromptResult mockResult = mock(McpGetPromptResult.class);
-    when(mockResult.description()).thenReturn("Test prompt");
-    when(mockResult.messages()).thenReturn(Collections.emptyList());
-    when(mcpClient.getPrompt(eq("test-prompt"), any())).thenReturn(mockResult);
 
     final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
 
