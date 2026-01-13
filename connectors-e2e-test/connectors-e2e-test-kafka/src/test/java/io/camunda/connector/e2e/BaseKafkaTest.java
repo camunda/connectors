@@ -20,9 +20,8 @@ import static org.apache.kafka.clients.admin.AdminClientConfig.BOOTSTRAP_SERVERS
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
-import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
+import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
 import io.camunda.connector.test.utils.DockerImages;
 import java.io.File;
 import java.util.Arrays;
@@ -62,7 +61,8 @@ public class BaseKafkaTest {
 
   @MockitoBean ProcessDefinitionSearch processDefinitionSearch;
 
-  @Autowired ProcessStateStore processStateStore;
+  @Autowired
+  ProcessStateManager processStateManager;
 
   @MockitoBean SearchQueryClient searchQueryClient;
 

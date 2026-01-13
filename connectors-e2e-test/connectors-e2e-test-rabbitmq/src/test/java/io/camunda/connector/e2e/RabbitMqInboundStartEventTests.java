@@ -25,10 +25,10 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
-import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult.ProcessDefinitionIdentifier;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult.ProcessDefinitionVersion;
+import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
@@ -69,7 +69,8 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
   private static ConnectionFactory factory;
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
-  @Autowired ProcessStateStore processStateStore;
+  @Autowired
+  ProcessStateManager processStateManager;
 
   @BeforeAll
   public static void setup() throws IOException, TimeoutException {
@@ -138,7 +139,7 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
             "{\"message\":{\"consumerTag\":\"myConsumerTag\",\"body\":{\"foo\": {\"bar\": \"barValue\"}},\"properties\":{}}}",
             Object.class);
 
-    processStateStore.update(mockProcessDefinition(model));
+    processStateManager.update(mockProcessDefinition(model));
 
     var bpmnTest = getZeebeTest(model);
     postMessage();
@@ -159,11 +160,11 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
     }
   }
 
-  private ProcessImportResult mockProcessDefinition(BpmnModelInstance model) {
+  private ImportResult mockProcessDefinition(BpmnModelInstance model) {
     when(searchQueryClient.getProcessModel(1)).thenReturn(model);
     var bpmnId = model.getModelElementsByType(Process.class).stream().findFirst().get().getId();
     var tenantId = camundaClient.getConfiguration().getDefaultTenantId();
-    return new ProcessImportResult(
+    return new ImportResult(
         Map.of(
             new ProcessDefinitionIdentifier(bpmnId, tenantId),
             new ProcessDefinitionVersion(1L, 1)));
