@@ -105,8 +105,7 @@ final class GetPromptRequest {
     if (!(paramsArguments instanceof Map promptArguments)) {
       throw new ConnectorException(
           "MCP_CLIENT_INVALID_PARAMS",
-          "Incorrect format for prompt arguments. Expecting object, but got: %s"
-              .formatted(params.get("arguments").getClass().getSimpleName()));
+          "Incorrect format for prompt arguments. Expecting an object");
     }
 
     return new GetPromptParameters(promptName, promptArguments);
