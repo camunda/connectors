@@ -12,7 +12,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.*;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientGetPromptResult;
 import io.camunda.connector.api.error.ConnectorException;
@@ -38,12 +37,10 @@ class GetPromptRequestTest {
   @Mock private McpClient mcpClient;
 
   private GetPromptRequest testee;
-  private ObjectMapper objectMapper;
 
   @BeforeEach
   void setUp() {
-    objectMapper = new ObjectMapper();
-    testee = new GetPromptRequest(objectMapper);
+    testee = new GetPromptRequest();
   }
 
   @ParameterizedTest

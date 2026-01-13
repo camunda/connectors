@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.*;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientGetPromptResult;
 import io.camunda.connector.api.error.ConnectorException;
@@ -18,11 +17,6 @@ import org.slf4j.LoggerFactory;
 final class GetPromptRequest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GetPromptRequest.class);
-  private final ObjectMapper objectMapper;
-
-  GetPromptRequest(ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
-  }
 
   public McpClientGetPromptResult execute(McpClient client, Map<String, Object> params) {
     final var parameters = parseParameters(params);
