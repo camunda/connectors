@@ -183,7 +183,7 @@ public class MicrosoftMailClient implements MailClient {
                     .contentType(file.getContentType())
                     .build()));
       }
-      // TODO: log unsupported attachment
+      // Note: ItemAttachment and ReferenceAttachment are intentionally not supported
     }
     return docs;
   }
