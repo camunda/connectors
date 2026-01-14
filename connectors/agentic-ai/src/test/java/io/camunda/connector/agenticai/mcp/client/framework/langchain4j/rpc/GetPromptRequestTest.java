@@ -117,20 +117,20 @@ class GetPromptRequestTest {
             });
   }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"", "    "})
-    void throwsConnectorException_whenPromptNameIsEmptyOrBlank(String promptName) {
-        final Map<String, Object> parameters =
-                Map.of("name", promptName, "arguments", Map.of("assignee", "dev1"));
+  @ParameterizedTest
+  @ValueSource(strings = {"", "    "})
+  void throwsConnectorException_whenPromptNameIsEmptyOrBlank(String promptName) {
+    final Map<String, Object> parameters =
+        Map.of("name", promptName, "arguments", Map.of("assignee", "dev1"));
 
-        assertThatThrownBy(() -> testee.execute(mcpClient, parameters))
-                .isInstanceOfSatisfying(
-                        ConnectorException.class,
-                        exception -> {
-                            assertThat(exception.getErrorCode()).isEqualTo("MCP_CLIENT_INVALID_PARAMS");
-                            assertThat(exception.getMessage()).isEqualTo("Prompt name cannot be empty or blank.");
-                        });
-    }
+    assertThatThrownBy(() -> testee.execute(mcpClient, parameters))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            exception -> {
+              assertThat(exception.getErrorCode()).isEqualTo("MCP_CLIENT_INVALID_PARAMS");
+              assertThat(exception.getMessage()).isEqualTo("Prompt name cannot be empty or blank.");
+            });
+  }
 
   @Test
   void throwsConnectorException_whenArgumentsNoMap() {
