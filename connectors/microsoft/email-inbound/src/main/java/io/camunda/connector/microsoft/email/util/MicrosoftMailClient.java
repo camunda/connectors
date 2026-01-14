@@ -23,6 +23,8 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.microsoft.email.model.config.Folder;
 import io.camunda.connector.microsoft.email.model.config.InboundAuthentication;
 import io.camunda.connector.microsoft.email.model.output.EmailMessage;
+import io.camunda.connector.microsoft.email.model.output.GraphApiMapper;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -48,16 +50,14 @@ public class MicrosoftMailClient implements MailClient {
             .clientSecret(auth.clientSecret())
             .build();
     client = new GraphServiceClient(credential, scopes);
-    this.userId = userId;
     graphClient = client.users().byUserId(userId);
+    this.userId = userId;
   }
 
   private String getFolderId(Folder folder) {
     if (folder.isFolderId()) {
       return folder.folderName();
     }
-    // TODO: This technically allows people to sneak in arbitrary filters
-    // But is this an injection scenario we care about?
     var resp =
         graphClient
             .mailFolders()
@@ -91,44 +91,34 @@ public class MicrosoftMailClient implements MailClient {
   @Override
   public OpaqueMessageFetcher constructMessageFetcher(
       Folder folder, String filterString, Consumer<EmailMessage> handler) {
-    DeltaGetResponse messageResponse =
-        graphClient
-            .mailFolders()
-            .byMailFolderId(getFolderId(folder))
-            .messages()
-            .delta()
-            .get(
-                requestConfiguration -> {
-                  requestConfiguration.headers.add("Prefer", "outlook.body-content-type=\"text\"");
-                  requestConfiguration.queryParameters.filter = filterString;
-                  requestConfiguration.queryParameters.select = EmailMessage.getSelect();
-                  requestConfiguration.queryParameters.top = 10;
-                });
-    final var pageIterator =
-        new PageIterator.Builder<Message, DeltaGetResponse>()
-            .client(client)
-            .collectionPage(Objects.requireNonNull(messageResponse))
-            .collectionPageFactory(DeltaGetResponse::createFromDiscriminatorValue)
-            .requestConfigurator(
-                requestInfo -> {
-                  // Re-add the header and query parameters to subsequent requests
-                  requestInfo.headers.add("Prefer", "outlook.body-content-type=\"text\"");
-                  requestInfo.addQueryParameter("%24select", filterString);
-                  requestInfo.addQueryParameter("%24top", 10);
-                  return requestInfo;
-                })
-            .processPageItemCallback(
-                msg -> {
-                  var myMsg = new EmailMessage(msg);
-                  handler.accept(myMsg);
-                  return true;
-                });
+    DeltaGetResponse messageResponse = fetchInitialDeltaResponse(folder, filterString);
     try {
-      var iterator = pageIterator.build();
+      final var iterator = getPageIterator(filterString, handler, messageResponse);
       return new PageIteratorMessageFetcher(iterator);
     } catch (ReflectiveOperationException e) {
       throw new ConnectorException(e);
     }
+  }
+
+  private PageIterator<Message, DeltaGetResponse> getPageIterator(
+      String filterString, Consumer<EmailMessage> handler, DeltaGetResponse messageResponse)
+      throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
+    return new PageIterator.Builder<Message, DeltaGetResponse>()
+        .client(client)
+        .collectionPage(Objects.requireNonNull(messageResponse))
+        .collectionPageFactory(DeltaGetResponse::createFromDiscriminatorValue)
+        .requestConfigurator(
+            requestInfo -> {
+              // Re-add the header and query parameters to subsequent requests
+              requestInfo.headers.add("Prefer", "outlook.body-content-type=\"text\"");
+              requestInfo.addQueryParameter("%24filter", filterString);
+              requestInfo.addQueryParameter(
+                  "%24select", String.join(",", EmailMessage.getSelect()));
+              requestInfo.addQueryParameter("%24top", 10);
+              return requestInfo;
+            })
+        .processPageItemCallback(msg -> processMessageItem(msg, handler))
+        .build();
   }
 
   private MessageItemRequestBuilder constructCommonMessage(EmailMessage msg) {
@@ -178,5 +168,26 @@ public class MicrosoftMailClient implements MailClient {
       // Note: ItemAttachment and ReferenceAttachment are intentionally not supported
     }
     return docs;
+  }
+
+  private DeltaGetResponse fetchInitialDeltaResponse(Folder folder, String filterString) {
+    return graphClient
+        .mailFolders()
+        .byMailFolderId(getFolderId(folder))
+        .messages()
+        .delta()
+        .get(
+            requestConfiguration -> {
+              requestConfiguration.headers.add("Prefer", "outlook.body-content-type=\"text\"");
+              requestConfiguration.queryParameters.filter = filterString;
+              requestConfiguration.queryParameters.select = EmailMessage.getSelect();
+              requestConfiguration.queryParameters.top = 10;
+            });
+  }
+
+  private static boolean processMessageItem(Message msg, Consumer<EmailMessage> handler) {
+    var myMsg = GraphApiMapper.toEmailMessage(msg, List.of());
+    handler.accept(myMsg);
+    return true;
   }
 }

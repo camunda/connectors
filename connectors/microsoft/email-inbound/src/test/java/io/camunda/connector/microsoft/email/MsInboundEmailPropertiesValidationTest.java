@@ -36,7 +36,7 @@ class MsInboundEmailPropertiesValidationTest {
         "user@example.com",
         Duration.ofSeconds(30),
         new Folder("inbox", false),
-        new FilterCriteria.SimpleConfiguration(true));
+        new FilterCriteria.SimpleConfiguration(true, null, null));
   }
 
   private static EmailProcessingOperation validOperation() {
@@ -137,7 +137,7 @@ class MsInboundEmailPropertiesValidationTest {
               "",
               Duration.ofSeconds(30),
               new Folder("inbox", false),
-              new FilterCriteria.SimpleConfiguration(true));
+              new FilterCriteria.SimpleConfiguration(true, null, null));
       var properties =
           new MsInboundEmailProperties(validAuthentication(), pollingConfig, validOperation());
 
@@ -163,7 +163,7 @@ class MsInboundEmailPropertiesValidationTest {
               "user@example.com",
               Duration.ofSeconds(30),
               new Folder("", false),
-              new FilterCriteria.SimpleConfiguration(true));
+              new FilterCriteria.SimpleConfiguration(true, null, null));
       var properties =
           new MsInboundEmailProperties(validAuthentication(), pollingConfig, validOperation());
 

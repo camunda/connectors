@@ -44,10 +44,6 @@ public class TestMailClient implements MailClient {
 
     @Override
     public void poll() {
-      // TODO: this should run into ConcurrentModificationException
-      // How do we persist iteration state while the list is potentially but guaranteed to be
-      // modified
-      //
       mailboxState.get(getFolderId(folder)).forEach(m -> handler.accept(m.msg()));
     }
   }

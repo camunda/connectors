@@ -127,7 +127,7 @@
   }, {
     "id" : "pollingConfig.folder.folderName",
     "label" : "Folder Name/Folder ID",
-    "description" : "The folder name or folder ID. Folder names must be unique. Consider using the <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0' target='_blank'>well-known folder IDs</a>",
+    "description" : "The folder name or folder ID. Folder names must be unique. Consider using the <a href=\"https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0\">well-known folder IDs</a>.",
     "optional" : false,
     "value" : "inbox",
     "constraints" : {
@@ -152,7 +152,7 @@
       "name" : "pollingConfig.folder.isFolderId",
       "type" : "zeebe:property"
     },
-    "tooltip" : "To prevent name collisions, you can instead specify the folder ID. <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties' target='_blank'> See the folder Properties described in the API</a> ",
+    "tooltip" : "To prevent name collisions, you can instead specify the folder ID. <a href=\"https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties\">See the folder Properties described in the API</a>.",
     "type" : "Boolean"
   }, {
     "id" : "pollingConfig.filterCriteria.filterSpecification",
@@ -189,6 +189,40 @@
     },
     "tooltip" : "Only fetch unread emails",
     "type" : "Boolean"
+  }, {
+    "id" : "pollingConfig.filterCriteria.subjectContains",
+    "label" : "Subject Contains",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "pollingConfig.filterCriteria.subjectContains",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "pollingConfig.filterCriteria.filterSpecification",
+      "equals" : "simple",
+      "type" : "simple"
+    },
+    "tooltip" : "Only fetch emails where subject contains this text (case-sensitive)",
+    "type" : "String"
+  }, {
+    "id" : "pollingConfig.filterCriteria.fromAddress",
+    "label" : "From Email Address",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "pollingConfig.filterCriteria.fromAddress",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "pollingConfig.filterCriteria.filterSpecification",
+      "equals" : "simple",
+      "type" : "simple"
+    },
+    "tooltip" : "Only fetch emails from this sender address (exact match, e.g. 'invoice@vendor.com')",
+    "type" : "String"
   }, {
     "id" : "pollingConfig.filterCriteria.filterString",
     "label" : "Filter string",
@@ -229,7 +263,7 @@
     } ]
   }, {
     "id" : "operation.force",
-    "label" : "Tick if email should be really deleted.",
+    "label" : "Delete the email unrecoverably",
     "optional" : false,
     "value" : false,
     "feel" : "static",
@@ -247,7 +281,7 @@
   }, {
     "id" : "operation.targetFolder.folderName",
     "label" : "Folder Name/Folder ID",
-    "description" : "The folder name or folder ID. Folder names must be unique. Consider using the <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0' target='_blank'>well-known folder IDs</a>",
+    "description" : "The folder name or folder ID. Folder names must be unique. Consider using the <a href=\"https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0\">well-known folder IDs</a>.",
     "optional" : false,
     "value" : "inbox",
     "constraints" : {
@@ -282,7 +316,7 @@
       "equals" : "move",
       "type" : "simple"
     },
-    "tooltip" : "To prevent name collisions, you can instead specify the folder ID. <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties' target='_blank'> See the folder Properties described in the API</a> ",
+    "tooltip" : "To prevent name collisions, you can instead specify the folder ID. <a href=\"https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties\">See the folder Properties described in the API</a>.",
     "type" : "Boolean"
   }, {
     "id" : "activationCondition",

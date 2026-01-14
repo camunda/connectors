@@ -23,21 +23,29 @@ public class EmailPollingWorker implements Runnable {
   private final MailClient.OpaqueMessageFetcher fetcher;
   private static final Logger LOGGER = LoggerFactory.getLogger(EmailPollingWorker.class);
 
-  public EmailPollingWorker(InboundConnectorContext context) {
+  public EmailPollingWorker(InboundConnectorContext context, MailClient mailClient) {
     this.context = context;
     MsInboundEmailProperties properties = context.bindProperties(MsInboundEmailProperties.class);
-    MicrosoftMailClient client =
-        new MicrosoftMailClient(properties.authentication(), properties.pollingConfig().userId());
-    var messageProcessor = new MessageProcessor(properties.operation(), client, context);
+    var messageProcessor = new MessageProcessor(properties.operation(), mailClient, context);
     // Doing this here to establish connection/access rights
     this.fetcher =
-        client.constructMessageFetcher(
+        mailClient.constructMessageFetcher(
             properties.pollingConfig().folder(),
             properties.pollingConfig().getFilter(),
             messageProcessor::handleMessage);
     this.scheduler = Executors.newSingleThreadScheduledExecutor();
     scheduler.scheduleWithFixedDelay(
         this, 0, properties.pollingConfig().pollingInterval().toMillis(), TimeUnit.MILLISECONDS);
+  }
+
+  public EmailPollingWorker(InboundConnectorContext context) {
+    this(context, createDefaultMailClient(context));
+  }
+
+  private static MailClient createDefaultMailClient(InboundConnectorContext context) {
+    MsInboundEmailProperties properties = context.bindProperties(MsInboundEmailProperties.class);
+    return new MicrosoftMailClient(
+        properties.authentication(), properties.pollingConfig().userId());
   }
 
   @Override
