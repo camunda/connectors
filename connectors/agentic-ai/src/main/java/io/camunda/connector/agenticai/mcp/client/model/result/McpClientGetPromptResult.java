@@ -112,7 +112,7 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
 
   /**
    * Message holding a reference to a Camunda document. This record is a result of transforming
-   * prompt messages of type {@link BlobMessage}>
+   * prompt messages of type {@link BlobMessage}
    */
   public record CamundaDocumentReferenceMessage(String role, Document data)
       implements PromptMessage {}
