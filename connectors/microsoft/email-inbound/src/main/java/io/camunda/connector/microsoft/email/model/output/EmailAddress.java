@@ -6,26 +6,4 @@
  */
 package io.camunda.connector.microsoft.email.model.output;
 
-import com.microsoft.graph.models.Recipient;
-import java.util.List;
-import java.util.Optional;
-
-// TODO: Move mapping external to record
-// Clean core
-public record EmailAddress(String name, String address) {
-  public EmailAddress(Recipient recipient) {
-    String name = null;
-    String address = null;
-    if (recipient != null && recipient.getEmailAddress() != null) {
-      name = recipient.getEmailAddress().getName();
-      address = recipient.getEmailAddress().getAddress();
-    }
-    this(name, address);
-  }
-
-  public static List<EmailAddress> transformList(List<Recipient> recipients) {
-    return Optional.ofNullable(recipients).stream()
-        .flatMap(e -> e.stream().map(EmailAddress::new))
-        .toList();
-  }
-}
+public record EmailAddress(String name, String address) {}

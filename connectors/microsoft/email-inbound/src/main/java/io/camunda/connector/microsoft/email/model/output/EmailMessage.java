@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.microsoft.email.model.output;
 
-import static io.camunda.connector.microsoft.email.model.output.EmailAddress.transformList;
+import static io.camunda.connector.microsoft.email.model.output.GraphApiMapper.toEmailMessage;
 
 import com.microsoft.graph.models.Message;
 import io.camunda.connector.api.document.Document;
@@ -22,6 +22,7 @@ public record EmailMessage(
     List<EmailAddress> bcc,
     String subject,
     String body,
+    String bodyContentType,
     OffsetDateTime receivedDateTime,
     List<Document> attachments) {
   public EmailMessage(Message message) {
@@ -29,28 +30,22 @@ public record EmailMessage(
   }
 
   public EmailMessage(Message message, List<Document> documents) {
-    var sender = new EmailAddress(message.getSender());
-    var recipients = transformList(message.getToRecipients());
-    var cc = transformList(message.getCcRecipients());
-    var bcc = transformList(message.getBccRecipients());
-    String body = null;
-    if (message.getBody() != null && message.getBody().getContent() != null) {
-      // TODO: Should we also preserve message type?
-      // Also is this too large by default? N8n only grabs bodyPreview
-      body = message.getBody().getContent();
-    }
-    var receivedTime = message.getReceivedDateTime();
+    this(toEmailMessage(message, documents));
+  }
+
+  private EmailMessage(EmailMessage message) {
     this(
-        message.getId(),
-        message.getConversationId(),
-        sender,
-        recipients,
-        cc,
-        bcc,
-        message.getSubject(),
-        body,
-        receivedTime,
-        documents);
+        message.id,
+        message.conversationId,
+        message.sender,
+        message.recipients,
+        message.cc,
+        message.bcc,
+        message.subject,
+        message.body,
+        message.bodyContentType,
+        message.receivedDateTime,
+        message.attachments);
   }
 
   public EmailMessage(EmailMessage message, List<Document> documents) {
@@ -63,6 +58,7 @@ public record EmailMessage(
         message.bcc,
         message.subject,
         message.body,
+        message.bodyContentType,
         message.receivedDateTime,
         documents);
   }
