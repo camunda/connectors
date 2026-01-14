@@ -46,6 +46,7 @@ class VertexAISupplierTest {
         "project",
         "region",
         ModelVersion.GEMINI_2_5_FLASH,
+        null, // customModelName
         List.of("text"),
         "systemInstr",
         false,
