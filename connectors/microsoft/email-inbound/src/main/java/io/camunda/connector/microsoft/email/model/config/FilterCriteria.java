@@ -8,6 +8,7 @@ package io.camunda.connector.microsoft.email.model.config;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -40,6 +41,7 @@ public sealed interface FilterCriteria {
               tooltip = "Only fetch unread emails",
               defaultValue = "true",
               defaultValueType = TemplateProperty.DefaultValueType.Boolean)
+          @FEEL
           boolean onlyUnread,
       @TemplateProperty(
               label = "Subject Contains",
