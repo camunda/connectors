@@ -122,7 +122,7 @@
   }, {
     "id" : "pollingConfig.folder.folderName",
     "label" : "Folder Name/Folder ID",
-    "description" : "The folder name or folder ID. Folder names must be unique. Consider using the well-known folder IDs described here",
+    "description" : "The folder name or folder ID. Folder names must be unique. Consider using the <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0' target='_blank'>well-known folder IDs</a>",
     "optional" : false,
     "value" : "inbox",
     "constraints" : {
@@ -160,30 +160,12 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Advanced",
-      "value" : "advanced"
-    }, {
       "name" : "Simple",
       "value" : "simple"
+    }, {
+      "name" : "Advanced",
+      "value" : "advanced"
     } ]
-  }, {
-    "id" : "pollingConfig.filterCriteria.filterString",
-    "label" : "Filter string",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "pollingConfig",
-    "binding" : {
-      "name" : "pollingConfig.filterCriteria.filterString",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "pollingConfig.filterCriteria.filterSpecification",
-      "equals" : "advanced",
-      "type" : "simple"
-    },
-    "type" : "String"
   }, {
     "id" : "pollingConfig.filterCriteria.onlyUnread",
     "label" : "Only Unread",
@@ -202,6 +184,24 @@
     },
     "tooltip" : "Only fetch unread emails",
     "type" : "Boolean"
+  }, {
+    "id" : "pollingConfig.filterCriteria.filterString",
+    "label" : "Filter string",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "pollingConfig.filterCriteria.filterString",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "pollingConfig.filterCriteria.filterSpecification",
+      "equals" : "advanced",
+      "type" : "simple"
+    },
+    "type" : "String"
   }, {
     "id" : "operation.processingOperationDiscriminator",
     "label" : "Postprocessing configuration",
@@ -242,7 +242,7 @@
   }, {
     "id" : "operation.targetFolder.folderName",
     "label" : "Folder Name/Folder ID",
-    "description" : "The folder name or folder ID. Folder names must be unique. Consider using the well-known folder IDs described here",
+    "description" : "The folder name or folder ID. Folder names must be unique. Consider using the <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0' target='_blank'>well-known folder IDs</a>",
     "optional" : false,
     "value" : "inbox",
     "constraints" : {

@@ -15,10 +15,9 @@ public record Folder(
     @TemplateProperty(
             label = "Folder Name/Folder ID",
             feel = Property.FeelMode.optional,
-            // TODO: Add link
             defaultValue = "inbox",
             description =
-                "The folder name or folder ID. Folder names must be unique. Consider using the well-known folder IDs described here")
+                "The folder name or folder ID. Folder names must be unique. Consider using the <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0' target='_blank'>well-known folder IDs</a>")
         @NotBlank
         String folderName,
     @TemplateProperty(
