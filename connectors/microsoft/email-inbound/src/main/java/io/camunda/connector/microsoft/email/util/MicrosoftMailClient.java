@@ -23,6 +23,7 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.microsoft.email.model.config.Folder;
 import io.camunda.connector.microsoft.email.model.config.InboundAuthentication;
 import io.camunda.connector.microsoft.email.model.output.EmailMessage;
+import io.camunda.connector.microsoft.email.model.output.GraphApiMapper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -32,6 +33,7 @@ public class MicrosoftMailClient implements MailClient {
 
   private final GraphServiceClient client;
   private final UserItemRequestBuilder graphClient;
+  private final String userId;
 
   public MicrosoftMailClient(InboundAuthentication auth, String userId) {
     // The client credentials flow requires that you request the
@@ -48,14 +50,13 @@ public class MicrosoftMailClient implements MailClient {
             .build();
     client = new GraphServiceClient(credential, scopes);
     graphClient = client.users().byUserId(userId);
+    this.userId = userId;
   }
 
   private String getFolderId(Folder folder) {
     if (folder.isFolderId()) {
       return folder.folderName();
     }
-    // TODO: This technically allows people to sneak in arbitrary filters
-    // But is this an injection scenario we care about?
     var resp =
         graphClient
             .mailFolders()
@@ -65,14 +66,11 @@ public class MicrosoftMailClient implements MailClient {
           "Folder name "
               + folder.folderName()
               + " matches more than one folder in mailbox "
-              + graphClient.toRequestInformation().getUri().toString());
+              + userId);
     }
     if (resp.getValue().isEmpty()) {
       throw new ConnectorException(
-          "No folder with name "
-              + folder.folderName()
-              + " could be found in mailbox "
-              + graphClient.toRequestInformation().getUri().toString());
+          "No folder with name " + folder.folderName() + " could be found in mailbox " + userId);
     }
     return resp.getValue().getFirst().getId();
   }
@@ -92,19 +90,7 @@ public class MicrosoftMailClient implements MailClient {
   @Override
   public OpaqueMessageFetcher constructMessageFetcher(
       Folder folder, String filterString, Consumer<EmailMessage> handler) {
-    DeltaGetResponse messageResponse =
-        graphClient
-            .mailFolders()
-            .byMailFolderId(getFolderId(folder))
-            .messages()
-            .delta()
-            .get(
-                requestConfiguration -> {
-                  requestConfiguration.headers.add("Prefer", "outlook.body-content-type=\"text\"");
-                  requestConfiguration.queryParameters.filter = filterString;
-                  requestConfiguration.queryParameters.select = EmailMessage.getSelect();
-                  requestConfiguration.queryParameters.top = 10;
-                });
+    DeltaGetResponse messageResponse = fetchInitialDeltaResponse(folder, filterString);
     final var pageIterator =
         new PageIterator.Builder<Message, DeltaGetResponse>()
             .client(client)
@@ -118,12 +104,7 @@ public class MicrosoftMailClient implements MailClient {
                   requestInfo.addQueryParameter("%24top", 10);
                   return requestInfo;
                 })
-            .processPageItemCallback(
-                msg -> {
-                  var myMsg = new EmailMessage(msg);
-                  handler.accept(myMsg);
-                  return true;
-                });
+            .processPageItemCallback(msg -> processMessageItem(msg, handler));
     try {
       var iterator = pageIterator.build();
       return new PageIteratorMessageFetcher(iterator);
@@ -179,6 +160,27 @@ public class MicrosoftMailClient implements MailClient {
       // Note: ItemAttachment and ReferenceAttachment are intentionally not supported
     }
     return docs;
+  }
+
+  private DeltaGetResponse fetchInitialDeltaResponse(Folder folder, String filterString) {
+    return graphClient
+        .mailFolders()
+        .byMailFolderId(getFolderId(folder))
+        .messages()
+        .delta()
+        .get(
+            requestConfiguration -> {
+              requestConfiguration.headers.add("Prefer", "outlook.body-content-type=\"text\"");
+              requestConfiguration.queryParameters.filter = filterString;
+              requestConfiguration.queryParameters.select = EmailMessage.getSelect();
+              requestConfiguration.queryParameters.top = 10;
+            });
+  }
+
+  private static boolean processMessageItem(Message msg, Consumer<EmailMessage> handler) {
+    var myMsg = GraphApiMapper.toEmailMessage(msg, List.of());
+    handler.accept(myMsg);
+    return true;
   }
 
   @Deprecated
