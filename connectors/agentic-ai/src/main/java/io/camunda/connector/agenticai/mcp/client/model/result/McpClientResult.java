@@ -8,8 +8,8 @@ package io.camunda.connector.agenticai.mcp.client.model.result;
 
 public sealed interface McpClientResult
     permits McpClientCallToolResult,
-        McpClientGetPromptResult,
         McpClientListPromptsResult,
         McpClientListResourceTemplatesResult,
         McpClientListResourcesResult,
-        McpClientListToolsResult {}
+        McpClientListToolsResult,
+        McpClientResultWithStorableData {}

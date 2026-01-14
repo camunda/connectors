@@ -21,8 +21,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import dev.langchain4j.mcp.client.*;
-import dev.langchain4j.model.openai.internal.chat.Role;
-import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
@@ -347,6 +345,42 @@ class Langchain4JMcpRemoteClientHandlerTest {
                       assertThat(operation)
                           .returns(LIST_RESOURCE_TEMPLATES, McpClientOperation::method)
                           .returns(Map.of(), McpClientOperation::params)),
+              eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
+    void handlesReadResourceRequest(McpRemoteClientTransportConfiguration transport) {
+      final var request =
+          createStandaloneModeRequest(
+              transport,
+              false,
+              new McpStandaloneOperationConfiguration.ReadResourceOperationConfiguration(
+                  "resource-1"));
+      final var expectedResult =
+          new McpClientReadResourceResult(
+              new ResourceData.TextResourceData("uri", "text/plain", "Sample text"));
+
+      when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(
+                  operation ->
+                      assertThat(operation)
+                          .isInstanceOfSatisfying(
+                              McpClientOperation.McpClientOperationImpl.class,
+                              op ->
+                                  assertThat(operation)
+                                      .returns(READ_RESOURCE, McpClientOperation::method)
+                                      .returns(
+                                          Map.of("uri", "resource-1"),
+                                          McpClientOperation::params))),
               eq(EMPTY_FILTER)))
           .thenReturn(expectedResult);
 
