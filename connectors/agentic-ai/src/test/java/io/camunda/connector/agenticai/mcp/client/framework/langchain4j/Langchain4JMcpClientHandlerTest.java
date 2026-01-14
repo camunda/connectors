@@ -20,19 +20,12 @@ import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationConfiguration;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest;
+import io.camunda.connector.agenticai.mcp.client.model.*;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest.McpClientRequestData;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest.McpClientRequestData.ClientConfiguration;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientToolsConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.StandaloneModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration;
-import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration;
-import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
-import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListPromptsResult;
-import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
-import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.*;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.List;
 import java.util.Map;
@@ -120,7 +113,7 @@ class Langchain4JMcpClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHandlerTest#callToolArguments")
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHandlerTest#mcpOperationArguments")
     void handlesCallToolRequest(Map<String, Object> arguments) {
       final var request =
           createToolModeRequest(
@@ -182,7 +175,7 @@ class Langchain4JMcpClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHandlerTest#callToolArguments")
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHandlerTest#mcpOperationArguments")
     void handlesCallToolRequest(Map<String, Object> arguments) {
       final var request =
           createStandaloneModeRequest(
@@ -316,6 +309,47 @@ class Langchain4JMcpClientHandlerTest {
     }
   }
 
+  @ParameterizedTest
+  @MethodSource(
+      "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHandlerTest#mcpOperationArguments")
+  void handlesGetPromptRequest(Map<String, Object> arguments) {
+    final var request =
+        createStandaloneModeRequest(
+            new McpStandaloneOperationConfiguration.GetPromptOperationConfiguration(
+                "code_review", arguments));
+    final var expectedResult =
+        new McpClientGetPromptResult(
+            "Code review",
+            List.of(
+                new McpClientGetPromptResult.TextMessage("USER", "Review code the code for me.")));
+
+    when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
+    when(clientExecutor.execute(
+            eq(mcpClient),
+            assertArg(
+                operation ->
+                    assertThat(operation)
+                        .isInstanceOfSatisfying(
+                            McpClientOperation.McpClientOperationImpl.class,
+                            op -> {
+                              assertThat(op.method()).isEqualTo(GET_PROMPT);
+                              assertThat(op.params())
+                                  .containsEntry("name", "code_review")
+                                  .hasEntrySatisfying(
+                                      "arguments",
+                                      args ->
+                                          assertThat(args)
+                                              .asInstanceOf(InstanceOfAssertFactories.MAP)
+                                              .containsExactlyEntriesOf(arguments));
+                            })),
+            eq(EMPTY_FILTER)))
+        .thenReturn(expectedResult);
+
+    final var result = handler.handle(context, request);
+
+    assertThat(result).isEqualTo(expectedResult);
+  }
+
   private McpClientRequest createToolModeRequest(McpClientOperationConfiguration operation) {
     return new McpClientRequest(
         new McpClientRequestData(
@@ -329,7 +363,7 @@ class Langchain4JMcpClientHandlerTest {
             CLIENT_CONFIG, new StandaloneModeConfiguration(operation), EMPTY_FILTER_CONFIGURATION));
   }
 
-  static Stream<Map<String, Object>> callToolArguments() {
+  static Stream<Map<String, Object>> mcpOperationArguments() {
     return Stream.of(
         Map.of("arg1", "value1", "arg2", 5),
         Map.of("nested", Map.of("key", "value"), "array", List.of(1, 2, 3)));
