@@ -10,16 +10,27 @@ import io.camunda.connector.agenticai.mcp.client.model.McpDocumentSettings;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 
-public record McpClientReadResourceResult(ResourceData resource)
+import java.util.List;
+
+public record McpClientReadResourceResult(List<ResourceData> contents)
     implements McpClientResultWithStorableData {
   @Override
   public McpClientResult convertStorableMcpResultData(
       DocumentFactory documentFactory, McpDocumentSettings settings) {
-    return switch (resource) {
-      case ResourceData.CamundaDocumentResourceData ignored -> this;
-      case ResourceData.TextResourceData ignored -> this;
+    var mappedContents =
+        contents.stream()
+            .map(contentData -> convertToDocumentIfBlob(documentFactory, settings, contentData))
+            .toList();
+    return new McpClientReadResourceResult(mappedContents);
+  }
+
+  private ResourceData convertToDocumentIfBlob(
+      DocumentFactory documentFactory, McpDocumentSettings settings, ResourceData resourceData) {
+    return switch (resourceData) {
+      case ResourceData.CamundaDocumentResourceData ignored -> ignored;
+      case ResourceData.TextResourceData ignored -> ignored;
       case ResourceData.BlobResourceData blobResourceData ->
-          new McpClientReadResourceResult(mapBlob(documentFactory, settings, blobResourceData));
+          mapBlob(documentFactory, settings, blobResourceData);
     };
   }
 

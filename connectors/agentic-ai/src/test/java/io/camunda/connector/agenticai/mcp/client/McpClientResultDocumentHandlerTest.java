@@ -130,9 +130,9 @@ class McpClientResultDocumentHandlerTest {
         argumentSet(
             "Read resource - with text content",
             new McpClientReadResourceResult(
-                new ResourceData.TextResourceData("uri", "Some text", "text/plain")),
+                List.of(new ResourceData.TextResourceData("uri", "Some text", "text/plain"))),
             new McpClientReadResourceResult(
-                new ResourceData.TextResourceData("uri", "Some text", "text/plain"))),
+                List.of(new ResourceData.TextResourceData("uri", "Some text", "text/plain")))),
         argumentSet(
             "List prompts",
             new McpClientListPromptsResult(
@@ -177,17 +177,21 @@ class McpClientResultDocumentHandlerTest {
     return argumentSet(
         "Read resource - with binary content",
         new McpClientReadResourceResult(
-            new ResourceData.BlobResourceData(
-                "uri", "application/octet-stream", "Some text".getBytes(StandardCharsets.UTF_8))),
+            List.of(
+                new ResourceData.BlobResourceData(
+                    "uri",
+                    "application/octet-stream",
+                    "Some text".getBytes(StandardCharsets.UTF_8)))),
         new McpClientReadResourceResult(
-            new ResourceData.CamundaDocumentResourceData(
-                "uri",
-                "application/octet-stream",
-                new TestDocument(
-                    "Some text".getBytes(StandardCharsets.UTF_8),
-                    createDocumentMetadata("application/octet-stream", Duration.ofHours(1)),
-                    null,
-                    "doc-id-0"))));
+            List.of(
+                new ResourceData.CamundaDocumentResourceData(
+                    "uri",
+                    "application/octet-stream",
+                    new TestDocument(
+                        "Some text".getBytes(StandardCharsets.UTF_8),
+                        createDocumentMetadata("application/octet-stream", Duration.ofHours(1)),
+                        null,
+                        "doc-id-0")))));
   }
 
   private static Arguments getSinglePromptWithAllPossibleMessageTypes() {
