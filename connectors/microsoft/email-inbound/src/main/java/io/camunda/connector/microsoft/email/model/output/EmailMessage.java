@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.microsoft.email.model.output;
 
-import static io.camunda.connector.microsoft.email.model.output.EmailAddress.transformList;
+import static io.camunda.connector.microsoft.email.model.output.GraphApiMapper.toEmailMessage;
 
 import com.microsoft.graph.models.Message;
 import io.camunda.connector.api.document.Document;
@@ -22,6 +22,7 @@ public record EmailMessage(
     List<EmailAddress> bcc,
     String subject,
     String body,
+    String bodyContentType,
     OffsetDateTime receivedDateTime,
     List<Document> attachments) {
   public EmailMessage(Message message) {
@@ -29,19 +30,22 @@ public record EmailMessage(
   }
 
   public EmailMessage(Message message, List<Document> documents) {
+    this(toEmailMessage(message, documents));
+  }
+
+  private EmailMessage(EmailMessage message) {
     this(
-        message.getId(),
-        message.getConversationId(),
-        new EmailAddress(message.getSender()),
-        transformList(message.getToRecipients()),
-        transformList(message.getCcRecipients()),
-        transformList(message.getBccRecipients()),
-        message.getSubject() != null ? message.getSubject() : "",
-        message.getBody() != null && message.getBody().getContent() != null
-            ? message.getBody().getContent()
-            : "",
-        message.getReceivedDateTime(),
-        documents);
+        message.id,
+        message.conversationId,
+        message.sender,
+        message.recipients,
+        message.cc,
+        message.bcc,
+        message.subject,
+        message.body,
+        message.bodyContentType,
+        message.receivedDateTime,
+        message.attachments);
   }
 
   public EmailMessage(EmailMessage message, List<Document> documents) {
@@ -54,6 +58,7 @@ public record EmailMessage(
         message.bcc,
         message.subject,
         message.body,
+        message.bodyContentType,
         message.receivedDateTime,
         documents);
   }
@@ -68,8 +73,7 @@ public record EmailMessage(
       "bccRecipients",
       "subject",
       "body",
-      "receivedDateTime",
-      "hasAttachments"
+      "receivedDateTime"
     };
   }
 }
