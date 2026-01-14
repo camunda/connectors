@@ -23,6 +23,8 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.microsoft.email.model.config.Folder;
 import io.camunda.connector.microsoft.email.model.config.InboundAuthentication;
 import io.camunda.connector.microsoft.email.model.output.EmailMessage;
+import io.camunda.connector.microsoft.email.model.output.GraphApiMapper;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -48,12 +50,11 @@ public class MicrosoftMailClient implements MailClient {
             .clientSecret(authentication.clientSecret())
             .build();
     client = new GraphServiceClient(credential, scopes);
-    this.userId = userId;
     graphClient = client.users().byUserId(userId);
+    this.userId = userId;
   }
 
-  @Override
-  public String getFolderId(Folder folder) {
+  private String getFolderId(Folder folder) {
     return switch (folder) {
       case Folder.FolderById byId -> byId.folderId();
       case Folder.FolderByName byName -> getFolderIdByFolderName(byName.folderName());
@@ -81,15 +82,22 @@ public class MicrosoftMailClient implements MailClient {
   }
 
   class PageIteratorMessageFetcher implements OpaqueMessageFetcher {
-    private final PageIterator<Message, MessageCollectionResponse> iterator;
+    private final Folder folder;
+    private final String filterString;
+    private final Consumer<EmailMessage> handler;
 
-    PageIteratorMessageFetcher(PageIterator<Message, MessageCollectionResponse> iterator) {
-      this.iterator = iterator;
+    PageIteratorMessageFetcher(Folder folder, String filterString, Consumer<EmailMessage> handler) {
+      this.folder = folder;
+      this.filterString = filterString;
+      this.handler = handler;
     }
 
     @Override
     public void poll() {
       try {
+        MessageCollectionResponse messageResponse = fetchMessages(folder, filterString);
+        PageIterator<Message, MessageCollectionResponse> iterator =
+            getPageIterator(filterString, handler, messageResponse);
         iterator.iterate();
       } catch (ReflectiveOperationException e) {
         throw new ConnectorException(e);
@@ -100,43 +108,32 @@ public class MicrosoftMailClient implements MailClient {
   @Override
   public OpaqueMessageFetcher constructMessageFetcher(
       Folder folder, String filterString, Consumer<EmailMessage> handler) {
-    MessageCollectionResponse messageResponse =
-        graphClient
-            .mailFolders()
-            .byMailFolderId(getFolderId(folder))
-            .messages()
-            .get(
-                requestConfiguration -> {
-                  requestConfiguration.headers.add("Prefer", "outlook.body-content-type=\"text\"");
-                  requestConfiguration.queryParameters.filter = filterString;
-                  requestConfiguration.queryParameters.select = EmailMessage.getSelect();
-                  requestConfiguration.queryParameters.top = 10;
-                });
-    final var pageIterator =
-        new PageIterator.Builder<Message, MessageCollectionResponse>()
-            .client(client)
-            .collectionPage(Objects.requireNonNull(messageResponse))
-            .collectionPageFactory(MessageCollectionResponse::createFromDiscriminatorValue)
-            .requestConfigurator(
-                requestInfo -> {
-                  // Re-add the header and query parameters to subsequent requests
-                  requestInfo.headers.add("Prefer", "outlook.body-content-type=\"text\"");
-                  requestInfo.addQueryParameter("%24select", filterString);
-                  requestInfo.addQueryParameter("%24top", 10);
-                  return requestInfo;
-                })
-            .processPageItemCallback(
-                msg -> {
-                  var myMsg = new EmailMessage(msg);
-                  handler.accept(myMsg);
-                  return true;
-                });
-    try {
-      var iterator = pageIterator.build();
-      return new PageIteratorMessageFetcher(iterator);
-    } catch (ReflectiveOperationException e) {
-      throw new ConnectorException(e);
-    }
+    return new PageIteratorMessageFetcher(folder, filterString, handler);
+  }
+
+  private PageIterator<Message, MessageCollectionResponse> getPageIterator(
+      String filterString,
+      Consumer<EmailMessage> handler,
+      MessageCollectionResponse messageResponse)
+      throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
+    return new PageIterator.Builder<Message, MessageCollectionResponse>()
+        .client(client)
+        .collectionPage(Objects.requireNonNull(messageResponse))
+        .collectionPageFactory(MessageCollectionResponse::createFromDiscriminatorValue)
+        .requestConfigurator(
+            requestInfo -> {
+              // Re-add the header and query parameters to subsequent requests
+              requestInfo.headers.add("Prefer", "outlook.body-content-type=\"text\"");
+              if (filterString != null && !filterString.isEmpty()) {
+                requestInfo.addQueryParameter("%24filter", filterString);
+              }
+              requestInfo.addQueryParameter(
+                  "%24select", String.join(",", EmailMessage.getSelect()));
+              requestInfo.addQueryParameter("%24top", 10);
+              return requestInfo;
+            })
+        .processPageItemCallback(msg -> processMessageItem(msg, handler))
+        .build();
   }
 
   private MessageItemRequestBuilder constructCommonMessage(EmailMessage msg) {
@@ -188,13 +185,25 @@ public class MicrosoftMailClient implements MailClient {
     return docs;
   }
 
-  @Deprecated
-  public UserItemRequestBuilder getClient() {
-    return this.graphClient;
+  private MessageCollectionResponse fetchMessages(Folder folder, String filterString) {
+    return graphClient
+        .mailFolders()
+        .byMailFolderId(getFolderId(folder))
+        .messages()
+        .get(
+            requestConfiguration -> {
+              requestConfiguration.headers.add("Prefer", "outlook.body-content-type=\"text\"");
+              if (filterString != null && !filterString.isEmpty()) {
+                requestConfiguration.queryParameters.filter = filterString;
+              }
+              requestConfiguration.queryParameters.select = EmailMessage.getSelect();
+              requestConfiguration.queryParameters.top = 10;
+            });
   }
 
-  @Deprecated
-  public GraphServiceClient getGraphclient() {
-    return this.client;
+  private static boolean processMessageItem(Message msg, Consumer<EmailMessage> handler) {
+    var myMsg = GraphApiMapper.toEmailMessage(msg, List.of());
+    handler.accept(myMsg);
+    return true;
   }
 }

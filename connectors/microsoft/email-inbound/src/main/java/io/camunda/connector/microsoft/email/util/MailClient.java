@@ -18,8 +18,6 @@ public interface MailClient {
     void poll();
   }
 
-  String getFolderId(Folder folder);
-
   /**
    * Construct a client that can be repeatedly polled to process messages using the handler It
    * preserves its iteration position internally. As such, there should be no concurrent access to
