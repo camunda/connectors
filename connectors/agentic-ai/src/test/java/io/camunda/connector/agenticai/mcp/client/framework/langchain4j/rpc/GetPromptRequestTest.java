@@ -25,9 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.*;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -118,6 +116,21 @@ class GetPromptRequestTest {
               assertThat(exception.getMessage()).isEqualTo("Prompt name must be a string.");
             });
   }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "    "})
+    void throwsConnectorException_whenPromptNameIsEmptyOrBlank(String promptName) {
+        final Map<String, Object> parameters =
+                Map.of("name", promptName, "arguments", Map.of("assignee", "dev1"));
+
+        assertThatThrownBy(() -> testee.execute(mcpClient, parameters))
+                .isInstanceOfSatisfying(
+                        ConnectorException.class,
+                        exception -> {
+                            assertThat(exception.getErrorCode()).isEqualTo("MCP_CLIENT_INVALID_PARAMS");
+                            assertThat(exception.getMessage()).isEqualTo("Prompt name cannot be empty or blank.");
+                        });
+    }
 
   @Test
   void throwsConnectorException_whenArgumentsNoMap() {
