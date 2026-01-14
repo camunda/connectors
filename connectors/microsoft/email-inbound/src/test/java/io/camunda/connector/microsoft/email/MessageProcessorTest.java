@@ -68,6 +68,7 @@ class MessageProcessorTest {
         List.of(), // bcc
         "Test Subject",
         "Test Body",
+        "text",
         TEST_RECEIVED_TIME,
         attachments);
   }
