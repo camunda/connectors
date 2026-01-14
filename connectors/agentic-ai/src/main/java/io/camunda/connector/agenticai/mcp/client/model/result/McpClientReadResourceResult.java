@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.mcp.client.model.result;
 import io.camunda.connector.agenticai.mcp.client.model.McpDocumentSettings;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
-
 import java.util.List;
 
 public record McpClientReadResourceResult(List<ResourceData> contents)

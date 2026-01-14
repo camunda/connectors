@@ -18,7 +18,6 @@ import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.test.document.TestDocument;
 import io.camunda.connector.runtime.test.document.TestDocumentMetadata;
-
 import java.nio.charset.StandardCharsets;
 import java.time.*;
 import java.util.List;

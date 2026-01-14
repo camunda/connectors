@@ -365,7 +365,7 @@ class Langchain4JMcpRemoteClientHandlerTest {
                   "resource-1"));
       final var expectedResult =
           new McpClientReadResourceResult(
-              new ResourceData.TextResourceData("uri", "text/plain", "Sample text"));
+              List.of(new ResourceData.TextResourceData("uri", "text/plain", "Sample text")));
 
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(

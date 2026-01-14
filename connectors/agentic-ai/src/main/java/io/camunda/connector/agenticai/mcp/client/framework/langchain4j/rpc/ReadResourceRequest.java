@@ -1,3 +1,9 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
 package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 
 import dev.langchain4j.mcp.client.McpBlobResourceContents;
@@ -7,19 +13,19 @@ import dev.langchain4j.mcp.client.McpTextResourceContents;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientReadResourceResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceData;
 import io.camunda.connector.api.error.ConnectorException;
+import java.util.Base64;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.util.StringUtils;
-
-import java.util.Base64;
-import java.util.Map;
 
 public class ReadResourceRequest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ReadResourceRequest.class);
 
   private static final String MCP_CLIENT_INVALID_PARAMS_KEY = "MCP_CLIENT_INVALID_PARAMS";
+  public static final String RESOURCE_URI_KEY = "uri";
 
   public McpClientReadResourceResult execute(McpClient client, Map<String, Object> params) {
     try (var ignored = MDC.putCloseable("mcpClient", client.key())) {
@@ -43,11 +49,11 @@ public class ReadResourceRequest {
   }
 
   private String getResourceUri(Map<String, Object> params) {
-    if (!params.containsKey("resourceUri")) {
+    if (!params.containsKey(RESOURCE_URI_KEY)) {
       throw new ConnectorException(MCP_CLIENT_INVALID_PARAMS_KEY, "Resource URI must be provided");
     }
 
-    if (!(params.get("resourceUri") instanceof String resourceUri)) {
+    if (!(params.get(RESOURCE_URI_KEY) instanceof String resourceUri)) {
       throw new ConnectorException(MCP_CLIENT_INVALID_PARAMS_KEY, "Resource URI must be a string");
     }
 
