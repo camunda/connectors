@@ -126,6 +126,11 @@ jobs:
                 echo "Warning: Failed to add label to PR #$PR_NUMBER (it may be from a fork or deleted)"
               }
           
+              // Add label to issues closed by the PR
+              gh pr view "$PR_NUMBER" --json closingIssuesReferences | jq ".closingIssuesReferences[].number" | xargs -I {} -n1 gh issue edit {} --add-label "$LABEL_NAME" || {
+                echo "Warning: Failed to add label to issues closed by PR #$PR_NUMBER"
+              }
+          
               # Small delay to avoid rate limiting
               sleep 1
             fi
