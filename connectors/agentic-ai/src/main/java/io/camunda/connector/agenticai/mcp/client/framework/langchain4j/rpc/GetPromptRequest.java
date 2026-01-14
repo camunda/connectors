@@ -13,6 +13,7 @@ import java.util.*;
 import org.apache.commons.collections4.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 final class GetPromptRequest {
 
@@ -99,6 +100,10 @@ final class GetPromptRequest {
 
     if (!(params.get("name") instanceof String promptName)) {
       throw new ConnectorException(MCP_CLIENT_INVALID_PARAMS_KEY, "Prompt name must be a string.");
+    }
+
+    if(!StringUtils.hasText(promptName)) {
+      throw new ConnectorException(MCP_CLIENT_INVALID_PARAMS_KEY, "Prompt name cannot be empty or blank.");
     }
 
     var paramsArguments = params.getOrDefault("arguments", Collections.emptyMap());
