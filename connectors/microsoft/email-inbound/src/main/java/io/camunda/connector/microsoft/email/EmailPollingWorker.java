@@ -73,7 +73,7 @@ public class EmailPollingWorker implements Runnable {
     scheduler.shutdown();
   }
 
-  public boolean isShutdown() {
-    return scheduler.isShutdown();
+  public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+    return scheduler.awaitTermination(timeout, unit);
   }
 }
