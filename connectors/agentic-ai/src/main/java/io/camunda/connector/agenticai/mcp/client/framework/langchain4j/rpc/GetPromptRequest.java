@@ -54,37 +54,36 @@ final class GetPromptRequest {
   private McpClientGetPromptResult.PromptMessage map(McpPromptMessage promptMessage) {
     final var content = promptMessage.content();
 
-    if (content instanceof McpImageContent mcpImageContent) {
-      return new McpClientGetPromptResult.BlobMessage(
-          promptMessage.role().name(),
-          Base64.getDecoder().decode(mcpImageContent.data()),
-          mcpImageContent.mimeType());
-    }
+    return switch (content) {
+      case McpImageContent mcpImageContent ->
+          new McpClientGetPromptResult.BlobMessage(
+              promptMessage.role().name(),
+              Base64.getDecoder().decode(mcpImageContent.data()),
+              mcpImageContent.mimeType());
+      case McpTextContent mcpTextContent ->
+          new McpClientGetPromptResult.TextMessage(
+              promptMessage.role().name(), mcpTextContent.text());
+      case McpEmbeddedResource mcpEmbeddedResource ->
+          mapEmbeddedResourceContent(promptMessage, mcpEmbeddedResource);
+    };
+  }
 
-    if (content instanceof McpTextContent mcpTextContent) {
-      return new McpClientGetPromptResult.TextMessage(
-          promptMessage.role().name(), mcpTextContent.text());
-    }
-
-    if (content instanceof McpEmbeddedResource mcpEmbeddedResource) {
-      return new McpClientGetPromptResult.EmbeddedResourceMessage(
-          promptMessage.role().name(),
-          switch (mcpEmbeddedResource.resource()) {
-            case McpBlobResourceContents mcpBlobResourceContents ->
-                new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource.BlobResource(
-                    mcpBlobResourceContents.uri(),
-                    Base64.getDecoder().decode(mcpBlobResourceContents.blob()),
-                    mcpBlobResourceContents.mimeType());
-            case McpTextResourceContents mcpTextResourceContents ->
-                new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource.TextResource(
-                    mcpTextResourceContents.uri(),
-                    mcpTextResourceContents.text(),
-                    mcpTextResourceContents.mimeType());
-          });
-    }
-
-    throw new UnsupportedOperationException(
-        "Unsupported prompt message content type: %s".formatted(content.getType()));
+  private McpClientGetPromptResult.PromptMessage mapEmbeddedResourceContent(
+      McpPromptMessage message, McpEmbeddedResource embeddedResource) {
+    return new McpClientGetPromptResult.EmbeddedResourceMessage(
+        message.role().name(),
+        switch (embeddedResource.resource()) {
+          case McpBlobResourceContents mcpBlobResourceContents ->
+              new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource.BlobResource(
+                  mcpBlobResourceContents.uri(),
+                  Base64.getDecoder().decode(mcpBlobResourceContents.blob()),
+                  mcpBlobResourceContents.mimeType());
+          case McpTextResourceContents mcpTextResourceContents ->
+              new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource.TextResource(
+                  mcpTextResourceContents.uri(),
+                  mcpTextResourceContents.text(),
+                  mcpTextResourceContents.mimeType());
+        });
   }
 
   private GetPromptParameters parseParameters(Map<String, Object> params) {
@@ -95,7 +94,7 @@ final class GetPromptRequest {
 
     if (!params.containsKey("name")) {
       throw new ConnectorException(
-              MCP_CLIENT_INVALID_PARAMS_KEY, "Prompt name is required in params.");
+          MCP_CLIENT_INVALID_PARAMS_KEY, "Prompt name is required in params.");
     }
 
     if (!(params.get("name") instanceof String promptName)) {
