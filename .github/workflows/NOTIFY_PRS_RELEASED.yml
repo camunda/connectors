@@ -87,7 +87,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
         run: |
-          LABEL_NAME="released/$VERSION"
+          LABEL_NAME="version:$VERSION"
           
           # Check if label exists, create if it doesn't
           if ! gh label list --json name --jq '.[].name' | grep -q "^${LABEL_NAME}$"; then
@@ -106,7 +106,7 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/$VERSION"
-          LABEL_NAME="released/$VERSION"
+          LABEL_NAME="version:$VERSION"
           
           echo "Posting comments and labels on PRs..."
           
@@ -124,6 +124,11 @@ jobs:
               # Add label
               gh pr edit "$PR_NUMBER" --add-label "$LABEL_NAME" || {
                 echo "Warning: Failed to add label to PR #$PR_NUMBER (it may be from a fork or deleted)"
+              }
+          
+              # Add label to issues closed by the PR
+              gh pr view "$PR_NUMBER" --json closingIssuesReferences | jq ".closingIssuesReferences[].number" | xargs -I {} -n1 gh issue edit {} --add-label "$LABEL_NAME" || {
+                echo "Warning: Failed to add label to issues closed by PR #$PR_NUMBER"
               }
           
               # Small delay to avoid rate limiting
