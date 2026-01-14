@@ -216,6 +216,40 @@
     "tooltip" : "Only fetch unread emails",
     "type" : "Boolean"
   }, {
+    "id" : "pollingConfig.filterCriteria.subjectContains",
+    "label" : "Subject Contains",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "pollingConfig.filterCriteria.subjectContains",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "pollingConfig.filterCriteria.filterSpecification",
+      "equals" : "simple",
+      "type" : "simple"
+    },
+    "tooltip" : "Only fetch emails where subject contains this text (case-sensitive)",
+    "type" : "String"
+  }, {
+    "id" : "pollingConfig.filterCriteria.fromAddress",
+    "label" : "From Email Address",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "pollingConfig.filterCriteria.fromAddress",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "pollingConfig.filterCriteria.filterSpecification",
+      "equals" : "simple",
+      "type" : "simple"
+    },
+    "tooltip" : "Only fetch emails from this sender address (exact match, e.g. 'invoice@vendor.com')",
+    "type" : "String"
+  }, {
     "id" : "pollingConfig.filterCriteria.filterString",
     "label" : "OData Filter String",
     "optional" : false,

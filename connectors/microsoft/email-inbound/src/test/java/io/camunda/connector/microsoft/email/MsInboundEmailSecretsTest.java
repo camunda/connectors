@@ -37,7 +37,7 @@ class MsInboundEmailSecretsTest {
         "user@example.com",
         new Folder.FolderByName("inbox"),
         Duration.ofSeconds(30),
-        new FilterCriteria.SimpleConfiguration(true));
+        new FilterCriteria.SimpleConfiguration(true, null, null));
   }
 
   private static EmailProcessingOperation validOperation() {
