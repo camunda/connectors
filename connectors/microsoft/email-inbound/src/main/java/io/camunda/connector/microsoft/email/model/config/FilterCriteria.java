@@ -9,6 +9,7 @@ package io.camunda.connector.microsoft.email.model.config;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -41,7 +42,23 @@ public sealed interface FilterCriteria {
               tooltip = "Only fetch unread emails",
               defaultValue = "true",
               defaultValueType = TemplateProperty.DefaultValueType.Boolean)
-          boolean onlyUnread)
+          @FEEL
+          boolean onlyUnread,
+      @FEEL
+          @TemplateProperty(
+              label = "Subject Contains",
+              tooltip = "Only fetch emails where subject contains this text (case-sensitive)",
+              optional = true,
+              feel = Property.FeelMode.optional)
+          String subjectContains,
+      @FEEL
+          @TemplateProperty(
+              label = "From Email Address",
+              tooltip =
+                  "Only fetch emails from this sender address (exact match, e.g. 'invoice@vendor.com')",
+              optional = true,
+              feel = Property.FeelMode.optional)
+          String fromAddress)
       implements FilterCriteria {
     @TemplateProperty(ignore = true)
     public static final String TYPE = "simple";
@@ -52,8 +69,31 @@ public sealed interface FilterCriteria {
       if (onlyUnread) {
         filters.add("isRead eq false");
       }
+      if (subjectContains != null && !subjectContains.isBlank()) {
+        filters.add("contains(subject, '" + escapeODataString(subjectContains) + "')");
+      }
+      if (fromAddress != null && !fromAddress.isBlank()) {
+        filters.add("from/emailAddress/address eq '" + escapeODataString(fromAddress) + "'");
+      }
 
-      return String.join(" and  ", filters);
+      return String.join(" and ", filters);
+    }
+
+    /**
+     * Escapes a string value for use in an OData filter expression.
+     *
+     * <p>According to the OData URL Conventions specification, single quotes within string literals
+     * must be represented as two consecutive single quotes.
+     *
+     * @param value the string value to escape
+     * @return the escaped string value
+     * @see <a
+     *     href="https://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part2-url-conventions.html#sec_URLSyntax">OData
+     *     v4.01 URL Conventions - Section 2.2 URL Syntax</a>
+     */
+    private static String escapeODataString(String value) {
+      // Single quotes must be escaped as two consecutive single quotes
+      return value.replace("'", "''");
     }
   }
 
