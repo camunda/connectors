@@ -102,8 +102,9 @@ final class GetPromptRequest {
       throw new ConnectorException(MCP_CLIENT_INVALID_PARAMS_KEY, "Prompt name must be a string.");
     }
 
-    if(!StringUtils.hasText(promptName)) {
-      throw new ConnectorException(MCP_CLIENT_INVALID_PARAMS_KEY, "Prompt name cannot be empty or blank.");
+    if (!StringUtils.hasText(promptName)) {
+      throw new ConnectorException(
+          MCP_CLIENT_INVALID_PARAMS_KEY, "Prompt name cannot be empty or blank.");
     }
 
     var paramsArguments = params.getOrDefault("arguments", Collections.emptyMap());
