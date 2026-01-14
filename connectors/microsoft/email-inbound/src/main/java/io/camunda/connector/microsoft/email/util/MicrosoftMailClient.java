@@ -32,6 +32,7 @@ public class MicrosoftMailClient implements MailClient {
 
   private final GraphServiceClient client;
   private final UserItemRequestBuilder graphClient;
+  private final String userId;
 
   public MicrosoftMailClient(InboundAuthentication auth, String userId) {
     // The client credentials flow requires that you request the
@@ -47,6 +48,7 @@ public class MicrosoftMailClient implements MailClient {
             .clientSecret(auth.clientSecret())
             .build();
     client = new GraphServiceClient(credential, scopes);
+    this.userId = userId;
     graphClient = client.users().byUserId(userId);
   }
 
@@ -60,14 +62,16 @@ public class MicrosoftMailClient implements MailClient {
         graphClient
             .mailFolders()
             .get(c -> c.queryParameters.filter = "displayName eq '" + folder.folderName() + "'");
-    // TODO: Should we specify the name of the user mailbox in the error message?
     if (resp.getValue().size() > 1) {
       throw new ConnectorException(
-          "Folder name " + folder.folderName() + " matches more than one folder.");
+          "Folder name "
+              + folder.folderName()
+              + " matches more than one folder in mailbox "
+              + userId);
     }
     if (resp.getValue().isEmpty()) {
       throw new ConnectorException(
-          "No folder with name " + folder.folderName() + " could be found.");
+          "No folder with name " + folder.folderName() + " could be found in mailbox " + userId);
     }
     return resp.getValue().getFirst().getId();
   }
