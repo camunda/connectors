@@ -16,7 +16,7 @@ import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.microsoft.email.model.config.MsInboundEmailProperties;
-import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,9 +109,14 @@ public class MsEmailInboundExecutable
                 .withMessage("Microsoft O365 Email connector deactivation requested"));
     worker.shutdown();
     context.reportHealth(Health.down());
-    Thread.sleep(Duration.ofMillis(800));
-    if (!worker.isShutdown()) {
-      LOGGER.debug("Executor service did not terminate gracefully, forcing shutdown");
+    try {
+      if (!worker.awaitTermination(800, TimeUnit.MILLISECONDS)) {
+        LOGGER.debug("Executor service did not terminate gracefully, forcing shutdown");
+        worker.forceShutdown();
+      }
+    } catch (InterruptedException e) {
+      LOGGER.debug("Interrupted while waiting for executor service to terminate, forcing shutdown");
+      Thread.currentThread().interrupt();
       worker.forceShutdown();
     }
   }

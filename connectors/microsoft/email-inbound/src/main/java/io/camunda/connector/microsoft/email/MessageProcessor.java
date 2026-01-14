@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.microsoft.email;
 
-import com.microsoft.graph.models.Message;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.microsoft.email.model.config.EmailProcessingOperation;
@@ -58,7 +57,7 @@ public class MessageProcessor {
                                 + message.id()));
             yield ShouldPostprocess.YES;
           }
-          case ActivationCheckResult.Failure.TooManyMatchingElements failure -> {
+          case ActivationCheckResult.Failure.TooManyMatchingElements tooMany -> {
             context.log(
                 activity ->
                     activity
@@ -129,11 +128,6 @@ public class MessageProcessor {
         }
       }
     };
-  }
-
-  private List<Document> extractAttachments(Message message) {
-    // FIXME: Get attachments
-    return List.of();
   }
 
   private enum ShouldPostprocess {
