@@ -87,7 +87,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
         run: |
-          LABEL_NAME="released/$VERSION"
+          LABEL_NAME="version:$VERSION"
           
           # Check if label exists, create if it doesn't
           if ! gh label list --json name --jq '.[].name' | grep -q "^${LABEL_NAME}$"; then
@@ -106,7 +106,7 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/$VERSION"
-          LABEL_NAME="released/$VERSION"
+          LABEL_NAME="version:$VERSION"
           
           echo "Posting comments and labels on PRs..."
           
