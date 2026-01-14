@@ -25,6 +25,7 @@
 
   <properties>
     <version.apache-tika>3.3.0</version.apache-tika>
+    <elasticsearch-rest-client.version>9.2.4</elasticsearch-rest-client.version>
   </properties>
 
   <dependencies>
