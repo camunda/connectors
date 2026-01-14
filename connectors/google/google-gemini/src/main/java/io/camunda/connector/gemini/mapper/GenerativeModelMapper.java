@@ -30,7 +30,7 @@ public class GenerativeModelMapper {
   public GenerativeModel map(GeminiRequestData requestData, VertexAI vertexAi) {
     GenerativeModel.Builder modelBuilder =
         new GenerativeModel.Builder()
-            .setModelName(requestData.model().getVersion())
+            .setModelName(requestData.resolveModelName())
             .setVertexAi(vertexAi)
             .setGenerationConfig(buildGenerationConfig(requestData))
             .setSafetySettings(prepareSafetySettings(requestData))
