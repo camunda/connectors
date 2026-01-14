@@ -60,14 +60,19 @@ public class MicrosoftMailClient implements MailClient {
         graphClient
             .mailFolders()
             .get(c -> c.queryParameters.filter = "displayName eq '" + folder.folderName() + "'");
-    // TODO: Should we specify the name of the user mailbox in the error message?
     if (resp.getValue().size() > 1) {
       throw new ConnectorException(
-          "Folder name " + folder.folderName() + " matches more than one folder.");
+          "Folder name "
+              + folder.folderName()
+              + " matches more than one folder in mailbox "
+              + graphClient.toRequestInformation().getUri().toString());
     }
     if (resp.getValue().isEmpty()) {
       throw new ConnectorException(
-          "No folder with name " + folder.folderName() + " could be found.");
+          "No folder with name "
+              + folder.folderName()
+              + " could be found in mailbox "
+              + graphClient.toRequestInformation().getUri().toString());
     }
     return resp.getValue().getFirst().getId();
   }
