@@ -64,7 +64,7 @@
   }, {
     "id" : "authentication.clientId",
     "label" : "Client id",
-    "description" : "The client if of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+    "description" : "The client id of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
