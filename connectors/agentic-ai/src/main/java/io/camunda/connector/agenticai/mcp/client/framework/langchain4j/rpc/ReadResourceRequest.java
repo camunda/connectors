@@ -17,7 +17,6 @@ import java.util.Base64;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.util.StringUtils;
 
 public class ReadResourceRequest {
@@ -28,23 +27,22 @@ public class ReadResourceRequest {
   public static final String RESOURCE_URI_KEY = "uri";
 
   public McpClientReadResourceResult execute(McpClient client, Map<String, Object> params) {
-    try (var ignored = MDC.putCloseable("mcpClient", client.key())) {
-      var resourceUri = getResourceUri(params);
+    var resourceUri = getResourceUri(params);
 
-      try {
-        LOGGER.debug("Executing read resource request with params: {}", params);
-        var readResourceResult = client.readResource(resourceUri);
+    try {
+      LOGGER.debug(
+          "MCP({}): Executing read resource request with params: {}", client.key(), params);
+      var readResourceResult = client.readResource(resourceUri);
 
-        var contentResult = readResourceResult.contents().stream().map(this::map).toList();
+      var contentResult = readResourceResult.contents().stream().map(this::map).toList();
 
-        return new McpClientReadResourceResult(contentResult);
-      } catch (Exception e) {
-        LOGGER.error("Failed to read resource from MCP server.", e);
-        throw new ConnectorException(
-            "MCP_CLIENT_READ_RESOURCE_FAILED",
-            "Failed to read resource from MCP server: %s".formatted(e.getMessage()),
-            e);
-      }
+      return new McpClientReadResourceResult(contentResult);
+    } catch (Exception e) {
+      LOGGER.error("MCP({}): Failed to read resource from MCP server.", client.key(), e);
+      throw new ConnectorException(
+          "MCP_CLIENT_READ_RESOURCE_FAILED",
+          "Failed to read resource from MCP server: %s".formatted(e.getMessage()),
+          e);
     }
   }
 
