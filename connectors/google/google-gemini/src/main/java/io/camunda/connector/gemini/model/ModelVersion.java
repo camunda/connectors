@@ -6,7 +6,11 @@
  */
 package io.camunda.connector.gemini.model;
 
+import io.camunda.connector.generator.java.annotation.DropdownItem;
+
 public enum ModelVersion {
+  @DropdownItem(label = "Custom")
+  CUSTOM("custom"),
   GEMINI_2_5_PRO("gemini-2.5-pro"),
   GEMINI_2_5_FLASH("gemini-2.5-flash"),
   GEMINI_2_5_FLASH_IMAGE("gemini-2.5-flash-image"),
