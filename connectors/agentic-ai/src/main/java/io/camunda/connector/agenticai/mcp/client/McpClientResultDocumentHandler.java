@@ -27,7 +27,7 @@ public class McpClientResultDocumentHandler {
   /**
    * Converts any storable MCP data in the given client result into Camunda documents, if present.
    *
-   * <p>Therefor, the subtype of {@link McpClientResult} must be as well an instance of {@link
+   * <p>Therefore, the subtype of {@link McpClientResult} must be as well an instance of {@link
    * McpClientResultWithStorableData}. The decision logic, on which data is storable and how to
    * convert it into documents, is implemented in the respective target class.
    *
