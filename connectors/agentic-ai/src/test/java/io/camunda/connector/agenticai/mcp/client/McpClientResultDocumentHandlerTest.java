@@ -18,6 +18,8 @@ import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.test.document.TestDocument;
 import io.camunda.connector.runtime.test.document.TestDocumentMetadata;
+
+import java.nio.charset.StandardCharsets;
 import java.time.*;
 import java.util.List;
 import java.util.Map;
@@ -74,7 +76,7 @@ class McpClientResultDocumentHandlerTest {
 
     final var transformedResult = testee.convertBinariesToDocumentsIfPresent(givenResult);
 
-    assertThat(expectedAfterTransformation).usingRecursiveComparison().isEqualTo(transformedResult);
+    assertThat(transformedResult).usingRecursiveComparison().isEqualTo(expectedAfterTransformation);
   }
 
   static Stream<Arguments> mcpClientResultsWithoutBinaryDocumentContainers() {
@@ -126,6 +128,12 @@ class McpClientResultDocumentHandlerTest {
                     new ResourceDescription(
                         "uri", "resource-1", "A resource", "application/json")))),
         argumentSet(
+            "Read resource - with text content",
+            new McpClientReadResourceResult(
+                new ResourceData.TextResourceData("uri", "Some text", "text/plain")),
+            new McpClientReadResourceResult(
+                new ResourceData.TextResourceData("uri", "Some text", "text/plain"))),
+        argumentSet(
             "List prompts",
             new McpClientListPromptsResult(
                 List.of(
@@ -162,10 +170,27 @@ class McpClientResultDocumentHandlerTest {
   }
 
   static Stream<Arguments> mcpClientResultsWithBinaryDocumentContainers() {
-    return Stream.of(getSinglePromptWithAllPossibleMessageTypes());
+    return Stream.of(getSinglePromptWithAllPossibleMessageTypes(), readResourceWithBinaryContent());
   }
 
-  static Arguments getSinglePromptWithAllPossibleMessageTypes() {
+  private static Arguments readResourceWithBinaryContent() {
+    return argumentSet(
+        "Read resource - with binary content",
+        new McpClientReadResourceResult(
+            new ResourceData.BlobResourceData(
+                "uri", "application/octet-stream", "Some text".getBytes(StandardCharsets.UTF_8))),
+        new McpClientReadResourceResult(
+            new ResourceData.CamundaDocumentResourceData(
+                "uri",
+                "application/octet-stream",
+                new TestDocument(
+                    "Some text".getBytes(StandardCharsets.UTF_8),
+                    createDocumentMetadata("application/octet-stream", Duration.ofHours(1)),
+                    null,
+                    "doc-id-0"))));
+  }
+
+  private static Arguments getSinglePromptWithAllPossibleMessageTypes() {
     var input =
         new McpClientGetPromptResult(
             "Code review",
