@@ -10,6 +10,7 @@ import dev.langchain4j.mcp.client.McpBlobResourceContents;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.McpResourceContents;
 import dev.langchain4j.mcp.client.McpTextResourceContents;
+import io.camunda.connector.agenticai.mcp.McpClientErrorCodes;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientReadResourceResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceData;
 import io.camunda.connector.api.error.ConnectorException;
@@ -23,7 +24,6 @@ public class ReadResourceRequest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ReadResourceRequest.class);
 
-  private static final String MCP_CLIENT_INVALID_PARAMS_KEY = "MCP_CLIENT_INVALID_PARAMS";
   public static final String RESOURCE_URI_KEY = "uri";
 
   public McpClientReadResourceResult execute(McpClient client, Map<String, Object> params) {
@@ -48,16 +48,18 @@ public class ReadResourceRequest {
 
   private String getResourceUri(Map<String, Object> params) {
     if (!params.containsKey(RESOURCE_URI_KEY)) {
-      throw new ConnectorException(MCP_CLIENT_INVALID_PARAMS_KEY, "Resource URI must be provided");
+      throw new ConnectorException(
+          McpClientErrorCodes.ERROR_CODE_INVALID_PARAMS, "Resource URI must be provided");
     }
 
     if (!(params.get(RESOURCE_URI_KEY) instanceof String resourceUri)) {
-      throw new ConnectorException(MCP_CLIENT_INVALID_PARAMS_KEY, "Resource URI must be a string");
+      throw new ConnectorException(
+          McpClientErrorCodes.ERROR_CODE_INVALID_PARAMS, "Resource URI must be a string");
     }
 
     if (!StringUtils.hasText(resourceUri)) {
       throw new ConnectorException(
-          MCP_CLIENT_INVALID_PARAMS_KEY, "Resource URI must not be blank or empty");
+          McpClientErrorCodes.ERROR_CODE_INVALID_PARAMS, "Resource URI must not be blank or empty");
     }
 
     return resourceUri;
