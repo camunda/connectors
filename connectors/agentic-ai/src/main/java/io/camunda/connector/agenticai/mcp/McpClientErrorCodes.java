@@ -14,5 +14,5 @@ public class McpClientErrorCodes {
 
   public static final String ERROR_CODE_READ_RESOURCE_ERROR = "MCP_CLIENT_READ_RESOURCE_ERROR";
 
-  public static final String ERROR_CODE_INVALID_METHOD = " MCP_CLIENT_INVALID_METHOD";
+  public static final String ERROR_CODE_INVALID_METHOD = "MCP_CLIENT_INVALID_METHOD";
 }
