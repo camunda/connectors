@@ -37,8 +37,8 @@ public class McpClientResultDocumentHandler {
    */
   public McpClientResult convertBinariesToDocumentsIfPresent(McpClientResult clientResult) {
     if (!(clientResult instanceof McpClientResultWithStorableData documentContainer)) {
-      LOGGER.debug(
-          "MCP: Client result is not a container for storable mcp data. Skipping document conversion.");
+      LOGGER.trace(
+          "Client result is not a container for storable mcp data. Skipping document conversion.");
 
       return clientResult;
     }
