@@ -50,7 +50,7 @@ class Langchain4JMcpClientExecutorTest {
     executor =
         new Langchain4JMcpClientExecutor(
             objectMapper, toolSpecificationConverter, mcpClientResultDocumentHandler);
-    lenient().when(mcpClient.key()).thenReturn("test-client");
+    when(mcpClient.key()).thenReturn("test-client");
     lenient()
         .when(mcpClientResultDocumentHandler.convertBinariesToDocumentsIfPresent(any()))
         .thenAnswer(invocation -> invocation.getArgument(0));
