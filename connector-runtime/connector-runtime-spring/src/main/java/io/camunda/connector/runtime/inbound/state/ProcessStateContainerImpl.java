@@ -29,7 +29,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Thread-safe due to synchronization on per-process-definition version maps. */
+/** Thread-safe due to a synchronized method (simple but ok for the intended usage pattern). */
 @ThreadSafe
 public class ProcessStateContainerImpl implements ProcessStateContainer {
 
@@ -43,10 +43,15 @@ public class ProcessStateContainerImpl implements ProcessStateContainer {
       new HashMap<>();
 
   @Override
-  public StateUpdateResult compareAndUpdate(ImportResult importResult) {
+  public synchronized StateUpdateResult compareAndUpdate(ImportResult importResult) {
     final Set<ProcessDefinitionIdAndKey> toActivate = new HashSet<>();
     final Set<ProcessDefinitionIdAndKey> toDeactivate = new HashSet<>();
 
+    // Track all imported processDefinitionIds
+    Set<ProcessDefinitionId> importedProcessIds =
+        importResult.processDefinitionKeysByProcessId().keySet();
+
+    // First, process all imported processDefinitionIds as before
     for (var importEntry : importResult.processDefinitionKeysByProcessId().entrySet()) {
       var processDefinitionId = importEntry.getKey();
       var importedVersionKeys = importEntry.getValue();
@@ -54,13 +59,30 @@ public class ProcessStateContainerImpl implements ProcessStateContainer {
 
       var versionsInState =
           processStates.computeIfAbsent(processDefinitionId, k -> new HashMap<>());
+      var partialUpdate =
+          computePartialUpdate(
+              processDefinitionId, importedVersionKeys, importType, versionsInState);
+      toActivate.addAll(partialUpdate.toActivate());
+      toDeactivate.addAll(partialUpdate.toDeactivate());
+    }
 
-      synchronized (versionsInState) {
-        var partialUpdate =
-            computePartialUpdate(
-                processDefinitionId, importedVersionKeys, importType, versionsInState);
-        toActivate.addAll(partialUpdate.toActivate());
-        toDeactivate.addAll(partialUpdate.toDeactivate());
+    // Now, handle processDefinitionIds present in state but missing from import
+    Set<ProcessDefinitionId> missingInImport = new HashSet<>(processStates.keySet());
+    missingInImport.removeAll(importedProcessIds);
+
+    for (var processDefinitionId : missingInImport) {
+      var versionsInState = processStates.get(processDefinitionId);
+      var partialUpdate =
+          computePartialUpdate(
+              processDefinitionId,
+              Set.of(), // empty set of imported versions
+              importResult.importType(),
+              versionsInState);
+      toActivate.addAll(partialUpdate.toActivate());
+      toDeactivate.addAll(partialUpdate.toDeactivate());
+      // If all versions are removed, also remove the processDefinitionId entry
+      if (versionsInState.isEmpty()) {
+        processStates.remove(processDefinitionId);
       }
     }
     return new StateUpdateResult(toActivate, toDeactivate);

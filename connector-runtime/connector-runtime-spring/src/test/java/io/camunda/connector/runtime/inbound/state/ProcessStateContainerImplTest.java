@@ -47,6 +47,8 @@ class ProcessStateContainerImplTest {
     return new ProcessDefinitionIdAndKey(new ProcessDefinitionId(bpmnProcessId, tenantId), key);
   }
 
+  // only for single process imports in tests
+  // for multiple processes, use the constructor of ImportResult directly
   private ImportResult importResult(
       ProcessDefinitionId processId, Set<Long> keys, ImportType type) {
     return new ImportResult(Map.of(processId, keys), type);
@@ -398,14 +400,16 @@ class ProcessStateContainerImplTest {
       // when - import v1 for process2
       var result2 =
           container.compareAndUpdate(
-              importResult(process2, Set.of(1L), ImportType.LATEST_VERSIONS));
+              new ImportResult(
+                  Map.of(process1, Set.of(1L), process2, Set.of(1L)), ImportType.LATEST_VERSIONS));
       assertThat(result2.toActivate())
           .containsExactlyInAnyOrder(processIdAndKey("process2", "tenant1", 1L));
 
       // when - upgrade process1 to v2
       var result3 =
           container.compareAndUpdate(
-              importResult(process1, Set.of(2L), ImportType.LATEST_VERSIONS));
+              new ImportResult(
+                  Map.of(process1, Set.of(2L), process2, Set.of(1L)), ImportType.LATEST_VERSIONS));
 
       // then - only process1 should be affected
       assertThat(result3.toActivate())
@@ -419,38 +423,6 @@ class ProcessStateContainerImplTest {
   class MultiTenancyScenarios {
 
     @Test
-    void shouldTreatSameProcessIdInDifferentTenantsIndependently() {
-      // given
-      var processTenant1 = processId("process1", "tenant1");
-      var processTenant2 = processId("process1", "tenant2");
-
-      // when - import v1 for tenant1
-      var result1 =
-          container.compareAndUpdate(
-              importResult(processTenant1, Set.of(1L), ImportType.LATEST_VERSIONS));
-      assertThat(result1.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
-
-      // when - import v2 for tenant2
-      var result2 =
-          container.compareAndUpdate(
-              importResult(processTenant2, Set.of(2L), ImportType.LATEST_VERSIONS));
-      assertThat(result2.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant2", 2L));
-
-      // when - upgrade tenant1 to v3
-      var result3 =
-          container.compareAndUpdate(
-              importResult(processTenant1, Set.of(3L), ImportType.LATEST_VERSIONS));
-
-      // then - only tenant1 should be affected
-      assertThat(result3.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 3L));
-      assertThat(result3.toDeactivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
-    }
-
-    @Test
     void shouldHandleVersionUpgradeInOneTenantWithoutAffectingAnother() {
       // given
       var processTenant1 = processId("process1", "tenant1");
@@ -458,14 +430,20 @@ class ProcessStateContainerImplTest {
 
       // when - both tenants start with v1
       container.compareAndUpdate(
-          importResult(processTenant1, Set.of(1L), ImportType.LATEST_VERSIONS));
-      container.compareAndUpdate(
-          importResult(processTenant2, Set.of(1L), ImportType.LATEST_VERSIONS));
+          new ImportResult(
+              Map.of(
+                  processTenant1, Set.of(1L),
+                  processTenant2, Set.of(1L)),
+              ImportType.LATEST_VERSIONS));
 
       // when - only tenant1 upgrades to v2
       var result =
           container.compareAndUpdate(
-              importResult(processTenant1, Set.of(2L), ImportType.LATEST_VERSIONS));
+              new ImportResult(
+                  Map.of(
+                      processTenant1, Set.of(2L),
+                      processTenant2, Set.of(1L)),
+                  ImportType.LATEST_VERSIONS));
 
       // then - only tenant1's v1 should be deactivated
       assertThat(result.toActivate())

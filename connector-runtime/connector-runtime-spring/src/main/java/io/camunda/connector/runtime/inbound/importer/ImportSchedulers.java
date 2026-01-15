@@ -37,7 +37,7 @@ public class ImportSchedulers {
   }
 
   @Scheduled(fixedDelayString = "${camunda.connector.polling.interval:5000}")
-  public synchronized void scheduleLatestVersionImport() {
+  public void scheduleLatestVersionImport() {
     try {
       var result = importers.importLatestVersions();
       stateStore.update(result);
@@ -49,7 +49,7 @@ public class ImportSchedulers {
   }
 
   @Scheduled(fixedDelayString = "${camunda.connector.polling.interval:5000}")
-  public synchronized void scheduleActiveVersionImport() {
+  public void scheduleActiveVersionImport() {
     try {
       var result = importers.importActiveVersions();
       stateStore.update(result);
