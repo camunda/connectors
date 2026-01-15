@@ -40,7 +40,7 @@ public class ReadResourceRequest {
     } catch (Exception e) {
       LOGGER.error("MCP({}): Failed to read resource from MCP server.", client.key(), e);
       throw new ConnectorException(
-          "MCP_CLIENT_READ_RESOURCE_FAILED",
+          McpClientErrorCodes.ERROR_CODE_READ_RESOURCE_ERROR,
           "Failed to read resource from MCP server: %s".formatted(e.getMessage()),
           e);
     }

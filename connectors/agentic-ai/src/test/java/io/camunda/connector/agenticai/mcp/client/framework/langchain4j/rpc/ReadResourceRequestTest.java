@@ -74,7 +74,7 @@ class ReadResourceRequestTest {
             ConnectorException.class,
             exception ->
                 assertThat(exception)
-                    .returns("MCP_CLIENT_READ_RESOURCE_FAILED", ConnectorException::getErrorCode)
+                    .returns("MCP_CLIENT_READ_RESOURCE_ERROR", ConnectorException::getErrorCode)
                     .returns(
                         "Failed to read resource from MCP server: Resource not found",
                         ConnectorException::getMessage));
