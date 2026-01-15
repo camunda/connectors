@@ -9,21 +9,34 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.mcp.client.McpClientResultDocumentHandler;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
+import org.jspecify.annotations.NonNull;
 
 public class Langchain4JMcpClientExecutor {
   private final ObjectMapper objectMapper;
   private final ToolSpecificationConverter toolSpecificationConverter;
+  private final McpClientResultDocumentHandler clientResultDocumentHandler;
 
   public Langchain4JMcpClientExecutor(
-      ObjectMapper objectMapper, ToolSpecificationConverter toolSpecificationConverter) {
+      ObjectMapper objectMapper,
+      ToolSpecificationConverter toolSpecificationConverter,
+      McpClientResultDocumentHandler clientResultDocumentHandler) {
     this.objectMapper = objectMapper;
     this.toolSpecificationConverter = toolSpecificationConverter;
+    this.clientResultDocumentHandler = clientResultDocumentHandler;
   }
 
   public McpClientResult execute(
+      McpClient client, McpClientOperation operation, FilterOptions filterOptions) {
+    var result = executeRequest(client, operation, filterOptions);
+
+    return clientResultDocumentHandler.convertBinariesToDocumentsIfPresent(result);
+  }
+
+  private @NonNull McpClientResult executeRequest(
       McpClient client, McpClientOperation operation, FilterOptions filterOptions) {
     return switch (operation.method()) {
       case LIST_TOOLS ->
@@ -35,9 +48,10 @@ public class Langchain4JMcpClientExecutor {
       case LIST_RESOURCES -> new ListResourcesRequest().execute(client);
       case LIST_RESOURCE_TEMPLATES -> new ListResourceTemplatesRequest().execute(client);
       case LIST_PROMPTS -> new ListPromptsRequest().execute(client);
-      case READ_RESOURCE, GET_PROMPT ->
+      case GET_PROMPT -> new GetPromptRequest().execute(client, operation.params());
+      case READ_RESOURCE ->
           throw new UnsupportedOperationException(
-              "This method is not supported yet: " + operation.method().methodName());
+              "This method is not supported yet: " + operation.method());
     };
   }
 }

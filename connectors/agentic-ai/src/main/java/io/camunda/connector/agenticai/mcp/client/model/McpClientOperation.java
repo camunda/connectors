@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client.model;
 
 import com.fasterxml.jackson.annotation.*;
+import io.camunda.connector.agenticai.mcp.McpClientErrorCodes;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Collections;
 import java.util.Map;
@@ -38,7 +39,13 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
     GET_PROMPT("prompts/get");
 
     private static String supportedMethods() {
-      return Stream.of(LIST_TOOLS, CALL_TOOL, LIST_RESOURCES, LIST_RESOURCE_TEMPLATES, LIST_PROMPTS)
+      return Stream.of(
+              LIST_TOOLS,
+              CALL_TOOL,
+              LIST_RESOURCES,
+              LIST_RESOURCE_TEMPLATES,
+              LIST_PROMPTS,
+              GET_PROMPT)
           .map(op -> op.methodName)
           .collect(Collectors.joining("', '"));
     }
@@ -51,7 +58,7 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
         }
       }
       throw new ConnectorException(
-          "MCP_CLIENT_UNSUPPORTED_METHOD",
+          McpClientErrorCodes.ERROR_CODE_INVALID_METHOD,
           String.format(
               "Unsupported MCP method '%s'. Supported operations: '%s'",
               rawMethod, supportedMethods()));

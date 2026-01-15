@@ -10,12 +10,7 @@ import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAss
 import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAssertions.assertHasAllBeansOf;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
-import io.camunda.connector.agenticai.mcp.client.McpClientFunction;
-import io.camunda.connector.agenticai.mcp.client.McpClientHandler;
-import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
-import io.camunda.connector.agenticai.mcp.client.McpRemoteClientFunction;
-import io.camunda.connector.agenticai.mcp.client.McpRemoteClientHandler;
+import io.camunda.connector.agenticai.mcp.client.*;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientLoggingResolver;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
@@ -31,6 +26,7 @@ public class McpAutoConfigurationTest {
   private static final List<Class<?>> SHARED_MCP_CLIENT_BEANS =
       List.of(
           McpClientFactory.class,
+          McpClientResultDocumentHandler.class,
           Langchain4JMcpClientLoggingResolver.class,
           Langchain4JMcpClientHeadersSupplierFactory.class,
           Langchain4JMcpClientExecutor.class);

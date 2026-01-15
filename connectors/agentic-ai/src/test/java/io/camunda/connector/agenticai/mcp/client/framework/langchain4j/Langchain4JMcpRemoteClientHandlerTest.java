@@ -20,7 +20,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import dev.langchain4j.mcp.client.McpClient;
+import dev.langchain4j.mcp.client.*;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
@@ -41,10 +41,7 @@ import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportC
 import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.CallToolOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListToolsOperationConfiguration;
-import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
-import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListPromptsResult;
-import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
-import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.*;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -168,7 +165,7 @@ class Langchain4JMcpRemoteClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#callToolArguments")
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#mcpOperationArguments")
     void handlesCallToolRequest(
         McpRemoteClientTransportConfiguration transport, Map<String, Object> arguments) {
       final var request =
@@ -235,7 +232,7 @@ class Langchain4JMcpRemoteClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#callToolArguments")
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#mcpOperationArguments")
     void handlesCallToolRequest(
         McpRemoteClientTransportConfiguration transport, Map<String, Object> arguments) {
       final var request =
@@ -382,6 +379,52 @@ class Langchain4JMcpRemoteClientHandlerTest {
 
       assertThat(result).isEqualTo(expectedResult);
     }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#mcpOperationArguments")
+    void handlesGetPromptRequest(
+        McpRemoteClientTransportConfiguration transport, Map<String, Object> arguments) {
+      final var request =
+          createStandaloneModeRequest(
+              transport,
+              false,
+              new McpStandaloneOperationConfiguration.GetPromptOperationConfiguration(
+                  "code_review", arguments));
+      final var expectedResult =
+          new McpClientGetPromptResult(
+              "Code review",
+              List.of(
+                  new McpClientGetPromptResult.PromptMessage(
+                      "user",
+                      new McpClientGetPromptResult.TextMessage("Review code the code for me."))));
+
+      when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(
+                  operation ->
+                      assertThat(operation)
+                          .isInstanceOfSatisfying(
+                              McpClientOperation.McpClientOperationImpl.class,
+                              op -> {
+                                assertThat(op.method()).isEqualTo(GET_PROMPT);
+                                assertThat(op.params())
+                                    .containsEntry("name", "code_review")
+                                    .hasEntrySatisfying(
+                                        "arguments",
+                                        args ->
+                                            assertThat(args)
+                                                .asInstanceOf(InstanceOfAssertFactories.MAP)
+                                                .containsExactlyEntriesOf(arguments));
+                              })),
+              eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
   }
 
   @Nested
@@ -519,7 +562,7 @@ class Langchain4JMcpRemoteClientHandlerTest {
     return List.of(STREAMABLE_HTTP_TRANSPORT_CONFIG, SSE_TRANSPORT_CONFIG);
   }
 
-  static List<Arguments> callToolArguments() {
+  static List<Arguments> mcpOperationArguments() {
     List<Arguments> result = new ArrayList<>();
     transports()
         .forEach(
