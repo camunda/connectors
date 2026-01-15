@@ -24,7 +24,7 @@ public class ReadResourceRequest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ReadResourceRequest.class);
 
-  public static final String RESOURCE_URI_KEY = "uri";
+  private static final String RESOURCE_URI_KEY = "uri";
 
   public McpClientReadResourceResult execute(McpClient client, Map<String, Object> params) {
     var resourceUri = getResourceUri(params);
