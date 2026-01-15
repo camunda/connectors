@@ -60,7 +60,10 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
     @JsonSubTypes.Type(value = McpClientGetPromptResult.BlobMessage.class, name = "blob"),
     @JsonSubTypes.Type(
         value = McpClientGetPromptResult.EmbeddedResourceContent.class,
-        name = "resource")
+        name = "resource"),
+    @JsonSubTypes.Type(
+        value = McpClientGetPromptResult.CamundaDocumentReference.class,
+        name = "document")
   })
   public sealed interface PromptMessageContent {}
 
