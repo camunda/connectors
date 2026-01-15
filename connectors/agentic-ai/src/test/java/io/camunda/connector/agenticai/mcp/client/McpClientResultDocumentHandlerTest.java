@@ -36,13 +36,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class McpClientResultDocumentHandlerTest {
 
-  private static final Clock CURRENT_CLOCK =
-      Clock.fixed(
-          LocalDateTime.of(2025, Month.DECEMBER, 1, 9, 00)
-              .atZone(ZoneId.systemDefault())
-              .toInstant(),
-          ZoneId.systemDefault());
-
   @Mock private DocumentFactory documentFactory;
 
   @InjectMocks private McpClientResultDocumentHandler testee;
