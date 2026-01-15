@@ -148,7 +148,6 @@ public class SpringSoapClient implements SoapClient {
       String soapHeader, Authentication authentication, Map<String, String> namespaces) {
     List<ClientInterceptor> interceptorList = new ArrayList<>(handleAuthentication(authentication));
     handleSoapHeader(soapHeader, namespaces).ifPresent(interceptorList::add);
-    handleAuthentication(authentication).ifPresent(interceptorList::add);
     interceptorList.add(new LoggingInterceptor());
     return interceptorList.toArray(new ClientInterceptor[0]);
   }
