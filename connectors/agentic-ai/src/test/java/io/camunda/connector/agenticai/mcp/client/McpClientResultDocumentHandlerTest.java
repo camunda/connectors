@@ -153,12 +153,12 @@ class McpClientResultDocumentHandlerTest {
                 "Code review",
                 List.of(
                     new McpClientGetPromptResult.TextMessage(
-                        "USER", "Please review the following code."))),
+                        "user", "Please review the following code."))),
             new McpClientGetPromptResult(
                 "Code review",
                 List.of(
                     new McpClientGetPromptResult.TextMessage(
-                        "USER", "Please review the following code.")))));
+                        "user", "Please review the following code.")))));
   }
 
   static Stream<Arguments> mcpClientResultsWithBinaryDocumentContainers() {
@@ -171,15 +171,15 @@ class McpClientResultDocumentHandlerTest {
             "Code review",
             List.of(
                 new McpClientGetPromptResult.TextMessage(
-                    "USER", "Please review the following code."),
+                    "user", "Please review the following code."),
                 new McpClientGetPromptResult.BlobMessage(
-                    "ASSISTANT", "byte data".getBytes(), "application/pdf"),
+                    "assistant", "byte data".getBytes(), "application/pdf"),
                 new McpClientGetPromptResult.EmbeddedResourceMessage(
-                    "USER",
+                    "user",
                     new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource
                         .TextResource("uri", "Some text", "text/plain")),
                 new McpClientGetPromptResult.EmbeddedResourceMessage(
-                    "ASSISTANT",
+                    "assistant",
                     new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource
                         .BlobResource("uri", "blob data".getBytes(), "application/octet-stream"))));
 
@@ -188,20 +188,20 @@ class McpClientResultDocumentHandlerTest {
             "Code review",
             List.of(
                 new McpClientGetPromptResult.TextMessage(
-                    "USER", "Please review the following code."),
+                    "user", "Please review the following code."),
                 new McpClientGetPromptResult.CamundaDocumentReferenceMessage(
-                    "ASSISTANT",
+                    "assistant",
                     new TestDocument(
                         "byte data".getBytes(),
                         createDocumentMetadata("application/pdf", Duration.ofHours(1)),
                         null,
                         "doc-id-0")),
                 new McpClientGetPromptResult.EmbeddedResourceMessage(
-                    "USER",
+                    "user",
                     new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource
                         .TextResource("uri", "Some text", "text/plain")),
                 new McpClientGetPromptResult.EmbeddedResourceMessage(
-                    "ASSISTANT",
+                    "assistant",
                     new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource
                         .CamundaDocumentReference(
                         "uri",

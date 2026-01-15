@@ -54,16 +54,14 @@ final class GetPromptRequest {
 
   private McpClientGetPromptResult.PromptMessage map(McpPromptMessage promptMessage) {
     final var content = promptMessage.content();
+    final var role = promptMessage.role().name().toLowerCase();
 
     return switch (content) {
       case McpImageContent mcpImageContent ->
           new McpClientGetPromptResult.BlobMessage(
-              promptMessage.role().name(),
-              Base64.getDecoder().decode(mcpImageContent.data()),
-              mcpImageContent.mimeType());
+              role, Base64.getDecoder().decode(mcpImageContent.data()), mcpImageContent.mimeType());
       case McpTextContent mcpTextContent ->
-          new McpClientGetPromptResult.TextMessage(
-              promptMessage.role().name(), mcpTextContent.text());
+          new McpClientGetPromptResult.TextMessage(role, mcpTextContent.text());
       case McpEmbeddedResource mcpEmbeddedResource ->
           mapEmbeddedResourceContent(promptMessage, mcpEmbeddedResource);
     };
@@ -72,7 +70,7 @@ final class GetPromptRequest {
   private McpClientGetPromptResult.PromptMessage mapEmbeddedResourceContent(
       McpPromptMessage message, McpEmbeddedResource embeddedResource) {
     return new McpClientGetPromptResult.EmbeddedResourceMessage(
-        message.role().name(),
+        message.role().name().toLowerCase(),
         switch (embeddedResource.resource()) {
           case McpBlobResourceContents mcpBlobResourceContents ->
               new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource.BlobResource(

@@ -321,7 +321,7 @@ class Langchain4JMcpClientHandlerTest {
         new McpClientGetPromptResult(
             "Code review",
             List.of(
-                new McpClientGetPromptResult.TextMessage("USER", "Review code the code for me.")));
+                new McpClientGetPromptResult.TextMessage("user", "Review code the code for me.")));
 
     when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
     when(clientExecutor.execute(
