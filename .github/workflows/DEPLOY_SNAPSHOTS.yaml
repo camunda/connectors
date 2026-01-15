@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - 'stable/**'
+      - 'alpha/**'
   workflow_dispatch: { }
 
 defaults:
