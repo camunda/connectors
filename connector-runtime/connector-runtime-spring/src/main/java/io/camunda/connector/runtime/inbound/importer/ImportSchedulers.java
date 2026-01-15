@@ -31,7 +31,13 @@ public class ImportSchedulers {
 
   private boolean ready = true;
 
-  public ImportSchedulers(ProcessStateManager stateStore, Importers importers) {
+  private final boolean activeVersionsPollingEnabled;
+
+  public ImportSchedulers(
+      ProcessStateManager stateStore,
+      Importers importers,
+      boolean activeVersionsPollingEnabled) {
+    this.activeVersionsPollingEnabled = activeVersionsPollingEnabled;
     this.stateStore = stateStore;
     this.importers = importers;
   }
@@ -50,6 +56,10 @@ public class ImportSchedulers {
 
   @Scheduled(fixedDelayString = "${camunda.connector.polling.interval:5000}")
   public void scheduleActiveVersionImport() {
+    if (!activeVersionsPollingEnabled) {
+      LOG.debug("Skipping active versions polling.");
+      return;
+    }
     try {
       var result = importers.importActiveVersions();
       stateStore.update(result);

@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.inbound.importer;
 
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,7 +41,10 @@ public class ProcessDefinitionImportConfiguration {
       havingValue = "true",
       matchIfMissing = true)
   public ImportSchedulers messageSubscriptionSearch(
-      Importers importers, ProcessStateManager processStateManager) {
-    return new ImportSchedulers(processStateManager, importers);
+      Importers importers,
+      ProcessStateManager processStateManager,
+      @Value("${camunda.connector.polling.active-versions-enabled:true}")
+      boolean activeVersionsPollingEnabled) {
+    return new ImportSchedulers(processStateManager, importers, activeVersionsPollingEnabled);
   }
 }
