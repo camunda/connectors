@@ -395,8 +395,9 @@ class Langchain4JMcpRemoteClientHandlerTest {
           new McpClientGetPromptResult(
               "Code review",
               List.of(
-                  new McpClientGetPromptResult.TextMessage(
-                      "user", "Review code the code for me.")));
+                  new McpClientGetPromptResult.PromptMessage(
+                      "user",
+                      new McpClientGetPromptResult.TextMessage("Review code the code for me."))));
 
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(

@@ -56,29 +56,31 @@ final class GetPromptRequest {
     final var content = promptMessage.content();
     final var role = promptMessage.role().name().toLowerCase();
 
-    return switch (content) {
-      case McpImageContent mcpImageContent ->
-          new McpClientGetPromptResult.BlobMessage(
-              role, Base64.getDecoder().decode(mcpImageContent.data()), mcpImageContent.mimeType());
-      case McpTextContent mcpTextContent ->
-          new McpClientGetPromptResult.TextMessage(role, mcpTextContent.text());
-      case McpEmbeddedResource mcpEmbeddedResource ->
-          mapEmbeddedResourceContent(promptMessage, mcpEmbeddedResource);
-    };
+    var resultingContent =
+        switch (content) {
+          case McpImageContent mcpImageContent ->
+              new McpClientGetPromptResult.BlobMessage(
+                  Base64.getDecoder().decode(mcpImageContent.data()), mcpImageContent.mimeType());
+          case McpTextContent mcpTextContent ->
+              new McpClientGetPromptResult.TextMessage(mcpTextContent.text());
+          case McpEmbeddedResource mcpEmbeddedResource ->
+              mapEmbeddedResourceContent(mcpEmbeddedResource);
+        };
+
+    return new McpClientGetPromptResult.PromptMessage(role, resultingContent);
   }
 
-  private McpClientGetPromptResult.PromptMessage mapEmbeddedResourceContent(
-      McpPromptMessage message, McpEmbeddedResource embeddedResource) {
-    return new McpClientGetPromptResult.EmbeddedResourceMessage(
-        message.role().name().toLowerCase(),
+  private McpClientGetPromptResult.PromptMessageContent mapEmbeddedResourceContent(
+      McpEmbeddedResource embeddedResource) {
+    return new McpClientGetPromptResult.EmbeddedResourceContent(
         switch (embeddedResource.resource()) {
           case McpBlobResourceContents mcpBlobResourceContents ->
-              new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource.BlobResource(
+              new McpClientGetPromptResult.EmbeddedResourceContent.EmbeddedResource.BlobResource(
                   mcpBlobResourceContents.uri(),
                   Base64.getDecoder().decode(mcpBlobResourceContents.blob()),
                   mcpBlobResourceContents.mimeType());
           case McpTextResourceContents mcpTextResourceContents ->
-              new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource.TextResource(
+              new McpClientGetPromptResult.EmbeddedResourceContent.EmbeddedResource.TextResource(
                   mcpTextResourceContents.uri(),
                   mcpTextResourceContents.text(),
                   mcpTextResourceContents.mimeType());

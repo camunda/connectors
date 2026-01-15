@@ -152,13 +152,17 @@ class McpClientResultDocumentHandlerTest {
             new McpClientGetPromptResult(
                 "Code review",
                 List.of(
-                    new McpClientGetPromptResult.TextMessage(
-                        "user", "Please review the following code."))),
+                    new McpClientGetPromptResult.PromptMessage(
+                        "user",
+                        new McpClientGetPromptResult.TextMessage(
+                            "Please review the following code.")))),
             new McpClientGetPromptResult(
                 "Code review",
                 List.of(
-                    new McpClientGetPromptResult.TextMessage(
-                        "user", "Please review the following code.")))));
+                    new McpClientGetPromptResult.PromptMessage(
+                        "user",
+                        new McpClientGetPromptResult.TextMessage(
+                            "Please review the following code."))))));
   }
 
   static Stream<Arguments> mcpClientResultsWithBinaryDocumentContainers() {
@@ -170,46 +174,56 @@ class McpClientResultDocumentHandlerTest {
         new McpClientGetPromptResult(
             "Code review",
             List.of(
-                new McpClientGetPromptResult.TextMessage(
-                    "user", "Please review the following code."),
-                new McpClientGetPromptResult.BlobMessage(
-                    "assistant", "byte data".getBytes(), "application/pdf"),
-                new McpClientGetPromptResult.EmbeddedResourceMessage(
+                new McpClientGetPromptResult.PromptMessage(
                     "user",
-                    new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource
-                        .TextResource("uri", "Some text", "text/plain")),
-                new McpClientGetPromptResult.EmbeddedResourceMessage(
+                    new McpClientGetPromptResult.TextMessage("Please review the following code.")),
+                new McpClientGetPromptResult.PromptMessage(
                     "assistant",
-                    new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource
-                        .BlobResource("uri", "blob data".getBytes(), "application/octet-stream"))));
+                    new McpClientGetPromptResult.BlobMessage(
+                        "byte data".getBytes(), "application/pdf")),
+                new McpClientGetPromptResult.PromptMessage(
+                    "user",
+                    new McpClientGetPromptResult.EmbeddedResourceContent(
+                        new McpClientGetPromptResult.EmbeddedResourceContent.EmbeddedResource
+                            .TextResource("uri", "Some text", "text/plain"))),
+                new McpClientGetPromptResult.PromptMessage(
+                    "assistant",
+                    new McpClientGetPromptResult.EmbeddedResourceContent(
+                        new McpClientGetPromptResult.EmbeddedResourceContent.EmbeddedResource
+                            .BlobResource(
+                            "uri", "blob data".getBytes(), "application/octet-stream")))));
 
     var expected =
         new McpClientGetPromptResult(
             "Code review",
             List.of(
-                new McpClientGetPromptResult.TextMessage(
-                    "user", "Please review the following code."),
-                new McpClientGetPromptResult.CamundaDocumentReferenceMessage(
-                    "assistant",
-                    new TestDocument(
-                        "byte data".getBytes(),
-                        createDocumentMetadata("application/pdf"),
-                        null,
-                        "doc-id-0")),
-                new McpClientGetPromptResult.EmbeddedResourceMessage(
+                new McpClientGetPromptResult.PromptMessage(
                     "user",
-                    new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource
-                        .TextResource("uri", "Some text", "text/plain")),
-                new McpClientGetPromptResult.EmbeddedResourceMessage(
+                    new McpClientGetPromptResult.TextMessage("Please review the following code.")),
+                new McpClientGetPromptResult.PromptMessage(
                     "assistant",
-                    new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource
-                        .CamundaDocumentReference(
-                        "uri",
+                    new McpClientGetPromptResult.CamundaDocumentReference(
                         new TestDocument(
-                            "blob data".getBytes(),
-                            createDocumentMetadata("application/octet-stream"),
+                            "byte data".getBytes(),
+                            createDocumentMetadata("application/pdf"),
                             null,
-                            "doc-id-1")))));
+                            "doc-id-0"))),
+                new McpClientGetPromptResult.PromptMessage(
+                    "user",
+                    new McpClientGetPromptResult.EmbeddedResourceContent(
+                        new McpClientGetPromptResult.EmbeddedResourceContent.EmbeddedResource
+                            .TextResource("uri", "Some text", "text/plain"))),
+                new McpClientGetPromptResult.PromptMessage(
+                    "assistant",
+                    new McpClientGetPromptResult.EmbeddedResourceContent(
+                        new McpClientGetPromptResult.EmbeddedResourceContent.EmbeddedResource
+                            .CamundaDocumentReference(
+                            "uri",
+                            new TestDocument(
+                                "blob data".getBytes(),
+                                createDocumentMetadata("application/octet-stream"),
+                                null,
+                                "doc-id-1"))))));
 
     return argumentSet("Get single prompt - all message types", input, expected);
   }

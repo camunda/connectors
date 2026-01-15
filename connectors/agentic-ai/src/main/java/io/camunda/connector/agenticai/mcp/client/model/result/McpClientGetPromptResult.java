@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model.result;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -20,49 +22,62 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
         messages.stream()
             .map(
                 promptMessage ->
-                    replaceWithDocumentReferenceIfNeeded(documentFactory, promptMessage))
+                    replaceContentWithDocumentReferenceIfNeeded(documentFactory, promptMessage))
             .toList();
 
     return new McpClientGetPromptResult(this.description, messagesWithDocumentReferences);
   }
 
-  private PromptMessage replaceWithDocumentReferenceIfNeeded(
+  private PromptMessage replaceContentWithDocumentReferenceIfNeeded(
       DocumentFactory documentFactory, PromptMessage message) {
-    if (!(message instanceof StorableMcpDataContainer storableMcpDataContainer)) {
+    var content = message.content();
+
+    if (!(content instanceof StorableMcpDataContainer storableMcpDataContainer)) {
       return message;
     }
 
-    return (PromptMessage) storableMcpDataContainer.replaceWithDocumentReference(documentFactory);
+    PromptMessageContent conversedContent =
+        (PromptMessageContent)
+            storableMcpDataContainer.replaceWithDocumentReference(documentFactory);
+    return new PromptMessage(message.role(), conversedContent);
   }
 
   private static Document createDocument(DocumentFactory factory, byte[] data, String mimeType) {
     return factory.create(DocumentCreationRequest.from(data).contentType(mimeType).build());
   }
 
+  /** A message that is part of a retrieved prompt. */
+  public record PromptMessage(String role, PromptMessageContent content) {}
+
   /**
-   * General interface for messages that are part of a retrieved prompt.
+   * General interface for message contents that are part of a retrieved prompt.
    *
    * <p>Those can contain text or other content, like binaries, or references to Camunda documents.
    */
-  public sealed interface PromptMessage {
-
-    String role();
-  }
+  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+  @JsonSubTypes({
+    @JsonSubTypes.Type(value = McpClientGetPromptResult.TextMessage.class, name = "text"),
+    @JsonSubTypes.Type(value = McpClientGetPromptResult.BlobMessage.class, name = "blob"),
+    @JsonSubTypes.Type(
+        value = McpClientGetPromptResult.EmbeddedResourceContent.class,
+        name = "resource")
+  })
+  public sealed interface PromptMessageContent {}
 
   /** Text messages hold plain textual content. */
-  public record TextMessage(String role, String text) implements PromptMessage {}
+  public record TextMessage(String text) implements PromptMessageContent {}
 
   /**
    * Blob messages hold arbitrary binary data which is supposed to be stored as a Camunda document.
    */
-  public record BlobMessage(String role, byte[] data, String mimeType)
-      implements PromptMessage, StorableMcpDataContainer<PromptMessage> {
+  public record BlobMessage(byte[] data, String mimeType)
+      implements PromptMessageContent, StorableMcpDataContainer<PromptMessageContent> {
 
     @Override
-    public PromptMessage replaceWithDocumentReference(DocumentFactory documentFactory) {
+    public PromptMessageContent replaceWithDocumentReference(DocumentFactory documentFactory) {
       var document = createDocument(documentFactory, data, mimeType);
 
-      return new CamundaDocumentReferenceMessage(role, document);
+      return new CamundaDocumentReference(document);
     }
   }
 
@@ -70,19 +85,19 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
    * Embedded resource messages can either contain textual or binary content. Only embedded binary
    * resources are stored in the Camunda document store.
    */
-  public record EmbeddedResourceMessage(String role, EmbeddedResource resource)
-      implements PromptMessage, StorableMcpDataContainer<PromptMessage> {
+  public record EmbeddedResourceContent(EmbeddedResource resource)
+      implements PromptMessageContent, StorableMcpDataContainer<PromptMessageContent> {
 
     @Override
-    public PromptMessage replaceWithDocumentReference(DocumentFactory documentFactory) {
+    public PromptMessageContent replaceWithDocumentReference(DocumentFactory documentFactory) {
       if (!(resource instanceof EmbeddedResource.BlobResource blobResource)) {
         return this;
       }
 
       var document = createDocument(documentFactory, blobResource.blob(), blobResource.mimeType());
 
-      return new EmbeddedResourceMessage(
-          role, new EmbeddedResource.CamundaDocumentReference(blobResource.uri, document));
+      return new EmbeddedResourceContent(
+          new EmbeddedResource.CamundaDocumentReference(blobResource.uri, document));
     }
 
     public sealed interface EmbeddedResource {
@@ -99,6 +114,5 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
    * Message holding a reference to a Camunda document. This record is a result of transforming
    * prompt messages of type {@link BlobMessage}
    */
-  public record CamundaDocumentReferenceMessage(String role, Document data)
-      implements PromptMessage {}
+  public record CamundaDocumentReference(Document document) implements PromptMessageContent {}
 }

@@ -68,12 +68,15 @@ class GetPromptRequestTest {
               assertThat(res.messages())
                   .hasSize(1)
                   .first()
-                  .isInstanceOfSatisfying(
-                      McpClientGetPromptResult.TextMessage.class,
+                  .satisfies(
                       promptMessage -> {
                         assertThat(promptMessage.role()).isEqualTo("user");
-                        assertThat(promptMessage.text())
-                            .isEqualTo("Please review the following code snippet.");
+                        assertThat(promptMessage.content())
+                            .isInstanceOfSatisfying(
+                                McpClientGetPromptResult.TextMessage.class,
+                                textMessage ->
+                                    assertThat(textMessage.text())
+                                        .isEqualTo("Please review the following code snippet."));
                       });
             });
   }
@@ -167,7 +170,6 @@ class GetPromptRequestTest {
   @ParameterizedTest
   @MethodSource("promptMessagePermutations")
   void returnsProperContent_whenClientReturnsContent(
-      Class<McpClientGetPromptResult.PromptMessage> messageClass,
       Consumer<McpClientGetPromptResult.PromptMessage> messageConstraints,
       List<McpPromptMessage> messages) {
     when(mcpClient.getPrompt(eq("code_review"), any()))
@@ -184,7 +186,8 @@ class GetPromptRequestTest {
               assertThat(promptResult.messages())
                   .hasSize(1)
                   .first()
-                  .isInstanceOfSatisfying(messageClass, messageConstraints);
+                  .isInstanceOfSatisfying(
+                      McpClientGetPromptResult.PromptMessage.class, messageConstraints);
             });
   }
 
@@ -196,35 +199,44 @@ class GetPromptRequestTest {
     return Stream.of(
         Arguments.argumentSet(
             "with text",
-            McpClientGetPromptResult.TextMessage.class,
-            (Consumer<McpClientGetPromptResult.TextMessage>)
-                (McpClientGetPromptResult.TextMessage textMessage) -> {
-                  assertThat(textMessage.role()).isEqualTo("user");
-                  assertThat(textMessage.text()).isEqualTo("some text");
+            (Consumer<McpClientGetPromptResult.PromptMessage>)
+                (McpClientGetPromptResult.PromptMessage promptMessage) -> {
+                  assertThat(promptMessage.role()).isEqualTo("user");
+                  assertThat(promptMessage.content())
+                      .isInstanceOfSatisfying(
+                          McpClientGetPromptResult.TextMessage.class,
+                          textContent -> assertThat(textContent.text()).isEqualTo("some text"));
                 },
             List.of(new McpPromptMessage(McpRole.USER, new McpTextContent("some text")))),
         Arguments.argumentSet(
             "with image",
-            McpClientGetPromptResult.BlobMessage.class,
-            (Consumer<McpClientGetPromptResult.BlobMessage>)
-                (McpClientGetPromptResult.BlobMessage blobMessage) -> {
-                  assertThat(blobMessage.role()).isEqualTo("user");
-                  assertThat(blobMessage.data())
-                      .isEqualTo("some binary".getBytes(StandardCharsets.UTF_8));
+            (Consumer<McpClientGetPromptResult.PromptMessage>)
+                (McpClientGetPromptResult.PromptMessage promptMessage) -> {
+                  assertThat(promptMessage.role()).isEqualTo("user");
+                  assertThat(promptMessage.content())
+                      .isInstanceOfSatisfying(
+                          McpClientGetPromptResult.BlobMessage.class,
+                          blobContent ->
+                              assertThat(blobContent.data())
+                                  .isEqualTo("some binary".getBytes(StandardCharsets.UTF_8)));
                 },
             List.of(
                 new McpPromptMessage(
                     McpRole.USER, new McpImageContent("c29tZSBiaW5hcnk=", "image/png")))),
         Arguments.argumentSet(
             "with text resource",
-            McpClientGetPromptResult.EmbeddedResourceMessage.class,
-            (Consumer<McpClientGetPromptResult.EmbeddedResourceMessage>)
-                (McpClientGetPromptResult.EmbeddedResourceMessage embeddedResourceMessage) -> {
-                  assertThat(embeddedResourceMessage.role()).isEqualTo("user");
-                  assertThat(embeddedResourceMessage.resource())
-                      .isEqualTo(
-                          new McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource
-                              .TextResource("uri", "some text", "text/plain"));
+            (Consumer<McpClientGetPromptResult.PromptMessage>)
+                (McpClientGetPromptResult.PromptMessage promptMessage) -> {
+                  assertThat(promptMessage.role()).isEqualTo("user");
+                  assertThat(promptMessage.content())
+                      .isInstanceOfSatisfying(
+                          McpClientGetPromptResult.EmbeddedResourceContent.class,
+                          embeddedResourceContent ->
+                              assertThat(embeddedResourceContent.resource())
+                                  .isEqualTo(
+                                      new McpClientGetPromptResult.EmbeddedResourceContent
+                                          .EmbeddedResource.TextResource(
+                                          "uri", "some text", "text/plain")));
                 },
             List.of(
                 new McpPromptMessage(
@@ -233,20 +245,23 @@ class GetPromptRequestTest {
                         new McpTextResourceContents("uri", "some text", "text/plain"))))),
         Arguments.argumentSet(
             "with blob resource",
-            McpClientGetPromptResult.EmbeddedResourceMessage.class,
-            (Consumer<McpClientGetPromptResult.EmbeddedResourceMessage>)
-                (McpClientGetPromptResult.EmbeddedResourceMessage embeddedResourceMessage) -> {
-                  assertThat(embeddedResourceMessage.role()).isEqualTo("user");
-                  assertThat(embeddedResourceMessage.resource())
+            (Consumer<McpClientGetPromptResult.PromptMessage>)
+                (McpClientGetPromptResult.PromptMessage promptMessage) -> {
+                  assertThat(promptMessage.role()).isEqualTo("user");
+                  assertThat(promptMessage.content())
                       .isInstanceOfSatisfying(
-                          McpClientGetPromptResult.EmbeddedResourceMessage.EmbeddedResource
-                              .BlobResource.class,
-                          blobResource -> {
-                            assertThat(blobResource.uri()).isEqualTo("uri");
-                            assertThat(blobResource.blob())
-                                .isEqualTo("blob".getBytes(StandardCharsets.UTF_8));
-                            assertThat(blobResource.mimeType()).isEqualTo("audio/mpeg");
-                          });
+                          McpClientGetPromptResult.EmbeddedResourceContent.class,
+                          embeddedResource ->
+                              assertThat(embeddedResource.resource())
+                                  .isInstanceOfSatisfying(
+                                      McpClientGetPromptResult.EmbeddedResourceContent
+                                          .EmbeddedResource.BlobResource.class,
+                                      resource -> {
+                                        assertThat(resource.uri()).isEqualTo("uri");
+                                        assertThat(resource.blob())
+                                            .isEqualTo("blob".getBytes(StandardCharsets.UTF_8));
+                                        assertThat(resource.mimeType()).isEqualTo("audio/mpeg");
+                                      }));
                 },
             List.of(
                 new McpPromptMessage(
