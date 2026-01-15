@@ -21,33 +21,33 @@ final class GetPromptRequest {
   private static final Logger LOGGER = LoggerFactory.getLogger(GetPromptRequest.class);
 
   public McpClientGetPromptResult execute(McpClient client, Map<String, Object> params) {
-    final var parameters = parseParams(params);
+    final var getPromptParams = parseParams(params);
 
     LOGGER.debug(
         "MCP({}): Executing get prompt '{}' with arguments: {}",
         client.key(),
-        parameters.name(),
-        parameters.arguments());
+        getPromptParams.name(),
+        getPromptParams.arguments());
 
     try {
       final var promptArguments =
-          Optional.ofNullable(parameters.arguments()).orElseGet(Collections::emptyMap);
+          Optional.ofNullable(getPromptParams.arguments()).orElseGet(Collections::emptyMap);
 
-      final var result = client.getPrompt(parameters.name(), promptArguments);
+      final var result = client.getPrompt(getPromptParams.name(), promptArguments);
 
       LOGGER.debug(
           "MCP({}): Successfully retrieved prompt '{}' with {} messages",
           client.key(),
-          parameters.name(),
+          getPromptParams.name(),
           result.messages().size());
 
       return new McpClientGetPromptResult(
           result.description(), result.messages().stream().map(this::map).toList());
     } catch (Exception e) {
-      LOGGER.error("MCP({}): Failed to get prompt '{}'", client.key(), parameters.name(), e);
+      LOGGER.error("MCP({}): Failed to get prompt '{}'", client.key(), getPromptParams.name(), e);
       throw new ConnectorException(
           McpClientErrorCodes.ERROR_CODE_GET_PROMPT_ERROR,
-          "Error getting prompt '%s': %s".formatted(parameters.name(), e.getMessage()),
+          "Error getting prompt '%s': %s".formatted(getPromptParams.name(), e.getMessage()),
           e);
     }
   }
