@@ -846,7 +846,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.connectorMode.operation.resourceURI",
+    "id" : "data.connectorMode.operation.resourceUri",
     "label" : "Resource URI",
     "description" : "The URI of the resource to read.",
     "optional" : false,
@@ -856,7 +856,7 @@
     "feel" : "optional",
     "group" : "operation",
     "binding" : {
-      "name" : "data.connectorMode.operation.resourceURI",
+      "name" : "data.connectorMode.operation.resourceUri",
       "type" : "zeebe:input"
     },
     "condition" : {
