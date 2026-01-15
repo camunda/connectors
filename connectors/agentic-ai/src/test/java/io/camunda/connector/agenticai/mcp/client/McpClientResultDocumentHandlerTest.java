@@ -129,7 +129,7 @@ class McpClientResultDocumentHandlerTest {
         argumentSet(
             "Read resource - with text content",
             new McpClientReadResourceResult(
-                List.of(new ResourceData.TextResourceData("uri", "text/plain","Some text"))),
+                List.of(new ResourceData.TextResourceData("uri", "text/plain", "Some text"))),
             new McpClientReadResourceResult(
                 List.of(new ResourceData.TextResourceData("uri", "text/plain", "Some text")))),
         argumentSet(
