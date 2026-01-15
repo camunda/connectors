@@ -170,7 +170,7 @@ public sealed interface McpStandaloneOperationConfiguration
               feel = Property.FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           @NotBlank
-          String resourceURI)
+          String resourceUri)
       implements McpStandaloneOperationConfiguration {
 
     @TemplateProperty(ignore = true)
@@ -183,7 +183,7 @@ public sealed interface McpStandaloneOperationConfiguration
 
     @Override
     public Optional<Map<String, Object>> params() {
-      return Optional.of(Map.of("uri", resourceURI));
+      return Optional.of(Map.of("uri", resourceUri));
     }
   }
 
