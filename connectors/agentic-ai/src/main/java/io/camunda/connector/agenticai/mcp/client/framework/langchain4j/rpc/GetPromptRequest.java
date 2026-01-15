@@ -21,7 +21,7 @@ final class GetPromptRequest {
   public static final String MCP_CLIENT_INVALID_PARAMS_KEY = "MCP_CLIENT_INVALID_PARAMS";
 
   public McpClientGetPromptResult execute(McpClient client, Map<String, Object> params) {
-    final var parameters = parseParameters(params);
+    final var parameters = parseParams(params);
 
     LOGGER.debug(
         "MCP({}): Executing get prompt '{}' with arguments: {}",
@@ -87,7 +87,7 @@ final class GetPromptRequest {
         });
   }
 
-  private GetPromptParameters parseParameters(Map<String, Object> params) {
+  private GetPromptParameters parseParams(Map<String, Object> params) {
     if (MapUtils.isEmpty(params)) {
       throw new ConnectorException(
           MCP_CLIENT_INVALID_PARAMS_KEY, "Parameters for get prompt request cannot be empty.");
