@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.service.tool.ToolExecutionResult;
+import io.camunda.connector.agenticai.mcp.McpClientErrorCodes;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
@@ -91,7 +92,7 @@ final class ToolCallRequest {
       return objectMapper.convertValue(params, ToolExecutionParameters.class);
     } catch (IllegalArgumentException ex) {
       throw new ConnectorException(
-          "MCP_CLIENT_INVALID_PARAMS",
+          McpClientErrorCodes.ERROR_CODE_INVALID_PARAMS,
           "Unable to convert parameters passed to MCP client: %s".formatted(ex.getMessage()));
     }
   }

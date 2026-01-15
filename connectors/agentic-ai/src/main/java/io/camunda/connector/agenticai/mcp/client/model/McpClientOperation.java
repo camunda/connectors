@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client.model;
 
 import com.fasterxml.jackson.annotation.*;
+import io.camunda.connector.agenticai.mcp.McpClientErrorCodes;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Collections;
 import java.util.Map;
@@ -57,7 +58,7 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
         }
       }
       throw new ConnectorException(
-          "MCP_CLIENT_UNSUPPORTED_METHOD",
+          McpClientErrorCodes.ERROR_CODE_INVALID_METHOD,
           String.format(
               "Unsupported MCP method '%s'. Supported operations: '%s'",
               rawMethod, supportedMethods()));
