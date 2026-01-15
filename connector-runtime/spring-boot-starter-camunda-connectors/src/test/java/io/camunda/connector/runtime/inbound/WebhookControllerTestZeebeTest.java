@@ -692,8 +692,7 @@ class WebhookControllerTestZeebeTest {
 
     // Add a file upload
     MockMultipartFile file =
-        new MockMultipartFile(
-            "file", "test.txt", "text/plain", "file content here".getBytes());
+        new MockMultipartFile("file", "test.txt", "text/plain", "file content here".getBytes());
     request.addFile(file);
 
     ResponseEntity<?> responseEntity =
