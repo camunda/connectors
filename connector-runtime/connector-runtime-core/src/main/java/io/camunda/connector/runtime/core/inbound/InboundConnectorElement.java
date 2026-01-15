@@ -115,7 +115,7 @@ public record InboundConnectorElement(
   }
 
   private String tenantIdAndBpmnProcessId() {
-    return tenantId() + "-" + element.processDefinitionKey();
+    return tenantId() + "-" + element.bpmnProcessId();
   }
 
   public Map<String, String> connectorLevelProperties() {
