@@ -193,7 +193,7 @@ class McpClientResultDocumentHandlerTest {
                     "assistant",
                     new TestDocument(
                         "byte data".getBytes(),
-                        createDocumentMetadata("application/pdf", Duration.ofHours(1)),
+                        createDocumentMetadata("application/pdf"),
                         null,
                         "doc-id-0")),
                 new McpClientGetPromptResult.EmbeddedResourceMessage(
@@ -207,7 +207,7 @@ class McpClientResultDocumentHandlerTest {
                         "uri",
                         new TestDocument(
                             "blob data".getBytes(),
-                            createDocumentMetadata("application/octet-stream", Duration.ofHours(1)),
+                            createDocumentMetadata("application/octet-stream"),
                             null,
                             "doc-id-1")))));
 
@@ -216,12 +216,10 @@ class McpClientResultDocumentHandlerTest {
 
   private static @NonNull TestDocumentMetadata createDocumentMetadata(
       DocumentCreationRequest request) {
-    return createDocumentMetadata(request.contentType(), request.timeToLive());
+    return createDocumentMetadata(request.contentType());
   }
 
-  private static @NonNull TestDocumentMetadata createDocumentMetadata(
-      String mimeType, Duration timeToLive) {
-    return new TestDocumentMetadata(
-        mimeType, OffsetDateTime.now(CURRENT_CLOCK).plus(timeToLive), null, null, null, null, null);
+  private static @NonNull TestDocumentMetadata createDocumentMetadata(String mimeType) {
+    return new TestDocumentMetadata(mimeType, null, null, null, null, null, null);
   }
 }

@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model.result;
 
-import io.camunda.connector.agenticai.mcp.client.model.McpDocumentSettings;
 import io.camunda.connector.api.document.DocumentFactory;
 
 public interface McpClientResultWithStorableData {
@@ -17,12 +16,10 @@ public interface McpClientResultWithStorableData {
    * to the created documents.
    *
    * @param documentFactory responsible for creating the actual documents in Camunda.
-   * @param settings additional settings relevant for the document creation, like time to live.
    * @return a new instance of the result holding references to the created documents, if eligible
    *     data is present, otherwise itself.
    */
-  McpClientResult convertStorableMcpResultData(
-      DocumentFactory documentFactory, McpDocumentSettings settings);
+  McpClientResult convertStorableMcpResultData(DocumentFactory documentFactory);
 
   /**
    * Interface for messages that hold binary content that can be replaced with a Camunda document
@@ -36,11 +33,8 @@ public interface McpClientResultWithStorableData {
      *
      * @param documentFactory the document factory that is responsible to create the document in
      *     Camunda.
-     * @param documentSettings additional settings relevant for the document creation, like time to
-     *     live.
      * @return a new value holding a reference to the created document.
      */
-    T replaceWithDocumentReference(
-        DocumentFactory documentFactory, McpDocumentSettings documentSettings);
+    T replaceWithDocumentReference(DocumentFactory documentFactory);
   }
 }

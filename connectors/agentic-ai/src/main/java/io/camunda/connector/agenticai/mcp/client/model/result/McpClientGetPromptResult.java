@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model.result;
 
-import io.camunda.connector.agenticai.mcp.client.model.McpDocumentSettings;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -16,38 +15,28 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
     implements McpClientResult, McpClientResultWithStorableData {
 
   @Override
-  public McpClientGetPromptResult convertStorableMcpResultData(
-      DocumentFactory documentFactory, McpDocumentSettings documentSettings) {
+  public McpClientGetPromptResult convertStorableMcpResultData(DocumentFactory documentFactory) {
     var messagesWithDocumentReferences =
         messages.stream()
             .map(
                 promptMessage ->
-                    replaceWithDocumentReferenceIfNeeded(
-                        documentFactory, documentSettings, promptMessage))
+                    replaceWithDocumentReferenceIfNeeded(documentFactory, promptMessage))
             .toList();
 
     return new McpClientGetPromptResult(this.description, messagesWithDocumentReferences);
   }
 
   private PromptMessage replaceWithDocumentReferenceIfNeeded(
-      DocumentFactory documentFactory,
-      McpDocumentSettings documentSettings,
-      PromptMessage message) {
+      DocumentFactory documentFactory, PromptMessage message) {
     if (!(message instanceof StorableMcpDataContainer storableMcpDataContainer)) {
       return message;
     }
 
-    return (PromptMessage)
-        storableMcpDataContainer.replaceWithDocumentReference(documentFactory, documentSettings);
+    return (PromptMessage) storableMcpDataContainer.replaceWithDocumentReference(documentFactory);
   }
 
-  private static Document createDocument(
-      DocumentFactory factory, McpDocumentSettings documentSettings, byte[] data, String mimeType) {
-    return factory.create(
-        DocumentCreationRequest.from(data)
-            .timeToLive(documentSettings.timeToLive())
-            .contentType(mimeType)
-            .build());
+  private static Document createDocument(DocumentFactory factory, byte[] data, String mimeType) {
+    return factory.create(DocumentCreationRequest.from(data).contentType(mimeType).build());
   }
 
   /**
@@ -70,9 +59,8 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
       implements PromptMessage, StorableMcpDataContainer<PromptMessage> {
 
     @Override
-    public PromptMessage replaceWithDocumentReference(
-        DocumentFactory documentFactory, McpDocumentSettings documentSettings) {
-      var document = createDocument(documentFactory, documentSettings, data, mimeType);
+    public PromptMessage replaceWithDocumentReference(DocumentFactory documentFactory) {
+      var document = createDocument(documentFactory, data, mimeType);
 
       return new CamundaDocumentReferenceMessage(role, document);
     }
@@ -86,15 +74,12 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
       implements PromptMessage, StorableMcpDataContainer<PromptMessage> {
 
     @Override
-    public PromptMessage replaceWithDocumentReference(
-        DocumentFactory documentFactory, McpDocumentSettings documentSettings) {
+    public PromptMessage replaceWithDocumentReference(DocumentFactory documentFactory) {
       if (!(resource instanceof EmbeddedResource.BlobResource blobResource)) {
         return this;
       }
 
-      var document =
-          createDocument(
-              documentFactory, documentSettings, blobResource.blob(), blobResource.mimeType());
+      var document = createDocument(documentFactory, blobResource.blob(), blobResource.mimeType());
 
       return new EmbeddedResourceMessage(
           role, new EmbeddedResource.CamundaDocumentReference(blobResource.uri, document));

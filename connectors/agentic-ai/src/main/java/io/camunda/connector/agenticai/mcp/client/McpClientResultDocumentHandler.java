@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.mcp.client;
 
-import io.camunda.connector.agenticai.mcp.client.model.McpDocumentSettings;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResultWithStorableData;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -48,7 +47,6 @@ public class McpClientResultDocumentHandler {
         "Attempting to convert storable mcp data into Camunda documents for client result of type {}.",
         clientResult.getClass().getSimpleName());
 
-    return documentContainer.convertStorableMcpResultData(
-        documentFactory, new McpDocumentSettings(java.time.Duration.ofHours(1)));
+    return documentContainer.convertStorableMcpResultData(documentFactory);
   }
 }
