@@ -34,9 +34,7 @@ public class ImportSchedulers {
   private final boolean activeVersionsPollingEnabled;
 
   public ImportSchedulers(
-      ProcessStateManager stateStore,
-      Importers importers,
-      boolean activeVersionsPollingEnabled) {
+      ProcessStateManager stateStore, Importers importers, boolean activeVersionsPollingEnabled) {
     this.activeVersionsPollingEnabled = activeVersionsPollingEnabled;
     this.stateStore = stateStore;
     this.importers = importers;

@@ -44,7 +44,7 @@ public class ProcessDefinitionImportConfiguration {
       Importers importers,
       ProcessStateManager processStateManager,
       @Value("${camunda.connector.polling.active-versions-enabled:true}")
-      boolean activeVersionsPollingEnabled) {
+          boolean activeVersionsPollingEnabled) {
     return new ImportSchedulers(processStateManager, importers, activeVersionsPollingEnabled);
   }
 }
