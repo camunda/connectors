@@ -51,16 +51,18 @@ public class Importers {
                     definition -> Collections.singleton(definition.getProcessDefinitionKey())));
 
     LOGGER.debug("Imported {} latest process versions", result.size());
-    LOGGER.trace(
-        "Imported latest process versions: {}",
-        result.entrySet().stream()
-            .map(
-                entry ->
-                    String.format(
-                        "%s => key: %d",
-                        entry.getKey().bpmnProcessId(), entry.getValue().iterator().next()))
-            .reduce((a, b) -> a + "; " + b)
-            .orElse("none"));
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace(
+          "Imported latest process versions: {}",
+          result.entrySet().stream()
+              .map(
+                  entry ->
+                      String.format(
+                          "%s => key: %d",
+                          entry.getKey().bpmnProcessId(), entry.getValue().iterator().next()))
+              .reduce((a, b) -> a + "; " + b)
+              .orElse("none"));
+    }
 
     return new ImportResult(result, ImportType.LATEST_VERSIONS);
   }
@@ -80,16 +82,18 @@ public class Importers {
                         MessageSubscription::getProcessDefinitionKey, Collectors.toSet())));
 
     LOGGER.debug("Imported {} active process versions", result.size());
-    LOGGER.trace(
-        "Imported active process versions: {}",
-        result.entrySet().stream()
-            .map(
-                entry ->
-                    String.format(
-                        "%s => keys: %s",
-                        entry.getKey().bpmnProcessId(), entry.getValue().toString()))
-            .reduce((a, b) -> a + "; " + b)
-            .orElse("none"));
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace(
+          "Imported active process versions: {}",
+          result.entrySet().stream()
+              .map(
+                  entry ->
+                      String.format(
+                          "%s => keys: %s",
+                          entry.getKey().bpmnProcessId(), entry.getValue().toString()))
+              .reduce((a, b) -> a + "; " + b)
+              .orElse("none"));
+    }
 
     return new ImportResult(result, ImportType.HAVE_ACTIVE_SUBSCRIPTIONS);
   }
