@@ -9,7 +9,6 @@ package io.camunda.connector.email.integration;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.CorrelationResult;
@@ -123,6 +122,12 @@ public class InboundRecoveringTest extends BaseEmailTest {
                       .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
 
     } catch (Exception e) {
+      if (e instanceof IllegalStateException
+          && e.getCause().getCause() instanceof java.net.SocketException) {
+        // This exception is expected because the proxy may cut the connection while the client
+        // is using it
+        return;
+      }
       throw new RuntimeException(e);
     }
   }
