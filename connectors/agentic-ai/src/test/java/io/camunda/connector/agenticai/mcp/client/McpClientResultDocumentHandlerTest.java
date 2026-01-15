@@ -201,18 +201,18 @@ class McpClientResultDocumentHandlerTest {
                 new McpClientGetPromptResult.PromptMessage(
                     "assistant",
                     new McpClientGetPromptResult.BlobMessage(
-                        "byte data".getBytes(), "application/pdf")),
+                        "application/pdf", "byte data".getBytes())),
                 new McpClientGetPromptResult.PromptMessage(
                     "user",
                     new McpClientGetPromptResult.EmbeddedResourceContent(
                         new McpClientGetPromptResult.EmbeddedResourceContent.EmbeddedResource
-                            .TextResource("uri", "Some text", "text/plain"))),
+                            .TextResource("uri", "text/plain", "Some text"))),
                 new McpClientGetPromptResult.PromptMessage(
                     "assistant",
                     new McpClientGetPromptResult.EmbeddedResourceContent(
                         new McpClientGetPromptResult.EmbeddedResourceContent.EmbeddedResource
                             .BlobResource(
-                            "uri", "blob data".getBytes(), "application/octet-stream")))));
+                            "uri", "application/octet-stream", "blob data".getBytes())))));
 
     var expected =
         new McpClientGetPromptResult(
@@ -233,7 +233,7 @@ class McpClientResultDocumentHandlerTest {
                     "user",
                     new McpClientGetPromptResult.EmbeddedResourceContent(
                         new McpClientGetPromptResult.EmbeddedResourceContent.EmbeddedResource
-                            .TextResource("uri", "Some text", "text/plain"))),
+                            .TextResource("uri", "text/plain", "Some text"))),
                 new McpClientGetPromptResult.PromptMessage(
                     "assistant",
                     new McpClientGetPromptResult.EmbeddedResourceContent(
