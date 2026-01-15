@@ -12,13 +12,13 @@ jobs:
     outputs:
       branches: ${{ steps.set-matrix.outputs.branches }}
     steps:
-      - name: Fetch release branches
+      - name: Fetch stable branches
         id: set-matrix
         run: |
-          # Get all release/* branches
+          # Get all stable/* branches
           git ls-remote --heads https://github.com/${{ github.repository }}.git | \
-          awk '{print $2}' | sed 's|refs/heads/||' | grep '^release/' > releases.txt || true
-          all_branches=$( (echo "main"; cat releases.txt) | grep -v '^$' | jq -R -s -c 'split("\n")[:-1]' )
+          awk '{print $2}' | sed 's|refs/heads/||' | grep '^stable/' > stables.txt || true
+          all_branches=$( (echo "main"; cat stables.txt) | grep -v '^$' | jq -R -s -c 'split("\n")[:-1]' )
           echo "branches=$all_branches" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
