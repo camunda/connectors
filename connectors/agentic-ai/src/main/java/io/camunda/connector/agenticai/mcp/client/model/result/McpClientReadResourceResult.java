@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model.result;
 
-import io.camunda.connector.agenticai.mcp.client.model.McpDocumentSettings;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import java.util.List;
@@ -14,33 +13,29 @@ import java.util.List;
 public record McpClientReadResourceResult(List<ResourceData> contents)
     implements McpClientResultWithStorableData {
   @Override
-  public McpClientResult convertStorableMcpResultData(
-      DocumentFactory documentFactory, McpDocumentSettings settings) {
+  public McpClientResult convertStorableMcpResultData(DocumentFactory documentFactory) {
     var mappedContents =
         contents.stream()
-            .map(contentData -> convertToDocumentIfBlob(documentFactory, settings, contentData))
+            .map(contentData -> convertToDocumentIfBlob(documentFactory, contentData))
             .toList();
     return new McpClientReadResourceResult(mappedContents);
   }
 
   private ResourceData convertToDocumentIfBlob(
-      DocumentFactory documentFactory, McpDocumentSettings settings, ResourceData resourceData) {
+      DocumentFactory documentFactory, ResourceData resourceData) {
     return switch (resourceData) {
       case ResourceData.CamundaDocumentResourceData ignored -> ignored;
       case ResourceData.TextResourceData ignored -> ignored;
       case ResourceData.BlobResourceData blobResourceData ->
-          mapBlob(documentFactory, settings, blobResourceData);
+          mapBlob(documentFactory, blobResourceData);
     };
   }
 
   private ResourceData.CamundaDocumentResourceData mapBlob(
-      DocumentFactory documentFactory,
-      McpDocumentSettings documentSettings,
-      ResourceData.BlobResourceData blobResourceData) {
+      DocumentFactory documentFactory, ResourceData.BlobResourceData blobResourceData) {
     var createdDocument =
         documentFactory.create(
             DocumentCreationRequest.from(blobResourceData.blob())
-                .timeToLive(documentSettings.timeToLive())
                 .contentType(blobResourceData.mimeType())
                 .build());
     return new ResourceData.CamundaDocumentResourceData(

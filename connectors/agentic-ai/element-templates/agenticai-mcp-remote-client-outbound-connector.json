@@ -787,6 +787,9 @@
       "name" : "List Resource Templates",
       "value" : "resources/templates/list"
     }, {
+      "name" : "Read Resource",
+      "value" : "resources/read"
+    }, {
       "name" : "List Prompts",
       "value" : "prompts/list"
     }, {
@@ -834,6 +837,32 @@
       "allMatch" : [ {
         "property" : "data.connectorMode.operation.type",
         "equals" : "tools/call",
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.connectorMode.operation.resourceURI",
+    "label" : "Resource URI",
+    "description" : "The URI of the resource to read.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operation",
+    "binding" : {
+      "name" : "data.connectorMode.operation.resourceURI",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.type",
+        "equals" : "resources/read",
         "type" : "simple"
       }, {
         "property" : "data.connectorMode.type",

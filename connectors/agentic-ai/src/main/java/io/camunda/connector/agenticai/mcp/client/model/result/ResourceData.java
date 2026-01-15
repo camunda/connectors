@@ -14,6 +14,6 @@ public sealed interface ResourceData {
 
   record TextResourceData(String uri, String mimeType, String text) implements ResourceData {}
 
-  record CamundaDocumentResourceData(String uri, String mimeType, Document blob)
+  record CamundaDocumentResourceData(String uri, String mimeType, Document document)
       implements ResourceData {}
 }

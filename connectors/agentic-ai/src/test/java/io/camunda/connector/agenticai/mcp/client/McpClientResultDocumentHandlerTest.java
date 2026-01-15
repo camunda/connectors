@@ -192,7 +192,7 @@ class McpClientResultDocumentHandlerTest {
                     "application/octet-stream",
                     new TestDocument(
                         "Some text".getBytes(StandardCharsets.UTF_8),
-                        createDocumentMetadata("application/octet-stream", Duration.ofHours(1)),
+                        createDocumentMetadata("application/octet-stream"),
                         null,
                         "doc-id-0")))));
   }
