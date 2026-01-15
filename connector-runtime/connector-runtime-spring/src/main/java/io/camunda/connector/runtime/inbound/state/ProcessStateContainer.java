@@ -19,7 +19,22 @@ package io.camunda.connector.runtime.inbound.state;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
 import io.camunda.connector.runtime.inbound.state.model.StateUpdateResult;
 
+/**
+ * Container for the current process state. It is responsible for comparing the current state with
+ * the newly imported data and determining which process definitions need to be activated or
+ * deactivated.
+ */
 public interface ProcessStateContainer {
 
+  /**
+   * Compare the current state with the newly imported data and determine which process definitions
+   * need to be activated or deactivated. This method has a side effect of updating the current
+   * state to reflect the newly imported data.
+   *
+   * @param importResult all imported process definitions for this import type (including the ones
+   *     that are not changed)
+   * @return the result of the state update: which process definitions must be activated or
+   *     deactivated
+   */
   StateUpdateResult compareAndUpdate(ImportResult importResult);
 }

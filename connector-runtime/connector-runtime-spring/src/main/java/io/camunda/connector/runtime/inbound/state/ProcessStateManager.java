@@ -18,11 +18,30 @@ package io.camunda.connector.runtime.inbound.state;
 
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
 
+/**
+ * This component is responsible for coordinating the update of the internal state of the inbound
+ * connector runtime based on the imported data.
+ *
+ * <p>Internally, it uses a {@link ProcessStateContainer} to compare the current state with the
+ * newly imported data and determine which process definitions need to be activated or deactivated.
+ */
 public interface ProcessStateManager {
 
   /**
-   * Update the process state based on the latest versions of the process definitions.
-   * Implementations must be idempotent.
+   * 1. Compares the current state with the newly imported data and determines which process
+   * definitions need to be activated or deactivated.
+   *
+   * <p>2. For each process definition that needs to be activated or deactivated, retrieves the
+   * relevant inbound connector elements using a {@link ProcessDefinitionInspector}.
+   *
+   * <p>3. Publishes the corresponding events to the {@link
+   * io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry}.
+   *
+   * <p>This method has side effect of updating the current state and activating or deactivating the
+   * necessary inbound connectors.
+   *
+   * @param processDefinitions all imported process definitions for this import type (including the
+   *     ones that are not changed)
    */
   void update(ImportResult processDefinitions);
 }
