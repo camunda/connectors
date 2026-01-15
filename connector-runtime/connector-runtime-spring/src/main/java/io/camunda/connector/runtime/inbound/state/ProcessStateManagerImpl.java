@@ -47,8 +47,8 @@ public class ProcessStateManagerImpl implements ProcessStateManager {
   @Override
   public void update(ImportResult processDefinitions) {
     StateUpdateResult result = processStateContainer.compareAndUpdate(processDefinitions);
-    result.toDeactivate().forEach(this::deactivate);
-    result.toActivate().forEach(this::activate);
+    result.toDeactivate().forEach(this::publishDeactivateEvent);
+    result.toActivate().forEach(this::publishActivateEvent);
   }
 
   private List<InboundConnectorElement> getConnectors(
@@ -60,7 +60,7 @@ public class ProcessStateManagerImpl implements ProcessStateManager {
     return elements;
   }
 
-  private void activate(ProcessDefinitionIdAndKey processDefinition) {
+  private void publishActivateEvent(ProcessDefinitionIdAndKey processDefinition) {
     try {
       var elements = getConnectors(processDefinition.id(), processDefinition.key());
       var event =
@@ -76,7 +76,7 @@ public class ProcessStateManagerImpl implements ProcessStateManager {
     }
   }
 
-  private void deactivate(ProcessDefinitionIdAndKey processDefinition) {
+  private void publishDeactivateEvent(ProcessDefinitionIdAndKey processDefinition) {
     try {
       var event =
           new InboundExecutableEvent.Deactivated(
