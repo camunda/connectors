@@ -44,6 +44,7 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
               CALL_TOOL,
               LIST_RESOURCES,
               LIST_RESOURCE_TEMPLATES,
+              READ_RESOURCE,
               LIST_PROMPTS,
               GET_PROMPT)
           .map(op -> op.methodName)
@@ -60,7 +61,7 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
       throw new ConnectorException(
           McpClientErrorCodes.ERROR_CODE_INVALID_METHOD,
           String.format(
-              "Unsupported MCP method '%s'. Supported operations: '%s'",
+              "Unsupported MCP method '%s'. Supported methods: '%s'",
               rawMethod, supportedMethods()));
     }
 
