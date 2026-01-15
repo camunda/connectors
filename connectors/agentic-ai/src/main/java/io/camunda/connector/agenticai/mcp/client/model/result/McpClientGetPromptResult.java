@@ -14,7 +14,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import java.util.List;
 
 public record McpClientGetPromptResult(String description, List<PromptMessage> messages)
-    implements McpClientResult, McpClientResultWithStorableData {
+    implements McpClientResultWithStorableData {
 
   @Override
   public McpClientGetPromptResult convertStorableMcpResultData(DocumentFactory documentFactory) {

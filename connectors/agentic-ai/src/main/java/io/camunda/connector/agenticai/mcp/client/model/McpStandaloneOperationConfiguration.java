@@ -12,6 +12,7 @@ import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOpera
 import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration.LIST_RESOURCE_TEMPLATES_ID;
 import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration.LIST_RESOURCES_ID;
 import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ListToolsOperationConfiguration.LIST_TOOLS_ID;
+import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOperationConfiguration.ReadResourceOperationConfiguration.READ_RESOURCE_ID;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -39,6 +40,9 @@ import java.util.Optional;
       value = McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration.class,
       name = LIST_RESOURCE_TEMPLATES_ID),
   @JsonSubTypes.Type(
+      value = McpStandaloneOperationConfiguration.ReadResourceOperationConfiguration.class,
+      name = READ_RESOURCE_ID),
+  @JsonSubTypes.Type(
       value = McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration.class,
       name = LIST_PROMPTS_ID),
   @JsonSubTypes.Type(
@@ -56,6 +60,7 @@ public sealed interface McpStandaloneOperationConfiguration
         McpStandaloneOperationConfiguration.CallToolOperationConfiguration,
         McpStandaloneOperationConfiguration.ListResourcesOperationConfiguration,
         McpStandaloneOperationConfiguration.ListResourceTemplatesOperationConfiguration,
+        McpStandaloneOperationConfiguration.ReadResourceOperationConfiguration,
         McpStandaloneOperationConfiguration.ListPromptsOperationConfiguration,
         McpStandaloneOperationConfiguration.GetPromptOperationConfiguration {
 
@@ -151,6 +156,34 @@ public sealed interface McpStandaloneOperationConfiguration
     @Override
     public Optional<Map<String, Object>> params() {
       return Optional.empty();
+    }
+  }
+
+  @TemplateSubType(id = READ_RESOURCE_ID, label = "Read Resource")
+  record ReadResourceOperationConfiguration(
+      @FEEL
+          @TemplateProperty(
+              group = "operation",
+              label = "Resource URI",
+              description = "The URI of the resource to read.",
+              type = TemplateProperty.PropertyType.String,
+              feel = Property.FeelMode.optional,
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+          @NotBlank
+          String resourceURI)
+      implements McpStandaloneOperationConfiguration {
+
+    @TemplateProperty(ignore = true)
+    public static final String READ_RESOURCE_ID = "resources/read";
+
+    @Override
+    public String method() {
+      return READ_RESOURCE_ID;
+    }
+
+    @Override
+    public Optional<Map<String, Object>> params() {
+      return Optional.of(Map.of("uri", resourceURI));
     }
   }
 

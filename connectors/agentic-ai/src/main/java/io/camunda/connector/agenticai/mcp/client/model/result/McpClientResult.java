@@ -12,4 +12,5 @@ public sealed interface McpClientResult
         McpClientListPromptsResult,
         McpClientListResourceTemplatesResult,
         McpClientListResourcesResult,
-        McpClientListToolsResult {}
+        McpClientListToolsResult,
+        McpClientResultWithStorableData {}
