@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.lang.Nullable;
@@ -20,10 +21,10 @@ public record McpRemoteClientRequest(@Valid @NotNull McpRemoteClientRequestData 
     @JsonCreator
     @Deprecated(forRemoval = true)
     public static McpRemoteClientRequestData create(
-        @Valid @NotNull McpRemoteClientTransportConfiguration transport,
-        @Valid @Nullable McpRemoteClientOptionsConfiguration options,
-        @Valid @NotNull McpConnectorModeConfiguration connectorMode,
-        @Valid @Nullable McpClientToolsFilterConfiguration tools) {
+        @JsonProperty("transport") @Valid @NotNull McpRemoteClientTransportConfiguration transport,
+        @JsonProperty("options") @Valid @Nullable McpRemoteClientOptionsConfiguration options,
+        @JsonProperty("connectorMode") @Valid @NotNull McpConnectorModeConfiguration connectorMode,
+        @JsonProperty("tools") @Valid @Nullable McpClientToolsFilterConfiguration tools) {
       var targetConnectorMode =
           tools == null
               ? connectorMode

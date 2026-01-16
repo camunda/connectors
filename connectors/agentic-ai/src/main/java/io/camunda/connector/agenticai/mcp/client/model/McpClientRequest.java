@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
@@ -23,9 +24,9 @@ public record McpClientRequest(@Valid @NotNull McpClientRequestData data) {
     @JsonCreator
     @Deprecated(forRemoval = true)
     public static McpClientRequestData create(
-        @Valid @NotNull ClientConfiguration client,
-        @Valid @NotNull McpConnectorModeConfiguration connectorMode,
-        @Valid @Nullable McpClientToolsFilterConfiguration tools) {
+        @JsonProperty("client") @Valid @NotNull ClientConfiguration client,
+        @JsonProperty("connectorMode") @Valid @NotNull McpConnectorModeConfiguration connectorMode,
+        @JsonProperty("tools") @Valid @Nullable McpClientToolsFilterConfiguration tools) {
 
       var targetConnectorMode =
           tools == null
