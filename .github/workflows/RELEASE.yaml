@@ -601,6 +601,9 @@ jobs:
   notify-prs-released:
     name: Notify PRs that they have been released
     needs:
+      - setup
+      - maven-release
+      - docker-release
       - bundle-and-build-changelog
     uses: ./.github/workflows/NOTIFY_PRS_RELEASED.yml
     permissions:
