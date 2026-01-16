@@ -54,14 +54,14 @@ public class ProcessStateContainerImpl implements ProcessStateContainer {
     // First, process all imported processDefinitionIds as before
     for (var importEntry : importResult.processDefinitionKeysByProcessId().entrySet()) {
       var processDefinitionId = importEntry.getKey();
-      var importedVersionKeys = importEntry.getValue();
+      var importedProcessDefinitionKeys = importEntry.getValue();
       var importType = importResult.importType();
 
       var versionsInState =
           processStates.computeIfAbsent(processDefinitionId, k -> new HashMap<>());
       var partialUpdate =
           computePartialUpdate(
-              processDefinitionId, importedVersionKeys, importType, versionsInState);
+              processDefinitionId, importedProcessDefinitionKeys, importType, versionsInState);
       toActivate.addAll(partialUpdate.toActivate());
       toDeactivate.addAll(partialUpdate.toDeactivate());
     }
@@ -71,17 +71,17 @@ public class ProcessStateContainerImpl implements ProcessStateContainer {
     missingInImport.removeAll(importedProcessIds);
 
     for (var processDefinitionId : missingInImport) {
-      var versionsInState = processStates.get(processDefinitionId);
+      var processDefinitionKeysInState = processStates.get(processDefinitionId);
       var partialUpdate =
           computePartialUpdate(
               processDefinitionId,
               Set.of(), // empty set of imported versions
               importResult.importType(),
-              versionsInState);
+              processDefinitionKeysInState);
       toActivate.addAll(partialUpdate.toActivate());
       toDeactivate.addAll(partialUpdate.toDeactivate());
       // If all versions are removed, also remove the processDefinitionId entry
-      if (versionsInState.isEmpty()) {
+      if (processDefinitionKeysInState.isEmpty()) {
         processStates.remove(processDefinitionId);
       }
     }
