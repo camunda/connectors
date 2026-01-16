@@ -45,9 +45,11 @@ public class Langchain4JMcpClientExecutor {
       case CALL_TOOL ->
           new ToolCallRequest(objectMapper)
               .execute(client, filterOptions.toolFilters(), operation.params());
-      case LIST_RESOURCES -> new ListResourcesRequest().execute(client);
-      case LIST_RESOURCE_TEMPLATES -> new ListResourceTemplatesRequest().execute(client);
-      case LIST_PROMPTS -> new ListPromptsRequest().execute(client);
+      case LIST_RESOURCES ->
+          new ListResourcesRequest().execute(client, filterOptions.resourceFilters());
+      case LIST_RESOURCE_TEMPLATES ->
+          new ListResourceTemplatesRequest().execute(client, filterOptions.resourceFilters());
+      case LIST_PROMPTS -> new ListPromptsRequest().execute(client, filterOptions.promptFilters());
       case GET_PROMPT -> new GetPromptRequest().execute(client, operation.params());
       case READ_RESOURCE -> new ReadResourceRequest().execute(client, operation.params());
     };

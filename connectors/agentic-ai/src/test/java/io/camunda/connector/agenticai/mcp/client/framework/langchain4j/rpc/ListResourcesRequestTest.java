@@ -11,6 +11,8 @@ import static org.mockito.Mockito.when;
 
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.McpResource;
+import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
+import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourcesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceDescription;
 import java.util.Collections;
@@ -23,6 +25,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ListResourcesRequestTest {
 
+  private static final AllowDenyList EMPTY_FILTER = AllowDenyList.allowingEverything();
+
   @Mock private McpClient mcpClient;
 
   private final ListResourcesRequest testee = new ListResourcesRequest();
@@ -31,7 +35,7 @@ class ListResourcesRequestTest {
   void returnsEmptyList_whenNoResourcesAvailable() {
     when(mcpClient.listResources()).thenReturn(Collections.emptyList());
 
-    final var result = testee.execute(mcpClient);
+    final var result = testee.execute(mcpClient, EMPTY_FILTER);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -54,7 +58,7 @@ class ListResourcesRequestTest {
 
     when(mcpClient.listResources()).thenReturn(List.of(mcpResource1, mcpResource2));
 
-    final var result = testee.execute(mcpClient);
+    final var result = testee.execute(mcpClient, EMPTY_FILTER);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -62,6 +66,62 @@ class ListResourcesRequestTest {
             res ->
                 assertThat(res.resources())
                     .containsExactly(resourceDescription1, resourceDescription2));
+  }
+
+  @Test
+  void filtersResources_whenFilterConfigured() {
+    final var mcpResource1 =
+        createMcpResource(
+            "file://allowed-resource.txt", "allowed-resource", "Allowed resource", "text/plain");
+    final var mcpResource2 =
+        createMcpResource(
+            "file://blocked-resource.txt", "blocked-resource", "Blocked resource", "text/plain");
+    final var resourceDescription1 =
+        createResourceDescription(
+            "file://allowed-resource.txt", "allowed-resource", "Allowed resource", "text/plain");
+    final var filter =
+        AllowDenyListBuilder.builder()
+            .allowed(List.of("file://allowed-resource.txt"))
+            .denied(List.of())
+            .build();
+
+    when(mcpClient.listResources()).thenReturn(List.of(mcpResource1, mcpResource2));
+
+    final var result = testee.execute(mcpClient, filter);
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            McpClientListResourcesResult.class,
+            res -> assertThat(res.resources()).containsExactly(resourceDescription1));
+  }
+
+  @Test
+  void returnsEmptyList_whenAllResourcesFiltered() {
+    final var mcpResource1 =
+        createMcpResource(
+            "file://blocked-resource1.txt",
+            "blocked-resource1",
+            "Blocked resource 1",
+            "text/plain");
+    final var mcpResource2 =
+        createMcpResource(
+            "file://blocked-resource2.txt",
+            "blocked-resource2",
+            "Blocked resource 2",
+            "text/plain");
+    final var filter =
+        AllowDenyListBuilder.builder()
+            .allowed(List.of("file://allowed-resource.txt"))
+            .denied(List.of())
+            .build();
+
+    when(mcpClient.listResources()).thenReturn(List.of(mcpResource1, mcpResource2));
+
+    final var result = testee.execute(mcpClient, filter);
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            McpClientListResourcesResult.class, res -> assertThat(res.resources()).isEmpty());
   }
 
   private McpResource createMcpResource(
