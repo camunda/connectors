@@ -381,6 +381,7 @@ class Langchain4JMcpClientHandlerTest {
 
     final var result = handler.handle(context, request);
 
+    
     assertThat(result).isEqualTo(expectedResult);
   }
 
