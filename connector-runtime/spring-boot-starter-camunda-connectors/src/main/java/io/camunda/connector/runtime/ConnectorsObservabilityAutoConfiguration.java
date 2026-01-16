@@ -17,7 +17,7 @@
 package io.camunda.connector.runtime;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImporter;
+import io.camunda.connector.runtime.inbound.importer.ImportSchedulers;
 import io.camunda.connector.runtime.metrics.ContextAwareLogbackMetrics;
 import io.micrometer.core.instrument.binder.logging.LogbackMetrics;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,7 +44,7 @@ public class ConnectorsObservabilityAutoConfiguration {
 
   @Bean
   public ProcessDefinitionImportHealthIndicator processDefinitionImportHealthIndicator(
-      @Autowired(required = false) ProcessDefinitionImporter processDefinitionImporter) {
-    return new ProcessDefinitionImportHealthIndicator(processDefinitionImporter);
+      @Autowired(required = false) ImportSchedulers importSchedulers) {
+    return new ProcessDefinitionImportHealthIndicator(importSchedulers);
   }
 }

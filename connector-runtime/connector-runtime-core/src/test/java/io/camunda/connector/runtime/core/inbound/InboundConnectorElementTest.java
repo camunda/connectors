@@ -182,7 +182,7 @@ public class InboundConnectorElementTest {
     var result = testObj.deduplicationId(List.of());
 
     // then
-    assertThat(result).isEqualTo("<default>-12345-id");
+    assertThat(result).isEqualTo("<default>-myProcess-id");
   }
 
   @Test

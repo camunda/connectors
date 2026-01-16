@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.search;
 
 import io.camunda.client.api.search.response.ElementInstance;
+import io.camunda.client.api.search.response.MessageSubscription;
 import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.client.api.search.response.SearchResponse;
 import io.camunda.client.api.search.response.Variable;
@@ -27,6 +28,8 @@ public interface SearchQueryClient {
 
   SearchResponse<ProcessDefinition> queryProcessDefinitions(String paginationIndex);
 
+  SearchResponse<MessageSubscription> queryMessageSubscriptions(String paginationIndex);
+
   SearchResponse<ElementInstance> queryActiveFlowNodes(
       long processDefinitionKey, String elementId, String paginationIndex);
 
@@ -34,4 +37,6 @@ public interface SearchQueryClient {
       long processInstanceKey, long elementInstanceKey, String variablePaginationIndex);
 
   BpmnModelInstance getProcessModel(long processDefinitionKey);
+
+  ProcessDefinition getProcessDefinition(long processDefinitionKey);
 }

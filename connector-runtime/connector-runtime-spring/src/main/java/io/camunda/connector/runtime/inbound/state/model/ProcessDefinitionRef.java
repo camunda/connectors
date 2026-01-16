@@ -14,18 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime;
+package io.camunda.connector.runtime.inbound.state.model;
 
-import io.camunda.client.spring.configuration.CamundaAutoConfiguration;
-import io.camunda.connector.runtime.inbound.InboundConnectorRuntimeConfiguration;
-import io.camunda.connector.runtime.instances.InstanceForwardingConfiguration;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.AutoConfigureAfter;
-import org.springframework.context.annotation.Import;
-import org.springframework.scheduling.annotation.EnableScheduling;
-
-@AutoConfiguration
-@AutoConfigureAfter({CamundaAutoConfiguration.class, OutboundConnectorsAutoConfiguration.class})
-@Import({InboundConnectorRuntimeConfiguration.class, InstanceForwardingConfiguration.class})
-@EnableScheduling
-public class InboundConnectorsAutoConfiguration {}
+/** A composite key for identifying a process definition by its BPMN process ID and tenant ID. */
+public record ProcessDefinitionRef(String bpmnProcessId, String tenantId) {}

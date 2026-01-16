@@ -17,8 +17,9 @@
 package io.camunda.connector.runtime.inbound.importer;
 
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
-import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
-import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
+import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -26,15 +27,24 @@ import org.springframework.context.annotation.Configuration;
 public class ProcessDefinitionImportConfiguration {
 
   @Bean
-  public ProcessDefinitionSearch processDefinitionSearch(SearchQueryClient client) {
-    return new ProcessDefinitionSearch(client);
+  @ConditionalOnProperty(
+      value = "camunda.connector.polling.enabled",
+      havingValue = "true",
+      matchIfMissing = true)
+  public Importers importers(SearchQueryClient client) {
+    return new Importers(client);
   }
 
   @Bean
-  public ProcessDefinitionImporter processDefinitionImporter(
-      ProcessStateStore stateStore,
-      ProcessDefinitionSearch search,
-      ConnectorsInboundMetrics connectorsInboundMetrics) {
-    return new ProcessDefinitionImporter(stateStore, search, connectorsInboundMetrics);
+  @ConditionalOnProperty(
+      value = "camunda.connector.polling.enabled",
+      havingValue = "true",
+      matchIfMissing = true)
+  public ImportSchedulers messageSubscriptionSearch(
+      Importers importers,
+      ProcessStateManager processStateManager,
+      @Value("${camunda.connector.polling.active-versions-enabled:true}")
+          boolean activeVersionsPollingEnabled) {
+    return new ImportSchedulers(processStateManager, importers, activeVersionsPollingEnabled);
   }
 }

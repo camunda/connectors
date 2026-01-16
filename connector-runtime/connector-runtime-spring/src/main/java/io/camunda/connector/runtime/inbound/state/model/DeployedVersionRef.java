@@ -14,13 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.state;
+package io.camunda.connector.runtime.inbound.state.model;
 
-import java.util.Map;
-
-public record ProcessImportResult(
-    Map<ProcessDefinitionIdentifier, ProcessDefinitionVersion> processDefinitionVersions) {
-  public record ProcessDefinitionIdentifier(String bpmnProcessId, String tenantId) {}
-
-  public record ProcessDefinitionVersion(long processDefinitionKey, int version) {}
-}
+/** Reference to a specific deployed version of a process definition. */
+public record DeployedVersionRef(long processDefinitionKey, int version) {}
