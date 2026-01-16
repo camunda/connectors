@@ -27,7 +27,7 @@ on:
         description: 'Notify PRs that they have been released'
         required: false
         type: boolean
-        default: false
+        default: true
 
 jobs:
 
@@ -613,10 +613,6 @@ jobs:
       !contains(inputs.version, 'rc') &&
       needs.setup.result == 'success' &&
       (needs.maven-release.result == 'success' || needs.maven-release.result == 'skipped') &&
-      (needs.docker-release.result == 'success' || needs.docker-release.result == 'skipped') &&
-      needs.bundle-and-build-changelog.result == 'success' &&
-      (needs.helm-deploy.result == 'success' || needs.helm-deploy.result == 'skipped') &&
-      (needs.fossa_release.result == 'success' || needs.fossa_release.result == 'skipped')
-
+      (needs.docker-release.result == 'success' || needs.docker-release.result == 'skipped')
     with:
       version: ${{ inputs.version }}
