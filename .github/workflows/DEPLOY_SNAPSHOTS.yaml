@@ -253,6 +253,6 @@ jobs:
           method: chat.postMessage
           payload: |
             {
-              "channel": "C05Q7C4HJ5Q",
+              "channel": "${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }}",
               "text": ":alarm: <@connector-medic> Deploy snapshots workflow failed on branch `${{ github.ref_name }}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             }
