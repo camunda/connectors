@@ -94,19 +94,15 @@ public class ProcessStateContainerImpl implements ProcessStateContainer {
       Set<Long> importedVersions,
       ImportType importType,
       Map<Long, MutableProcessVersionState> versionsInState) {
-    LOGGER.debug(
-        "computePartialUpdate for process definition id '{}' after a {} import",
-        processDefinitionRef.bpmnProcessId(),
-        importType);
 
     Set<Long> missingInImport = rightOuterJoin(importedVersions, versionsInState.keySet());
     Set<Long> missingInState = rightOuterJoin(versionsInState.keySet(), importedVersions);
     Set<Long> presentInBoth = new HashSet<>(importedVersions);
     presentInBoth.retainAll(versionsInState.keySet());
 
-    LOGGER.debug("The following versions are missing in the new import: {}", missingInImport);
-    LOGGER.debug("The following versions are not present in state: {}", missingInState);
-    LOGGER.debug("The following versions are present in both: {}", presentInBoth);
+    LOGGER.debug("* Missing in the import: {} ({})", missingInImport, importType);
+    LOGGER.debug("* Imported as but missing in state: {} ({})", missingInState, importType);
+    LOGGER.debug("* Present in both: {} ({})", presentInBoth, importType);
 
     final Set<ProcessDefinitionRefAndKey> toActivate = new HashSet<>();
     final Set<ProcessDefinitionRefAndKey> toDeactivate = new HashSet<>();
@@ -139,14 +135,18 @@ public class ProcessStateContainerImpl implements ProcessStateContainer {
       }
     }
 
-    LOGGER.debug(
-        "The following versions of the process '{}' will be activated {}",
-        processDefinitionRef.bpmnProcessId(),
-        toActivate);
-    LOGGER.debug(
-        "The following versions of the process '{}' will be deactivated {}",
-        processDefinitionRef.bpmnProcessId(),
-        toDeactivate);
+    if (!toActivate.isEmpty() && LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "* Process '{}': activating {}",
+          processDefinitionRef.bpmnProcessId(),
+          toActivate.stream().map(ProcessDefinitionRefAndKey::key).toList());
+    }
+    if (!toDeactivate.isEmpty() && LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "* Process '{}': deactivating {}",
+          processDefinitionRef.bpmnProcessId(),
+          toDeactivate.stream().map(ProcessDefinitionRefAndKey::key).toList());
+    }
     return new StateUpdateResult(toActivate, toDeactivate);
   }
 
