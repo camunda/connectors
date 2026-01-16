@@ -11,6 +11,7 @@ import static io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeCo
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
@@ -70,7 +71,7 @@ public sealed interface McpConnectorModeConfiguration
                   .toolFilters(
                       toolModeFilters.tools() != null
                           ? toolModeFilters.tools().toAllowDenyList()
-                          : null)
+                          : AllowDenyList.allowingEverything())
                   .build();
 
       return Optional.ofNullable(result);
@@ -100,7 +101,15 @@ public sealed interface McpConnectorModeConfiguration
                   .toolFilters(
                       standaloneModeFilters.tools() != null
                           ? standaloneModeFilters.tools().toAllowDenyList()
-                          : null)
+                          : AllowDenyList.allowingEverything())
+                  .resourceFilters(
+                      standaloneModeFilters.resources() != null
+                          ? standaloneModeFilters.resources().toAllowDenyList()
+                          : AllowDenyList.allowingEverything())
+                  .promptFilters(
+                      standaloneModeFilters.prompts() != null
+                          ? standaloneModeFilters.prompts().toAllowDenyList()
+                          : AllowDenyList.allowingEverything())
                   .build();
 
       return Optional.ofNullable(result);
