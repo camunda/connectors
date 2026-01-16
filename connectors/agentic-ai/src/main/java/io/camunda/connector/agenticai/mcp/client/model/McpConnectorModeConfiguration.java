@@ -11,12 +11,15 @@ import static io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeCo
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
+import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.collections4.MapUtils;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -40,8 +43,12 @@ public sealed interface McpConnectorModeConfiguration
 
   McpClientOperation toMcpClientOperation();
 
+  Optional<FilterOptions> createFilterOptions();
+
   @TemplateSubType(id = AI_AGENT_TOOL_ID, label = "AI Agent tool")
-  record ToolModeConfiguration(@Valid @NotNull McpClientOperationConfiguration toolOperation)
+  record ToolModeConfiguration(
+      @Valid @NotNull McpClientOperationConfiguration toolOperation,
+      @Valid McpClientToolModeFiltersConfiguration toolModeFilters)
       implements McpConnectorModeConfiguration {
 
     @TemplateProperty(ignore = true)
@@ -53,10 +60,27 @@ public sealed interface McpConnectorModeConfiguration
           ? McpClientOperation.of(toolOperation.method())
           : McpClientOperation.of(toolOperation.method(), toolOperation.params());
     }
+
+    @Override
+    public Optional<FilterOptions> createFilterOptions() {
+      var result =
+          toolModeFilters == null
+              ? null
+              : FilterOptionsBuilder.builder()
+                  .toolFilters(
+                      toolModeFilters.tools() != null
+                          ? toolModeFilters.tools().toAllowDenyList()
+                          : null)
+                  .build();
+
+      return Optional.ofNullable(result);
+    }
   }
 
   @TemplateSubType(id = STANDALONE_ID, label = "Standalone")
-  record StandaloneModeConfiguration(@Valid @NotNull McpStandaloneOperationConfiguration operation)
+  record StandaloneModeConfiguration(
+      @Valid @NotNull McpStandaloneOperationConfiguration operation,
+      @Valid McpClientStandaloneFiltersConfiguration standaloneModeFilters)
       implements McpConnectorModeConfiguration {
 
     @TemplateProperty(ignore = true)
@@ -65,6 +89,21 @@ public sealed interface McpConnectorModeConfiguration
     @Override
     public McpClientOperation toMcpClientOperation() {
       return McpClientOperation.of(operation.method(), operation.params().orElseGet(Map::of));
+    }
+
+    @Override
+    public Optional<FilterOptions> createFilterOptions() {
+      var result =
+          standaloneModeFilters == null
+              ? null
+              : FilterOptionsBuilder.builder()
+                  .toolFilters(
+                      standaloneModeFilters.tools() != null
+                          ? standaloneModeFilters.tools().toAllowDenyList()
+                          : null)
+                  .build();
+
+      return Optional.ofNullable(result);
     }
   }
 }

@@ -44,9 +44,9 @@ class McpRemoteClientRequestValidationTest {
   @Test
   void validationSucceedsWhenOptionsAreNull() {
     final var transport = createValidTransport();
-    final var connectorMode = createValidConnectorMode();
     final var tools = createValidToolsConfiguration();
-    final var requestData = new McpRemoteClientRequestData(transport, null, connectorMode, tools);
+    final var connectorMode = createValidConnectorMode(tools);
+    final var requestData = new McpRemoteClientRequestData(transport, null, connectorMode);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request)).isEmpty();
@@ -56,8 +56,11 @@ class McpRemoteClientRequestValidationTest {
   void validationSucceedsWhenToolsConfigurationIsNull() {
     final var transport = createValidTransport();
     final var options = createOptionsConfiguration(false);
-    final var connectorMode = createValidConnectorMode();
-    final var requestData = new McpRemoteClientRequestData(transport, options, connectorMode, null);
+    final var connectorMode =
+        new McpConnectorModeConfiguration.ToolModeConfiguration(
+            new McpClientOperationConfiguration("tools/list", Map.of()),
+            new McpClientToolModeFiltersConfiguration(null));
+    final var requestData = new McpRemoteClientRequestData(transport, options, connectorMode);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request)).isEmpty();
@@ -67,10 +70,9 @@ class McpRemoteClientRequestValidationTest {
   void validationSucceedsWhenToolsIncludedAndExcludedAreNull() {
     final var transport = createValidTransport();
     final var options = createOptionsConfiguration(false);
-    final var tools = new McpClientToolsConfiguration(null, null);
+    final var tools = new McpClientToolsFilterConfiguration(null, null);
     final var connectorMode = createValidConnectorMode();
-    final var requestData =
-        new McpRemoteClientRequestData(transport, options, connectorMode, tools);
+    final var requestData = new McpRemoteClientRequestData(transport, options, connectorMode);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request)).isEmpty();
@@ -82,9 +84,9 @@ class McpRemoteClientRequestValidationTest {
     final var options = createOptionsConfiguration(false);
     final var tools = createValidToolsConfiguration();
     final var toolOperation = new McpClientOperationConfiguration("tools/list", null);
-    final var connectorMode = new ToolModeConfiguration(toolOperation);
-    final var requestData =
-        new McpRemoteClientRequestData(transport, options, connectorMode, tools);
+    final var connectorMode =
+        new ToolModeConfiguration(toolOperation, new McpClientToolModeFiltersConfiguration(tools));
+    final var requestData = new McpRemoteClientRequestData(transport, options, connectorMode);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request)).isEmpty();
@@ -103,9 +105,8 @@ class McpRemoteClientRequestValidationTest {
   @Test
   void validationFailsWhenTransportIsNull() {
     final var options = createOptionsConfiguration(false);
-    final var tools = createValidToolsConfiguration();
     final var connectorMode = createValidConnectorMode();
-    final var requestData = new McpRemoteClientRequestData(null, options, connectorMode, tools);
+    final var requestData = new McpRemoteClientRequestData(null, options, connectorMode);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request))
@@ -119,7 +120,7 @@ class McpRemoteClientRequestValidationTest {
     final var transport = createValidTransport();
     final var options = createOptionsConfiguration(false);
     final var tools = createValidToolsConfiguration();
-    final var requestData = new McpRemoteClientRequestData(transport, options, null, tools);
+    final var requestData = new McpRemoteClientRequestData(transport, options, null);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request))
@@ -135,9 +136,9 @@ class McpRemoteClientRequestValidationTest {
     final var options = createOptionsConfiguration(false);
     final var tools = createValidToolsConfiguration();
     final var toolOperation = new McpClientOperationConfiguration(method, Map.of());
-    final var connectorMode = new ToolModeConfiguration(toolOperation);
-    final var requestData =
-        new McpRemoteClientRequestData(transport, options, connectorMode, tools);
+    final var connectorMode =
+        new ToolModeConfiguration(toolOperation, new McpClientToolModeFiltersConfiguration(tools));
+    final var requestData = new McpRemoteClientRequestData(transport, options, connectorMode);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request))
@@ -152,9 +153,9 @@ class McpRemoteClientRequestValidationTest {
     final var options = createOptionsConfiguration(false);
     final var tools = createValidToolsConfiguration();
     final var toolOperation = new McpClientOperationConfiguration(null, Map.of());
-    final var connectorMode = new ToolModeConfiguration(toolOperation);
-    final var requestData =
-        new McpRemoteClientRequestData(transport, options, connectorMode, tools);
+    final var connectorMode =
+        new ToolModeConfiguration(toolOperation, new McpClientToolModeFiltersConfiguration(tools));
+    final var requestData = new McpRemoteClientRequestData(transport, options, connectorMode);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request))
@@ -172,8 +173,7 @@ class McpRemoteClientRequestValidationTest {
     final var options = createOptionsConfiguration(false);
     final var tools = createValidToolsConfiguration();
     final var connectorMode = createValidConnectorMode();
-    final var requestData =
-        new McpRemoteClientRequestData(transport, options, connectorMode, tools);
+    final var requestData = new McpRemoteClientRequestData(transport, options, connectorMode);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request))
@@ -188,8 +188,7 @@ class McpRemoteClientRequestValidationTest {
     final var options = createOptionsConfiguration(false);
     final var tools = createValidToolsConfiguration();
     final var connectorMode = createValidConnectorMode();
-    final var requestData =
-        new McpRemoteClientRequestData(transport, options, connectorMode, tools);
+    final var requestData = new McpRemoteClientRequestData(transport, options, connectorMode);
     final var request = new McpRemoteClientRequest(requestData);
 
     assertThat(validator.validate(request))
@@ -203,8 +202,7 @@ class McpRemoteClientRequestValidationTest {
     final var options = createOptionsConfiguration(false);
     final var tools = createValidToolsConfiguration();
     final var connectorMode = createValidConnectorMode();
-    final var requestData =
-        new McpRemoteClientRequestData(transport, options, connectorMode, tools);
+    final var requestData = new McpRemoteClientRequestData(transport, options, connectorMode);
     return new McpRemoteClientRequest(requestData);
   }
 
@@ -221,14 +219,21 @@ class McpRemoteClientRequestValidationTest {
     return new McpRemoteClientOptionsConfiguration(clientCache);
   }
 
-  private McpClientToolsConfiguration createValidToolsConfiguration() {
-    return new McpClientToolsConfiguration(List.of("tool1", "tool2"), List.of("excludedTool"));
+  private McpClientToolsFilterConfiguration createValidToolsConfiguration() {
+    return new McpClientToolsFilterConfiguration(
+        List.of("tool1", "tool2"), List.of("excludedTool"));
   }
 
-  private McpConnectorModeConfiguration createValidConnectorMode() {
+  private McpConnectorModeConfiguration createValidConnectorMode(
+      McpClientToolsFilterConfiguration toolFilters) {
     final var toolOperation =
         new McpClientOperationConfiguration(
             "tools/call", Map.of("name", "tool1", "arguments", Map.of("param", "value")));
-    return new ToolModeConfiguration(toolOperation);
+    return new ToolModeConfiguration(
+        toolOperation, new McpClientToolModeFiltersConfiguration(toolFilters));
+  }
+
+  private McpConnectorModeConfiguration createValidConnectorMode() {
+    return createValidConnectorMode(createValidToolsConfiguration());
   }
 }

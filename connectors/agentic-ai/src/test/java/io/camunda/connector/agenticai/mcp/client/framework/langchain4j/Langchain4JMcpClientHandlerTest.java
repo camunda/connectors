@@ -49,8 +49,8 @@ class Langchain4JMcpClientHandlerTest {
   private static final McpClientOperationConfiguration LIST_TOOLS_OPERATION =
       new McpClientOperationConfiguration("tools/list", Map.of());
 
-  private static final McpClientToolsConfiguration EMPTY_FILTER_CONFIGURATION =
-      new McpClientToolsConfiguration(List.of(), List.of());
+  private static final McpClientToolsFilterConfiguration EMPTY_FILTER_CONFIGURATION =
+      new McpClientToolsFilterConfiguration(List.of(), List.of());
   private static final FilterOptions EMPTY_FILTER = FilterOptionsBuilder.builder().build();
 
   @Mock private McpClientRegistry<McpClient> clientRegistry;
@@ -387,14 +387,20 @@ class Langchain4JMcpClientHandlerTest {
   private McpClientRequest createToolModeRequest(McpClientOperationConfiguration operation) {
     return new McpClientRequest(
         new McpClientRequestData(
-            CLIENT_CONFIG, new ToolModeConfiguration(operation), EMPTY_FILTER_CONFIGURATION));
+            CLIENT_CONFIG,
+            new ToolModeConfiguration(
+                operation, new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION))));
   }
 
   private McpClientRequest createStandaloneModeRequest(
       McpStandaloneOperationConfiguration operation) {
     return new McpClientRequest(
         new McpClientRequestData(
-            CLIENT_CONFIG, new StandaloneModeConfiguration(operation), EMPTY_FILTER_CONFIGURATION));
+            CLIENT_CONFIG,
+            new StandaloneModeConfiguration(
+                operation,
+                new McpClientStandaloneFiltersConfiguration(
+                    EMPTY_FILTER_CONFIGURATION, null, null))));
   }
 
   static Stream<Map<String, Object>> mcpOperationArguments() {

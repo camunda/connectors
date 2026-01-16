@@ -28,7 +28,9 @@ import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationConfiguration;
-import io.camunda.connector.agenticai.mcp.client.model.McpClientToolsConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpClientStandaloneFiltersConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpClientToolModeFiltersConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpClientToolsFilterConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.StandaloneModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientOptionsConfiguration;
@@ -84,8 +86,8 @@ class Langchain4JMcpRemoteClientHandlerTest {
   private static final McpClientOperationConfiguration LIST_TOOLS_OPERATION =
       new McpClientOperationConfiguration("tools/list", Map.of());
 
-  private static final McpClientToolsConfiguration EMPTY_FILTER_CONFIGURATION =
-      new McpClientToolsConfiguration(List.of(), List.of());
+  private static final McpClientToolsFilterConfiguration EMPTY_FILTER_CONFIGURATION =
+      new McpClientToolsFilterConfiguration(List.of(), List.of());
   private static final FilterOptions EMPTY_FILTER = FilterOptionsBuilder.builder().build();
 
   @Mock private McpRemoteClientRegistry<McpClient> remoteClientRegistry;
@@ -511,8 +513,9 @@ class Langchain4JMcpRemoteClientHandlerTest {
               new McpRemoteClientRequestData(
                   transport,
                   null,
-                  new ToolModeConfiguration(LIST_TOOLS_OPERATION),
-                  EMPTY_FILTER_CONFIGURATION));
+                  new ToolModeConfiguration(
+                      LIST_TOOLS_OPERATION,
+                      new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION))));
 
       final var expectedResult = new McpClientListToolsResult(List.of());
 
@@ -536,8 +539,9 @@ class Langchain4JMcpRemoteClientHandlerTest {
               new McpRemoteClientRequestData(
                   transport,
                   new McpRemoteClientOptionsConfiguration(null),
-                  new ToolModeConfiguration(LIST_TOOLS_OPERATION),
-                  EMPTY_FILTER_CONFIGURATION));
+                  new ToolModeConfiguration(
+                      LIST_TOOLS_OPERATION,
+                      new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION))));
 
       final var expectedResult = new McpClientListToolsResult(List.of());
 
@@ -578,8 +582,8 @@ class Langchain4JMcpRemoteClientHandlerTest {
         new McpRemoteClientRequestData(
             transport,
             new McpRemoteClientOptionsConfiguration(clientCache),
-            new ToolModeConfiguration(operation),
-            EMPTY_FILTER_CONFIGURATION));
+            new ToolModeConfiguration(
+                operation, new McpClientToolModeFiltersConfiguration(EMPTY_FILTER_CONFIGURATION))));
   }
 
   private McpRemoteClientRequest createStandaloneModeRequest(
@@ -590,8 +594,10 @@ class Langchain4JMcpRemoteClientHandlerTest {
         new McpRemoteClientRequestData(
             transport,
             new McpRemoteClientOptionsConfiguration(clientCache),
-            new StandaloneModeConfiguration(operation),
-            EMPTY_FILTER_CONFIGURATION));
+            new StandaloneModeConfiguration(
+                operation,
+                new McpClientStandaloneFiltersConfiguration(
+                    EMPTY_FILTER_CONFIGURATION, null, null))));
   }
 
   static List<McpRemoteClientTransportConfiguration> transports() {

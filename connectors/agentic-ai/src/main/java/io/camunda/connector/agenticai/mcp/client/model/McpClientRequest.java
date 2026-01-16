@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
@@ -17,8 +18,32 @@ import org.springframework.lang.Nullable;
 public record McpClientRequest(@Valid @NotNull McpClientRequestData data) {
   public record McpClientRequestData(
       @Valid @NotNull ClientConfiguration client,
-      @Valid @NotNull McpConnectorModeConfiguration connectorMode,
-      @Valid @Nullable McpClientToolsConfiguration tools) {
+      @Valid @NotNull McpConnectorModeConfiguration connectorMode) {
+
+    @JsonCreator
+    @Deprecated(forRemoval = true)
+    public static McpClientRequestData create(
+        @Valid @NotNull ClientConfiguration client,
+        @Valid @NotNull McpConnectorModeConfiguration connectorMode,
+        @Valid @Nullable McpClientToolsFilterConfiguration tools) {
+
+      var targetConnectorMode =
+          tools == null
+              ? connectorMode
+              : switch (connectorMode) {
+                case McpConnectorModeConfiguration.StandaloneModeConfiguration
+                        standaloneModeConfiguration ->
+                    new McpConnectorModeConfiguration.StandaloneModeConfiguration(
+                        standaloneModeConfiguration.operation(),
+                        new McpClientStandaloneFiltersConfiguration(tools, null, null));
+                case McpConnectorModeConfiguration.ToolModeConfiguration toolModeConfiguration ->
+                    new McpConnectorModeConfiguration.ToolModeConfiguration(
+                        toolModeConfiguration.toolOperation(),
+                        new McpClientToolModeFiltersConfiguration(tools));
+              };
+
+      return new McpClientRequestData(client, targetConnectorMode);
+    }
 
     public record ClientConfiguration(
         @TemplateProperty(

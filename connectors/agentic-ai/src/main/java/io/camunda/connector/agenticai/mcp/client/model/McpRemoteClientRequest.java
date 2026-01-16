@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.lang.Nullable;
@@ -14,6 +15,31 @@ public record McpRemoteClientRequest(@Valid @NotNull McpRemoteClientRequestData 
   public record McpRemoteClientRequestData(
       @Valid @NotNull McpRemoteClientTransportConfiguration transport,
       @Valid @Nullable McpRemoteClientOptionsConfiguration options,
-      @Valid @NotNull McpConnectorModeConfiguration connectorMode,
-      @Valid @Nullable McpClientToolsConfiguration tools) {}
+      @Valid @NotNull McpConnectorModeConfiguration connectorMode) {
+
+    @JsonCreator
+    @Deprecated(forRemoval = true)
+    public static McpRemoteClientRequestData create(
+        @Valid @NotNull McpRemoteClientTransportConfiguration transport,
+        @Valid @Nullable McpRemoteClientOptionsConfiguration options,
+        @Valid @NotNull McpConnectorModeConfiguration connectorMode,
+        @Valid @Nullable McpClientToolsFilterConfiguration tools) {
+      var targetConnectorMode =
+          tools == null
+              ? connectorMode
+              : switch (connectorMode) {
+                case McpConnectorModeConfiguration.StandaloneModeConfiguration
+                        standaloneModeConfiguration ->
+                    new McpConnectorModeConfiguration.StandaloneModeConfiguration(
+                        standaloneModeConfiguration.operation(),
+                        new McpClientStandaloneFiltersConfiguration(tools, null, null));
+                case McpConnectorModeConfiguration.ToolModeConfiguration toolModeConfiguration ->
+                    new McpConnectorModeConfiguration.ToolModeConfiguration(
+                        toolModeConfiguration.toolOperation(),
+                        new McpClientToolModeFiltersConfiguration(tools));
+              };
+
+      return new McpRemoteClientRequestData(transport, options, targetConnectorMode);
+    }
+  }
 }
