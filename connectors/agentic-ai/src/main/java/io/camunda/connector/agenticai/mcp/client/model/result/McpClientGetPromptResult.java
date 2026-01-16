@@ -14,7 +14,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import java.util.List;
 
 public record McpClientGetPromptResult(String description, List<PromptMessage> messages)
-    implements McpClientResult, McpClientResultWithStorableData {
+    implements McpClientResultWithStorableData {
 
   @Override
   public McpClientGetPromptResult convertStorableMcpResultData(DocumentFactory documentFactory) {
@@ -73,7 +73,7 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
   /**
    * Blob messages hold arbitrary binary data which is supposed to be stored as a Camunda document.
    */
-  public record BlobMessage(byte[] data, String mimeType)
+  public record BlobMessage(String mimeType, byte[] data)
       implements PromptMessageContent, StorableMcpDataContainer<PromptMessageContent> {
 
     @Override
@@ -105,9 +105,9 @@ public record McpClientGetPromptResult(String description, List<PromptMessage> m
 
     public sealed interface EmbeddedResource {
 
-      record BlobResource(String uri, byte[] blob, String mimeType) implements EmbeddedResource {}
+      record BlobResource(String uri, String mimeType, byte[] blob) implements EmbeddedResource {}
 
-      record TextResource(String uri, String text, String mimeType) implements EmbeddedResource {}
+      record TextResource(String uri, String mimeType, String text) implements EmbeddedResource {}
 
       record CamundaDocumentReference(String uri, Document data) implements EmbeddedResource {}
     }

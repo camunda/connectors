@@ -39,13 +39,7 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
     GET_PROMPT("prompts/get");
 
     private static String supportedMethods() {
-      return Stream.of(
-              LIST_TOOLS,
-              CALL_TOOL,
-              LIST_RESOURCES,
-              LIST_RESOURCE_TEMPLATES,
-              LIST_PROMPTS,
-              GET_PROMPT)
+      return Stream.of(McpMethod.values())
           .map(op -> op.methodName)
           .collect(Collectors.joining("', '"));
     }
@@ -60,7 +54,7 @@ public sealed interface McpClientOperation permits McpClientOperation.McpClientO
       throw new ConnectorException(
           McpClientErrorCodes.ERROR_CODE_INVALID_METHOD,
           String.format(
-              "Unsupported MCP method '%s'. Supported operations: '%s'",
+              "Unsupported MCP method '%s'. Supported methods: '%s'",
               rawMethod, supportedMethods()));
     }
 

@@ -18,6 +18,7 @@ import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.test.document.TestDocument;
 import io.camunda.connector.runtime.test.document.TestDocumentMetadata;
+import java.nio.charset.StandardCharsets;
 import java.time.*;
 import java.util.List;
 import java.util.Map;
@@ -34,13 +35,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class McpClientResultDocumentHandlerTest {
-
-  private static final Clock CURRENT_CLOCK =
-      Clock.fixed(
-          LocalDateTime.of(2025, Month.DECEMBER, 1, 9, 00)
-              .atZone(ZoneId.systemDefault())
-              .toInstant(),
-          ZoneId.systemDefault());
 
   @Mock private DocumentFactory documentFactory;
 
@@ -74,7 +68,7 @@ class McpClientResultDocumentHandlerTest {
 
     final var transformedResult = testee.convertBinariesToDocumentsIfPresent(givenResult);
 
-    assertThat(expectedAfterTransformation).usingRecursiveComparison().isEqualTo(transformedResult);
+    assertThat(transformedResult).usingRecursiveComparison().isEqualTo(expectedAfterTransformation);
   }
 
   static Stream<Arguments> mcpClientResultsWithoutBinaryDocumentContainers() {
@@ -126,6 +120,12 @@ class McpClientResultDocumentHandlerTest {
                     new ResourceDescription(
                         "uri", "resource-1", "A resource", "application/json")))),
         argumentSet(
+            "Read resource - with text content",
+            new McpClientReadResourceResult(
+                List.of(new ResourceData.TextResourceData("uri", "text/plain", "Some text"))),
+            new McpClientReadResourceResult(
+                List.of(new ResourceData.TextResourceData("uri", "text/plain", "Some text")))),
+        argumentSet(
             "List prompts",
             new McpClientListPromptsResult(
                 List.of(
@@ -166,7 +166,28 @@ class McpClientResultDocumentHandlerTest {
   }
 
   static Stream<Arguments> mcpClientResultsWithBinaryDocumentContainers() {
-    return Stream.of(getSinglePromptWithAllPossibleMessageTypes());
+    return Stream.of(getSinglePromptWithAllPossibleMessageTypes(), readResourceWithBinaryContent());
+  }
+
+  private static Arguments readResourceWithBinaryContent() {
+    return argumentSet(
+        "Read resource - with binary content",
+        new McpClientReadResourceResult(
+            List.of(
+                new ResourceData.BlobResourceData(
+                    "uri",
+                    "application/octet-stream",
+                    "Some text".getBytes(StandardCharsets.UTF_8)))),
+        new McpClientReadResourceResult(
+            List.of(
+                new ResourceData.CamundaDocumentResourceData(
+                    "uri",
+                    "application/octet-stream",
+                    new TestDocument(
+                        "Some text".getBytes(StandardCharsets.UTF_8),
+                        createDocumentMetadata("application/octet-stream"),
+                        null,
+                        "doc-id-0")))));
   }
 
   static Arguments getSinglePromptWithAllPossibleMessageTypes() {
@@ -180,18 +201,18 @@ class McpClientResultDocumentHandlerTest {
                 new McpClientGetPromptResult.PromptMessage(
                     "assistant",
                     new McpClientGetPromptResult.BlobMessage(
-                        "byte data".getBytes(), "application/pdf")),
+                        "application/pdf", "byte data".getBytes())),
                 new McpClientGetPromptResult.PromptMessage(
                     "user",
                     new McpClientGetPromptResult.EmbeddedResourceContent(
                         new McpClientGetPromptResult.EmbeddedResourceContent.EmbeddedResource
-                            .TextResource("uri", "Some text", "text/plain"))),
+                            .TextResource("uri", "text/plain", "Some text"))),
                 new McpClientGetPromptResult.PromptMessage(
                     "assistant",
                     new McpClientGetPromptResult.EmbeddedResourceContent(
                         new McpClientGetPromptResult.EmbeddedResourceContent.EmbeddedResource
                             .BlobResource(
-                            "uri", "blob data".getBytes(), "application/octet-stream")))));
+                            "uri", "application/octet-stream", "blob data".getBytes())))));
 
     var expected =
         new McpClientGetPromptResult(
@@ -212,7 +233,7 @@ class McpClientResultDocumentHandlerTest {
                     "user",
                     new McpClientGetPromptResult.EmbeddedResourceContent(
                         new McpClientGetPromptResult.EmbeddedResourceContent.EmbeddedResource
-                            .TextResource("uri", "Some text", "text/plain"))),
+                            .TextResource("uri", "text/plain", "Some text"))),
                 new McpClientGetPromptResult.PromptMessage(
                     "assistant",
                     new McpClientGetPromptResult.EmbeddedResourceContent(

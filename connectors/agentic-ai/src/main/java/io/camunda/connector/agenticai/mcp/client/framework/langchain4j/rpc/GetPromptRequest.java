@@ -60,7 +60,7 @@ final class GetPromptRequest {
         switch (content) {
           case McpImageContent mcpImageContent ->
               new McpClientGetPromptResult.BlobMessage(
-                  Base64.getDecoder().decode(mcpImageContent.data()), mcpImageContent.mimeType());
+                  mcpImageContent.mimeType(), Base64.getDecoder().decode(mcpImageContent.data()));
           case McpTextContent mcpTextContent ->
               new McpClientGetPromptResult.TextMessage(mcpTextContent.text());
           case McpEmbeddedResource mcpEmbeddedResource ->
@@ -77,13 +77,13 @@ final class GetPromptRequest {
           case McpBlobResourceContents mcpBlobResourceContents ->
               new McpClientGetPromptResult.EmbeddedResourceContent.EmbeddedResource.BlobResource(
                   mcpBlobResourceContents.uri(),
-                  Base64.getDecoder().decode(mcpBlobResourceContents.blob()),
-                  mcpBlobResourceContents.mimeType());
+                  mcpBlobResourceContents.mimeType(),
+                  Base64.getDecoder().decode(mcpBlobResourceContents.blob()));
           case McpTextResourceContents mcpTextResourceContents ->
               new McpClientGetPromptResult.EmbeddedResourceContent.EmbeddedResource.TextResource(
                   mcpTextResourceContents.uri(),
-                  mcpTextResourceContents.text(),
-                  mcpTextResourceContents.mimeType());
+                  mcpTextResourceContents.mimeType(),
+                  mcpTextResourceContents.text());
         });
   }
 

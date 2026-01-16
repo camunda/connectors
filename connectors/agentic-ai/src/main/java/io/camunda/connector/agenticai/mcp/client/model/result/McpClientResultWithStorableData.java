@@ -8,7 +8,8 @@ package io.camunda.connector.agenticai.mcp.client.model.result;
 
 import io.camunda.connector.api.document.DocumentFactory;
 
-public interface McpClientResultWithStorableData {
+public sealed interface McpClientResultWithStorableData extends McpClientResult
+    permits McpClientGetPromptResult, McpClientReadResourceResult {
 
   /**
    * Stores data that is marked as storable, e.g. binary data, as Camunda documents using the

@@ -236,7 +236,7 @@ class GetPromptRequestTest {
                                   .isEqualTo(
                                       new McpClientGetPromptResult.EmbeddedResourceContent
                                           .EmbeddedResource.TextResource(
-                                          "uri", "some text", "text/plain")));
+                                          "uri", "text/plain", "some text")));
                 },
             List.of(
                 new McpPromptMessage(

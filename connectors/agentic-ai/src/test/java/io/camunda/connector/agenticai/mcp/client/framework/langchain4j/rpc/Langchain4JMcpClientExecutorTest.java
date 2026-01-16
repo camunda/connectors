@@ -7,13 +7,15 @@
 package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.McpGetPromptResult;
+import dev.langchain4j.mcp.client.McpReadResourceResult;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientResultDocumentHandler;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
@@ -22,13 +24,9 @@ import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.result.*;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -52,7 +50,7 @@ class Langchain4JMcpClientExecutorTest {
     executor =
         new Langchain4JMcpClientExecutor(
             objectMapper, toolSpecificationConverter, mcpClientResultDocumentHandler);
-    lenient().when(mcpClient.key()).thenReturn("test-client");
+    when(mcpClient.key()).thenReturn("test-client");
     lenient()
         .when(mcpClientResultDocumentHandler.convertBinariesToDocumentsIfPresent(any()))
         .thenAnswer(invocation -> invocation.getArgument(0));
@@ -93,6 +91,16 @@ class Langchain4JMcpClientExecutorTest {
   }
 
   @Test
+  void returnsMcpReadResourceResult_whenReadResourceExecuted() {
+    when(mcpClient.readResource(anyString())).thenReturn(new McpReadResourceResult(List.of()));
+    final var operation =
+        McpClientOperation.of("resources/read", Map.of("uri", "test-resource-uri"));
+    final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
+
+    assertThat(result).isInstanceOf(McpClientReadResourceResult.class);
+  }
+
+  @Test
   void returnsMcpListPromptsResult_whenListPromptsExecuted() {
     final var operation = McpClientOperation.of("prompts/list");
     final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
@@ -109,20 +117,5 @@ class Langchain4JMcpClientExecutorTest {
     final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
 
     assertThat(result).isInstanceOf(McpClientGetPromptResult.class);
-  }
-
-  @ParameterizedTest
-  @MethodSource("unsupportedOperations")
-  void throwsUnsupportedOperationException_whenUnsupportedOperationIsAttempted(
-      String unsupportedMethod) {
-    final var operation = McpClientOperation.of(unsupportedMethod);
-
-    assertThatThrownBy(() -> executor.execute(mcpClient, operation, EMPTY_FILTER))
-        .isInstanceOf(UnsupportedOperationException.class)
-        .hasMessageContaining("This method is not supported yet: " + operation.method());
-  }
-
-  private static Stream<Arguments> unsupportedOperations() {
-    return Stream.of(Arguments.of("resources/read"));
   }
 }

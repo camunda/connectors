@@ -286,6 +286,38 @@ class Langchain4JMcpClientHandlerTest {
     }
 
     @Test
+    void handlesReadResourceRequest() {
+      final var request =
+          createStandaloneModeRequest(
+              new McpStandaloneOperationConfiguration.ReadResourceOperationConfiguration(
+                  "resource-1"));
+      final var expectedResult =
+          new McpClientReadResourceResult(
+              List.of(new ResourceData.TextResourceData("uri", "text/plain", "Sample text")));
+
+      when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(
+                  operation ->
+                      assertThat(operation)
+                          .isInstanceOfSatisfying(
+                              McpClientOperation.McpClientOperationImpl.class,
+                              op ->
+                                  assertThat(operation)
+                                      .returns(READ_RESOURCE, McpClientOperation::method)
+                                      .returns(
+                                          Map.of("uri", "resource-1"),
+                                          McpClientOperation::params))),
+              eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @Test
     void handlesListPromptsRequest() {
       final var request =
           createStandaloneModeRequest(

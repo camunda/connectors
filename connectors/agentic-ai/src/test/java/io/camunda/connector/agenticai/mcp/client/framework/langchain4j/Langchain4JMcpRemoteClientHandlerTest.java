@@ -356,6 +356,42 @@ class Langchain4JMcpRemoteClientHandlerTest {
     @ParameterizedTest
     @MethodSource(
         "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
+    void handlesReadResourceRequest(McpRemoteClientTransportConfiguration transport) {
+      final var request =
+          createStandaloneModeRequest(
+              transport,
+              false,
+              new McpStandaloneOperationConfiguration.ReadResourceOperationConfiguration(
+                  "resource-1"));
+      final var expectedResult =
+          new McpClientReadResourceResult(
+              List.of(new ResourceData.TextResourceData("uri", "text/plain", "Sample text")));
+
+      when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
+      when(clientExecutor.execute(
+              eq(mcpClient),
+              assertArg(
+                  operation ->
+                      assertThat(operation)
+                          .isInstanceOfSatisfying(
+                              McpClientOperation.McpClientOperationImpl.class,
+                              op ->
+                                  assertThat(operation)
+                                      .returns(READ_RESOURCE, McpClientOperation::method)
+                                      .returns(
+                                          Map.of("uri", "resource-1"),
+                                          McpClientOperation::params))),
+              eq(EMPTY_FILTER)))
+          .thenReturn(expectedResult);
+
+      final var result = handler.handle(context, request);
+
+      assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpRemoteClientHandlerTest#transports")
     void handlesListPromptsRequest(McpRemoteClientTransportConfiguration transport) {
       final var request =
           createStandaloneModeRequest(
