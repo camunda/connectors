@@ -25,7 +25,7 @@ import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
-import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionId;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.io.FileInputStream;
 import java.util.List;
@@ -124,7 +124,7 @@ public class ProcessDefinitionInspectorUtilTests {
       var inspector = new ProcessDefinitionInspector(searchQueryClientMock);
       var modelFile = ResourceUtils.getFile("classpath:bpmn/" + fileName);
       var model = Bpmn.readModelFromStream(new FileInputStream(modelFile));
-      var processDefinitionID = new ProcessDefinitionId(processId, "tenant1");
+      var processDefinitionID = new ProcessDefinitionRef(processId, "tenant1");
       var processDefinitionKey = 1L;
       when(searchQueryClientMock.getProcessModel(processDefinitionKey)).thenReturn(model);
       var pdMock = mock(ProcessDefinition.class);

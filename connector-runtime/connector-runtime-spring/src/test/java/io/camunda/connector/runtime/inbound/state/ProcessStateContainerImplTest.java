@@ -20,8 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult.ImportType;
-import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionId;
-import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionIdAndKey;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
+import io.camunda.connector.runtime.inbound.state.model.StateUpdateResult.ProcessDefinitionRefAndKey;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,19 +38,19 @@ class ProcessStateContainerImplTest {
   }
 
   // Helper methods
-  private ProcessDefinitionId processId(String bpmnProcessId, String tenantId) {
-    return new ProcessDefinitionId(bpmnProcessId, tenantId);
+  private ProcessDefinitionRef processId(String bpmnProcessId, String tenantId) {
+    return new ProcessDefinitionRef(bpmnProcessId, tenantId);
   }
 
-  private ProcessDefinitionIdAndKey processIdAndKey(
+  private ProcessDefinitionRefAndKey processIdAndKey(
       String bpmnProcessId, String tenantId, Long key) {
-    return new ProcessDefinitionIdAndKey(new ProcessDefinitionId(bpmnProcessId, tenantId), key);
+    return new ProcessDefinitionRefAndKey(new ProcessDefinitionRef(bpmnProcessId, tenantId), key);
   }
 
   // only for single process imports in tests
   // for multiple processes, use the constructor of ImportResult directly
   private ImportResult importResult(
-      ProcessDefinitionId processId, Set<Long> keys, ImportType type) {
+      ProcessDefinitionRef processId, Set<Long> keys, ImportType type) {
     return new ImportResult(Map.of(processId, keys), type);
   }
 

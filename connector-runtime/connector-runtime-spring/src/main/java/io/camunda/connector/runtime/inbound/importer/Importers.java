@@ -20,7 +20,7 @@ import io.camunda.client.api.search.response.MessageSubscription;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult.ImportType;
-import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionId;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -41,12 +41,12 @@ public class Importers {
   public ImportResult importLatestVersions() {
     LOGGER.debug("Starting import of LATEST versions");
 
-    Map<ProcessDefinitionId, Set<Long>> result =
+    Map<ProcessDefinitionRef, Set<Long>> result =
         PaginatedSearchUtil.queryAllPages(searchQueryClient::queryProcessDefinitions).stream()
             .collect(
                 Collectors.toMap(
                     definition ->
-                        new ProcessDefinitionId(
+                        new ProcessDefinitionRef(
                             definition.getProcessDefinitionId(), definition.getTenantId()),
                     definition -> Collections.singleton(definition.getProcessDefinitionKey())));
 
@@ -70,13 +70,13 @@ public class Importers {
   public ImportResult importActiveVersions() {
     LOGGER.debug("Starting import of ACTIVE versions");
 
-    Map<ProcessDefinitionId, Set<Long>> result =
+    Map<ProcessDefinitionRef, Set<Long>> result =
         PaginatedSearchUtil.queryAllPages(searchQueryClient::queryMessageSubscriptions).stream()
             .filter(Importers::isProcessDefinitionKeyNotNull)
             .collect(
                 Collectors.groupingBy(
                     subscription ->
-                        new ProcessDefinitionId(
+                        new ProcessDefinitionRef(
                             subscription.getProcessDefinitionId(), subscription.getTenantId()),
                     Collectors.mapping(
                         MessageSubscription::getProcessDefinitionKey, Collectors.toSet())));

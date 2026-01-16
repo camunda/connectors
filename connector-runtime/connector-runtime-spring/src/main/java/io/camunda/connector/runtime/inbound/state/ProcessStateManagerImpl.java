@@ -20,9 +20,9 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
-import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionId;
-import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionIdAndKey;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import io.camunda.connector.runtime.inbound.state.model.StateUpdateResult;
+import io.camunda.connector.runtime.inbound.state.model.StateUpdateResult.ProcessDefinitionRefAndKey;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +52,7 @@ public class ProcessStateManagerImpl implements ProcessStateManager {
   }
 
   private List<InboundConnectorElement> getConnectors(
-      ProcessDefinitionId id, long processDefinitionKey) {
+      ProcessDefinitionRef id, long processDefinitionKey) {
     var elements = processDefinitionInspector.findInboundConnectors(id, processDefinitionKey);
     if (elements.isEmpty()) {
       LOG.debug("No inbound connectors found for process {}", id.bpmnProcessId());
@@ -60,7 +60,7 @@ public class ProcessStateManagerImpl implements ProcessStateManager {
     return elements;
   }
 
-  private void publishActivateEvent(ProcessDefinitionIdAndKey processDefinition) {
+  private void publishActivateEvent(ProcessDefinitionRefAndKey processDefinition) {
     try {
       var elements = getConnectors(processDefinition.id(), processDefinition.key());
       var event =
@@ -76,7 +76,7 @@ public class ProcessStateManagerImpl implements ProcessStateManager {
     }
   }
 
-  private void publishDeactivateEvent(ProcessDefinitionIdAndKey processDefinition) {
+  private void publishDeactivateEvent(ProcessDefinitionRefAndKey processDefinition) {
     try {
       var event =
           new InboundExecutableEvent.Deactivated(

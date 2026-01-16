@@ -19,4 +19,11 @@ package io.camunda.connector.runtime.inbound.state.model;
 import java.util.Set;
 
 public record StateUpdateResult(
-    Set<ProcessDefinitionIdAndKey> toActivate, Set<ProcessDefinitionIdAndKey> toDeactivate) {}
+    Set<ProcessDefinitionRefAndKey> toActivate, Set<ProcessDefinitionRefAndKey> toDeactivate) {
+
+  /**
+   * A combination of process definition reference (bpmnProcessId + tenantId) and the process
+   * definition key identifying the specific version of this process definition.
+   */
+  public record ProcessDefinitionRefAndKey(ProcessDefinitionRef id, long key) {}
+}

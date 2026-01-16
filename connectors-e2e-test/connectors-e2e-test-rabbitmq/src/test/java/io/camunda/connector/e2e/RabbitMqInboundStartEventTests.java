@@ -30,7 +30,7 @@ import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
-import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionId;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
@@ -170,7 +170,7 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
     var bpmnId = model.getModelElementsByType(Process.class).stream().findFirst().get().getId();
     var tenantId = camundaClient.getConfiguration().getDefaultTenantId();
     return new ImportResult(
-        Map.of(new ProcessDefinitionId(bpmnId, tenantId), Set.of(1L)),
+        Map.of(new ProcessDefinitionRef(bpmnId, tenantId), Set.of(1L)),
         ImportResult.ImportType.LATEST_VERSIONS);
   }
 }

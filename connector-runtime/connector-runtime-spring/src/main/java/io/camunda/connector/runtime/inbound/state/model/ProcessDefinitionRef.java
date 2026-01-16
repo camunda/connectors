@@ -16,4 +16,5 @@
  */
 package io.camunda.connector.runtime.inbound.state.model;
 
-public record ProcessDefinitionVersion(long processDefinitionKey, int version) {}
+/** A composite key for identifying a process definition by its BPMN process ID and tenant ID. */
+public record ProcessDefinitionRef(String bpmnProcessId, String tenantId) {}
