@@ -31,7 +31,7 @@ public class McpClientResultDocumentHandler {
    * convert it into documents, is implemented in the respective target class.
    *
    * @param clientResult the client result to convert potentially storable data for
-   * @return the <tt>clientResult</tt> if it is not an instance of {@link
+   * @return the {@code McpClientResult} if it is not an instance of {@link
    *     McpClientResultWithStorableData}, otherwise a new instance holding references to created
    *     documents for any storable data
    */

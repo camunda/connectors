@@ -12,8 +12,8 @@ public interface McpClientResultWithStorableData {
 
   /**
    * Stores data that is marked as storable, e.g. binary data, as Camunda documents using the
-   * provided <tt>documentFactory</tt> and returns a new instance of the result holding references
-   * to the created documents.
+   * provided {@code DocumentFactory} and returns a new instance of the result holding references to
+   * the created documents.
    *
    * @param documentFactory responsible for creating the actual documents in Camunda.
    * @return a new instance of the result holding references to the created documents, if eligible
@@ -28,7 +28,7 @@ public interface McpClientResultWithStorableData {
   interface StorableMcpDataContainer<T> {
 
     /**
-     * If conditions are met, creates a Camunda document using the provided <tt>documentFactory</tt>
+     * If conditions are met, creates a Camunda document using the provided {@code DocumentFactory}
      * and returns a new value that holds a reference to the created document.
      *
      * @param documentFactory the document factory that is responsible to create the document in
