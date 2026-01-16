@@ -44,7 +44,7 @@ import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult.ImportType;
-import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionId;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
@@ -351,7 +351,7 @@ public class HttpTests {
     stateStore.update(
         new ImportResult(
             Map.of(
-                new ProcessDefinitionId(
+                new ProcessDefinitionRef(
                     processDef.getProcessDefinitionId(), processDef.getTenantId()),
                 Set.of(processDef.getProcessDefinitionKey())),
             ImportType.LATEST_VERSIONS));
@@ -389,7 +389,7 @@ public class HttpTests {
     stateStore.update(
         new ImportResult(
             Map.of(
-                new ProcessDefinitionId(
+                new ProcessDefinitionRef(
                     processDef.getProcessDefinitionId(), processDef.getTenantId()),
                 Set.of(processDef.getProcessDefinitionKey())),
             ImportType.LATEST_VERSIONS));

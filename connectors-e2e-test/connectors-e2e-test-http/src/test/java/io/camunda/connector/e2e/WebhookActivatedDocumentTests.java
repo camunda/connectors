@@ -34,7 +34,7 @@ import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
-import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionId;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.util.Collections;
@@ -131,7 +131,7 @@ public class WebhookActivatedDocumentTests {
     stateStore.update(
         new ImportResult(
             Map.of(
-                new ProcessDefinitionId(
+                new ProcessDefinitionRef(
                     processDef.getProcessDefinitionId(), processDef.getTenantId()),
                 Collections.singleton(processDef.getProcessDefinitionKey())),
             ImportResult.ImportType.LATEST_VERSIONS));

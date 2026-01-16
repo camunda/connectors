@@ -20,12 +20,20 @@ import java.util.Map;
 import java.util.Set;
 
 public record ImportResult(
-    Map<ProcessDefinitionId, Set<Long>> processDefinitionKeysByProcessId, ImportType importType) {
+    Map<ProcessDefinitionRef, Set<Long>> processDefinitionKeysByProcessId, ImportType importType) {
   public enum ImportType {
-    /** The import includes only the latest versions of the process definitions. */
+    /**
+     * The import includes only the latest versions of the process definitions. This means that for
+     * each process definition, only one version is included in the import.
+     */
     LATEST_VERSIONS,
 
-    /** The import includes all process definitions that have active subscriptions. */
+    /**
+     * The import includes all process definitions that have active subscriptions. The resulting
+     * sets may overlap with the LATEST_VERSIONS import if the latest version of a process
+     * definition has an active subscription. We handle this in the state update logic, see {@link
+     * io.camunda.connector.runtime.inbound.state.ProcessStateContainer#compareAndUpdate(ImportResult)}.
+     */
     HAVE_ACTIVE_SUBSCRIPTIONS
   }
 }

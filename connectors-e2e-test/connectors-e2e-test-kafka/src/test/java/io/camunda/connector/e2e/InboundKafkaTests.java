@@ -24,7 +24,7 @@ import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.e2e.helper.KafkaTestProducer;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
-import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionId;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
@@ -88,7 +88,7 @@ public class InboundKafkaTests extends BaseKafkaTest {
     processStateManager.update(
         new ImportResult(
             Map.of(
-                new ProcessDefinitionId(
+                new ProcessDefinitionRef(
                     processDef.getProcessDefinitionId(), processDef.getTenantId()),
                 Set.of(processDef.getProcessDefinitionKey())),
             ImportResult.ImportType.LATEST_VERSIONS));
@@ -131,7 +131,7 @@ public class InboundKafkaTests extends BaseKafkaTest {
     processStateManager.update(
         new ImportResult(
             Map.of(
-                new ProcessDefinitionId(
+                new ProcessDefinitionRef(
                     processDef.getProcessDefinitionId(), processDef.getTenantId()),
                 Set.of(processDef.getProcessDefinitionKey())),
             ImportResult.ImportType.LATEST_VERSIONS));

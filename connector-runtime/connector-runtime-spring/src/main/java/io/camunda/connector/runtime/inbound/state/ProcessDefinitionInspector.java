@@ -31,8 +31,8 @@ import io.camunda.connector.runtime.core.inbound.correlation.MessageStartEventCo
 import io.camunda.connector.runtime.core.inbound.correlation.ProcessCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
-import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionId;
-import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionVersion;
+import io.camunda.connector.runtime.inbound.state.model.DeployedVersionRef;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.BaseElement;
 import io.camunda.zeebe.model.bpmn.instance.BoundaryEvent;
@@ -85,7 +85,7 @@ public class ProcessDefinitionInspector {
   }
 
   public List<InboundConnectorElement> findInboundConnectors(
-      ProcessDefinitionId identifier, long processDefinitionKey) {
+      ProcessDefinitionRef identifier, long processDefinitionKey) {
 
     LOG.debug("Checking {} (key {}) for connectors.", identifier, processDefinitionKey);
     BpmnModelInstance modelInstance = searchQueryClient.getProcessModel(processDefinitionKey);
@@ -101,7 +101,7 @@ public class ProcessDefinitionInspector {
   }
 
   private List<InboundConnectorElement> inspectBpmnProcess(
-      Process process, ProcessDefinitionId identifier, long processDefinitionKey) {
+      Process process, ProcessDefinitionRef identifier, long processDefinitionKey) {
     Collection<BaseElement> inboundEligibleElements = retrieveEligibleElementsFromProcess(process);
     if (inboundEligibleElements.isEmpty()) {
       LOG.debug(
@@ -116,8 +116,7 @@ public class ProcessDefinitionInspector {
     // latest version imports, not for active version imports). Thus +1 call per process here,
     // but only if inbound connectors are found => should not be too bad for performance.
     var processDefinition = searchQueryClient.getProcessDefinition(processDefinitionKey);
-    var version =
-        new ProcessDefinitionVersion(processDefinitionKey, processDefinition.getVersion());
+    var version = new DeployedVersionRef(processDefinitionKey, processDefinition.getVersion());
 
     List<InboundConnectorElement> discoveredInboundConnectors = new ArrayList<>();
     for (BaseElement element : inboundEligibleElements) {
@@ -195,8 +194,8 @@ public class ProcessDefinitionInspector {
   private Optional<ProcessCorrelationPoint> getCorrelationPointForElement(
       BaseElement element,
       Process process,
-      ProcessDefinitionId identifier,
-      ProcessDefinitionVersion version) {
+      ProcessDefinitionRef identifier,
+      DeployedVersionRef version) {
     try {
       if (element instanceof StartEvent se) {
         return getCorrelationPointForStartEvent(se, process, version);
@@ -277,7 +276,7 @@ public class ProcessDefinitionInspector {
   }
 
   private Optional<ProcessCorrelationPoint> getCorrelationPointForStartEvent(
-      StartEvent startEvent, Process process, ProcessDefinitionVersion version) {
+      StartEvent startEvent, Process process, DeployedVersionRef version) {
 
     MessageEventDefinition msgDef =
         (MessageEventDefinition)

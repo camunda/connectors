@@ -16,4 +16,5 @@
  */
 package io.camunda.connector.runtime.inbound.state.model;
 
-public record ProcessDefinitionIdAndKey(ProcessDefinitionId id, long key) {}
+/** Reference to a specific deployed version of a process definition. */
+public record DeployedVersionRef(long processDefinitionKey, int version) {}
