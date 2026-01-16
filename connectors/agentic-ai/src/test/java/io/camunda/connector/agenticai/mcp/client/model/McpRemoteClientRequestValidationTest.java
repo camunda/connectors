@@ -71,7 +71,7 @@ class McpRemoteClientRequestValidationTest {
     final var transport = createValidTransport();
     final var options = createOptionsConfiguration(false);
     final var tools = new McpClientToolsFilterConfiguration(null, null);
-    final var connectorMode = createValidConnectorMode();
+    final var connectorMode = createValidConnectorMode(tools);
     final var requestData = new McpRemoteClientRequestData(transport, options, connectorMode);
     final var request = new McpRemoteClientRequest(requestData);
 
