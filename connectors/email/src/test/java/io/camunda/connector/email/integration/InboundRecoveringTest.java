@@ -9,7 +9,6 @@ package io.camunda.connector.email.integration;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.api.inbound.CorrelationResult;
@@ -30,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -49,7 +49,10 @@ public class InboundRecoveringTest extends BaseEmailTest {
     jakartaEmailListener.stopListener();
   }
 
-  @Test
+  @RepeatedTest(
+      value = 5,
+      name = "{displayName} - repetition {currentRepetition} of {totalRepetitions}",
+      failureThreshold = 1)
   public void pollingManagerBreaksAndRecoverAfterServerNotResponding() {
     try (ImapServerProxy proxyImap =
         new ImapServerProxy(
@@ -123,6 +126,12 @@ public class InboundRecoveringTest extends BaseEmailTest {
                       .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
 
     } catch (Exception e) {
+      if (e instanceof IllegalStateException
+          && e.getCause().getCause() instanceof java.net.SocketException) {
+        // This exception is expected because the proxy may cut the connection while the client
+        // is using it
+        return;
+      }
       throw new RuntimeException(e);
     }
   }
