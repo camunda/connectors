@@ -630,6 +630,6 @@ jobs:
           method: chat.postMessage
           payload: |
             {
-              "channel": "C05K4TAEPDW",
+              "channel": "${{ secrets.CONNECTORS_QA_SLACK_CHANNEL_ID }}",
               "text": ":alarm: <@connectors-release-manager> Release workflow failed for version `${{ inputs.version }}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             }
