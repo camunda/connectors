@@ -21,6 +21,13 @@ public record McpClientRequest(@Valid @NotNull McpClientRequestData data) {
       @Valid @NotNull ClientConfiguration client,
       @Valid @NotNull McpConnectorModeConfiguration connectorMode) {
 
+    /**
+     * Creator method, especially for deserialization, for constructing McpClientRequestData from deprecated structure, where
+     * filters where only applicable for MCP tools and not for other connector modes, thus the
+     * filter being on this level instead of inside the connector mode.
+     *
+     * @deprecated This is only used to ensure element templates of version < 2 are still supported
+     */
     @JsonCreator
     @Deprecated(forRemoval = true)
     public static McpClientRequestData create(
