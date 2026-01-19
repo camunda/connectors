@@ -14,14 +14,14 @@ Plain text mentions like `@username` or `@groupname` will **not** work—they ap
 
 Configure these GitHub repository secrets with the appropriate Slack mention format:
 
-### 1. CONNECTORS_RELEASE_MANAGER_SLACK_MENTION
+### 1. CONNECTORS_RELEASE_MANAGER_SLACK_GROUP_ID
 Used in `RELEASE.yaml` to notify the release manager when the release workflow fails.
 
 **Value format:**
 - If `connectors-release-manager` is a **user group**: `<!subteam^S0123456789>`
 - If it's an **individual user**: `<@U024BE7LH>`
 
-### 2. CONNECTOR_MEDIC_SLACK_MENTION
+### 2. CONNECTORS_MEDIC_SLACK_GROUP_ID
 Used in `DEPLOY_SNAPSHOTS.yaml` to notify the connector medic when the deploy snapshots workflow fails.
 
 **Value format:**

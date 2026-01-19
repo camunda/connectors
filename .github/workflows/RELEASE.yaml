@@ -634,5 +634,5 @@ jobs:
           payload: |
             {
               "channel": "${{ secrets.CONNECTORS_QA_SLACK_CHANNEL_ID }}",
-              "text": ":alarm: ${{ secrets.CONNECTORS_RELEASE_MANAGER_SLACK_MENTION }} Release workflow failed for version `${{ inputs.version }}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              "text": ":alarm: ${{ secrets.CONNECTORS_RELEASE_MANAGER_SLACK_GROUP_ID }} Release workflow failed for version `${{ inputs.version }}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             }
