@@ -39,7 +39,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
           tooltip =
               "Select how this connector is used. When the connector is used as an AI agent tool, select the AI Agent tool mode."),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
-      @ElementTemplate.PropertyGroup(id = "tools", label = "Tools", openByDefault = false),
+      @ElementTemplate.PropertyGroup(id = "filters", label = "Filters", openByDefault = false),
     },
     extensionProperties = {
       @ElementTemplate.ExtensionProperty(

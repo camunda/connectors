@@ -29,7 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ListToolsRequestTest {
 
-  private static final AllowDenyList EMPTY_FILTER = AllowDenyListBuilder.builder().build();
+  private static final AllowDenyList EMPTY_FILTER = AllowDenyList.allowingEverything();
 
   @Mock private ToolSpecificationConverter toolSpecificationConverter;
   @Mock private McpClient mcpClient;

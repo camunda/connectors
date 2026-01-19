@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.McpPromptArgument;
+import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListPromptsResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.PromptDescription;
 import java.util.Collections;
@@ -18,23 +19,35 @@ final class ListPromptsRequest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ListPromptsRequest.class);
 
-  public McpClientListPromptsResult execute(McpClient client) {
+  public McpClientListPromptsResult execute(McpClient client, AllowDenyList promptsFilter) {
     LOGGER.debug("MCP({}): Executing list prompts", client.key());
 
     var fetchedPrompts = client.listPrompts();
 
+    if (fetchedPrompts.isEmpty()) {
+      LOGGER.debug("MCP({}): No prompts found", client.key());
+      return new McpClientListPromptsResult(Collections.emptyList());
+    }
+
+    final var filteredPrompts =
+        fetchedPrompts.stream().filter(prompt -> promptsFilter.isPassing(prompt.name())).toList();
+
+    if (filteredPrompts.isEmpty()) {
+      LOGGER.debug(
+          "MCP({}): No prompts left after filtering. Filter: {}", client.key(), promptsFilter);
+      return new McpClientListPromptsResult(Collections.emptyList());
+    }
+
     var result =
         new McpClientListPromptsResult(
-            fetchedPrompts.isEmpty()
-                ? Collections.emptyList()
-                : fetchedPrompts.stream()
-                    .map(
-                        fr ->
-                            new PromptDescription(
-                                fr.name(),
-                                fr.description(),
-                                fr.arguments().stream().map(this::from).toList()))
-                    .toList());
+            filteredPrompts.stream()
+                .map(
+                    fr ->
+                        new PromptDescription(
+                            fr.name(),
+                            fr.description(),
+                            fr.arguments().stream().map(this::from).toList()))
+                .toList());
 
     LOGGER.debug(
         "MCP({}): Resolved list of prompts: {}",

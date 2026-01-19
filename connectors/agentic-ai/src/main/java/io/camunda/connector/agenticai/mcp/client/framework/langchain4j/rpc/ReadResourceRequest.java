@@ -11,6 +11,7 @@ import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.McpResourceContents;
 import dev.langchain4j.mcp.client.McpTextResourceContents;
 import io.camunda.connector.agenticai.mcp.McpClientErrorCodes;
+import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientReadResourceResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceData;
 import io.camunda.connector.api.error.ConnectorException;
@@ -26,8 +27,21 @@ public class ReadResourceRequest {
 
   private static final String RESOURCE_URI_KEY = "uri";
 
-  public McpClientReadResourceResult execute(McpClient client, Map<String, Object> params) {
+  public McpClientReadResourceResult execute(
+      McpClient client, AllowDenyList resourceUriFilter, Map<String, Object> params) {
     var resourceUri = getResourceUri(params);
+
+    if (!resourceUriFilter.isPassing(resourceUri)) {
+      LOGGER.error(
+          "MCP({}): Resource '{}' is not allowed by the filter {}.",
+          client.key(),
+          resourceUri,
+          resourceUriFilter);
+      throw new ConnectorException(
+          McpClientErrorCodes.ERROR_CODE_READ_RESOURCE_ERROR,
+          "Reading resource '%s' is not allowed by filter configuration: %s"
+              .formatted(resourceUri, resourceUriFilter));
+    }
 
     try {
       LOGGER.debug(

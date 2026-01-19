@@ -14,4 +14,6 @@ public record FilterOptions(
     @RecordBuilder.Initializer(source = AllowDenyList.class, value = "allowingEverything")
         AllowDenyList toolFilters,
     @RecordBuilder.Initializer(source = AllowDenyList.class, value = "allowingEverything")
-        AllowDenyList resourceFilters) {}
+        AllowDenyList resourceFilters,
+    @RecordBuilder.Initializer(source = AllowDenyList.class, value = "allowingEverything")
+        AllowDenyList promptFilters) {}

@@ -36,8 +36,8 @@
     "id" : "operation",
     "label" : "Operation"
   }, {
-    "id" : "tools",
-    "label" : "Tools",
+    "id" : "filters",
+    "label" : "Filters",
     "openByDefault" : false
   }, {
     "id" : "connector",
@@ -962,27 +962,175 @@
     "tooltip" : "The parameter structure depends on the method being called. See the <a href=\"https://modelcontextprotocol.io/specification/2024-11-05/server/tools#calling-tools\">MCP specification</a> for an example of the parameters for the <code>tools/call</code> method.",
     "type" : "String"
   }, {
-    "id" : "data.tools.included",
+    "id" : "data.connectorMode.standaloneModeFilters.tools.included",
     "label" : "Included tools",
     "description" : "List of tools that can be used by the MCP client. By default, all tools are allowed.",
     "optional" : true,
     "feel" : "required",
-    "group" : "tools",
+    "group" : "filters",
     "binding" : {
-      "name" : "data.tools.included",
+      "name" : "data.connectorMode.standaloneModeFilters.tools.included",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.type",
+        "oneOf" : [ "tools/call", "tools/list" ],
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
     },
     "type" : "Text"
   }, {
-    "id" : "data.tools.excluded",
+    "id" : "data.connectorMode.standaloneModeFilters.tools.excluded",
     "label" : "Excluded tools",
     "description" : "List of tools that are not allowed to be used by the MCP client. Will override any included tools.",
     "optional" : true,
     "feel" : "required",
-    "group" : "tools",
+    "group" : "filters",
     "binding" : {
-      "name" : "data.tools.excluded",
+      "name" : "data.connectorMode.standaloneModeFilters.tools.excluded",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.type",
+        "oneOf" : [ "tools/call", "tools/list" ],
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Text"
+  }, {
+    "id" : "data.connectorMode.standaloneModeFilters.resources.included",
+    "label" : "Included resources",
+    "description" : "List of resources that can be accessed by the MCP client. By default, all resources are allowed.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "filters",
+    "binding" : {
+      "name" : "data.connectorMode.standaloneModeFilters.resources.included",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.type",
+        "oneOf" : [ "resources/read", "resources/list", "resources/templates/list" ],
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Text"
+  }, {
+    "id" : "data.connectorMode.standaloneModeFilters.resources.excluded",
+    "label" : "Excluded resources",
+    "description" : "List of resources that are not allowed to be accessed by the MCP client. Will override any included resources.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "filters",
+    "binding" : {
+      "name" : "data.connectorMode.standaloneModeFilters.resources.excluded",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.type",
+        "oneOf" : [ "resources/read", "resources/list", "resources/templates/list" ],
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Text"
+  }, {
+    "id" : "data.connectorMode.standaloneModeFilters.prompts.included",
+    "label" : "Included prompts",
+    "description" : "List of prompts that can be accessed by the MCP client. By default, all prompts are allowed.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "filters",
+    "binding" : {
+      "name" : "data.connectorMode.standaloneModeFilters.prompts.included",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.type",
+        "oneOf" : [ "prompts/get", "prompts/list" ],
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Text"
+  }, {
+    "id" : "data.connectorMode.standaloneModeFilters.prompts.excluded",
+    "label" : "Excluded prompts",
+    "description" : "List of prompts that are not allowed to be accessed by the MCP client. Will override any included prompts.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "filters",
+    "binding" : {
+      "name" : "data.connectorMode.standaloneModeFilters.prompts.excluded",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.connectorMode.operation.type",
+        "oneOf" : [ "prompts/get", "prompts/list" ],
+        "type" : "simple"
+      }, {
+        "property" : "data.connectorMode.type",
+        "equals" : "standalone",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Text"
+  }, {
+    "id" : "data.connectorMode.toolModeFilters.tools.included",
+    "label" : "Included tools",
+    "description" : "List of tools that can be used by the MCP client. By default, all tools are allowed.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "filters",
+    "binding" : {
+      "name" : "data.connectorMode.toolModeFilters.tools.included",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode.type",
+      "equals" : "aiAgentTool",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "data.connectorMode.toolModeFilters.tools.excluded",
+    "label" : "Excluded tools",
+    "description" : "List of tools that are not allowed to be used by the MCP client. Will override any included tools.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "filters",
+    "binding" : {
+      "name" : "data.connectorMode.toolModeFilters.tools.excluded",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.connectorMode.type",
+      "equals" : "aiAgentTool",
+      "type" : "simple"
     },
     "type" : "Text"
   }, {
