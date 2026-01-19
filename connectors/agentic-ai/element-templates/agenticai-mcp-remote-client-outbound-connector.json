@@ -37,7 +37,7 @@
     "label" : "Operation"
   }, {
     "id" : "filters",
-    "label" : "Filter",
+    "label" : "Filters",
     "openByDefault" : false
   }, {
     "id" : "connector",
