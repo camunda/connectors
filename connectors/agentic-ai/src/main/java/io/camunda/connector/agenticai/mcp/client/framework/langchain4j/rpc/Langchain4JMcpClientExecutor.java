@@ -52,7 +52,9 @@ public class Langchain4JMcpClientExecutor {
       case LIST_PROMPTS -> new ListPromptsRequest().execute(client, filterOptions.promptFilters());
       case GET_PROMPT ->
           new GetPromptRequest().execute(client, filterOptions.promptFilters(), operation.params());
-      case READ_RESOURCE -> new ReadResourceRequest().execute(client, operation.params());
+      case READ_RESOURCE ->
+          new ReadResourceRequest()
+              .execute(client, filterOptions.resourceFilters(), operation.params());
     };
   }
 }
