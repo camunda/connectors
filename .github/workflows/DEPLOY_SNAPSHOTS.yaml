@@ -243,7 +243,7 @@ jobs:
   notify-failure:
     name: Notify on failure
     runs-on: ubuntu-latest
-    needs: [deploy-snapshots, helm-deploy]
+    needs: [ deploy-snapshots, helm-deploy ]
     if: failure()
     steps:
       - name: Send Slack notification on failure
@@ -254,5 +254,5 @@ jobs:
           payload: |
             {
               "channel": "${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }}",
-              "text": ":alarm: <@connector-medic> Deploy snapshots workflow failed on branch `${{ github.ref_name }}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              "text": ":alarm: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }} Deploy snapshots workflow failed on branch `${{ github.ref_name }}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             }
