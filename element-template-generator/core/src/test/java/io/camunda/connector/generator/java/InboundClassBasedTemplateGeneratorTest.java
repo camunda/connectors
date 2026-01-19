@@ -141,8 +141,6 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
                   null,
                   null),
               new ConnectorElementType(
-                  Set.of(BpmnType.START_EVENT), BpmnType.START_EVENT, null, null),
-              new ConnectorElementType(
                   Set.of(BpmnType.START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null),
               new ConnectorElementType(
                   Set.of(BpmnType.BOUNDARY_EVENT), BpmnType.BOUNDARY_EVENT, null, null));
@@ -186,24 +184,6 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(property.getBinding().type()).isEqualTo("bpmn:Message#property");
       assertThat(((MessageProperty) property.getBinding()).name()).isEqualTo("name");
       assertThat(property.getGeneratedValue()).isNotNull();
-    }
-
-    @Test
-    void nonMessageTypes_dontHaveMessageIdProperty() {
-      // given
-      var type =
-          new ConnectorElementType(Set.of(BpmnType.START_EVENT), BpmnType.START_EVENT, null, null);
-      var config =
-          new GeneratorConfiguration(
-              ConnectorMode.NORMAL, null, null, null, Set.of(type), Map.of());
-
-      // when
-      var templates = generator.generate(MyConnectorExecutable.MinimallyAnnotated.class, config);
-
-      // then
-      assertThat(templates).hasSize(1);
-      var template = templates.getFirst();
-      assertThrows(Exception.class, () -> getPropertyById("messageNameUuid", template));
     }
 
     @Test
