@@ -38,8 +38,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -72,8 +70,6 @@ public class SecurityConfigurationTest {
   @MockitoBean(answers = Answers.RETURNS_MOCKS)
   public SaaSSecretConfiguration saaSSecretConfiguration;
 
-  // needed to access /actuator endpoints
-  @Autowired RestTemplateBuilder restTemplateBuilder;
   @LocalManagementPort int managementPort;
   @Autowired private MockMvc mvc;
 
@@ -160,12 +156,12 @@ public class SecurityConfigurationTest {
   @Test
   public void actuatorEndpoint_isAccessible() {
     ResponseEntity<String> response =
-        restTemplateBuilder
+        new RestTemplateBuilder()
             .rootUri("http://localhost:" + managementPort + "/actuator")
             .connectTimeout(Duration.ofSeconds(60))
             .readTimeout(Duration.ofSeconds(60))
             .build()
-            .exchange("/metrics", HttpMethod.GET, new HttpEntity<>((Void) null), String.class);
+            .getForEntity("/metrics", String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
   }
