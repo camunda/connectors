@@ -623,7 +623,7 @@ jobs:
   notify-failure:
     name: Notify on failure
     runs-on: ubuntu-latest
-    needs: [create-release, setup, maven-release, docker-release, bundle-and-build-changelog, helm-deploy, fossa_release]
+    needs: [ create-release, setup, maven-release, docker-release, bundle-and-build-changelog, helm-deploy, fossa_release ]
     if: failure()
     steps:
       - name: Send Slack notification on failure
@@ -634,5 +634,5 @@ jobs:
           payload: |
             {
               "channel": "${{ secrets.CONNECTORS_QA_SLACK_CHANNEL_ID }}",
-              "text": ":alarm: <@connectors-release-manager> Release workflow failed for version `${{ inputs.version }}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              "text": ":alarm: @connectors-release-manager Release workflow failed for version `${{ inputs.version }}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             }
