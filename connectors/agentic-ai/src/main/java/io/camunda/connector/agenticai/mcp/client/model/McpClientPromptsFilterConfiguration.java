@@ -11,29 +11,30 @@ import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 
-public record McpClientToolsConfiguration(
+public record McpClientPromptsFilterConfiguration(
     @FEEL
         @TemplateProperty(
-            group = "tools",
-            label = "Included tools",
+            group = "filters",
+            label = "Included prompts",
             description =
-                "List of tools that can be used by the MCP client. By default, all tools are allowed.",
+                "List of prompts that can be accessed by the MCP client. By default, all prompts are allowed.",
             type = TemplateProperty.PropertyType.Text,
             feel = Property.FeelMode.required,
             optional = true)
-        List<String> included,
+        List<@NotBlank String> included,
     @FEEL
         @TemplateProperty(
-            group = "tools",
-            label = "Excluded tools",
+            group = "filters",
+            label = "Excluded prompts",
             description =
-                "List of tools that are not allowed to be used by the MCP client. Will override any included tools.",
+                "List of prompts that are not allowed to be accessed by the MCP client. Will override any included prompts.",
             type = TemplateProperty.PropertyType.Text,
             feel = Property.FeelMode.required,
             optional = true)
-        List<String> excluded) {
+        List<@NotBlank String> excluded) {
 
   public AllowDenyList toAllowDenyList() {
     return AllowDenyListBuilder.builder().allowed(included).denied(excluded).build();

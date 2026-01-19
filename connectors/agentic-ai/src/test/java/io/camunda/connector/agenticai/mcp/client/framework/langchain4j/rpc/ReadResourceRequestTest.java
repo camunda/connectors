@@ -15,6 +15,8 @@ import dev.langchain4j.mcp.client.McpBlobResourceContents;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.McpReadResourceResult;
 import dev.langchain4j.mcp.client.McpTextResourceContents;
+import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
+import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceData;
 import io.camunda.connector.api.error.ConnectorException;
 import java.nio.charset.StandardCharsets;
@@ -30,6 +32,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class ReadResourceRequestTest {
+
+  private static final AllowDenyList EMPTY_FILTER = AllowDenyList.allowingEverything();
 
   @Mock private McpClient mcpClient;
 
@@ -47,7 +51,7 @@ class ReadResourceRequestTest {
 
     when(mcpClient.readResource("contents-123")).thenReturn(response);
 
-    final var result = testee.execute(mcpClient, requestParams);
+    final var result = testee.execute(mcpClient, EMPTY_FILTER, requestParams);
 
     assertThat(result.contents())
         .asInstanceOf(LIST)
@@ -63,13 +67,43 @@ class ReadResourceRequestTest {
   }
 
   @Test
+  void readsResource_whenResourcePassesAllowFilter() {
+    when(mcpClient.readResource("allowed-resource"))
+        .thenReturn(
+            new McpReadResourceResult(
+                List.of(new McpTextResourceContents("allowed-resource", "content", "text/plain"))));
+
+    final var filter = AllowDenyListBuilder.builder().allowed(List.of("allowed-resource")).build();
+    final var parameters = Map.<String, Object>of("uri", "allowed-resource");
+
+    final var result = testee.execute(mcpClient, filter, parameters);
+
+    assertThat(result.contents()).asInstanceOf(LIST).hasSize(1);
+  }
+
+  @Test
+  void readsResource_whenResourceNotInDenyFilter() {
+    when(mcpClient.readResource("safe-resource"))
+        .thenReturn(
+            new McpReadResourceResult(
+                List.of(new McpTextResourceContents("safe-resource", "content", "text/plain"))));
+
+    final var filter = AllowDenyListBuilder.builder().denied(List.of("blocked-resource")).build();
+    final var parameters = Map.<String, Object>of("uri", "safe-resource");
+
+    final var result = testee.execute(mcpClient, filter, parameters);
+
+    assertThat(result.contents()).asInstanceOf(LIST).hasSize(1);
+  }
+
+  @Test
   void throwsConnectorException_whenClientErrorOccurs() {
     final Map<String, Object> requestParams = Map.of("uri", "non-existing-resource");
 
     when(mcpClient.readResource("non-existing-resource"))
         .thenThrow(new RuntimeException("Resource not found"));
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, requestParams))
+    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, requestParams))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception ->
@@ -82,7 +116,7 @@ class ReadResourceRequestTest {
 
   @Test
   void throwsException_whenResourceUriIsNotPresent() {
-    assertThatThrownBy(() -> testee.execute(mcpClient, Map.of()))
+    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, Map.of()))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception ->
@@ -95,7 +129,7 @@ class ReadResourceRequestTest {
   void throwsConnectorException_whenResourceUriIsNotAString() {
     final Map<String, Object> requestParams = Map.of("uri", 12345);
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, requestParams))
+    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, requestParams))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception ->
@@ -109,7 +143,7 @@ class ReadResourceRequestTest {
   void throwsConnectorException_whenResourceUriIsEmpty(String resourceUri) {
     final Map<String, Object> requestParams = Map.of("uri", resourceUri);
 
-    assertThatThrownBy(() -> testee.execute(mcpClient, requestParams))
+    assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, requestParams))
         .isInstanceOfSatisfying(
             ConnectorException.class,
             exception ->
@@ -117,5 +151,60 @@ class ReadResourceRequestTest {
                     .returns("MCP_CLIENT_INVALID_PARAMS", ConnectorException::getErrorCode)
                     .returns(
                         "Resource URI must not be blank or empty", ConnectorException::getMessage));
+  }
+
+  @Test
+  void throwsException_whenResourceNotIncludedInFilter() {
+    final var filter = AllowDenyListBuilder.builder().allowed(List.of("allowed-resource")).build();
+
+    final var parameters = Map.<String, Object>of("uri", "blocked-resource");
+
+    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            exception -> {
+              assertThat(exception.getErrorCode()).isEqualTo("MCP_CLIENT_READ_RESOURCE_ERROR");
+              assertThat(exception.getMessage())
+                  .isEqualTo(
+                      "Reading resource 'blocked-resource' is not allowed by filter configuration: [allowed=[allowed-resource], denied=[]]");
+            });
+  }
+
+  @Test
+  void throwsException_whenResourceExcludedInFilter() {
+    final var filter = AllowDenyListBuilder.builder().denied(List.of("blocked-resource")).build();
+
+    final var parameters = Map.<String, Object>of("uri", "blocked-resource");
+
+    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            exception -> {
+              assertThat(exception.getErrorCode()).isEqualTo("MCP_CLIENT_READ_RESOURCE_ERROR");
+              assertThat(exception.getMessage())
+                  .isEqualTo(
+                      "Reading resource 'blocked-resource' is not allowed by filter configuration: [allowed=[], denied=[blocked-resource]]");
+            });
+  }
+
+  @Test
+  void throwsException_whenResourceInDenyListEvenIfInAllowList() {
+    final var filter =
+        AllowDenyListBuilder.builder()
+            .allowed(List.of("conflicted-resource"))
+            .denied(List.of("conflicted-resource"))
+            .build();
+
+    final var parameters = Map.<String, Object>of("uri", "conflicted-resource");
+
+    assertThatThrownBy(() -> testee.execute(mcpClient, filter, parameters))
+        .isInstanceOfSatisfying(
+            ConnectorException.class,
+            exception -> {
+              assertThat(exception.getErrorCode()).isEqualTo("MCP_CLIENT_READ_RESOURCE_ERROR");
+              assertThat(exception.getMessage())
+                  .contains(
+                      "Reading resource 'conflicted-resource' is not allowed by filter configuration");
+            });
   }
 }

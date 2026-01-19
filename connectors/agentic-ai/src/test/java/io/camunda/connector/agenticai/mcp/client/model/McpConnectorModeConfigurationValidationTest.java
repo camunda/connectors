@@ -33,7 +33,7 @@ class McpConnectorModeConfigurationValidationTest {
   @Test
   void validationSucceedsForValidToolModeConfiguration() {
     final var toolOperation = new McpClientOperationConfiguration("tools/call", Map.of());
-    final var mode = new ToolModeConfiguration(toolOperation);
+    final var mode = new ToolModeConfiguration(toolOperation, null);
 
     assertThat(validator.validate(mode)).isEmpty();
   }
@@ -41,7 +41,7 @@ class McpConnectorModeConfigurationValidationTest {
   @Test
   void validationSucceedsForValidStandaloneModeWithListTools() {
     final var operation = new ListToolsOperationConfiguration();
-    final var mode = new StandaloneModeConfiguration(operation);
+    final var mode = new StandaloneModeConfiguration(operation, null);
 
     assertThat(validator.validate(mode)).isEmpty();
   }
@@ -49,7 +49,7 @@ class McpConnectorModeConfigurationValidationTest {
   @Test
   void validationSucceedsForValidStandaloneModeWithCallTool() {
     final var operation = new CallToolOperationConfiguration("myTool", Map.of("arg1", "value1"));
-    final var mode = new StandaloneModeConfiguration(operation);
+    final var mode = new StandaloneModeConfiguration(operation, null);
 
     assertThat(validator.validate(mode)).isEmpty();
   }
@@ -57,7 +57,7 @@ class McpConnectorModeConfigurationValidationTest {
   @Test
   void validationSucceedsWhenCallToolArgumentsAreNull() {
     final var operation = new CallToolOperationConfiguration("myTool", null);
-    final var mode = new StandaloneModeConfiguration(operation);
+    final var mode = new StandaloneModeConfiguration(operation, null);
 
     assertThat(validator.validate(mode)).isEmpty();
   }
@@ -65,14 +65,14 @@ class McpConnectorModeConfigurationValidationTest {
   @Test
   void validationSucceedsWhenToolOperationParamsAreNull() {
     final var toolOperation = new McpClientOperationConfiguration("tools/list", null);
-    final var mode = new ToolModeConfiguration(toolOperation);
+    final var mode = new ToolModeConfiguration(toolOperation, null);
 
     assertThat(validator.validate(mode)).isEmpty();
   }
 
   @Test
   void validationFailsWhenToolOperationIsNull() {
-    final var mode = new ToolModeConfiguration(null);
+    final var mode = new ToolModeConfiguration(null, null);
 
     assertThat(validator.validate(mode))
         .isNotEmpty()
@@ -82,7 +82,7 @@ class McpConnectorModeConfigurationValidationTest {
 
   @Test
   void validationFailsWhenStandaloneOperationIsNull() {
-    final var mode = new StandaloneModeConfiguration(null);
+    final var mode = new StandaloneModeConfiguration(null, null);
 
     assertThat(validator.validate(mode))
         .isNotEmpty()
@@ -94,7 +94,7 @@ class McpConnectorModeConfigurationValidationTest {
   @ValueSource(strings = {"", " ", "  "})
   void validationFailsWhenToolOperationMethodIsBlank(String method) {
     final var toolOperation = new McpClientOperationConfiguration(method, Map.of());
-    final var mode = new ToolModeConfiguration(toolOperation);
+    final var mode = new ToolModeConfiguration(toolOperation, null);
 
     assertThat(validator.validate(mode))
         .isNotEmpty()
@@ -105,7 +105,7 @@ class McpConnectorModeConfigurationValidationTest {
   @Test
   void validationFailsWhenToolOperationMethodIsNull() {
     final var toolOperation = new McpClientOperationConfiguration(null, Map.of());
-    final var mode = new ToolModeConfiguration(toolOperation);
+    final var mode = new ToolModeConfiguration(toolOperation, null);
 
     assertThat(validator.validate(mode))
         .isNotEmpty()
@@ -117,7 +117,7 @@ class McpConnectorModeConfigurationValidationTest {
   @ValueSource(strings = {"", " ", "  "})
   void validationFailsWhenCallToolNameIsBlank(String name) {
     final var operation = new CallToolOperationConfiguration(name, Map.of());
-    final var mode = new StandaloneModeConfiguration(operation);
+    final var mode = new StandaloneModeConfiguration(operation, null);
 
     assertThat(validator.validate(mode))
         .isNotEmpty()
@@ -128,7 +128,7 @@ class McpConnectorModeConfigurationValidationTest {
   @Test
   void validationFailsWhenCallToolNameIsNull() {
     final var operation = new CallToolOperationConfiguration(null, Map.of());
-    final var mode = new StandaloneModeConfiguration(operation);
+    final var mode = new StandaloneModeConfiguration(operation, null);
 
     assertThat(validator.validate(mode))
         .isNotEmpty()

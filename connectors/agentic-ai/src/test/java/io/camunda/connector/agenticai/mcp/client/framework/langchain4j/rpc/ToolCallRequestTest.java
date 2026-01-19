@@ -38,7 +38,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ToolCallRequestTest {
 
-  private static final AllowDenyList EMPTY_FILTER = AllowDenyListBuilder.builder().build();
+  private static final AllowDenyList EMPTY_FILTER = AllowDenyList.allowingEverything();
 
   @Mock private McpClient mcpClient;
 

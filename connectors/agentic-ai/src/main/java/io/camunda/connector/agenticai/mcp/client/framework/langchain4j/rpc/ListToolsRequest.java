@@ -29,7 +29,7 @@ final class ListToolsRequest {
 
     final var toolSpecifications = client.listTools();
     if (toolSpecifications.isEmpty()) {
-      LOGGER.warn("MCP({}): No tools found", client.key());
+      LOGGER.debug("MCP({}): No tools found", client.key());
       return new McpClientListToolsResult(Collections.emptyList());
     }
 

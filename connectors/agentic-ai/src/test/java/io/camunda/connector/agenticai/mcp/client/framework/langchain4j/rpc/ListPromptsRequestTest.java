@@ -12,6 +12,8 @@ import static org.mockito.Mockito.when;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.McpPrompt;
 import dev.langchain4j.mcp.client.McpPromptArgument;
+import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
+import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListPromptsResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.PromptDescription;
 import java.util.Collections;
@@ -24,6 +26,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ListPromptsRequestTest {
 
+  private static final AllowDenyList EMPTY_FILTER = AllowDenyList.allowingEverything();
+
   @Mock private McpClient mcpClient;
 
   private final ListPromptsRequest testee = new ListPromptsRequest();
@@ -32,7 +36,7 @@ class ListPromptsRequestTest {
   void returnsEmptyList_whenNoPromptsAvailable() {
     when(mcpClient.listPrompts()).thenReturn(Collections.emptyList());
 
-    final var result = testee.execute(mcpClient);
+    final var result = testee.execute(mcpClient, EMPTY_FILTER);
 
     assertThat(result)
         .isInstanceOfSatisfying(
@@ -60,12 +64,70 @@ class ListPromptsRequestTest {
 
     when(mcpClient.listPrompts()).thenReturn(List.of(mcpPrompt1, mcpPrompt2));
 
-    final var result = testee.execute(mcpClient);
+    final var result = testee.execute(mcpClient, EMPTY_FILTER);
 
     assertThat(result)
         .isInstanceOfSatisfying(
             McpClientListPromptsResult.class,
             res -> assertThat(res.promptDescriptions()).containsExactly(prompt1, prompt2));
+  }
+
+  @Test
+  void filtersPrompts_whenFilterConfigured() {
+    final var mcpPrompt1 = createMcpPrompt("allowed-prompt", "Allowed prompt", List.of());
+    final var mcpPrompt2 = createMcpPrompt("blocked-prompt", "Blocked prompt", List.of());
+    final var prompt1 = createPrompt("allowed-prompt", "Allowed prompt", List.of());
+    final var filter =
+        AllowDenyListBuilder.builder().allowed(List.of("allowed-prompt")).denied(List.of()).build();
+
+    when(mcpClient.listPrompts()).thenReturn(List.of(mcpPrompt1, mcpPrompt2));
+
+    final var result = testee.execute(mcpClient, filter);
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            McpClientListPromptsResult.class,
+            res -> assertThat(res.promptDescriptions()).containsExactly(prompt1));
+  }
+
+  @Test
+  void returnsEmptyList_whenAllPromptsFiltered() {
+    final var mcpPrompt1 = createMcpPrompt("blocked-prompt1", "Blocked prompt 1", List.of());
+    final var mcpPrompt2 = createMcpPrompt("blocked-prompt2", "Blocked prompt 2", List.of());
+    final var mcpPrompt3 = createMcpPrompt("blocked-prompt3", "Blocked prompt 3", List.of());
+    final var filter =
+        AllowDenyListBuilder.builder()
+            .allowed(List.of("allowed-prompt"))
+            .denied(List.of("blocked-prompt3"))
+            .build();
+
+    when(mcpClient.listPrompts()).thenReturn(List.of(mcpPrompt1, mcpPrompt2, mcpPrompt3));
+
+    final var result = testee.execute(mcpClient, filter);
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            McpClientListPromptsResult.class,
+            res -> assertThat(res.promptDescriptions()).isEmpty());
+  }
+
+  @Test
+  void returnsEmptyList_whenPromptAllowedAndDeniedSimultaneously() {
+    final var mcpPrompt1 = createMcpPrompt("allowed-prompt", "Allowed prompt", List.of());
+    final var filter =
+        AllowDenyListBuilder.builder()
+            .allowed(List.of("allowed-prompt"))
+            .denied(List.of("allowed-prompt"))
+            .build();
+
+    when(mcpClient.listPrompts()).thenReturn(List.of(mcpPrompt1));
+
+    final var result = testee.execute(mcpClient, filter);
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            McpClientListPromptsResult.class,
+            res -> assertThat(res.promptDescriptions()).isEmpty());
   }
 
   private McpPrompt createMcpPrompt(

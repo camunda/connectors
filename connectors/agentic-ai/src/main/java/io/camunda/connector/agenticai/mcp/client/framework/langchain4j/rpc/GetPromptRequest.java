@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 
 import dev.langchain4j.mcp.client.*;
 import io.camunda.connector.agenticai.mcp.McpClientErrorCodes;
+import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientGetPromptResult;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.*;
@@ -20,8 +21,21 @@ final class GetPromptRequest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GetPromptRequest.class);
 
-  public McpClientGetPromptResult execute(McpClient client, Map<String, Object> params) {
+  public McpClientGetPromptResult execute(
+      McpClient client, AllowDenyList promptNameFilter, Map<String, Object> params) {
     final var getPromptParams = parseParams(params);
+
+    if (!promptNameFilter.isPassing(getPromptParams.name())) {
+      LOGGER.error(
+          "MCP({}): Prompt '{}' is not allowed by the filter {}.",
+          client.key(),
+          getPromptParams.name(),
+          promptNameFilter);
+      throw new ConnectorException(
+          McpClientErrorCodes.ERROR_CODE_GET_PROMPT_ERROR,
+          "Getting prompt '%s' is not allowed by filter configuration: %s"
+              .formatted(getPromptParams.name(), promptNameFilter));
+    }
 
     LOGGER.debug(
         "MCP({}): Executing get prompt '{}' with arguments: {}",

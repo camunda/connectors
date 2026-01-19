@@ -9,13 +9,10 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
-import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
-import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,19 +40,8 @@ public class Langchain4JMcpClientHandler implements McpClientHandler {
 
     final var client = clientRegistry.getClient(clientId);
 
-    final var filterOptions = buildFilterOptions(request);
+    final var filterOptions = request.data().connectorMode().createFilterOptions().orElse(null);
 
     return clientExecutor.execute(client, operation, filterOptions);
-  }
-
-  private FilterOptions buildFilterOptions(McpClientRequest mcpClientRequest) {
-    final var filterOptionsBuilder = FilterOptionsBuilder.builder();
-
-    Optional.ofNullable(mcpClientRequest.data().tools())
-        .ifPresent(
-            toolsFilterConfig ->
-                filterOptionsBuilder.toolFilters(toolsFilterConfig.toAllowDenyList()));
-
-    return filterOptionsBuilder.build();
   }
 }
