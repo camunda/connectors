@@ -15,12 +15,12 @@ import org.springframework.lang.Nullable;
 public record McpRemoteClientRequest(@Valid @NotNull McpRemoteClientRequestData data) {
   public record McpRemoteClientRequestData(
       @Valid @NotNull McpRemoteClientTransportConfiguration transport,
-      @Valid @Nullable McpRemoteClientOptionsConfiguration options,
+      @Valid McpRemoteClientOptionsConfiguration options,
       @Valid @NotNull McpConnectorModeConfiguration connectorMode) {
 
     /**
      * Creator method, especially for deserialization, for constructing McpClientRequestData from
-     * deprecated structure, where filters where only applicable for MCP tools and not for other
+     * deprecated structure, where filters are only applicable for MCP tools and not for other
      * connector modes, thus the filter being on this level instead of inside the connector mode.
      *
      * @deprecated This is only used to ensure element templates of version < 2 are still supported
@@ -29,7 +29,7 @@ public record McpRemoteClientRequest(@Valid @NotNull McpRemoteClientRequestData 
     @Deprecated(forRemoval = true)
     public static McpRemoteClientRequestData create(
         @JsonProperty("transport") @Valid @NotNull McpRemoteClientTransportConfiguration transport,
-        @JsonProperty("options") @Valid @Nullable McpRemoteClientOptionsConfiguration options,
+        @JsonProperty("options") @Valid McpRemoteClientOptionsConfiguration options,
         @JsonProperty("connectorMode") @Valid @NotNull McpConnectorModeConfiguration connectorMode,
         @JsonProperty("tools") @Valid @Nullable McpClientToolsFilterConfiguration tools) {
       var targetConnectorMode =
