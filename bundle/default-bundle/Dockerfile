@@ -1,8 +1,8 @@
-FROM reg.mini.dev/1212/openjre-base:25.0.1-dev
+FROM reg.mini.dev/1212/openjre-base:21.0.9-dev
 
 # If you don't have access to Minimus hardened base images, you can use public
 # base images like this instead on your own risk:
-#FROM eclipse-temurin:25.0.1_8-jre
+FROM eclipse-temurin:21.0.9_10-jre
 
 VOLUME /tmp
 
