@@ -134,26 +134,25 @@ class ListResourceTemplatesRequestTest {
   @Test
   void returnsEmptyList_whenResourceTemplatesAllowedAndDeniedSimultaneously() {
     final var mcpResourceTemplate1 =
-            createMcpResourceTemplate(
-                    "file://blocked-template1.txt",
-                    "blocked-template1",
-                    "Blocked template 1",
-                    "text/plain");
+        createMcpResourceTemplate(
+            "file://blocked-template1.txt",
+            "blocked-template1",
+            "Blocked template 1",
+            "text/plain");
     final var filter =
-            AllowDenyListBuilder.builder()
-                    .allowed(List.of("file://allowed-template.txt"))
-                    .denied(List.of("file://allowed-template.txt"))
-                    .build();
+        AllowDenyListBuilder.builder()
+            .allowed(List.of("file://allowed-template.txt"))
+            .denied(List.of("file://allowed-template.txt"))
+            .build();
 
-    when(mcpClient.listResourceTemplates())
-            .thenReturn(List.of(mcpResourceTemplate1));
+    when(mcpClient.listResourceTemplates()).thenReturn(List.of(mcpResourceTemplate1));
 
     final var result = testee.execute(mcpClient, filter);
 
     assertThat(result)
-            .isInstanceOfSatisfying(
-                    McpClientListResourceTemplatesResult.class,
-                    res -> assertThat(res.resourceTemplates()).isEmpty());
+        .isInstanceOfSatisfying(
+            McpClientListResourceTemplatesResult.class,
+            res -> assertThat(res.resourceTemplates()).isEmpty());
   }
 
   private McpResourceTemplate createMcpResourceTemplate(

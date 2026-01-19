@@ -127,24 +127,24 @@ class ListResourcesRequestTest {
   @Test
   void returnsEmptyList_whenResourceAllowedAndDeniedSimultaneously() {
     final var mcpResource1 =
-            createMcpResource(
-                    "file://blocked-resource1.txt",
-                    "blocked-resource1",
-                    "Blocked resource 1",
-                    "text/plain");
+        createMcpResource(
+            "file://blocked-resource1.txt",
+            "blocked-resource1",
+            "Blocked resource 1",
+            "text/plain");
     final var filter =
-            AllowDenyListBuilder.builder()
-                    .allowed(List.of("file://allowed-resource.txt"))
-                    .denied(List.of("file://allowed-resource.txt"))
-                    .build();
+        AllowDenyListBuilder.builder()
+            .allowed(List.of("file://allowed-resource.txt"))
+            .denied(List.of("file://allowed-resource.txt"))
+            .build();
 
     when(mcpClient.listResources()).thenReturn(List.of(mcpResource1));
 
     final var result = testee.execute(mcpClient, filter);
 
     assertThat(result)
-            .isInstanceOfSatisfying(
-                    McpClientListResourcesResult.class, res -> assertThat(res.resources()).isEmpty());
+        .isInstanceOfSatisfying(
+            McpClientListResourcesResult.class, res -> assertThat(res.resources()).isEmpty());
   }
 
   private McpResource createMcpResource(
