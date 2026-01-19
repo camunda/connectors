@@ -23,7 +23,8 @@ public record McpRemoteClientRequest(@Valid @NotNull McpRemoteClientRequestData 
      * deprecated structure, where filters are only applicable for MCP tools and not for other
      * connector modes, thus the filter being on this level instead of inside the connector mode.
      *
-     * @deprecated This is only used to ensure element templates of version < 2 are still supported
+     * @deprecated This is only used to ensure element templates of version below 2 are still
+     *     supported
      */
     @JsonCreator
     @Deprecated(forRemoval = true)
