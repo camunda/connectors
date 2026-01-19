@@ -167,3 +167,7 @@ We use [backport-action](https://github.com/korthout/backport-action) to backpor
 For example, add a label `backport release/8.3` to backport a PR to the `release/8.3` branch. This will take effect when the PR is meged.
 
 You can also trigger this for already merged PRs by posting a comment on the PR containing `/backport`.
+
+## CI Secrets
+
+Secrets used by the CI jobs in this repository are stored in [Vault](https://vault.int.camunda.com/ui/vault/secrets/secret/kv/products%252Fconnectors%252Fci%252Fcommon/details).
