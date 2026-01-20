@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import io.camunda.client.api.response.ProcessInstanceEvent;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientGetPromptResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListPromptsResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
@@ -33,6 +34,7 @@ import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListTools
 import io.camunda.connector.agenticai.mcp.client.model.result.PromptDescription;
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceDescription;
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceTemplate;
+import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
@@ -108,15 +110,16 @@ public class McpStandaloneIntegrationTests extends BaseAgenticAiTest {
                           .hasSize(2)
                           .extracting(ToolDefinition::name)
                           .containsExactly("toolA", "toolC"))
-              .hasVariable(
+              .hasVariableSatisfies(
                   "clientCallToolResult",
-                  Map.of(
-                      "name",
-                      "toolA",
-                      "content",
-                      List.of(Map.of("type", "text", "text", "A MCP Client result")),
-                      "isError",
-                      false))
+                  McpClientCallToolResult.class,
+                  toolCallResult -> {
+                    assertThat(toolCallResult.name()).isEqualTo("toolA");
+                    assertThat(toolCallResult.content())
+                        .hasSize(1)
+                        .containsExactly(new TextContent("A MCP Client result", null));
+                    assertThat(toolCallResult.isError()).isFalse();
+                  })
               .hasVariableSatisfies(
                   "remoteClientListToolsResult",
                   McpClientListToolsResult.class,
@@ -125,15 +128,16 @@ public class McpStandaloneIntegrationTests extends BaseAgenticAiTest {
                           .hasSize(2)
                           .extracting(ToolDefinition::name)
                           .containsExactly("toolB", "toolC"))
-              .hasVariable(
+              .hasVariableSatisfies(
                   "remoteClientCallToolResult",
-                  Map.of(
-                      "name",
-                      "toolC",
-                      "content",
-                      List.of(Map.of("type", "text", "text", "A Remote MCP Client result")),
-                      "isError",
-                      false));
+                  McpClientCallToolResult.class,
+                  toolCallResult -> {
+                    assertThat(toolCallResult.name()).isEqualTo("toolC");
+                    assertThat(toolCallResult.content())
+                        .hasSize(1)
+                        .containsExactly(new TextContent("A Remote MCP Client result", null));
+                    assertThat(toolCallResult.isError()).isFalse();
+                  });
 
           wireMock.verify(
               postRequestedFor(urlEqualTo("/mcp"))
