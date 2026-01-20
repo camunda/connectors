@@ -10,6 +10,7 @@ import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientHandler;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
+import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientOptionsConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest;
@@ -48,7 +49,12 @@ public class Langchain4JMcpRemoteClientHandler implements McpRemoteClientHandler
     McpClient client = null;
 
     try {
-      final var filterOptions = request.data().connectorMode().createFilterOptions().orElse(null);
+      final var filterOptions =
+          request
+              .data()
+              .connectorMode()
+              .createFilterOptions()
+              .orElseGet(FilterOptions::defaultOptions);
 
       client = remoteClientRegistry.getClient(clientId, request.data().transport(), cacheable);
       return clientExecutor.execute(client, operation, filterOptions);

@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
+import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
@@ -40,7 +41,12 @@ public class Langchain4JMcpClientHandler implements McpClientHandler {
 
     final var client = clientRegistry.getClient(clientId);
 
-    final var filterOptions = request.data().connectorMode().createFilterOptions().orElse(null);
+    final var filterOptions =
+        request
+            .data()
+            .connectorMode()
+            .createFilterOptions()
+            .orElseGet(FilterOptions::defaultOptions);
 
     return clientExecutor.execute(client, operation, filterOptions);
   }
