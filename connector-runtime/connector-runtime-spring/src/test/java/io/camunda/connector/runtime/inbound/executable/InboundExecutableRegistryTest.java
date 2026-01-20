@@ -31,7 +31,7 @@ import io.camunda.connector.runtime.core.inbound.*;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
-import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.Activated;
+import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.ProcessStateChanged;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.ConnectorNotRegistered;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import java.time.Duration;
@@ -85,7 +85,8 @@ public class InboundExecutableRegistryTest {
     when(factory.getInstance(any())).thenReturn(executable);
 
     // when
-    registry.handleEvent(new Activated("tenant", 0, List.of(element1, element2)));
+    registry.handleEvent(
+        new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1, element2))));
 
     // then
     var result = registry.query(new ActiveExecutableQuery(null, elementId, null, null));
@@ -114,7 +115,8 @@ public class InboundExecutableRegistryTest {
     when(factory.getInstance(any())).thenReturn(executable);
 
     // when
-    registry.handleEvent(new Activated("tenant", 0, List.of(element1, element2)));
+    registry.handleEvent(
+        new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1, element2))));
 
     // then
     verify(executable).activate(any());
@@ -136,7 +138,7 @@ public class InboundExecutableRegistryTest {
     when(factory.getInstance(any())).thenReturn(executable);
 
     // when
-    registry.handleEvent(new Activated("tenant", 0, List.of(element)));
+    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
 
     // then
     verify(executable).activate(context);
@@ -161,7 +163,7 @@ public class InboundExecutableRegistryTest {
     doThrow(new RuntimeException("failed")).when(executable).activate(any());
 
     // when
-    registry.handleEvent(new Activated("tenant", 0, List.of(element)));
+    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
 
     // then
     var result = registry.query(new ActiveExecutableQuery(null, elementId, null, null));
@@ -198,7 +200,8 @@ public class InboundExecutableRegistryTest {
     doThrow(new RuntimeException("failed")).when(executable2).activate(mockContext);
 
     // when
-    registry.handleEvent(new Activated("tenant", 0, List.of(element1, element2)));
+    registry.handleEvent(
+        new ProcessStateChanged(processId, "tenant", Map.of(0L, List.of(element1, element2))));
 
     // then
     verify(executable1).activate(mockContext);
@@ -243,7 +246,8 @@ public class InboundExecutableRegistryTest {
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(mockContext);
 
     // when
-    registry.handleEvent(new Activated("tenant", 0, List.of(element1, element2)));
+    registry.handleEvent(
+        new ProcessStateChanged(processId, "tenant", Map.of(0L, List.of(element1, element2))));
 
     // then
     verify(executable1).activate(mockContext);
@@ -273,7 +277,7 @@ public class InboundExecutableRegistryTest {
         .thenThrow(new NoSuchElementException("Connector unknown-type not registered"));
 
     // when
-    registry.handleEvent(new Activated("tenant", 0, List.of(element)));
+    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
 
     // then
     var result = registry.query(new ActiveExecutableQuery(null, elementId, null, null));
@@ -295,7 +299,7 @@ public class InboundExecutableRegistryTest {
     when(element1.deduplicationId(any())).thenReturn(RANDOM_STRING);
 
     var executable = mock(InboundConnectorExecutable.class);
-    var context = mock(InboundConnectorReportingContext.class);
+    var context = mock(InboundConnectorManagementContext.class);
     var definitions = mock(InboundConnectorDefinition.class);
 
     when(factory.getInstance(any())).thenReturn(executable);
@@ -303,7 +307,7 @@ public class InboundExecutableRegistryTest {
     when(context.getDefinition()).thenReturn(definitions);
     when(definitions.type()).thenReturn("type1");
     // when
-    registry.handleEvent(new Activated("tenant", 0, List.of(element1)));
+    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1))));
     registry.handleEvent(
         new InboundExecutableEvent.Cancelled(
             RANDOM_ID,
@@ -354,7 +358,7 @@ public class InboundExecutableRegistryTest {
         .when(executable)
         .activate(any());
 
-    registry.handleEvent(new Activated("tenant", 0, List.of(element1)));
+    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1))));
 
     // then
     verify(executable, timeout(5000).times(1)).activate(any());
@@ -398,7 +402,7 @@ public class InboundExecutableRegistryTest {
         .when(executable)
         .activate(any());
 
-    registry.handleEvent(new Activated("tenant", 0, List.of(element1)));
+    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1))));
 
     scheduledExecutorService.schedule(
         () ->
@@ -440,7 +444,7 @@ public class InboundExecutableRegistryTest {
     when(factory.getInstance(any())).thenReturn(executable);
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
     // when
-    registry.handleEvent(new Activated("tenant", 0, List.of(element1)));
+    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1))));
 
     context.cancel(
         ConnectorRetryException.builder()
@@ -479,7 +483,7 @@ public class InboundExecutableRegistryTest {
     when(factory.getInstance(any())).thenReturn(executable);
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
     // when
-    registry.handleEvent(new Activated("tenant", 0, List.of(element1)));
+    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1))));
 
     context.cancel(
         ConnectorRetryException.builder()
@@ -505,7 +509,7 @@ public class InboundExecutableRegistryTest {
     when(element1.deduplicationId(any())).thenReturn(RANDOM_STRING);
 
     var executable = mock(InboundConnectorExecutable.class);
-    var context = mock(InboundConnectorReportingContext.class);
+    var context = mock(InboundConnectorManagementContext.class);
     var definitions = mock(InboundConnectorDefinition.class);
 
     // when
@@ -515,7 +519,7 @@ public class InboundExecutableRegistryTest {
     when(definitions.type()).thenReturn("type1");
     doNothing().doThrow(new Exception()).when(executable).activate(any());
 
-    registry.handleEvent(new Activated("tenant", 0, List.of(element1)));
+    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1))));
 
     registry.handleEvent(
         new InboundExecutableEvent.Cancelled(
@@ -544,7 +548,7 @@ public class InboundExecutableRegistryTest {
     when(element1.deduplicationId(any())).thenReturn(RANDOM_STRING);
 
     var executable = mock(InboundConnectorExecutable.class);
-    var context = mock(InboundConnectorReportingContext.class);
+    var context = mock(InboundConnectorManagementContext.class);
     var definitions = mock(InboundConnectorDefinition.class);
 
     // when
@@ -554,7 +558,7 @@ public class InboundExecutableRegistryTest {
     when(definitions.type()).thenReturn("type1");
     doNothing().doThrow(new Exception()).doNothing().when(executable).activate(any());
 
-    registry.handleEvent(new Activated("tenant", 0, List.of(element1)));
+    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1))));
 
     registry.handleEvent(
         new InboundExecutableEvent.Cancelled(

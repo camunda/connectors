@@ -20,11 +20,11 @@ import io.camunda.connector.runtime.inbound.state.model.ImportResult;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult.ImportType;
 import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import io.camunda.connector.runtime.inbound.state.model.StateUpdateResult;
-import io.camunda.connector.runtime.inbound.state.model.StateUpdateResult.ProcessDefinitionRefAndKey;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,14 +44,14 @@ public class ProcessStateContainerImpl implements ProcessStateContainer {
 
   @Override
   public synchronized StateUpdateResult compareAndUpdate(ImportResult importResult) {
-    final Set<ProcessDefinitionRefAndKey> toActivate = new HashSet<>();
-    final Set<ProcessDefinitionRefAndKey> toDeactivate = new HashSet<>();
+    // Track all processes that were affected by this import (state changed)
+    final Set<ProcessDefinitionRef> affectedProcesses = new HashSet<>();
 
     // Track all imported processDefinitionIds
     Set<ProcessDefinitionRef> importedProcessIds =
         importResult.processDefinitionKeysByProcessId().keySet();
 
-    // First, process all imported processDefinitionIds as before
+    // First, process all imported processDefinitionIds
     for (var importEntry : importResult.processDefinitionKeysByProcessId().entrySet()) {
       var processDefinitionId = importEntry.getKey();
       var importedProcessDefinitionKeys = importEntry.getValue();
@@ -59,11 +59,12 @@ public class ProcessStateContainerImpl implements ProcessStateContainer {
 
       var versionsInState =
           processStates.computeIfAbsent(processDefinitionId, k -> new HashMap<>());
-      var partialUpdate =
-          computePartialUpdate(
+      boolean stateChanged =
+          applyPartialUpdate(
               processDefinitionId, importedProcessDefinitionKeys, importType, versionsInState);
-      toActivate.addAll(partialUpdate.toActivate());
-      toDeactivate.addAll(partialUpdate.toDeactivate());
+      if (stateChanged) {
+        affectedProcesses.add(processDefinitionId);
+      }
     }
 
     // Now, handle processDefinitionIds present in state but missing from import
@@ -72,24 +73,46 @@ public class ProcessStateContainerImpl implements ProcessStateContainer {
 
     for (var processDefinitionId : missingInImport) {
       var processDefinitionKeysInState = processStates.get(processDefinitionId);
-      var partialUpdate =
-          computePartialUpdate(
+      boolean stateChanged =
+          applyPartialUpdate(
               processDefinitionId,
               Set.of(), // empty set of imported versions
               importResult.importType(),
               processDefinitionKeysInState);
-      toActivate.addAll(partialUpdate.toActivate());
-      toDeactivate.addAll(partialUpdate.toDeactivate());
+      if (stateChanged) {
+        affectedProcesses.add(processDefinitionId);
+      }
       // If all versions are removed, also remove the processDefinitionId entry
       if (processDefinitionKeysInState.isEmpty()) {
         processStates.remove(processDefinitionId);
       }
     }
-    return new StateUpdateResult(toActivate, toDeactivate);
+
+    // Build the result: for each affected process, return all currently active versions
+    Map<ProcessDefinitionRef, Set<Long>> result =
+        affectedProcesses.stream()
+            .collect(Collectors.toMap(processRef -> processRef, this::getActiveVersions));
+
+    return new StateUpdateResult(result);
   }
 
-  /** Computes the state update for a single process definition ID in an import. */
-  private static StateUpdateResult computePartialUpdate(
+  /** Returns the set of currently active process definition keys for a given process definition. */
+  private Set<Long> getActiveVersions(ProcessDefinitionRef processRef) {
+    var versionsInState = processStates.get(processRef);
+    if (versionsInState == null) {
+      return Set.of();
+    }
+    return versionsInState.entrySet().stream()
+        .filter(entry -> !entry.getValue().isInactive())
+        .map(Map.Entry::getKey)
+        .collect(Collectors.toSet());
+  }
+
+  /**
+   * Applies a partial update for a single process definition ID. Returns true if any version's
+   * active state changed.
+   */
+  private static boolean applyPartialUpdate(
       ProcessDefinitionRef processDefinitionRef,
       Set<Long> importedVersions,
       ImportType importType,
@@ -100,19 +123,23 @@ public class ProcessStateContainerImpl implements ProcessStateContainer {
     Set<Long> presentInBoth = new HashSet<>(importedVersions);
     presentInBoth.retainAll(versionsInState.keySet());
 
-    LOGGER.debug("* Missing in the import: {} ({})", missingInImport, importType);
-    LOGGER.debug("* Imported as but missing in state: {} ({})", missingInState, importType);
-    LOGGER.debug("* Present in both: {} ({})", presentInBoth, importType);
+    LOGGER.trace("Process definition '{}':", processDefinitionRef.bpmnProcessId());
+    LOGGER.trace("* Missing in the import: {} ({})", missingInImport, importType);
+    LOGGER.trace("* Imported as but missing in state: {} ({})", missingInState, importType);
+    LOGGER.trace("* Present in both: {} ({})", presentInBoth, importType);
 
-    final Set<ProcessDefinitionRefAndKey> toActivate = new HashSet<>();
-    final Set<ProcessDefinitionRefAndKey> toDeactivate = new HashSet<>();
+    boolean anyStateChanged = false;
 
     // Handle versions that are missing in the import (mark flag as false, potentially deactivate)
     for (long key : missingInImport) {
       var versionState = versionsInState.get(key);
+      boolean wasActive = !versionState.isInactive();
       markStateFlags(versionState, importType, false);
+      boolean isActive = !versionState.isInactive();
+      if (wasActive != isActive) {
+        anyStateChanged = true;
+      }
       if (versionState.isInactive()) {
-        toDeactivate.add(new ProcessDefinitionRefAndKey(processDefinitionRef, key));
         versionsInState.remove(key);
       }
     }
@@ -122,32 +149,33 @@ public class ProcessStateContainerImpl implements ProcessStateContainer {
       var versionState = MutableProcessVersionState.init();
       markStateFlags(versionState, importType, true);
       versionsInState.put(key, versionState);
-      toActivate.add(new ProcessDefinitionRefAndKey(processDefinitionRef, key));
+      anyStateChanged = true; // new version always means state changed
     }
 
     // Handle versions that are present in both (mark flag as true, potentially activate)
     for (Long key : presentInBoth) {
       var versionState = versionsInState.get(key);
-      boolean wasInactive = versionState.isInactive();
+      boolean wasActive = !versionState.isInactive();
       markStateFlags(versionState, importType, true);
-      if (wasInactive && !versionState.isInactive()) {
-        toActivate.add(new ProcessDefinitionRefAndKey(processDefinitionRef, key));
+      boolean isActive = !versionState.isInactive();
+      if (wasActive != isActive) {
+        anyStateChanged = true;
       }
     }
 
-    if (!toActivate.isEmpty() && LOGGER.isDebugEnabled()) {
+    if (anyStateChanged && LOGGER.isDebugEnabled()) {
+      var activeVersions =
+          versionsInState.entrySet().stream()
+              .filter(e -> !e.getValue().isInactive())
+              .map(Map.Entry::getKey)
+              .toList();
       LOGGER.debug(
-          "* Process '{}': activating {}",
+          "* Process '{}': state changed, active versions: {}",
           processDefinitionRef.bpmnProcessId(),
-          toActivate.stream().map(ProcessDefinitionRefAndKey::key).toList());
+          activeVersions);
     }
-    if (!toDeactivate.isEmpty() && LOGGER.isDebugEnabled()) {
-      LOGGER.debug(
-          "* Process '{}': deactivating {}",
-          processDefinitionRef.bpmnProcessId(),
-          toDeactivate.stream().map(ProcessDefinitionRefAndKey::key).toList());
-    }
-    return new StateUpdateResult(toActivate, toDeactivate);
+
+    return anyStateChanged;
   }
 
   private static Set<Long> rightOuterJoin(Set<Long> left, Set<Long> right) {

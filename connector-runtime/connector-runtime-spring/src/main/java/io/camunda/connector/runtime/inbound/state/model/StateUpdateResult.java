@@ -16,14 +16,21 @@
  */
 package io.camunda.connector.runtime.inbound.state.model;
 
+import java.util.Map;
 import java.util.Set;
 
-public record StateUpdateResult(
-    Set<ProcessDefinitionRefAndKey> toActivate, Set<ProcessDefinitionRefAndKey> toDeactivate) {
+/**
+ * Represents the result of a state update operation. Contains the complete picture of all active
+ * process versions for each process definition that was affected by the update.
+ *
+ * @param affectedProcesses map of process definition references to the set of currently active
+ *     process definition keys (versions) for that process. An empty set indicates all versions of
+ *     this process should be deactivated.
+ */
+public record StateUpdateResult(Map<ProcessDefinitionRef, Set<Long>> affectedProcesses) {
 
-  /**
-   * A combination of process definition reference (bpmnProcessId + tenantId) and the process
-   * definition key identifying the specific version of this process definition.
-   */
-  public record ProcessDefinitionRefAndKey(ProcessDefinitionRef id, long key) {}
+  /** Returns true if there are no affected processes in this update. */
+  public boolean isEmpty() {
+    return affectedProcesses.isEmpty();
+  }
 }

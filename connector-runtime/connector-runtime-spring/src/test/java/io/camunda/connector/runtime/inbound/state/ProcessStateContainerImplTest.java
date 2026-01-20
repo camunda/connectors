@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult.ImportType;
 import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
-import io.camunda.connector.runtime.inbound.state.model.StateUpdateResult.ProcessDefinitionRefAndKey;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,11 +39,6 @@ class ProcessStateContainerImplTest {
   // Helper methods
   private ProcessDefinitionRef processId(String bpmnProcessId, String tenantId) {
     return new ProcessDefinitionRef(bpmnProcessId, tenantId);
-  }
-
-  private ProcessDefinitionRefAndKey processIdAndKey(
-      String bpmnProcessId, String tenantId, Long key) {
-    return new ProcessDefinitionRefAndKey(new ProcessDefinitionRef(bpmnProcessId, tenantId), key);
   }
 
   // only for single process imports in tests
@@ -66,10 +60,9 @@ class ProcessStateContainerImplTest {
       // when
       var result = container.compareAndUpdate(importResult);
 
-      // then
-      assertThat(result.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
-      assertThat(result.toDeactivate()).isEmpty();
+      // then - process1 is affected, active versions are [1]
+      assertThat(result.affectedProcesses()).containsKey(processId);
+      assertThat(result.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L);
     }
 
     @Test
@@ -82,13 +75,9 @@ class ProcessStateContainerImplTest {
       // when
       var result = container.compareAndUpdate(importResult);
 
-      // then
-      assertThat(result.toActivate())
-          .containsExactlyInAnyOrder(
-              processIdAndKey("process1", "tenant1", 1L),
-              processIdAndKey("process1", "tenant1", 2L),
-              processIdAndKey("process1", "tenant1", 3L));
-      assertThat(result.toDeactivate()).isEmpty();
+      // then - all three versions should be active
+      assertThat(result.affectedProcesses()).containsKey(processId);
+      assertThat(result.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L, 2L, 3L);
     }
 
     @Test
@@ -100,8 +89,7 @@ class ProcessStateContainerImplTest {
       var result = container.compareAndUpdate(importResult);
 
       // then
-      assertThat(result.toActivate()).isEmpty();
-      assertThat(result.toDeactivate()).isEmpty();
+      assertThat(result.isEmpty()).isTrue();
     }
   }
 
@@ -118,21 +106,16 @@ class ProcessStateContainerImplTest {
           container.compareAndUpdate(
               importResult(processId, Set.of(1L), ImportType.LATEST_VERSIONS));
 
-      // then
-      assertThat(result1.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
-      assertThat(result1.toDeactivate()).isEmpty();
+      // then - v1 is now active
+      assertThat(result1.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L);
 
       // when - import v2 as latest
       var result2 =
           container.compareAndUpdate(
               importResult(processId, Set.of(2L), ImportType.LATEST_VERSIONS));
 
-      // then
-      assertThat(result2.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 2L));
-      assertThat(result2.toDeactivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
+      // then - v2 is active, v1 is no longer active
+      assertThat(result2.affectedProcesses().get(processId)).containsExactlyInAnyOrder(2L);
     }
 
     @Test
@@ -144,28 +127,21 @@ class ProcessStateContainerImplTest {
       var result1 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L), ImportType.LATEST_VERSIONS));
-      assertThat(result1.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
+      assertThat(result1.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L);
 
       // when - import v2 as latest
       var result2 =
           container.compareAndUpdate(
               importResult(processId, Set.of(2L), ImportType.LATEST_VERSIONS));
-      assertThat(result2.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 2L));
-      assertThat(result2.toDeactivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
+      assertThat(result2.affectedProcesses().get(processId)).containsExactlyInAnyOrder(2L);
 
       // when - import v3 as latest
       var result3 =
           container.compareAndUpdate(
               importResult(processId, Set.of(3L), ImportType.LATEST_VERSIONS));
 
-      // then
-      assertThat(result3.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 3L));
-      assertThat(result3.toDeactivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 2L));
+      // then - v3 is the only active version
+      assertThat(result3.affectedProcesses().get(processId)).containsExactlyInAnyOrder(3L);
     }
   }
 
@@ -181,17 +157,15 @@ class ProcessStateContainerImplTest {
       var result1 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L, 2L), ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
-      assertThat(result1.toActivate()).hasSize(2);
+      assertThat(result1.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L, 2L);
 
       // when - import v1, v2, v3 with subscriptions
       var result2 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L, 2L, 3L), ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
 
-      // then
-      assertThat(result2.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 3L));
-      assertThat(result2.toDeactivate()).isEmpty();
+      // then - all three versions are now active
+      assertThat(result2.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L, 2L, 3L);
     }
 
     @Test
@@ -203,17 +177,15 @@ class ProcessStateContainerImplTest {
       var result1 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L, 2L, 3L), ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
-      assertThat(result1.toActivate()).hasSize(3);
+      assertThat(result1.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L, 2L, 3L);
 
       // when - import only v2, v3 with subscriptions
       var result2 =
           container.compareAndUpdate(
               importResult(processId, Set.of(2L, 3L), ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
 
-      // then
-      assertThat(result2.toActivate()).isEmpty();
-      assertThat(result2.toDeactivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
+      // then - only v2 and v3 are active now
+      assertThat(result2.affectedProcesses().get(processId)).containsExactlyInAnyOrder(2L, 3L);
     }
 
     @Test
@@ -225,18 +197,15 @@ class ProcessStateContainerImplTest {
       var result1 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L, 2L), ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
-      assertThat(result1.toActivate()).hasSize(2);
+      assertThat(result1.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L, 2L);
 
       // when - import v2, v3 with subscriptions
       var result2 =
           container.compareAndUpdate(
               importResult(processId, Set.of(2L, 3L), ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
 
-      // then
-      assertThat(result2.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 3L));
-      assertThat(result2.toDeactivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
+      // then - v2 and v3 are active, v1 was removed
+      assertThat(result2.affectedProcesses().get(processId)).containsExactlyInAnyOrder(2L, 3L);
     }
   }
 
@@ -252,18 +221,15 @@ class ProcessStateContainerImplTest {
       var result1 =
           container.compareAndUpdate(
               importResult(processId, Set.of(2L), ImportType.LATEST_VERSIONS));
-      assertThat(result1.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 2L));
+      assertThat(result1.affectedProcesses().get(processId)).containsExactlyInAnyOrder(2L);
 
       // when - import v1, v2 with subscriptions
       var result2 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L, 2L), ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
 
-      // then - v1 should be activated, v2 stays active (now has both flags)
-      assertThat(result2.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
-      assertThat(result2.toDeactivate()).isEmpty();
+      // then - both v1 and v2 should be active
+      assertThat(result2.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L, 2L);
     }
 
     @Test
@@ -275,18 +241,15 @@ class ProcessStateContainerImplTest {
       var result1 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L), ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
-      assertThat(result1.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
+      assertThat(result1.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L);
 
       // when - import v2 as latest
       var result2 =
           container.compareAndUpdate(
               importResult(processId, Set.of(2L), ImportType.LATEST_VERSIONS));
 
-      // then - v2 activated, v1 stays active (still has subscription flag)
-      assertThat(result2.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 2L));
-      assertThat(result2.toDeactivate()).isEmpty();
+      // then - both v1 (subscription) and v2 (latest) should be active
+      assertThat(result2.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L, 2L);
     }
 
     @Test
@@ -298,25 +261,21 @@ class ProcessStateContainerImplTest {
       var result1 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L), ImportType.LATEST_VERSIONS));
-      assertThat(result1.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
+      assertThat(result1.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L);
 
       // when - import v2 as latest (v1 loses latest flag)
       var result2 =
           container.compareAndUpdate(
               importResult(processId, Set.of(2L), ImportType.LATEST_VERSIONS));
-      assertThat(result2.toDeactivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
+      assertThat(result2.affectedProcesses().get(processId)).containsExactlyInAnyOrder(2L);
 
       // when - import v1, v2 with subscriptions
       var result3 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L, 2L), ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
 
-      // then - v1 should be re-activated
-      assertThat(result3.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
-      assertThat(result3.toDeactivate()).isEmpty();
+      // then - both v1 and v2 should be active again
+      assertThat(result3.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L, 2L);
     }
 
     @Test
@@ -328,33 +287,29 @@ class ProcessStateContainerImplTest {
       var result1 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L), ImportType.LATEST_VERSIONS));
-      assertThat(result1.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
+      assertThat(result1.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L);
 
       // when - import v1 with subscription (v1 has both flags now)
       var result2 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L), ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
-      assertThat(result2.toActivate()).isEmpty();
-      assertThat(result2.toDeactivate()).isEmpty();
+      // no state change - v1 was already active
+      assertThat(result2.isEmpty()).isTrue();
 
       // when - import v2 as latest (v1 loses latest flag but keeps subscription flag)
       var result3 =
           container.compareAndUpdate(
               importResult(processId, Set.of(2L), ImportType.LATEST_VERSIONS));
-      assertThat(result3.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 2L));
-      assertThat(result3.toDeactivate()).isEmpty(); // v1 still active due to subscription
+      // v1 still active due to subscription, v2 now active as latest
+      assertThat(result3.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L, 2L);
 
       // when - import empty subscriptions (v1 loses subscription flag)
       var result4 =
           container.compareAndUpdate(
               importResult(processId, Set.of(), ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
 
-      // then - v1 should be deactivated now
-      assertThat(result4.toActivate()).isEmpty();
-      assertThat(result4.toDeactivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
+      // then - only v2 should be active now
+      assertThat(result4.affectedProcesses().get(processId)).containsExactlyInAnyOrder(2L);
     }
   }
 
@@ -376,12 +331,10 @@ class ProcessStateContainerImplTest {
       // when
       var result = container.compareAndUpdate(importResult);
 
-      // then
-      assertThat(result.toActivate())
-          .containsExactlyInAnyOrder(
-              processIdAndKey("process1", "tenant1", 1L),
-              processIdAndKey("process2", "tenant1", 2L));
-      assertThat(result.toDeactivate()).isEmpty();
+      // then - both processes should be affected
+      assertThat(result.affectedProcesses()).hasSize(2);
+      assertThat(result.affectedProcesses().get(process1)).containsExactlyInAnyOrder(1L);
+      assertThat(result.affectedProcesses().get(process2)).containsExactlyInAnyOrder(2L);
     }
 
     @Test
@@ -394,16 +347,16 @@ class ProcessStateContainerImplTest {
       var result1 =
           container.compareAndUpdate(
               importResult(process1, Set.of(1L), ImportType.LATEST_VERSIONS));
-      assertThat(result1.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
+      assertThat(result1.affectedProcesses().get(process1)).containsExactlyInAnyOrder(1L);
 
-      // when - import v1 for process2
+      // when - import v1 for both process1 and process2
       var result2 =
           container.compareAndUpdate(
               new ImportResult(
                   Map.of(process1, Set.of(1L), process2, Set.of(1L)), ImportType.LATEST_VERSIONS));
-      assertThat(result2.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process2", "tenant1", 1L));
+      // only process2 is affected (process1 state unchanged)
+      assertThat(result2.affectedProcesses()).hasSize(1);
+      assertThat(result2.affectedProcesses().get(process2)).containsExactlyInAnyOrder(1L);
 
       // when - upgrade process1 to v2
       var result3 =
@@ -412,10 +365,8 @@ class ProcessStateContainerImplTest {
                   Map.of(process1, Set.of(2L), process2, Set.of(1L)), ImportType.LATEST_VERSIONS));
 
       // then - only process1 should be affected
-      assertThat(result3.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 2L));
-      assertThat(result3.toDeactivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
+      assertThat(result3.affectedProcesses()).hasSize(1);
+      assertThat(result3.affectedProcesses().get(process1)).containsExactlyInAnyOrder(2L);
     }
   }
 
@@ -445,11 +396,9 @@ class ProcessStateContainerImplTest {
                       processTenant2, Set.of(1L)),
                   ImportType.LATEST_VERSIONS));
 
-      // then - only tenant1's v1 should be deactivated
-      assertThat(result.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 2L));
-      assertThat(result.toDeactivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
+      // then - only tenant1 should be affected
+      assertThat(result.affectedProcesses()).hasSize(1);
+      assertThat(result.affectedProcesses().get(processTenant1)).containsExactlyInAnyOrder(2L);
     }
   }
 
@@ -465,24 +414,21 @@ class ProcessStateContainerImplTest {
       var result1 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L, 2L), ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
-      assertThat(result1.toActivate()).hasSize(2);
+      assertThat(result1.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L, 2L);
 
       // when - remove v2
       var result2 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L), ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
-      assertThat(result2.toDeactivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 2L));
+      assertThat(result2.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L);
 
       // when - re-add v2
       var result3 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L, 2L), ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
 
-      // then - v2 should be re-activated
-      assertThat(result3.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 2L));
-      assertThat(result3.toDeactivate()).isEmpty();
+      // then - both v1 and v2 should be active again
+      assertThat(result3.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L, 2L);
     }
   }
 
@@ -498,17 +444,15 @@ class ProcessStateContainerImplTest {
       var result1 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L), ImportType.LATEST_VERSIONS));
-      assertThat(result1.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
+      assertThat(result1.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L);
 
       // when - import v1 as latest again
       var result2 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L), ImportType.LATEST_VERSIONS));
 
-      // then - no changes
-      assertThat(result2.toActivate()).isEmpty();
-      assertThat(result2.toDeactivate()).isEmpty();
+      // then - no changes (empty result)
+      assertThat(result2.isEmpty()).isTrue();
 
       // when - import v1 as latest third time
       var result3 =
@@ -516,8 +460,7 @@ class ProcessStateContainerImplTest {
               importResult(processId, Set.of(1L), ImportType.LATEST_VERSIONS));
 
       // then - still no changes
-      assertThat(result3.toActivate()).isEmpty();
-      assertThat(result3.toDeactivate()).isEmpty();
+      assertThat(result3.isEmpty()).isTrue();
     }
 
     @Test
@@ -529,19 +472,16 @@ class ProcessStateContainerImplTest {
       var result1 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L, 2L), ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
-      assertThat(result1.toActivate()).hasSize(2);
+      assertThat(result1.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L, 2L);
 
       // when - import empty subscriptions
       var result2 =
           container.compareAndUpdate(
               importResult(processId, Set.of(), ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
 
-      // then - all versions should be deactivated
-      assertThat(result2.toActivate()).isEmpty();
-      assertThat(result2.toDeactivate())
-          .containsExactlyInAnyOrder(
-              processIdAndKey("process1", "tenant1", 1L),
-              processIdAndKey("process1", "tenant1", 2L));
+      // then - process is affected with empty active versions set
+      assertThat(result2.affectedProcesses()).containsKey(processId);
+      assertThat(result2.affectedProcesses().get(processId)).isEmpty();
     }
 
     @Test
@@ -553,35 +493,29 @@ class ProcessStateContainerImplTest {
       var result1 =
           container.compareAndUpdate(
               importResult(processId, Set.of(2L), ImportType.LATEST_VERSIONS));
-      assertThat(result1.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 2L));
+      assertThat(result1.affectedProcesses().get(processId)).containsExactlyInAnyOrder(2L);
 
       // when - import v1, v2 with subscriptions (v2 is both latest and has subscription)
       var result2 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L, 2L), ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
-      assertThat(result2.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 1L));
+      assertThat(result2.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L, 2L);
 
       // when - remove v2 from subscriptions (but it's still latest)
       var result3 =
           container.compareAndUpdate(
               importResult(processId, Set.of(1L), ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
 
-      // then - v2 should NOT be deactivated (still latest)
-      assertThat(result3.toActivate()).isEmpty();
-      assertThat(result3.toDeactivate()).isEmpty();
+      // then - no state change: v2 is still active (latest), v1 is still active (subscription)
+      assertThat(result3.isEmpty()).isTrue();
 
-      // when - v3 becomes latest (v2 loses latest flag but has no subscription)
+      // when - v3 becomes latest (v2 loses latest flag and has no subscription)
       var result4 =
           container.compareAndUpdate(
               importResult(processId, Set.of(3L), ImportType.LATEST_VERSIONS));
 
-      // then - v2 should be deactivated now
-      assertThat(result4.toActivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 3L));
-      assertThat(result4.toDeactivate())
-          .containsExactlyInAnyOrder(processIdAndKey("process1", "tenant1", 2L));
+      // then - v1 (subscription) and v3 (latest) should be active, v2 removed
+      assertThat(result4.affectedProcesses().get(processId)).containsExactlyInAnyOrder(1L, 3L);
     }
 
     @Test
@@ -597,8 +531,7 @@ class ProcessStateContainerImplTest {
               importResult(processId, largeVersionSet, ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
 
       // then
-      assertThat(result.toActivate()).hasSize(15);
-      assertThat(result.toDeactivate()).isEmpty();
+      assertThat(result.affectedProcesses().get(processId)).hasSize(15);
 
       // when - remove half of them
       var smallerSet = Set.of(8L, 9L, 10L, 11L, 12L, 13L, 14L, 15L);
@@ -607,8 +540,9 @@ class ProcessStateContainerImplTest {
               importResult(processId, smallerSet, ImportType.HAVE_ACTIVE_SUBSCRIPTIONS));
 
       // then
-      assertThat(result2.toActivate()).isEmpty();
-      assertThat(result2.toDeactivate()).hasSize(7);
+      assertThat(result2.affectedProcesses().get(processId)).hasSize(8);
+      assertThat(result2.affectedProcesses().get(processId))
+          .containsExactlyInAnyOrder(8L, 9L, 10L, 11L, 12L, 13L, 14L, 15L);
     }
   }
 }

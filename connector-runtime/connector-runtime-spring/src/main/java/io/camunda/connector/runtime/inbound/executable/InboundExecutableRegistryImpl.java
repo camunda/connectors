@@ -26,7 +26,6 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
-import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.Deactivated;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Activated;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Cancelled;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.ConnectorNotRegistered;
@@ -98,8 +97,8 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
 
   void handleEvent(InboundExecutableEvent event) {
     switch (event) {
-      case InboundExecutableEvent.Activated activated -> handleActivated(activated);
-      case Deactivated deactivated -> handleDeactivated(deactivated);
+      case InboundExecutableEvent.ProcessStateChanged stateChanged ->
+          handleProcessStateChanged(stateChanged);
       case InboundExecutableEvent.Cancelled cancelled -> handleCancelled(cancelled);
     }
   }
@@ -128,38 +127,99 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     }
   }
 
-  private void handleActivated(InboundExecutableEvent.Activated activated) {
+  private void handleProcessStateChanged(InboundExecutableEvent.ProcessStateChanged event) {
     LOG.debug(
-        "Handling activated event for process definition {} (tenant {})",
-        activated.processDefinitionKey(),
-        activated.tenantId());
+        "Handling state change for process '{}' (tenant '{}') with {} active version(s)",
+        event.bpmnProcessId(),
+        event.tenantId(),
+        event.elementsByProcessDefinitionKey().size());
 
-    var elements = activated.elements();
-    if (elements.isEmpty()) {
-      LOG.debug("No elements provided for activation");
-      return;
-    }
-
-    var processId = activated.tenantId() + activated.processDefinitionKey();
+    var processId = event.tenantId() + event.bpmnProcessId();
 
     synchronized (processId.intern()) {
       try {
-        Map<ExecutableId, InboundConnectorDetails> groupedConnectors =
-            groupElements(elements).stream()
+        // Collect all elements from all active versions
+        List<InboundConnectorElement> allElements =
+            event.elementsByProcessDefinitionKey().values().stream().flatMap(List::stream).toList();
+
+        // Group all elements by deduplication ID (this may combine elements from different
+        // versions)
+        Map<ExecutableId, InboundConnectorDetails> targetState =
+            groupElements(allElements).stream()
                 .collect(Collectors.toMap(InboundConnectorDetails::id, connector -> connector));
 
-        groupedConnectors.forEach(
+        // Find elements that belong to this process (by bpmnProcessId + tenantId)
+        Set<ProcessElementWithRuntimeData> currentElementsForProcess =
+            executablesByElement.keySet().stream()
+                .filter(
+                    element ->
+                        element.tenantId().equals(event.tenantId())
+                            && element.bpmnProcessId().equals(event.bpmnProcessId()))
+                .collect(Collectors.toSet());
+
+        // Find executables that are currently associated with this process's elements
+        Set<ExecutableId> currentExecutableIds =
+            currentElementsForProcess.stream()
+                .map(executablesByElement::get)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // Determine what needs to be activated vs deactivated
+        Set<ExecutableId> toActivate = new HashSet<>(targetState.keySet());
+        toActivate.removeAll(currentExecutableIds);
+
+        Set<ExecutableId> toDeactivate = new HashSet<>(currentExecutableIds);
+        toDeactivate.removeAll(targetState.keySet());
+
+        Set<ExecutableId> toUpdate = new HashSet<>(currentExecutableIds);
+        toUpdate.retainAll(targetState.keySet());
+
+        LOG.debug(
+            "Process '{}': {} to activate, {} to deactivate, {} to update",
+            event.bpmnProcessId(),
+            toActivate.size(),
+            toDeactivate.size(),
+            toUpdate.size());
+
+        // Remove old element mappings for this process
+        currentElementsForProcess.forEach(executablesByElement::remove);
+
+        // Deactivate executables that are no longer needed
+        if (!toDeactivate.isEmpty()) {
+          var executablesToDeactivate =
+              toDeactivate.stream().map(executables::remove).filter(Objects::nonNull).toList();
+          batchExecutableProcessor.deactivateBatch(executablesToDeactivate);
+        }
+
+        // Add new element mappings
+        targetState.forEach(
             (id, connectorDetails) ->
                 connectorDetails
                     .connectorElements()
                     .forEach(element -> executablesByElement.put(element.element(), id)));
 
-        var activationResult =
-            batchExecutableProcessor.activateBatch(groupedConnectors, this::createCancellation);
-        executables.putAll(activationResult);
+        // Activate new executables
+        if (!toActivate.isEmpty()) {
+          Map<ExecutableId, InboundConnectorDetails> connectorsToActivate =
+              toActivate.stream().collect(Collectors.toMap(id -> id, targetState::get));
+          var activationResult =
+              batchExecutableProcessor.activateBatch(
+                  connectorsToActivate, this::createCancellation);
+          executables.putAll(activationResult);
+        }
+
+        // TODO: Handle updates - executables that exist but may have different elements
+        // For now, we just log a warning if there are updates needed
+        if (!toUpdate.isEmpty()) {
+          LOG.warn(
+              "Process '{}': {} executables may need element updates (cross-version deduplication). "
+                  + "This is not yet fully implemented.",
+              event.bpmnProcessId(),
+              toUpdate.size());
+        }
 
       } catch (Exception e) {
-        LOG.error("Failed to activate connectors", e);
+        LOG.error("Failed to handle state change for process '{}'", event.bpmnProcessId(), e);
       }
     }
   }
@@ -169,39 +229,6 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     if (executable instanceof Activated) {
       this.publishEvent(cancelEvent);
     } else throw new IllegalStateException();
-  }
-
-  private void handleDeactivated(Deactivated deactivated) {
-    LOG.debug(
-        "Handling deactivated event for process {} (tenant {}) ",
-        deactivated.processDefinitionKey(),
-        deactivated.tenantId());
-
-    var processId = deactivated.tenantId() + deactivated.processDefinitionKey();
-
-    synchronized (processId.intern()) {
-      try {
-        var executablesToDeactivate =
-            executablesByElement.keySet().stream()
-                .filter(
-                    element ->
-                        element.tenantId().equals(deactivated.tenantId())
-                            && element.processDefinitionKey() == deactivated.processDefinitionKey())
-                .map(executablesByElement::remove)
-                .map(executables::remove)
-                .toList();
-
-        if (executablesToDeactivate.isEmpty()) {
-          LOG.debug("No executables found for deactivation");
-          return;
-        }
-
-        batchExecutableProcessor.deactivateBatch(executablesToDeactivate);
-
-      } catch (Exception e) {
-        LOG.error("Failed to deactivate connectors", e);
-      }
-    }
   }
 
   @Override

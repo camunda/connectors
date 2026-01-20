@@ -19,7 +19,7 @@ package io.camunda.connector.runtime.inbound.executable;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorManagementContext;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.InvalidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
@@ -30,13 +30,13 @@ public sealed interface RegisteredExecutable {
 
   record Activated(
       InboundConnectorExecutable<InboundConnectorContext> executable,
-      InboundConnectorReportingContext context,
+      InboundConnectorManagementContext context,
       ExecutableId id)
       implements RegisteredExecutable {}
 
   record Cancelled(
       InboundConnectorExecutable<InboundConnectorContext> executable,
-      InboundConnectorReportingContext context,
+      InboundConnectorManagementContext context,
       Throwable exceptionThrown,
       ExecutableId id)
       implements RegisteredExecutable {}
