@@ -39,7 +39,8 @@ public class ConnectorExceptionMapperTest {
     // then
     assertThat(exception).isNotNull();
     assertThat(exception.getErrorCode()).isEqualTo("200");
-    assertThat(exception.getMessage()).contains("[no reason]");
+    assertThat(exception.getMessage())
+        .isEqualTo("HTTP request failed with status code 200 ([no reason])");
     var response = new HashMap<>();
     response.put("headers", null);
     response.put("body", null);
@@ -57,7 +58,8 @@ public class ConnectorExceptionMapperTest {
     // then
     assertThat(exception).isNotNull();
     assertThat(exception.getErrorCode()).isEqualTo("200");
-    assertThat(exception.getMessage()).contains("Custom reason");
+    assertThat(exception.getMessage())
+        .isEqualTo("HTTP request failed with status code 200 (Custom reason)");
     var response = new HashMap<>();
     response.put("headers", null);
     response.put("body", null);
@@ -219,7 +221,7 @@ public class ConnectorExceptionMapperTest {
   @Test
   public void shouldTruncateLongResponseBody() {
     // given
-    String longBody = "a".repeat(600); // body longer than 500 chracters
+    String longBody = "a".repeat(600); // body longer than 500 characters
     StreamingHttpResponse result =
         new StreamingHttpResponse(
             500,
@@ -231,7 +233,7 @@ public class ConnectorExceptionMapperTest {
     var exception = ConnectorExceptionMapper.from(result);
 
     // then
-    assertThat(exception.getMessage()).contains("...(truncated)");
+    assertThat(exception.getMessage()).contains("...");
     assertThat(exception.getMessage().length()).isLessThan(600);
   }
 }
