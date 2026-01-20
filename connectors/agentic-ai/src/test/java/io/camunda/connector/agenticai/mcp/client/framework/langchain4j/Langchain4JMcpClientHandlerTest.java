@@ -18,7 +18,6 @@ import static org.mockito.Mockito.when;
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
-import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.model.*;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest.McpClientRequestData;
@@ -93,8 +92,7 @@ class Langchain4JMcpClientHandlerTest {
         new McpClientRequest(
             new McpClientRequestData(
                 CLIENT_CONFIG,
-                new ToolModeConfiguration(
-                    LIST_TOOLS_OPERATION, null))); // No filters provided
+                new ToolModeConfiguration(LIST_TOOLS_OPERATION, null))); // No filters provided
 
     when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
     when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
