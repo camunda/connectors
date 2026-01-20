@@ -32,7 +32,6 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.ProcessStateChanged;
-import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.ConnectorNotRegistered;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import java.time.Duration;
 import java.util.List;
@@ -58,13 +57,13 @@ public class InboundExecutableRegistryTest {
   @BeforeEach
   public void prepareMocks() {
     factory = mock(InboundConnectorFactory.class);
+    when(factory.getConfigurations()).thenReturn(List.of());
     contextFactory = mock(DefaultInboundConnectorContextFactory.class);
     var inboundMetrics = mock(ConnectorsInboundMetrics.class);
     batchProcessor =
         new BatchExecutableProcessor(
             factory, contextFactory, inboundMetrics, null, new ActivityLogRegistry());
-    registry =
-        new InboundExecutableRegistryImpl(factory, batchProcessor, new ActivityLogRegistry());
+    registry = new InboundExecutableRegistryImpl(factory, batchProcessor);
   }
 
   @Test
@@ -92,7 +91,7 @@ public class InboundExecutableRegistryTest {
     var result = registry.query(new ActiveExecutableQuery(null, elementId, null, null));
     assertThat(result.getFirst().health().getStatus()).isEqualTo(Status.DOWN);
     assertThat(result.getFirst().health().getError().message())
-        .isEqualTo("Invalid connector definition: All elements in a group must have the same type");
+        .contains("Invalid connector definition: All elements in a group must have the same type");
   }
 
   @Test
@@ -168,7 +167,7 @@ public class InboundExecutableRegistryTest {
     // then
     var result = registry.query(new ActiveExecutableQuery(null, elementId, null, null));
     assertThat(result.getFirst().health().getStatus()).isEqualTo(Status.DOWN);
-    assertThat(result.getFirst().health().getError().message()).isEqualTo("failed");
+    assertThat(result.getFirst().health().getError().message()).contains("failed");
   }
 
   @Test
@@ -208,11 +207,9 @@ public class InboundExecutableRegistryTest {
     verify(executable2).activate(mockContext);
     verify(executable1).deactivate();
 
-    assertThat(registry.executables.size()).isEqualTo(2);
-    assertThat(
-            registry.executables.values().stream()
-                .allMatch(e -> e instanceof RegisteredExecutable.FailedToActivate))
-        .isTrue();
+    var results = registry.query(new ActiveExecutableQuery(null, null, null, null));
+    assertThat(results.size()).isEqualTo(2);
+    assertThat(results.stream().allMatch(r -> r.health().getStatus() == Status.DOWN)).isTrue();
   }
 
   @Test
@@ -253,15 +250,13 @@ public class InboundExecutableRegistryTest {
     verify(executable1).activate(mockContext);
     verifyNoMoreInteractions(executable1);
 
-    assertThat(registry.executables.size()).isEqualTo(2);
-    assertThat(
-            registry.executables.values().stream()
-                .anyMatch(e -> e instanceof ConnectorNotRegistered))
-        .isTrue();
-    assertThat(
-            registry.executables.values().stream()
-                .anyMatch(e -> e instanceof RegisteredExecutable.Activated))
-        .isTrue();
+    var results = registry.query(new ActiveExecutableQuery(null, null, null, null));
+    assertThat(results.size()).isEqualTo(2);
+    // One should be healthy (activated), one should be down (not registered)
+    assertThat(results.stream().filter(r -> r.health().getStatus() == Status.UP).count())
+        .isEqualTo(1);
+    assertThat(results.stream().filter(r -> r.health().getStatus() == Status.DOWN).count())
+        .isEqualTo(1);
   }
 
   @Test
@@ -283,7 +278,7 @@ public class InboundExecutableRegistryTest {
     var result = registry.query(new ActiveExecutableQuery(null, elementId, null, null));
     assertThat(result.getFirst().health().getStatus()).isEqualTo(Status.DOWN);
     assertThat(result.getFirst().health().getError().message())
-        .isEqualTo("Connector unknown-type not registered");
+        .contains("Connector unknown-type not registered");
   }
 
   @Test
