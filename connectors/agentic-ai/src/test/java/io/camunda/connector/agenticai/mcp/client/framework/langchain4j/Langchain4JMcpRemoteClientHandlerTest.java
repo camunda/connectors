@@ -28,9 +28,11 @@ import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientStandaloneFiltersConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientToolModeFiltersConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientToolsFilterConfiguration;
+import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.StandaloneModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientOptionsConfiguration;
@@ -52,6 +54,7 @@ import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -88,7 +91,7 @@ class Langchain4JMcpRemoteClientHandlerTest {
 
   private static final McpClientToolsFilterConfiguration EMPTY_FILTER_CONFIGURATION =
       new McpClientToolsFilterConfiguration(List.of(), List.of());
-  private static final FilterOptions EMPTY_FILTER = FilterOptionsBuilder.builder().build();
+  private static final FilterOptions EMPTY_FILTER = FilterOptions.defaultOptions();
 
   @Mock private McpRemoteClientRegistry<McpClient> remoteClientRegistry;
   @Mock private Langchain4JMcpClientExecutor clientExecutor;
@@ -137,6 +140,22 @@ class Langchain4JMcpRemoteClientHandlerTest {
                 handler.handle(
                     context, createToolModeRequest(transport, false, LIST_TOOLS_OPERATION)))
         .isEqualTo(exception);
+  }
+
+  @Test
+  void usesDefaultOptions_whenConnectorModeDoesNotProvideFilters() {
+    final var request =
+        new McpRemoteClientRequest(
+            new McpRemoteClientRequestData(
+                null,
+                new McpRemoteClientOptionsConfiguration(false),
+                new ToolModeConfiguration(LIST_TOOLS_OPERATION, null)));
+
+    when(remoteClientRegistry.getClient(CLIENT_ID, null, false)).thenReturn(mcpClient);
+    when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
+        .thenReturn(new McpClientListToolsResult(List.of()));
+
+    handler.handle(context, request);
   }
 
   @Nested
