@@ -13,6 +13,10 @@ on:
   merge_group:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-branch:
 
@@ -105,7 +109,7 @@ jobs:
 
       # Build
       - name: Build Connectors
-        run: mvn --batch-mode clean test -PcheckFormat -Dquickly
+        run: mvn --batch-mode clean test javadoc:javadoc -PcheckFormat -Dquickly
 
       - name: Publish Test Report
         if: always() && steps.internal.outputs.internal == 'true'
