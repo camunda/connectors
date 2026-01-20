@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +39,7 @@ public class ConnectorExceptionMapperTest {
     // then
     assertThat(exception).isNotNull();
     assertThat(exception.getErrorCode()).isEqualTo("200");
-    assertThat(exception.getMessage()).isEqualTo("[no reason]");
+    assertThat(exception.getMessage()).contains("[no reason]");
     var response = new HashMap<>();
     response.put("headers", null);
     response.put("body", null);
@@ -56,7 +57,7 @@ public class ConnectorExceptionMapperTest {
     // then
     assertThat(exception).isNotNull();
     assertThat(exception.getErrorCode()).isEqualTo("200");
-    assertThat(exception.getMessage()).isEqualTo("Custom reason");
+    assertThat(exception.getMessage()).contains("Custom reason");
     var response = new HashMap<>();
     response.put("headers", null);
     response.put("body", null);
@@ -79,7 +80,7 @@ public class ConnectorExceptionMapperTest {
     // then
     assertThat(exception).isNotNull();
     assertThat(exception.getErrorCode()).isEqualTo("200");
-    assertThat(exception.getMessage()).isEqualTo("[no reason]");
+    assertThat(exception.getMessage()).contains("[no reason]");
     var response = new HashMap<>();
     response.put("headers", Map.of("Content-Type", "text/plain", "X-Custom", "value"));
     response.put("body", null);
@@ -98,7 +99,7 @@ public class ConnectorExceptionMapperTest {
     // then
     assertThat(exception).isNotNull();
     assertThat(exception.getErrorCode()).isEqualTo("400");
-    assertThat(exception.getMessage()).isEqualTo("[no reason]");
+    assertThat(exception.getMessage()).contains("[no reason]");
     var response = new HashMap<>();
     response.put("headers", null);
     response.put("body", "text");
@@ -118,7 +119,7 @@ public class ConnectorExceptionMapperTest {
     // then
     assertThat(exception).isNotNull();
     assertThat(exception.getErrorCode()).isEqualTo("400");
-    assertThat(exception.getMessage()).isEqualTo("Custom reason");
+    assertThat(exception.getMessage()).contains("Custom reason");
     var response = new HashMap<>();
     response.put("headers", null);
     response.put("body", "text");
@@ -141,7 +142,7 @@ public class ConnectorExceptionMapperTest {
     // then
     assertThat(exception).isNotNull();
     assertThat(exception.getErrorCode()).isEqualTo("400");
-    assertThat(exception.getMessage()).isEqualTo("[no reason]");
+    assertThat(exception.getMessage()).contains("[no reason]");
     var response = new HashMap<>();
     response.put("headers", Map.of("Content-Type", "text/plain", "X-Custom", "value"));
     response.put("body", "text");
@@ -164,7 +165,7 @@ public class ConnectorExceptionMapperTest {
     // then
     assertThat(exception).isNotNull();
     assertThat(exception.getErrorCode()).isEqualTo("400");
-    assertThat(exception.getMessage()).isEqualTo("Custom reason");
+    assertThat(exception.getMessage()).contains("Custom reason");
     var response = new HashMap<>();
     response.put("headers", Map.of("Content-Type", "text/plain", "X-Custom", "value"));
     response.put("body", "text");
@@ -187,10 +188,50 @@ public class ConnectorExceptionMapperTest {
     // then
     assertThat(exception).isNotNull();
     assertThat(exception.getErrorCode()).isEqualTo("400");
-    assertThat(exception.getMessage()).isEqualTo("Custom reason");
+    assertThat(exception.getMessage()).contains("Custom reason");
     var response = new HashMap<>();
     response.put("headers", Map.of("Content-Type", "application/json", "X-Custom", "value"));
     response.put("body", Map.of("key", "value"));
     assertThat(exception.getErrorVariables()).containsEntry("response", response);
+  }
+
+  @Test
+  public void shouldIncludeResponseDetailsInHttpErrorMessage() {
+    // given
+    StreamingHttpResponse result =
+        new StreamingHttpResponse(
+            422,
+            "Unprocessable Entity",
+            null,
+            new ByteArrayInputStream(
+                "{\"error\":\"invalid_input\"}".getBytes(StandardCharsets.UTF_8)));
+
+    // when
+    var exception = ConnectorExceptionMapper.from(result);
+
+    // then
+    assertThat(exception.getMessage()).contains("HTTP request failed");
+    assertThat(exception.getMessage()).contains("422");
+    assertThat(exception.getMessage()).contains("Unprocessable Entity");
+    assertThat(exception.getMessage()).contains("{\"error\":\"invalid_input\"}");
+  }
+
+  @Test
+  public void shouldTruncateLongResponseBody() {
+    // given
+    String longBody = "a".repeat(600); // body longer than 500 chracters
+    StreamingHttpResponse result =
+        new StreamingHttpResponse(
+            500,
+            "Internal Server Error",
+            null,
+            new ByteArrayInputStream(longBody.getBytes(StandardCharsets.UTF_8)));
+
+    // when
+    var exception = ConnectorExceptionMapper.from(result);
+
+    // then
+    assertThat(exception.getMessage()).contains("...(truncated)");
+    assertThat(exception.getMessage().length()).isLessThan(600);
   }
 }

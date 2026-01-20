@@ -273,7 +273,7 @@ public class HttpServiceTest {
     // then
     Assertions.assertThat(e).isNotNull();
     Assertions.assertThat(e.getErrorCode()).isEqualTo("401");
-    Assertions.assertThat(e.getMessage()).isEqualTo("Unauthorized sorry!");
+    Assertions.assertThat(e.getMessage()).contains("Unauthorized sorry!");
     var response = (Map<String, Object>) e.getErrorVariables().get("response");
     Assertions.assertThat((Map) response.get("headers"))
         .containsEntry("Content-Type", "text/plain");
@@ -340,7 +340,7 @@ public class HttpServiceTest {
     // then
     Assertions.assertThat(e).isNotNull();
     Assertions.assertThat(e.getErrorCode()).isEqualTo("401");
-    Assertions.assertThat(e.getMessage()).isEqualTo("Unauthorized sorry!");
+    Assertions.assertThat(e.getMessage()).contains("Unauthorized sorry!");
     var response = (Map<String, Object>) e.getErrorVariables().get("response");
     Assertions.assertThat((Map) response.get("headers"))
         .containsEntry("Content-Type", "application/json");
@@ -375,7 +375,7 @@ public class HttpServiceTest {
     // then
     Assertions.assertThat(e).isNotNull();
     Assertions.assertThat(e.getErrorCode()).isEqualTo("401");
-    Assertions.assertThat(e.getMessage()).isEqualTo("Unauthorized sorry!");
+    Assertions.assertThat(e.getMessage()).contains("Unauthorized sorry!");
   }
 
   @Test

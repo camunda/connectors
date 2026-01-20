@@ -206,7 +206,7 @@ public class CustomApacheHttpClientTest {
           assertThrows(
               ConnectorException.class,
               () -> httpClient.execute(request, ResponseMappers.asString()));
-      assertThat(e.getMessage()).isEqualTo("Proxy Authentication Required");
+      assertThat(e.getMessage()).contains("Proxy Authentication Required");
     }
 
     @ParameterizedTest
@@ -234,7 +234,7 @@ public class CustomApacheHttpClientTest {
                           assertThrows(
                               ConnectorException.class,
                               () -> httpClient.execute(request, ResponseMappers.asString()));
-                      assertThat(e.getMessage()).isEqualTo("Proxy Authentication Required");
+                      assertThat(e.getMessage()).contains("Proxy Authentication Required");
                     });
           });
     }
@@ -267,7 +267,7 @@ public class CustomApacheHttpClientTest {
                           assertThrows(
                               ConnectorException.class,
                               () -> httpClient.execute(request, ResponseMappers.asString()));
-                      assertThat(e.getMessage()).isEqualTo("Proxy Authentication Required");
+                      assertThat(e.getMessage()).contains("Proxy Authentication Required");
                     });
           });
     }

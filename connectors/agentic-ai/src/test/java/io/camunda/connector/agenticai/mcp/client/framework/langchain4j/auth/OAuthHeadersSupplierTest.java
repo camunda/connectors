@@ -480,8 +480,11 @@ class OAuthHeadersSupplierTest {
       // when/then
       assertThatThrownBy(supplier::get)
           .isInstanceOf(ConnectorException.class)
-          .hasMessage(
-              "MCP client authentication failed: Unauthorized - {error=invalid_client, error_description=Invalid client credentials}");
+          .hasMessageContaining("MCP client authentication failed")
+          .hasMessageContaining("401 (Unauthorized)")
+          .hasMessageContaining("invalid_client")
+          .hasMessageContaining(
+              "{error=invalid_client, error_description=Invalid client credentials}");
     }
 
     @Test
@@ -515,7 +518,7 @@ class OAuthHeadersSupplierTest {
       // when/then
       assertThatThrownBy(supplier::get)
           .isInstanceOf(ConnectorException.class)
-          .hasMessage(
+          .hasMessageContaining(
               "MCP client authentication failed: Invalid OAuth token response. Missing 'access_token' field.");
     }
 
@@ -544,7 +547,7 @@ class OAuthHeadersSupplierTest {
       // when/then
       assertThatThrownBy(supplier::get)
           .isInstanceOf(ConnectorException.class)
-          .hasMessage(
+          .hasMessageContaining(
               "MCP client authentication failed: Invalid OAuth token response. Expected a JSON object, but received ARRAY");
     }
 
@@ -573,7 +576,7 @@ class OAuthHeadersSupplierTest {
       // when/then
       assertThatThrownBy(supplier::get)
           .isInstanceOf(ConnectorException.class)
-          .hasMessage(
+          .hasMessageContaining(
               "MCP client authentication failed: Response body is not valid JSON: Not a JSON response");
     }
   }
