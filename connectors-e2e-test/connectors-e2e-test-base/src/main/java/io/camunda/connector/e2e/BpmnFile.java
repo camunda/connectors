@@ -23,6 +23,7 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class BpmnFile {
 
@@ -69,19 +70,39 @@ public class BpmnFile {
   public BpmnModelInstance apply(File template, String elementId, File output) {
     assertTrue("BPMN file must be written to disk: " + bpmnFile, bpmnFile.exists());
     try {
-      new ProcessBuilder()
-          .command(
-              "element-templates-cli",
-              "--diagram",
-              bpmnFile.getPath(),
-              "--template",
-              template.getPath(),
-              "--element",
-              elementId,
-              "--output",
-              output.getPath())
-          .start()
-          .waitFor();
+      final var process =
+          new ProcessBuilder()
+              .command(
+                  "element-templates-cli",
+                  "--diagram",
+                  bpmnFile.getPath(),
+                  "--template",
+                  template.getPath(),
+                  "--element",
+                  elementId,
+                  "--output",
+                  output.getPath())
+              .start();
+
+      final var exitCode = process.waitFor();
+      if (exitCode != 0) {
+        var stdout = IOUtils.toString(process.getInputStream(), StandardCharsets.UTF_8);
+        var stderr = IOUtils.toString(process.getErrorStream(), StandardCharsets.UTF_8);
+
+        var exceptionMessage =
+            "Failed to apply element template via element-templates-cli. Exit code: " + exitCode;
+
+        if (StringUtils.isNotBlank(stdout)) {
+          exceptionMessage += "\nSTDOUT: " + stdout;
+        }
+
+        if (StringUtils.isNotBlank(stderr)) {
+          exceptionMessage += "\nSTDERR: " + stderr;
+        }
+
+        throw new RuntimeException(exceptionMessage);
+      }
+
       return Bpmn.readModelFromFile(output);
     } catch (Exception e) {
       throw new RuntimeException(e);
