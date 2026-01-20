@@ -52,6 +52,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,10 +63,14 @@ import org.slf4j.LoggerFactory;
 /**
  * Inspects the imported process elements and extracts Inbound Connector elements as {@link
  * ProcessCorrelationPoint}.
+ *
+ * <p>This class caches the parsed connector elements by processDefinitionKey since the BPMN model
+ * is immutable once deployed. The cache uses LRU eviction with a configurable max size.
  */
 public class ProcessDefinitionInspector {
 
   private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionInspector.class);
+  private static final int DEFAULT_CACHE_MAX_SIZE = 1000;
 
   private static final List<Class<? extends BaseElement>> INBOUND_ELIGIBLE_TYPES =
       new ArrayList<>();
@@ -80,14 +85,61 @@ public class ProcessDefinitionInspector {
 
   private final SearchQueryClient searchQueryClient;
 
+  /**
+   * LRU cache of parsed inbound connector elements by processDefinitionKey. The BPMN model is
+   * immutable once deployed, so we can safely cache the parsed elements. Uses LinkedHashMap with
+   * access-order to implement LRU eviction.
+   */
+  private final Map<Long, List<InboundConnectorElement>> connectorElementsCache;
+
+  private final int cacheMaxSize;
+
   public ProcessDefinitionInspector(SearchQueryClient searchQueryClient) {
+    this(searchQueryClient, DEFAULT_CACHE_MAX_SIZE);
+  }
+
+  public ProcessDefinitionInspector(SearchQueryClient searchQueryClient, int cacheMaxSize) {
     this.searchQueryClient = searchQueryClient;
+    this.cacheMaxSize = cacheMaxSize > 0 ? cacheMaxSize : DEFAULT_CACHE_MAX_SIZE;
+    this.connectorElementsCache = createLruCache(this.cacheMaxSize);
+    LOG.info("Process definition cache initialized with max size: {}", this.cacheMaxSize);
+  }
+
+  private static Map<Long, List<InboundConnectorElement>> createLruCache(int maxSize) {
+    return Collections.synchronizedMap(
+        new LinkedHashMap<>(16, 0.75f, true) {
+          @Override
+          protected boolean removeEldestEntry(
+              Map.Entry<Long, List<InboundConnectorElement>> eldest) {
+            boolean shouldRemove = size() > maxSize;
+            if (shouldRemove) {
+              LOG.debug(
+                  "Cache size exceeded {}, evicting oldest entry for process definition key: {}",
+                  maxSize,
+                  eldest.getKey());
+            }
+            return shouldRemove;
+          }
+        });
   }
 
   public List<InboundConnectorElement> findInboundConnectors(
       ProcessDefinitionRef identifier, long processDefinitionKey) {
 
-    LOG.debug("Checking {} (key {}) for connectors.", identifier, processDefinitionKey);
+    return connectorElementsCache.computeIfAbsent(
+        processDefinitionKey,
+        key -> {
+          LOG.debug(
+              "Cache miss for process {} (key {}), fetching and parsing BPMN model.",
+              identifier.bpmnProcessId(),
+              processDefinitionKey);
+          return fetchAndParseConnectors(identifier, processDefinitionKey);
+        });
+  }
+
+  private List<InboundConnectorElement> fetchAndParseConnectors(
+      ProcessDefinitionRef identifier, long processDefinitionKey) {
+
     BpmnModelInstance modelInstance = searchQueryClient.getProcessModel(processDefinitionKey);
 
     var processes =
@@ -98,6 +150,26 @@ public class ProcessDefinitionInspector {
     return processes.stream()
         .flatMap(process -> inspectBpmnProcess(process, identifier, processDefinitionKey).stream())
         .toList();
+  }
+
+  /**
+   * Evicts a specific process definition from the cache. Useful if the cache needs to be
+   * invalidated for any reason.
+   *
+   * @param processDefinitionKey the process definition key to evict
+   */
+  public void evictFromCache(long processDefinitionKey) {
+    connectorElementsCache.remove(processDefinitionKey);
+  }
+
+  /** Clears the entire cache. */
+  public void clearCache() {
+    connectorElementsCache.clear();
+  }
+
+  /** Returns the current size of the cache. Useful for monitoring. */
+  public int getCacheSize() {
+    return connectorElementsCache.size();
   }
 
   private List<InboundConnectorElement> inspectBpmnProcess(

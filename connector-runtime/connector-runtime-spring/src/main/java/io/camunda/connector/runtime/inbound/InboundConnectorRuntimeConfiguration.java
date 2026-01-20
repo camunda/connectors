@@ -154,8 +154,10 @@ public class InboundConnectorRuntimeConfiguration {
 
   @Bean
   public ProcessDefinitionInspector processDefinitionInspector(
-      SearchQueryClient searchQueryClient) {
-    return new ProcessDefinitionInspector(searchQueryClient);
+      SearchQueryClient searchQueryClient,
+      @Value("${camunda.connector.inbound.process-definition-cache.max-size:1000}")
+          int cacheMaxSize) {
+    return new ProcessDefinitionInspector(searchQueryClient, cacheMaxSize);
   }
 
   @Bean
