@@ -1,0 +1,20 @@
+camunda:
+  connector:
+    agenticai:
+      mcp:
+        client:
+          clients:
+            a-mcp-client:
+              enabled: true
+              type: HTTP
+              http:
+                url: http://localhost:19080/mcp
+logging:
+  level:
+    dev:
+      langchain4j:
+        mcp: DEBUG
+    com:
+      github:
+        tomakehurst:
+          wiremock: TRACE
