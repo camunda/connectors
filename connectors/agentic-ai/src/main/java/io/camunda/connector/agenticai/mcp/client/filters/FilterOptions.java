@@ -16,4 +16,10 @@ public record FilterOptions(
     @RecordBuilder.Initializer(source = AllowDenyList.class, value = "allowingEverything")
         AllowDenyList resourceFilters,
     @RecordBuilder.Initializer(source = AllowDenyList.class, value = "allowingEverything")
-        AllowDenyList promptFilters) {}
+        AllowDenyList promptFilters) {
+
+  /** Provides default filter options that allow all tools, resources, and prompts. */
+  public static FilterOptions defaultOptions() {
+    return FilterOptionsBuilder.builder().build();
+  }
+}

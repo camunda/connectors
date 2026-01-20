@@ -18,7 +18,6 @@ import static org.mockito.Mockito.when;
 import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
-import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.model.*;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest.McpClientRequestData;
@@ -51,7 +50,7 @@ class Langchain4JMcpClientHandlerTest {
 
   private static final McpClientToolsFilterConfiguration EMPTY_FILTER_CONFIGURATION =
       new McpClientToolsFilterConfiguration(List.of(), List.of());
-  private static final FilterOptions EMPTY_FILTER = FilterOptionsBuilder.builder().build();
+  private static final FilterOptions EMPTY_FILTER = FilterOptions.defaultOptions();
 
   @Mock private McpClientRegistry<McpClient> clientRegistry;
   @Mock private Langchain4JMcpClientExecutor clientExecutor;
@@ -85,6 +84,21 @@ class Langchain4JMcpClientHandlerTest {
 
     assertThatThrownBy(() -> handler.handle(context, createToolModeRequest(LIST_TOOLS_OPERATION)))
         .isEqualTo(exception);
+  }
+
+  @Test
+  void usesDefaultOptions_whenConnectorModeDoesNotProvideFilters() {
+    final var request =
+        new McpClientRequest(
+            new McpClientRequestData(
+                CLIENT_CONFIG,
+                new ToolModeConfiguration(LIST_TOOLS_OPERATION, null))); // No filters provided
+
+    when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
+    when(clientExecutor.execute(eq(mcpClient), any(McpClientOperation.class), eq(EMPTY_FILTER)))
+        .thenReturn(new McpClientListToolsResult(List.of()));
+
+    handler.handle(context, request);
   }
 
   @Nested
