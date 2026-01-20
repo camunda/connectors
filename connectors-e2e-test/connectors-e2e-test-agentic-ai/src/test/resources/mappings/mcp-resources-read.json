@@ -1,0 +1,84 @@
+{
+  "mappings": [
+    {
+      "request": {
+        "method": "POST",
+        "url": "/mcp",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.method",
+              "equalTo": "resources/read"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.params.uri",
+              "equalTo": "resourceA"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "transformers": ["response-template"],
+        "jsonBody": {
+          "id": "{{jsonPath request.body '$.id'}}",
+          "jsonrpc": "2.0",
+          "result": {
+            "contents": [
+              {
+                "uri": "resourceA",
+                "mimeType": "text/plain",
+                "text": "This is the content of Resource A."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "url": "/mcp",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.method",
+              "equalTo": "resources/read"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.params.uri",
+              "equalTo": "resourceC"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "transformers": ["response-template"],
+        "jsonBody": {
+          "id": "{{jsonPath request.body '$.id'}}",
+          "jsonrpc": "2.0",
+          "result": {
+            "contents": [
+              {
+                "uri": "resourceC",
+                "mimeType": "text/markdown",
+                "text": "# This is the content of Resource C."
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/mcp",
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": {
+          "expression": "$.method",
+          "equalTo": "tools/list"
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "transformers": ["response-template"],
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":{{jsonPath request.body '$.id'}},\"result\":{\"tools\":[{\"name\":\"toolA\",\"description\":\"The first tool\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"paramA1\":{\"type\":\"string\",\"description\":\"The first parameter\"},\"paramA2\":{\"type\":\"number\",\"description\":\"The second parameter\"}}}},{\"name\":\"toolB\",\"description\":\"The second tool\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"paramB1\":{\"type\":\"string\",\"description\":\"The first parameter\"},\"paramB2\":{\"type\":\"string\",\"enum\":[\"A\",\"B\",\"C\"]}}}},{\"name\":\"toolC\",\"description\":\"The third tool\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"paramC1\":{\"type\":\"string\",\"description\":\"The first parameter\"}}}}]}}"
+  }
+}
