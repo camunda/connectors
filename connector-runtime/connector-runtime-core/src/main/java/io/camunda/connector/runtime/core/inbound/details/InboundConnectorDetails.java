@@ -17,6 +17,8 @@
 package io.camunda.connector.runtime.core.inbound.details;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.common.collect.MapDifference;
+import com.google.common.collect.Maps;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import java.util.List;
@@ -60,5 +62,31 @@ public sealed interface InboundConnectorDetails {
       @JsonIgnore Map<String, String> rawPropertiesWithoutKeywords,
       List<InboundConnectorElement> connectorElements,
       String processDefinitionId)
-      implements InboundConnectorDetails {}
+      implements InboundConnectorDetails {
+
+    /**
+     * Whether this InboundConnectorDetails is compatible with another one. Two
+     * InboundConnectorDetails are compatible if they have the same type, tenantId, deduplicationId,
+     * are related to the same process definition, AND have the same properties. They can have
+     * different connector elements. This is useful to know if we can update an existing inbound
+     * connector if it has not been changed when a new process version is deployed.
+     */
+    public boolean isCompatibleWith(ValidInboundConnectorDetails other) {
+      if (!this.type().equals(other.type())) {
+        return false;
+      }
+      if (!this.tenantId().equals(other.tenantId())) {
+        return false;
+      }
+      if (!this.deduplicationId().equals(other.deduplicationId())) {
+        return false;
+      }
+      if (!this.processDefinitionId().equals(other.processDefinitionId())) {
+        return false;
+      }
+      MapDifference<String, String> diff =
+          Maps.difference(this.rawPropertiesWithoutKeywords, other.rawPropertiesWithoutKeywords);
+      return diff.areEqual();
+    }
+  }
 }

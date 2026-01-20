@@ -36,8 +36,9 @@ import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorManagementContext;
 import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
+import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.test.ConnectorContextTestUtil;
@@ -240,7 +241,7 @@ public class InboundConnectorContextBuilder {
   }
 
   public class TestInboundConnectorContext extends AbstractConnectorContext
-      implements InboundConnectorContext, InboundConnectorReportingContext {
+      implements InboundConnectorContext, InboundConnectorManagementContext {
 
     private final List<Object> correlatedEvents = new ArrayList<>();
     private final String propertiesWithSecrets;
@@ -363,6 +364,11 @@ public class InboundConnectorContextBuilder {
     @Override
     public Long getActivationTimestamp() {
       return activationTimestamp;
+    }
+
+    @Override
+    public void updateConnectorDetails(ValidInboundConnectorDetails connectorDetails) {
+      // do nothing
     }
 
     @Override

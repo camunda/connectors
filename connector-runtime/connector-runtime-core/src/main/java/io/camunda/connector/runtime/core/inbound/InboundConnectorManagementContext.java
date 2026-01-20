@@ -18,9 +18,10 @@ package io.camunda.connector.runtime.core.inbound;
 
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import java.util.List;
 
-public interface InboundConnectorReportingContext extends InboundConnectorContext {
+public interface InboundConnectorManagementContext extends InboundConnectorContext {
 
   /**
    * Provides a Health object to get information about the current status of the Connector with
@@ -35,4 +36,11 @@ public interface InboundConnectorReportingContext extends InboundConnectorContex
   List<InboundConnectorElement> connectorElements();
 
   Long getActivationTimestamp();
+
+  /**
+   * Updates the connector detai
+   *
+   * @param connectorDetails
+   */
+  void updateConnectorDetails(ValidInboundConnectorDetails connectorDetails);
 }

@@ -30,7 +30,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorManagementContext;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogEntry;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogWriter;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
@@ -154,12 +154,12 @@ public class BatchExecutableProcessor {
     var validData = (ValidInboundConnectorDetails) data;
 
     final InboundConnectorExecutable<InboundConnectorContext> executable;
-    final InboundConnectorReportingContext context;
+    final InboundConnectorManagementContext context;
 
     try {
       executable = connectorFactory.getInstance(data.type());
       context =
-          (InboundConnectorReportingContext)
+          (InboundConnectorManagementContext)
               connectorContextFactory.createContext(
                   validData, cancellationCallback, executable.getClass(), activityLogWriter);
     } catch (NoSuchElementException e) {
@@ -265,7 +265,7 @@ public class BatchExecutableProcessor {
 
   private Activated tryRestart(
       InboundConnectorExecutable<InboundConnectorContext> executable,
-      InboundConnectorReportingContext context) {
+      InboundConnectorManagementContext context) {
     try {
       executable.activate(context);
       LOG.info("Activation successful for {}", context.getDefinition().type());
