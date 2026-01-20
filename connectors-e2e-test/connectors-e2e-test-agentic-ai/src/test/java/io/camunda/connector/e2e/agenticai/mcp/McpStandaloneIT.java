@@ -25,9 +25,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import io.camunda.client.api.response.ProcessInstanceEvent;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientGetPromptResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListPromptsResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourcesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.PromptDescription;
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceDescription;
+import io.camunda.connector.agenticai.mcp.client.model.result.ResourceTemplate;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
@@ -43,15 +48,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 
 @SlowTest
@@ -59,15 +63,20 @@ import org.springframework.test.context.TestPropertySource;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class McpStandaloneIT extends BaseAgenticAiTest {
 
-  @Value("classpath:mcp-connectors-standalone.bpmn")
-  protected Resource testProcess;
+  private static final WireMockServer wireMock = setupWireMockServer();
 
-  private WireMockServer wireMock;
+  private static WireMockServer setupWireMockServer() {
+    var server = new WireMockServer(options().globalTemplating(true));
+    server.start();
 
-  @BeforeAll
-  void setup() {
-    wireMock = new WireMockServer(options().port(19080).globalTemplating(true));
-    wireMock.start();
+    return server;
+  }
+
+  @DynamicPropertySource
+  static void mcpClientUrl(DynamicPropertyRegistry registry) {
+    registry.add(
+        "camunda.connector.agenticai.mcp.client.clients.a-mcp-client.http.url",
+        () -> wireMock.baseUrl() + "/mcp");
   }
 
   @AfterAll
@@ -126,7 +135,6 @@ public class McpStandaloneIT extends BaseAgenticAiTest {
                       "isError",
                       false));
 
-          // Verify WireMock received HTTP requests for remote MCP client
           wireMock.verify(
               postRequestedFor(urlEqualTo("/mcp"))
                   .withRequestBody(matchingJsonPath("$.method", equalTo("tools/list"))));
@@ -198,8 +206,8 @@ public class McpStandaloneIT extends BaseAgenticAiTest {
                               "text",
                               "# This is the content of Resource C."))));
 
-          // Verify WireMock received HTTP requests for remote MCP client
           wireMock.verify(
+              2,
               postRequestedFor(urlEqualTo("/mcp"))
                   .withRequestBody(matchingJsonPath("$.method", equalTo("resources/list"))));
 
@@ -212,6 +220,139 @@ public class McpStandaloneIT extends BaseAgenticAiTest {
               postRequestedFor(urlEqualTo("/mcp"))
                   .withRequestBody(matchingJsonPath("$.method", equalTo("resources/read")))
                   .withRequestBody(matchingJsonPath("$.params.uri", equalTo("resourceC"))));
+        });
+  }
+
+  @Test
+  void resourceTemplatesListAndRead() throws IOException {
+    BpmnModelInstance bpmnModel = bootstrapTestProcess("mcp-connectors-standalone.bpmn");
+
+    executeProcessAndVerify(
+        bpmnModel,
+        Map.of("path", "resourceTemplates"),
+        processInstanceEvent -> {
+          CamundaAssert.assertThat(processInstanceEvent)
+              .hasVariableSatisfies(
+                  "clientCallListResourceTemplatesResult",
+                  McpClientListResourceTemplatesResult.class,
+                  listResourceTemplatesResult ->
+                      assertThat(listResourceTemplatesResult.resourceTemplates())
+                          .hasSize(2)
+                          .extracting(ResourceTemplate::uriTemplate)
+                          .containsExactly("resource-a-{number}", "resource-c-{number}"))
+              .hasVariable(
+                  "clientCallReadResourceResult",
+                  Map.of(
+                      "contents",
+                      List.of(
+                          Map.of(
+                              "uri",
+                              "resource-a-1",
+                              "mimeType",
+                              "text/plain",
+                              "text",
+                              "This is the content of Resource A number 1."))))
+              .hasVariableSatisfies(
+                  "remoteClientListResourceTemplatesResult",
+                  McpClientListResourceTemplatesResult.class,
+                  listResourceTemplatesResult ->
+                      assertThat(listResourceTemplatesResult.resourceTemplates())
+                          .hasSize(2)
+                          .extracting(ResourceTemplate::uriTemplate)
+                          .containsExactly("resource-a-{number}", "resource-b-{number}"))
+              .hasVariable(
+                  "remoteClientReadResourceResult",
+                  Map.of(
+                      "contents",
+                      List.of(
+                          Map.of(
+                              "uri",
+                              "resource-a-1",
+                              "mimeType",
+                              "text/plain",
+                              "text",
+                              "This is the content of Resource A number 1."))));
+
+          wireMock.verify(
+              2,
+              postRequestedFor(urlEqualTo("/mcp"))
+                  .withRequestBody(
+                      matchingJsonPath("$.method", equalTo("resources/templates/list"))));
+
+          wireMock.verify(
+              2,
+              postRequestedFor(urlEqualTo("/mcp"))
+                  .withRequestBody(matchingJsonPath("$.method", equalTo("resources/read")))
+                  .withRequestBody(matchingJsonPath("$.params.uri", equalTo("resource-a-1"))));
+        });
+  }
+
+  @Test
+  void promptsListAndGet() throws IOException {
+    BpmnModelInstance bpmnModel = bootstrapTestProcess("mcp-connectors-standalone.bpmn");
+
+    executeProcessAndVerify(
+        bpmnModel,
+        Map.of("path", "prompts"),
+        processInstanceEvent -> {
+          CamundaAssert.assertThat(processInstanceEvent)
+              .hasVariableSatisfies(
+                  "clientCallListPromptsResult",
+                  McpClientListPromptsResult.class,
+                  listPromptsResult ->
+                      assertThat(listPromptsResult.promptDescriptions())
+                          .hasSize(2)
+                          .extracting(PromptDescription::name)
+                          .containsExactly("promptA", "promptC"))
+              .hasVariableSatisfies(
+                  "clientCallGetPromptResult",
+                  McpClientGetPromptResult.class,
+                  getPromptResult -> {
+                    assertThat(getPromptResult.description()).isEqualTo("Prompt A");
+                    assertThat(getPromptResult.messages())
+                        .hasSize(1)
+                        .containsExactly(
+                            new McpClientGetPromptResult.PromptMessage(
+                                "user",
+                                new McpClientGetPromptResult.TextMessage("Please do task A")));
+                  })
+              .hasVariableSatisfies(
+                  "remoteClientListPromptsResult",
+                  McpClientListPromptsResult.class,
+                  listPromptsResult ->
+                      assertThat(listPromptsResult.promptDescriptions())
+                          .hasSize(2)
+                          .extracting(PromptDescription::name)
+                          .containsExactly("promptA", "promptB"))
+              .hasVariableSatisfies(
+                  "remoteClientGetPromptResult",
+                  McpClientGetPromptResult.class,
+                  getPromptResult -> {
+                    assertThat(getPromptResult.description()).isEqualTo("Prompt C");
+                    assertThat(getPromptResult.messages())
+                        .hasSize(1)
+                        .containsExactly(
+                            new McpClientGetPromptResult.PromptMessage(
+                                "user",
+                                new McpClientGetPromptResult.TextMessage("Please do task C")));
+                  });
+
+          wireMock.verify(
+              2,
+              postRequestedFor(urlEqualTo("/mcp"))
+                  .withRequestBody(matchingJsonPath("$.method", equalTo("prompts/list"))));
+
+          wireMock.verify(
+              postRequestedFor(urlEqualTo("/mcp"))
+                  .withRequestBody(matchingJsonPath("$.method", equalTo("prompts/get")))
+                  .withRequestBody(matchingJsonPath("$.params.name", equalTo("promptA")))
+                  .withRequestBody(matchingJsonPath("$.params.arguments.aName", equalTo("nameA"))));
+
+          wireMock.verify(
+              postRequestedFor(urlEqualTo("/mcp"))
+                  .withRequestBody(matchingJsonPath("$.method", equalTo("prompts/get")))
+                  .withRequestBody(matchingJsonPath("$.params.name", equalTo("promptC")))
+                  .withRequestBody(matchingJsonPath("$.params.arguments.cName", equalTo("nameC"))));
         });
   }
 
