@@ -6,13 +6,9 @@
  */
 package io.camunda.connector.agenticai.mcp.client.configuration.langchain4j;
 
-import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
-import io.camunda.connector.agenticai.mcp.client.McpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHandler;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
@@ -38,9 +34,9 @@ public class McpClientLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public McpClientRegistry<McpClient> langchain4JMcpClientRegistry(
-      McpClientConfigurationProperties configuration, McpClientFactory<McpClient> clientFactory) {
-    final var registry = new McpClientRegistry<McpClient>();
+  public McpClientRegistry langchain4JMcpClientRegistry(
+      McpClientConfigurationProperties configuration, McpClientFactory clientFactory) {
+    final var registry = new McpClientRegistry();
     configuration
         .clients()
         .forEach(
@@ -56,13 +52,5 @@ public class McpClientLangchain4JFrameworkConfiguration {
             });
 
     return registry;
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public McpClientHandler langchain4JMcpClientHandler(
-      McpClientRegistry<McpClient> mcpClientRegistry,
-      Langchain4JMcpClientExecutor mcpClientExecutor) {
-    return new Langchain4JMcpClientHandler(mcpClientRegistry, mcpClientExecutor);
   }
 }

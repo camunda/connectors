@@ -29,6 +29,7 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigur
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfigurationProperties.ClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfigurationProperties.ClientConfiguration.ClientCacheConfiguration;
+import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientConnection;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
@@ -106,8 +107,8 @@ class McpRemoteClientRegistryTest {
       STREAMABLE_HTTP_TRANSPORT_CONFIG =
           createStreamableHttpTransportConfiguration(NO_AUTHENTICATION.authentication());
 
-  @Mock private McpClientFactory<McpClient> clientFactory;
-  @Mock private McpClient client;
+  @Mock private McpClientFactory clientFactory;
+  @Mock private McpClientDelegate client;
 
   public static Stream<AuthenticationConfiguration> authenticationConfigurations() {
     return Stream.of(
@@ -117,7 +118,7 @@ class McpRemoteClientRegistryTest {
   @ParameterizedTest
   @MethodSource("authenticationConfigurations")
   void createsStreamableHttpRemoteMcpClient(AuthenticationConfiguration authentication) {
-    final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
+    final var registry = new McpRemoteClientRegistry(createClientConfig(), clientFactory);
 
     when(clientFactory.createClient(
             CLIENT_ID.toString(), createExpectedStreamableHttpClientConfiguration(authentication)))
@@ -135,7 +136,7 @@ class McpRemoteClientRegistryTest {
   @ParameterizedTest
   @MethodSource("authenticationConfigurations")
   void createsSseRemoteMcpClient(AuthenticationConfiguration authentication) {
-    final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
+    final var registry = new McpRemoteClientRegistry(createClientConfig(), clientFactory);
 
     when(clientFactory.createClient(
             CLIENT_ID.toString(), createExpectedSseHttpClientConfiguration(authentication)))
@@ -150,7 +151,7 @@ class McpRemoteClientRegistryTest {
 
   @Test
   void returnsCachedValue() {
-    final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
+    final var registry = new McpRemoteClientRegistry(createClientConfig(), clientFactory);
 
     when(clientFactory.createClient(
             CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
@@ -171,11 +172,11 @@ class McpRemoteClientRegistryTest {
   void doesNotCacheIfCacheDisabledOrConfiguredToZeroCacheSize(boolean enabled, long maximumSize)
       throws Exception {
     final var registry =
-        new McpRemoteClientRegistry<>(
+        new McpRemoteClientRegistry(
             createClientConfig(
                 new ClientCacheConfiguration(enabled, maximumSize, Duration.ofMinutes(10))),
             clientFactory);
-    final var client2 = mock(McpClient.class);
+    final var client2 = mock(McpClientDelegate.class);
 
     when(clientFactory.createClient(
             CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
@@ -199,8 +200,8 @@ class McpRemoteClientRegistryTest {
 
   @Test
   void cacheableParameterControlsCaching() {
-    final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
-    final var client2 = mock(McpClient.class);
+    final var registry = new McpRemoteClientRegistry(createClientConfig(), clientFactory);
+    final var client2 = mock(McpClientDelegate.class);
 
     when(clientFactory.createClient(
             CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
@@ -230,12 +231,12 @@ class McpRemoteClientRegistryTest {
 
   @Test
   void closesCachedClientsOnSizeEviction() {
-    final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
-    final List<McpClient> mockClients = new ArrayList<>();
+    final var registry = new McpRemoteClientRegistry(createClientConfig(), clientFactory);
+    final List<McpClientDelegate> mockClients = new ArrayList<>();
 
     doAnswer(
             i -> {
-              final var mockClient = mock(McpClient.class);
+              final var mockClient = mock(McpClientDelegate.class);
               mockClients.add(mockClient);
               return mockClient;
             })
@@ -270,7 +271,7 @@ class McpRemoteClientRegistryTest {
     try (final var mockedTicker = Mockito.mockStatic(Ticker.class, Answers.CALLS_REAL_METHODS)) {
       mockedTicker.when(Ticker::systemTicker).thenReturn(fakeTicker);
 
-      final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
+      final var registry = new McpRemoteClientRegistry(createClientConfig(), clientFactory);
       when(clientFactory.createClient(
               CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
           .thenReturn(client);
@@ -286,7 +287,7 @@ class McpRemoteClientRegistryTest {
 
   @Test
   void closesCachedClientsOnClose() throws Exception {
-    try (final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory)) {
+    try (final var registry = new McpRemoteClientRegistry(createClientConfig(), clientFactory)) {
       when(clientFactory.createClient(
               CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
           .thenReturn(client);
@@ -302,7 +303,7 @@ class McpRemoteClientRegistryTest {
 
   @Test
   void nonCachedClientsAreNotClosedAutomatically() throws Exception {
-    final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
+    final var registry = new McpRemoteClientRegistry(createClientConfig(), clientFactory);
 
     when(clientFactory.createClient(
             CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
@@ -322,7 +323,7 @@ class McpRemoteClientRegistryTest {
 
   @Test
   void closingNonCachedClientExplicitly() throws Exception {
-    final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
+    final var registry = new McpRemoteClientRegistry(createClientConfig(), clientFactory);
 
     when(clientFactory.createClient(
             CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
@@ -342,9 +343,9 @@ class McpRemoteClientRegistryTest {
 
   @Test
   void mixedCachingScenarios() {
-    final var registry = new McpRemoteClientRegistry<>(createClientConfig(), clientFactory);
-    final var client2 = mock(McpClient.class);
-    final var client3 = mock(McpClient.class);
+    final var registry = new McpRemoteClientRegistry(createClientConfig(), clientFactory);
+    final var client2 = mock(McpClientDelegate.class);
+    final var client3 = mock(McpClientDelegate.class);
 
     when(clientFactory.createClient(
             CLIENT_ID.toString(), EXPECTED_STREAMABLE_HTTP_CLIENT_CONFIGURATION))
@@ -428,7 +429,7 @@ class McpRemoteClientRegistryTest {
 
   @SuppressWarnings("unchecked")
   private Cache<@NonNull McpRemoteClientIdentifier, McpClient> getCache(
-      McpRemoteClientRegistry<McpClient> registry) {
+      McpRemoteClientRegistry registry) {
     return (Cache<@NonNull McpRemoteClientIdentifier, McpClient>)
         ReflectionTestUtils.getField(registry, "cache");
   }

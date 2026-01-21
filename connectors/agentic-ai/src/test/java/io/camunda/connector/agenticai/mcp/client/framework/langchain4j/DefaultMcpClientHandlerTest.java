@@ -15,10 +15,11 @@ import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
+import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
+import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
+import io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.model.*;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest.McpClientRequestData;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest.McpClientRequestData.ClientConfiguration;
@@ -40,7 +41,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class Langchain4JMcpClientHandlerTest {
+class DefaultMcpClientHandlerTest {
 
   private static final String CLIENT_ID = "test-client";
   private static final ClientConfiguration CLIENT_CONFIG = new ClientConfiguration(CLIENT_ID);
@@ -52,17 +53,17 @@ class Langchain4JMcpClientHandlerTest {
       new McpClientToolsFilterConfiguration(List.of(), List.of());
   private static final FilterOptions EMPTY_FILTER = FilterOptions.defaultOptions();
 
-  @Mock private McpClientRegistry<McpClient> clientRegistry;
-  @Mock private Langchain4JMcpClientExecutor clientExecutor;
+  @Mock private McpClientRegistry clientRegistry;
+  @Mock private McpClientExecutor clientExecutor;
 
   @Mock private OutboundConnectorContext context;
-  @Mock private McpClient mcpClient;
+  @Mock private McpClientDelegate mcpClient;
 
-  private Langchain4JMcpClientHandler handler;
+  private DefaultMcpClientHandler handler;
 
   @BeforeEach
   void setUp() {
-    handler = new Langchain4JMcpClientHandler(clientRegistry, clientExecutor);
+    handler = new DefaultMcpClientHandler(clientRegistry, clientExecutor);
   }
 
   @Test
@@ -127,7 +128,7 @@ class Langchain4JMcpClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHandlerTest#mcpOperationArguments")
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpClientHandlerTest#mcpOperationArguments")
     void handlesCallToolRequest(Map<String, Object> arguments) {
       final var request =
           createToolModeRequest(
@@ -189,7 +190,7 @@ class Langchain4JMcpClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHandlerTest#mcpOperationArguments")
+        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpClientHandlerTest#mcpOperationArguments")
     void handlesCallToolRequest(Map<String, Object> arguments) {
       final var request =
           createStandaloneModeRequest(
@@ -357,7 +358,7 @@ class Langchain4JMcpClientHandlerTest {
 
   @ParameterizedTest
   @MethodSource(
-      "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHandlerTest#mcpOperationArguments")
+      "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpClientHandlerTest#mcpOperationArguments")
   void handlesGetPromptRequest(Map<String, Object> arguments) {
     final var request =
         createStandaloneModeRequest(

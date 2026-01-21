@@ -17,6 +17,7 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigur
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfigurationProperties.ClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfigurationProperties.ClientConfiguration.ClientCacheConfiguration;
+import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
@@ -30,19 +31,19 @@ import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoCloseable {
+public class McpRemoteClientRegistry implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(McpRemoteClientRegistry.class);
 
-  private final Cache<@NonNull McpRemoteClientIdentifier, C> cache;
-  private final McpClientFactory<C> clientFactory;
+  private final Cache<@NonNull McpRemoteClientIdentifier, McpClientDelegate> cache;
+  private final McpClientFactory clientFactory;
 
   public McpRemoteClientRegistry(
-      ClientConfiguration clientConfig, McpClientFactory<C> clientFactory) {
+      ClientConfiguration clientConfig, McpClientFactory clientFactory) {
     this.cache = createCache(clientConfig.cache());
     this.clientFactory = clientFactory;
   }
 
-  private Cache<@NonNull McpRemoteClientIdentifier, C> createCache(
+  private Cache<@NonNull McpRemoteClientIdentifier, McpClientDelegate> createCache(
       ClientCacheConfiguration cacheConfig) {
     final var maximumSize = cacheConfig.enabled() ? cacheConfig.maximumSize() : 0;
 
@@ -75,7 +76,7 @@ public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoClo
    *     created each time and the caller must close it
    * @return The MCP client instance
    */
-  public C getClient(
+  public McpClientDelegate getClient(
       McpRemoteClientIdentifier clientId,
       McpRemoteClientTransportConfiguration transport,
       boolean cacheable) {
@@ -87,7 +88,7 @@ public class McpRemoteClientRegistry<C extends AutoCloseable> implements AutoClo
     }
   }
 
-  private C createClient(
+  private McpClientDelegate createClient(
       McpRemoteClientIdentifier clientId, McpRemoteClientTransportConfiguration transport) {
     LOGGER.info("MCP({}): Creating remote HTTP client", clientId);
     return this.clientFactory.createClient(

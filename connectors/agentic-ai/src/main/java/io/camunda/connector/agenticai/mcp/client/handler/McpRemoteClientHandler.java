@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.mcp.client;
+package io.camunda.connector.agenticai.mcp.client.handler;
 
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;

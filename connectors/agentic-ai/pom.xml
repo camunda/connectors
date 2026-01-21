@@ -142,6 +142,16 @@
       <artifactId>langchain4j-vertex-ai-gemini</artifactId>
     </dependency>
 
+    <!-- Native MCP Java SDK -->
+    <dependency>
+      <groupId>io.modelcontextprotocol.sdk</groupId>
+      <artifactId>mcp</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.modelcontextprotocol.sdk</groupId>
+      <artifactId>mcp-spring-webmvc</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-identity</artifactId>

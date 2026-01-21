@@ -8,16 +8,13 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.langchain4j.mcp.client.McpClient;
-import dev.langchain4j.mcp.client.McpGetPromptResult;
-import dev.langchain4j.mcp.client.McpReadResourceResult;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientResultDocumentHandler;
+import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
+import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptionsBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
@@ -31,26 +28,19 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class Langchain4JMcpClientExecutorTest {
+class McpClientExecutorTest {
 
   private static final FilterOptions EMPTY_FILTER = FilterOptionsBuilder.builder().build();
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
-
-  @Mock private ToolSpecificationConverter toolSpecificationConverter;
-
   @Mock private McpClientResultDocumentHandler mcpClientResultDocumentHandler;
 
-  @Mock private McpClient mcpClient;
+  @Mock private McpClientDelegate mcpClient;
 
-  private Langchain4JMcpClientExecutor executor;
+  private McpClientExecutor executor;
 
   @BeforeEach
   void setUp() {
-    executor =
-        new Langchain4JMcpClientExecutor(
-            objectMapper, toolSpecificationConverter, mcpClientResultDocumentHandler);
-    when(mcpClient.key()).thenReturn("test-client");
+    executor = new McpClientExecutor(mcpClientResultDocumentHandler);
     lenient()
         .when(mcpClientResultDocumentHandler.convertBinariesToDocumentsIfPresent(any()))
         .thenAnswer(invocation -> invocation.getArgument(0));
@@ -58,6 +48,8 @@ class Langchain4JMcpClientExecutorTest {
 
   @Test
   void returnsMcpListToolsResult_whenListToolsExecuted() {
+    when(mcpClient.listTools(any())).thenReturn(new McpClientListToolsResult(List.of()));
+
     final var operation = McpClientOperation.of("tools/list");
     final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
 
@@ -66,6 +58,10 @@ class Langchain4JMcpClientExecutorTest {
 
   @Test
   void returnsMcpCallToolResult_whenCallToolsExecuted() {
+    when(mcpClient.callTool(anyMap(), any()))
+        .thenReturn(
+            new McpClientCallToolResult("tool-output", List.of(), false));
+
     final var operation =
         McpClientOperation.of(
             "tools/call", Map.of("name", "test-tool", "arguments", Map.of("arg1", "value1")));
@@ -76,6 +72,8 @@ class Langchain4JMcpClientExecutorTest {
 
   @Test
   void returnsMcpListResourcesResult_whenListResourcesExecuted() {
+    when(mcpClient.listResources(any())).thenReturn(new McpClientListResourcesResult(List.of()));
+
     final var operation = McpClientOperation.of("resources/list");
     final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
 
@@ -84,6 +82,9 @@ class Langchain4JMcpClientExecutorTest {
 
   @Test
   void returnsMcpListResourceTemplatesResult_whenListResourceTemplatesExecuted() {
+    when(mcpClient.listResourceTemplates(any()))
+        .thenReturn(new McpClientListResourceTemplatesResult(List.of()));
+
     final var operation = McpClientOperation.of("resources/templates/list");
     final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
 
@@ -92,7 +93,8 @@ class Langchain4JMcpClientExecutorTest {
 
   @Test
   void returnsMcpReadResourceResult_whenReadResourceExecuted() {
-    when(mcpClient.readResource(anyString())).thenReturn(new McpReadResourceResult(List.of()));
+    when(mcpClient.readResource(anyMap(), any()))
+        .thenReturn(new McpClientReadResourceResult(List.of()));
     final var operation =
         McpClientOperation.of("resources/read", Map.of("uri", "test-resource-uri"));
     final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
@@ -102,6 +104,8 @@ class Langchain4JMcpClientExecutorTest {
 
   @Test
   void returnsMcpListPromptsResult_whenListPromptsExecuted() {
+    when(mcpClient.listPrompts(any())).thenReturn(new McpClientListPromptsResult(List.of()));
+
     final var operation = McpClientOperation.of("prompts/list");
     final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);
 
@@ -110,8 +114,8 @@ class Langchain4JMcpClientExecutorTest {
 
   @Test
   void returnsMcpGetPromptResult_whenGetPromptExecuted() {
-    when(mcpClient.getPrompt(anyString(), any()))
-        .thenReturn(new McpGetPromptResult("Code review", List.of()));
+    when(mcpClient.getPrompt(anyMap(), any()))
+        .thenReturn(new McpClientGetPromptResult("Code review", List.of()));
     final var operation = McpClientOperation.of("prompts/get", Map.of("name", "test-prompt"));
 
     final var result = executor.execute(mcpClient, operation, EMPTY_FILTER);

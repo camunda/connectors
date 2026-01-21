@@ -1,0 +1,28 @@
+package io.camunda.connector.agenticai.mcp.client.execution;
+
+import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientGetPromptResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListPromptsResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourcesResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientReadResourceResult;
+import java.util.Map;
+
+public interface McpClientDelegate extends AutoCloseable {
+
+  McpClientListToolsResult listTools(AllowDenyList filter);
+
+  McpClientCallToolResult callTool(Map<String, Object> params, AllowDenyList filter);
+
+  McpClientListResourcesResult listResources(AllowDenyList filter);
+
+  McpClientListResourceTemplatesResult listResourceTemplates(AllowDenyList filter);
+
+  McpClientReadResourceResult readResource(Map<String, Object> params, AllowDenyList filter);
+
+  McpClientListPromptsResult listPrompts(AllowDenyList filter);
+
+  McpClientGetPromptResult getPrompt(Map<String, Object> params, AllowDenyList filter);
+}
