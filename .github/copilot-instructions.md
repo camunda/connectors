@@ -167,6 +167,17 @@ public class MyInboundConnector implements InboundConnectorExecutable {
 
 ## Build & Development Workflows
 
+### Pull Request Guidelines
+
+When creating pull requests:
+
+- **Always use the PR template**: Located at `.github/PULL_REQUEST_TEMPLATE.md`
+- Fill out all sections:
+  - **Description**: Explain the changes and provide context
+  - **Related issues**: Link to related issues (use `closes #` for issues this PR resolves)
+  - **Checklist**: Verify milestone and backport labels are appropriate
+- Update the PR description after creation if you initially missed the template
+
 ### Maven Structure
 
 - **Parent POM**: `parent/pom.xml` defines versions and common configuration
