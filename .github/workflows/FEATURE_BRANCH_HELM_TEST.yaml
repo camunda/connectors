@@ -64,9 +64,15 @@ jobs:
 
       - name: Package Connectors
         env:
-          PROJECTS: bundle/default-bundle
+          PROJECTS: bundle/default-bundle,bundle/camunda-saas-bundle
         run: mvn --batch-mode compile generate-sources package -DskipTests --projects "${PROJECTS}" --also-make
 
+      - name: Check default-bundle jar exists
+        run: ls -lh bundle/default-bundle/target/
+
+      - name: Check saas-bundle jar exists
+        run: ls -lh bundle/camunda-saas-bundle/target/
+        
       - name: Set up Docker Build
         uses: docker/setup-buildx-action@v3
 
