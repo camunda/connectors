@@ -103,7 +103,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
 
   private ReadEmailResponse imapReadEmail(
       ImapReadEmail imapReadEmail, Authentication authentication, Session session) {
-    LOG.debug("Starting IMAP read email operation for messageId: {}", imapReadEmail.messageId());
+    LOG.debug("Starting IMAP read email operation");
     try (Store store = session.getStore()) {
       LOG.debug("Connecting to IMAP store");
       this.jakartaUtils.connectStore(store, authentication);
@@ -145,8 +145,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
 
   private DeleteEmailResponse imapDeleteEmail(
       ImapDeleteEmail imapDeleteEmail, Authentication authentication, Session session) {
-    LOG.debug(
-        "Starting IMAP delete email operation for messageId: {}", imapDeleteEmail.messageId());
+    LOG.debug("Starting IMAP delete email operation");
     try (Store store = session.getStore()) {
       LOG.debug("Connecting to IMAP store");
       this.jakartaUtils.connectStore(store, authentication);
@@ -154,9 +153,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       LOG.debug("Deleting from folder: {}", targetFolder);
       try (Folder folder = this.jakartaUtils.findImapFolder(store, targetFolder)) {
         DeleteEmailResponse response = deleteEmail(folder, imapDeleteEmail.messageId());
-        LOG.debug(
-            "IMAP delete email completed successfully for messageId: {}",
-            imapDeleteEmail.messageId());
+        LOG.debug("IMAP delete email completed successfully");
         return response;
       }
     } catch (MessagingException e) {
@@ -167,18 +164,14 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
 
   private MoveEmailResponse imapMoveEmails(
       ImapMoveEmail imapMoveEmail, Authentication authentication, Session session) {
-    LOG.debug(
-        "Starting IMAP move email operation for messageId: {} from '{}' to '{}'",
-        imapMoveEmail.messageId(),
-        imapMoveEmail.fromFolder(),
-        imapMoveEmail.toFolder());
+    LOG.debug("Starting IMAP move email operation");
     try (Store store = session.getStore()) {
       LOG.debug("Connecting to IMAP store");
       this.jakartaUtils.connectStore(store, authentication);
       String fromFolder = imapMoveEmail.fromFolder();
       Folder sourceImapFolder = this.jakartaUtils.findImapFolder(store, fromFolder);
       sourceImapFolder.open(Folder.READ_WRITE);
-      LOG.debug("Source folder '{}' opened in READ_WRITE mode", fromFolder);
+      LOG.debug("Source folder opened in READ_WRITE mode");
       Message[] messages = sourceImapFolder.search(new MessageIDTerm(imapMoveEmail.messageId()));
       LOG.debug("Search returned {} message(s)", messages.length);
       Message message =
@@ -191,7 +184,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
                         "Email with messageId %s does not exist"
                             .formatted(imapMoveEmail.messageId()));
                   });
-      LOG.debug("Moving message to folder: {}", imapMoveEmail.toFolder());
+      LOG.debug("Moving message to target folder");
       this.jakartaUtils.moveMessage(store, message, imapMoveEmail.toFolder());
       sourceImapFolder.close();
       LOG.debug("IMAP move email completed successfully");
@@ -242,17 +235,14 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
 
   private DeleteEmailResponse pop3DeleteEmail(
       Pop3DeleteEmail pop3DeleteEmail, Authentication authentication, Session session) {
-    LOG.debug(
-        "Starting POP3 delete email operation for messageId: {}", pop3DeleteEmail.messageId());
+    LOG.debug("Starting POP3 delete email operation");
     try (Store store = session.getStore()) {
       LOG.debug("Connecting to POP3 store");
       this.jakartaUtils.connectStore(store, authentication);
       try (Folder folder = store.getFolder("INBOX")) {
         LOG.debug("Accessing INBOX folder");
         DeleteEmailResponse response = deleteEmail(folder, pop3DeleteEmail.messageId());
-        LOG.debug(
-            "POP3 delete email completed successfully for messageId: {}",
-            pop3DeleteEmail.messageId());
+        LOG.debug("POP3 delete email completed successfully");
         return response;
       }
     } catch (MessagingException e) {
@@ -263,7 +253,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
 
   private ReadEmailResponse pop3ReadEmail(
       Pop3ReadEmail pop3ReadEmail, Authentication authentication, Session session) {
-    LOG.debug("Starting POP3 read email operation for messageId: {}", pop3ReadEmail.messageId());
+    LOG.debug("Starting POP3 read email operation");
     try {
       try (Store store = session.getStore()) {
         LOG.debug("Connecting to POP3 store");
@@ -365,11 +355,6 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       Optional<InternetAddress[]> to = createParsedInternetAddresses(smtpSendEmail.to());
       Optional<InternetAddress[]> cc = createParsedInternetAddresses(smtpSendEmail.cc());
       Optional<InternetAddress[]> bcc = createParsedInternetAddresses(smtpSendEmail.bcc());
-      LOG.debug(
-          "Recipients parsed - TO: {}, CC: {}, BCC: {}",
-          to.map(a -> a.length).orElse(0),
-          cc.map(a -> a.length).orElse(0),
-          bcc.map(a -> a.length).orElse(0));
       Optional<Map<String, String>> headers = Optional.ofNullable(smtpSendEmail.headers());
       MimeMessage message = new MimeMessage(session);
       message.setFrom(new InternetAddress(smtpSendEmail.from()));
@@ -493,7 +478,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
 
   private DeleteEmailResponse deleteEmail(Folder folder, String messageId)
       throws MessagingException {
-    LOG.debug("Deleting email with messageId: {}", messageId);
+    LOG.debug("Deleting email");
     folder.open(Folder.READ_WRITE);
     LOG.debug("Folder opened in READ_WRITE mode, searching for message");
     Message[] messages = folder.search(new MessageIDTerm(messageId));
@@ -508,7 +493,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
                 });
     LOG.debug("Marking message as deleted");
     this.jakartaUtils.markAsDeleted(message);
-    LOG.debug("Email deleted successfully: {}", messageId);
+    LOG.debug("Email deleted successfully");
     return new DeleteEmailResponse(messageId, true);
   }
 
@@ -539,10 +524,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
   private Consumer<Document> getDocumentConsumer(Multipart multipart) {
     return document -> {
       try {
-        LOG.debug(
-            "Adding attachment: {} (type: {})",
-            document.metadata().getFileName(),
-            document.metadata().getContentType());
+        LOG.debug("Adding attachment to email");
         BodyPart attachment = new MimeBodyPart();
         DataSource dataSource =
             new ByteArrayDataSource(document.asInputStream(), document.metadata().getContentType());
@@ -564,10 +546,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
         attachments.stream()
             .map(
                 document -> {
-                  LOG.debug(
-                      "Creating document for attachment: {} (type: {})",
-                      document.name(),
-                      document.contentType());
+                  LOG.debug("Creating document for attachment");
                   return connectorContext.create(
                       DocumentCreationRequest.from(document.inputStream())
                           .fileName(document.name())
