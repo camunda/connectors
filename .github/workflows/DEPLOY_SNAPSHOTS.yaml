@@ -63,6 +63,7 @@ jobs:
 
       - name: Restore cache
         uses: actions/cache@v4
+        continue-on-error: true  # Cache failures should not fail the build
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
@@ -238,3 +239,20 @@ jobs:
       image-source: dockerhub
       connectors-version: ${{ needs.deploy-snapshots.outputs.docker_version }}
       release-branch: ${{ needs.deploy-snapshots.outputs.branch }}
+
+  notify-failure:
+    name: Notify on failure
+    runs-on: ubuntu-latest
+    needs: [ deploy-snapshots, helm-deploy ]
+    if: failure()
+    steps:
+      - name: Send Slack notification on failure
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          method: chat.postMessage
+          payload: |
+            {
+              "channel": "${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }}",
+              "text": ":alarm: ${{ secrets.CONNECTORS_MEDIC_SLACK_GROUP_ID }} Deploy snapshots workflow failed on branch `${{ github.ref_name }}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
