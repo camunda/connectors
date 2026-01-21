@@ -225,7 +225,6 @@ public class SoapConnectorTests extends SoapConnectorBaseTest {
     var elementTemplate =
         ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
             .property("serviceUrl", "http://localhost:" + wm.getPort() + "/soapservice/service")
-            .property("authentication.authentication", "none")
             .property("soapVersion.version", "1.1")
             .property("authentication.authentication", "signature")
             .property("authentication.certificate.certificateType", "keystore")
