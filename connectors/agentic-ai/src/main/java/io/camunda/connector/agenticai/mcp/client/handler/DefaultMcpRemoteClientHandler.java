@@ -4,14 +4,13 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
+package io.camunda.connector.agenticai.mcp.client.handler;
 
-import dev.langchain4j.mcp.client.McpClient;
-import io.camunda.connector.agenticai.mcp.client.McpRemoteClientHandler;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
+import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
+import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientOptionsConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
@@ -20,17 +19,17 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Langchain4JMcpRemoteClientHandler implements McpRemoteClientHandler {
+public class DefaultMcpRemoteClientHandler implements McpRemoteClientHandler {
 
   private static final Logger LOGGER =
-      LoggerFactory.getLogger(Langchain4JMcpRemoteClientHandler.class);
+      LoggerFactory.getLogger(DefaultMcpRemoteClientHandler.class);
 
-  private final McpRemoteClientRegistry<McpClient> remoteClientRegistry;
-  private final Langchain4JMcpClientExecutor clientExecutor;
+  private final McpRemoteClientRegistry remoteClientRegistry;
+  private final McpClientExecutor clientExecutor;
 
-  public Langchain4JMcpRemoteClientHandler(
-      McpRemoteClientRegistry<McpClient> remoteClientRegistry,
-      Langchain4JMcpClientExecutor clientExecutor) {
+  public DefaultMcpRemoteClientHandler(
+      McpRemoteClientRegistry remoteClientRegistry,
+      McpClientExecutor clientExecutor) {
     this.remoteClientRegistry = remoteClientRegistry;
     this.clientExecutor = clientExecutor;
   }
@@ -46,7 +45,7 @@ public class Langchain4JMcpRemoteClientHandler implements McpRemoteClientHandler
 
     LOGGER.debug("MCP({}): Handling operation '{}' on remote client", clientId, operation.method());
 
-    McpClient client = null;
+    McpClientDelegate client = null;
 
     try {
       final var filterOptions =

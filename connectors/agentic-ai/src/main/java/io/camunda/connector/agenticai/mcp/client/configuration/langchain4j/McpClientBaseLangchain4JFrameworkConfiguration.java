@@ -7,22 +7,24 @@
 package io.camunda.connector.agenticai.mcp.client.configuration.langchain4j;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
-import io.camunda.connector.agenticai.mcp.client.McpClientResultDocumentHandler;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientLoggingResolver;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.http.client.authentication.OAuthService;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+@ConditionalOnProperty(
+        value = "camunda.connector.agenticai.mcp.client.framework",
+        havingValue = "langchain4j",
+        matchIfMissing = true)
 @Configuration
 @EnableConfigurationProperties(McpClientLangchain4JFrameworkConfigurationProperties.class)
 public class McpClientBaseLangchain4JFrameworkConfiguration {
@@ -51,19 +53,12 @@ public class McpClientBaseLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public McpClientFactory<McpClient> langchain4JMcpClientFactory(
-      Langchain4JMcpClientLoggingResolver loggingResolver,
-      Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory) {
-    return new Langchain4JMcpClientFactory(loggingResolver, headersSupplierFactory);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public Langchain4JMcpClientExecutor langchain4JMcpClientExecutor(
+  public McpClientFactory langchain4JMcpClientFactory(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
       ToolSpecificationConverter toolSpecificationConverter,
-      McpClientResultDocumentHandler mcpClientResultDocumentHandler) {
-    return new Langchain4JMcpClientExecutor(
-        objectMapper, toolSpecificationConverter, mcpClientResultDocumentHandler);
+      Langchain4JMcpClientLoggingResolver loggingResolver,
+      Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory) {
+    return new Langchain4JMcpClientFactory(
+        loggingResolver, headersSupplierFactory, objectMapper, toolSpecificationConverter);
   }
 }

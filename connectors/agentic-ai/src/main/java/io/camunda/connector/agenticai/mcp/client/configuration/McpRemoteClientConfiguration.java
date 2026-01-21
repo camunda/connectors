@@ -7,8 +7,11 @@
 package io.camunda.connector.agenticai.mcp.client.configuration;
 
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientFunction;
-import io.camunda.connector.agenticai.mcp.client.McpRemoteClientHandler;
+import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.configuration.langchain4j.McpRemoteClientLangchain4JFrameworkConfiguration;
+import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
+import io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandler;
+import io.camunda.connector.agenticai.mcp.client.handler.McpRemoteClientHandler;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -23,8 +26,8 @@ import org.springframework.context.annotation.Import;
     matchIfMissing = true)
 @EnableConfigurationProperties(McpRemoteClientConfigurationProperties.class)
 @Import({
+  McpBaseConfiguration.class,
   McpRemoteClientLangchain4JFrameworkConfiguration.class,
-  McpDocumentHandlerConfiguration.class
 })
 public class McpRemoteClientConfiguration {
 
@@ -32,5 +35,12 @@ public class McpRemoteClientConfiguration {
   @ConditionalOnMissingBean
   public McpRemoteClientFunction mcpRemoteClientFunction(McpRemoteClientHandler handler) {
     return new McpRemoteClientFunction(handler);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public McpRemoteClientHandler langchain4JMcpRemoteClientHandler(
+      McpRemoteClientRegistry remoteClientRegistry, McpClientExecutor mcpClientExecutor) {
+    return new DefaultMcpRemoteClientHandler(remoteClientRegistry, mcpClientExecutor);
   }
 }

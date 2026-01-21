@@ -6,33 +6,43 @@
  */
 package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.DefaultMcpClient;
-import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.transport.McpTransport;
 import dev.langchain4j.mcp.client.transport.http.HttpMcpTransport;
 import dev.langchain4j.mcp.client.transport.http.StreamableHttpMcpTransport;
 import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StdioMcpClientTransportConfiguration;
+import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
+import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientDelegate;
 import java.util.ArrayList;
 import java.util.Optional;
 
-public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> {
+public class Langchain4JMcpClientFactory implements McpClientFactory {
 
   private final Langchain4JMcpClientLoggingResolver loggingResolver;
   private final Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory;
 
+  private final ObjectMapper objectMapper;
+  private final ToolSpecificationConverter toolSpecificationConverter;
+
   public Langchain4JMcpClientFactory(
       Langchain4JMcpClientLoggingResolver loggingResolver,
-      Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory) {
+      Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory,
+      ObjectMapper objectMapper,
+      ToolSpecificationConverter toolSpecificationConverter) {
     this.loggingResolver = loggingResolver;
     this.headersSupplierFactory = headersSupplierFactory;
+    this.objectMapper = objectMapper;
+    this.toolSpecificationConverter = toolSpecificationConverter;
   }
 
   @Override
-  public McpClient createClient(String clientId, McpClientConfiguration config) {
+  public McpClientDelegate createClient(String clientId, McpClientConfiguration config) {
     final var transport = createTransport(clientId, config);
     final var builder = new DefaultMcpClient.Builder().key(clientId).transport(transport);
 
@@ -40,7 +50,9 @@ public class Langchain4JMcpClientFactory implements McpClientFactory<McpClient> 
     Optional.ofNullable(config.toolExecutionTimeout()).map(builder::toolExecutionTimeout);
     Optional.ofNullable(config.reconnectInterval()).map(builder::reconnectInterval);
 
-    return builder.build();
+    var mcpClient = builder.build();
+
+    return new Langchain4JMcpClientDelegate(mcpClient, objectMapper, toolSpecificationConverter);
   }
 
   private McpTransport createTransport(String clientId, McpClientConfiguration config) {

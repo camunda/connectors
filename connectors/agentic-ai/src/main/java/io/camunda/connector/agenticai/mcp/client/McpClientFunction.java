@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.mcp.client;
 import static io.camunda.connector.agenticai.mcp.client.model.McpConnectorModeConfiguration.ToolModeConfiguration.AI_AGENT_TOOL_ID;
 
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
+import io.camunda.connector.agenticai.mcp.client.handler.McpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
 import io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolHandler;

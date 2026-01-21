@@ -7,7 +7,8 @@
 package io.camunda.connector.agenticai.mcp.client;
 
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
+import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
 
-public interface McpClientFactory<C> {
-  C createClient(String clientId, McpClientConfiguration config);
+public interface McpClientFactory {
+  McpClientDelegate createClient(String clientId, McpClientConfiguration config);
 }

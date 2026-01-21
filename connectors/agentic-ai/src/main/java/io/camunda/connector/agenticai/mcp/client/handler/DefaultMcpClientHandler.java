@@ -4,27 +4,25 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
+package io.camunda.connector.agenticai.mcp.client.handler;
 
-import dev.langchain4j.mcp.client.McpClient;
-import io.camunda.connector.agenticai.mcp.client.McpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
+import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Langchain4JMcpClientHandler implements McpClientHandler {
-  private static final Logger LOGGER = LoggerFactory.getLogger(Langchain4JMcpClientHandler.class);
+public class DefaultMcpClientHandler implements McpClientHandler {
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultMcpClientHandler.class);
 
-  private final McpClientRegistry<McpClient> clientRegistry;
-  private final Langchain4JMcpClientExecutor clientExecutor;
+  private final McpClientRegistry clientRegistry;
+  private final McpClientExecutor clientExecutor;
 
-  public Langchain4JMcpClientHandler(
-      McpClientRegistry<McpClient> clientRegistry, Langchain4JMcpClientExecutor clientExecutor) {
+  public DefaultMcpClientHandler(
+      McpClientRegistry clientRegistry, McpClientExecutor clientExecutor) {
     this.clientRegistry = clientRegistry;
     this.clientExecutor = clientExecutor;
   }
