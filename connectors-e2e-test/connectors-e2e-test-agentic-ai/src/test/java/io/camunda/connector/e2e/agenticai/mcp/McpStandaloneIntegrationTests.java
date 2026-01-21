@@ -31,7 +31,9 @@ import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListPromp
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourcesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
+import io.camunda.connector.agenticai.mcp.client.model.result.McpClientReadResourceResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.PromptDescription;
+import io.camunda.connector.agenticai.mcp.client.model.result.ResourceData;
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceDescription;
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceTemplate;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
@@ -177,18 +179,16 @@ public class McpStandaloneIntegrationTests extends BaseAgenticAiTest {
                           .hasSize(2)
                           .extracting(ResourceDescription::uri)
                           .containsExactly("resourceA", "resourceC"))
-              .hasVariable(
+              .hasVariableSatisfies(
                   "clientCallReadResourceResult",
-                  Map.of(
-                      "contents",
-                      List.of(
-                          Map.of(
-                              "uri",
-                              "resourceA",
-                              "mimeType",
-                              "text/plain",
-                              "text",
-                              "This is the content of Resource A."))))
+                  McpClientReadResourceResult.class,
+                  readResourceResult -> {
+                    assertThat(readResourceResult.contents())
+                        .hasSize(1)
+                        .containsExactly(
+                            new ResourceData.TextResourceData(
+                                "resourceA", "text/plain", "This is the content of Resource A."));
+                  })
               .hasVariableSatisfies(
                   "remoteClientListResourcesResult",
                   McpClientListResourcesResult.class,
@@ -197,18 +197,18 @@ public class McpStandaloneIntegrationTests extends BaseAgenticAiTest {
                           .hasSize(2)
                           .extracting(ResourceDescription::uri)
                           .containsExactly("resourceB", "resourceC"))
-              .hasVariable(
+              .hasVariableSatisfies(
                   "remoteClientReadResourceResult",
-                  Map.of(
-                      "contents",
-                      List.of(
-                          Map.of(
-                              "uri",
-                              "resourceC",
-                              "mimeType",
-                              "text/markdown",
-                              "text",
-                              "# This is the content of Resource C."))));
+                  McpClientReadResourceResult.class,
+                  readResourceResult -> {
+                    assertThat(readResourceResult.contents())
+                        .hasSize(1)
+                        .containsExactly(
+                            new ResourceData.TextResourceData(
+                                "resourceC",
+                                "text/markdown",
+                                "# This is the content of Resource C."));
+                  });
 
           wireMock.verify(
               2,
@@ -244,18 +244,18 @@ public class McpStandaloneIntegrationTests extends BaseAgenticAiTest {
                           .hasSize(2)
                           .extracting(ResourceTemplate::uriTemplate)
                           .containsExactly("resource-a-{number}", "resource-c-{number}"))
-              .hasVariable(
+              .hasVariableSatisfies(
                   "clientCallReadResourceResult",
-                  Map.of(
-                      "contents",
-                      List.of(
-                          Map.of(
-                              "uri",
-                              "resource-a-1",
-                              "mimeType",
-                              "text/plain",
-                              "text",
-                              "This is the content of Resource A number 1."))))
+                  McpClientReadResourceResult.class,
+                  readResourceResult -> {
+                    assertThat(readResourceResult.contents())
+                        .hasSize(1)
+                        .containsExactly(
+                            new ResourceData.TextResourceData(
+                                "resource-a-1",
+                                "text/plain",
+                                "This is the content of Resource A number 1."));
+                  })
               .hasVariableSatisfies(
                   "remoteClientListResourceTemplatesResult",
                   McpClientListResourceTemplatesResult.class,
@@ -264,18 +264,18 @@ public class McpStandaloneIntegrationTests extends BaseAgenticAiTest {
                           .hasSize(2)
                           .extracting(ResourceTemplate::uriTemplate)
                           .containsExactly("resource-a-{number}", "resource-b-{number}"))
-              .hasVariable(
+              .hasVariableSatisfies(
                   "remoteClientReadResourceResult",
-                  Map.of(
-                      "contents",
-                      List.of(
-                          Map.of(
-                              "uri",
-                              "resource-a-1",
-                              "mimeType",
-                              "text/plain",
-                              "text",
-                              "This is the content of Resource A number 1."))));
+                  McpClientReadResourceResult.class,
+                  readResourceResult -> {
+                    assertThat(readResourceResult.contents())
+                        .hasSize(1)
+                        .containsExactly(
+                            new ResourceData.TextResourceData(
+                                "resource-a-1",
+                                "text/plain",
+                                "This is the content of Resource A number 1."));
+                  });
 
           wireMock.verify(
               2,
