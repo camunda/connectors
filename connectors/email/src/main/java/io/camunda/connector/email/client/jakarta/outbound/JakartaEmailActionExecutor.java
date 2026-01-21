@@ -96,7 +96,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
         return results;
       }
     } catch (MessagingException e) {
-      LOG.debug("IMAP search emails failed with error: {}", e.getMessage());
+      LOG.error("IMAP search emails failed", e);
       throw new RuntimeException(e);
     }
   }
@@ -133,12 +133,12 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
                 })
             .orElseThrow(
                 () -> {
-                  LOG.debug("Email with messageId {} not found", imapReadEmail.messageId());
+                  LOG.warn("Email not found for IMAP read operation");
                   return new MessagingException("Could not find an email ID");
                 });
       }
     } catch (MessagingException e) {
-      LOG.debug("IMAP read email failed with error: {}", e.getMessage());
+      LOG.error("IMAP read email failed", e);
       throw new RuntimeException(e);
     }
   }
@@ -160,7 +160,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
         return response;
       }
     } catch (MessagingException e) {
-      LOG.debug("IMAP delete email failed with error: {}", e.getMessage());
+      LOG.error("IMAP delete email failed", e);
       throw new RuntimeException(e);
     }
   }
@@ -186,10 +186,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
               .findFirst()
               .orElseThrow(
                   () -> {
-                    LOG.debug(
-                        "Email with messageId {} does not exist in folder {}",
-                        imapMoveEmail.messageId(),
-                        fromFolder);
+                    LOG.warn("Email not found in folder for IMAP move operation");
                     return new MessagingException(
                         "Email with messageId %s does not exist"
                             .formatted(imapMoveEmail.messageId()));
@@ -201,7 +198,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       return new MoveEmailResponse(
           imapMoveEmail.messageId(), imapMoveEmail.fromFolder(), imapMoveEmail.toFolder());
     } catch (MessagingException e) {
-      LOG.debug("IMAP move email failed with error: {}", e.getMessage());
+      LOG.error("IMAP move email failed", e);
       throw new RuntimeException(e);
     }
   }
@@ -238,7 +235,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
         return results;
       }
     } catch (MessagingException e) {
-      LOG.debug("IMAP list emails failed with error: {}", e.getMessage());
+      LOG.error("IMAP list emails failed", e);
       throw new RuntimeException(e);
     }
   }
@@ -259,7 +256,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
         return response;
       }
     } catch (MessagingException e) {
-      LOG.debug("POP3 delete email failed with error: {}", e.getMessage());
+      LOG.error("POP3 delete email failed", e);
       throw new RuntimeException(e);
     }
   }
@@ -295,13 +292,13 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
                   })
               .orElseThrow(
                   () -> {
-                    LOG.debug("Email with messageId {} not found", pop3ReadEmail.messageId());
+                    LOG.warn("Email not found for POP3 read operation");
                     return new MessagingException("No emails have been found with this ID");
                   });
         }
       }
     } catch (MessagingException e) {
-      LOG.debug("POP3 read email failed with error: {}", e.getMessage());
+      LOG.error("POP3 read email failed", e);
       throw new RuntimeException(e);
     }
   }
@@ -338,7 +335,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
         }
       }
     } catch (MessagingException e) {
-      LOG.debug("POP3 list emails failed with error: {}", e.getMessage());
+      LOG.error("POP3 list emails failed", e);
       throw new RuntimeException(e);
     }
   }
@@ -356,7 +353,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
         return results;
       }
     } catch (MessagingException e) {
-      LOG.debug("POP3 search emails failed with error: {}", e.getMessage());
+      LOG.error("POP3 search emails failed", e);
       throw new RuntimeException(e);
     }
   }
@@ -403,7 +400,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
       LOG.debug("SMTP send email completed successfully");
       return new SendEmailResponse(smtpSendEmail.subject(), true, message.getMessageID());
     } catch (MessagingException e) {
-      LOG.debug("SMTP send email failed with error: {}", e.getMessage());
+      LOG.error("SMTP send email failed", e);
       throw new RuntimeException(e);
     }
   }
@@ -415,7 +412,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
           try {
             message.setHeader(key, value);
           } catch (MessagingException e) {
-            LOG.debug("Failed to set a header: {}", e.getMessage());
+            LOG.error("Failed to set a message header", e);
             throw new RuntimeException(e);
           }
         });
@@ -506,7 +503,7 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
             .findFirst()
             .orElseThrow(
                 () -> {
-                  LOG.debug("Email with messageId {} not found for deletion", messageId);
+                  LOG.warn("Email not found for deletion");
                   return new MessagingException("No emails have been found with this ID");
                 });
     LOG.debug("Marking message as deleted");
@@ -552,10 +549,9 @@ public class JakartaEmailActionExecutor implements EmailActionExecutor {
         attachment.setDataHandler(new DataHandler(dataSource));
         attachment.setFileName(document.metadata().getFileName());
         multipart.addBodyPart(attachment);
-        LOG.debug("Attachment added successfully: {}", document.metadata().getFileName());
+        LOG.debug("Attachment added successfully");
       } catch (IOException | MessagingException e) {
-        LOG.debug(
-            "Failed to add attachment {}: {}", document.metadata().getFileName(), e.getMessage());
+        LOG.error("Failed to add attachment", e);
         throw new RuntimeException(e);
       }
     };
