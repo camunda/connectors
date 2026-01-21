@@ -187,7 +187,7 @@ public class InboundWebhookRestController {
                   activity
                       .withSeverity(Severity.ERROR)
                       .withTag(payload.method())
-                      .withMessage("Webhook processing failed"));
+                      .withMessage("Webhook processing failed", e));
       response = buildErrorResponse(e);
     }
     return response;

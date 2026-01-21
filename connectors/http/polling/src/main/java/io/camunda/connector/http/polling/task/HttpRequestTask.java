@@ -57,7 +57,7 @@ public class HttpRequestTask implements Runnable {
                     .withSeverity(Severity.ERROR)
                     .withTag(pollingRuntimeProperties.getMethod().toString())
                     .withMessage(
-                        "Error executing http request: " + pollingRuntimeProperties.getUrl()));
+                        "Error executing http request: " + pollingRuntimeProperties.getUrl(), e));
       }
     } catch (Exception e) {
       this.context.log(
@@ -65,7 +65,7 @@ public class HttpRequestTask implements Runnable {
               activity
                   .withSeverity(Severity.ERROR)
                   .withTag("http-request")
-                  .withMessage("Error binding properties for HTTP request"));
+                  .withMessage("Error binding properties for HTTP request", e));
     }
   }
 }
