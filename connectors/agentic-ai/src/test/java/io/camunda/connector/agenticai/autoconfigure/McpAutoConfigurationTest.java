@@ -11,9 +11,9 @@ import static io.camunda.connector.agenticai.autoconfigure.ApplicationContextAss
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.mcp.client.*;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHeadersSupplierFactory;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientLoggingResolver;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
+import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
+import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientLoggingResolver;
 import io.camunda.connector.agenticai.mcp.client.handler.McpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.handler.McpRemoteClientHandler;
 import io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolDefinitionResolver;
@@ -30,7 +30,7 @@ public class McpAutoConfigurationTest {
           McpClientFactory.class,
           McpClientResultDocumentHandler.class,
           Langchain4JMcpClientLoggingResolver.class,
-          Langchain4JMcpClientHeadersSupplierFactory.class,
+          McpClientHeadersSupplierFactory.class,
           McpClientExecutor.class);
 
   private static final List<Class<?>> REMOTE_MCP_CLIENT_BEANS =
@@ -87,9 +87,7 @@ public class McpAutoConfigurationTest {
   @Test
   void doesNotEnableRuntimeMcpClientIntegrationByDefault() {
     contextRunner.run(
-        context -> {
-          assertDoesNotHaveAnyBeansOf(context, RUNTIME_MCP_CLIENT_BEANS);
-        });
+        context -> assertDoesNotHaveAnyBeansOf(context, RUNTIME_MCP_CLIENT_BEANS));
   }
 
   @Test

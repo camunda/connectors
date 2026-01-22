@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
+package io.camunda.connector.agenticai.mcp.client.handler;
 
 import static io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpMethod.*;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
@@ -19,7 +19,6 @@ import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
-import io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.model.*;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest.McpClientRequestData;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientRequest.McpClientRequestData.ClientConfiguration;
@@ -128,7 +127,7 @@ class DefaultMcpClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpClientHandlerTest#mcpOperationArguments")
+        "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpClientHandlerTest#mcpOperationArguments")
     void handlesCallToolRequest(Map<String, Object> arguments) {
       final var request =
           createToolModeRequest(
@@ -190,7 +189,7 @@ class DefaultMcpClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpClientHandlerTest#mcpOperationArguments")
+        "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpClientHandlerTest#mcpOperationArguments")
     void handlesCallToolRequest(Map<String, Object> arguments) {
       final var request =
           createStandaloneModeRequest(
@@ -358,7 +357,7 @@ class DefaultMcpClientHandlerTest {
 
   @ParameterizedTest
   @MethodSource(
-      "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpClientHandlerTest#mcpOperationArguments")
+      "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpClientHandlerTest#mcpOperationArguments")
   void handlesGetPromptRequest(Map<String, Object> arguments) {
     final var request =
         createStandaloneModeRequest(

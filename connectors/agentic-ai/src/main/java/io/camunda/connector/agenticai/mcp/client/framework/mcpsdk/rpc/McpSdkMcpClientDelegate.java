@@ -4,11 +4,9 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
+package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.langchain4j.mcp.client.McpClient;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
@@ -18,27 +16,23 @@ import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResou
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourcesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientReadResourceResult;
+import io.modelcontextprotocol.client.McpSyncClient;
 import java.util.Map;
 
-public class Langchain4JMcpClientDelegate implements McpClientDelegate {
+public class McpSdkMcpClientDelegate implements McpClientDelegate {
 
-  private final McpClient delegate;
+  private final McpSyncClient delegate;
 
   private final ObjectMapper objectMapper;
-  private final ToolSpecificationConverter toolSpecificationConverter;
 
-  public Langchain4JMcpClientDelegate(
-      McpClient delegate,
-      ObjectMapper objectMapper,
-      ToolSpecificationConverter toolSpecificationConverter) {
+  public McpSdkMcpClientDelegate(McpSyncClient delegate, ObjectMapper objectMapper) {
     this.delegate = delegate;
     this.objectMapper = objectMapper;
-    this.toolSpecificationConverter = toolSpecificationConverter;
   }
 
   @Override
   public McpClientListToolsResult listTools(AllowDenyList filter) {
-    return new ListToolsRequest(toolSpecificationConverter).execute(delegate, filter);
+    return new ListToolsRequest(objectMapper).execute(delegate, filter);
   }
 
   @Override

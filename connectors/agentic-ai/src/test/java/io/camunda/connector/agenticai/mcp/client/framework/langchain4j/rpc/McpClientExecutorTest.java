@@ -59,8 +59,7 @@ class McpClientExecutorTest {
   @Test
   void returnsMcpCallToolResult_whenCallToolsExecuted() {
     when(mcpClient.callTool(anyMap(), any()))
-        .thenReturn(
-            new McpClientCallToolResult("tool-output", List.of(), false));
+        .thenReturn(new McpClientCallToolResult("tool-output", List.of(), false));
 
     final var operation =
         McpClientOperation.of(

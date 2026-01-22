@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
+package io.camunda.connector.agenticai.mcp.client.handler;
 
 import static io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpMethod.*;
 import static io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpMethod.LIST_RESOURCE_TEMPLATES;
@@ -20,13 +20,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import dev.langchain4j.mcp.client.*;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
-import io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandler;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientStandaloneFiltersConfiguration;
@@ -112,7 +110,7 @@ class DefaultMcpRemoteClientHandlerTest {
 
   @ParameterizedTest
   @MethodSource(
-      "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpRemoteClientHandlerTest#transports")
+      "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandlerTest#transports")
   void throwsExceptionWhenClientCouldNotBeCreated(McpRemoteClientTransportConfiguration transport) {
     final var exception = new IllegalArgumentException("Failed to create client");
     when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenThrow(exception);
@@ -126,7 +124,7 @@ class DefaultMcpRemoteClientHandlerTest {
 
   @ParameterizedTest
   @MethodSource(
-      "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpRemoteClientHandlerTest#transports")
+      "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandlerTest#transports")
   void throwsExceptionWhenExecutorFails(McpRemoteClientTransportConfiguration transport) {
     final var exception = new IllegalArgumentException("Execution error");
 
@@ -162,7 +160,7 @@ class DefaultMcpRemoteClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpRemoteClientHandlerTest#transports")
+        "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandlerTest#transports")
     void handlesListToolsRequest(McpRemoteClientTransportConfiguration transport) {
       final var request = createToolModeRequest(transport, false, LIST_TOOLS_OPERATION);
       final var expectedResult = new McpClientListToolsResult(List.of());
@@ -185,7 +183,7 @@ class DefaultMcpRemoteClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpRemoteClientHandlerTest#mcpOperationArguments")
+        "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandlerTest#mcpOperationArguments")
     void handlesCallToolRequest(
         McpRemoteClientTransportConfiguration transport, Map<String, Object> arguments) {
       final var request =
@@ -228,7 +226,7 @@ class DefaultMcpRemoteClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpRemoteClientHandlerTest#transports")
+        "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandlerTest#transports")
     void handlesListToolsRequest(McpRemoteClientTransportConfiguration transport) {
       final var request =
           createStandaloneModeRequest(transport, false, new ListToolsOperationConfiguration());
@@ -252,7 +250,7 @@ class DefaultMcpRemoteClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpRemoteClientHandlerTest#mcpOperationArguments")
+        "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandlerTest#mcpOperationArguments")
     void handlesCallToolRequest(
         McpRemoteClientTransportConfiguration transport, Map<String, Object> arguments) {
       final var request =
@@ -290,7 +288,7 @@ class DefaultMcpRemoteClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpRemoteClientHandlerTest#transports")
+        "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandlerTest#transports")
     void handlesCallToolRequestWithNullArguments(McpRemoteClientTransportConfiguration transport) {
       final var request =
           createStandaloneModeRequest(
@@ -320,7 +318,7 @@ class DefaultMcpRemoteClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpRemoteClientHandlerTest#transports")
+        "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandlerTest#transports")
     void handlesListResourcesRequest(McpRemoteClientTransportConfiguration transport) {
       final var request =
           createStandaloneModeRequest(
@@ -347,7 +345,7 @@ class DefaultMcpRemoteClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpRemoteClientHandlerTest#transports")
+        "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandlerTest#transports")
     void handlesListResourceTemplatesRequest(McpRemoteClientTransportConfiguration transport) {
       final var request =
           createStandaloneModeRequest(
@@ -375,7 +373,7 @@ class DefaultMcpRemoteClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpRemoteClientHandlerTest#transports")
+        "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandlerTest#transports")
     void handlesReadResourceRequest(McpRemoteClientTransportConfiguration transport) {
       final var request =
           createStandaloneModeRequest(
@@ -411,7 +409,7 @@ class DefaultMcpRemoteClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpRemoteClientHandlerTest#transports")
+        "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandlerTest#transports")
     void handlesListPromptsRequest(McpRemoteClientTransportConfiguration transport) {
       final var request =
           createStandaloneModeRequest(
@@ -438,7 +436,7 @@ class DefaultMcpRemoteClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpRemoteClientHandlerTest#mcpOperationArguments")
+        "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandlerTest#mcpOperationArguments")
     void handlesGetPromptRequest(
         McpRemoteClientTransportConfiguration transport, Map<String, Object> arguments) {
       final var request =
@@ -488,7 +486,7 @@ class DefaultMcpRemoteClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpRemoteClientHandlerTest#transports")
+        "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandlerTest#transports")
     void requestsClientWithCachingEnabledWhenClientCacheIsTrue(
         McpRemoteClientTransportConfiguration transport) {
       final var request = createToolModeRequest(transport, true, LIST_TOOLS_OPERATION);
@@ -506,7 +504,7 @@ class DefaultMcpRemoteClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpRemoteClientHandlerTest#transports")
+        "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandlerTest#transports")
     void closesNonCachedClientAfterExecution(McpRemoteClientTransportConfiguration transport) {
       final var request = createToolModeRequest(transport, false, LIST_TOOLS_OPERATION);
       final var expectedResult = new McpClientListToolsResult(List.of());
@@ -523,7 +521,7 @@ class DefaultMcpRemoteClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpRemoteClientHandlerTest#transports")
+        "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandlerTest#transports")
     void requestsNonCachedClientWhenOptionsAreNull(
         McpRemoteClientTransportConfiguration transport) {
       final var request =
@@ -549,7 +547,7 @@ class DefaultMcpRemoteClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpRemoteClientHandlerTest#transports")
+        "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandlerTest#transports")
     void requestsNonCachedClientWhenClientCacheOptionIsNull(
         McpRemoteClientTransportConfiguration transport) {
       final var request =
@@ -575,7 +573,7 @@ class DefaultMcpRemoteClientHandlerTest {
 
     @ParameterizedTest
     @MethodSource(
-        "io.camunda.connector.agenticai.mcp.client.framework.langchain4j.DefaultMcpRemoteClientHandlerTest#transports")
+        "io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandlerTest#transports")
     void closesNonCachedClientEvenWhenExecutionFails(
         McpRemoteClientTransportConfiguration transport) {
       final var request = createToolModeRequest(transport, false, LIST_TOOLS_OPERATION);

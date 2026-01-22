@@ -33,6 +33,7 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigur
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StdioMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
+import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication;
 import java.time.Duration;
 import java.util.List;
@@ -71,7 +72,7 @@ class Langchain4JMcpClientFactoryTest {
   @Mock private StreamableHttpMcpTransport streamableHttpMcpTransport;
   @Mock private HttpMcpTransport sseMcpTransport;
 
-  @Mock private Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory;
+  @Mock private McpClientHeadersSupplierFactory headersSupplierFactory;
 
   @Captor private ArgumentCaptor<Supplier<Map<String, String>>> headersSupplierCaptor;
 
@@ -321,7 +322,7 @@ class Langchain4JMcpClientFactoryTest {
   void doesNotApplyTimeoutsAndReconnectIntervalIfNull() {
     withMockedMcpClientBuilder(
         mockedMcpClientConstruction -> {
-          try (MockedConstruction<StdioMcpTransport.Builder> mockedTransportBuilder =
+          try (MockedConstruction<StdioMcpTransport.Builder> ignored =
               mockConstruction(
                   StdioMcpTransport.Builder.class,
                   withSettings().defaultAnswer(CALLS_REAL_METHODS),
