@@ -415,15 +415,16 @@ public class InboundExecutableRegistryTest {
 
     var executable = mock(InboundConnectorExecutable.class);
     var definition = mock(InboundConnectorDefinition.class);
-    var context = spy(
-        new InboundConnectorContextImpl(
-            mock(SecretProvider.class),
-            mock(ValidationProvider.class),
-            mock(InboundConnectorDetails.ValidInboundConnectorDetails.class),
-            null,
-            t -> registry.handleEvent(new InboundExecutableEvent.Cancelled(RANDOM_ID, t)),
-            new ObjectMapper(),
-            null));
+    var context =
+        spy(
+            new InboundConnectorContextImpl(
+                mock(SecretProvider.class),
+                mock(ValidationProvider.class),
+                mock(InboundConnectorDetails.ValidInboundConnectorDetails.class),
+                null,
+                t -> registry.handleEvent(new InboundExecutableEvent.Cancelled(RANDOM_ID, t)),
+                new ObjectMapper(),
+                null));
 
     doNothing().doThrow(new Exception()).when(executable).activate(any());
     when(definition.deduplicationId()).thenReturn(RANDOM_STRING);
