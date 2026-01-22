@@ -267,12 +267,11 @@ public class BatchExecutableProcessor {
       InboundConnectorExecutable<InboundConnectorContext> executable,
       InboundConnectorManagementContext context) {
     try {
+      var executableId =
+          ExecutableId.fromDeduplicationId(context.getDefinition().deduplicationId());
       executable.activate(context);
       LOG.info("Activation successful for {}", context.getDefinition().type());
-      return new Activated(
-          executable,
-          context,
-          ExecutableId.fromDeduplicationId(context.getDefinition().deduplicationId()));
+      return new Activated(executable, context, executableId);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

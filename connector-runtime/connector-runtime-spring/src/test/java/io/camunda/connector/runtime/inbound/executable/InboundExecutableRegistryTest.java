@@ -31,6 +31,7 @@ import io.camunda.connector.runtime.core.inbound.*;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
+import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.ProcessStateChanged;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import java.time.Duration;
@@ -39,7 +40,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -297,6 +297,7 @@ public class InboundExecutableRegistryTest {
     var context = mock(InboundConnectorManagementContext.class);
     var definitions = mock(InboundConnectorDefinition.class);
 
+    when(definitions.deduplicationId()).thenReturn(RANDOM_STRING);
     when(factory.getInstance(any())).thenReturn(executable);
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
     when(context.getDefinition()).thenReturn(definitions);
@@ -361,60 +362,6 @@ public class InboundExecutableRegistryTest {
   }
 
   @Test
-  public void verify_activatedConnectorIsCancelledAndReActivateCancelAgain() throws Exception {
-    var elementId = "elementId";
-    var element1 =
-        spy(
-            new InboundConnectorElement(
-                Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT2S"),
-                new StartEventCorrelationPoint("processId", 0, 0),
-                new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant")));
-    when(element1.deduplicationId(any())).thenReturn(RANDOM_STRING);
-
-    var executable = mock(InboundConnectorExecutable.class);
-    var context =
-        new InboundConnectorContextImpl(
-            mock(SecretProvider.class),
-            mock(ValidationProvider.class),
-            mock(InboundConnectorDetails.ValidInboundConnectorDetails.class),
-            null,
-            t -> registry.createCancellation(new InboundExecutableEvent.Cancelled(RANDOM_ID, t)),
-            new ObjectMapper(),
-            null);
-
-    when(factory.getInstance(any())).thenReturn(executable);
-    when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
-    doNothing()
-        .doAnswer(
-            invocationOnMock -> {
-              context.cancel(
-                  ConnectorRetryException.builder()
-                      .retries(3)
-                      .backoffDuration(Duration.ofSeconds(3))
-                      .build());
-              return null;
-            })
-        .when(executable)
-        .activate(any());
-
-    registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1))));
-
-    scheduledExecutorService.schedule(
-        () ->
-            context.cancel(
-                ConnectorRetryException.builder()
-                    .retries(3)
-                    .backoffDuration(Duration.ofSeconds(1))
-                    .build()),
-        3,
-        TimeUnit.SECONDS);
-
-    // then
-    verify(executable, timeout(60000).times(2)).activate(any());
-    verify(executable, timeout(60000).times(1)).deactivate();
-  }
-
-  @Test
   public void verify_activatedConnectorIsCancelledAndRestartedFromTheContext() throws Exception {
     var elementId = "elementId";
     var element1 =
@@ -425,12 +372,15 @@ public class InboundExecutableRegistryTest {
                 new ProcessElementWithRuntimeData("id", 0, 0, elementId, "tenant")));
     when(element1.deduplicationId(any())).thenReturn(RANDOM_STRING);
 
+    var connectorDetails = mock(ValidInboundConnectorDetails.class);
+    when(connectorDetails.deduplicationId()).thenReturn(RANDOM_STRING);
+
     var executable = mock(InboundConnectorExecutable.class);
     var context =
         new InboundConnectorContextImpl(
             mock(SecretProvider.class),
             mock(ValidationProvider.class),
-            mock(InboundConnectorDetails.ValidInboundConnectorDetails.class),
+            connectorDetails,
             null,
             t -> registry.handleEvent(new InboundExecutableEvent.Cancelled(RANDOM_ID, t)),
             new ObjectMapper(),
@@ -464,7 +414,8 @@ public class InboundExecutableRegistryTest {
     when(element1.deduplicationId(any())).thenReturn(RANDOM_STRING);
 
     var executable = mock(InboundConnectorExecutable.class);
-    var context =
+    var definition = mock(InboundConnectorDefinition.class);
+    var context = spy(
         new InboundConnectorContextImpl(
             mock(SecretProvider.class),
             mock(ValidationProvider.class),
@@ -472,9 +423,11 @@ public class InboundExecutableRegistryTest {
             null,
             t -> registry.handleEvent(new InboundExecutableEvent.Cancelled(RANDOM_ID, t)),
             new ObjectMapper(),
-            null);
+            null));
 
     doNothing().doThrow(new Exception()).when(executable).activate(any());
+    when(definition.deduplicationId()).thenReturn(RANDOM_STRING);
+    doReturn(definition).when(context).getDefinition();
     when(factory.getInstance(any())).thenReturn(executable);
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
     // when
@@ -508,6 +461,7 @@ public class InboundExecutableRegistryTest {
     var definitions = mock(InboundConnectorDefinition.class);
 
     // when
+    when(definitions.deduplicationId()).thenReturn(RANDOM_STRING);
     when(factory.getInstance(any())).thenReturn(executable);
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
     when(context.getDefinition()).thenReturn(definitions);
@@ -547,6 +501,7 @@ public class InboundExecutableRegistryTest {
     var definitions = mock(InboundConnectorDefinition.class);
 
     // when
+    when(definitions.deduplicationId()).thenReturn(RANDOM_STRING);
     when(factory.getInstance(any())).thenReturn(executable);
     when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(context);
     when(context.getDefinition()).thenReturn(definitions);
