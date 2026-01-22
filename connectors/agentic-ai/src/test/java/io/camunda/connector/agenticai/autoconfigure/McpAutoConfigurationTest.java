@@ -86,8 +86,7 @@ public class McpAutoConfigurationTest {
 
   @Test
   void doesNotEnableRuntimeMcpClientIntegrationByDefault() {
-    contextRunner.run(
-        context -> assertDoesNotHaveAnyBeansOf(context, RUNTIME_MCP_CLIENT_BEANS));
+    contextRunner.run(context -> assertDoesNotHaveAnyBeansOf(context, RUNTIME_MCP_CLIENT_BEANS));
   }
 
   @Test
