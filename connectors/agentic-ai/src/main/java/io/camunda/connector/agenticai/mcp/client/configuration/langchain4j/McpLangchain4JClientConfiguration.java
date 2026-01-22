@@ -9,25 +9,33 @@ package io.camunda.connector.agenticai.mcp.client.configuration.langchain4j;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
+import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientFactory;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientLoggingResolver;
-import io.camunda.connector.http.client.authentication.OAuthService;
-import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.AnyNestedCondition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 
-@ConditionalOnProperty(
-        value = "camunda.connector.agenticai.mcp.client.framework",
-        havingValue = "langchain4j",
-        matchIfMissing = true)
+@Conditional(McpLangchain4JClientConfiguration.Langchain4JFrameworkEnabled.class)
 @Configuration
 @EnableConfigurationProperties(McpClientLangchain4JFrameworkConfigurationProperties.class)
-public class McpClientBaseLangchain4JFrameworkConfiguration {
+public class McpLangchain4JClientConfiguration {
+
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(McpLangchain4JClientConfiguration.class);
+
+  @PostConstruct
+  void init() {
+    LOGGER.info("MCP client framework is set to langchain4j");
+  }
 
   @Bean
   @ConditionalOnMissingBean
@@ -45,20 +53,33 @@ public class McpClientBaseLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public Langchain4JMcpClientHeadersSupplierFactory langchain4JMcpClientHeadersSupplierFactory(
-      @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    return new Langchain4JMcpClientHeadersSupplierFactory(
-        new OAuthService(), new CustomApacheHttpClient(), objectMapper);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
   public McpClientFactory langchain4JMcpClientFactory(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
       ToolSpecificationConverter toolSpecificationConverter,
       Langchain4JMcpClientLoggingResolver loggingResolver,
-      Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory) {
+      McpClientHeadersSupplierFactory headersSupplierFactory) {
     return new Langchain4JMcpClientFactory(
         loggingResolver, headersSupplierFactory, objectMapper, toolSpecificationConverter);
+  }
+
+  static class Langchain4JFrameworkEnabled extends AnyNestedCondition {
+
+    public Langchain4JFrameworkEnabled() {
+      super(ConfigurationPhase.PARSE_CONFIGURATION);
+    }
+
+    @ConditionalOnProperty(
+        value = "camunda.connector.agenticai.mcp.client.framework",
+        havingValue = "langchain4j",
+        matchIfMissing = true)
+    @SuppressWarnings("unused")
+    static class McpClientFrameWorkIsLangchain4J {}
+
+    @ConditionalOnProperty(
+        value = "camunda.connector.agenticai.mcp.remote-client.framework",
+        havingValue = "langchain4j",
+        matchIfMissing = true)
+    @SuppressWarnings("unused")
+    static class McpRemoteClientFrameWorkIsLangchain4J {}
   }
 }

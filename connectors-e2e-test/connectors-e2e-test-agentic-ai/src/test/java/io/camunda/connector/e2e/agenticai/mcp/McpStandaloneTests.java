@@ -65,8 +65,8 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
   @Value("classpath:mcp-connectors-standalone.bpmn")
   protected Resource testProcess;
 
-  @MockitoBean private McpClientRegistry<McpClient> mcpClientRegistry;
-  @MockitoBean private McpRemoteClientRegistry<McpClient> remoteMcpClientRegistry;
+  @MockitoBean private McpClientRegistry mcpClientRegistry;
+  @MockitoBean private McpRemoteClientRegistry remoteMcpClientRegistry;
 
   @Mock private McpClient aMcpClient;
   @Mock private McpClient aRemoteMcpClient;

@@ -4,13 +4,13 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.mcp.client.framework.langchain4j;
+package io.camunda.connector.agenticai.mcp.client.framework.bootstrap;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientHttpTransportConfiguration;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.auth.BasicAuthHeadersSupplier;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.auth.BearerAuthHeadersSupplier;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.auth.OAuthHeadersSupplier;
+import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.auth.BasicAuthHeadersSupplier;
+import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.auth.BearerAuthHeadersSupplier;
+import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.auth.OAuthHeadersSupplier;
 import io.camunda.connector.agenticai.mcp.client.model.auth.BasicAuthentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication;
@@ -23,13 +23,13 @@ import java.util.Map;
 import java.util.function.Supplier;
 import org.jspecify.annotations.NonNull;
 
-public class Langchain4JMcpClientHeadersSupplierFactory {
+public class McpClientHeadersSupplierFactory {
 
   private final OAuthService oAuthService;
   private final HttpClient httpClient;
   private final ObjectMapper objectMapper;
 
-  public Langchain4JMcpClientHeadersSupplierFactory(
+  public McpClientHeadersSupplierFactory(
       OAuthService oAuthService, HttpClient httpClient, ObjectMapper objectMapper) {
     this.oAuthService = oAuthService;
     this.httpClient = httpClient;

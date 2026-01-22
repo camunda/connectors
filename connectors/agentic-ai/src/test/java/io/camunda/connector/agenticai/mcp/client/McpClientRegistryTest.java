@@ -186,8 +186,7 @@ class McpClientRegistryTest {
     assertThatCode(() -> registry.close()).doesNotThrowAnyException();
   }
 
-  private void registerAndForceConstruction(
-      String id, Supplier<McpClientDelegate> clientSupplier) {
+  private void registerAndForceConstruction(String id, Supplier<McpClientDelegate> clientSupplier) {
     registry.register(id, clientSupplier);
     registry.getClient(id);
   }

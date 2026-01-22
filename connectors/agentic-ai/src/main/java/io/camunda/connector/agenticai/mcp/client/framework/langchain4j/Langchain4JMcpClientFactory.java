@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigur
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StdioMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
+import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientDelegate;
 import java.util.ArrayList;
 import java.util.Optional;
@@ -25,14 +26,14 @@ import java.util.Optional;
 public class Langchain4JMcpClientFactory implements McpClientFactory {
 
   private final Langchain4JMcpClientLoggingResolver loggingResolver;
-  private final Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory;
+  private final McpClientHeadersSupplierFactory headersSupplierFactory;
 
   private final ObjectMapper objectMapper;
   private final ToolSpecificationConverter toolSpecificationConverter;
 
   public Langchain4JMcpClientFactory(
       Langchain4JMcpClientLoggingResolver loggingResolver,
-      Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory,
+      McpClientHeadersSupplierFactory headersSupplierFactory,
       ObjectMapper objectMapper,
       ToolSpecificationConverter toolSpecificationConverter) {
     this.loggingResolver = loggingResolver;

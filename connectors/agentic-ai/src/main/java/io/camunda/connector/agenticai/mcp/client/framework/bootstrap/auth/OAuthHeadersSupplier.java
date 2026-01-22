@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.auth;
+package io.camunda.connector.agenticai.mcp.client.framework.bootstrap.auth;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -150,6 +151,7 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
     }
 
     @Override
+    @NotNull
     public String toString() {
       return new ToStringBuilder(this)
           .append("accessToken", "REDACTED")

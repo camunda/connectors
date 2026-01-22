@@ -148,8 +148,8 @@
       <artifactId>mcp</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.modelcontextprotocol.sdk</groupId>
-      <artifactId>mcp-spring-webmvc</artifactId>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
     </dependency>
 
     <dependency>
@@ -359,6 +359,21 @@
             </path>
           </annotationProcessorPaths>
         </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>analyze-dependencies</id>
+            <configuration>
+              <ignoredDependencies>
+                <ignoredDependency>io.modelcontextprotocol.sdk:mcp</ignoredDependency>
+                <ignoredDependency>io.modelcontextprotocol.sdk:mcp-core</ignoredDependency>
+                <ignoredDependency>io.modelcontextprotocol.sdk:mcp-json</ignoredDependency>
+              </ignoredDependencies>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>io.camunda.connector</groupId>

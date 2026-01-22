@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.auth;
+package io.camunda.connector.agenticai.mcp.client.framework.bootstrap.auth;
 
 import static io.camunda.connector.http.client.authentication.Base64Helper.buildBasicAuthenticationHeader;
 

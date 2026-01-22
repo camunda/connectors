@@ -6,12 +6,11 @@
  */
 package io.camunda.connector.agenticai.mcp.client;
 
+import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
-
-import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

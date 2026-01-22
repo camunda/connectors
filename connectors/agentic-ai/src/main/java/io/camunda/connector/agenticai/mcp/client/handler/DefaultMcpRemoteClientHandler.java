@@ -21,15 +21,13 @@ import org.slf4j.LoggerFactory;
 
 public class DefaultMcpRemoteClientHandler implements McpRemoteClientHandler {
 
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(DefaultMcpRemoteClientHandler.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultMcpRemoteClientHandler.class);
 
   private final McpRemoteClientRegistry remoteClientRegistry;
   private final McpClientExecutor clientExecutor;
 
   public DefaultMcpRemoteClientHandler(
-      McpRemoteClientRegistry remoteClientRegistry,
-      McpClientExecutor clientExecutor) {
+      McpRemoteClientRegistry remoteClientRegistry, McpClientExecutor clientExecutor) {
     this.remoteClientRegistry = remoteClientRegistry;
     this.clientExecutor = clientExecutor;
   }

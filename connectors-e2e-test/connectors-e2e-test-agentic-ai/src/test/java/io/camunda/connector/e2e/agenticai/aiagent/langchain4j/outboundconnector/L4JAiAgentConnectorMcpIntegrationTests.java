@@ -74,8 +74,8 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
   @Value("classpath:agentic-ai-connectors-mcp.bpmn")
   protected Resource testProcessWithMcp;
 
-  @MockitoBean private McpClientRegistry<McpClient> mcpClientRegistry;
-  @MockitoBean private McpRemoteClientRegistry<McpClient> remoteMcpClientRegistry;
+  @MockitoBean private McpClientRegistry mcpClientRegistry;
+  @MockitoBean private McpRemoteClientRegistry remoteMcpClientRegistry;
 
   @Mock private McpClient aMcpClient;
   @Mock private McpClient aHttpRemoteMcpClient;
