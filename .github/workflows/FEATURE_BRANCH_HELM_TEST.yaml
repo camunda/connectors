@@ -80,7 +80,18 @@ jobs:
       - name: Set connectors version
         id: connectors-version
         run: |
-          echo "connectors-version=pr-${{ github.sha }}" >> $GITHUB_OUTPUT
+          # Extract version from Maven project (e.g., "8.9.0-SNAPSHOT")
+          MAVEN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          # Remove -SNAPSHOT suffix if present
+          BASE_VERSION="${MAVEN_VERSION%-SNAPSHOT}"
+          # Create semver-compatible tag with commit SHA as prerelease identifier
+          CONNECTORS_VERSION="${BASE_VERSION}-${{ github.sha }}"
+          
+          echo "::notice::Maven version: ${MAVEN_VERSION}"
+          echo "::notice::Base version: ${BASE_VERSION}"
+          echo "::notice::Connectors version tag: ${CONNECTORS_VERSION}"
+          
+          echo "connectors-version=${CONNECTORS_VERSION}" >> $GITHUB_OUTPUT
 
       - name: Login to Minimus
         uses: docker/login-action@v3
