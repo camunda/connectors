@@ -42,10 +42,12 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
+import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientDelegate;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
@@ -62,6 +64,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.skyscreamer.jsonassert.JSONAssert;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.test.context.TestPropertySource;
@@ -92,8 +95,10 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
 
   private final Map<String, McpRemoteClientTransportConfiguration> requestedRemoteMcpClients =
       new LinkedHashMap<>();
+    @Autowired
+    private ToolSpecificationConverter toolSpecificationConverter;
 
-  @BeforeEach
+    @BeforeEach
   void mockMcpClients() {
     when(aMcpClient.key()).thenReturn("a-mcp-client");
     when(aMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
@@ -105,8 +110,8 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
     when(filesystemMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
 
     // clients configured on the runtime
-    doReturn(aMcpClient).when(mcpClientRegistry).getClient("a-mcp-client");
-    doReturn(filesystemMcpClient).when(mcpClientRegistry).getClient("filesystem");
+    doReturn(new Langchain4JMcpClientDelegate(aMcpClient, objectMapper, toolSpecificationConverter)).when(mcpClientRegistry).getClient("a-mcp-client");
+    doReturn(new Langchain4JMcpClientDelegate(filesystemMcpClient, objectMapper, toolSpecificationConverter)).when(mcpClientRegistry).getClient("filesystem");
 
     // remote MCP clients configured only on the process
     requestedRemoteMcpClients.clear();
@@ -116,7 +121,7 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
               final McpRemoteClientTransportConfiguration transport = i.getArgument(1);
               requestedRemoteMcpClients.put(clientId.elementId(), transport);
 
-              return switch (clientId.elementId()) {
+              var internalClient = switch (clientId.elementId()) {
                 case "A_HTTP_Remote_MCP_Client" -> {
                   when(aHttpRemoteMcpClient.key()).thenReturn(clientId.toString());
                   yield aHttpRemoteMcpClient;
@@ -129,6 +134,8 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
                     throw new IllegalArgumentException(
                         "Unexpected remote MCP client ID: " + clientId.elementId());
               };
+
+               return new Langchain4JMcpClientDelegate(internalClient, objectMapper, toolSpecificationConverter);
             })
         .when(remoteMcpClientRegistry)
         .getClient(

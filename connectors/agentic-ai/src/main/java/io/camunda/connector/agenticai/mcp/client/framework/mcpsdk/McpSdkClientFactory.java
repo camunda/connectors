@@ -40,6 +40,9 @@ public class McpSdkClientFactory implements McpClientFactory {
       String clientId, McpClientConfigurationProperties.McpClientConfiguration config) {
     var clientBuilder =
         McpClient.sync(createTransport(config))
+            .clientInfo(
+                new McpSchema.Implementation(
+                    "Camunda MCP Connector - Client ID: %s".formatted(clientId), "1.0.0"))
             .capabilities(McpSchema.ClientCapabilities.builder().roots(true).build());
 
     Optional.ofNullable(config.initializationTimeout()).map(clientBuilder::initializationTimeout);
@@ -85,7 +88,6 @@ public class McpSdkClientFactory implements McpClientFactory {
               var headers = customHeaders(streamableHttpConfig);
               headers.forEach(request::header);
             })
-        // todo logging request/response
         // todo proxy configuration
         .build();
   }
@@ -99,7 +101,6 @@ public class McpSdkClientFactory implements McpClientFactory {
               var headers = customHeaders(sseConfig);
               headers.forEach(request::header);
             })
-        // todo logging request/response
         // todo proxy configuration
         .build();
   }
