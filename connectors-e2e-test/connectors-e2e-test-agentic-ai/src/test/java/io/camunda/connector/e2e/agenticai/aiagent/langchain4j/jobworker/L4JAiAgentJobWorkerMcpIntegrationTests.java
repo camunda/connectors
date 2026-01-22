@@ -95,10 +95,9 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
 
   private final Map<String, McpRemoteClientTransportConfiguration> requestedRemoteMcpClients =
       new LinkedHashMap<>();
-    @Autowired
-    private ToolSpecificationConverter toolSpecificationConverter;
+  @Autowired private ToolSpecificationConverter toolSpecificationConverter;
 
-    @BeforeEach
+  @BeforeEach
   void mockMcpClients() {
     when(aMcpClient.key()).thenReturn("a-mcp-client");
     when(aMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
@@ -110,8 +109,14 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
     when(filesystemMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
 
     // clients configured on the runtime
-    doReturn(new Langchain4JMcpClientDelegate(aMcpClient, objectMapper, toolSpecificationConverter)).when(mcpClientRegistry).getClient("a-mcp-client");
-    doReturn(new Langchain4JMcpClientDelegate(filesystemMcpClient, objectMapper, toolSpecificationConverter)).when(mcpClientRegistry).getClient("filesystem");
+    doReturn(new Langchain4JMcpClientDelegate(aMcpClient, objectMapper, toolSpecificationConverter))
+        .when(mcpClientRegistry)
+        .getClient("a-mcp-client");
+    doReturn(
+            new Langchain4JMcpClientDelegate(
+                filesystemMcpClient, objectMapper, toolSpecificationConverter))
+        .when(mcpClientRegistry)
+        .getClient("filesystem");
 
     // remote MCP clients configured only on the process
     requestedRemoteMcpClients.clear();
@@ -121,21 +126,23 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
               final McpRemoteClientTransportConfiguration transport = i.getArgument(1);
               requestedRemoteMcpClients.put(clientId.elementId(), transport);
 
-              var internalClient = switch (clientId.elementId()) {
-                case "A_HTTP_Remote_MCP_Client" -> {
-                  when(aHttpRemoteMcpClient.key()).thenReturn(clientId.toString());
-                  yield aHttpRemoteMcpClient;
-                }
-                case "A_SSE_Remote_MCP_Client" -> {
-                  when(aSseRemoteMcpClient.key()).thenReturn(clientId.toString());
-                  yield aSseRemoteMcpClient;
-                }
-                default ->
-                    throw new IllegalArgumentException(
-                        "Unexpected remote MCP client ID: " + clientId.elementId());
-              };
+              var internalClient =
+                  switch (clientId.elementId()) {
+                    case "A_HTTP_Remote_MCP_Client" -> {
+                      when(aHttpRemoteMcpClient.key()).thenReturn(clientId.toString());
+                      yield aHttpRemoteMcpClient;
+                    }
+                    case "A_SSE_Remote_MCP_Client" -> {
+                      when(aSseRemoteMcpClient.key()).thenReturn(clientId.toString());
+                      yield aSseRemoteMcpClient;
+                    }
+                    default ->
+                        throw new IllegalArgumentException(
+                            "Unexpected remote MCP client ID: " + clientId.elementId());
+                  };
 
-               return new Langchain4JMcpClientDelegate(internalClient, objectMapper, toolSpecificationConverter);
+              return new Langchain4JMcpClientDelegate(
+                  internalClient, objectMapper, toolSpecificationConverter);
             })
         .when(remoteMcpClientRegistry)
         .getClient(
