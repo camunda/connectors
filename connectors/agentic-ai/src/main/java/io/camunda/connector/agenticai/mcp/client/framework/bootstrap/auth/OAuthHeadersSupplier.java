@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -151,7 +150,6 @@ public class OAuthHeadersSupplier implements Supplier<Map<String, String>> {
     }
 
     @Override
-    @NotNull
     public String toString() {
       return new ToStringBuilder(this)
           .append("accessToken", "REDACTED")

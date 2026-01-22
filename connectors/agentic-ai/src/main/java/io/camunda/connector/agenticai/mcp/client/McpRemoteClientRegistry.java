@@ -27,7 +27,6 @@ import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication
 import io.camunda.connector.agenticai.mcp.client.model.auth.NoAuthentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.OAuthAuthentication;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -173,7 +172,6 @@ public class McpRemoteClientRegistry implements AutoCloseable {
     }
 
     @Override
-    @NotNull
     public String toString() {
       return "%s_%s".formatted(processDefinitionKey, elementId);
     }
