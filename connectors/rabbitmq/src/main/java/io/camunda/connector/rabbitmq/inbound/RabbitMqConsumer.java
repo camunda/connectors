@@ -67,7 +67,7 @@ public class RabbitMqConsumer extends DefaultConsumer {
               activity
                   .withSeverity(Severity.ERROR)
                   .withTag(ActivityLogTag.MESSAGE)
-                  .withMessage("NACK (requeue) - failed to correlate event"));
+                  .withMessage("NACK (requeue) - failed to correlate event", e));
       getChannel().basicReject(envelope.getDeliveryTag(), true);
     }
   }
