@@ -21,7 +21,6 @@ import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4J
 import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
-import static org.assertj.core.api.Assertions.in;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.assertArg;
@@ -110,8 +109,14 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
     when(filesystemMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
 
     // clients configured on the runtime
-    doReturn(new Langchain4JMcpClientDelegate(aMcpClient, objectMapper, toolSpecificationConverter)).when(mcpClientRegistry).getClient("a-mcp-client");
-    doReturn(new Langchain4JMcpClientDelegate(filesystemMcpClient, objectMapper, toolSpecificationConverter)).when(mcpClientRegistry).getClient("filesystem");
+    doReturn(new Langchain4JMcpClientDelegate(aMcpClient, objectMapper, toolSpecificationConverter))
+        .when(mcpClientRegistry)
+        .getClient("a-mcp-client");
+    doReturn(
+            new Langchain4JMcpClientDelegate(
+                filesystemMcpClient, objectMapper, toolSpecificationConverter))
+        .when(mcpClientRegistry)
+        .getClient("filesystem");
 
     // remote MCP clients configured only on the process
     requestedRemoteMcpClients.clear();
