@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.mcp.client.configuration.langchain4j;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
-import io.camunda.connector.agenticai.mcp.client.configuration.annotation.LocalMcpClientFactory;
+import io.camunda.connector.agenticai.mcp.client.configuration.annotation.RemoteMcpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientLoggingResolver;
@@ -24,13 +24,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @ConditionalOnExpression(
-    "${camunda.connector.agenticai.mcp.client.framework:'langchain4j'} == 'langchain4j' && ${camunda.connector.agenticai.mcp.client.enabled:false}")
+    "${camunda.connector.agenticai.mcp.remote-client.framework:'langchain4j'} == 'langchain4j' && ${camunda.connector.agenticai.mcp.remote-client.enabled:true}")
 @Configuration
 @EnableConfigurationProperties(McpClientLangchain4JFrameworkConfigurationProperties.class)
-public class McpLangchain4JClientConfiguration {
+public class McpLangchain4JRemoteClientConfiguration {
 
   private static final Logger LOGGER =
-      LoggerFactory.getLogger(McpLangchain4JClientConfiguration.class);
+      LoggerFactory.getLogger(McpLangchain4JRemoteClientConfiguration.class);
 
   @PostConstruct
   void init() {
@@ -52,8 +52,8 @@ public class McpLangchain4JClientConfiguration {
   }
 
   @Bean
-  @LocalMcpClientFactory
-  public McpClientFactory langchain4JMcpClientFactory(
+  @RemoteMcpClientFactory
+  public McpClientFactory langchain4JMcpRemoteClientFactory(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
       ToolSpecificationConverter toolSpecificationConverter,
       Langchain4JMcpClientLoggingResolver loggingResolver,
