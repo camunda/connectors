@@ -69,6 +69,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AgentMessagesHandlerTest {
 
+  private static final String EVENT_INTERRUPT_TOOL_CALLS_EMPTY_MESSAGE =
+      "An event was triggered but no content was returned. All in-flight tool executions were canceled.";
+  private static final String EVENT_WAIT_FOR_TOOL_CALL_RESULTS_EMPTY_MESSAGE =
+      "An event was triggered but no content was returned. Execution waited for all in-flight tool executions to complete before proceeding.";
+
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
@@ -310,6 +315,40 @@ class AgentMessagesHandlerTest {
                 });
 
         assertThat(runtimeMemory.allMessages()).containsExactlyElementsOf(addedMessages);
+      }
+
+      @ParameterizedTest
+      @MethodSource(
+          "io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandlerTest#emptyEventContents")
+      void createsUserMessageFromEventWhenEventContentIsEmpty(Object eventContent) {
+        final var event = ToolCallResult.builder().content(eventContent).build();
+
+        final var addedMessages =
+            messagesHandler.addUserMessages(
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                new UserPromptConfiguration("Tell me a story", List.of()),
+                List.of(event));
+
+        assertThat(addedMessages)
+            .hasSize(2)
+            .asInstanceOf(InstanceOfAssertFactories.list(UserMessage.class))
+            .satisfiesExactly(
+                userMessage ->
+                    assertThat(userMessage.content())
+                        .hasSize(1)
+                        .satisfiesExactly(
+                            c -> assertThat(c).isEqualTo(textContent("Tell me a story"))),
+                userMessage ->
+                    assertThat(userMessage.content())
+                        .hasSize(1)
+                        .satisfiesExactly(
+                            c ->
+                                assertThat(c)
+                                    .isEqualTo(
+                                        textContent(
+                                            EVENT_WAIT_FOR_TOOL_CALL_RESULTS_EMPTY_MESSAGE))));
       }
     }
 
@@ -657,6 +696,62 @@ class AgentMessagesHandlerTest {
         assertThat(runtimeMemory.allMessages()).containsExactlyElementsOf(expectedMessages);
       }
 
+      @ParameterizedTest
+      @MethodSource(
+          "io.camunda.connector.agenticai.aiagent.agent.AgentMessagesHandlerTest#emptyEventContents")
+      void interruptsToolCallsOnEventResultsWhenEventContentIsEmpty(Object eventContent) {
+        when(executionContext.events().behavior()).thenReturn(INTERRUPT_TOOL_CALLS);
+
+        final var assistantMessage =
+            assistantMessage("Assistant message with tool calls", TOOL_CALLS);
+        runtimeMemory.addMessage(assistantMessage);
+
+        when(gatewayToolHandlers.transformToolCallResults(eq(AGENT_CONTEXT), anyList()))
+            .thenAnswer(invocationOnMock -> invocationOnMock.getArgument(1));
+
+        final var eventWithNullContent = ToolCallResult.builder().content(eventContent).build();
+
+        final var addedMessages =
+            messagesHandler.addUserMessages(
+                executionContext,
+                AGENT_CONTEXT,
+                runtimeMemory,
+                userPromptWithDocuments,
+                List.of(TOOL_CALL_RESULTS.get(1), eventWithNullContent));
+
+        assertThat(addedMessages)
+            .hasSize(2)
+            .satisfiesExactly(
+                message ->
+                    assertThat(message)
+                        .isInstanceOfSatisfying(
+                            ToolCallResultMessage.class,
+                            toolCallResultMessage ->
+                                assertThat(toolCallResultMessage.results())
+                                    .containsExactly(
+                                        ToolCallResult.builder()
+                                            .id(TOOL_CALL_RESULTS.get(0).id())
+                                            .name(TOOL_CALL_RESULTS.get(0).name())
+                                            .content(ToolCallResult.CONTENT_CANCELLED)
+                                            .properties(
+                                                Map.of(ToolCallResult.PROPERTY_INTERRUPTED, true))
+                                            .build(),
+                                        TOOL_CALL_RESULTS.get(1))),
+                message ->
+                    assertThat(message)
+                        .isInstanceOfSatisfying(
+                            UserMessage.class,
+                            userMessage ->
+                                assertThat(userMessage.content())
+                                    .hasSize(1)
+                                    .satisfiesExactly(
+                                        c ->
+                                            assertThat(c)
+                                                .isEqualTo(
+                                                    textContent(
+                                                        EVENT_INTERRUPT_TOOL_CALLS_EMPTY_MESSAGE)))));
+      }
+
       static List<Arguments> toolCallResultsWithEventsAndEventBehavior() {
         final List<Arguments> arguments = new ArrayList<>();
         toolCallResultsWithEvents()
@@ -707,5 +802,15 @@ class AgentMessagesHandlerTest {
             .toList();
       }
     }
+  }
+
+  static List<Object> emptyEventContents() {
+    final var contents = new ArrayList<>();
+    contents.add(null);
+    contents.add("");
+    contents.add("  ");
+    contents.add(List.of());
+    contents.add(Map.of());
+    return contents;
   }
 }
