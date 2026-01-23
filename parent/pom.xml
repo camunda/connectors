@@ -105,7 +105,7 @@ limitations under the License.</license.inlineheader>
 
     <version.google-api-services-drive>v3-rev20251210-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
-    <version.google-auth-library-oauth2-http>1.41.0</version.google-auth-library-oauth2-http>
+    <version.google-auth-library-oauth2-http>1.42.1</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20251215-2.0.0</version.google-api-services-docs>
     <version.google-api-services-sheets>v4-rev20251110-2.0.0</version.google-api-services-sheets>
     <version.google-libraries-bom>26.74.0</version.google-libraries-bom>
