@@ -11,6 +11,6 @@
   "license": "Camunda License 1.0",
   "devDependencies": {
     "mocha": "^11.7.1",
-    "prettier": "3.7.4"
+    "prettier": "3.8.1"
   }
 }
