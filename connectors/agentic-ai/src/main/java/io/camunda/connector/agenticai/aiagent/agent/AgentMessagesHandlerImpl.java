@@ -30,6 +30,7 @@ import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,14 @@ import org.slf4j.LoggerFactory;
 public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AgentMessagesHandlerImpl.class);
+
+  private static final String EVENT_CONTENT_EMPTY =
+      "An event was triggered but no content was returned.";
+  private static final String EVENT_CONTENT_EMPTY_INTERRUPT_TOOL_CALLS_EMPTY_MESSAGE =
+      EVENT_CONTENT_EMPTY + " All in-flight tool executions were canceled.";
+  private static final String EVENT_CONTENT_EMPTY_WAIT_FOR_TOOL_CALL_RESULTS_EMPTY_MESSAGE =
+      EVENT_CONTENT_EMPTY
+          + " Execution waited for all in-flight tool executions to complete before proceeding.";
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
 
@@ -72,14 +81,15 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
       RuntimeMemory memory,
       UserPromptConfiguration userPrompt,
       List<ToolCallResult> toolCallResults) {
+    boolean interruptToolCallsOnEventResults = interruptToolCallsOnEventResults(executionContext);
 
+    // partitioned into 2 buckets - true -> with tool call ID, false -> without (from an event)
     final var partitionedByToolCallId =
         toolCallResults.stream().collect(Collectors.partitioningBy(result -> result.id() != null));
     final List<ToolCallResult> actualToolCallResults = partitionedByToolCallId.get(true);
     final List<Message> eventMessages =
         partitionedByToolCallId.get(false).stream()
-            .map(this::createEventMessage)
-            .filter(Objects::nonNull)
+            .map(eventResult -> createEventMessage(eventResult, interruptToolCallsOnEventResults))
             .toList();
 
     // throw an error when receiving tool call results on an empty context as
@@ -95,7 +105,6 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     List<Message> messages = new ArrayList<>();
     if (lastChatMessage instanceof AssistantMessage assistantMessage
         && assistantMessage.hasToolCalls()) {
-      boolean interruptToolCallsOnEventResults = interruptToolCallsOnEventResults(executionContext);
       boolean interruptMissingToolCalls =
           interruptToolCallsOnEventResults && !eventMessages.isEmpty();
 
@@ -190,28 +199,39 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
         .build();
   }
 
-  private Message createEventMessage(ToolCallResult eventResult) {
-    if (eventResult.content() == null) {
-      return null;
-    }
+  private Message createEventMessage(
+      ToolCallResult eventResult, boolean interruptToolCallsOnEventResults) {
+    Object eventContent = eventResult.content();
 
-    Content contentBlock = null;
-    if (eventResult.content() instanceof String textContent) {
-      if (StringUtils.isNotBlank(textContent)) {
-        contentBlock = textContent(textContent);
-      }
+    List<Content> userMessageContent = new ArrayList<>();
+    if (isEventContentEmpty(eventContent)) {
+      userMessageContent.add(
+          textContent(
+              interruptToolCallsOnEventResults
+                  ? EVENT_CONTENT_EMPTY_INTERRUPT_TOOL_CALLS_EMPTY_MESSAGE
+                  : EVENT_CONTENT_EMPTY_WAIT_FOR_TOOL_CALL_RESULTS_EMPTY_MESSAGE));
     } else {
-      contentBlock = objectContent(eventResult.content());
-    }
-
-    if (contentBlock == null) {
-      return null;
+      userMessageContent.add(
+          switch (eventContent) {
+            case String textContent -> textContent(textContent);
+            default -> objectContent(eventContent);
+          });
     }
 
     return UserMessage.builder()
-        .content(List.of(contentBlock))
+        .content(userMessageContent)
         .metadata(defaultMessageMetadata())
         .build();
+  }
+
+  private boolean isEventContentEmpty(Object eventContent) {
+    return switch (eventContent) {
+      case null -> true;
+      case String textContent -> StringUtils.isBlank(textContent);
+      case Collection<?> collection -> collection.isEmpty();
+      case Map<?, ?> map -> map.isEmpty();
+      default -> false;
+    };
   }
 
   private boolean interruptToolCallsOnEventResults(AgentExecutionContext executionContext) {
