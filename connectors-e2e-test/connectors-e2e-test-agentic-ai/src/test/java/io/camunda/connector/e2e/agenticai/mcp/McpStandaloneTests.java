@@ -63,7 +63,6 @@ import org.springframework.test.context.TestPropertySource;
 
 @SlowTest
 @TestPropertySource(properties = {"camunda.connector.agenticai.mcp.client.enabled=true"})
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class McpStandaloneTests extends BaseAgenticAiTest {
 
   private static final WireMockServer wireMock = setupWireMockServer();
@@ -83,7 +82,7 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
   }
 
   @AfterAll
-  void teardown() {
+  static void teardown() {
     wireMock.stop();
   }
 
