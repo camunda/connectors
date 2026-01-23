@@ -22,7 +22,6 @@
     <version.groovy>4.0.29</version.groovy>
     <version.gmavenplus-plugin>4.2.1</version.gmavenplus-plugin>
     <version.a2asdk>0.3.3.Final</version.a2asdk>
-    <version.protobuf>4.33.2</version.protobuf>
   </properties>
 
   <licenses>
@@ -202,6 +201,12 @@
       <groupId>io.github.a2asdk</groupId>
       <artifactId>a2a-java-sdk-client-transport-rest</artifactId>
       <version>${version.a2asdk}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.google.protobuf</groupId>
+          <artifactId>protobuf-java-util</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.github.a2asdk</groupId>
