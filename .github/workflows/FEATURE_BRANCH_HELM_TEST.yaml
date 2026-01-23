@@ -127,7 +127,7 @@ jobs:
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle-saas:${{ env.TAG }}
 
-  helm-test-branch:
+  trigger-sm-e2e:
     needs: [ build-image ]
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
