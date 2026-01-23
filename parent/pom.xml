@@ -171,7 +171,7 @@ limitations under the License.</license.inlineheader>
 
     <version.langchain4j>1.10.0</version.langchain4j>
 
-    <version.scala>2.13.18</version.scala>
+    <version.scala>3.8.1</version.scala>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.6.2</plugin.version.maven-enforcer-plugin>
