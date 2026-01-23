@@ -201,12 +201,6 @@
       <groupId>io.github.a2asdk</groupId>
       <artifactId>a2a-java-sdk-client-transport-rest</artifactId>
       <version>${version.a2asdk}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.google.protobuf</groupId>
-          <artifactId>protobuf-java-util</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.github.a2asdk</groupId>

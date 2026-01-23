@@ -79,6 +79,9 @@ limitations under the License.</license.inlineheader>
     <!-- gRPC version has to be equal or greater than the one from the Camunda client -->
     <version.grpc>1.78.0</version.grpc>
 
+    <!-- Protobuf version has to be equal or greater than the one from the Camunda client -->
+    <version.protobuf>4.33.4</version.protobuf>
+
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.21.0</version.mockito>
     <version.junit-jupiter>6.0.2</version.junit-jupiter>
@@ -165,7 +168,7 @@ limitations under the License.</license.inlineheader>
 
     <version.auth0.jwt>4.5.0</version.auth0.jwt>
     <version.auth0.jwks>0.23.0</version.auth0.jwks>
-    
+
     <version.langchain4j>1.10.0</version.langchain4j>
 
     <version.scala>2.13.18</version.scala>
@@ -215,6 +218,18 @@ limitations under the License.</license.inlineheader>
         <version>${version.grpc}</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+
+      <!-- Protobuf - the version has to be equal or greater than the one from the Camunda client -->
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>${version.protobuf}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java-util</artifactId>
+        <version>${version.protobuf}</version>
       </dependency>
 
       <dependency>
