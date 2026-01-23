@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.mcp.client.configuration;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.McpClientFunction;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
+import io.camunda.connector.agenticai.mcp.client.configuration.annotation.LocalMcpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.configuration.langchain4j.McpLangchain4JClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.mcpsdk.McpSdkMcpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
@@ -28,12 +29,12 @@ import org.springframework.context.annotation.Import;
  * without any additional configuration, this is disabled by default.
  */
 @Configuration
-@ConditionalOnBooleanProperty("camunda.connector.agenticai.mcp.client.enabled")
+@ConditionalOnBooleanProperty(value = "camunda.connector.agenticai.mcp.client.enabled")
 @EnableConfigurationProperties(McpClientConfigurationProperties.class)
 @Import({
   McpBaseConfiguration.class,
   McpLangchain4JClientConfiguration.class,
-  McpSdkMcpClientConfiguration.class
+  McpSdkMcpClientConfiguration.class,
 })
 public class McpClientConfiguration {
 
@@ -54,8 +55,8 @@ public class McpClientConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public McpClientRegistry langchain4JMcpClientRegistry(
-      McpClientConfigurationProperties configuration, McpClientFactory clientFactory) {
+  public McpClientRegistry mcpClientRegistry(
+      McpClientConfigurationProperties configuration, @LocalMcpClientFactory McpClientFactory clientFactory) {
     final var registry = new McpClientRegistry();
     configuration
         .clients()

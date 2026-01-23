@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client.configuration.mcpsdk;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.mcp.client.configuration.annotation.LocalMcpClientFactory;
+import io.camunda.connector.agenticai.mcp.client.configuration.annotation.RemoteMcpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.McpSdkClientFactory;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
@@ -19,20 +19,21 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @ConditionalOnExpression(
-    "${camunda.connector.agenticai.mcp.client.framework:'langchain4j'} == 'mcp-sdk' && ${camunda.connector.agenticai.mcp.client.enabled:false}")
+    "${camunda.connector.agenticai.mcp.remote-client.framework:'langchain4j'} == 'mcp-sdk' && ${camunda.connector.agenticai.mcp.remote-client.enabled:true}")
 @Configuration
-public class McpSdkMcpClientConfiguration {
+public class McpSdkMcpRemoteClientConfiguration {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(McpSdkMcpClientConfiguration.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(McpSdkMcpRemoteClientConfiguration.class);
 
   @PostConstruct
   void init() {
-    LOGGER.info("MCP client framework is set to mcp-sdk");
+    LOGGER.info("MCP remote client framework is set to mcp-sdk");
   }
 
   @Bean
-  @LocalMcpClientFactory
-  public McpSdkClientFactory mcpSdkMcpClientFactory(
+  @RemoteMcpClientFactory
+  public McpSdkClientFactory mcpSdkMcpRemoteClientFactory(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
       McpClientHeadersSupplierFactory headersSupplierFactory) {
     return new McpSdkClientFactory(objectMapper, headersSupplierFactory);

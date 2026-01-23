@@ -9,8 +9,9 @@ package io.camunda.connector.agenticai.mcp.client.configuration;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientFunction;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
-import io.camunda.connector.agenticai.mcp.client.configuration.langchain4j.McpLangchain4JClientConfiguration;
-import io.camunda.connector.agenticai.mcp.client.configuration.mcpsdk.McpSdkMcpClientConfiguration;
+import io.camunda.connector.agenticai.mcp.client.configuration.annotation.RemoteMcpClientFactory;
+import io.camunda.connector.agenticai.mcp.client.configuration.langchain4j.McpLangchain4JRemoteClientConfiguration;
+import io.camunda.connector.agenticai.mcp.client.configuration.mcpsdk.McpSdkMcpRemoteClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandler;
 import io.camunda.connector.agenticai.mcp.client.handler.McpRemoteClientHandler;
@@ -24,13 +25,12 @@ import org.springframework.context.annotation.Import;
 /** Configuration for remote MCP clients configured within the process. */
 @Configuration
 @ConditionalOnBooleanProperty(
-    value = "camunda.connector.agenticai.mcp.remote-client.enabled",
-    matchIfMissing = true)
+    value = "camunda.connector.agenticai.mcp.remote-client.enabled", matchIfMissing = true)
 @EnableConfigurationProperties(McpRemoteClientConfigurationProperties.class)
 @Import({
   McpBaseConfiguration.class,
-  McpLangchain4JClientConfiguration.class,
-  McpSdkMcpClientConfiguration.class
+  McpLangchain4JRemoteClientConfiguration.class,
+  McpSdkMcpRemoteClientConfiguration.class
 })
 public class McpRemoteClientConfiguration {
 
@@ -50,7 +50,8 @@ public class McpRemoteClientConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public McpRemoteClientRegistry mcpRemoteClientRegistry(
-      McpRemoteClientConfigurationProperties config, McpClientFactory mcpClientFactory) {
+      McpRemoteClientConfigurationProperties config,
+      @RemoteMcpClientFactory McpClientFactory mcpClientFactory) {
     return new McpRemoteClientRegistry(config.client(), mcpClientFactory);
   }
 }
