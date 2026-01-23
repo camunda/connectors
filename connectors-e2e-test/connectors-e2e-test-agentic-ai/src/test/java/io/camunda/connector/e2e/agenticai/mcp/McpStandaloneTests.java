@@ -47,28 +47,30 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 
 @SlowTest
 @TestPropertySource(properties = {"camunda.connector.agenticai.mcp.client.enabled=true"})
+@ActiveProfiles("mcp-standalone-test")
 public class McpStandaloneTests extends BaseAgenticAiTest {
 
   private static final WireMockServer wireMock = setupWireMockServer();
 
   private static WireMockServer setupWireMockServer() {
-    var server = new WireMockServer(options().globalTemplating(true));
+    var server = new WireMockServer(options().dynamicPort().globalTemplating(true));
     server.start();
 
     return server;
@@ -384,13 +386,10 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
         bpmnModel.getModelElementsByType(ServiceTask.class).stream()
             .filter(
                 st -> {
-                  var modelerTemplate =
-                      st.getAttributeValueNs(
-                          "http://camunda.org/schema/zeebe/1.0", "modelerTemplate");
-                  return modelerTemplate != null
-                      && (modelerTemplate.contains(
-                              "io.camunda.connectors.agenticai.mcp.remoteclient")
-                          || modelerTemplate.contains("io.camunda.agenticai:mcpremoteclient"));
+                  var taskDefinition = st.getSingleExtensionElement(ZeebeTaskDefinition.class);
+                  var type = taskDefinition.getType();
+
+                  return type != null && type.startsWith("io.camunda.agenticai:mcpremoteclient");
                 })
             .toList();
     assertThat(serviceTasks).isNotEmpty();
