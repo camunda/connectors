@@ -139,15 +139,16 @@ public class InboundExecutableStateTransitionService {
       return ActionType.RESTART;
     }
 
-    // Cross-version property mismatch
+    // Cross-version property mismatch - replace with invalid executable
+    // User can fix this by deploying a new version with correct configuration
     if (target.invalid().containsKey(id)) {
       var invalid = target.invalid().get(id);
-      LOG.error(
+      LOG.warn(
           "Cross-version deduplication conflict for executable '{}': {}. "
-              + "Connectors from different versions have the same deduplication ID but different properties.",
+              + "Replacing with invalid executable. Deploy a new version to fix.",
           id,
           invalid.error().getMessage());
-      return ActionType.INVALIDATE;
+      return ActionType.REPLACE_WITH_INVALID;
     }
 
     // Check compatibility with existing context
@@ -298,8 +299,12 @@ public class InboundExecutableStateTransitionService {
     DEACTIVATE,
     /** Elements changed but properties compatible - update elements in-place */
     HOT_SWAP,
-    /** Cross-version deduplication conflict - mark as invalid */
-    INVALIDATE,
+    /**
+     * Cross-version deduplication conflict detected. The new version has incompatible properties
+     * with the same deduplication ID. The existing executable will be replaced with an invalid one.
+     * User can fix this by deploying a new version with correct configuration.
+     */
+    REPLACE_WITH_INVALID,
     /** Executable is in bad state or properties changed - kill and restart */
     RESTART
   }

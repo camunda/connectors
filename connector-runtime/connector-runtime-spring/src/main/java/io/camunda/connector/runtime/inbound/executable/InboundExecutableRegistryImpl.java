@@ -111,6 +111,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
         event.bpmnProcessId(),
         event.tenantId(),
         event.elementsByProcessDefinitionKey().size());
+    LOG.debug("Received target elements: {}", event.elementsByProcessDefinitionKey());
 
     var processId = event.tenantId() + event.bpmnProcessId();
 
@@ -145,16 +146,15 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     var toRestart = plan.getExecutableIds(ActionType.RESTART);
     deactivateExecutables(toRestart);
 
-    // 3. Invalidate executables with cross-version conflicts
-    processInvalidations(plan.getExecutableIds(ActionType.INVALIDATE), target);
+    // 3. Replace executables with invalid ones due to cross-version conflicts
+    replaceWithInvalidExecutables(plan.getExecutableIds(ActionType.REPLACE_WITH_INVALID), target);
 
     // 4. Hot-swap elements for compatible executables
-    var failedHotSwaps = processHotSwaps(plan.getExecutableIds(ActionType.HOT_SWAP), target);
+    processHotSwaps(plan.getExecutableIds(ActionType.HOT_SWAP), target);
 
-    // 5. Activate new executables + restarted ones + failed hot-swaps
+    // 5. Activate new executables + restarted ones
     var toActivate = new java.util.HashSet<>(plan.getExecutableIds(ActionType.ACTIVATE));
     toActivate.addAll(toRestart);
-    toActivate.addAll(failedHotSwaps);
     activateExecutables(toActivate, target);
   }
 
@@ -168,13 +168,11 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   }
 
   /**
-   * Process hot-swaps (in-place element updates).
-   *
-   * @return list of executable IDs that failed hot-swap and need restart
+   * Process hot-swaps (in-place element updates). If a hot-swap fails, the executable remains in
+   * its current state with the old elements. This is likely a runtime bug that should be
+   * investigated rather than automatically retried.
    */
-  private List<ExecutableId> processHotSwaps(List<ExecutableId> hotSwaps, TargetState target) {
-    List<ExecutableId> failedHotSwaps = new java.util.ArrayList<>();
-
+  private void processHotSwaps(List<ExecutableId> hotSwaps, TargetState target) {
     for (ExecutableId id : hotSwaps) {
       var activated = (Activated) stateStore.get(id);
       var newDetails = target.valid().get(id);
@@ -185,17 +183,23 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
             id,
             countVersions(newDetails.connectorElements()));
       } catch (Exception e) {
-        LOG.error("Failed to hot-swap executable '{}', will restart", id, e);
-        batchExecutableProcessor.deactivateBatch(List.of(activated));
-        stateStore.remove(id);
-        failedHotSwaps.add(id);
+        LOG.error(
+            "Failed to hot-swap executable '{}'. The executable will continue running with "
+                + "its previous configuration. This is likely a bug in the connector runtime.",
+            id,
+            e);
+        // Don't deactivate or restart - leave it running with old config
+        // User can fix by redeploying or restarting the runtime
       }
     }
-
-    return failedHotSwaps;
   }
 
-  private void processInvalidations(List<ExecutableId> invalidations, TargetState target) {
+  /**
+   * Replaces existing executables with invalid ones due to cross-version configuration conflicts.
+   * The existing executable is deactivated and replaced with an invalid definition. User can fix
+   * this by deploying a new version with correct configuration.
+   */
+  private void replaceWithInvalidExecutables(List<ExecutableId> invalidations, TargetState target) {
     for (ExecutableId id : invalidations) {
       var existingExecutable = stateStore.remove(id);
       if (existingExecutable instanceof Activated activated) {
