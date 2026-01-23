@@ -740,6 +740,14 @@ public class InboundConnectorMultiVersionTests {
       waitForProcessDefinitionIndexed(keyV1);
       awaitHealthyExecutable(testProcessId);
 
+      // Start an instance on v1 to keep it active (required for cross-version conflict)
+      camundaClient
+          .newCreateInstanceCommand()
+          .processDefinitionKey(keyV1)
+          .variable("correlationKey", "test-correlation-key")
+          .send()
+          .join();
+
       // Deploy v2 with conflicting config (creates invalid executable)
       var model2 = createInboundConnectorProcess("config-b", "shared-id");
       long keyV2 = deploy(model2);
