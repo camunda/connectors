@@ -64,6 +64,17 @@ except in compliance with the proprietary license.</license.inlineheader>
       <groupId>com.google.cloud</groupId>
       <artifactId>google-cloud-vertexai</artifactId>
       <version>1.41.0</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.squareup.okhttp3</groupId>
+          <artifactId>okhttp</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <!-- Explicitly add okhttp-jvm for OkHttp 5.x compatibility -->
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp-jvm</artifactId>
     </dependency>
   </dependencies>
 
