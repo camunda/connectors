@@ -62,12 +62,12 @@ class GraphServiceClientSupplierTest extends BaseTest {
             .message("bad request")
             .body(
                 ResponseBody.create(
+                    MediaType.get("application/json; charset=utf-8"),
                     "{\n"
                         + "  \"access_token\": \""
                         + ActualValue.Authentication.BEARER_TOKEN
                         + "\",\n"
-                        + "}",
-                    MediaType.get("application/json; charset=utf-8")))
+                        + "}"))
             .build();
     when(call.execute()).thenReturn(response);
 
@@ -92,7 +92,7 @@ class GraphServiceClientSupplierTest extends BaseTest {
             .message("")
             .body(
                 ResponseBody.create(
-                    "bad json response", MediaType.get("application/json; charset=utf-8")))
+                    MediaType.get("application/json; charset=utf-8"), "bad json response"))
             .build();
     when(call.execute()).thenReturn(response);
 
