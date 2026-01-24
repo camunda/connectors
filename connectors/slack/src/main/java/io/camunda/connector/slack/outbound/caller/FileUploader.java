@@ -87,7 +87,7 @@ public class FileUploader {
     var request =
         new Request.Builder()
             .url(uploadFileURLResp.getUploadUrl())
-            .post(RequestBody.create(document.asByteArray()))
+            .post(RequestBody.create(document.asByteArray(), null))
             .build();
 
     try (Response directCallResp = okHttpClient.newCall(request).execute()) {
