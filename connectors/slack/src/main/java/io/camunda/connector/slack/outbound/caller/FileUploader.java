@@ -20,6 +20,7 @@ import io.camunda.connector.api.document.Document;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -87,7 +88,9 @@ public class FileUploader {
     var request =
         new Request.Builder()
             .url(uploadFileURLResp.getUploadUrl())
-            .post(RequestBody.create(document.asByteArray()))
+            .post(
+                RequestBody.create(
+                    document.asByteArray(), MediaType.parse("application/octet-stream")))
             .build();
 
     try (Response directCallResp = okHttpClient.newCall(request).execute()) {
