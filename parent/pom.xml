@@ -96,7 +96,7 @@ limitations under the License.</license.inlineheader>
 
     <version.spring-boot>4.0.2</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>7.4.3</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.5.25</version.logback>
+    <version.logback>1.5.26</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
     <version.aws-sdk2>2.41.14</version.aws-sdk2>
