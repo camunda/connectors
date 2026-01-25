@@ -143,7 +143,7 @@ limitations under the License.</license.inlineheader>
     <version.azure-cosmos>4.76.0</version.azure-cosmos>
 
     <version.bouncycastle>1.83</version.bouncycastle>
-    <version.box-sdk>4.16.4</version.box-sdk>
+    <version.box-sdk>10.4.0</version.box-sdk>
 
     <version.sendGrid>4.10.3</version.sendGrid>
     <version.sendGrid-http-client>4.5.1</version.sendGrid-http-client>
