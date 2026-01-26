@@ -56,7 +56,8 @@ public class McpClientConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public McpClientRegistry mcpClientRegistry(
-      McpClientConfigurationProperties configuration, @LocalMcpClientFactory McpClientFactory clientFactory) {
+      McpClientConfigurationProperties configuration,
+      @LocalMcpClientFactory McpClientFactory clientFactory) {
     final var registry = new McpClientRegistry();
     configuration
         .clients()

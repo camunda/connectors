@@ -18,8 +18,13 @@ class ApplicationContextAssertions {
     assertAll(beans.stream().map(beanClass -> () -> assertThat(context).hasSingleBean(beanClass)));
   }
 
-  static void assertHasAllBeansOfAtLeastOnce(AssertableApplicationContext context, List<Class<?>> beans) {
-    assertAll(beans.stream().map(beanClass -> () -> assertThat(context).getBeans(beanClass).hasSizeGreaterThanOrEqualTo(1)));
+  static void assertHasAllBeansOfAtLeastOnce(
+      AssertableApplicationContext context, List<Class<?>> beans) {
+    assertAll(
+        beans.stream()
+            .map(
+                beanClass ->
+                    () -> assertThat(context).getBeans(beanClass).hasSizeGreaterThanOrEqualTo(1)));
   }
 
   static void assertDoesNotHaveAnyBeansOf(

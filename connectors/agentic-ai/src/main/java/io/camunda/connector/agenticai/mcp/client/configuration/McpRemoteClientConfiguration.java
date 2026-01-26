@@ -25,7 +25,8 @@ import org.springframework.context.annotation.Import;
 /** Configuration for remote MCP clients configured within the process. */
 @Configuration
 @ConditionalOnBooleanProperty(
-    value = "camunda.connector.agenticai.mcp.remote-client.enabled", matchIfMissing = true)
+    value = "camunda.connector.agenticai.mcp.remote-client.enabled",
+    matchIfMissing = true)
 @EnableConfigurationProperties(McpRemoteClientConfigurationProperties.class)
 @Import({
   McpBaseConfiguration.class,
