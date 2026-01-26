@@ -35,10 +35,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.Keywords;
-import io.camunda.connector.runtime.core.error.BpmnError;
-import io.camunda.connector.runtime.core.error.ConnectorError;
-import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
-import io.camunda.connector.runtime.core.error.JobError;
+import io.camunda.connector.runtime.core.error.*;
 import io.camunda.connector.runtime.core.outbound.*;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
@@ -240,21 +237,32 @@ public class SpringConnectorJobHandler implements JobHandler {
       ActivatedJob job,
       ConnectorError error,
       CounterMetricsContext counterMetricsContext) {
-    if (error instanceof BpmnError bpmnError) {
-      LOGGER.debug(
-          "Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.errorCode());
-      throwBpmnError(client, job, bpmnError, counterMetricsContext);
-    } else if (error instanceof JobError jobError) {
-      LOGGER.debug("Throwing incident for job {}", job.getKey());
-      failJob(
-          client,
-          job,
-          new ConnectorResult.ErrorResult(
-              Map.of("error", jobError.errorMessage()),
-              new RuntimeException(jobError.errorMessage()),
-              jobError.retries(),
-              jobError.retryBackoff()),
-          counterMetricsContext);
+    switch (error) {
+      case BpmnError bpmnError -> {
+        LOGGER.debug(
+            "Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.errorCode());
+        throwBpmnError(client, job, bpmnError, counterMetricsContext);
+      }
+      case JobError jobError -> {
+        LOGGER.debug("Throwing incident for job {}", job.getKey());
+        failJob(
+            client,
+            job,
+            new ConnectorResult.ErrorResult(
+                Map.of("error", jobError.errorMessage()),
+                new RuntimeException(jobError.errorMessage()),
+                jobError.retries(),
+                jobError.retryBackoff()),
+            counterMetricsContext);
+      }
+      case IgnoreError ignoreError -> {
+        LOGGER.debug("Ignoring error for job {}", job.getKey());
+        completeJob(
+            client,
+            job,
+            new ConnectorResult.SuccessResult(ignoreError.variables(), ignoreError.variables()),
+            counterMetricsContext);
+      }
     }
   }
 

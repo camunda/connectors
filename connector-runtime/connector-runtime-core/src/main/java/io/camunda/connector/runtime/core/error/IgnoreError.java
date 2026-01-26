@@ -16,17 +16,6 @@
  */
 package io.camunda.connector.runtime.core.error;
 
-import static io.camunda.connector.feel.FeelConnectorFunctionProvider.*;
+import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
-
-@JsonTypeInfo(use = Id.NAME, property = ERROR_TYPE_PROPERTY)
-@JsonSubTypes({
-  @Type(value = BpmnError.class, name = BPMN_ERROR_TYPE_VALUE),
-  @Type(value = JobError.class, name = JOB_ERROR_TYPE_VALUE),
-  @Type(value = IgnoreError.class, name = IGNORE_ERROR_TYPE_VALUE)
-})
-public sealed interface ConnectorError permits BpmnError, JobError, IgnoreError {}
+public record IgnoreError(Map<String, Object> variables) implements ConnectorError {}

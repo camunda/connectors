@@ -91,7 +91,7 @@ public class ConnectorException extends RuntimeException {
    * @param errorVariables the error variables to populate
    * @see ConnectorExceptionBuilder
    */
-  ConnectorException(
+  public ConnectorException(
       String errorCode, String message, Throwable cause, Map<String, Object> errorVariables) {
     this(errorCode, message, cause);
     this.errorVariables = errorVariables;
