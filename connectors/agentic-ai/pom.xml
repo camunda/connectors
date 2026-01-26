@@ -18,11 +18,10 @@
   <packaging>jar</packaging>
 
   <properties>
-    <version.record-builder>51</version.record-builder>
-    <version.groovy>4.0.29</version.groovy>
-    <version.gmavenplus-plugin>4.2.1</version.gmavenplus-plugin>
+    <version.record-builder>52</version.record-builder>
+    <version.groovy>4.0.30</version.groovy>
+    <version.gmavenplus-plugin>4.3.0</version.gmavenplus-plugin>
     <version.a2asdk>0.3.3.Final</version.a2asdk>
-    <version.protobuf>4.33.2</version.protobuf>
   </properties>
 
   <licenses>
