@@ -12,6 +12,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.mcp.client.model.result.*;
+import io.camunda.connector.agenticai.model.message.content.BinaryContent;
+import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -88,12 +90,6 @@ class McpClientResultDocumentHandlerTest {
                         "Get Commits",
                         Map.of("owner", "string", "repo", "string"))))),
         argumentSet(
-            "Call tool",
-            new McpClientCallToolResult(
-                "get-commits", List.of(new TextContent("text", Map.of())), false),
-            new McpClientCallToolResult(
-                "get-commits", List.of(new TextContent("text", Map.of())), false)),
-        argumentSet(
             "List resource templates",
             new McpClientListResourceTemplatesResult(
                 List.of(
@@ -166,7 +162,33 @@ class McpClientResultDocumentHandlerTest {
   }
 
   static Stream<Arguments> mcpClientResultsWithBinaryDocumentContainers() {
-    return Stream.of(getSinglePromptWithAllPossibleMessageTypes(), readResourceWithBinaryContent());
+    return Stream.of(
+        getSinglePromptWithAllPossibleMessageTypes(),
+        readResourceWithBinaryContent(),
+        callToolWithBinaryContent());
+  }
+
+  private static Arguments callToolWithBinaryContent() {
+    return argumentSet(
+        "Call tool - with binary content",
+        new McpClientCallToolResult(
+            "get-commits",
+            List.of(
+                new TextContent("text", Map.of()),
+                new BinaryContent("blob".getBytes(StandardCharsets.UTF_8), "image/png", Map.of())),
+            false),
+        new McpClientCallToolResult(
+            "get-commits",
+            List.of(
+                new TextContent("text", Map.of()),
+                new DocumentContent(
+                    new TestDocument(
+                        "blob".getBytes(StandardCharsets.UTF_8),
+                        new TestDocumentMetadata("image/png", null, null, null, null, null, null),
+                        null,
+                        "doc-id-0"),
+                    Map.of())),
+            false));
   }
 
   private static Arguments readResourceWithBinaryContent() {
