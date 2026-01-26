@@ -260,7 +260,7 @@ public class SpringConnectorJobHandler implements JobHandler {
         completeJob(
             client,
             job,
-            new ConnectorResult.SuccessResult(ignoreError.variables(), ignoreError.variables()),
+            new ConnectorResult.SuccessResult(null, ignoreError.variables()),
             counterMetricsContext);
       }
     }
