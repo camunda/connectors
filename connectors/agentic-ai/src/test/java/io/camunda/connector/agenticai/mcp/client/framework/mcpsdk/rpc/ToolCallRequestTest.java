@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc;
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.reset;
@@ -18,9 +19,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
+import io.camunda.connector.agenticai.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.api.error.ConnectorException;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +38,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.Mock;
+import org.mockito.ThrowingConsumer;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -62,6 +69,27 @@ class ToolCallRequestTest {
               assertThat(res.name()).isEqualTo("test-tool");
               assertThat(res.isError()).isFalse();
               assertThat(res.content()).containsExactly(textContent("Tool execution result"));
+            });
+  }
+
+  @ParameterizedTest
+  @MethodSource("variousContents")
+  void returnsProperlyMappedToolContent_whenDifferentContentTypesReturned(
+      ToolCallExpectation expectation) {
+    when(mcpClient.callTool(any(McpSchema.CallToolRequest.class))).thenReturn(expectation.result);
+    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
+
+    final var result =
+        testee.execute(
+            mcpClient,
+            EMPTY_FILTER,
+            Map.of("name", "a-name", "arguments", Map.of("arg1", "value1")));
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            McpClientCallToolResult.class,
+            toolCallResult -> {
+              assertThat(toolCallResult).isEqualTo(expectation.domainResult);
             });
   }
 
@@ -237,9 +265,60 @@ class ToolCallRequestTest {
             });
   }
 
-  private McpSchema.CallToolResult callToolResult(String resultText) {
+  private static Stream<Arguments> variousContents() {
+    return Stream.of(
+        argumentSet(
+            "text content",
+            new ToolCallExpectation(
+                callToolResult("This is a text"),
+                new McpClientCallToolResult(
+                    "a-name", List.of(new TextContent("This is a text", null)), false))),
+        argumentSet(
+            "image content",
+            new ToolCallExpectation(
+                callToolResult("image".getBytes(StandardCharsets.UTF_8)),
+                new McpClientCallToolResult(
+                    "a-name",
+                    List.of(
+                        new ObjectContent(
+                            Map.of(
+                                "type",
+                                "image",
+                                "data",
+                                Base64.getEncoder().encodeToString("image".getBytes(StandardCharsets.UTF_8)),
+                                "mimeType",
+                                "image/png"),
+                            null)),
+                    false))),
+        argumentSet(
+            "structured content",
+            new ToolCallExpectation(
+                callToolResult(Map.of("key", "value", "key2", List.of(1, 2, 3))),
+                new McpClientCallToolResult(
+                    "a-name",
+                    List.of(
+                        new ObjectContent(
+                            Map.of("key", "value", "key2", List.of(1, 2, 3)), null)),
+                    false))));
+  }
+
+  private static McpSchema.CallToolResult callToolResult(String resultText) {
     return new McpSchema.CallToolResult(
         List.of(new McpSchema.TextContent(resultText)), false, null, null);
+  }
+
+  private static McpSchema.CallToolResult callToolResult(byte[] blob) {
+    return new McpSchema.CallToolResult(
+        List.of(
+            new McpSchema.ImageContent(
+                null, Base64.getEncoder().encodeToString(blob), "image/png")),
+        false,
+        null,
+        null);
+  }
+
+  private static McpSchema.CallToolResult callToolResult(Object structuredContent) {
+    return new McpSchema.CallToolResult(null, false, structuredContent, null);
   }
 
   static Stream<Arguments> toolExecutionArguments() {
@@ -247,4 +326,7 @@ class ToolCallRequestTest {
         arguments("valid-tool", Map.of("key", "value")),
         arguments("tool-with-complex-args", Map.of("nested", Map.of("key", "value"))));
   }
+
+  private record ToolCallExpectation(
+      McpSchema.CallToolResult result, McpClientCallToolResult domainResult) {}
 }
