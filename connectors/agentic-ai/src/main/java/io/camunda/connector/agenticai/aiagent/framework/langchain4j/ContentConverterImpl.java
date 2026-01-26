@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentModule;
+import io.camunda.connector.agenticai.model.message.content.BinaryContent;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
@@ -36,6 +37,7 @@ public class ContentConverterImpl implements ContentConverter {
           documentToContentConverter.convert(documentContent.document());
       case ObjectContent objectContent ->
           new dev.langchain4j.data.message.TextContent(convertToString(objectContent.content()));
+      case BinaryContent ignored -> throw new IllegalStateException("This is likely an error.");
     };
   }
 

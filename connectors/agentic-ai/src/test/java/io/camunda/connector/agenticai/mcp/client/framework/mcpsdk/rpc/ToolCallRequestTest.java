@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
+import io.camunda.connector.agenticai.model.message.content.BinaryContent;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.api.error.ConnectorException;
@@ -280,15 +281,8 @@ class ToolCallRequestTest {
                 new McpClientCallToolResult(
                     "a-name",
                     List.of(
-                        new ObjectContent(
-                            Map.of(
-                                "type",
-                                "image",
-                                "data",
-                                Base64.getEncoder().encodeToString("image".getBytes(StandardCharsets.UTF_8)),
-                                "mimeType",
-                                "image/png"),
-                            null)),
+                        new BinaryContent(
+                            "image".getBytes(StandardCharsets.UTF_8), "image/png", null)),
                     false))),
         argumentSet(
             "structured content",
@@ -297,8 +291,7 @@ class ToolCallRequestTest {
                 new McpClientCallToolResult(
                     "a-name",
                     List.of(
-                        new ObjectContent(
-                            Map.of("key", "value", "key2", List.of(1, 2, 3)), null)),
+                        new ObjectContent(Map.of("key", "value", "key2", List.of(1, 2, 3)), null)),
                     false))));
   }
 

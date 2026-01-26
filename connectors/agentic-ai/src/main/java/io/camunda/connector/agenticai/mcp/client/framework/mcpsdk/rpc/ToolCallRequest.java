@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.McpClientErrorCodes;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
+import io.camunda.connector.agenticai.model.message.content.BinaryContent;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
@@ -18,6 +19,8 @@ import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import io.camunda.connector.api.error.ConnectorException;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
+
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -108,15 +111,19 @@ final class ToolCallRequest {
   private Content mapContent(McpSchema.Content responseContent) {
     return switch (responseContent) {
       case McpSchema.AudioContent audioContent ->
-          ObjectContent.objectContent(fromObjectContent(audioContent));
+          fromBlob(audioContent.data(), audioContent.mimeType(), audioContent.meta());
       case McpSchema.EmbeddedResource embeddedResource ->
           ObjectContent.objectContent(fromObjectContent(embeddedResource));
       case McpSchema.ImageContent imageContent ->
-          ObjectContent.objectContent(fromObjectContent(imageContent));
+          fromBlob(imageContent.data(), imageContent.mimeType(), imageContent.meta());
       case McpSchema.ResourceLink resourceLink ->
           ObjectContent.objectContent(fromObjectContent(resourceLink));
       case McpSchema.TextContent textContent -> TextContent.textContent(textContent.text());
     };
+  }
+
+  private BinaryContent fromBlob(String blob, String mimeType, Map<String, Object> metadata) {
+    return new BinaryContent(Base64.getDecoder().decode(blob), mimeType, metadata);
   }
 
   private Map<String, Object> fromObjectContent(Object responseContent) {
