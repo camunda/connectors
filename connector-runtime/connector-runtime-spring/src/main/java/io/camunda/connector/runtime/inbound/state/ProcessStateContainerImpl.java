@@ -152,15 +152,10 @@ public class ProcessStateContainerImpl implements ProcessStateContainer {
       anyStateChanged = true; // new version always means state changed
     }
 
-    // Handle versions that are present in both (mark flag as true, potentially activate)
+    // Handle versions that are present in both (mark flag as true)
     for (Long key : presentInBoth) {
       var versionState = versionsInState.get(key);
-      boolean wasActive = !versionState.isInactive();
       markStateFlags(versionState, importType, true);
-      boolean isActive = !versionState.isInactive();
-      if (wasActive != isActive) {
-        anyStateChanged = true;
-      }
     }
 
     if (anyStateChanged && LOGGER.isDebugEnabled()) {
