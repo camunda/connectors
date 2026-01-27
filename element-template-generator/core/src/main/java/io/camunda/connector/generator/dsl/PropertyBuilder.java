@@ -49,6 +49,10 @@ public abstract class PropertyBuilder {
     return condition;
   }
 
+  public String getGroup() {
+    return group;
+  }
+
   public PropertyBuilder id(String name) {
     this.id = name;
     return this;
