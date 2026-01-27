@@ -56,7 +56,7 @@ public class InboundExecutableStateTransitionService {
    * @return the target state with valid and invalid connector details
    */
   public TargetState computeTargetState(List<InboundConnectorElement> elements) {
-    List<InboundConnectorDetails> groupedConnectors = groupElements(elements);
+    List<InboundConnectorDetails> groupedConnectors = groupElementsByDeduplicationId(elements);
 
     Map<ExecutableId, InboundConnectorDetails.ValidInboundConnectorDetails> valid = new HashMap<>();
     Map<ExecutableId, InboundConnectorDetails.InvalidInboundConnectorDetails> invalid =
@@ -228,7 +228,7 @@ public class InboundExecutableStateTransitionService {
         .equals(newDetails.rawPropertiesWithoutKeywords());
   }
 
-  private List<InboundConnectorDetails> groupElements(List<InboundConnectorElement> elements) {
+  private List<InboundConnectorDetails> groupElementsByDeduplicationId(List<InboundConnectorElement> elements) {
     Map<String, List<InboundConnectorElement>> groupedElements = new HashMap<>();
 
     for (InboundConnectorElement element : elements) {
