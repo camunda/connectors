@@ -387,10 +387,13 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void updateConnectorDetails(ValidInboundConnectorDetails newDetails) {
-    if (!connectorDetails.isCompatibleWith(newDetails)) {
+    var validationErrors = connectorDetails.checkCompatibility(newDetails);
+    if (validationErrors.isPresent()) {
       // this is more of a sanity check, should never happen as long as runtime checks properties
+      var message = String.join(", ", validationErrors.get());
       throw new IllegalArgumentException(
-          "New InboundConnectorDetails are not compatible with the existing ones");
+          "New InboundConnectorDetails are not compatible with the existing ones. Issues: "
+              + message);
     }
     connectorDetails = newDetails;
     logRuntime(

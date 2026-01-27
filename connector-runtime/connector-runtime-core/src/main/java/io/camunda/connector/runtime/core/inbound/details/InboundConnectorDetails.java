@@ -21,8 +21,10 @@ import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /** Group of inbound connector elements that share the same deduplication ID. */
 public sealed interface InboundConnectorDetails {
@@ -71,22 +73,26 @@ public sealed interface InboundConnectorDetails {
      * different connector elements. This is useful to know if we can update an existing inbound
      * connector if it has not been changed when a new process version is deployed.
      */
-    public boolean isCompatibleWith(ValidInboundConnectorDetails other) {
+    public Optional<List<String>> checkCompatibility(ValidInboundConnectorDetails other) {
+      List<String> validationErrors = new ArrayList<>();
       if (!this.type().equals(other.type())) {
-        return false;
+        validationErrors.add("type mismatch");
       }
       if (!this.tenantId().equals(other.tenantId())) {
-        return false;
+        validationErrors.add("tenantId mismatch");
       }
       if (!this.deduplicationId().equals(other.deduplicationId())) {
-        return false;
+        validationErrors.add("deduplicationId mismatch");
       }
       if (!this.processDefinitionId().equals(other.processDefinitionId())) {
-        return false;
+        validationErrors.add("processDefinitionId mismatch");
       }
       MapDifference<String, String> diff =
           Maps.difference(this.rawPropertiesWithoutKeywords, other.rawPropertiesWithoutKeywords);
-      return diff.areEqual();
+      if (!diff.areEqual()) {
+        validationErrors.add("properties mismatch: " + diff);
+      }
+      return validationErrors.isEmpty() ? Optional.empty() : Optional.of(validationErrors);
     }
   }
 }
