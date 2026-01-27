@@ -476,7 +476,7 @@ Update your configurations if you rely on the previous default.
 For detailed guidance on developing connectors, please refer to:
 
 - [`.github/copilot-instructions.md`](.github/copilot-instructions.md) - Comprehensive development patterns
-- [`connector-sdk/README.md`](connector-sdk/README.md) - SDK documentation
+- [`connector-sdk/core/README.md`](connector-sdk/core/README.md) - SDK documentation
 - [`connectors/http/rest/`](connectors/http/rest/) - Reference implementation for outbound connectors
 - [`connectors/webhook/`](connectors/webhook/) - Reference implementation for inbound connectors
 
