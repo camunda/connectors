@@ -140,7 +140,7 @@ limitations under the License.</license.inlineheader>
     <version.microsoft-graph-core>3.6.5</version.microsoft-graph-core>
     <version.azure-identity>1.18.2</version.azure-identity>
     <version.azure-core>1.57.1</version.azure-core>
-    <version.azure-cosmos>4.76.0</version.azure-cosmos>
+    <version.azure-cosmos>4.77.0</version.azure-cosmos>
 
     <version.bouncycastle>1.83</version.bouncycastle>
     <version.box-sdk>4.16.4</version.box-sdk>
