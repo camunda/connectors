@@ -112,7 +112,7 @@ public class ProcessStateContainerImpl implements ProcessStateContainer {
    * Applies a partial update for a single process definition ID. Returns true if any version's
    * active state changed.
    */
-  private static boolean applyPartialUpdate(
+  private boolean applyPartialUpdate(
       ProcessDefinitionRef processDefinitionRef,
       Set<Long> importedVersions,
       ImportType importType,
@@ -173,13 +173,13 @@ public class ProcessStateContainerImpl implements ProcessStateContainer {
     return anyStateChanged;
   }
 
-  private static Set<Long> rightOuterJoin(Set<Long> left, Set<Long> right) {
+  private Set<Long> rightOuterJoin(Set<Long> left, Set<Long> right) {
     Set<Long> result = new HashSet<>(right);
     result.removeAll(left);
     return result;
   }
 
-  private static void markStateFlags(
+  private void markStateFlags(
       MutableProcessVersionState processState,
       ImportResult.ImportType importType,
       boolean isActive) {
