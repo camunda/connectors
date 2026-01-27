@@ -11,8 +11,8 @@ jobs:
 
   get-branches:
     runs-on: ubuntu-latest
-    # Only run if scheduled/manual OR if the 'e2e-tests' label was added
-    if: github.event_name != 'pull_request' || github.event.label.name == 'e2e-tests'
+    # Only run if scheduled/manual OR if the 'e2e-tests' label was added on a non-fork PR
+    if: github.event_name != 'pull_request' || (github.event.label.name == 'e2e-tests' && github.event.pull_request.head.repo.fork == false)
     outputs:
       branches: ${{ steps.set-matrix.outputs.branches }}
     steps:
