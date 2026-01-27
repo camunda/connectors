@@ -128,11 +128,35 @@ public class ProcessStateContainerImpl implements ProcessStateContainer {
     LOGGER.trace("* Imported as but missing in state: {} ({})", missingInState, importType);
     LOGGER.trace("* Present in both: {} ({})", presentInBoth, importType);
 
-    boolean anyStateChanged =
-        deactivateVersionsMissingInImport(missingInImport, importType, versionsInState)
-            || activateVersionsMissingInState(missingInState, importType, versionsInState);
+    boolean anyStateChanged = false;
 
-    updateVersionsPresentInBoth(presentInBoth, importType, versionsInState);
+    // Handle versions that are missing in the import (mark flag as false, potentially deactivate)
+    for (long key : missingInImport) {
+      var versionState = versionsInState.get(key);
+      boolean wasActive = !versionState.isInactive();
+      markStateFlags(versionState, importType, false);
+      boolean isActive = !versionState.isInactive();
+      if (wasActive != isActive) {
+        anyStateChanged = true;
+      }
+      if (versionState.isInactive()) {
+        versionsInState.remove(key);
+      }
+    }
+
+    // Handle versions that are missing in state (create new state, mark flag as true, activate)
+    for (long key : missingInState) {
+      var versionState = MutableProcessVersionState.init();
+      markStateFlags(versionState, importType, true);
+      versionsInState.put(key, versionState);
+      anyStateChanged = true; // new version always means state changed
+    }
+
+    // Handle versions that are present in both (mark flag as true)
+    for (Long key : presentInBoth) {
+      var versionState = versionsInState.get(key);
+      markStateFlags(versionState, importType, true);
+    }
 
     if (anyStateChanged && LOGGER.isDebugEnabled()) {
       var activeVersions =
@@ -153,59 +177,6 @@ public class ProcessStateContainerImpl implements ProcessStateContainer {
     Set<Long> result = new HashSet<>(right);
     result.removeAll(left);
     return result;
-  }
-
-  /**
-   * Handles versions that are missing in the import (mark flag as false, potentially deactivate).
-   * Returns true if any version's active state changed.
-   */
-  private boolean deactivateVersionsMissingInImport(
-      Set<Long> missingInImport,
-      ImportType importType,
-      Map<Long, MutableProcessVersionState> versionsInState) {
-    boolean anyStateChanged = false;
-    for (long key : missingInImport) {
-      var versionState = versionsInState.get(key);
-      boolean wasActive = !versionState.isInactive();
-      markStateFlags(versionState, importType, false);
-      boolean isActive = !versionState.isInactive();
-      if (wasActive != isActive) {
-        anyStateChanged = true;
-      }
-      if (versionState.isInactive()) {
-        versionsInState.remove(key);
-      }
-    }
-    return anyStateChanged;
-  }
-
-  /**
-   * Handles versions that are missing in state (create new state, mark flag as true, activate).
-   * Returns true if any new version was added.
-   */
-  private boolean activateVersionsMissingInState(
-      Set<Long> missingInState,
-      ImportType importType,
-      Map<Long, MutableProcessVersionState> versionsInState) {
-    boolean anyStateChanged = false;
-    for (long key : missingInState) {
-      var versionState = MutableProcessVersionState.init();
-      markStateFlags(versionState, importType, true);
-      versionsInState.put(key, versionState);
-      anyStateChanged = true; // new version always means state changed
-    }
-    return anyStateChanged;
-  }
-
-  /** Handles versions that are present in both (mark flag as true). */
-  private void updateVersionsPresentInBoth(
-      Set<Long> presentInBoth,
-      ImportType importType,
-      Map<Long, MutableProcessVersionState> versionsInState) {
-    for (Long key : presentInBoth) {
-      var versionState = versionsInState.get(key);
-      markStateFlags(versionState, importType, true);
-    }
   }
 
   private void markStateFlags(
