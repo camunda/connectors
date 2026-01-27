@@ -121,7 +121,7 @@ public class ProcessDefinitionInspectorUtilTests {
   private List<InboundConnectorElement> fromModel(String fileName, String processId) {
     try {
       var searchQueryClientMock = mock(SearchQueryClient.class);
-      var inspector = new ProcessDefinitionInspector(searchQueryClientMock);
+      var inspector = new ProcessDefinitionInspector(searchQueryClientMock, 100);
       var modelFile = ResourceUtils.getFile("classpath:bpmn/" + fileName);
       var model = Bpmn.readModelFromStream(new FileInputStream(modelFile));
       var processDefinitionID = new ProcessDefinitionRef(processId, "tenant1");
