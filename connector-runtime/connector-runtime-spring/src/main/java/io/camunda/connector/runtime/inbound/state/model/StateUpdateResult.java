@@ -23,9 +23,9 @@ import java.util.Set;
  * Represents the result of a state update operation. Contains the complete picture of all active
  * process versions for each process definition that was affected by the update.
  *
- * @param affectedProcesses map of process definition references to the set of currently active
- *     process definition keys (versions) for that process. An empty set indicates all versions of
- *     this process should be deactivated.
+ * @param affectedProcesses map of process definition references to the set of currently
+ *     active/latest process definition keys (versions) for that process. An empty set indicates all
+ *     versions of this process should be deactivated.
  */
 public record StateUpdateResult(Map<ProcessDefinitionRef, Set<Long>> affectedProcesses) {
 
