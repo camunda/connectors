@@ -37,10 +37,6 @@ public interface InboundConnectorManagementContext extends InboundConnectorConte
 
   Long getActivationTimestamp();
 
-  /**
-   * Updates the connector detai
-   *
-   * @param connectorDetails
-   */
+  /** Updates the connector details */
   void updateConnectorDetails(ValidInboundConnectorDetails connectorDetails);
 }
