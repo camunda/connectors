@@ -4,22 +4,31 @@ on:
   workflow_dispatch:
   schedule: # Run nightly
     - cron: "0 3 * * *"  # Runs daily at 03:00 UTC
+  pull_request:
+    types: [ labeled ]
 
 jobs:
 
   get-branches:
     runs-on: ubuntu-latest
+    # Only run if scheduled/manual OR if the 'e2e-tests' label was added
+    if: github.event_name != 'pull_request' || github.event.label.name == 'e2e-tests'
     outputs:
       branches: ${{ steps.set-matrix.outputs.branches }}
     steps:
       - name: Fetch stable branches
         id: set-matrix
         run: |
-          # Get all stable/* branches
-          git ls-remote --heads https://github.com/${{ github.repository }}.git | \
-          awk '{print $2}' | sed 's|refs/heads/||' | grep '^stable/' > stables.txt || true
-          all_branches=$( (echo "main"; cat stables.txt) | grep -v '^$' | jq -R -s -c 'split("\n")[:-1]' )
-          echo "branches=$all_branches" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            # For PR, only test the PR's head ref
+            echo "branches=[\"${{ github.head_ref }}\"]" >> $GITHUB_OUTPUT
+          else
+            # For scheduled/manual runs, test main and all stable branches
+            git ls-remote --heads https://github.com/${{ github.repository }}.git | \
+            awk '{print $2}' | sed 's|refs/heads/||' | grep '^stable/' > stables.txt || true
+            all_branches=$( (echo "main"; cat stables.txt) | grep -v '^$' | jq -R -s -c 'split("\n")[:-1]' )
+            echo "branches=$all_branches" >> $GITHUB_OUTPUT
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
