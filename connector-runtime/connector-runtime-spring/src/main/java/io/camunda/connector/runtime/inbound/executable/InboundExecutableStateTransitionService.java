@@ -228,7 +228,8 @@ public class InboundExecutableStateTransitionService {
         .equals(newDetails.rawPropertiesWithoutKeywords());
   }
 
-  private List<InboundConnectorDetails> groupElementsByDeduplicationId(List<InboundConnectorElement> elements) {
+  private List<InboundConnectorDetails> groupElementsByDeduplicationId(
+      List<InboundConnectorElement> elements) {
     Map<String, List<InboundConnectorElement>> groupedElements = new HashMap<>();
 
     for (InboundConnectorElement element : elements) {
