@@ -7,7 +7,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>secret-providers</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>8.8.6-rc1</version>
+    <version>8.8.6</version>
   </parent>
 
   <artifactId>gcp-secret-provider</artifactId>
