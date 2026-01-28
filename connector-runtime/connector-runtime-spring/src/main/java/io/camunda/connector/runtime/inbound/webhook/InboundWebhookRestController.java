@@ -46,7 +46,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.api.inbound.webhook.WebhookTriggerResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorManagementContext;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
 import io.grpc.Status;
@@ -215,7 +215,7 @@ public class InboundWebhookRestController {
   protected ResponseEntity<?> verify(
       WebhookConnectorExecutable connectorHook,
       WebhookProcessingPayload payload,
-      InboundConnectorReportingContext context) {
+      InboundConnectorManagementContext context) {
     WebhookHttpResponse verificationResponse = connectorHook.verify(payload);
     ResponseEntity<?> response = null;
     if (verificationResponse != null) {

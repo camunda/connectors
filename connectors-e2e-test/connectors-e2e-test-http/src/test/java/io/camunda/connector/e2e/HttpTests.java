@@ -40,22 +40,20 @@ import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
-import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
-import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
+import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult.ImportType;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.io.File;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -74,7 +72,7 @@ import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true",
-      "camunda.connector.polling.enabled=true"
+      "camunda.connector.polling.enabled=false"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
@@ -89,20 +87,13 @@ public class HttpTests {
   @TempDir File tempDir;
   @Autowired CamundaClient camundaClient;
 
-  @MockitoBean ProcessDefinitionSearch processDefinitionSearch;
-
-  @Autowired ProcessStateStore stateStore;
+  @Autowired ProcessStateManager stateStore;
 
   @Autowired WebhookConnectorRegistry webhookConnectorRegistry;
 
   @MockitoBean SearchQueryClient searchQueryClient;
 
   @LocalServerPort int serverPort;
-
-  @BeforeEach
-  void beforeAll() {
-    when(processDefinitionSearch.query()).thenReturn(Collections.emptyList());
-  }
 
   @Test
   void basicAuth() {
@@ -353,15 +344,17 @@ public class HttpTests {
         .thenReturn(camundaClient.getConfiguration().getDefaultTenantId());
     when(processDef.getProcessDefinitionId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
+    when(processDef.getVersion()).thenReturn(1);
+    when(searchQueryClient.getProcessDefinition(1L)).thenReturn(processDef);
 
     // Deploy the webhook
     stateStore.update(
-        new ProcessImportResult(
+        new ImportResult(
             Map.of(
-                new ProcessDefinitionIdentifier(
+                new ProcessDefinitionRef(
                     processDef.getProcessDefinitionId(), processDef.getTenantId()),
-                new ProcessDefinitionVersion(
-                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
+                Set.of(processDef.getProcessDefinitionKey())),
+            ImportType.LATEST_VERSIONS));
 
     // Wait for webhook to be activated before starting the process
     Awaitility.await()
@@ -389,15 +382,17 @@ public class HttpTests {
         .thenReturn(camundaClient.getConfiguration().getDefaultTenantId());
     when(processDef.getProcessDefinitionId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
+    when(processDef.getVersion()).thenReturn(1);
+    when(searchQueryClient.getProcessDefinition(1L)).thenReturn(processDef);
 
     // Deploy the webhook
     stateStore.update(
-        new ProcessImportResult(
+        new ImportResult(
             Map.of(
-                new ProcessDefinitionIdentifier(
+                new ProcessDefinitionRef(
                     processDef.getProcessDefinitionId(), processDef.getTenantId()),
-                new ProcessDefinitionVersion(
-                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
+                Set.of(processDef.getProcessDefinitionKey())),
+            ImportType.LATEST_VERSIONS));
 
     // Wait for webhook to be activated before starting the process
     Awaitility.await()

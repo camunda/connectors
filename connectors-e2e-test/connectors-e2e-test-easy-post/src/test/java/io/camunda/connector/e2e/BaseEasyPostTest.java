@@ -17,23 +17,18 @@
 package io.camunda.connector.e2e;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.Map;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 public abstract class BaseEasyPostTest {
   protected static final String ELEMENT_TEMPLATE_PATH =
@@ -68,14 +63,7 @@ public abstract class BaseEasyPostTest {
 
   @Autowired CamundaClient camundaClient;
 
-  @MockitoBean ProcessDefinitionSearch processDefinitionSearch;
-
   @LocalServerPort int serverPort;
-
-  @BeforeEach
-  void beforeEach() {
-    when(processDefinitionSearch.query()).thenReturn(Collections.emptyList());
-  }
 
   protected ZeebeTest setupTestWithBpmnModel(String taskName, File elementTemplate) {
     BpmnModelInstance model = getBpmnModelInstance(taskName);

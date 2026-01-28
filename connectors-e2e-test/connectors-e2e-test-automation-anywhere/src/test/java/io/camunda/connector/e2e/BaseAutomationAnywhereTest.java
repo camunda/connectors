@@ -17,21 +17,16 @@
 package io.camunda.connector.e2e;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import java.io.File;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 public abstract class BaseAutomationAnywhereTest {
 
@@ -42,8 +37,6 @@ public abstract class BaseAutomationAnywhereTest {
       WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
 
   @Autowired CamundaClient camundaClient;
-
-  @MockitoBean ProcessDefinitionSearch processDefinitionSearch;
 
   @LocalServerPort int serverPort;
 
@@ -100,9 +93,4 @@ public abstract class BaseAutomationAnywhereTest {
                 "apiKey" : "myApiKey"
               }
               """;
-
-  @BeforeEach
-  void beforeEach() {
-    when(processDefinitionSearch.query()).thenReturn(Collections.emptyList());
-  }
 }

@@ -60,7 +60,7 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
       final Class<T> executableClass,
       final ActivityLogWriter logWriter) {
 
-    InboundConnectorReportingContext inboundContext =
+    InboundConnectorManagementContext inboundContext =
         new InboundConnectorContextImpl(
             secretProviderAggregator,
             validationProvider,

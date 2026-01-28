@@ -14,25 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.inbound;
+package io.camunda.connector.runtime.inbound.state.model;
 
-import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.api.inbound.InboundConnectorContext;
-import java.util.List;
-
-public interface InboundConnectorReportingContext extends InboundConnectorContext {
-
-  /**
-   * Provides a Health object to get information about the current status of the Connector with
-   * optional details.
-   *
-   * <p>Use the {@link #reportHealth(Health)} method to set this information
-   *
-   * @return Health object
-   */
-  Health getHealth();
-
-  List<InboundConnectorElement> connectorElements();
-
-  Long getActivationTimestamp();
-}
+/** Reference to a specific deployed version of a process definition. */
+public record DeployedVersionRef(long processDefinitionKey, int version) {}

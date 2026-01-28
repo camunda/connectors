@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0x0nnxu" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.43.1" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+  <bpmn:process id="inboundTestProcess" isExecutable="true">
+    <bpmn:startEvent id="plainStartEvent">
+      <bpmn:outgoing>Flow_start_to_catch1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="catchEvent1">
+      <bpmn:incoming>Flow_start_to_catch1</bpmn:incoming>
+      <bpmn:outgoing>Flow_catch1_to_catch2</bpmn:outgoing>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="catchEvent2">
+      <bpmn:incoming>Flow_catch1_to_catch2</bpmn:incoming>
+      <bpmn:outgoing>Flow_catch2_to_end</bpmn:outgoing>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="endEvent">
+      <bpmn:incoming>Flow_catch2_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_start_to_catch1" sourceRef="plainStartEvent" targetRef="catchEvent1" />
+    <bpmn:sequenceFlow id="Flow_catch1_to_catch2" sourceRef="catchEvent1" targetRef="catchEvent2" />
+    <bpmn:sequenceFlow id="Flow_catch2_to_end" sourceRef="catchEvent2" targetRef="endEvent" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="inboundTestProcess">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="plainStartEvent">
+        <dc:Bounds x="182" y="82" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_catch1_di" bpmnElement="catchEvent1">
+        <dc:Bounds x="272" y="82" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_catch2_di" bpmnElement="catchEvent2">
+        <dc:Bounds x="362" y="82" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_end_di" bpmnElement="endEvent">
+        <dc:Bounds x="452" y="82" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_start_to_catch1_di" bpmnElement="Flow_start_to_catch1">
+        <di:waypoint x="218" y="100" />
+        <di:waypoint x="272" y="100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_catch1_to_catch2_di" bpmnElement="Flow_catch1_to_catch2">
+        <di:waypoint x="308" y="100" />
+        <di:waypoint x="362" y="100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_catch2_to_end_di" bpmnElement="Flow_catch2_to_end">
+        <di:waypoint x="398" y="100" />
+        <di:waypoint x="452" y="100" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+
