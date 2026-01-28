@@ -610,7 +610,8 @@ jobs:
       !contains(lower(inputs.version), 'rc') &&
       needs.setup.result == 'success' &&
       needs.maven-release.result == 'success' &&
-      needs.docker-release.result == 'success'
+      needs.docker-release.result == 'success' &&
+      needs.bundle-and-build-changelog.result == 'success'
     with:
       version: ${{ inputs.version }}
 
