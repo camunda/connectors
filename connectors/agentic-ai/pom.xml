@@ -19,7 +19,7 @@
 
   <properties>
     <version.record-builder>52</version.record-builder>
-    <version.groovy>4.0.30</version.groovy>
+    <version.groovy>5.0.4</version.groovy>
     <version.gmavenplus-plugin>4.3.0</version.gmavenplus-plugin>
     <version.a2asdk>0.3.3.Final</version.a2asdk>
   </properties>
