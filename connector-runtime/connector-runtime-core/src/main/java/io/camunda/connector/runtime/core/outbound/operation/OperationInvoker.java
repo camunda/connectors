@@ -128,7 +128,7 @@ public class OperationInvoker {
         case InvocationTargetException invocationTargetException -> {
           switch (invocationTargetException.getTargetException()) {
             case ConnectorException connectorException -> throw connectorException;
-            default -> throw new RuntimeException(e);
+            default -> throw new RuntimeException(invocationTargetException.getTargetException());
           }
         }
         default -> throw new RuntimeException(e);
