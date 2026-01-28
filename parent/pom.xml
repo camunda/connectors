@@ -184,6 +184,9 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-surefire-plugin>3.5.4</plugin.version.maven-surefire-plugin>
     <plugin.version.spotless-maven-plugin>3.2.1</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.0</plugin.version.maven-jar-plugin>
+
+    <plugin.version.maven-dependency-plugin>3.9.0</plugin.version.maven-dependency-plugin>
+    <maven.dependency.analyze.skip>false</maven.dependency.analyze.skip>
   </properties>
 
   <dependencyManagement>
@@ -972,7 +975,7 @@ limitations under the License.</license.inlineheader>
         </plugin>
         <plugin>
           <artifactId>maven-dependency-plugin</artifactId>
-          <version>3.9.0</version>
+          <version>${plugin.version.maven-dependency-plugin}</version>
           <executions>
             <execution>
               <id>analyze-dependencies</id>
@@ -981,6 +984,7 @@ limitations under the License.</license.inlineheader>
               </goals>
               <phase>process-test-classes</phase>
               <configuration>
+                <skip>${maven.dependency.analyze.skip}</skip>
                 <failOnWarning>true</failOnWarning>
                 <ignoreUnusedRuntime>true</ignoreUnusedRuntime>
                 <ignoredUnusedDeclaredDependencies>
