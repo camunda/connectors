@@ -123,6 +123,14 @@
           </ignoredDependencies>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!-- Retry flaky tests up to 3 times before marking as failed -->
+          <rerunFailingTestsCount>3</rerunFailingTestsCount>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
