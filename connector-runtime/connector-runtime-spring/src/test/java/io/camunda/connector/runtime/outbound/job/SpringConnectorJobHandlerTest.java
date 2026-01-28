@@ -1265,6 +1265,55 @@ class SpringConnectorJobHandlerTest {
       assertThat(result.getErrorCode()).isEqualTo("9999");
       assertThat(result.getErrorMessage()).isEqualTo("Message for foo value on test property");
     }
+
+    @Test
+    void ignoreErrorShouldLeadToSuccessfulCompletion() throws Exception {
+      // given
+      var errorExpression =
+          "if contains(error.code,\"10\") then " + "ignoreError(error.variables) " + "else null";
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new ConnectorException(
+                    "1013",
+                    "exception message",
+                    new RuntimeException("Test"),
+                    Map.of("foo", "bar"));
+              });
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .executeAndCaptureResult(jobHandler, true);
+      // then
+      assertThat(result.getErrorCode()).isNull();
+      assertThat(result.getErrorMessage()).isNull();
+      assertThat(result.getVariables()).containsEntry("foo", "bar");
+    }
+
+    @Test
+    void ignoreErrorWithoutVarsShouldLeadToSuccessfulCompletion() throws Exception {
+      // given
+      var errorExpression = "if contains(error.code,\"10\") then " + "ignoreError() " + "else null";
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new ConnectorException(
+                    "1013",
+                    "exception message",
+                    new RuntimeException("Test"),
+                    Map.of("foo", "bar"));
+              });
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .executeAndCaptureResult(jobHandler, true);
+      // then
+      assertThat(result.getErrorCode()).isNull();
+      assertThat(result.getErrorMessage()).isNull();
+      assertThat(result.getVariables()).isNull();
+    }
   }
 
   @Test

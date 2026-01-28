@@ -369,4 +369,27 @@ class FeelEngineWrapperExpressionEvaluationTest {
   }
 
   record TestPojo(String value) {}
+
+  @Test
+  void ignoreErrorFunction() {
+    // given
+    final var resultExpression = "=ignoreError(vars)";
+    var vars = Map.of("testKey", "testValue");
+    final var context = Map.of("vars", vars);
+    // when
+    Map<String, Object> result = objectUnderTest.evaluate(resultExpression, context);
+    // then
+    assertThat(result).containsEntry("variables", vars).containsEntry("errorType", "ignoreError");
+  }
+
+  @Test
+  void ignoreErrorFunctionNoArgs() {
+    // given
+    final var resultExpression = "=ignoreError()";
+    final var context = Map.of();
+    // when
+    Map<String, Object> result = objectUnderTest.evaluate(resultExpression, context);
+    // then
+    assertThat(result).doesNotContainKey("variables").containsEntry("errorType", "ignoreError");
+  }
 }

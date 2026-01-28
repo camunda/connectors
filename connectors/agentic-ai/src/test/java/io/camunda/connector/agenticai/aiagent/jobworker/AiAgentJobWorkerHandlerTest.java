@@ -81,6 +81,8 @@ class AiAgentJobWorkerHandlerTest {
         jobError("The text '" + response.responseText + "' led to a job error")
       else if response.responseText = "BPMN error response" then
         bpmnError("RESPONSE_TEXT_BPMN_ERROR_CODE", "The text '" + response.responseText + "' led to an BPMN error")
+      else if error.code = "IGNORE_ERROR_CODE" then
+        ignoreError(error.variables)
       else
         null
       """;
@@ -506,6 +508,23 @@ class AiAgentJobWorkerHandlerTest {
           assertThat(request.getErrorCode()).isEqualTo("MY_BPMN_ERROR_CODE");
           assertThat(request.getErrorMessage()).isEqualTo("Execution failed (BPMN error)");
           assertThat(request.getVariables()).isEmpty();
+        });
+  }
+
+  @Test
+  void ignoreErrorInErrorExpressionShouldCompleteSuccessfully() throws Exception {
+    jobHeaders.put("errorExpression", ERROR_EXPRESSION);
+    final Map<String, Object> errorVariables = Map.of("detail", "Some error detail");
+    final var exception =
+        new ConnectorException(
+            "IGNORE_ERROR_CODE", "Execution failed", new RuntimeException("Test"), errorVariables);
+    when(agentRequestHandler.handleRequest(executionContext)).thenThrow(exception);
+
+    handler.handle(camundaClient, job);
+
+    assertJobCompletionRequest(
+        request -> {
+          assertThat(request.getVariables()).isEqualTo(errorVariables);
         });
   }
 
