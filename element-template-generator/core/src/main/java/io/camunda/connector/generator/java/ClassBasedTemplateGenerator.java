@@ -29,7 +29,6 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElemen
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.api.GeneratorConfiguration.GenerationFeature;
 import io.camunda.connector.generator.dsl.*;
-import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.util.*;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext.Outbound;
@@ -126,17 +125,18 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                     .value(extensionProperty.value()))
         .forEach(properties::add);
 
+    final List<PropertyGroup> mergedGroups = new ArrayList<>();
+
     var groupsDefinedInProperties =
         new ArrayList<>(TemplatePropertiesUtil.groupProperties(properties));
 
-    final List<PropertyGroup> mergedGroups = new ArrayList<>();
     var manuallyDefinedGroups = Arrays.asList(template.propertyGroups());
 
     if (!manuallyDefinedGroups.isEmpty()) {
       for (ElementTemplate.PropertyGroup group : manuallyDefinedGroups) {
         var groupDefinedInProperties =
             groupsDefinedInProperties.stream()
-                .filter(g -> g.build().id().equals(group.id()))
+                .filter(g -> g.getId().equals(group.id()))
                 .findFirst();
 
         if (groupDefinedInProperties.isEmpty()) {
@@ -154,14 +154,19 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                 .openByDefault(group.openByDefault() == Boolean.TRUE ? null : false)
                 .properties(groupDefinedInProperties.get().build().properties())
                 .build());
+
+        groupsDefinedInProperties.remove(groupDefinedInProperties.get());
       }
-    } else {
-      mergedGroups.addAll(
-          new ArrayList<>(
-              groupsDefinedInProperties.stream().map(PropertyGroupBuilder::build).toList()));
     }
 
-    if (groupsDefinedInProperties.isEmpty()) {
+    if (!groupsDefinedInProperties.isEmpty()) {
+      mergedGroups.addAll(
+          groupsDefinedInProperties.stream()
+              .map(PropertyGroup.PropertyGroupBuilder::build)
+              .toList());
+    }
+
+    if (groupsDefinedInProperties.isEmpty() && manuallyDefinedGroups.isEmpty()) {
       // default group so that user properties are higher up in the UI than the output/error mapping
       mergedGroups.add(
           PropertyGroup.builder()

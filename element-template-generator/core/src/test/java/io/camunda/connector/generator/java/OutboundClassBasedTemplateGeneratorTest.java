@@ -759,9 +759,8 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           .containsExactlyInAnyOrder(
               new DropdownChoice("Conditional sub type", "conditionalSubType"));
 
-      var annotatedStringProperty =
-          assertThat(discriminatorProperty.getCondition())
-              .isEqualTo(new Equals("annotatedStringProperty", "value"));
+      assertThat(discriminatorProperty.getCondition())
+          .isEqualTo(new Equals("annotatedStringProperty", "value"));
     }
   }
 
@@ -785,12 +784,30 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
+    void allInPredefinedGroups() {
+      var template =
+          generator.generate(MyConnectorFunction.AllPropertiesInPredefinedGroups.class).getFirst();
+      checkPropertyGroups(
+          List.of(
+              Map.entry("predefinedGroup1", "Predefined Group One"),
+              Map.entry("predefinedGroup2", "Predefined Group Two"),
+              Map.entry("predefinedGroup3", "Predefined Group Three"),
+              Map.entry("connector", "Connector"),
+              Map.entry("output", "Output mapping"),
+              Map.entry("error", "Error handling"),
+              Map.entry("retries", "Retries")),
+          template,
+          false);
+    }
+
+    @Test
     void propertyGroups_orderedAndLabeledByAnnotation() {
       var template = generator.generate(MyConnectorFunction.FullyAnnotated.class).getFirst();
       checkPropertyGroups(
           List.of(
               Map.entry("group2", "Group Two"),
               Map.entry("group1", "Group One"),
+              Map.entry("customGroup", "Custom group"),
               Map.entry("connector", "Connector"),
               Map.entry("output", "Output mapping"),
               Map.entry("error", "Error handling"),
@@ -1002,6 +1019,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(template.id()).isNotNull();
       assertThat(template.id()).isEqualTo(OperationAnnotatedConnector.ID);
       assertThat(template.name()).isEqualTo(OperationAnnotatedConnector.NAME);
+      assertThat(template.properties()).hasSize(14);
 
       DropdownProperty operationProperty =
           (DropdownProperty) getPropertyById("operation", template);
@@ -1015,9 +1033,17 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
       var propOp1P1 = getPropertyById("operation-1:p1", template);
       assertThat(propOp1P1.getCondition()).isNotNull();
+      assertThat(propOp1P1.getGroup()).isNotNull();
+      assertThat(propOp1P1.getGroup()).isEqualTo("customGroup");
+
+      var customGroup =
+          template.groups().stream().filter(g -> g.id().equals("customGroup")).findFirst().get();
+      assertThat(customGroup.id()).isEqualTo("customGroup");
+      assertThat(customGroup.label()).isEqualTo("Custom Group");
 
       // Verify that the referenced operation property is properly prefixed
       var propOp1P2 = getPropertyById("operation-1:param2", template);
+      assertThat(propOp1P2.getGroup()).isEqualTo("operation");
       assertThat(propOp1P2.getCondition()).isInstanceOf(AllMatch.class);
       assertThat(((AllMatch) propOp1P2.getCondition()).allMatch())
           .containsExactlyInAnyOrder(
