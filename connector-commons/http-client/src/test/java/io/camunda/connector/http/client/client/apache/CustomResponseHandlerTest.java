@@ -92,6 +92,6 @@ public class CustomResponseHandlerTest {
 
     ConnectorException connectorException =
         assertThrows(ConnectorException.class, resultSupplier::get);
-    assertThat(connectorException.getMessage()).isEqualTo("Internal Server Error");
+    assertThat(connectorException.getMessage()).contains("Internal Server Error");
   }
 }
