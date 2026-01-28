@@ -160,15 +160,20 @@ public class OperationBasedConnectorUtil {
       Operation operation,
       Variable variable,
       boolean shouldMapParameterBindings) {
-    property
-        .id(concatenateOperationIdAndPropertyId(getOperationId(operation), property.getId()))
-        .condition(mapCondition(property.getCondition(), operation))
-        .group(OPERATION_GROUP_ID);
-
+    setTemplatePropertyValues(property, operation);
     if (shouldMapParameterBindings) {
       property.binding(mapBinding(property.getBinding(), variable));
     }
     return property;
+  }
+
+  private static void setTemplatePropertyValues(PropertyBuilder property, Operation operation) {
+    var id = concatenateOperationIdAndPropertyId(getOperationId(operation), property.getId());
+    var group =
+        property.getGroup() == null || property.getGroup().isBlank()
+            ? OPERATION_GROUP_ID
+            : property.getGroup();
+    property.id(id).condition(mapCondition(property.getCondition(), operation)).group(group);
   }
 
   private static PropertyCondition mapCondition(PropertyCondition condition, Operation operation) {
