@@ -35,6 +35,5 @@ jobs:
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           base: main
           title: "other(element-template): single element template file generation"
-          labels: "no milestone"
           body: |
             This PR sets the new single element template file containing all necessary references.
