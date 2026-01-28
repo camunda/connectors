@@ -25,6 +25,7 @@ import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
 public abstract class MyConnectorFunction implements OutboundConnectorFunction {
 
