@@ -1,0 +1,140 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "Test Inbound Connector",
+  "id": "io.camunda.connectors.test.TestInboundConnector.v1",
+  "description": "A simple test inbound connector for e2e testing",
+  "version": 1,
+  "appliesTo": ["bpmn:StartEvent", "bpmn:IntermediateCatchEvent"],
+  "elementType": {
+    "value": "bpmn:IntermediateCatchEvent",
+    "eventDefinition": "bpmn:MessageEventDefinition"
+  },
+  "groups": [
+    {
+      "id": "config",
+      "label": "Configuration"
+    },
+    {
+      "id": "correlation",
+      "label": "Correlation"
+    },
+    {
+      "id": "deduplication",
+      "label": "Deduplication"
+    }
+  ],
+  "properties": [
+    {
+      "type": "Hidden",
+      "value": "io.camunda:test-inbound-connector:1",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.type"
+      }
+    },
+    {
+      "id": "configValue",
+      "label": "Configuration Value",
+      "description": "A generic configuration value for testing (affects AUTO deduplication)",
+      "group": "config",
+      "type": "String",
+      "value": "default",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "configValue"
+      }
+    },
+    {
+      "id": "correlationKeyProcess",
+      "label": "Correlation key (process)",
+      "description": "The correlation key from the process",
+      "group": "correlation",
+      "type": "String",
+      "feel": "required",
+      "binding": {
+        "type": "bpmn:Message#zeebe:subscription#property",
+        "name": "correlationKey"
+      }
+    },
+    {
+      "id": "correlationKeyPayload",
+      "label": "Correlation key (payload)",
+      "description": "The correlation key from the incoming message",
+      "group": "correlation",
+      "type": "String",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "correlationKeyExpression"
+      }
+    },
+    {
+      "id": "messageName",
+      "label": "Message name",
+      "group": "correlation",
+      "type": "Hidden",
+      "value": "test-inbound-message",
+      "binding": {
+        "type": "bpmn:Message#property",
+        "name": "name"
+      }
+    },
+    {
+      "id": "deduplicationModeManualFlag",
+      "label": "Manual deduplication",
+      "description": "Enable manual deduplication ID",
+      "group": "deduplication",
+      "type": "Boolean",
+      "value": false,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "deduplicationModeManualFlag"
+      }
+    },
+    {
+      "id": "deduplicationId",
+      "label": "Deduplication ID",
+      "description": "The deduplication ID for this connector",
+      "group": "deduplication",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "deduplicationId"
+      },
+      "condition": {
+        "property": "deduplicationModeManualFlag",
+        "equals": true,
+        "type": "simple"
+      }
+    },
+    {
+      "id": "deduplicationModeManual",
+      "type": "Hidden",
+      "value": "MANUAL",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "deduplicationMode"
+      },
+      "condition": {
+        "property": "deduplicationId",
+        "isActive": true,
+        "type": "simple"
+      }
+    },
+    {
+      "id": "deduplicationModeAuto",
+      "type": "Hidden",
+      "value": "AUTO",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "deduplicationMode"
+      },
+      "condition": {
+        "property": "deduplicationId",
+        "isActive": false,
+        "type": "simple"
+      }
+    }
+  ]
+}
+

@@ -31,8 +31,8 @@ import io.camunda.connector.runtime.core.inbound.correlation.MessageStartEventCo
 import io.camunda.connector.runtime.core.inbound.correlation.ProcessCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
+import io.camunda.connector.runtime.inbound.state.model.DeployedVersionRef;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.BaseElement;
 import io.camunda.zeebe.model.bpmn.instance.BoundaryEvent;
@@ -52,6 +52,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,6 +63,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Inspects the imported process elements and extracts Inbound Connector elements as {@link
  * ProcessCorrelationPoint}.
+ *
+ * <p>This class caches the parsed connector elements by processDefinitionKey since the BPMN model
+ * is immutable once deployed. The cache uses LRU eviction with a configurable max size.
  */
 public class ProcessDefinitionInspector {
 
@@ -80,16 +84,58 @@ public class ProcessDefinitionInspector {
 
   private final SearchQueryClient searchQueryClient;
 
-  public ProcessDefinitionInspector(SearchQueryClient searchQueryClient) {
+  /**
+   * LRU cache of parsed inbound connector elements by processDefinitionKey. The BPMN model is
+   * immutable once deployed, so we can safely cache the parsed elements. Uses LinkedHashMap with
+   * access-order to implement LRU eviction.
+   */
+  private final Map<Long, List<InboundConnectorElement>> connectorElementsCache;
+
+  public ProcessDefinitionInspector(SearchQueryClient searchQueryClient, int cacheMaxSize) {
     this.searchQueryClient = searchQueryClient;
+    if (cacheMaxSize <= 0) {
+      throw new IllegalArgumentException("cacheMaxSize must be greater than 0");
+    }
+    this.connectorElementsCache = createLruCache(cacheMaxSize);
+    LOG.info("Process definition cache initialized with max size: {}", cacheMaxSize);
+  }
+
+  private Map<Long, List<InboundConnectorElement>> createLruCache(int maxSize) {
+    return Collections.synchronizedMap(
+        new LinkedHashMap<>(16, 0.75f, true) {
+          @Override
+          protected boolean removeEldestEntry(
+              Map.Entry<Long, List<InboundConnectorElement>> eldest) {
+            boolean shouldRemove = size() > maxSize;
+            if (shouldRemove) {
+              LOG.debug(
+                  "Cache size exceeded {}, evicting oldest entry for process definition key: {}",
+                  maxSize,
+                  eldest.getKey());
+            }
+            return shouldRemove;
+          }
+        });
   }
 
   public List<InboundConnectorElement> findInboundConnectors(
-      ProcessDefinitionIdentifier identifier, ProcessDefinitionVersion version) {
+      ProcessDefinitionRef identifier, long processDefinitionKey) {
 
-    LOG.debug("Checking {} (version {}) for connectors.", identifier, version.version());
-    BpmnModelInstance modelInstance =
-        searchQueryClient.getProcessModel(version.processDefinitionKey());
+    return connectorElementsCache.computeIfAbsent(
+        processDefinitionKey,
+        key -> {
+          LOG.debug(
+              "Cache miss for process {} (key {}), fetching and parsing BPMN model.",
+              identifier.bpmnProcessId(),
+              processDefinitionKey);
+          return fetchAndParseConnectors(identifier, processDefinitionKey);
+        });
+  }
+
+  private List<InboundConnectorElement> fetchAndParseConnectors(
+      ProcessDefinitionRef identifier, long processDefinitionKey) {
+
+    BpmnModelInstance modelInstance = searchQueryClient.getProcessModel(processDefinitionKey);
 
     var processes =
         modelInstance.getDefinitions().getChildElementsByType(Process.class).stream()
@@ -97,13 +143,32 @@ public class ProcessDefinitionInspector {
             .findFirst();
 
     return processes.stream()
-        .flatMap(process -> inspectBpmnProcess(process, identifier, version).stream())
+        .flatMap(process -> inspectBpmnProcess(process, identifier, processDefinitionKey).stream())
         .toList();
   }
 
+  /** Clears the entire cache. */
+  public void clearCache() {
+    connectorElementsCache.clear();
+  }
+
   private List<InboundConnectorElement> inspectBpmnProcess(
-      Process process, ProcessDefinitionIdentifier identifier, ProcessDefinitionVersion version) {
+      Process process, ProcessDefinitionRef identifier, long processDefinitionKey) {
     Collection<BaseElement> inboundEligibleElements = retrieveEligibleElementsFromProcess(process);
+    if (inboundEligibleElements.isEmpty()) {
+      LOG.debug(
+          "No inbound eligible elements found in process {} (key {})",
+          identifier.bpmnProcessId(),
+          processDefinitionKey);
+      return Collections.emptyList();
+    }
+
+    // We have to resolve the process definition to get the version number for data completeness
+    // In general it is not possible to get it from previously fetched data (only possible for
+    // latest version imports, not for active version imports). Thus +1 call per process here,
+    // but only if inbound connectors are found => should not be too bad for performance.
+    var processDefinition = searchQueryClient.getProcessDefinition(processDefinitionKey);
+    var version = new DeployedVersionRef(processDefinitionKey, processDefinition.getVersion());
 
     List<InboundConnectorElement> discoveredInboundConnectors = new ArrayList<>();
     for (BaseElement element : inboundEligibleElements) {
@@ -181,8 +246,8 @@ public class ProcessDefinitionInspector {
   private Optional<ProcessCorrelationPoint> getCorrelationPointForElement(
       BaseElement element,
       Process process,
-      ProcessDefinitionIdentifier identifier,
-      ProcessDefinitionVersion version) {
+      ProcessDefinitionRef identifier,
+      DeployedVersionRef version) {
     try {
       if (element instanceof StartEvent se) {
         return getCorrelationPointForStartEvent(se, process, version);
@@ -263,7 +328,7 @@ public class ProcessDefinitionInspector {
   }
 
   private Optional<ProcessCorrelationPoint> getCorrelationPointForStartEvent(
-      StartEvent startEvent, Process process, ProcessDefinitionVersion version) {
+      StartEvent startEvent, Process process, DeployedVersionRef version) {
 
     MessageEventDefinition msgDef =
         (MessageEventDefinition)

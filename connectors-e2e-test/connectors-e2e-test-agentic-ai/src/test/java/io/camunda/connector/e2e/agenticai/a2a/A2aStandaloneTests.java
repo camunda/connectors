@@ -36,7 +36,7 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
-import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImporter;
+import io.camunda.connector.runtime.inbound.importer.ImportSchedulers;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.Bpmn;
@@ -67,7 +67,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
 
   private static final String WEBHOOK_ELEMENT_ID = "Wait_For_Completion_Webhook";
 
-  @Autowired private ProcessDefinitionImporter processDefinitionImporter;
+  @Autowired private ImportSchedulers importSchedulers;
 
   @Value("classpath:a2a-connectors-standalone.bpmn")
   protected Resource testProcess;
@@ -292,7 +292,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
 
   private void waitForWebhookElementActivation(ZeebeTest zeebeTest) {
     // manually trigger process definition import to register the webhook
-    processDefinitionImporter.scheduleImport();
+    importSchedulers.scheduleLatestVersionImport();
     waitForElementActivation(zeebeTest, WEBHOOK_ELEMENT_ID);
   }
 
