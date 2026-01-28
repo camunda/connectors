@@ -16,16 +16,11 @@
  */
 package io.camunda.connector.e2e;
 
-import static org.mockito.Mockito.when;
-
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.test.utils.DockerImages;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
-import java.util.Collections;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -44,14 +39,7 @@ public abstract class BaseRabbitMqTest {
 
   @Autowired CamundaClient camundaClient;
 
-  @MockitoBean ProcessDefinitionSearch processDefinitionSearch;
-
   @MockitoBean SearchQueryClient searchQueryClient;
-
-  @BeforeEach
-  void beforeEach() {
-    when(processDefinitionSearch.query()).thenReturn(Collections.emptyList());
-  }
 
   protected ZeebeTest getZeebeTest(final BpmnModelInstance updatedModel) {
     return ZeebeTest.with(camundaClient).deploy(updatedModel).createInstance();

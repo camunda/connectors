@@ -25,6 +25,7 @@ import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
+import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -36,8 +37,8 @@ import java.util.stream.Collectors;
  * InboundConnectorContext} and enables runtime updates of context properties from Camunda.
  */
 public class InboundIntermediateConnectorContextImpl
-    implements InboundIntermediateConnectorContext, InboundConnectorReportingContext {
-  private final InboundConnectorReportingContext inboundContext;
+    implements InboundIntermediateConnectorContext, InboundConnectorManagementContext {
+  private final InboundConnectorManagementContext inboundContext;
   private final ProcessInstanceClient processInstanceClient;
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
@@ -45,7 +46,7 @@ public class InboundIntermediateConnectorContextImpl
   private final Long activationTimestamp;
 
   public InboundIntermediateConnectorContextImpl(
-      final InboundConnectorReportingContext inboundContext,
+      final InboundConnectorManagementContext inboundContext,
       final ProcessInstanceClient processInstanceClient,
       final ValidationProvider validationProvider,
       final ObjectMapper objectMapper,
@@ -155,6 +156,11 @@ public class InboundIntermediateConnectorContextImpl
   @Override
   public Long getActivationTimestamp() {
     return activationTimestamp;
+  }
+
+  @Override
+  public void updateConnectorDetails(ValidInboundConnectorDetails connectorDetails) {
+    inboundContext.updateConnectorDetails(connectorDetails);
   }
 
   @Override

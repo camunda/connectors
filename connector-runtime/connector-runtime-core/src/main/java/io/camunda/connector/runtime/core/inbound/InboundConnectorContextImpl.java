@@ -43,7 +43,6 @@ import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogEntry;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogWriter;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivitySource;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
-import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import java.util.List;
 import java.util.Map;
@@ -54,10 +53,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class InboundConnectorContextImpl extends AbstractConnectorContext
-    implements InboundConnectorContext, InboundConnectorReportingContext {
+    implements InboundConnectorContext, InboundConnectorManagementContext {
 
   private final Logger LOG = LoggerFactory.getLogger(InboundConnectorContextImpl.class);
-  private final InboundConnectorDetails connectorDetails;
+  private ValidInboundConnectorDetails connectorDetails;
   private final Map<String, Object> properties;
 
   private final InboundCorrelationHandler correlationHandler;
@@ -384,5 +383,24 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   @Override
   public Document create(DocumentCreationRequest request) {
     return documentFactory.create(request);
+  }
+
+  @Override
+  public void updateConnectorDetails(ValidInboundConnectorDetails newDetails) {
+    var validationErrors = connectorDetails.checkCompatibility(newDetails);
+    if (validationErrors.isPresent()) {
+      // this is more of a sanity check, should never happen as long as runtime checks properties
+      var message = String.join(", ", validationErrors.get());
+      throw new IllegalArgumentException(
+          "New InboundConnectorDetails are not compatible with the existing ones. Issues: "
+              + message);
+    }
+    connectorDetails = newDetails;
+    logRuntime(
+        builder ->
+            builder
+                .withTag(ActivityLogTag.LIFECYCLE)
+                .withSeverity(Severity.INFO)
+                .withMessage("Updated configuration due to new process version deployment"));
   }
 }
