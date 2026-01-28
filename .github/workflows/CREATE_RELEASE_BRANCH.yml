@@ -63,7 +63,6 @@ jobs:
           delete-branch: true
           base: main
           title: "chore(snapshot): set next snapshot version"
-          labels: "no milestone"
           body: |
             This PR sets the next snapshot version on the main branch.
             

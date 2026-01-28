@@ -231,7 +231,6 @@ jobs:
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           base: main
           title: "chore(docs-links): bump versions from ${{ steps.version_check.outputs.previous_minor }} to ${{ steps.version_check.outputs.current_minor }}"
-          labels: "no milestone"
           body: |
             This bumps docs version of latest's element templates of a connector to latest minor version.
 
