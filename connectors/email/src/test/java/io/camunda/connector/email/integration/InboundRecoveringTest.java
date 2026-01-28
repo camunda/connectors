@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -49,7 +50,7 @@ public class InboundRecoveringTest extends BaseEmailTest {
     jakartaEmailListener.stopListener();
   }
 
-  @Test
+  @RepeatedTest(5)
   public void pollingManagerBreaksAndRecoverAfterServerNotResponding() {
     try (ImapServerProxy proxyImap =
         new ImapServerProxy(
