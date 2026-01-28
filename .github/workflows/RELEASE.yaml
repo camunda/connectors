@@ -608,7 +608,7 @@ jobs:
 
     # Automatically notify PRs for non-RC releases (case-insensitive check)
     if: |
-      !contains(lower(inputs.version), 'rc') &&
+      !contains(inputs.version, 'rc') &&
       needs.setup.result == 'success' &&
       needs.maven-release.result == 'success' &&
       needs.docker-release.result == 'success' &&
