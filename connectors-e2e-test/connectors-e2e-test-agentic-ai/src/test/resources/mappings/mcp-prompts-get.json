@@ -1,0 +1,106 @@
+{
+  "mappings": [
+    {
+      "request": {
+        "method": "POST",
+        "url": "/mcp",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.method",
+              "equalTo": "prompts/get"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.params.name",
+              "equalTo": "promptA"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.params.arguments.aName",
+              "equalTo": "nameA"
+            }
+          }
+        ]
+      },
+      "response": {
+        "transformers": [
+          "response-template"
+        ],
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "{{jsonPath request.body '$.id'}}",
+          "jsonrpc": "2.0",
+          "result": {
+            "description": "Prompt A",
+            "messages": [
+              {
+                "role": "user",
+                "content": {
+                  "type": "text",
+                  "text": "Please do task A"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "url": "/mcp",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.method",
+              "equalTo": "prompts/get"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.params.name",
+              "equalTo": "promptC"
+            }
+          },
+          {
+            "matchesJsonPath": {
+              "expression": "$.params.arguments.cName",
+              "equalTo": "nameC"
+            }
+          }
+        ]
+      },
+      "response": {
+        "transformers": [
+          "response-template"
+        ],
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "id": "{{jsonPath request.body '$.id'}}",
+          "jsonrpc": "2.0",
+          "result": {
+            "description": "Prompt C",
+            "messages": [
+              {
+                "role": "user",
+                "content": {
+                  "type": "text",
+                  "text": "Please do task C"
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
