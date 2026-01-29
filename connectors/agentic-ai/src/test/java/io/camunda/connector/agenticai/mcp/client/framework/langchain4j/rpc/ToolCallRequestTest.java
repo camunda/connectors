@@ -234,6 +234,124 @@ class ToolCallRequestTest {
             });
   }
 
+  @Test
+  void handlesStructuredContentWithMultipleTypes_whenMcpReturnsRichContent() {
+    // Simulate MCP returning structured content with text and image
+    final var mcpResponse =
+        Map.of(
+            "content",
+            List.of(
+                Map.of("type", "text", "text", "Here is the result:"),
+                Map.of("type", "image", "data", "aGVsbG8=", "mimeType", "image/png")));
+
+    when(mcpClient.executeTool(any()))
+        .thenReturn(ToolExecutionResult.builder().result(mcpResponse).resultText("result").build());
+    when(context.create(any()))
+        .thenReturn(
+            new io.camunda.connector.api.document.Document() {
+              @Override
+              public String reference() {
+                return "doc-ref-123";
+              }
+
+              @Override
+              public String contentType() {
+                return "image/png";
+              }
+
+              @Override
+              public String fileName() {
+                return "tool-result-image.png";
+              }
+
+              @Override
+              public byte[] asByteArray() {
+                return "hello".getBytes();
+              }
+            });
+
+    final var result =
+        testee.execute(
+            mcpClient,
+            EMPTY_FILTER,
+            Map.of("name", "image-tool", "arguments", Map.of("prompt", "generate image")));
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            McpClientCallToolResult.class,
+            res -> {
+              assertThat(res.name()).isEqualTo("image-tool");
+              assertThat(res.isError()).isFalse();
+              assertThat(res.content()).hasSize(2);
+              assertThat(res.content().get(0))
+                  .isInstanceOfSatisfying(
+                      io.camunda.connector.agenticai.model.message.content.TextContent.class,
+                      textContent -> assertThat(textContent.text()).isEqualTo("Here is the result:"));
+              assertThat(res.content().get(1))
+                  .isInstanceOf(
+                      io.camunda.connector.agenticai.model.message.content.DocumentContent.class);
+            });
+  }
+
+  @Test
+  void fallsBackToTextExtraction_whenStructuredContentProcessingFails() {
+    // Simulate MCP returning content that can't be processed as structured
+    when(mcpClient.executeTool(any()))
+        .thenReturn(ToolExecutionResult.builder().resultText("fallback text result").build());
+
+    final var result =
+        testee.execute(
+            mcpClient,
+            EMPTY_FILTER,
+            Map.of("name", "fallback-tool", "arguments", Map.of("arg1", "value1")));
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            McpClientCallToolResult.class,
+            res -> {
+              assertThat(res.name()).isEqualTo("fallback-tool");
+              assertThat(res.isError()).isFalse();
+              assertThat(res.content()).containsExactly(textContent("fallback text result"));
+            });
+  }
+
+  @Test
+  void handlesEmbeddedResourceContent_whenMcpReturnsResourceLink() {
+    // Simulate MCP returning embedded resource content
+    final var mcpResponse =
+        Map.of(
+            "content",
+            List.of(
+                Map.of(
+                    "type",
+                    "resource",
+                    "resource",
+                    Map.of("type", "text", "text", "Resource content here"))));
+
+    when(mcpClient.executeTool(any()))
+        .thenReturn(ToolExecutionResult.builder().result(mcpResponse).resultText("result").build());
+
+    final var result =
+        testee.execute(
+            mcpClient,
+            EMPTY_FILTER,
+            Map.of("name", "resource-tool", "arguments", Map.of("resourceId", "123")));
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            McpClientCallToolResult.class,
+            res -> {
+              assertThat(res.name()).isEqualTo("resource-tool");
+              assertThat(res.isError()).isFalse();
+              assertThat(res.content()).hasSize(1);
+              assertThat(res.content().get(0))
+                  .isInstanceOfSatisfying(
+                      io.camunda.connector.agenticai.model.message.content.TextContent.class,
+                      textContent ->
+                          assertThat(textContent.text()).isEqualTo("Resource content here"));
+            });
+  }
+
   private ToolExecutionResult toolExecutionResult(String resultText) {
     return ToolExecutionResult.builder().resultText(resultText).build();
   }
