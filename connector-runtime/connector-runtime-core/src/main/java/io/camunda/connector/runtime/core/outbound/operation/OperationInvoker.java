@@ -21,7 +21,6 @@ import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.validation.ValidationProvider;
@@ -124,15 +123,20 @@ public class OperationInvoker {
       return descriptor.method().invoke(connectorInstance, args);
     } catch (Exception e) {
       log.debug("Failed to invoke operation: {}", descriptor.id(), e);
-      switch (e) {
-        case InvocationTargetException invocationTargetException -> {
-          switch (invocationTargetException.getTargetException()) {
-            case ConnectorException connectorException -> throw connectorException;
-            default -> throw new RuntimeException(invocationTargetException.getTargetException());
-          }
-        }
-        default -> throw new RuntimeException(e);
+      if (e instanceof InvocationTargetException invocationTargetException) {
+        throw runtimeExceptionFrom(invocationTargetException);
+      } else {
+        throw new RuntimeException(e);
       }
+    }
+  }
+
+  private static RuntimeException runtimeExceptionFrom(InvocationTargetException e) {
+    Throwable targetException = e.getTargetException();
+    if (targetException instanceof RuntimeException runtimeException) {
+      throw runtimeException;
+    } else {
+      throw new RuntimeException(targetException);
     }
   }
 

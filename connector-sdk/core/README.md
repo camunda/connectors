@@ -6,22 +6,33 @@ The foundation for re-usable Connector functionality.
 
 ### Outbound Connector
 
+#### @Operation based API
+
+```java
+@OutboundConnector(name = "PING", type = "io.camunda.example.PingConnector:1")
+public class PingConnector {
+    @Operation("ping")
+    public Object ping(@Variable PingRequest request) {
+        var caller = request.getCaller();
+        return new PingResponse("Pong to " + caller);
+    }
+}
+```
+
+
+#### Classic API
+
 An outbound Connector implements [`OutboundConnectorFunction#execute(OutboundConnectorContext)`](./src/main/java/io/camunda/connector/api/outbound/OutboundConnectorFunction.java) to define the connector logic.
 
 ```java
-
-@OutboundConnector(
-    name = "PING",
-    inputVariables = {"caller"},
-    type = "io.camunda.example.PingConnector:1"
-)
+@OutboundConnector(name = "PING", inputVariables = {"caller"}, type = "io.camunda.example.PingConnector:1")
 public class PingConnector implements OutboundConnectorFunction {
-
-  @Override
-  public Object execute(OutboundConnectorContext context) throws Exception {
-    var request = context.bindVariables(PingRequest.class);
-    var caller = request.getCaller();
-    return new PingResponse("Pong to " + caller);
+    
+    @Override
+    public Object execute(OutboundConnectorContext context) throws Exception {
+        var request = context.bindVariables(PingRequest.class);
+        var caller = request.getCaller();
+        return new PingResponse("Pong to " + caller);
   }
 }
 ```
