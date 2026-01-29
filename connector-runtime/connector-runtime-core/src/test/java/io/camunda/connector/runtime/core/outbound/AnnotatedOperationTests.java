@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ConnectorConfigurationUtil;
 import io.camunda.connector.runtime.core.NoOpSecretProvider;
@@ -118,6 +119,15 @@ public class AnnotatedOperationTests {
     Assertions.assertThatCollection(variables)
         .containsExactlyInAnyOrder(
             "myStringParam", "myObjectParam", "nullObjectParam", "name", "value", "validatingName");
+  }
+
+  @Test
+  public void shouldThrowRetryException() {
+    assertThrows(
+        ConnectorRetryException.class,
+        () -> {
+          invoker.execute(createMockContext("{}", "myOperation6"));
+        });
   }
 
   JobHandlerContext createMockContext(String json, String operation) {

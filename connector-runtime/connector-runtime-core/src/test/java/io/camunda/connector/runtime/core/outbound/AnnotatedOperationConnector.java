@@ -20,6 +20,7 @@ import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.annotation.Variable;
+import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import jakarta.validation.constraints.NotNull;
@@ -69,5 +70,13 @@ public class AnnotatedOperationConnector implements OutboundConnectorProvider {
       @Variable Map<String, Integer> vars,
       @Header("myFeelFunction") Function<Map<String, Integer>, Integer> feelFunctionFromHeader) {
     return feelFunctionFromHeader.apply(vars);
+  }
+
+  @Operation(id = "myOperation6")
+  public Object throwsRetry() {
+    throw new ConnectorRetryExceptionBuilder()
+        .errorCode("RETRY_ERROR")
+        .message("Please retry")
+        .build();
   }
 }
