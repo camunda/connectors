@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,8 +42,14 @@ class ToolCallRequestTest {
   private static final AllowDenyList EMPTY_FILTER = AllowDenyList.allowingEverything();
 
   @Mock private McpClient mcpClient;
+  @Mock private OutboundConnectorContext context;
 
-  private final ToolCallRequest testee = new ToolCallRequest(new ObjectMapper());
+  private ToolCallRequest testee;
+
+  @org.junit.jupiter.api.BeforeEach
+  void setUp() {
+    testee = new ToolCallRequest(new ObjectMapper(), context);
+  }
 
   @Test
   void executesTool_whenToolAllowedByFilter() {

@@ -57,7 +57,7 @@ public class Langchain4JMcpRemoteClientHandler implements McpRemoteClientHandler
               .orElseGet(FilterOptions::defaultOptions);
 
       client = remoteClientRegistry.getClient(clientId, request.data().transport(), cacheable);
-      return clientExecutor.execute(client, operation, filterOptions);
+      return clientExecutor.execute(client, operation, filterOptions, context);
     } finally {
       if (!cacheable && client != null) {
         remoteClientRegistry.closeClient(clientId, client);

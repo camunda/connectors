@@ -13,6 +13,7 @@ import io.camunda.connector.agenticai.mcp.client.McpClientResultDocumentHandler;
 import io.camunda.connector.agenticai.mcp.client.filters.FilterOptions;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientResult;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import org.jspecify.annotations.NonNull;
 
 public class Langchain4JMcpClientExecutor {
@@ -30,20 +31,20 @@ public class Langchain4JMcpClientExecutor {
   }
 
   public McpClientResult execute(
-      McpClient client, McpClientOperation operation, FilterOptions filterOptions) {
-    var result = executeRequest(client, operation, filterOptions);
+      McpClient client, McpClientOperation operation, FilterOptions filterOptions, OutboundConnectorContext context) {
+    var result = executeRequest(client, operation, filterOptions, context);
 
     return clientResultDocumentHandler.convertBinariesToDocumentsIfPresent(result);
   }
 
   private @NonNull McpClientResult executeRequest(
-      McpClient client, McpClientOperation operation, FilterOptions filterOptions) {
+      McpClient client, McpClientOperation operation, FilterOptions filterOptions, OutboundConnectorContext context) {
     return switch (operation.method()) {
       case LIST_TOOLS ->
           new ListToolsRequest(toolSpecificationConverter)
               .execute(client, filterOptions.toolFilters());
       case CALL_TOOL ->
-          new ToolCallRequest(objectMapper)
+          new ToolCallRequest(objectMapper, context)
               .execute(client, filterOptions.toolFilters(), operation.params());
       case LIST_RESOURCES ->
           new ListResourcesRequest().execute(client, filterOptions.resourceFilters());

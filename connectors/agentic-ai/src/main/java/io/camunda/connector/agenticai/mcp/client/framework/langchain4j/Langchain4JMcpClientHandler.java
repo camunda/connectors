@@ -48,6 +48,6 @@ public class Langchain4JMcpClientHandler implements McpClientHandler {
             .createFilterOptions()
             .orElseGet(FilterOptions::defaultOptions);
 
-    return clientExecutor.execute(client, operation, filterOptions);
+    return clientExecutor.execute(client, operation, filterOptions, context);
   }
 }
