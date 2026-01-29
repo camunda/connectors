@@ -9,7 +9,12 @@ package io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.mcp.client.*;
+import dev.langchain4j.mcp.client.McpBlobResourceContents;
+import dev.langchain4j.mcp.client.McpClient;
+import dev.langchain4j.mcp.client.McpEmbeddedResource;
+import dev.langchain4j.mcp.client.McpImageContent;
+import dev.langchain4j.mcp.client.McpTextContent;
+import dev.langchain4j.mcp.client.McpTextResourceContents;
 import dev.langchain4j.service.tool.ToolExecutionResult;
 import io.camunda.connector.agenticai.mcp.McpClientErrorCodes;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
@@ -223,11 +228,10 @@ final class ToolCallRequest {
   }
 
   /**
-   * Creates a DocumentContent from an McpImageContent.
+   * Creates a DocumentContent from an McpImageContent. Returns null if the image data is invalid.
    *
    * @param imageContent The MCP image content
-   * @return DocumentContent containing the image
-   * @throws IllegalArgumentException if the image data is invalid
+   * @return DocumentContent containing the image, or null if creation fails
    */
   private DocumentContent createDocumentFromImage(McpImageContent imageContent) {
     try {
@@ -236,27 +240,28 @@ final class ToolCallRequest {
           context.create(
               DocumentCreationRequest.from(imageBytes)
                   .contentType(imageContent.mimeType())
-                  .fileName("tool-result-image.png")
+                  .fileName(getFileNameForMimeType(imageContent.mimeType(), "tool-result-image"))
                   .build());
 
       if (document == null) {
-        throw new IllegalStateException("Document creation returned null");
+        LOGGER.warn("Document creation returned null for image content");
+        return null;
       }
 
       return DocumentContent.documentContent(document);
     } catch (IllegalArgumentException e) {
-      throw new IllegalArgumentException(
-          "Failed to decode base64 image data: " + e.getMessage(), e);
+      LOGGER.warn("Failed to decode base64 image data: {}", e.getMessage());
+      return null;
     }
   }
 
   /**
-   * Creates a DocumentContent from base64-encoded image data.
+   * Creates a DocumentContent from base64-encoded image data. Returns null if the image data is
+   * invalid.
    *
    * @param base64Data The base64-encoded image data
    * @param mimeType The MIME type of the image
-   * @return DocumentContent containing the image
-   * @throws IllegalArgumentException if the image data is invalid
+   * @return DocumentContent containing the image, or null if creation fails
    */
   private DocumentContent createDocumentFromBase64Image(String base64Data, String mimeType) {
     try {
@@ -265,26 +270,27 @@ final class ToolCallRequest {
           context.create(
               DocumentCreationRequest.from(imageBytes)
                   .contentType(mimeType)
-                  .fileName("tool-result-image.png")
+                  .fileName(getFileNameForMimeType(mimeType, "tool-result-image"))
                   .build());
 
       if (document == null) {
-        throw new IllegalStateException("Document creation returned null");
+        LOGGER.warn("Document creation returned null for base64 image");
+        return null;
       }
 
       return DocumentContent.documentContent(document);
     } catch (IllegalArgumentException e) {
-      throw new IllegalArgumentException(
-          "Failed to decode base64 image data: " + e.getMessage(), e);
+      LOGGER.warn("Failed to decode base64 image data: {}", e.getMessage());
+      return null;
     }
   }
 
   /**
-   * Creates a Content from an McpEmbeddedResource.
+   * Creates a Content from an McpEmbeddedResource. Returns null if the resource data is invalid.
    *
    * @param embeddedResource The MCP embedded resource
-   * @return Content (DocumentContent for blobs, TextContent for text resources)
-   * @throws IllegalArgumentException if the resource data is invalid
+   * @return Content (DocumentContent for blobs, TextContent for text resources), or null if
+   *     creation fails
    */
   private Content createDocumentFromEmbeddedResource(McpEmbeddedResource embeddedResource) {
     return switch (embeddedResource.resource()) {
@@ -295,21 +301,62 @@ final class ToolCallRequest {
               context.create(
                   DocumentCreationRequest.from(blobBytes)
                       .contentType(blobContents.mimeType())
-                      .fileName("tool-result-resource")
+                      .fileName(getFileNameForMimeType(blobContents.mimeType(), "tool-result-resource"))
                       .build());
 
           if (document == null) {
-            throw new IllegalStateException("Document creation returned null");
+            LOGGER.warn("Document creation returned null for embedded resource");
+            yield null;
           }
 
           yield DocumentContent.documentContent(document);
         } catch (IllegalArgumentException e) {
-          throw new IllegalArgumentException(
-              "Failed to decode base64 blob data: " + e.getMessage(), e);
+          LOGGER.warn("Failed to decode base64 blob data: {}", e.getMessage());
+          yield null;
         }
       }
       case McpTextResourceContents textContents -> TextContent.textContent(textContents.text());
     };
+  }
+
+  /**
+   * Generates an appropriate filename based on MIME type.
+   *
+   * @param mimeType The MIME type
+   * @param baseName The base name for the file
+   * @return Filename with appropriate extension
+   */
+  private String getFileNameForMimeType(String mimeType, String baseName) {
+    if (mimeType == null || mimeType.isEmpty()) {
+      return baseName;
+    }
+
+    // Extract extension from MIME type
+    final var extension =
+        switch (mimeType.toLowerCase()) {
+          case "image/png" -> ".png";
+          case "image/jpeg", "image/jpg" -> ".jpg";
+          case "image/gif" -> ".gif";
+          case "image/webp" -> ".webp";
+          case "image/svg+xml" -> ".svg";
+          case "application/pdf" -> ".pdf";
+          case "application/json" -> ".json";
+          case "text/plain" -> ".txt";
+          case "text/html" -> ".html";
+          case "text/csv" -> ".csv";
+          default -> {
+            // Try to extract extension from MIME type (e.g., "image/bmp" -> ".bmp")
+            if (mimeType.contains("/")) {
+              final var parts = mimeType.split("/");
+              if (parts.length == 2 && !parts[1].isEmpty()) {
+                yield "." + parts[1];
+              }
+            }
+            yield "";
+          }
+        };
+
+    return baseName + extension;
   }
 
   /**
@@ -339,7 +386,7 @@ final class ToolCallRequest {
                 context.create(
                     DocumentCreationRequest.from(blobBytes)
                         .contentType(mimeType.toString())
-                        .fileName("tool-result-resource")
+                        .fileName(getFileNameForMimeType(mimeType.toString(), "tool-result-resource"))
                         .build());
 
             if (document == null) {
