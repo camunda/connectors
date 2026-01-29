@@ -21,10 +21,12 @@ import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.validation.ValidationProvider;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,7 +124,15 @@ public class OperationInvoker {
       return descriptor.method().invoke(connectorInstance, args);
     } catch (Exception e) {
       log.debug("Failed to invoke operation: {}", descriptor.id(), e);
-      throw new RuntimeException(e);
+      switch (e) {
+        case InvocationTargetException invocationTargetException -> {
+          switch (invocationTargetException.getTargetException()) {
+            case ConnectorException connectorException -> throw connectorException;
+            default -> throw new RuntimeException(invocationTargetException.getTargetException());
+          }
+        }
+        default -> throw new RuntimeException(e);
+      }
     }
   }
 
