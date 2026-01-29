@@ -19,7 +19,6 @@ import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.DocumentCreationRequest;
-import io.camunda.connector.api.document.DocumentStore;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import java.util.ArrayList;
@@ -116,8 +115,7 @@ final class ToolCallRequest {
       }
     } catch (Exception e) {
       LOGGER.debug(
-          "MCP({}): Could not extract structured content from tool '{}' result, falling back to text: {}",
-          toolName,
+          "Could not extract structured content from tool '{}' result, falling back to text: {}",
           toolName,
           e.getMessage());
     }
@@ -153,8 +151,7 @@ final class ToolCallRequest {
         }
       } catch (Exception e) {
         LOGGER.warn(
-            "MCP({}): Failed to process content item from tool '{}': {}",
-            toolName,
+            "Failed to process content item from tool '{}': {}",
             toolName,
             e.getMessage());
         // Continue processing other items
@@ -230,17 +227,27 @@ final class ToolCallRequest {
    *
    * @param imageContent The MCP image content
    * @return DocumentContent containing the image
+   * @throws IllegalArgumentException if the image data is invalid
    */
   private DocumentContent createDocumentFromImage(McpImageContent imageContent) {
-    final var imageBytes = Base64.getDecoder().decode(imageContent.data());
-    final var document =
-        context.create(
-            DocumentCreationRequest.from(imageBytes)
-                .contentType(imageContent.mimeType())
-                .fileName("tool-result-image.png")
-                .build());
+    try {
+      final var imageBytes = Base64.getDecoder().decode(imageContent.data());
+      final var document =
+          context.create(
+              DocumentCreationRequest.from(imageBytes)
+                  .contentType(imageContent.mimeType())
+                  .fileName("tool-result-image.png")
+                  .build());
 
-    return DocumentContent.documentContent(document);
+      if (document == null) {
+        throw new IllegalStateException("Document creation returned null");
+      }
+
+      return DocumentContent.documentContent(document);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException(
+          "Failed to decode base64 image data: " + e.getMessage(), e);
+    }
   }
 
   /**
@@ -249,17 +256,27 @@ final class ToolCallRequest {
    * @param base64Data The base64-encoded image data
    * @param mimeType The MIME type of the image
    * @return DocumentContent containing the image
+   * @throws IllegalArgumentException if the image data is invalid
    */
   private DocumentContent createDocumentFromBase64Image(String base64Data, String mimeType) {
-    final var imageBytes = Base64.getDecoder().decode(base64Data);
-    final var document =
-        context.create(
-            DocumentCreationRequest.from(imageBytes)
-                .contentType(mimeType)
-                .fileName("tool-result-image.png")
-                .build());
+    try {
+      final var imageBytes = Base64.getDecoder().decode(base64Data);
+      final var document =
+          context.create(
+              DocumentCreationRequest.from(imageBytes)
+                  .contentType(mimeType)
+                  .fileName("tool-result-image.png")
+                  .build());
 
-    return DocumentContent.documentContent(document);
+      if (document == null) {
+        throw new IllegalStateException("Document creation returned null");
+      }
+
+      return DocumentContent.documentContent(document);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException(
+          "Failed to decode base64 image data: " + e.getMessage(), e);
+    }
   }
 
   /**
@@ -267,18 +284,29 @@ final class ToolCallRequest {
    *
    * @param embeddedResource The MCP embedded resource
    * @return Content (DocumentContent for blobs, TextContent for text resources)
+   * @throws IllegalArgumentException if the resource data is invalid
    */
   private Content createDocumentFromEmbeddedResource(McpEmbeddedResource embeddedResource) {
     return switch (embeddedResource.resource()) {
       case McpBlobResourceContents blobContents -> {
-        final var blobBytes = Base64.getDecoder().decode(blobContents.blob());
-        final var document =
-            context.create(
-                DocumentCreationRequest.from(blobBytes)
-                    .contentType(blobContents.mimeType())
-                    .fileName("tool-result-resource")
-                    .build());
-        yield DocumentContent.documentContent(document);
+        try {
+          final var blobBytes = Base64.getDecoder().decode(blobContents.blob());
+          final var document =
+              context.create(
+                  DocumentCreationRequest.from(blobBytes)
+                      .contentType(blobContents.mimeType())
+                      .fileName("tool-result-resource")
+                      .build());
+
+          if (document == null) {
+            throw new IllegalStateException("Document creation returned null");
+          }
+
+          yield DocumentContent.documentContent(document);
+        } catch (IllegalArgumentException e) {
+          throw new IllegalArgumentException(
+              "Failed to decode base64 blob data: " + e.getMessage(), e);
+        }
       }
       case McpTextResourceContents textContents -> TextContent.textContent(textContents.text());
     };
@@ -305,14 +333,25 @@ final class ToolCallRequest {
         final var blob = resourceMap.get("blob");
         final var mimeType = resourceMap.getOrDefault("mimeType", "application/octet-stream");
         if (blob != null) {
-          final var blobBytes = Base64.getDecoder().decode(blob.toString());
-          final var document =
-              context.create(
-                  DocumentCreationRequest.from(blobBytes)
-                      .contentType(mimeType.toString())
-                      .fileName("tool-result-resource")
-                      .build());
-          yield DocumentContent.documentContent(document);
+          try {
+            final var blobBytes = Base64.getDecoder().decode(blob.toString());
+            final var document =
+                context.create(
+                    DocumentCreationRequest.from(blobBytes)
+                        .contentType(mimeType.toString())
+                        .fileName("tool-result-resource")
+                        .build());
+
+            if (document == null) {
+              LOGGER.warn("Document creation returned null for blob resource");
+              yield null;
+            }
+
+            yield DocumentContent.documentContent(document);
+          } catch (IllegalArgumentException e) {
+            LOGGER.warn("Failed to decode base64 blob data from resource map: {}", e.getMessage());
+            yield null;
+          }
         }
         yield null;
       }
