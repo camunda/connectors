@@ -27,7 +27,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
  * FEEL functions disabled to avoid evaluating FEEL expressions during outbound connector
  * processing.
  */
-@Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER, ElementType.TYPE})
+@Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 @Qualifier
 public @interface OutboundConnectorObjectMapper {}
