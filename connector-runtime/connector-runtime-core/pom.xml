@@ -9,7 +9,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <name>connector-runtime-core</name>
+  <name>Connector Runtime Core</name>
   <description>Camunda Connector Utilities to build runtimes</description>
   <artifactId>connector-runtime-core</artifactId>
   <packaging>jar</packaging>
