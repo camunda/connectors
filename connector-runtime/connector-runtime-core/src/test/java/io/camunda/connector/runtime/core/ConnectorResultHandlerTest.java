@@ -101,4 +101,88 @@ class ConnectorResultHandlerTest {
     // then - should evaluate successfully with null values
     assertThat(actual).containsEntry("status", null);
   }
+
+  @Test
+  void shouldProvideGoodErrorMessage_WhenResultExpressionReturnsArray() {
+    // given - result expression that produces an array
+    final String resultExpression = "= [1, 2, 3]";
+    final Object responseContent = Map.of();
+
+    // when - should throw exception with clear message
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () ->
+                connectorResultHandler.createOutputVariables(
+                    responseContent, null, resultExpression));
+
+    // then - should indicate that an array was returned and context is expected
+    assertThat(exception.getMessage())
+        .contains("Result expression must return a context")
+        .contains("an array")
+        .contains("[1,2,3]");
+  }
+
+  @Test
+  void shouldProvideGoodErrorMessage_WhenResultExpressionReturnsString() {
+    // given - result expression that produces a string
+    final String resultExpression = "= \"hello\"";
+    final Object responseContent = Map.of();
+
+    // when - should throw exception with clear message
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () ->
+                connectorResultHandler.createOutputVariables(
+                    responseContent, null, resultExpression));
+
+    // then - should indicate that a primitive was returned and context is expected
+    assertThat(exception.getMessage())
+        .contains("Result expression must return a context")
+        .contains("a primitive value")
+        .contains("\"hello\"");
+  }
+
+  @Test
+  void shouldProvideGoodErrorMessage_WhenResultExpressionReturnsNumber() {
+    // given - result expression that produces a number
+    final String resultExpression = "= 42";
+    final Object responseContent = Map.of();
+
+    // when - should throw exception with clear message
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () ->
+                connectorResultHandler.createOutputVariables(
+                    responseContent, null, resultExpression));
+
+    // then - should indicate that a primitive was returned and context is expected
+    assertThat(exception.getMessage())
+        .contains("Result expression must return a context")
+        .contains("a primitive value")
+        .contains("42");
+  }
+
+  @Test
+  void shouldProvideGoodErrorMessage_WhenResultExpressionReturnsBoolean() {
+    // given - result expression that produces a boolean
+    final String resultExpression = "= true";
+    final Object responseContent = Map.of();
+
+    // when - should throw exception with clear message
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () ->
+                connectorResultHandler.createOutputVariables(
+                    responseContent, null, resultExpression));
+
+    // then - should indicate that a boolean was returned and context is expected
+    assertThat(exception.getMessage())
+        .contains("Result expression must return a context")
+        .contains("a boolean")
+        .contains("true");
+  }
 }

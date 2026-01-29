@@ -38,6 +38,9 @@ import java.util.Optional;
 public class ConnectorResultHandler {
 
   private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse '%s' as '%s'.";
+  private static final String ERROR_RESULT_EXPRESSION_INVALID_TYPE =
+      "Result expression must return a context (a JSON object structure), but got: %s. "
+          + "The result expression evaluated to: %s";
   public static List<String> FORBIDDEN_LITERALS = List.of(IntrinsicFunctionModel.DISCRIMINATOR_KEY);
 
   private FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
@@ -105,6 +108,17 @@ public class ConnectorResultHandler {
     try {
       return objectMapper.readValue(jsonVars, type);
     } catch (JsonProcessingException e) {
+      // When expecting a Map (result expression output), provide a better error message
+      if (type.equals(Map.class)) {
+        String valueType = determineJsonType(jsonVars);
+        throw new ConnectorInputException(
+            new FeelEngineWrapperException(
+                String.format(ERROR_RESULT_EXPRESSION_INVALID_TYPE, valueType, jsonVars),
+                expression,
+                jsonVars,
+                e));
+      }
+      // For other types (like ConnectorError), keep the original message
       throw new ConnectorInputException(
           new FeelEngineWrapperException(
               String.format(ERROR_CANNOT_PARSE_VARIABLES, jsonVars, type.getName()),
@@ -112,6 +126,23 @@ public class ConnectorResultHandler {
               jsonVars,
               e));
     }
+  }
+
+  private String determineJsonType(String jsonVars) {
+    if (jsonVars == null || jsonVars.isBlank()) {
+      return "null or empty value";
+    }
+    String trimmed = jsonVars.trim();
+    if (trimmed.startsWith("[")) {
+      return "an array";
+    } else if (trimmed.startsWith("\"") || trimmed.matches("^[0-9]+$") || trimmed.matches("^[0-9]+\\.[0-9]+$")) {
+      return "a primitive value";
+    } else if (trimmed.equals("true") || trimmed.equals("false")) {
+      return "a boolean";
+    } else if (trimmed.equals("null")) {
+      return "null";
+    }
+    return "an invalid type";
   }
 
   private void verifyNoForbiddenLiterals(String json) {

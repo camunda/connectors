@@ -412,7 +412,9 @@ class SpringConnectorJobHandlerTest {
                 .executeAndCaptureResult(jobHandler, false);
 
         // then
-        assertThat(result.getErrorMessage()).contains("Cannot parse '\"FOO\"' as 'java.util.Map'");
+        assertThat(result.getErrorMessage())
+            .contains("Result expression must return a context")
+            .contains("a primitive value");
       }
 
       @Test
@@ -428,7 +430,9 @@ class SpringConnectorJobHandlerTest {
                 .executeAndCaptureResult(jobHandler, false);
 
         // then
-        assertThat(result.getErrorMessage()).contains("Cannot parse '\"BAR\"' as 'java.util.Map'");
+        assertThat(result.getErrorMessage())
+            .contains("Result expression must return a context")
+            .contains("a primitive value");
       }
     }
 
