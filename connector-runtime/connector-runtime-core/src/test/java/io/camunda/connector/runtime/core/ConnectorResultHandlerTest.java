@@ -137,10 +137,10 @@ class ConnectorResultHandlerTest {
                 connectorResultHandler.createOutputVariables(
                     responseContent, null, resultExpression));
 
-    // then - should indicate that a primitive was returned and context is expected
+    // then - should indicate that a string was returned and context is expected
     assertThat(exception.getMessage())
         .contains("Result expression must return a context")
-        .contains("a primitive value")
+        .contains("a string")
         .contains("\"hello\"");
   }
 
@@ -158,10 +158,10 @@ class ConnectorResultHandlerTest {
                 connectorResultHandler.createOutputVariables(
                     responseContent, null, resultExpression));
 
-    // then - should indicate that a primitive was returned and context is expected
+    // then - should indicate that a number was returned and context is expected
     assertThat(exception.getMessage())
         .contains("Result expression must return a context")
-        .contains("a primitive value")
+        .contains("a number")
         .contains("42");
   }
 
@@ -184,5 +184,46 @@ class ConnectorResultHandlerTest {
         .contains("Result expression must return a context")
         .contains("a boolean")
         .contains("true");
+  }
+
+  @Test
+  void shouldProvideGoodErrorMessage_WhenResultExpressionReturnsNull() {
+    // given - result expression that produces null
+    final String resultExpression = "= null";
+    final Object responseContent = Map.of();
+
+    // when - should throw exception with clear message
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () ->
+                connectorResultHandler.createOutputVariables(
+                    responseContent, null, resultExpression));
+
+    // then - should indicate that null was returned and context is expected
+    assertThat(exception.getMessage())
+        .contains("Result expression must return a context")
+        .contains("null");
+  }
+
+  @Test
+  void shouldProvideGoodErrorMessage_WhenResultExpressionReturnsNegativeNumber() {
+    // given - result expression that produces a negative number
+    final String resultExpression = "= -42";
+    final Object responseContent = Map.of();
+
+    // when - should throw exception with clear message
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () ->
+                connectorResultHandler.createOutputVariables(
+                    responseContent, null, resultExpression));
+
+    // then - should indicate that a number was returned and context is expected
+    assertThat(exception.getMessage())
+        .contains("Result expression must return a context")
+        .contains("a number")
+        .contains("-42");
   }
 }

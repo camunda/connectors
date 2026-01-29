@@ -129,18 +129,23 @@ public class ConnectorResultHandler {
   }
 
   private String determineJsonType(String jsonVars) {
-    if (jsonVars == null || jsonVars.isBlank()) {
-      return "null or empty value";
+    if (jsonVars == null) {
+      return "null";
+    }
+    if (jsonVars.isBlank()) {
+      return "an empty value";
     }
     String trimmed = jsonVars.trim();
     if (trimmed.startsWith("[")) {
       return "an array";
-    } else if (trimmed.startsWith("\"") || trimmed.matches("^[0-9]+$") || trimmed.matches("^[0-9]+\\.[0-9]+$")) {
-      return "a primitive value";
     } else if (trimmed.equals("true") || trimmed.equals("false")) {
       return "a boolean";
     } else if (trimmed.equals("null")) {
       return "null";
+    } else if (trimmed.startsWith("\"")) {
+      return "a string";
+    } else if (trimmed.matches("-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?")) {
+      return "a number";
     }
     return "an invalid type";
   }

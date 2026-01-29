@@ -414,7 +414,7 @@ class SpringConnectorJobHandlerTest {
         // then
         assertThat(result.getErrorMessage())
             .contains("Result expression must return a context")
-            .contains("a primitive value");
+            .contains("a string");
       }
 
       @Test
@@ -432,7 +432,7 @@ class SpringConnectorJobHandlerTest {
         // then
         assertThat(result.getErrorMessage())
             .contains("Result expression must return a context")
-            .contains("a primitive value");
+            .contains("a string");
       }
     }
 
