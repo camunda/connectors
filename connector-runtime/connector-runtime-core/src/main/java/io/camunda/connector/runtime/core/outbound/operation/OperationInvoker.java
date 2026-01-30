@@ -134,9 +134,9 @@ public class OperationInvoker {
   private static RuntimeException runtimeExceptionFrom(InvocationTargetException e) {
     Throwable targetException = e.getTargetException();
     if (targetException instanceof RuntimeException runtimeException) {
-      throw runtimeException;
+      return runtimeException;
     } else {
-      throw new RuntimeException(targetException);
+      return new RuntimeException(targetException);
     }
   }
 
