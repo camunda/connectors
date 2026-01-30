@@ -28,6 +28,11 @@ on:
         required: false
         type: string
         default: ''
+      failure-percentage:
+        description: 'Percentage chance of random failure for each step (0-100)'
+        required: false
+        type: number
+        default: 0
       delay-seconds:
         description: 'Delay in seconds for each step (to simulate work)'
         required: false
@@ -58,6 +63,7 @@ jobs:
           echo "Version: ${{ inputs.version }}"
           echo "Environment: ${{ inputs.environment }}"
           echo "Failing Steps: ${{ inputs.failing-steps || 'none' }}"
+          echo "Failure Percentage: ${{ inputs.failure-percentage }}%"
           echo "Delay: ${{ inputs.delay-seconds }}s"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
@@ -67,8 +73,18 @@ jobs:
           sleep ${{ inputs.delay-seconds }}
           
           if [[ ",${{ inputs.failing-steps }}," == *",setup,"* ]]; then
-            echo "❌ FAILURE: Setup step was configured to fail"
-            exit 1
+            # Check if random failure based on percentage
+            if [[ ${{ inputs.failure-percentage }} -gt 0 ]]; then
+              RANDOM_NUM=$((RANDOM % 100))
+              if [[ $RANDOM_NUM -lt ${{ inputs.failure-percentage }} ]]; then
+                echo "❌ FAILURE: Setup step failed randomly ($RANDOM_NUM < ${{ inputs.failure-percentage }}%)"
+                exit 1
+              fi
+              echo "🎲 Random check passed ($RANDOM_NUM >= ${{ inputs.failure-percentage }}%)"
+            else
+              echo "❌ FAILURE: Setup step was configured to fail"
+              exit 1
+            fi
           fi
           
           echo "✅ Setup completed successfully"
@@ -86,8 +102,17 @@ jobs:
           sleep ${{ inputs.delay-seconds }}
           
           if [[ ",${{ inputs.failing-steps }}," == *",build,"* ]]; then
-            echo "❌ FAILURE: Build step was configured to fail"
-            exit 1
+            if [[ ${{ inputs.failure-percentage }} -gt 0 ]]; then
+              RANDOM_NUM=$((RANDOM % 100))
+              if [[ $RANDOM_NUM -lt ${{ inputs.failure-percentage }} ]]; then
+                echo "❌ FAILURE: Build step failed randomly ($RANDOM_NUM < ${{ inputs.failure-percentage }}%)"
+                exit 1
+              fi
+              echo "🎲 Random check passed ($RANDOM_NUM >= ${{ inputs.failure-percentage }}%)"
+            else
+              echo "❌ FAILURE: Build step was configured to fail"
+              exit 1
+            fi
           fi
           
           echo "✅ Build completed successfully"
@@ -111,11 +136,20 @@ jobs:
           sleep ${{ inputs.delay-seconds }}
           
           if [[ ",${{ inputs.failing-steps }}," == *",test,"* ]]; then
-            echo "❌ FAILURE: Test step was configured to fail"
-            echo "Failed tests:"
-            echo "  - testUserAuthentication"
-            echo "  - testPaymentProcessing"
-            exit 1
+            if [[ ${{ inputs.failure-percentage }} -gt 0 ]]; then
+              RANDOM_NUM=$((RANDOM % 100))
+              if [[ $RANDOM_NUM -lt ${{ inputs.failure-percentage }} ]]; then
+                echo "❌ FAILURE: Unit tests failed randomly ($RANDOM_NUM < ${{ inputs.failure-percentage }}%)"
+                exit 1
+              fi
+              echo "🎲 Random check passed ($RANDOM_NUM >= ${{ inputs.failure-percentage }}%)"
+            else
+              echo "❌ FAILURE: Test step was configured to fail"
+              echo "Failed tests:"
+              echo "  - testUserAuthentication"
+              echo "  - testPaymentProcessing"
+              exit 1
+            fi
           fi
           
           echo "✅ All 42 tests passed"
@@ -126,8 +160,17 @@ jobs:
           sleep ${{ inputs.delay-seconds }}
           
           if [[ ",${{ inputs.failing-steps }}," == *",integration,"* ]]; then
-            echo "❌ FAILURE: Integration tests were configured to fail"
-            exit 1
+            if [[ ${{ inputs.failure-percentage }} -gt 0 ]]; then
+              RANDOM_NUM=$((RANDOM % 100))
+              if [[ $RANDOM_NUM -lt ${{ inputs.failure-percentage }} ]]; then
+                echo "❌ FAILURE: Integration tests failed randomly ($RANDOM_NUM < ${{ inputs.failure-percentage }}%)"
+                exit 1
+              fi
+              echo "🎲 Random check passed ($RANDOM_NUM >= ${{ inputs.failure-percentage }}%)"
+            else
+              echo "❌ FAILURE: Integration tests were configured to fail"
+              exit 1
+            fi
           fi
           
           echo "✅ All 15 integration tests passed"
@@ -143,9 +186,18 @@ jobs:
           sleep ${{ inputs.delay-seconds }}
           
           if [[ ",${{ inputs.failing-steps }}," == *",security,"* ]]; then
-            echo "❌ FAILURE: Security scan found critical vulnerabilities"
-            echo "CVE-2024-1234: Critical vulnerability in dependency X"
-            exit 1
+            if [[ ${{ inputs.failure-percentage }} -gt 0 ]]; then
+              RANDOM_NUM=$((RANDOM % 100))
+              if [[ $RANDOM_NUM -lt ${{ inputs.failure-percentage }} ]]; then
+                echo "❌ FAILURE: Security scan failed randomly ($RANDOM_NUM < ${{ inputs.failure-percentage }}%)"
+                exit 1
+              fi
+              echo "🎲 Random check passed ($RANDOM_NUM >= ${{ inputs.failure-percentage }}%)"
+            else
+              echo "❌ FAILURE: Security scan found critical vulnerabilities"
+              echo "CVE-2024-1234: Critical vulnerability in dependency X"
+              exit 1
+            fi
           fi
           
           echo "✅ No security vulnerabilities found"
@@ -164,9 +216,18 @@ jobs:
           sleep ${{ inputs.delay-seconds }}
           
           if [[ ",${{ inputs.failing-steps }}," == *",deploy,"* ]]; then
-            echo "❌ FAILURE: Deploy step was configured to fail"
-            echo "Error: Connection refused to ${{ inputs.environment }} server"
-            exit 1
+            if [[ ${{ inputs.failure-percentage }} -gt 0 ]]; then
+              RANDOM_NUM=$((RANDOM % 100))
+              if [[ $RANDOM_NUM -lt ${{ inputs.failure-percentage }} ]]; then
+                echo "❌ FAILURE: Deploy step failed randomly ($RANDOM_NUM < ${{ inputs.failure-percentage }}%)"
+                exit 1
+              fi
+              echo "🎲 Random check passed ($RANDOM_NUM >= ${{ inputs.failure-percentage }}%)"
+            else
+              echo "❌ FAILURE: Deploy step was configured to fail"
+              echo "Error: Connection refused to ${{ inputs.environment }} server"
+              exit 1
+            fi
           fi
           
           echo "✅ Deployment completed successfully"
