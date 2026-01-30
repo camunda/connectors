@@ -27,6 +27,7 @@ import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.core.intrinsic.DefaultIntrinsicFunctionExecutor;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
@@ -176,6 +177,29 @@ public class OutboundConnectorsAutoConfiguration {
     return copy.registerModules(
         jacksonModuleDocumentDeserializer,
         new JacksonModuleFeelFunction(),
+        new JacksonModuleDocumentSerializer());
+  }
+
+  /**
+   * ObjectMapper for OutboundConnectorManager with FEEL functions disabled. This prevents FEEL
+   * expression evaluation during outbound connector variable binding.
+   */
+  @Bean(defaultCandidate = false)
+  @OutboundConnectorObjectMapper
+  @ConditionalOnMissingBean(name = "outboundConnectorObjectMapper")
+  public ObjectMapper outboundConnectorObjectMapper(DocumentFactory documentFactory) {
+    final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
+    var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
+
+    var jacksonModuleDocumentDeserializer =
+        new JacksonModuleDocumentDeserializer(
+            documentFactory,
+            functionExecutor,
+            JacksonModuleDocumentDeserializer.DocumentModuleSettings.create());
+
+    return copy.registerModules(
+        jacksonModuleDocumentDeserializer,
+        new JacksonModuleFeelFunction(false), // FEEL functions disabled
         new JacksonModuleDocumentSerializer());
   }
 }
