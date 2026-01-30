@@ -5,14 +5,18 @@ on:
   schedule: # Run nightly
     - cron: "0 3 * * *"  # Runs daily at 03:00 UTC
   pull_request:
-    types: [ labeled ]
+    types: [ labeled, synchronize ]
 
 jobs:
 
   get-branches:
     runs-on: ubuntu-latest
-    # Only run if scheduled/manual OR if the 'e2e-tests' label was added on a non-fork PR
-    if: github.event_name != 'pull_request' || (github.event.label.name == 'e2e-tests' && github.event.pull_request.head.repo.fork == false)
+    # Only run if scheduled/manual OR if the 'e2e-tests' label exists on a non-fork PR
+    if: |
+      github.event_name != 'pull_request' || 
+      (github.event.pull_request.head.repo.fork == false && 
+       (github.event.action == 'labeled' && github.event.label.name == 'e2e-tests') ||
+       (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'e2e-tests')))
     outputs:
       branches: ${{ steps.set-matrix.outputs.branches }}
     steps:

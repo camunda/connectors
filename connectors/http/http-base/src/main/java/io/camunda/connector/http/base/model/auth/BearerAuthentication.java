@@ -6,13 +6,15 @@
  */
 package io.camunda.connector.http.base.model.auth;
 
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotEmpty;
 
 @TemplateSubType(id = BearerAuthentication.TYPE, label = "Bearer token")
 public record BearerAuthentication(
-    @NotEmpty @TemplateProperty(group = "authentication", label = "Bearer token") String token)
+    @FEEL @NotEmpty @TemplateProperty(group = "authentication", label = "Bearer token")
+        String token)
     implements Authentication {
 
   @TemplateProperty(ignore = true)

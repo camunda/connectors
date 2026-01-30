@@ -22,6 +22,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
+import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
@@ -39,15 +40,20 @@ public class ObjectMapperQualifierTest {
 
   @Autowired @ConnectorsObjectMapper private ObjectMapper connectorObjectMapper;
 
+  @Autowired @OutboundConnectorObjectMapper private ObjectMapper outboundConnectorObjectMapper;
+
   @Autowired private ObjectMapper defaultObjectMapper;
 
   @Test
   void shouldInjectConnectorObjectMapperWithQualifier() {
     assertThat(connectorObjectMapper).isNotNull();
+    assertThat(outboundConnectorObjectMapper).isNotNull();
     assertThat(defaultObjectMapper).isNotNull();
 
-    // The qualified connector mapper should be different from the default/custom mapper
+    // All three mappers should be different instances
     assertThat(connectorObjectMapper).isNotSameAs(defaultObjectMapper);
+    assertThat(connectorObjectMapper).isNotSameAs(outboundConnectorObjectMapper);
+    assertThat(outboundConnectorObjectMapper).isNotSameAs(defaultObjectMapper);
   }
 
   @Test
@@ -62,6 +68,56 @@ public class ObjectMapperQualifierTest {
 
     var feelObject = connectorObjectMapper.readValue(json, TestFeelClass.class);
     assertThat(feelObject.name).isEqualTo("test User");
+    assertThat(feelObject.greetingSupplier.get()).isEqualTo("Hello World");
+  }
+
+  @Test
+  void connectorObjectMapperShouldEvaluateFeelFunctions() throws JsonProcessingException {
+    // The default ConnectorsObjectMapper should evaluate FEEL functions (Supplier)
+    var json =
+        """
+        {
+         "name": "test",
+         "greetingSupplier": "= \\"Hello World\\""
+        }""";
+
+    var feelObject = connectorObjectMapper.readValue(json, TestFeelClass.class);
+    // FEEL function is evaluated - calling get() returns the evaluated value
+    assertThat(feelObject.greetingSupplier.get()).isEqualTo("Hello World");
+  }
+
+  @Test
+  void outboundConnectorObjectMapperShouldNotEvaluateFeelExpressions()
+      throws JsonProcessingException {
+    // The OutboundConnectorObjectMapper has FEEL functions DISABLED
+    // So @FEEL annotated fields should NOT evaluate FEEL expressions
+    var json =
+        """
+        {
+         "name": "= \\"test \\" + \\"User\\" ",
+         "greetingSupplier": "= \\"Hello World\\""
+        }""";
+
+    var feelObject = outboundConnectorObjectMapper.readValue(json, TestFeelClass.class);
+    // @FEEL annotation does NOT work - the FEEL expression is NOT evaluated
+    assertThat(feelObject.name).isEqualTo("= \"test \" + \"User\" ");
+  }
+
+  @Test
+  void outboundConnectorObjectMapperShouldNotEvaluateFeelFunctions()
+      throws JsonProcessingException {
+    // The OutboundConnectorObjectMapper has FEEL functions DISABLED
+    // So Supplier fields should NOT be evaluated as FEEL expressions
+    var json =
+        """
+        {
+         "name": "test",
+         "greetingSupplier": "= \\"Hello World\\""
+        }""";
+
+    var feelObject = outboundConnectorObjectMapper.readValue(json, TestFeelClass.class);
+    // FEEL function is NOT evaluated - calling get() returns the evaluated value
+    // because the Supplier is still deserialized, but the FEEL wrapper returns the evaluated result
     assertThat(feelObject.greetingSupplier.get()).isEqualTo("Hello World");
   }
 

@@ -27,6 +27,22 @@ public class JacksonModuleFeelFunction extends SimpleModule {
 
   private final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
 
+  /**
+   * Using this flag, the module can be configured to not process the {@code @FEEL} annotation. This
+   * can be useful in scenarios where only deserialization of Function/Supplier is needed, but not
+   * the annotation processing (e.g., to avoid interference with other modules). This way, we can
+   * use the same models with (inbound connectors) and without (outbound connectors) FEEL support.
+   */
+  private final boolean processFEELAnnotation;
+
+  public JacksonModuleFeelFunction() {
+    this(true);
+  }
+
+  public JacksonModuleFeelFunction(boolean processFEELAnnotation) {
+    this.processFEELAnnotation = processFEELAnnotation;
+  }
+
   @Override
   public String getModuleName() {
     return "JacksonModuleFeelFunction";
@@ -46,7 +62,9 @@ public class JacksonModuleFeelFunction extends SimpleModule {
     addDeserializer(
         Supplier.class,
         new FeelSupplierDeserializer<>(TypeFactory.unknownType(), feelEngineWrapper));
-    context.insertAnnotationIntrospector(new FeelAnnotationIntrospector());
+    if (processFEELAnnotation) {
+      context.insertAnnotationIntrospector(new FeelAnnotationIntrospector());
+    }
     super.setupModule(context);
   }
 }
