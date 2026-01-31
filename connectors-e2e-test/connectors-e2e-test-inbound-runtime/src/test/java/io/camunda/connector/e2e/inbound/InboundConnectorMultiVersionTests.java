@@ -23,10 +23,10 @@ import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.e2e.BpmnFile;
 import io.camunda.connector.e2e.ElementTemplate;
+import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration.InboundConnectorTestHelper;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableResponse;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
-import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
@@ -43,6 +43,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 
 /**
  * CPT (Camunda Process Test) for inbound connector multi-version lifecycle scenarios.
@@ -69,6 +70,7 @@ import org.springframework.boot.test.context.SpringBootTest;
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
+@Import(InboundConnectorTestConfiguration.class)
 @SlowTest
 public class InboundConnectorMultiVersionTests {
 
@@ -81,9 +83,9 @@ public class InboundConnectorMultiVersionTests {
   @Autowired CamundaClient camundaClient;
 
   @Autowired InboundExecutableRegistry executableRegistry;
+  @Autowired InboundConnectorTestHelper inboundConnectorTestHelper;
 
   private volatile String testProcessId;
-  @Autowired private ProcessDefinitionInspector processDefinitionInspector;
 
   @BeforeEach
   void setUp() {
@@ -91,25 +93,8 @@ public class InboundConnectorMultiVersionTests {
     testProcessId = "testProcess_" + UUID.randomUUID().toString().substring(0, 8);
     TestInboundConnector.resetCounters();
 
-    // PD keys can duplicate across tests (this does not happen in real world)
-    // So we clear the inspector cache to avoid cross-test interference
-    processDefinitionInspector.clearCache();
-
-    // Wait for any executables from previous tests to be cleaned up
-    // This prevents flakiness due to state carryover between tests
-    awaitNoActiveExecutables();
-  }
-
-  /** Waits until there are no active executables in the registry. */
-  private void awaitNoActiveExecutables() {
-    Awaitility.await("all executables should be cleaned up from previous tests")
-        .atMost(AWAIT_TIMEOUT)
-        .untilAsserted(
-            () -> {
-              var allExecutables =
-                  executableRegistry.query(new ActiveExecutableQuery(null, null, null, null));
-              assertThat(allExecutables).isEmpty();
-            });
+    // clear process definition caches & reset executables from previous tests
+    inboundConnectorTestHelper.setUpTest();
   }
 
   // ============= BPMN Building Helpers =============

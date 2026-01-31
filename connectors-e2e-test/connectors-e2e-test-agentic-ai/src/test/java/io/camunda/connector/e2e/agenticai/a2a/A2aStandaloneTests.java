@@ -36,10 +36,9 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
-import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
-import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
+import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration;
+import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration.InboundConnectorTestHelper;
 import io.camunda.connector.runtime.inbound.importer.ImportSchedulers;
-import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.Bpmn;
@@ -51,12 +50,12 @@ import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperty;
 import java.io.IOException;
 import java.util.Map;
 import org.assertj.core.api.Assertions;
-import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.io.Resource;
 import org.springframework.test.context.TestPropertySource;
 
@@ -66,16 +65,14 @@ import org.springframework.test.context.TestPropertySource;
       "camunda.connector.polling.enabled=true",
       "camunda.connector.webhook.enabled=true"
     })
+@Import(InboundConnectorTestConfiguration.class)
 @WireMockTest
 public class A2aStandaloneTests extends BaseAgenticAiTest {
 
   private static final String WEBHOOK_ELEMENT_ID = "Wait_For_Completion_Webhook";
 
+  @Autowired private InboundConnectorTestHelper inboundConnectorTestHelper;
   @Autowired private ImportSchedulers importSchedulers;
-
-  @Autowired private InboundExecutableRegistry executableRegistry;
-
-  @Autowired private ProcessDefinitionInspector processDefinitionInspector;
 
   @Value("classpath:a2a-connectors-standalone.bpmn")
   protected Resource testProcess;
@@ -92,9 +89,8 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
     webhookUrl = "http://localhost:%s/inbound/test-webhook-id".formatted(port);
     setUpWireMockStubs();
 
-    // Wait for any executables from previous tests to be cleaned up
-    // This prevents flakiness due to state carryover between tests
-    awaitNoActiveExecutables();
+    // clear process definition caches & reset executables from previous tests
+    inboundConnectorTestHelper.setUpTest();
   }
 
   @Test
@@ -424,19 +420,5 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
   private String extractTaskFromJsonRpc(String jsonRpcResponse) throws Exception {
     var root = objectMapper.readTree(jsonRpcResponse);
     return objectMapper.writeValueAsString(root.get("result"));
-  }
-
-  /** Waits until there are no active executables in the registry. */
-  private void awaitNoActiveExecutables() {
-    processDefinitionInspector.clearCache();
-
-    Awaitility.await("all executables should be cleaned up from previous tests")
-        .atMost(10, java.util.concurrent.TimeUnit.SECONDS)
-        .untilAsserted(
-            () -> {
-              var allExecutables =
-                  executableRegistry.query(new ActiveExecutableQuery(null, null, null, null));
-              assertThat(allExecutables).isEmpty();
-            });
   }
 }
