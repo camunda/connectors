@@ -36,6 +36,8 @@ import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.common.L4JAiAgentA2aIntegrationTestSupport;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
+import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration;
+import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration.InboundConnectorTestHelper;
 import io.camunda.connector.runtime.inbound.importer.ImportSchedulers;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.io.IOException;
@@ -48,6 +50,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.io.Resource;
 import org.springframework.test.context.TestPropertySource;
 
@@ -57,10 +60,12 @@ import org.springframework.test.context.TestPropertySource;
       "camunda.connector.polling.enabled=true",
       "camunda.connector.webhook.enabled=true"
     })
+@Import(InboundConnectorTestConfiguration.class)
 public class L4JAiAgentConnectorA2aIntegrationTests extends BaseL4JAiAgentConnectorTest {
 
   public static final String WEBHOOK_ELEMENT_ID = "Wait_For_Completion_Webhook";
 
+  @Autowired private InboundConnectorTestHelper inboundConnectorTestHelper;
   @Autowired private ImportSchedulers importSchedulers;
 
   @Value("classpath:agentic-ai-connectors-a2a.bpmn")
@@ -79,6 +84,9 @@ public class L4JAiAgentConnectorA2aIntegrationTests extends BaseL4JAiAgentConnec
     testSupport = new L4JAiAgentA2aIntegrationTestSupport(a2aSystemPromptResource, objectMapper);
     testSupport.setUpWireMockStubs(wireMock, (testFile) -> testFileContent(testFile).get());
     webhookUrl = "http://localhost:%s/inbound/test-webhook-id".formatted(port);
+
+    // clear process definition caches & reset executables from previous tests
+    inboundConnectorTestHelper.setUpTest();
   }
 
   @Override
