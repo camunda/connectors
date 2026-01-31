@@ -47,7 +47,8 @@ if (outputFilePath.exists()) {
 
 // Transform properties
 def updatedProperties = []
-json.properties.each { property ->
+
+((List) json.get('properties')).each { property ->
     if (property.id == "inbound.clientResponse") {
         // change inbound.clientResponse text field to be an input mapping mapping to internal_clientResponse
         property.id = "internal_clientResponse"
@@ -90,5 +91,5 @@ json.properties.each { property ->
     }
 }
 
-json.properties = updatedProperties
+json.put('properties', updatedProperties)
 mapper.writeValue(outputFilePath, json)
