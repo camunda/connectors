@@ -36,22 +36,21 @@ import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.common.L4JAiAgentA2aIntegrationTestSupport;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
-import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
-import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
+import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration;
+import io.camunda.connector.e2e.inbound.InboundConnectorTestConfiguration.InboundConnectorTestHelper;
 import io.camunda.connector.runtime.inbound.importer.ImportSchedulers;
-import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.commons.lang3.tuple.Pair;
-import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.io.Resource;
 import org.springframework.test.context.TestPropertySource;
 
@@ -61,13 +60,13 @@ import org.springframework.test.context.TestPropertySource;
       "camunda.connector.polling.enabled=true",
       "camunda.connector.webhook.enabled=true"
     })
+@Import(InboundConnectorTestConfiguration.class)
 public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWorkerTest {
 
   public static final String WEBHOOK_ELEMENT_ID = "Wait_For_Completion_Webhook";
 
+  @Autowired private InboundConnectorTestHelper inboundConnectorTestHelper;
   @Autowired private ImportSchedulers importSchedulers;
-  @Autowired private InboundExecutableRegistry executableRegistry;
-  @Autowired private ProcessDefinitionInspector processDefinitionInspector;
 
   @Value("classpath:agentic-ai-ahsp-connectors-a2a.bpmn")
   protected Resource testProcessWithA2a;
@@ -85,7 +84,9 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
     testSupport = new L4JAiAgentA2aIntegrationTestSupport(a2aSystemPromptResource, objectMapper);
     testSupport.setUpWireMockStubs(wireMock, (testFile) -> testFileContent(testFile).get());
     webhookUrl = "http://localhost:%s/inbound/test-webhook-id".formatted(port);
-    awaitNoActiveExecutables();
+
+    // clear process definition caches & reset executables from previous tests
+    inboundConnectorTestHelper.setUpTest();
   }
 
   @Override
@@ -203,19 +204,5 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
                 .hasResponseText(expectedResponseText));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
-  }
-
-  /** Waits until there are no active executables in the registry. */
-  private void awaitNoActiveExecutables() {
-    processDefinitionInspector.clearCache();
-
-    Awaitility.await("all executables should be cleaned up from previous tests")
-        .atMost(10, java.util.concurrent.TimeUnit.SECONDS)
-        .untilAsserted(
-            () -> {
-              var allExecutables =
-                  executableRegistry.query(new ActiveExecutableQuery(null, null, null, null));
-              assertThat(allExecutables).isEmpty();
-            });
   }
 }
