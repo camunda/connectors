@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
+import static io.camunda.connector.e2e.agenticai.TestUtil.awaitNoActiveInboundExecutables;
 import static io.camunda.connector.e2e.agenticai.TestUtil.postWithDelay;
 import static io.camunda.connector.e2e.agenticai.TestUtil.waitForElementActivation;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
@@ -36,7 +37,6 @@ import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.common.L4JAiAgentA2aIntegrationTestSupport;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
-import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.importer.ImportSchedulers;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
@@ -46,7 +46,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.commons.lang3.tuple.Pair;
-import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,7 +84,10 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
     testSupport = new L4JAiAgentA2aIntegrationTestSupport(a2aSystemPromptResource, objectMapper);
     testSupport.setUpWireMockStubs(wireMock, (testFile) -> testFileContent(testFile).get());
     webhookUrl = "http://localhost:%s/inbound/test-webhook-id".formatted(port);
-    awaitNoActiveExecutables();
+
+    // Wait for any executables from previous tests to be cleaned up
+    // This prevents flakiness due to state carryover between tests
+    awaitNoActiveInboundExecutables(processDefinitionInspector, executableRegistry);
   }
 
   @Override
@@ -203,19 +205,5 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
                 .hasResponseText(expectedResponseText));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
-  }
-
-  /** Waits until there are no active executables in the registry. */
-  private void awaitNoActiveExecutables() {
-    processDefinitionInspector.clearCache();
-
-    Awaitility.await("all executables should be cleaned up from previous tests")
-        .atMost(10, java.util.concurrent.TimeUnit.SECONDS)
-        .untilAsserted(
-            () -> {
-              var allExecutables =
-                  executableRegistry.query(new ActiveExecutableQuery(null, null, null, null));
-              assertThat(allExecutables).isEmpty();
-            });
   }
 }

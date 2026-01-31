@@ -23,6 +23,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
+import static io.camunda.connector.e2e.agenticai.TestUtil.awaitNoActiveInboundExecutables;
 import static io.camunda.connector.e2e.agenticai.TestUtil.postWithDelay;
 import static io.camunda.connector.e2e.agenticai.TestUtil.waitForElementActivation;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,7 +37,6 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
-import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.importer.ImportSchedulers;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
@@ -51,7 +51,6 @@ import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperty;
 import java.io.IOException;
 import java.util.Map;
 import org.assertj.core.api.Assertions;
-import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,7 +93,7 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
 
     // Wait for any executables from previous tests to be cleaned up
     // This prevents flakiness due to state carryover between tests
-    awaitNoActiveExecutables();
+    awaitNoActiveInboundExecutables(processDefinitionInspector, executableRegistry);
   }
 
   @Test
@@ -424,19 +423,5 @@ public class A2aStandaloneTests extends BaseAgenticAiTest {
   private String extractTaskFromJsonRpc(String jsonRpcResponse) throws Exception {
     var root = objectMapper.readTree(jsonRpcResponse);
     return objectMapper.writeValueAsString(root.get("result"));
-  }
-
-  /** Waits until there are no active executables in the registry. */
-  private void awaitNoActiveExecutables() {
-    processDefinitionInspector.clearCache();
-
-    Awaitility.await("all executables should be cleaned up from previous tests")
-        .atMost(10, java.util.concurrent.TimeUnit.SECONDS)
-        .untilAsserted(
-            () -> {
-              var allExecutables =
-                  executableRegistry.query(new ActiveExecutableQuery(null, null, null, null));
-              assertThat(allExecutables).isEmpty();
-            });
   }
 }

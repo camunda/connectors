@@ -16,7 +16,13 @@
  */
 package io.camunda.connector.e2e.agenticai;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+
 import io.camunda.connector.e2e.ZeebeTest;
+import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
+import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
+import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import io.camunda.process.test.api.CamundaAssert;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -67,5 +73,21 @@ public final class TestUtil {
             () ->
                 CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
                     .hasActiveElement(elementId, 1));
+  }
+
+  /** Waits until there are no active executables in the registry. */
+  public static void awaitNoActiveInboundExecutables(
+      ProcessDefinitionInspector processDefinitionInspector,
+      InboundExecutableRegistry executableRegistry) {
+    processDefinitionInspector.clearCache();
+
+    await("all executables should be cleaned up from previous tests")
+        .atMost(10, TimeUnit.SECONDS)
+        .untilAsserted(
+            () -> {
+              var allExecutables =
+                  executableRegistry.query(new ActiveExecutableQuery(null, null, null, null));
+              assertThat(allExecutables).isEmpty();
+            });
   }
 }

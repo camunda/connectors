@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.outboundconnector;
 
+import static io.camunda.connector.e2e.agenticai.TestUtil.awaitNoActiveInboundExecutables;
 import static io.camunda.connector.e2e.agenticai.TestUtil.postWithDelay;
 import static io.camunda.connector.e2e.agenticai.TestUtil.waitForElementActivation;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
@@ -36,7 +37,9 @@ import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.common.L4JAiAgentA2aIntegrationTestSupport;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
+import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.importer.ImportSchedulers;
+import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.io.IOException;
 import java.util.List;
@@ -62,6 +65,8 @@ public class L4JAiAgentConnectorA2aIntegrationTests extends BaseL4JAiAgentConnec
   public static final String WEBHOOK_ELEMENT_ID = "Wait_For_Completion_Webhook";
 
   @Autowired private ImportSchedulers importSchedulers;
+  @Autowired private InboundExecutableRegistry executableRegistry;
+  @Autowired private ProcessDefinitionInspector processDefinitionInspector;
 
   @Value("classpath:agentic-ai-connectors-a2a.bpmn")
   protected Resource testProcessWithA2a;
@@ -79,6 +84,10 @@ public class L4JAiAgentConnectorA2aIntegrationTests extends BaseL4JAiAgentConnec
     testSupport = new L4JAiAgentA2aIntegrationTestSupport(a2aSystemPromptResource, objectMapper);
     testSupport.setUpWireMockStubs(wireMock, (testFile) -> testFileContent(testFile).get());
     webhookUrl = "http://localhost:%s/inbound/test-webhook-id".formatted(port);
+
+    // Wait for any executables from previous tests to be cleaned up
+    // This prevents flakiness due to state carryover between tests
+    awaitNoActiveInboundExecutables(processDefinitionInspector, executableRegistry);
   }
 
   @Override
