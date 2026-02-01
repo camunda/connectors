@@ -10,7 +10,10 @@ import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.message.content.BinaryContent;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceBlobDocumentContent;
+import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.model.message.content.ResourceLinkContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -36,10 +39,34 @@ public record McpClientCallToolResult(String name, List<Content> content, Boolea
   private Content createDocumentIfEligible(Content content, DocumentFactory documentFactory) {
     return switch (content) {
       case BinaryContent binaryContent -> createFromBinary(binaryContent, documentFactory);
+      case EmbeddedResourceContent embeddedResourceContent ->
+          createFromEmbeddedResource(embeddedResourceContent, documentFactory);
       case DocumentContent documentContent -> documentContent;
       case ObjectContent objectContent -> objectContent;
+      case ResourceLinkContent resourceLinkContent -> resourceLinkContent;
       case TextContent textContent -> textContent;
     };
+  }
+
+  private EmbeddedResourceContent createFromEmbeddedResource(
+      EmbeddedResourceContent embeddedResourceContent, DocumentFactory documentFactory) {
+    var resource = embeddedResourceContent.resource();
+    
+    // Only BlobResource needs to be converted to a document
+    if (resource instanceof EmbeddedResourceContent.BlobResource blobResource) {
+      var createdDocument =
+          documentFactory.create(
+              DocumentCreationRequest.from(blobResource.blob())
+                  .contentType(blobResource.mimeType())
+                  .build());
+      
+      return new EmbeddedResourceContent(
+          new EmbeddedResourceBlobDocumentContent(
+              blobResource.uri(), blobResource.mimeType(), createdDocument),
+          embeddedResourceContent.metadata());
+    }
+    
+    return embeddedResourceContent;
   }
 
   private DocumentContent createFromBinary(

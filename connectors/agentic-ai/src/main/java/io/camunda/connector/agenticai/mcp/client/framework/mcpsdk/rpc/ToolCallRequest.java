@@ -12,7 +12,9 @@ import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.model.message.content.BinaryContent;
 import io.camunda.connector.agenticai.model.message.content.Content;
+import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.model.message.content.ResourceLinkContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.util.ObjectMapperConstants;
@@ -112,14 +114,31 @@ final class ToolCallRequest {
     return switch (responseContent) {
       case McpSchema.AudioContent audioContent ->
           fromBlob(audioContent.data(), audioContent.mimeType(), audioContent.meta());
-      case McpSchema.EmbeddedResource embeddedResource ->
-          ObjectContent.objectContent(fromObjectContent(embeddedResource));
+      case McpSchema.EmbeddedResource embeddedResource -> mapEmbeddedResource(embeddedResource);
       case McpSchema.ImageContent imageContent ->
           fromBlob(imageContent.data(), imageContent.mimeType(), imageContent.meta());
-      case McpSchema.ResourceLink resourceLink ->
-          ObjectContent.objectContent(fromObjectContent(resourceLink));
+      case McpSchema.ResourceLink resourceLink -> mapResourceLink(resourceLink);
       case McpSchema.TextContent textContent -> TextContent.textContent(textContent.text());
     };
+  }
+
+  private EmbeddedResourceContent mapEmbeddedResource(McpSchema.EmbeddedResource embeddedResource) {
+    var resource =
+        switch (embeddedResource.resource()) {
+          case McpSchema.TextResourceContents textResource ->
+              new EmbeddedResourceContent.TextResource(
+                  textResource.uri(), textResource.mimeType(), textResource.text());
+          case McpSchema.BlobResourceContents blobResource ->
+              new EmbeddedResourceContent.BlobResource(
+                  blobResource.uri(),
+                  blobResource.mimeType(),
+                  Base64.getDecoder().decode(blobResource.blob()));
+        };
+    return EmbeddedResourceContent.embeddedResource(resource);
+  }
+
+  private ResourceLinkContent mapResourceLink(McpSchema.ResourceLink resourceLink) {
+    return ResourceLinkContent.resourceLink(resourceLink.uri());
   }
 
   private BinaryContent fromBlob(String blob, String mimeType, Map<String, Object> metadata) {

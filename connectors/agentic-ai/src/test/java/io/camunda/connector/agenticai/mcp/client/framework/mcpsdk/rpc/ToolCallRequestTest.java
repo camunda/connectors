@@ -292,6 +292,40 @@ class ToolCallRequestTest {
                     "a-name",
                     List.of(
                         new ObjectContent(Map.of("key", "value", "key2", List.of(1, 2, 3)), null)),
+                    false))),
+        argumentSet(
+            "embedded resource - text",
+            new ToolCallExpectation(
+                callToolResultWithEmbeddedTextResource("uri://resource", "text/plain", "resource text"),
+                new McpClientCallToolResult(
+                    "a-name",
+                    List.of(
+                        new io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent(
+                            new io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent.TextResource(
+                                "uri://resource", "text/plain", "resource text"),
+                            null)),
+                    false))),
+        argumentSet(
+            "embedded resource - blob",
+            new ToolCallExpectation(
+                callToolResultWithEmbeddedBlobResource("uri://resource", "application/octet-stream", "blob data".getBytes(StandardCharsets.UTF_8)),
+                new McpClientCallToolResult(
+                    "a-name",
+                    List.of(
+                        new io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent(
+                            new io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent.BlobResource(
+                                "uri://resource", "application/octet-stream", "blob data".getBytes(StandardCharsets.UTF_8)),
+                            null)),
+                    false))),
+        argumentSet(
+            "resource link",
+            new ToolCallExpectation(
+                callToolResultWithResourceLink("uri://external-resource"),
+                new McpClientCallToolResult(
+                    "a-name",
+                    List.of(
+                        new io.camunda.connector.agenticai.model.message.content.ResourceLinkContent(
+                            "uri://external-resource", null)),
                     false))));
   }
 
@@ -312,6 +346,35 @@ class ToolCallRequestTest {
 
   private static McpSchema.CallToolResult callToolResult(Object structuredContent) {
     return new McpSchema.CallToolResult(null, false, structuredContent, null);
+  }
+
+  private static McpSchema.CallToolResult callToolResultWithEmbeddedTextResource(
+      String uri, String mimeType, String text) {
+    return new McpSchema.CallToolResult(
+        List.of(
+            new McpSchema.EmbeddedResource(
+                null, new McpSchema.TextResourceContents(uri, mimeType, text))),
+        false,
+        null,
+        null);
+  }
+
+  private static McpSchema.CallToolResult callToolResultWithEmbeddedBlobResource(
+      String uri, String mimeType, byte[] blob) {
+    return new McpSchema.CallToolResult(
+        List.of(
+            new McpSchema.EmbeddedResource(
+                null,
+                new McpSchema.BlobResourceContents(
+                    uri, mimeType, Base64.getEncoder().encodeToString(blob)))),
+        false,
+        null,
+        null);
+  }
+
+  private static McpSchema.CallToolResult callToolResultWithResourceLink(String uri) {
+    return new McpSchema.CallToolResult(
+        List.of(new McpSchema.ResourceLink(uri, null)), false, null, null);
   }
 
   static Stream<Arguments> toolExecutionArguments() {

@@ -158,14 +158,51 @@ class McpClientResultDocumentHandlerTest {
                     new McpClientGetPromptResult.PromptMessage(
                         "user",
                         new McpClientGetPromptResult.TextMessage(
-                            "Please review the following code."))))));
+                            "Please review the following code."))))),
+        argumentSet(
+            "Call tool - with embedded text resource",
+            new McpClientCallToolResult(
+                "get-resource",
+                List.of(
+                    new io.camunda.connector.agenticai.model.message.content
+                        .EmbeddedResourceContent(
+                        new io.camunda.connector.agenticai.model.message.content
+                            .EmbeddedResourceContent.TextResource(
+                            "uri://resource", "text/plain", "text content"),
+                        null)),
+                false),
+            new McpClientCallToolResult(
+                "get-resource",
+                List.of(
+                    new io.camunda.connector.agenticai.model.message.content
+                        .EmbeddedResourceContent(
+                        new io.camunda.connector.agenticai.model.message.content
+                            .EmbeddedResourceContent.TextResource(
+                            "uri://resource", "text/plain", "text content"),
+                        null)),
+                false)),
+        argumentSet(
+            "Call tool - with resource link",
+            new McpClientCallToolResult(
+                "get-link",
+                List.of(
+                    new io.camunda.connector.agenticai.model.message.content.ResourceLinkContent(
+                        "uri://external-resource", Map.of("linkMeta", "value"))),
+                false),
+            new McpClientCallToolResult(
+                "get-link",
+                List.of(
+                    new io.camunda.connector.agenticai.model.message.content.ResourceLinkContent(
+                        "uri://external-resource", Map.of("linkMeta", "value"))),
+                false)));
   }
 
   static Stream<Arguments> mcpClientResultsWithBinaryDocumentContainers() {
     return Stream.of(
         getSinglePromptWithAllPossibleMessageTypes(),
         readResourceWithBinaryContent(),
-        callToolWithBinaryContent());
+        callToolWithBinaryContent(),
+        callToolWithEmbeddedBlobResource());
   }
 
   private static Arguments callToolWithBinaryContent() {
@@ -188,6 +225,37 @@ class McpClientResultDocumentHandlerTest {
                         null,
                         "doc-id-0"),
                     Map.of())),
+            false));
+  }
+
+  private static Arguments callToolWithEmbeddedBlobResource() {
+    return argumentSet(
+        "Call tool - with embedded blob resource",
+        new McpClientCallToolResult(
+            "get-resource",
+            List.of(
+                new io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent(
+                    new io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent
+                        .BlobResource(
+                        "uri://resource",
+                        "application/pdf",
+                        "document data".getBytes(StandardCharsets.UTF_8)),
+                    Map.of("meta", "value"))),
+            false),
+        new McpClientCallToolResult(
+            "get-resource",
+            List.of(
+                new io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent(
+                    new io.camunda.connector.agenticai.model.message.content
+                        .EmbeddedResourceBlobDocumentContent(
+                        "uri://resource",
+                        "application/pdf",
+                        new TestDocument(
+                            "document data".getBytes(StandardCharsets.UTF_8),
+                            createDocumentMetadata("application/pdf"),
+                            null,
+                            "doc-id-0")),
+                    Map.of("meta", "value"))),
             false));
   }
 
