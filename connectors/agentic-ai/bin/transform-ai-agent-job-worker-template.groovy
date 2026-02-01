@@ -72,7 +72,7 @@ json.elementType.value = "bpmn:AdHocSubProcess"
 // Transform groups
 def updatedGroups = []
 
-json.groups.each { group ->
+((List) json.get('groups')).each { group ->
     if (group.tooltip) {
         group.tooltip = replaceDocumentationLinks(group.tooltip)
     }
@@ -88,7 +88,7 @@ json.groups.each { group ->
     }
 }
 
-json.groups = updatedGroups
+json.put('groups', updatedGroups)
 
 // Transform properties
 def skipProperties = [
@@ -98,7 +98,7 @@ def skipProperties = [
 ]
 def updatedProperties = []
 
-json.properties.each { property ->
+((List) json.get('properties')).each { property ->
     if (property.id in skipProperties) {
         return
     }
@@ -206,5 +206,5 @@ json.properties.each { property ->
     }
 }
 
-json.properties = updatedProperties
+json.put('properties', updatedProperties)
 mapper.writeValue(outputFilePath, json)

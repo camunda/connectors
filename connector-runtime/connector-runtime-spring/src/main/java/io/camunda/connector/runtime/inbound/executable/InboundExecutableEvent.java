@@ -19,14 +19,32 @@ package io.camunda.connector.runtime.inbound.executable;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import java.util.List;
+import java.util.Map;
 
 public sealed interface InboundExecutableEvent {
 
-  record Activated(
-      String tenantId, long processDefinitionKey, List<InboundConnectorElement> elements)
-      implements InboundExecutableEvent {}
-
-  record Deactivated(String tenantId, long processDefinitionKey)
+  /**
+   * Represents a complete state change for a single process definition (identified by bpmnProcessId
+   * + tenantId). Contains all currently active versions and their connector elements.
+   *
+   * <p>This event allows the registry to:
+   *
+   * <ul>
+   *   <li>See the complete picture of active versions for deduplication across versions
+   *   <li>Atomically handle both activations and deactivations in a single event
+   *   <li>Properly merge/split connector elements when versions change
+   * </ul>
+   *
+   * @param bpmnProcessId the BPMN process ID
+   * @param tenantId the tenant ID
+   * @param elementsByProcessDefinitionKey map of process definition key (version) to the list of
+   *     connector elements for that version. An empty map means all versions of this process should
+   *     be deactivated.
+   */
+  record ProcessStateChanged(
+      String bpmnProcessId,
+      String tenantId,
+      Map<Long, List<InboundConnectorElement>> elementsByProcessDefinitionKey)
       implements InboundExecutableEvent {}
 
   record Cancelled(ExecutableId id, Throwable throwable) implements InboundExecutableEvent {}

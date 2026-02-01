@@ -1,0 +1,63 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/mcp",
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": {
+          "expression": "$.method",
+          "equalTo": "prompts/list"
+        }
+      }
+    ]
+  },
+  "response": {
+    "transformers": [
+      "response-template"
+    ],
+    "jsonBody": {
+      "jsonrpc": "2.0",
+      "id": "{{jsonPath request.body '$.id'}}",
+      "result": {
+        "prompts": [
+          {
+            "name": "promptA",
+            "title": "Prompt A",
+            "description": "This is prompt A",
+            "arguments": [
+              {
+                "name": "aName",
+                "description": "A name",
+                "required": true
+              }
+            ]
+          },
+          {
+            "name": "promptB",
+            "title": "Prompt B",
+            "description": "This is prompt B",
+            "arguments": [
+              {
+                "name": "bName",
+                "description": "B name",
+                "required": true
+              }
+            ]
+          },
+          {
+            "name": "promptC",
+            "title": "Prompt C",
+            "description": "This is prompt C",
+            "arguments": [
+              {
+                "name": "aName",
+                "description": "C name",
+                "required": true
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

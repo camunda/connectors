@@ -18,19 +18,22 @@ package io.camunda.connector.e2e;
 
 import static io.camunda.connector.e2e.BpmnFile.replace;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
-import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
+import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,7 +61,7 @@ public class InboundEmailTests extends BaseEmailTest {
 
   @MockitoBean SearchQueryClient searchQueryClient;
   @Autowired CamundaClient camundaClient;
-  @Autowired ProcessStateStore processStateStore;
+  @Autowired ProcessStateManager processStateManager;
   @MockitoBean private ProcessDefinition processDef;
 
   @BeforeEach
@@ -80,13 +83,13 @@ public class InboundEmailTests extends BaseEmailTest {
             BpmnFile.Replace.replace("SMTP_PORT", getUnsecureSmtpPort()));
 
     mockProcessDefinition(model);
-    processStateStore.update(
-        new ProcessImportResult(
+    processStateManager.update(
+        new ImportResult(
             Map.of(
-                new ProcessImportResult.ProcessDefinitionIdentifier(
+                new ProcessDefinitionRef(
                     processDef.getProcessDefinitionId(), processDef.getTenantId()),
-                new ProcessImportResult.ProcessDefinitionVersion(
-                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
+                Set.of(1L)),
+            ImportResult.ImportType.LATEST_VERSIONS));
 
     var bpmnTest = ZeebeTest.with(camundaClient).deploy(model).createInstance();
 
@@ -106,5 +109,7 @@ public class InboundEmailTests extends BaseEmailTest {
         .thenReturn(camundaClient.getConfiguration().getDefaultTenantId());
     when(processDef.getProcessDefinitionId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
+    when(processDef.getVersion()).thenReturn(1);
+    lenient().when(searchQueryClient.getProcessDefinition(1L)).thenReturn(processDef);
   }
 }

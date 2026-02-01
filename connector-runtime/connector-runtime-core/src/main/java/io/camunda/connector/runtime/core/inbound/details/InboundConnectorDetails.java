@@ -17,10 +17,14 @@
 package io.camunda.connector.runtime.core.inbound.details;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.common.collect.MapDifference;
+import com.google.common.collect.Maps;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /** Group of inbound connector elements that share the same deduplication ID. */
 public sealed interface InboundConnectorDetails {
@@ -60,5 +64,35 @@ public sealed interface InboundConnectorDetails {
       @JsonIgnore Map<String, String> rawPropertiesWithoutKeywords,
       List<InboundConnectorElement> connectorElements,
       String processDefinitionId)
-      implements InboundConnectorDetails {}
+      implements InboundConnectorDetails {
+
+    /**
+     * Whether this InboundConnectorDetails is compatible with another one. Two
+     * InboundConnectorDetails are compatible if they have the same type, tenantId, deduplicationId,
+     * are related to the same process definition, AND have the same properties. They can have
+     * different connector elements. This is useful to know if we can update an existing inbound
+     * connector if it has not been changed when a new process version is deployed.
+     */
+    public Optional<List<String>> checkCompatibility(ValidInboundConnectorDetails other) {
+      List<String> validationErrors = new ArrayList<>();
+      if (!this.type().equals(other.type())) {
+        validationErrors.add("type mismatch");
+      }
+      if (!this.tenantId().equals(other.tenantId())) {
+        validationErrors.add("tenantId mismatch");
+      }
+      if (!this.deduplicationId().equals(other.deduplicationId())) {
+        validationErrors.add("deduplicationId mismatch");
+      }
+      if (!this.processDefinitionId().equals(other.processDefinitionId())) {
+        validationErrors.add("processDefinitionId mismatch");
+      }
+      MapDifference<String, String> diff =
+          Maps.difference(this.rawPropertiesWithoutKeywords, other.rawPropertiesWithoutKeywords);
+      if (!diff.areEqual()) {
+        validationErrors.add("properties mismatch: " + diff);
+      }
+      return validationErrors.isEmpty() ? Optional.empty() : Optional.of(validationErrors);
+    }
+  }
 }

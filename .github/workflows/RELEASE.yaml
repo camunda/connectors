@@ -23,11 +23,6 @@ on:
         required: false
         type: boolean
         default: false
-      notify-prs:
-        description: 'Notify PRs that they have been released'
-        required: false
-        type: boolean
-        default: true
 
 jobs:
 
@@ -231,7 +226,6 @@ jobs:
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           base: main
           title: "chore(docs-links): bump versions from ${{ steps.version_check.outputs.previous_minor }} to ${{ steps.version_check.outputs.current_minor }}"
-          labels: "no milestone"
           body: |
             This bumps docs version of latest's element templates of a connector to latest minor version.
 
@@ -577,16 +571,16 @@ jobs:
             secret/data/products/connectors/ci/common FOSSA_API_KEY;
       - name: Get FOSSA context
         id: fossa-context
-        uses: camunda/infra-global-github-actions/fossa/info@fff0b1f11fd8caf3e2a866fd2ecf113c671fab01
+        uses: camunda/infra-global-github-actions/fossa/info@8a60c6ac7a1a041dec275e1ef3635dd6bf2b072c
       - name: Wait for FOSSA scan completion
-        uses: camunda/infra-global-github-actions/fossa/wait-for-scan@fff0b1f11fd8caf3e2a866fd2ecf113c671fab01
+        uses: camunda/infra-global-github-actions/fossa/wait-for-scan@8a60c6ac7a1a041dec275e1ef3635dd6bf2b072c
         with:
           api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           branch: ${{ steps.fossa-context.outputs.head-ref }}
           project-id: "custom+50756/camunda/connectors"
           revision-id: ${{ steps.fossa-context.outputs.head-revision }}
       - name: Create FOSSA releases and generate reports
-        uses: camunda/infra-global-github-actions/fossa/release@fff0b1f11fd8caf3e2a866fd2ecf113c671fab01
+        uses: camunda/infra-global-github-actions/fossa/release@8a60c6ac7a1a041dec275e1ef3635dd6bf2b072c
         with:
           api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           branch: ${{ steps.fossa-context.outputs.head-ref }}
@@ -611,12 +605,13 @@ jobs:
       pull-requests: write
       issues: write
 
+    # Automatically notify PRs for non-RC releases (case-insensitive check)
     if: |
-      inputs.notify-prs &&
       !contains(inputs.version, 'rc') &&
       needs.setup.result == 'success' &&
-      (needs.maven-release.result == 'success' || needs.maven-release.result == 'skipped') &&
-      (needs.docker-release.result == 'success' || needs.docker-release.result == 'skipped')
+      needs.maven-release.result == 'success' &&
+      needs.docker-release.result == 'success' &&
+      needs.bundle-and-build-changelog.result == 'success'
     with:
       version: ${{ inputs.version }}
 

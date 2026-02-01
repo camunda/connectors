@@ -6,8 +6,17 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model.result;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.api.document.Document;
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.DEDUCTION)
+@JsonSubTypes({
+  @com.fasterxml.jackson.annotation.JsonSubTypes.Type(ResourceData.BlobResourceData.class),
+  @com.fasterxml.jackson.annotation.JsonSubTypes.Type(ResourceData.TextResourceData.class),
+  @com.fasterxml.jackson.annotation.JsonSubTypes.Type(
+      ResourceData.CamundaDocumentResourceData.class)
+})
 public sealed interface ResourceData {
 
   record BlobResourceData(String uri, String mimeType, byte[] blob) implements ResourceData {}

@@ -1,0 +1,298 @@
+name: Test Automation Workflow
+run-name: Test Automation - ${{ inputs.test-name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      test-name:
+        description: 'Name of this test run'
+        required: true
+        type: string
+        default: 'my-test'
+      version:
+        description: 'Version to simulate (e.g., 8.7.0)'
+        required: true
+        type: string
+        default: '1.0.0'
+      environment:
+        description: 'Target environment'
+        required: false
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+        default: 'dev'
+      failing-steps:
+        description: 'Comma-separated list of steps to fail (e.g., "build,deploy")'
+        required: false
+        type: string
+        default: ''
+      failure-percentage:
+        description: 'Percentage chance of random failure for each step (0-100)'
+        required: false
+        type: number
+        default: 0
+      delay-seconds:
+        description: 'Delay in seconds for each step (to simulate work)'
+        required: false
+        type: number
+        default: 2
+
+jobs:
+  # Job 1: Setup (runs first)
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      build-id: ${{ steps.generate-id.outputs.build-id }}
+    steps:
+      - name: Generate build ID
+        id: generate-id
+        run: |
+          BUILD_ID="build-$(date +%Y%m%d%H%M%S)-$RANDOM"
+          echo "build-id=$BUILD_ID" >> $GITHUB_OUTPUT
+          echo "🔧 Generated Build ID: $BUILD_ID"
+
+      - name: Print configuration
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📋 Test Configuration"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Test Name: ${{ inputs.test-name }}"
+          echo "Version: ${{ inputs.version }}"
+          echo "Environment: ${{ inputs.environment }}"
+          echo "Failing Steps: ${{ inputs.failing-steps || 'none' }}"
+          echo "Failure Percentage: ${{ inputs.failure-percentage }}%"
+          echo "Delay: ${{ inputs.delay-seconds }}s"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+      - name: Setup step
+        run: |
+          echo "⏳ Simulating setup work..."
+          sleep ${{ inputs.delay-seconds }}
+          
+          if [[ ",${{ inputs.failing-steps }}," == *",setup,"* ]]; then
+            # Check if random failure based on percentage
+            if [[ ${{ inputs.failure-percentage }} -gt 0 ]]; then
+              RANDOM_NUM=$((RANDOM % 100))
+              if [[ $RANDOM_NUM -lt ${{ inputs.failure-percentage }} ]]; then
+                echo "❌ FAILURE: Setup step failed randomly ($RANDOM_NUM < ${{ inputs.failure-percentage }}%)"
+                exit 1
+              fi
+              echo "🎲 Random check passed ($RANDOM_NUM >= ${{ inputs.failure-percentage }}%)"
+            else
+              echo "❌ FAILURE: Setup step was configured to fail"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ Setup completed successfully"
+
+  # Jobs 2-4: Run in parallel after setup
+  build:
+    name: Build
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build application
+        run: |
+          echo "🏗️ Building version ${{ inputs.version }}..."
+          echo "Build ID: ${{ needs.setup.outputs.build-id }}"
+          sleep ${{ inputs.delay-seconds }}
+          
+          if [[ ",${{ inputs.failing-steps }}," == *",build,"* ]]; then
+            if [[ ${{ inputs.failure-percentage }} -gt 0 ]]; then
+              RANDOM_NUM=$((RANDOM % 100))
+              if [[ $RANDOM_NUM -lt ${{ inputs.failure-percentage }} ]]; then
+                echo "❌ FAILURE: Build step failed randomly ($RANDOM_NUM < ${{ inputs.failure-percentage }}%)"
+                exit 1
+              fi
+              echo "🎲 Random check passed ($RANDOM_NUM >= ${{ inputs.failure-percentage }}%)"
+            else
+              echo "❌ FAILURE: Build step was configured to fail"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ Build completed successfully"
+
+      - name: Generate artifacts
+        run: |
+          echo "📦 Generating build artifacts..."
+          sleep ${{ inputs.delay-seconds }}
+          echo "  - app-${{ inputs.version }}.jar"
+          echo "  - app-${{ inputs.version }}.war"
+          echo "✅ Artifacts generated"
+
+  test:
+    name: Test
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run unit tests
+        run: |
+          echo "🧪 Running unit tests..."
+          sleep ${{ inputs.delay-seconds }}
+          
+          if [[ ",${{ inputs.failing-steps }}," == *",test,"* ]]; then
+            if [[ ${{ inputs.failure-percentage }} -gt 0 ]]; then
+              RANDOM_NUM=$((RANDOM % 100))
+              if [[ $RANDOM_NUM -lt ${{ inputs.failure-percentage }} ]]; then
+                echo "❌ FAILURE: Unit tests failed randomly ($RANDOM_NUM < ${{ inputs.failure-percentage }}%)"
+                exit 1
+              fi
+              echo "🎲 Random check passed ($RANDOM_NUM >= ${{ inputs.failure-percentage }}%)"
+            else
+              echo "❌ FAILURE: Test step was configured to fail"
+              echo "Failed tests:"
+              echo "  - testUserAuthentication"
+              echo "  - testPaymentProcessing"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ All 42 tests passed"
+
+      - name: Run integration tests
+        run: |
+          echo "🔗 Running integration tests..."
+          sleep ${{ inputs.delay-seconds }}
+          
+          if [[ ",${{ inputs.failing-steps }}," == *",integration,"* ]]; then
+            if [[ ${{ inputs.failure-percentage }} -gt 0 ]]; then
+              RANDOM_NUM=$((RANDOM % 100))
+              if [[ $RANDOM_NUM -lt ${{ inputs.failure-percentage }} ]]; then
+                echo "❌ FAILURE: Integration tests failed randomly ($RANDOM_NUM < ${{ inputs.failure-percentage }}%)"
+                exit 1
+              fi
+              echo "🎲 Random check passed ($RANDOM_NUM >= ${{ inputs.failure-percentage }}%)"
+            else
+              echo "❌ FAILURE: Integration tests were configured to fail"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ All 15 integration tests passed"
+
+  security-scan:
+    name: Security Scan
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run security scan
+        run: |
+          echo "🔒 Running security scan..."
+          sleep ${{ inputs.delay-seconds }}
+          
+          if [[ ",${{ inputs.failing-steps }}," == *",security,"* ]]; then
+            if [[ ${{ inputs.failure-percentage }} -gt 0 ]]; then
+              RANDOM_NUM=$((RANDOM % 100))
+              if [[ $RANDOM_NUM -lt ${{ inputs.failure-percentage }} ]]; then
+                echo "❌ FAILURE: Security scan failed randomly ($RANDOM_NUM < ${{ inputs.failure-percentage }}%)"
+                exit 1
+              fi
+              echo "🎲 Random check passed ($RANDOM_NUM >= ${{ inputs.failure-percentage }}%)"
+            else
+              echo "❌ FAILURE: Security scan found critical vulnerabilities"
+              echo "CVE-2024-1234: Critical vulnerability in dependency X"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ No security vulnerabilities found"
+
+  # Job 5: Deploy (waits for build and test)
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    needs: [ build, test, security-scan ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy application
+        run: |
+          echo "🚀 Deploying to ${{ inputs.environment }}..."
+          echo "Version: ${{ inputs.version }}"
+          echo "Build ID: ${{ needs.setup.outputs.build-id }}"
+          sleep ${{ inputs.delay-seconds }}
+          
+          if [[ ",${{ inputs.failing-steps }}," == *",deploy,"* ]]; then
+            if [[ ${{ inputs.failure-percentage }} -gt 0 ]]; then
+              RANDOM_NUM=$((RANDOM % 100))
+              if [[ $RANDOM_NUM -lt ${{ inputs.failure-percentage }} ]]; then
+                echo "❌ FAILURE: Deploy step failed randomly ($RANDOM_NUM < ${{ inputs.failure-percentage }}%)"
+                exit 1
+              fi
+              echo "🎲 Random check passed ($RANDOM_NUM >= ${{ inputs.failure-percentage }}%)"
+            else
+              echo "❌ FAILURE: Deploy step was configured to fail"
+              echo "Error: Connection refused to ${{ inputs.environment }} server"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ Deployment completed successfully"
+
+      - name: Verify deployment
+        run: |
+          echo "🔍 Verifying deployment..."
+          sleep ${{ inputs.delay-seconds }}
+          
+          if [[ ",${{ inputs.failing-steps }}," == *",verify,"* ]]; then
+            echo "❌ FAILURE: Verification failed"
+            echo "Health check returned 503"
+            exit 1
+          fi
+          
+          echo "✅ Deployment verified - all health checks passing"
+
+  # Job 6: Notify (always runs)
+  notify:
+    name: Send Notifications
+    needs: [ setup, build, test, security-scan, deploy ]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Determine overall status
+        id: status
+        run: |
+          if [[ "${{ needs.setup.result }}" == "failure" || \
+                "${{ needs.build.result }}" == "failure" || \
+                "${{ needs.test.result }}" == "failure" || \
+                "${{ needs.security-scan.result }}" == "failure" || \
+                "${{ needs.deploy.result }}" == "failure" ]]; then
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "emoji=❌" >> $GITHUB_OUTPUT
+          else
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "emoji=✅" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Print summary
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "${{ steps.status.outputs.emoji }} Workflow Summary"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Test Name: ${{ inputs.test-name }}"
+          echo "Version: ${{ inputs.version }}"
+          echo "Environment: ${{ inputs.environment }}"
+          echo ""
+          echo "Job Results:"
+          echo "  Setup:         ${{ needs.setup.result }}"
+          echo "  Build:         ${{ needs.build.result }}"
+          echo "  Test:          ${{ needs.test.result }}"
+          echo "  Security Scan: ${{ needs.security-scan.result }}"
+          echo "  Deploy:        ${{ needs.deploy.result }}"
+          echo ""
+          echo "Overall Status: ${{ steps.status.outputs.status }}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+      - name: Simulate notification
+        run: |
+          if [[ ",${{ inputs.failing-steps }}," == *",notify,"* ]]; then
+            echo "❌ FAILURE: Notification step was configured to fail"
+            exit 1
+          fi
+          
+          echo "📧 Notification sent (simulated)"
+          echo "  - Slack: #releases channel"
+          echo "  - Email: team@example.com"

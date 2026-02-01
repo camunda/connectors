@@ -2,16 +2,21 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    "group:allNonMajor",
-    "schedule:earlyMondays",
-    "schedule:automergeNonOfficeHours"
+    "group:allNonMajor"
+  ],
+  "commitMessagePrefix": "deps:",
+  "dependencyDashboard": true,
+  "prConcurrentLimit": 50,
+  "prHourlyLimit": 10,
+  "updateNotScheduled": false,
+  "schedule": [
+    "* 20-23,0-8 * * 1-5",
+    "* * * * 0,6"
+  ],
+  "labels": [
+    "dependencies"
   ],
   "timezone": "Europe/Berlin",
-  "labels": [
-    "dependencies",
-    "no milestone"
-  ],
-  "prHourlyLimit": 10,
   "customManagers": [
     {
       "customType": "regex",

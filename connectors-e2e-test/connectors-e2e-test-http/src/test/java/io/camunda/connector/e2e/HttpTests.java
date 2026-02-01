@@ -40,22 +40,22 @@ import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
-import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
-import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
+import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult.ImportType;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Collections;
+import java.util.Base64;
 import java.util.Map;
+import java.util.Set;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -74,7 +74,7 @@ import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true",
-      "camunda.connector.polling.enabled=true"
+      "camunda.connector.polling.enabled=false"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
@@ -89,20 +89,13 @@ public class HttpTests {
   @TempDir File tempDir;
   @Autowired CamundaClient camundaClient;
 
-  @MockitoBean ProcessDefinitionSearch processDefinitionSearch;
-
-  @Autowired ProcessStateStore stateStore;
+  @Autowired ProcessStateManager stateStore;
 
   @Autowired WebhookConnectorRegistry webhookConnectorRegistry;
 
   @MockitoBean SearchQueryClient searchQueryClient;
 
   @LocalServerPort int serverPort;
-
-  @BeforeEach
-  void beforeAll() {
-    when(processDefinitionSearch.query()).thenReturn(Collections.emptyList());
-  }
 
   @Test
   void basicAuth() {
@@ -353,15 +346,17 @@ public class HttpTests {
         .thenReturn(camundaClient.getConfiguration().getDefaultTenantId());
     when(processDef.getProcessDefinitionId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
+    when(processDef.getVersion()).thenReturn(1);
+    when(searchQueryClient.getProcessDefinition(1L)).thenReturn(processDef);
 
     // Deploy the webhook
     stateStore.update(
-        new ProcessImportResult(
+        new ImportResult(
             Map.of(
-                new ProcessDefinitionIdentifier(
+                new ProcessDefinitionRef(
                     processDef.getProcessDefinitionId(), processDef.getTenantId()),
-                new ProcessDefinitionVersion(
-                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
+                Set.of(processDef.getProcessDefinitionKey())),
+            ImportType.LATEST_VERSIONS));
 
     // Wait for webhook to be activated before starting the process
     Awaitility.await()
@@ -389,15 +384,17 @@ public class HttpTests {
         .thenReturn(camundaClient.getConfiguration().getDefaultTenantId());
     when(processDef.getProcessDefinitionId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
+    when(processDef.getVersion()).thenReturn(1);
+    when(searchQueryClient.getProcessDefinition(1L)).thenReturn(processDef);
 
     // Deploy the webhook
     stateStore.update(
-        new ProcessImportResult(
+        new ImportResult(
             Map.of(
-                new ProcessDefinitionIdentifier(
+                new ProcessDefinitionRef(
                     processDef.getProcessDefinitionId(), processDef.getTenantId()),
-                new ProcessDefinitionVersion(
-                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
+                Set.of(processDef.getProcessDefinitionKey())),
+            ImportType.LATEST_VERSIONS));
 
     // Wait for webhook to be activated before starting the process
     Awaitility.await()
@@ -566,5 +563,56 @@ public class HttpTests {
         .hasVariable("temp", 36)
         .hasVariable("booleanField", true)
         .hasVariable("message", "custom message");
+  }
+
+  @Test
+  void intrinsicFunctionBase64InBearerToken() {
+    // Test that intrinsic functions (like base64) work correctly in @FEEL annotated fields
+    // Using if-else format as done in element templates, with a hardcoded string as param:
+    // "= if condition then {\"camunda.function.type\":\"base64\",\"params\":[\"Hello World\"]} else
+    // fallback"
+
+    var mockUrl = "http://localhost:" + wm.getPort() + "/mock";
+    String originalText = "Hello World";
+    String expectedBase64 =
+        Base64.getEncoder().encodeToString(originalText.getBytes(StandardCharsets.UTF_8));
+
+    // Prepare an HTTP mock server that expects the base64 encoded string as bearer token
+    wm.stubFor(
+        get(urlPathMatching("/mock"))
+            .withHeader("Authorization", equalTo("Bearer " + expectedBase64))
+            .willReturn(
+                ResponseDefinitionBuilder.okForJson(
+                    Map.of("result", "success", "received", expectedBase64))));
+
+    var model =
+        Bpmn.createProcess().executable().startEvent().serviceTask("restTask").endEvent().done();
+
+    // Use the if-else FEEL expression format with intrinsic function for bearer token
+    // The param is a hardcoded string "Hello World"
+    var elementTemplate =
+        ElementTemplate.from(
+                "../../connectors/http/rest/element-templates/http-json-connector.json")
+            .property("url", mockUrl)
+            .property("method", "GET")
+            .property("authentication.type", "bearer")
+            .property(
+                "authentication.token",
+                "=if true then {\"camunda.function.type\":\"base64\",\"params\":[\"Hello World\"]} else \"fallback\"")
+            .property("resultExpression", "={result: response.body.result}")
+            .writeTo(new File(tempDir, "template.json"));
+
+    var updatedModel =
+        new BpmnFile(model)
+            .writeToFile(new File(tempDir, "test.bpmn"))
+            .apply(elementTemplate, "restTask", new File(tempDir, "result.bpmn"));
+
+    var bpmnTest =
+        ZeebeTest.with(camundaClient)
+            .deploy(updatedModel)
+            .createInstance()
+            .waitForProcessCompletion();
+
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("result", "success");
   }
 }

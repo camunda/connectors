@@ -1,0 +1,49 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/mcp",
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": {
+          "expression": "$.method",
+          "equalTo": "resources/templates/list"
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "transformers": [
+      "response-template"
+    ],
+    "jsonBody": {
+      "id": "{{jsonPath request.body '$.id'}}",
+      "jsonrpc": "2.0",
+      "result": {
+        "resourceTemplates": [
+          {
+            "uriTemplate": "resource-a-{number}",
+            "name": "Resource A {number}",
+            "description": "The first resource",
+            "mimeType": "text/plain"
+          },
+          {
+            "uriTemplate": "resource-b-{number}",
+            "name": "Resource B {number}",
+            "description": "The second resource",
+            "mimeType": "text/plain"
+          },
+          {
+            "uriTemplate": "resource-c-{number}",
+            "name": "Resource C {number}",
+            "description": "The third resource",
+            "mimeType": "text/markdown"
+          }
+        ]
+      }
+    }
+  }
+}
