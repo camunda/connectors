@@ -35,6 +35,9 @@
     "id" : "invite",
     "label" : "Invite"
   }, {
+    "id" : "reaction",
+    "label" : "Reaction"
+  }, {
     "id" : "connector",
     "label" : "Connector"
   }, {
@@ -87,6 +90,9 @@
     }, {
       "name" : "Invite to channel",
       "value" : "conversations.invite"
+    }, {
+      "name" : "Add reaction",
+      "value" : "reactions.add"
     } ]
   }, {
     "id" : "data.messageType",
@@ -374,6 +380,66 @@
     "condition" : {
       "property" : "method",
       "equals" : "conversations.invite",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "reaction.channel",
+    "label" : "Channel",
+    "description" : "Channel ID of the message to react to",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "reaction",
+    "binding" : {
+      "name" : "data.channel",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "method",
+      "equals" : "reactions.add",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.emoji",
+    "label" : "Emoji name",
+    "description" : "Emoji name (e.g. eyes)",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "reaction",
+    "binding" : {
+      "name" : "data.emoji",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "method",
+      "equals" : "reactions.add",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.timestamp",
+    "label" : "Message timestamp",
+    "description" : "Timestamp of the Slack message to react to",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "reaction",
+    "binding" : {
+      "name" : "data.timestamp",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "method",
+      "equals" : "reactions.add",
       "type" : "simple"
     },
     "type" : "String"

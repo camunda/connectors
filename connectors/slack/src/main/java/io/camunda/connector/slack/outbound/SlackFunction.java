@@ -25,6 +25,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
       @ElementTemplate.PropertyGroup(id = "message", label = "Message"),
       @ElementTemplate.PropertyGroup(id = "channel", label = "Channel"),
       @ElementTemplate.PropertyGroup(id = "invite", label = "Invite"),
+      @ElementTemplate.PropertyGroup(id = "reaction", label = "Reaction")
     },
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=outbound",

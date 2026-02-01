@@ -19,4 +19,5 @@ interface TestCasesPath {
       PATH + "execute-invite-to-channel-wrong-input.json";
   String VALIDATE_REQUIRED_FIELDS_FAIL = PATH + "validate-fields-fail.json";
   String FROM_JSON_FAIL = PATH + "with-wrong-method.json";
+  String EXECUTE_ADD_REACTION = PATH + "execute-add-reaction.json";
 }

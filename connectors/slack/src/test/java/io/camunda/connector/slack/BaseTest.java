@@ -44,6 +44,12 @@ public abstract class BaseTest {
     interface ConversationsCreateData {
       String NEW_CHANNEL_NAME = "_ new channel name _";
     }
+
+    interface ReactionsAddData {
+      String CHANNEL_ID = "C123ABC456";
+      String EMOJI = "eyes";
+      String TIMESTAMP = "1503435956.000247";
+    }
   }
 
   protected interface SecretsConstant {
@@ -60,6 +66,12 @@ public abstract class BaseTest {
 
     interface ConversationsCreateData {
       String NEW_CHANNEL_NAME = "NEW_CHANNEL_NAME_KEY";
+    }
+
+    interface ReactionsAddData {
+      String CHANNEL_ID = "REACTION_CHANNEL_ID_KEY";
+      String EMOJI = "REACTION_EMOJI_KEY";
+      String TIMESTAMP = "REACTION_TIMESTAMP_KEY";
     }
   }
 
@@ -82,7 +94,11 @@ public abstract class BaseTest {
         .secret(SecretsConstant.ChatPostMessageData.TEXT, ActualValue.ChatPostMessageData.TEXT)
         .secret(
             SecretsConstant.ConversationsCreateData.NEW_CHANNEL_NAME,
-            ActualValue.ConversationsCreateData.NEW_CHANNEL_NAME);
+            ActualValue.ConversationsCreateData.NEW_CHANNEL_NAME)
+        .secret(
+            SecretsConstant.ReactionsAddData.CHANNEL_ID, ActualValue.ReactionsAddData.CHANNEL_ID)
+        .secret(SecretsConstant.ReactionsAddData.EMOJI, ActualValue.ReactionsAddData.EMOJI)
+        .secret(SecretsConstant.ReactionsAddData.TIMESTAMP, ActualValue.ReactionsAddData.TIMESTAMP);
   }
 
   protected static Stream<String> replaceSecretsSuccessTestCases() throws IOException {
@@ -119,6 +135,10 @@ public abstract class BaseTest {
 
   protected static Stream<String> fromJsonFailTestCases() throws IOException {
     return loadTestCasesFromResourceFile(TestCasesPath.FROM_JSON_FAIL);
+  }
+
+  protected static Stream<String> executeAddReactionTestCases() throws IOException {
+    return loadTestCasesFromResourceFile(TestCasesPath.EXECUTE_ADD_REACTION);
   }
 
   @SuppressWarnings("unchecked")

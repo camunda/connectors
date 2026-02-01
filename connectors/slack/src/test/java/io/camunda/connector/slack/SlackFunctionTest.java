@@ -18,12 +18,14 @@ import com.slack.api.methods.request.chat.ChatPostMessageRequest;
 import com.slack.api.methods.request.conversations.ConversationsCreateRequest;
 import com.slack.api.methods.request.conversations.ConversationsInviteRequest;
 import com.slack.api.methods.request.conversations.ConversationsListRequest;
+import com.slack.api.methods.request.reactions.ReactionsAddRequest;
 import com.slack.api.methods.request.users.UsersListRequest;
 import com.slack.api.methods.request.users.UsersLookupByEmailRequest;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
 import com.slack.api.methods.response.conversations.ConversationsCreateResponse;
 import com.slack.api.methods.response.conversations.ConversationsInviteResponse;
 import com.slack.api.methods.response.conversations.ConversationsListResponse;
+import com.slack.api.methods.response.reactions.ReactionsAddResponse;
 import com.slack.api.methods.response.users.UsersListResponse;
 import com.slack.api.methods.response.users.UsersLookupByEmailResponse;
 import com.slack.api.model.Conversation;
@@ -38,6 +40,7 @@ import io.camunda.connector.slack.outbound.model.ConversationsCreateData;
 import io.camunda.connector.slack.outbound.model.ConversationsCreateSlackResponse;
 import io.camunda.connector.slack.outbound.model.ConversationsInviteData;
 import io.camunda.connector.slack.outbound.model.ConversationsInviteSlackResponse;
+import io.camunda.connector.slack.outbound.model.ReactionsAddSlackResponse;
 import java.io.IOException;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -66,6 +69,7 @@ public class SlackFunctionTest extends BaseTest {
   @Mock private ConversationsCreateResponse conversationsCreateResponse;
   @Mock private ConversationsInviteResponse conversationsInviteResponse;
   @Mock private Slack slackClientMock;
+  @Mock private ReactionsAddResponse reactionsAddResponse;
 
   @Captor private ArgumentCaptor<ChatPostMessageRequest> chatPostMessageRequestArgumentCaptor;
 
@@ -76,6 +80,8 @@ public class SlackFunctionTest extends BaseTest {
   private ArgumentCaptor<ConversationsInviteRequest> conversationsInviteRequestArgumentCaptor;
 
   @Captor private ArgumentCaptor<UsersLookupByEmailRequest> usersLookupByEmailRequestArgumentCaptor;
+
+  @Captor private ArgumentCaptor<ReactionsAddRequest> reactionsAddRequestCaptor;
 
   private SlackFunction slackFunction;
   private OutboundConnectorContext context;
@@ -130,6 +136,11 @@ public class SlackFunctionTest extends BaseTest {
 
     when(channel.getName()).thenReturn(ActualValue.ConversationsCreateData.NEW_CHANNEL_NAME);
     when(channel.getId()).thenReturn(ActualValue.ConversationsCreateData.NEW_CHANNEL_NAME);
+
+    when(methodsClient.reactionsAdd(reactionsAddRequestCaptor.capture()))
+        .thenReturn(reactionsAddResponse);
+
+    when(reactionsAddResponse.isOk()).thenReturn(true);
   }
 
   @ParameterizedTest
@@ -321,5 +332,38 @@ public class SlackFunctionTest extends BaseTest {
     // When and then
     Throwable thrown = catchThrowable(() -> slackFunction.execute(context));
     assertThat(thrown).isInstanceOf(RuntimeException.class);
+  }
+
+  @ParameterizedTest
+  @MethodSource("executeAddReactionTestCases")
+  void execute_shouldAddReaction(String input) throws Exception {
+    // Given
+    context = getContextBuilderWithSecrets().variables(input).build();
+
+    // When
+    Object executeResponse = slackFunction.execute(context);
+
+    // Then
+    assertThat(reactionsAddRequestCaptor.getValue().getChannel())
+        .isEqualTo(ActualValue.ReactionsAddData.CHANNEL_ID);
+    assertThat(reactionsAddRequestCaptor.getValue().getName())
+        .isEqualTo(ActualValue.ReactionsAddData.EMOJI);
+    assertThat(reactionsAddRequestCaptor.getValue().getTimestamp())
+        .isEqualTo(ActualValue.ReactionsAddData.TIMESTAMP);
+
+    assertThat(executeResponse).isInstanceOf(ReactionsAddSlackResponse.class);
+  }
+
+  @ParameterizedTest
+  @MethodSource("executeAddReactionTestCases")
+  void execute_shouldThrowExceptionWhenReactionAddFails(String input) {
+    // Given
+    context = getContextBuilderWithSecrets().variables(input).build();
+    when(reactionsAddResponse.isOk()).thenReturn(false);
+    when(reactionsAddResponse.getError()).thenReturn("error string");
+
+    // When / Then
+    Throwable thrown = catchThrowable(() -> slackFunction.execute(context));
+    assertThat(thrown).isInstanceOf(RuntimeException.class).hasMessageContaining("error string");
   }
 }
