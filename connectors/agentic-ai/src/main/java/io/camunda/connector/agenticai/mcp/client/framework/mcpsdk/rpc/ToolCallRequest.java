@@ -112,10 +112,12 @@ final class ToolCallRequest {
     return switch (responseContent) {
       case McpSchema.AudioContent audioContent ->
           fromBlob(audioContent.data(), audioContent.mimeType(), audioContent.meta());
+      // TODO: potential for optimization: avoid generic conversion
       case McpSchema.EmbeddedResource embeddedResource ->
           ObjectContent.objectContent(fromObjectContent(embeddedResource));
       case McpSchema.ImageContent imageContent ->
           fromBlob(imageContent.data(), imageContent.mimeType(), imageContent.meta());
+      // TODO: potential for optimization: avoid generic conversion
       case McpSchema.ResourceLink resourceLink ->
           ObjectContent.objectContent(fromObjectContent(resourceLink));
       case McpSchema.TextContent textContent -> TextContent.textContent(textContent.text());
