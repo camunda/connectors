@@ -14,6 +14,9 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.mcp.client.model.result.*;
 import io.camunda.connector.agenticai.model.message.content.BinaryContent;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceBlobDocumentContent;
+import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent;
+import io.camunda.connector.agenticai.model.message.content.ResourceLinkContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -158,14 +161,55 @@ class McpClientResultDocumentHandlerTest {
                     new McpClientGetPromptResult.PromptMessage(
                         "user",
                         new McpClientGetPromptResult.TextMessage(
-                            "Please review the following code."))))));
+                            "Please review the following code."))))),
+        argumentSet(
+            "Call tool - with embedded text resource",
+            new McpClientCallToolResult(
+                "get-resource",
+                List.of(
+                    new EmbeddedResourceContent(
+                        new EmbeddedResourceContent.TextResource(
+                            "uri://resource", "text/plain", "text content"),
+                        null)),
+                false),
+            new McpClientCallToolResult(
+                "get-resource",
+                List.of(
+                    new EmbeddedResourceContent(
+                        new EmbeddedResourceContent.TextResource(
+                            "uri://resource", "text/plain", "text content"),
+                        null)),
+                false)),
+        argumentSet(
+            "Call tool - with resource link",
+            new McpClientCallToolResult(
+                "get-link",
+                List.of(
+                    new ResourceLinkContent(
+                        "uri://external-resource",
+                        "a link",
+                        "A link!",
+                        "application/octet-stream",
+                        Map.of("linkMeta", "value"))),
+                false),
+            new McpClientCallToolResult(
+                "get-link",
+                List.of(
+                    new ResourceLinkContent(
+                        "uri://external-resource",
+                        "a link",
+                        "A link!",
+                        "application/octet-stream",
+                        Map.of("linkMeta", "value"))),
+                false)));
   }
 
   static Stream<Arguments> mcpClientResultsWithBinaryDocumentContainers() {
     return Stream.of(
         getSinglePromptWithAllPossibleMessageTypes(),
         readResourceWithBinaryContent(),
-        callToolWithBinaryContent());
+        callToolWithBinaryContent(),
+        callToolWithEmbeddedBlobResource());
   }
 
   private static Arguments callToolWithBinaryContent() {
@@ -188,6 +232,35 @@ class McpClientResultDocumentHandlerTest {
                         null,
                         "doc-id-0"),
                     Map.of())),
+            false));
+  }
+
+  private static Arguments callToolWithEmbeddedBlobResource() {
+    return argumentSet(
+        "Call tool - with embedded blob resource",
+        new McpClientCallToolResult(
+            "get-resource",
+            List.of(
+                new EmbeddedResourceContent(
+                    new EmbeddedResourceContent.BlobResource(
+                        "uri://resource",
+                        "application/pdf",
+                        "document data".getBytes(StandardCharsets.UTF_8)),
+                    Map.of("meta", "value"))),
+            false),
+        new McpClientCallToolResult(
+            "get-resource",
+            List.of(
+                new EmbeddedResourceContent(
+                    new EmbeddedResourceBlobDocumentContent(
+                        "uri://resource",
+                        "application/pdf",
+                        new TestDocument(
+                            "document data".getBytes(StandardCharsets.UTF_8),
+                            createDocumentMetadata("application/pdf"),
+                            null,
+                            "doc-id-0")),
+                    Map.of("meta", "value"))),
             false));
   }
 

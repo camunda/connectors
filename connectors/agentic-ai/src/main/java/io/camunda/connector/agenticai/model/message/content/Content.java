@@ -15,8 +15,16 @@ import java.util.Map;
   @JsonSubTypes.Type(value = TextContent.class, name = "text"),
   @JsonSubTypes.Type(value = DocumentContent.class, name = "document"),
   @JsonSubTypes.Type(value = BinaryContent.class, name = "blob"),
-  @JsonSubTypes.Type(value = ObjectContent.class, name = "object")
+  @JsonSubTypes.Type(value = ObjectContent.class, name = "object"),
+  @JsonSubTypes.Type(value = EmbeddedResourceContent.class, name = "resource"),
+  @JsonSubTypes.Type(value = ResourceLinkContent.class, name = "resource_link")
 })
-public sealed interface Content permits TextContent, DocumentContent, ObjectContent, BinaryContent {
+public sealed interface Content
+    permits TextContent,
+        DocumentContent,
+        ObjectContent,
+        BinaryContent,
+        EmbeddedResourceContent,
+        ResourceLinkContent {
   Map<String, Object> metadata();
 }

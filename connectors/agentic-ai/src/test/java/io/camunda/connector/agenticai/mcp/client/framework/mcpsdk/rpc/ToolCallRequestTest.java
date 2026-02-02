@@ -20,12 +20,13 @@ import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.model.message.content.BinaryContent;
+import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.model.message.content.ResourceLinkContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.api.error.ConnectorException;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.LinkedHashMap;
@@ -39,7 +40,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.Mock;
-import org.mockito.ThrowingConsumer;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -89,9 +89,10 @@ class ToolCallRequestTest {
     assertThat(result)
         .isInstanceOfSatisfying(
             McpClientCallToolResult.class,
-            toolCallResult -> {
-              assertThat(toolCallResult).isEqualTo(expectation.domainResult);
-            });
+            toolCallResult ->
+                assertThat(toolCallResult)
+                    .usingRecursiveComparison()
+                    .isEqualTo(expectation.domainResult));
   }
 
   @ParameterizedTest
@@ -292,6 +293,47 @@ class ToolCallRequestTest {
                     "a-name",
                     List.of(
                         new ObjectContent(Map.of("key", "value", "key2", List.of(1, 2, 3)), null)),
+                    false))),
+        argumentSet(
+            "embedded resource - text",
+            new ToolCallExpectation(
+                callToolResultWithEmbeddedTextResource(
+                    "uri://resource", "text/plain", "resource text"),
+                new McpClientCallToolResult(
+                    "a-name",
+                    List.of(
+                        new EmbeddedResourceContent(
+                            new EmbeddedResourceContent.TextResource(
+                                "uri://resource", "text/plain", "resource text"),
+                            null)),
+                    false))),
+        argumentSet(
+            "embedded resource - blob",
+            new ToolCallExpectation(
+                callToolResultWithEmbeddedBlobResource(
+                    "uri://resource",
+                    "application/octet-stream",
+                    "blob data".getBytes(StandardCharsets.UTF_8)),
+                new McpClientCallToolResult(
+                    "a-name",
+                    List.of(
+                        new EmbeddedResourceContent(
+                            new EmbeddedResourceContent.BlobResource(
+                                "uri://resource",
+                                "application/octet-stream",
+                                "blob data".getBytes(StandardCharsets.UTF_8)),
+                            null)),
+                    false))),
+        argumentSet(
+            "resource link",
+            new ToolCallExpectation(
+                callToolResultWithResourceLink(
+                    "uri://external-resource", "a-link", "A link", "text/plain", null),
+                new McpClientCallToolResult(
+                    "a-name",
+                    List.of(
+                        new ResourceLinkContent(
+                            "uri://external-resource", "a-link", "A link", "text/plain", null)),
                     false))));
   }
 
@@ -312,6 +354,40 @@ class ToolCallRequestTest {
 
   private static McpSchema.CallToolResult callToolResult(Object structuredContent) {
     return new McpSchema.CallToolResult(null, false, structuredContent, null);
+  }
+
+  private static McpSchema.CallToolResult callToolResultWithEmbeddedTextResource(
+      String uri, String mimeType, String text) {
+    return new McpSchema.CallToolResult(
+        List.of(
+            new McpSchema.EmbeddedResource(
+                null, new McpSchema.TextResourceContents(uri, mimeType, text))),
+        false,
+        null,
+        null);
+  }
+
+  private static McpSchema.CallToolResult callToolResultWithEmbeddedBlobResource(
+      String uri, String mimeType, byte[] blob) {
+    return new McpSchema.CallToolResult(
+        List.of(
+            new McpSchema.EmbeddedResource(
+                null,
+                new McpSchema.BlobResourceContents(
+                    uri, mimeType, Base64.getEncoder().encodeToString(blob)))),
+        false,
+        null,
+        null);
+  }
+
+  private static McpSchema.CallToolResult callToolResultWithResourceLink(
+      String uri, String name, String description, String mimeType, Map<String, Object> meta) {
+    return new McpSchema.CallToolResult(
+        List.of(
+            new McpSchema.ResourceLink(name, null, uri, description, mimeType, null, null, meta)),
+        false,
+        null,
+        null);
   }
 
   static Stream<Arguments> toolExecutionArguments() {

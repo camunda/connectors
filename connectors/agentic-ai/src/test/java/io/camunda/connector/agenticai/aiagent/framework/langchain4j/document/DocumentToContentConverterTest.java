@@ -16,6 +16,7 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.TextContent;
 import io.camunda.connector.api.document.Document;
+import java.util.Base64;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -85,18 +86,17 @@ class DocumentToContentConverterTest {
   @Test
   void convertsToPdfFileContent() {
     when(document.metadata().getContentType()).thenReturn("application/pdf");
-    when(document.asBase64()).thenReturn(DUMMY_B64_VALUE);
+    when(document.asByteArray()).thenReturn(Base64.getDecoder().decode(DUMMY_B64_VALUE));
 
     var content = converter.convert(document);
 
     assertThat(content)
         .asInstanceOf(InstanceOfAssertFactories.type(PdfFileContent.class))
         .satisfies(
-            pdfFileContent -> {
-              assertThat(pdfFileContent.pdfFile().base64Data()).isEqualTo(DUMMY_B64_VALUE);
-            });
+            pdfFileContent ->
+                assertThat(pdfFileContent.pdfFile().base64Data()).isEqualTo(DUMMY_B64_VALUE));
 
-    verify(document, never()).asByteArray();
+    verify(document).asByteArray();
     verify(document, never()).asInputStream();
   }
 
@@ -104,7 +104,7 @@ class DocumentToContentConverterTest {
   @ValueSource(strings = {"image/jpeg", "image/png", "image/gif", "image/webp"})
   void convertsToImageFileContent(String mediaType) {
     when(document.metadata().getContentType()).thenReturn(mediaType);
-    when(document.asBase64()).thenReturn(DUMMY_B64_VALUE);
+    when(document.asByteArray()).thenReturn(Base64.getDecoder().decode(DUMMY_B64_VALUE));
 
     var content = converter.convert(document);
 
@@ -117,7 +117,7 @@ class DocumentToContentConverterTest {
               assertThat(imageContent.image().base64Data()).isEqualTo(DUMMY_B64_VALUE);
             });
 
-    verify(document, never()).asByteArray();
+    verify(document).asByteArray();
     verify(document, never()).asInputStream();
   }
 
