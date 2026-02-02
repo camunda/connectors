@@ -89,9 +89,10 @@ class ToolCallRequestTest {
     assertThat(result)
         .isInstanceOfSatisfying(
             McpClientCallToolResult.class,
-            toolCallResult -> assertThat(toolCallResult)
-                .usingRecursiveComparison()
-                .isEqualTo(expectation.domainResult));
+            toolCallResult ->
+                assertThat(toolCallResult)
+                    .usingRecursiveComparison()
+                    .isEqualTo(expectation.domainResult));
   }
 
   @ParameterizedTest

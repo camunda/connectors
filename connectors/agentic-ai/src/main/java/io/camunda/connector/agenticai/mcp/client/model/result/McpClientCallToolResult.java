@@ -52,19 +52,17 @@ public record McpClientCallToolResult(String name, List<Content> content, Boolea
     var resource = embeddedResourceContent.resource();
 
     // Only BlobResource needs to be converted to a document
-    if (!(resource instanceof EmbeddedResourceContent.BlobResource(String uri, String mimeType, byte[] blob))) {
+    if (!(resource
+        instanceof
+        EmbeddedResourceContent.BlobResource(String uri, String mimeType, byte[] blob))) {
       return embeddedResourceContent;
     }
 
     var createdDocument =
-        documentFactory.create(
-            DocumentCreationRequest.from(blob)
-                .contentType(mimeType)
-                .build());
+        documentFactory.create(DocumentCreationRequest.from(blob).contentType(mimeType).build());
 
     return new EmbeddedResourceContent(
-        new EmbeddedResourceBlobDocumentContent(
-                uri, mimeType, createdDocument),
+        new EmbeddedResourceBlobDocumentContent(uri, mimeType, createdDocument),
         embeddedResourceContent.metadata());
   }
 
