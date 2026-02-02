@@ -115,9 +115,6 @@
     "id" : "authentication.password",
     "label" : "Password",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
     "feel" : "optional",
     "group" : "authentication",
     "binding" : {
