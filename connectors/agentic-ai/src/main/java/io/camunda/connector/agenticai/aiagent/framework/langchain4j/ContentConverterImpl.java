@@ -21,11 +21,9 @@ import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceCont
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.model.message.content.ResourceLinkContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
-import java.util.Base64;
-import java.util.Map;
-import java.util.Optional;
-
 import io.camunda.connector.agenticai.util.ObjectMapperConstants;
+import java.util.Base64;
+import java.util.Optional;
 import org.apache.hc.core5.http.ContentType;
 
 public class ContentConverterImpl implements ContentConverter {
