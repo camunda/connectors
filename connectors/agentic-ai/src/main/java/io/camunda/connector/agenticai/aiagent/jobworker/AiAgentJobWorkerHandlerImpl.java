@@ -146,14 +146,17 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
                   jobError.retryBackoff()),
               counterMetricsContext);
       case IgnoreError ignoreError -> {
-        LOGGER.debug(
-            "Ignoring error for job with key {} as per IgnoreError directive.", job.getKey());
-        var completion =
-            JobWorkerAgentCompletion.builder()
-                .agentResponse(null)
-                .variables(ignoreError.variables())
-                .build();
-        completeJob(jobClient, job, completion, counterMetricsContext);
+        LOGGER.debug("IgnoreError is not supported for agentic cases yet");
+        failJob(
+            jobClient,
+            job,
+            new ErrorResult(
+                Map.of("error", "IgnoreError is not supported for agentic cases yet"),
+                new UnsupportedOperationException(
+                    "IgnoreError is not supported for agentic cases yet"),
+                0,
+                null),
+            counterMetricsContext);
       }
     }
   }

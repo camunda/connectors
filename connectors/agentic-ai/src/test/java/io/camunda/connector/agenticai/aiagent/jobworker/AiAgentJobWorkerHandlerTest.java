@@ -512,9 +512,10 @@ class AiAgentJobWorkerHandlerTest {
   }
 
   @Test
-  void ignoreErrorInErrorExpressionShouldCompleteSuccessfully() throws Exception {
+  void ignoreErrorInErrorExpressionIsNotSupportedYet() throws Exception {
     jobHeaders.put("errorExpression", ERROR_EXPRESSION);
-    final Map<String, Object> errorVariables = Map.of("detail", "Some error detail");
+    final Map<String, Object> errorVariables =
+        Map.of("error", "IgnoreError is not supported for agentic cases yet");
     final var exception =
         new ConnectorException(
             "IGNORE_ERROR_CODE", "Execution failed", new RuntimeException("Test"), errorVariables);
@@ -522,7 +523,7 @@ class AiAgentJobWorkerHandlerTest {
 
     handler.handle(camundaClient, job);
 
-    assertJobCompletionRequest(
+    assertJobFailRequest(
         request -> {
           assertThat(request.getVariables()).isEqualTo(errorVariables);
         });
