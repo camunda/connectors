@@ -33,6 +33,11 @@ on:
         required: false
         type: number
         default: 0
+      optional-steps:
+        description: 'Comma-separated list of steps that are optional (failures wont affect overall result, e.g., "security,test")'
+        required: false
+        type: string
+        default: ''
       delay-seconds:
         description: 'Delay in seconds for each step (to simulate work)'
         required: false
@@ -44,6 +49,7 @@ jobs:
   setup:
     name: Setup
     runs-on: ubuntu-latest
+    continue-on-error: ${{ contains(inputs.optional-steps, 'setup') }}
     outputs:
       build-id: ${{ steps.generate-id.outputs.build-id }}
     steps:
@@ -63,6 +69,7 @@ jobs:
           echo "Version: ${{ inputs.version }}"
           echo "Environment: ${{ inputs.environment }}"
           echo "Failing Steps: ${{ inputs.failing-steps || 'none' }}"
+          echo "Optional Steps: ${{ inputs.optional-steps || 'none' }}"
           echo "Failure Percentage: ${{ inputs.failure-percentage }}%"
           echo "Delay: ${{ inputs.delay-seconds }}s"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -94,6 +101,7 @@ jobs:
     name: Build
     needs: setup
     runs-on: ubuntu-latest
+    continue-on-error: ${{ contains(inputs.optional-steps, 'build') }}
     steps:
       - name: Build application
         run: |
@@ -129,6 +137,7 @@ jobs:
     name: Test
     needs: setup
     runs-on: ubuntu-latest
+    continue-on-error: ${{ contains(inputs.optional-steps, 'test') }}
     steps:
       - name: Run unit tests
         run: |
@@ -179,6 +188,7 @@ jobs:
     name: Security Scan
     needs: setup
     runs-on: ubuntu-latest
+    continue-on-error: ${{ contains(inputs.optional-steps, 'security') }}
     steps:
       - name: Run security scan
         run: |
@@ -255,11 +265,35 @@ jobs:
       - name: Determine overall status
         id: status
         run: |
-          if [[ "${{ needs.setup.result }}" == "failure" || \
-                "${{ needs.build.result }}" == "failure" || \
-                "${{ needs.test.result }}" == "failure" || \
-                "${{ needs.security-scan.result }}" == "failure" || \
-                "${{ needs.deploy.result }}" == "failure" ]]; then
+          # Check for failures, but exclude jobs that are marked as optional
+          FAILED=false
+          
+          # Check setup (only if not optional)
+          if [[ ! ",${{ inputs.optional-steps }}," == *",setup,"* ]] && [[ "${{ needs.setup.result }}" == "failure" ]]; then
+            FAILED=true
+          fi
+          
+          # Check build (only if not optional)
+          if [[ ! ",${{ inputs.optional-steps }}," == *",build,"* ]] && [[ "${{ needs.build.result }}" == "failure" ]]; then
+            FAILED=true
+          fi
+          
+          # Check test (only if not optional)
+          if [[ ! ",${{ inputs.optional-steps }}," == *",test,"* ]] && [[ "${{ needs.test.result }}" == "failure" ]]; then
+            FAILED=true
+          fi
+          
+          # Check security-scan (only if not optional)
+          if [[ ! ",${{ inputs.optional-steps }}," == *",security,"* ]] && [[ "${{ needs.security-scan.result }}" == "failure" ]]; then
+            FAILED=true
+          fi
+          
+          # Check deploy (only if not optional)
+          if [[ ! ",${{ inputs.optional-steps }}," == *",deploy,"* ]] && [[ "${{ needs.deploy.result }}" == "failure" ]]; then
+            FAILED=true
+          fi
+          
+          if [[ "$FAILED" == "true" ]]; then
             echo "status=failure" >> $GITHUB_OUTPUT
             echo "emoji=❌" >> $GITHUB_OUTPUT
           else
