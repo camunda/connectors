@@ -133,7 +133,7 @@ final class ToolCallRequest {
                   blobResource.mimeType(),
                   Base64.getDecoder().decode(blobResource.blob()));
         };
-    return EmbeddedResourceContent.embeddedResource(resource);
+    return new EmbeddedResourceContent(resource, embeddedResource.meta());
   }
 
   private ResourceLinkContent mapResourceLink(McpSchema.ResourceLink resourceLink) {

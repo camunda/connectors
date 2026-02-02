@@ -168,7 +168,7 @@ class ContentConverterTest {
     @Test
     void supportsEmbeddedResourceContentWithTextResource() throws JsonProcessingException {
       final var textResource = new TextResource("file://test.txt", "text/plain", "Hello, world!");
-      final var embeddedContent = EmbeddedResourceContent.embeddedResource(textResource);
+      final var embeddedContent = new EmbeddedResourceContent(textResource, null);
 
       final var content = contentConverter.convertToContent(embeddedContent);
 
@@ -183,7 +183,7 @@ class ContentConverterTest {
       final var blobResource =
           new BlobResource(
               "file://test.txt", "text/plain", "Hello, world!".getBytes(StandardCharsets.UTF_8));
-      final var embeddedContent = EmbeddedResourceContent.embeddedResource(blobResource);
+      final var embeddedContent = new EmbeddedResourceContent(blobResource, null);
 
       final var content = contentConverter.convertToContent(embeddedContent);
 
@@ -197,7 +197,7 @@ class ContentConverterTest {
         throws JsonProcessingException {
       final var imageData = "fake-image-data".getBytes(StandardCharsets.UTF_8);
       final var blobResource = new BlobResource("file://test.png", "image/png", imageData);
-      final var embeddedContent = EmbeddedResourceContent.embeddedResource(blobResource);
+      final var embeddedContent = new EmbeddedResourceContent(blobResource, null);
 
       final var content = contentConverter.convertToContent(embeddedContent);
 
@@ -212,7 +212,7 @@ class ContentConverterTest {
         throws JsonProcessingException {
       final var data = "some-data".getBytes(StandardCharsets.UTF_8);
       final var blobResource = new BlobResource("file://test.bin", null, data);
-      final var embeddedContent = EmbeddedResourceContent.embeddedResource(blobResource);
+      final var embeddedContent = new EmbeddedResourceContent(blobResource, null);
 
       final var content = contentConverter.convertToContent(embeddedContent);
 
@@ -226,7 +226,7 @@ class ContentConverterTest {
       final Document document = createDocument("<PDF CONTENT>", "application/pdf", "test.pdf");
       final var documentContent =
           new EmbeddedResourceBlobDocumentContent("file://test.pdf", "application/pdf", document);
-      final var embeddedContent = EmbeddedResourceContent.embeddedResource(documentContent);
+      final var embeddedContent = new EmbeddedResourceContent(documentContent, null);
 
       final var content = contentConverter.convertToContent(embeddedContent);
 

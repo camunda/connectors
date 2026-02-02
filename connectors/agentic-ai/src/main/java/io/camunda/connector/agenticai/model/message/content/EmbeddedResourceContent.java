@@ -27,10 +27,6 @@ public record EmbeddedResourceContent(
     }
   }
 
-  public static EmbeddedResourceContent embeddedResource(EmbeddedResource resource) {
-    return new EmbeddedResourceContent(resource, null);
-  }
-
   @JsonTypeInfo(use = JsonTypeInfo.Id.DEDUCTION)
   @JsonSubTypes({
     @JsonSubTypes.Type(value = TextResource.class),
