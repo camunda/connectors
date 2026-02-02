@@ -116,10 +116,10 @@ class ConnectorResultHandlerTest {
                 connectorResultHandler.createOutputVariables(
                     responseContent, null, resultExpression));
 
-    // then - should indicate that an array was returned and context is expected
+    // then - should indicate that an array was returned and JSON object is expected
     assertThat(exception.getMessage())
-        .contains("Result expression must return a context")
-        .contains("an array")
+        .contains("Result expression must return a JSON object")
+        .contains("array")
         .contains("[1,2,3]");
   }
 
@@ -137,10 +137,10 @@ class ConnectorResultHandlerTest {
                 connectorResultHandler.createOutputVariables(
                     responseContent, null, resultExpression));
 
-    // then - should indicate that a string was returned and context is expected
+    // then - should indicate that a string was returned and JSON object is expected
     assertThat(exception.getMessage())
-        .contains("Result expression must return a context")
-        .contains("a string")
+        .contains("Result expression must return a JSON object")
+        .contains("string")
         .contains("\"hello\"");
   }
 
@@ -158,10 +158,10 @@ class ConnectorResultHandlerTest {
                 connectorResultHandler.createOutputVariables(
                     responseContent, null, resultExpression));
 
-    // then - should indicate that a number was returned and context is expected
+    // then - should indicate that a number was returned and JSON object is expected
     assertThat(exception.getMessage())
-        .contains("Result expression must return a context")
-        .contains("a number")
+        .contains("Result expression must return a JSON object")
+        .contains("number")
         .contains("42");
   }
 
@@ -179,10 +179,10 @@ class ConnectorResultHandlerTest {
                 connectorResultHandler.createOutputVariables(
                     responseContent, null, resultExpression));
 
-    // then - should indicate that a boolean was returned and context is expected
+    // then - should indicate that a boolean was returned and JSON object is expected
     assertThat(exception.getMessage())
-        .contains("Result expression must return a context")
-        .contains("a boolean")
+        .contains("Result expression must return a JSON object")
+        .contains("boolean")
         .contains("true");
   }
 
@@ -200,9 +200,9 @@ class ConnectorResultHandlerTest {
                 connectorResultHandler.createOutputVariables(
                     responseContent, null, resultExpression));
 
-    // then - should indicate that null was returned and context is expected
+    // then - should indicate that null was returned and JSON object is expected
     assertThat(exception.getMessage())
-        .contains("Result expression must return a context")
+        .contains("Result expression must return a JSON object")
         .contains("null");
   }
 
@@ -220,10 +220,10 @@ class ConnectorResultHandlerTest {
                 connectorResultHandler.createOutputVariables(
                     responseContent, null, resultExpression));
 
-    // then - should indicate that a number was returned and context is expected
+    // then - should indicate that a number was returned and JSON object is expected
     assertThat(exception.getMessage())
-        .contains("Result expression must return a context")
-        .contains("a number")
+        .contains("Result expression must return a JSON object")
+        .contains("number")
         .contains("-42");
   }
 }

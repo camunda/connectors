@@ -20,6 +20,7 @@ import static io.camunda.connector.feel.FeelEngineWrapperUtil.wrapResponse;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
@@ -38,9 +39,6 @@ import java.util.Optional;
 public class ConnectorResultHandler {
 
   private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse '%s' as '%s'.";
-  private static final String ERROR_RESULT_EXPRESSION_INVALID_TYPE =
-      "Result expression must return a context (a JSON object structure), but got: %s. "
-          + "The result expression evaluated to: %s";
   public static List<String> FORBIDDEN_LITERALS = List.of(IntrinsicFunctionModel.DISCRIMINATOR_KEY);
 
   private FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
@@ -106,18 +104,25 @@ public class ConnectorResultHandler {
   private <T> T parseJsonVarsAsTypeOrThrow(
       final String jsonVars, Class<T> type, final String expression) {
     try {
-      return objectMapper.readValue(jsonVars, type);
-    } catch (JsonProcessingException e) {
-      // When expecting a Map (result expression output), provide a better error message
+      // When expecting a Map (result expression output), check if it's actually a JSON object
       if (type.equals(Map.class)) {
-        String valueType = determineJsonType(jsonVars);
-        throw new ConnectorInputException(
-            new FeelEngineWrapperException(
-                String.format(ERROR_RESULT_EXPRESSION_INVALID_TYPE, valueType, jsonVars),
-                expression,
-                jsonVars,
-                e));
+        JsonNode node = objectMapper.readTree(jsonVars);
+        if (!node.isObject()) {
+          throw new ConnectorInputException(
+              new FeelEngineWrapperException(
+                  String.format(
+                      "Result expression must return a JSON object, but got %s. Evaluated value: %s",
+                      node.getNodeType().name().toLowerCase(),
+                      jsonVars),
+                  expression,
+                  jsonVars));
+        }
       }
+      return objectMapper.readValue(jsonVars, type);
+    } catch (ConnectorInputException e) {
+      // Re-throw our custom exception
+      throw e;
+    } catch (JsonProcessingException e) {
       // For other types (like ConnectorError), keep the original message
       throw new ConnectorInputException(
           new FeelEngineWrapperException(
@@ -126,28 +131,6 @@ public class ConnectorResultHandler {
               jsonVars,
               e));
     }
-  }
-
-  private String determineJsonType(String jsonVars) {
-    if (jsonVars == null) {
-      return "null";
-    }
-    if (jsonVars.isBlank()) {
-      return "an empty value";
-    }
-    String trimmed = jsonVars.trim();
-    if (trimmed.startsWith("[")) {
-      return "an array";
-    } else if (trimmed.equals("true") || trimmed.equals("false")) {
-      return "a boolean";
-    } else if (trimmed.equals("null")) {
-      return "null";
-    } else if (trimmed.startsWith("\"")) {
-      return "a string";
-    } else if (trimmed.matches("-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?")) {
-      return "a number";
-    }
-    return "an invalid type";
   }
 
   private void verifyNoForbiddenLiterals(String json) {

@@ -413,8 +413,8 @@ class SpringConnectorJobHandlerTest {
 
         // then
         assertThat(result.getErrorMessage())
-            .contains("Result expression must return a context")
-            .contains("a string");
+            .contains("Result expression must return a JSON object")
+            .contains("string");
       }
 
       @Test
@@ -431,8 +431,8 @@ class SpringConnectorJobHandlerTest {
 
         // then
         assertThat(result.getErrorMessage())
-            .contains("Result expression must return a context")
-            .contains("a string");
+            .contains("Result expression must return a JSON object")
+            .contains("string");
       }
     }
 
