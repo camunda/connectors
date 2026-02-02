@@ -25,10 +25,7 @@ import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentCompletion;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.Keywords;
-import io.camunda.connector.runtime.core.error.BpmnError;
-import io.camunda.connector.runtime.core.error.ConnectorError;
-import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
-import io.camunda.connector.runtime.core.error.JobError;
+import io.camunda.connector.runtime.core.error.*;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.ErrorExpressionJob;
@@ -148,6 +145,19 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
                   jobError.retries(),
                   jobError.retryBackoff()),
               counterMetricsContext);
+      case IgnoreError ignoreError -> {
+        LOGGER.debug("IgnoreError is not supported for agentic cases yet");
+        failJob(
+            jobClient,
+            job,
+            new ErrorResult(
+                Map.of("error", "IgnoreError is not supported for agentic cases yet"),
+                new UnsupportedOperationException(
+                    "IgnoreError is not supported for agentic cases yet"),
+                0,
+                null),
+            counterMetricsContext);
+      }
     }
   }
 

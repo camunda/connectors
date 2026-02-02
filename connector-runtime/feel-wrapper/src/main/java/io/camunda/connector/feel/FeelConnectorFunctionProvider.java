@@ -41,6 +41,7 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
   public static final String ERROR_TYPE_PROPERTY = "errorType";
   public static final String BPMN_ERROR_TYPE_VALUE = "bpmnError";
   public static final String JOB_ERROR_TYPE_VALUE = "jobError";
+  public static final String IGNORE_ERROR_TYPE_VALUE = "ignoreError";
 
   // BPMN error
   private static final String BPMN_ERROR_FUNCTION_NAME = "bpmnError";
@@ -125,6 +126,34 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
                   JOB_ERROR_DEFAULT_ARG_VARIABLES,
                   JOB_ERROR_DEFAULT_ARG_RETRIES,
                   JOB_ERROR_DEFAULT_ARG_RETRY_BACKOFF));
+
+  /** Ignore Error Function */
+  private static final String IGNORE_ERROR_FUNCTION_NAME = "ignoreError";
+
+  private static final List<String> IGNORE_ERROR_ARGUMENTS = List.of("variables");
+
+  private static final JavaFunction IGNORE_ERROR_FUNCTION =
+      new JavaFunction(
+          IGNORE_ERROR_ARGUMENTS,
+          args ->
+              new ValContext(
+                  new Context.StaticContext(
+                      new Map.Map2<>(
+                          ERROR_TYPE_PROPERTY,
+                          IGNORE_ERROR_TYPE_VALUE,
+                          IGNORE_ERROR_ARGUMENTS.getFirst(),
+                          toContext(args, 0)),
+                      Map$.MODULE$.empty())));
+
+  private static final JavaFunction IGNORE_ERROR_FUNCTION_NO_ARGS =
+      new JavaFunction(
+          List.of(),
+          args ->
+              new ValContext(
+                  new Context.StaticContext(
+                      new Map.Map1<>(ERROR_TYPE_PROPERTY, IGNORE_ERROR_TYPE_VALUE),
+                      Map$.MODULE$.empty())));
+
   private static final java.util.Map<String, List<JavaFunction>> functions =
       java.util.Map.of(
           BPMN_ERROR_FUNCTION_NAME,
@@ -134,7 +163,9 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
               JOB_ERROR_FUNCTION_1,
               JOB_ERROR_FUNCTION_2,
               JOB_ERROR_FUNCTION_3,
-              JOB_ERROR_FUNCTION_4));
+              JOB_ERROR_FUNCTION_4),
+          IGNORE_ERROR_FUNCTION_NAME,
+          List.of(IGNORE_ERROR_FUNCTION, IGNORE_ERROR_FUNCTION_NO_ARGS));
 
   private static ValContext createJobErrorContext(
       ValString message, ValContext variables, ValNumber retries, ValDayTimeDuration retryBackoff) {
