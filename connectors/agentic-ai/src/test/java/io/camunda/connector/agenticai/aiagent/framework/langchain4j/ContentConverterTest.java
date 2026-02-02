@@ -21,6 +21,7 @@ import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceCont
 import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent.BlobResource;
 import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent.TextResource;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.model.message.content.ResourceLinkContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -234,16 +235,18 @@ class ContentConverterTest {
           .isEqualTo("PFBERiBDT05URU5UPg==");
     }
 
-    //    @Test
-    //    void supportsResourceLinkContent() throws JsonProcessingException {
-    //      final var resourceLink = ResourceLinkContent.resourceLink("file://example.txt");
-    //
-    //      final var content = contentConverter.convertToContent(resourceLink);
-    //
-    //      assertThat(content).isInstanceOf(dev.langchain4j.data.message.TextContent.class);
-    //      assertThat(((dev.langchain4j.data.message.TextContent) content).text())
-    //          .isEqualTo("{\"uri\":\"file://example.txt\"}");
-    //    }
+    @Test
+    void supportsResourceLinkContent() throws JsonProcessingException {
+      final var resourceLink =
+          new ResourceLinkContent("file://example.txt", "a-link", "A link", "text/plain", Map.of());
+
+      final var content = contentConverter.convertToContent(resourceLink);
+
+      assertThat(content).isInstanceOf(dev.langchain4j.data.message.TextContent.class);
+      assertThat(((dev.langchain4j.data.message.TextContent) content).text())
+          .isEqualTo(
+              "{\"type\":\"resource_link\",\"uri\":\"file://example.txt\",\"name\":\"a-link\",\"description\":\"A link\",\"mimeType\":\"text/plain\"}");
+    }
   }
 
   @Nested

@@ -24,6 +24,8 @@ import io.camunda.connector.agenticai.model.message.content.TextContent;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
+
+import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import org.apache.hc.core5.http.ContentType;
 
 public class ContentConverterImpl implements ContentConverter {
@@ -52,7 +54,10 @@ public class ContentConverterImpl implements ContentConverter {
           convertEmbeddedResourceContent(embeddedResourceContent);
       case ResourceLinkContent resourceLinkContent ->
           new dev.langchain4j.data.message.TextContent(
-              convertToString(Map.of("uri", resourceLinkContent.uri())));
+              convertToString(
+                  contentObjectMapper.convertValue(
+                      resourceLinkContent,
+                      ObjectMapperConstants.STRING_OBJECT_MAP_TYPE_REFERENCE)));
     };
   }
 
