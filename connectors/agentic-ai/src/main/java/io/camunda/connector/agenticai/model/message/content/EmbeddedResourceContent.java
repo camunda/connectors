@@ -31,13 +31,11 @@ public record EmbeddedResourceContent(
     return new EmbeddedResourceContent(resource, null);
   }
 
-  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "resourceType")
+  @JsonTypeInfo(use = JsonTypeInfo.Id.DEDUCTION)
   @JsonSubTypes({
-    @JsonSubTypes.Type(value = TextResource.class, name = "text"),
-    @JsonSubTypes.Type(value = BlobResource.class, name = "blob"),
-    @JsonSubTypes.Type(
-        value = EmbeddedResourceBlobDocumentContent.class,
-        name = "blobDocument")
+    @JsonSubTypes.Type(value = TextResource.class),
+    @JsonSubTypes.Type(value = BlobResource.class),
+    @JsonSubTypes.Type(value = EmbeddedResourceBlobDocumentContent.class)
   })
   public sealed interface EmbeddedResource
       permits TextResource, BlobResource, EmbeddedResourceBlobDocumentContent {}

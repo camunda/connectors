@@ -20,7 +20,9 @@ import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.model.message.content.BinaryContent;
+import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
+import io.camunda.connector.agenticai.model.message.content.ResourceLinkContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.api.error.ConnectorException;
 import io.modelcontextprotocol.client.McpSyncClient;
@@ -300,8 +302,8 @@ class ToolCallRequestTest {
                 new McpClientCallToolResult(
                     "a-name",
                     List.of(
-                        new io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent(
-                            new io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent.TextResource(
+                        new EmbeddedResourceContent(
+                            new EmbeddedResourceContent.TextResource(
                                 "uri://resource", "text/plain", "resource text"),
                             null)),
                     false))),
@@ -312,8 +314,8 @@ class ToolCallRequestTest {
                 new McpClientCallToolResult(
                     "a-name",
                     List.of(
-                        new io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent(
-                            new io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent.BlobResource(
+                        new EmbeddedResourceContent(
+                            new EmbeddedResourceContent.BlobResource(
                                 "uri://resource", "application/octet-stream", "blob data".getBytes(StandardCharsets.UTF_8)),
                             null)),
                     false))),
@@ -324,7 +326,7 @@ class ToolCallRequestTest {
                 new McpClientCallToolResult(
                     "a-name",
                     List.of(
-                        new io.camunda.connector.agenticai.model.message.content.ResourceLinkContent(
+                        new ResourceLinkContent(
                             "uri://external-resource", null)),
                     false))));
   }
