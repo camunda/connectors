@@ -7,6 +7,7 @@ camunda:
             a-mcp-client:
               enabled: true
               type: HTTP
+              tool-execution-timeout: PT5S
               http:
                 url: http://localhost:19080/mcp
           langchain4j:
@@ -14,3 +15,4 @@ camunda:
               http:
                 log-requests: true
                 log-responses: true
+

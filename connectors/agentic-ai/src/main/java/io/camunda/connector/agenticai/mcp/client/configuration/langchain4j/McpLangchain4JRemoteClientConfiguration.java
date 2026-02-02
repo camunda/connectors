@@ -24,7 +24,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @ConditionalOnExpression(
-    "${camunda.connector.agenticai.mcp.remote-client.framework:'langchain4j'} == 'langchain4j' && ${camunda.connector.agenticai.mcp.remote-client.enabled:true}")
+    "'${camunda.connector.agenticai.mcp.remote-client.framework:langchain4j}' == 'langchain4j' and ${camunda.connector.agenticai.mcp.remote-client.enabled:true}")
 @Configuration
 @EnableConfigurationProperties(McpClientLangchain4JFrameworkConfigurationProperties.class)
 public class McpLangchain4JRemoteClientConfiguration {

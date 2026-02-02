@@ -129,7 +129,7 @@ public class McpAutoConfigurationTest {
         .withPropertyValues(
             "camunda.connector.agenticai.mcp.client.enabled=true",
             "camunda.connector.agenticai.mcp.remote-client.enabled=false",
-            "camunda.connector.agenticai.mcp.client.framework='mcp-sdk'")
+            "camunda.connector.agenticai.mcp.client.framework='mcpsdk'")
         .run(
             context -> {
               assertDoesNotHaveAnyBeansOf(context, LANGCHAIN4J_MCP_CLIENT_BEANS);
@@ -141,7 +141,7 @@ public class McpAutoConfigurationTest {
   @Test
   void enablesMcpSdkRemoteIntegrationIfConfigured() {
     contextRunner
-        .withPropertyValues("camunda.connector.agenticai.mcp.remote-client.framework='mcp-sdk'")
+        .withPropertyValues("camunda.connector.agenticai.mcp.remote-client.framework='mcpsdk'")
         .run(
             context -> {
               assertDoesNotHaveAnyBeansOf(context, LANGCHAIN4J_MCP_CLIENT_BEANS);

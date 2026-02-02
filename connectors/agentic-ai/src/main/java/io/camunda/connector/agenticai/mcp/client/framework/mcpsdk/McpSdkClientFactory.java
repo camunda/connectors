@@ -21,6 +21,7 @@ import io.modelcontextprotocol.json.McpJsonMapper;
 import io.modelcontextprotocol.spec.McpClientTransport;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -43,12 +44,10 @@ public class McpSdkClientFactory implements McpClientFactory {
             .clientInfo(
                 new McpSchema.Implementation(
                     "Camunda MCP Connector - Client ID: %s".formatted(clientId), "1.0.0"))
-            .capabilities(McpSchema.ClientCapabilities.builder().roots(true).build());
+            .capabilities(McpSchema.ClientCapabilities.builder().roots(false).build());
 
     Optional.ofNullable(config.initializationTimeout()).map(clientBuilder::initializationTimeout);
     Optional.ofNullable(config.toolExecutionTimeout()).map(clientBuilder::requestTimeout);
-    // todo reconnect interval?
-    // Optional.ofNullable(config.reconnectInterval()).map(clientBuilder::);
 
     return new McpSdkMcpClientDelegate(clientBuilder.build(), objectMapper);
   }
@@ -71,7 +70,6 @@ public class McpSdkClientFactory implements McpClientFactory {
   private StdioClientTransport createStdioTransport(
       McpClientConfigurationProperties.StdioMcpClientTransportConfiguration stdioConfig) {
 
-    // todo timeout?
     return new StdioClientTransport(
         ServerParameters.builder(stdioConfig.command()).args(stdioConfig.args()).build(),
         McpJsonMapper.createDefault());
@@ -83,12 +81,12 @@ public class McpSdkClientFactory implements McpClientFactory {
 
     return HttpClientStreamableHttpTransport.builder(streamableHttpConfig.url())
         .connectTimeout(timeout(streamableHttpConfig.timeout()))
+        .supportedProtocolVersions(List.of("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"))
         .customizeRequest(
             request -> {
               var headers = customHeaders(streamableHttpConfig);
               headers.forEach(request::header);
             })
-        // todo proxy configuration
         .build();
   }
 

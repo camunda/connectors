@@ -24,6 +24,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientGetPromptResult;
@@ -52,6 +53,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -65,7 +67,7 @@ import org.springframework.test.context.TestPropertySource;
 @SlowTest
 @TestPropertySource(properties = {"camunda.connector.agenticai.mcp.client.enabled=true"})
 @ActiveProfiles("mcp-standalone-test")
-public class McpStandaloneTests extends BaseAgenticAiTest {
+public class McpStandaloneLangchain4JTests extends BaseAgenticAiTest {
 
   private static final WireMockServer wireMock = setupWireMockServer();
 
@@ -91,6 +93,18 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
   @BeforeEach
   void resetWireMock() {
     wireMock.resetAll();
+  }
+
+  @AfterEach
+  void printRequests() {
+    wireMock
+        .findAll(RequestPatternBuilder.allRequests())
+        .forEach(
+            request -> {
+              System.out.println(request.getAbsoluteUrl());
+              System.out.println(request);
+              System.out.println("+++++++++++++++++");
+            });
   }
 
   @ParameterizedTest
@@ -182,13 +196,12 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
               .hasVariableSatisfies(
                   "clientCallReadResourceResult",
                   McpClientReadResourceResult.class,
-                  readResourceResult -> {
-                    assertThat(readResourceResult.contents())
-                        .hasSize(1)
-                        .containsExactly(
-                            new ResourceData.TextResourceData(
-                                "resourceA", "text/plain", "This is the content of Resource A."));
-                  })
+                  readResourceResult ->
+                      assertThat(readResourceResult.contents())
+                          .hasSize(1)
+                          .containsExactly(
+                              new ResourceData.TextResourceData(
+                                  "resourceA", "text/plain", "This is the content of Resource A.")))
               .hasVariableSatisfies(
                   "remoteClientListResourcesResult",
                   McpClientListResourcesResult.class,
@@ -200,15 +213,14 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
               .hasVariableSatisfies(
                   "remoteClientReadResourceResult",
                   McpClientReadResourceResult.class,
-                  readResourceResult -> {
-                    assertThat(readResourceResult.contents())
-                        .hasSize(1)
-                        .containsExactly(
-                            new ResourceData.TextResourceData(
-                                "resourceC",
-                                "text/markdown",
-                                "# This is the content of Resource C."));
-                  });
+                  readResourceResult ->
+                      assertThat(readResourceResult.contents())
+                          .hasSize(1)
+                          .containsExactly(
+                              new ResourceData.TextResourceData(
+                                  "resourceC",
+                                  "text/markdown",
+                                  "# This is the content of Resource C.")));
 
           wireMock.verify(
               2,
@@ -247,15 +259,14 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
               .hasVariableSatisfies(
                   "clientCallReadResourceResult",
                   McpClientReadResourceResult.class,
-                  readResourceResult -> {
-                    assertThat(readResourceResult.contents())
-                        .hasSize(1)
-                        .containsExactly(
-                            new ResourceData.TextResourceData(
-                                "resource-a-1",
-                                "text/plain",
-                                "This is the content of Resource A number 1."));
-                  })
+                  readResourceResult ->
+                      assertThat(readResourceResult.contents())
+                          .hasSize(1)
+                          .containsExactly(
+                              new ResourceData.TextResourceData(
+                                  "resource-a-1",
+                                  "text/plain",
+                                  "This is the content of Resource A number 1.")))
               .hasVariableSatisfies(
                   "remoteClientListResourceTemplatesResult",
                   McpClientListResourceTemplatesResult.class,
@@ -267,15 +278,14 @@ public class McpStandaloneTests extends BaseAgenticAiTest {
               .hasVariableSatisfies(
                   "remoteClientReadResourceResult",
                   McpClientReadResourceResult.class,
-                  readResourceResult -> {
-                    assertThat(readResourceResult.contents())
-                        .hasSize(1)
-                        .containsExactly(
-                            new ResourceData.TextResourceData(
-                                "resource-a-1",
-                                "text/plain",
-                                "This is the content of Resource A number 1."));
-                  });
+                  readResourceResult ->
+                      assertThat(readResourceResult.contents())
+                          .hasSize(1)
+                          .containsExactly(
+                              new ResourceData.TextResourceData(
+                                  "resource-a-1",
+                                  "text/plain",
+                                  "This is the content of Resource A number 1.")));
 
           wireMock.verify(
               2,

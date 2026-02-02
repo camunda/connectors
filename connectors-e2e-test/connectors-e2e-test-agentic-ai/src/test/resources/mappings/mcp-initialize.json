@@ -1,43 +1,61 @@
 {
-  "request": {
-    "method": "POST",
-    "url": "/mcp",
-    "bodyPatterns": [
-      {
-        "matchesJsonPath": {
-          "expression": "$.method",
-          "equalTo": "initialize"
-        }
-      }
-    ]
-  },
-  "response": {
-    "status": 200,
-    "headers": {
-      "Content-Type": "application/json"
-    },
-    "transformers": [
-      "response-template"
-    ],
-    "jsonBody": {
-      "jsonrpc": "2.0",
-      "id": "{{jsonPath request.body '$.id'}}",
-      "result": {
-        "protocolVersion": "2025-11-25",
-        "capabilities": {
-          "logging": {},
-          "prompts": {
-            "listChanged": true
-          },
-          "resources": {
-            "subscribe": true,
-            "listChanged": true
-          },
-          "tools": {
-            "listChanged": true
+  "mappings": [
+    {
+      "request": {
+        "method": "POST",
+        "url": "/mcp",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": {
+              "expression": "$.method",
+              "equalTo": "initialize"
+            }
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "transformers": [
+          "response-template"
+        ],
+        "jsonBody": {
+          "jsonrpc": "2.0",
+          "id": "{{jsonPath request.body '$.id'}}",
+          "result": {
+            "protocolVersion": "2025-11-25",
+            "capabilities": {
+              "logging": {},
+              "prompts": {
+                "listChanged": false
+              },
+              "resources": {
+                "subscribe": false,
+                "listChanged": false
+              },
+              "tools": {
+                "listChanged": false
+              }
+            }
           }
         }
       }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "/mcp",
+        "headers": {
+          "Accept": {
+            "equalTo": "text/event-stream"
+          }
+        }
+      },
+      "response": {
+        "status": 200
+      }
     }
-  }
+  ]
 }

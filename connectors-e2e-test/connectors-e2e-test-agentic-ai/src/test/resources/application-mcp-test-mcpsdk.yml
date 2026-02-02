@@ -1,0 +1,9 @@
+camunda:
+  connector:
+    agenticai:
+      mcp:
+        remote-client:
+          framework: mcpsdk
+        client:
+          framework: mcpsdk
+

@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @ConditionalOnExpression(
-    "${camunda.connector.agenticai.mcp.remote-client.framework:'langchain4j'} == 'mcp-sdk' && ${camunda.connector.agenticai.mcp.remote-client.enabled:true}")
+    "'${camunda.connector.agenticai.mcp.remote-client.framework:langchain4j}' == 'mcpsdk' and ${camunda.connector.agenticai.mcp.remote-client.enabled:true}")
 @Configuration
 public class McpSdkMcpRemoteClientConfiguration {
 
@@ -28,7 +28,7 @@ public class McpSdkMcpRemoteClientConfiguration {
 
   @PostConstruct
   void init() {
-    LOGGER.info("MCP remote client framework is set to mcp-sdk");
+    LOGGER.info("MCP remote client framework is set to mcpsdk");
   }
 
   @Bean
