@@ -94,7 +94,12 @@ public class ContentConverterImpl implements ContentConverter {
     }
 
     final var contentType = ContentType.parse(mimeType);
-    return BinaryDataToContentConverter.convert(blobResource.blob(), contentType);
+    return Optional.ofNullable(
+            BinaryDataToContentConverter.convert(blobResource.blob(), contentType))
+        .orElseGet(
+            () ->
+                new dev.langchain4j.data.message.TextContent(
+                    Base64.getEncoder().encodeToString(blobResource.blob())));
   }
 
   @Override
