@@ -17,9 +17,8 @@ import io.camunda.connector.agenticai.model.message.content.ResourceLinkContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
-import org.apache.commons.collections4.CollectionUtils;
-
 import java.util.List;
+import org.apache.commons.collections4.CollectionUtils;
 
 @AgenticAiRecord
 public record McpClientCallToolResult(String name, List<Content> content, Boolean isError)
@@ -51,21 +50,21 @@ public record McpClientCallToolResult(String name, List<Content> content, Boolea
   private EmbeddedResourceContent createFromEmbeddedResource(
       EmbeddedResourceContent embeddedResourceContent, DocumentFactory documentFactory) {
     var resource = embeddedResourceContent.resource();
-    
+
     // Only BlobResource needs to be converted to a document
-    if (!(resource instanceof EmbeddedResourceContent.BlobResource blobResource)) {
+    if (!(resource instanceof EmbeddedResourceContent.BlobResource(String uri, String mimeType, byte[] blob))) {
       return embeddedResourceContent;
     }
-    
+
     var createdDocument =
         documentFactory.create(
-            DocumentCreationRequest.from(blobResource.blob())
-                .contentType(blobResource.mimeType())
+            DocumentCreationRequest.from(blob)
+                .contentType(mimeType)
                 .build());
-    
+
     return new EmbeddedResourceContent(
         new EmbeddedResourceBlobDocumentContent(
-            blobResource.uri(), blobResource.mimeType(), createdDocument),
+                uri, mimeType, createdDocument),
         embeddedResourceContent.metadata());
   }
 

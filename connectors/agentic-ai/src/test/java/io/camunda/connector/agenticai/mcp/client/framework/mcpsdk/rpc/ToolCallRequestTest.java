@@ -27,7 +27,6 @@ import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.api.error.ConnectorException;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.LinkedHashMap;
@@ -41,7 +40,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.Mock;
-import org.mockito.ThrowingConsumer;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -91,9 +89,9 @@ class ToolCallRequestTest {
     assertThat(result)
         .isInstanceOfSatisfying(
             McpClientCallToolResult.class,
-            toolCallResult -> {
-              assertThat(toolCallResult).isEqualTo(expectation.domainResult);
-            });
+            toolCallResult -> assertThat(toolCallResult)
+                .usingRecursiveComparison()
+                .isEqualTo(expectation.domainResult));
   }
 
   @ParameterizedTest
@@ -298,7 +296,8 @@ class ToolCallRequestTest {
         argumentSet(
             "embedded resource - text",
             new ToolCallExpectation(
-                callToolResultWithEmbeddedTextResource("uri://resource", "text/plain", "resource text"),
+                callToolResultWithEmbeddedTextResource(
+                    "uri://resource", "text/plain", "resource text"),
                 new McpClientCallToolResult(
                     "a-name",
                     List.of(
@@ -310,24 +309,30 @@ class ToolCallRequestTest {
         argumentSet(
             "embedded resource - blob",
             new ToolCallExpectation(
-                callToolResultWithEmbeddedBlobResource("uri://resource", "application/octet-stream", "blob data".getBytes(StandardCharsets.UTF_8)),
+                callToolResultWithEmbeddedBlobResource(
+                    "uri://resource",
+                    "application/octet-stream",
+                    "blob data".getBytes(StandardCharsets.UTF_8)),
                 new McpClientCallToolResult(
                     "a-name",
                     List.of(
                         new EmbeddedResourceContent(
                             new EmbeddedResourceContent.BlobResource(
-                                "uri://resource", "application/octet-stream", "blob data".getBytes(StandardCharsets.UTF_8)),
+                                "uri://resource",
+                                "application/octet-stream",
+                                "blob data".getBytes(StandardCharsets.UTF_8)),
                             null)),
                     false))),
         argumentSet(
             "resource link",
             new ToolCallExpectation(
-                callToolResultWithResourceLink("uri://external-resource"),
+                callToolResultWithResourceLink(
+                    "uri://external-resource", "a-link", "A link", "text/plain", null),
                 new McpClientCallToolResult(
                     "a-name",
                     List.of(
                         new ResourceLinkContent(
-                            "uri://external-resource", null)),
+                            "uri://external-resource", "a-link", "A link", "text/plain", null)),
                     false))));
   }
 
@@ -374,9 +379,14 @@ class ToolCallRequestTest {
         null);
   }
 
-  private static McpSchema.CallToolResult callToolResultWithResourceLink(String uri) {
+  private static McpSchema.CallToolResult callToolResultWithResourceLink(
+      String uri, String name, String description, String mimeType, Map<String, Object> meta) {
     return new McpSchema.CallToolResult(
-        List.of(new McpSchema.ResourceLink(uri, null)), false, null, null);
+        List.of(
+            new McpSchema.ResourceLink(name, null, uri, description, mimeType, null, null, meta)),
+        false,
+        null,
+        null);
   }
 
   static Stream<Arguments> toolExecutionArguments() {

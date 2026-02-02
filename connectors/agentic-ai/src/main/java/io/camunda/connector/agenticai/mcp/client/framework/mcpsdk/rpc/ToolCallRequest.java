@@ -21,7 +21,6 @@ import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import io.camunda.connector.api.error.ConnectorException;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
-
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -138,7 +137,12 @@ final class ToolCallRequest {
   }
 
   private ResourceLinkContent mapResourceLink(McpSchema.ResourceLink resourceLink) {
-    return ResourceLinkContent.resourceLink(resourceLink.uri());
+    return new ResourceLinkContent(
+        resourceLink.uri(),
+        resourceLink.name(),
+        resourceLink.description(),
+        resourceLink.mimeType(),
+        resourceLink.meta());
   }
 
   private BinaryContent fromBlob(String blob, String mimeType, Map<String, Object> metadata) {

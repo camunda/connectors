@@ -186,13 +186,21 @@ class McpClientResultDocumentHandlerTest {
                 "get-link",
                 List.of(
                     new ResourceLinkContent(
-                        "uri://external-resource", Map.of("linkMeta", "value"))),
+                        "uri://external-resource",
+                        "a link",
+                        "A link!",
+                        "application/octet-stream",
+                        Map.of("linkMeta", "value"))),
                 false),
             new McpClientCallToolResult(
                 "get-link",
                 List.of(
                     new ResourceLinkContent(
-                        "uri://external-resource", Map.of("linkMeta", "value"))),
+                        "uri://external-resource",
+                        "a link",
+                        "A link!",
+                        "application/octet-stream",
+                        Map.of("linkMeta", "value"))),
                 false)));
   }
 

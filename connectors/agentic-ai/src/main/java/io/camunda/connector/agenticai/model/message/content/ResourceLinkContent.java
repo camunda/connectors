@@ -12,19 +12,21 @@ import java.util.Map;
 /**
  * Represents a resource link from MCP tool calls.
  *
- * <p>A resource link is a reference to an external resource identified by a URI.
+ * <p>A resource link is a reference to an external resource identified by a URI. This matches the
+ * MCP specification's ResourceLink structure.
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record ResourceLinkContent(
-    String uri, @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
+    String uri,
+    String name,
+    String description,
+    String mimeType,
+    @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements Content {
 
   public ResourceLinkContent {
     if (uri == null) {
       throw new IllegalArgumentException("URI cannot be null");
     }
-  }
-
-  public static ResourceLinkContent resourceLink(String uri) {
-    return new ResourceLinkContent(uri, null);
   }
 }
