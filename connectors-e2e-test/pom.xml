@@ -17,6 +17,7 @@
 
   <properties>
     <skip.central.release>true</skip.central.release>
+    <maven.dependency.analyze.skip>true</maven.dependency.analyze.skip>
   </properties>
 
   <modules>
@@ -42,17 +43,4 @@
       <artifactId>connector-test-utils</artifactId>
     </dependency>
   </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <configuration>
-          <skip>true</skip>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
-
 </project>
