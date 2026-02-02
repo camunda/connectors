@@ -12,7 +12,7 @@
 
   <groupId>io.camunda.connector</groupId>
   <artifactId>connector-parent</artifactId>
-  <version>8.8.5</version>
+  <version>8.8.6</version>
   <packaging>pom</packaging>
 
   <name>Connectors Parent</name>
@@ -94,7 +94,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.26</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.41.14</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.41.15</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
     <version.software-aws-java-sdk-sts>2.41.14</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
@@ -110,7 +110,7 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-drive>v3-rev20251210-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.42.1</version.google-auth-library-oauth2-http>
-    <version.google-api-services-docs>v1-rev20251215-2.0.0</version.google-api-services-docs>
+    <version.google-api-services-docs>v1-rev20260114-2.0.0</version.google-api-services-docs>
     <version.google-libraries-bom>26.74.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20251110-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.62.0</version.google-cloud-storage>

@@ -8,7 +8,7 @@
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-runtime-parent</artifactId>
         <relativePath>../pom.xml</relativePath>
-        <version>8.8.5</version>
+        <version>8.8.6</version>
     </parent>
 
     <name>Connector Runtime Test</name>
@@ -18,15 +18,11 @@
     <dependencies>
         <dependency>
             <groupId>io.camunda.connector</groupId>
-            <artifactId>connector-core</artifactId>
+            <artifactId>connector-runtime-core</artifactId>
         </dependency>
         <dependency>
             <groupId>io.camunda.connector</groupId>
             <artifactId>connector-test</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.camunda.connector</groupId>
-            <artifactId>connector-runtime-core</artifactId>
         </dependency>
         <dependency>
             <groupId>io.camunda.connector</groupId>
@@ -66,26 +62,6 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.camunda.feel</groupId>
-            <artifactId>feel-engine</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-scala_3</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jdk8</artifactId>
         </dependency>
     </dependencies>
 </project>
