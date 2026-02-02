@@ -23,15 +23,19 @@ jobs:
     if: |
       github.event.pull_request.head.repo.full_name == github.repository &&
       contains(github.event.pull_request.requested_teams.*.slug, 'connectors')
-    permissions:
-      pull-requests: write
     steps:
+      - id: get-members
+        uses: garnertb/get-team-members@v1
+        with:
+          org: camunda
+          team_slug: connectors
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Assign Reviewer
         uses: Joxtacy/auto-assign-reviewers@v0.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # Team members to consider for assignment can later be fetched from GitHub automatically
-          team_members: 'sbuettner,ztefanie,mathias-vandaele,chillleader,johnBgood,vringar'
+          team_members: ${{ steps.get-members.outputs.members }}
           # Adjust these weights to prioritize different factors
           weight_open_prs: 15          # Default: 10
           weight_lines_per_100: 2      # Default: 1
