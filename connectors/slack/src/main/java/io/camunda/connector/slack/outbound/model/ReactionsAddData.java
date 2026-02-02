@@ -10,6 +10,7 @@ import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.reactions.ReactionsAddRequest;
 import com.slack.api.methods.response.reactions.ReactionsAddResponse;
+import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
@@ -43,6 +44,7 @@ public record ReactionsAddData(
             description = "Timestamp of the Slack message to react to",
             id = "data.timestamp",
             group = "reaction",
+            feel = Property.FeelMode.required,
             binding = @PropertyBinding(name = "data.timestamp"),
             constraints = @PropertyConstraints(notEmpty = true))
         @NotBlank
