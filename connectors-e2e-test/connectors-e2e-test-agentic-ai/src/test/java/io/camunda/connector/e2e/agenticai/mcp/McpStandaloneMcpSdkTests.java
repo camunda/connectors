@@ -24,7 +24,6 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
-import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import io.camunda.client.api.response.ProcessInstanceEvent;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientGetPromptResult;
@@ -53,7 +52,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -93,18 +91,6 @@ public class McpStandaloneMcpSdkTests extends BaseAgenticAiTest {
   @BeforeEach
   void resetWireMock() {
     wireMock.resetAll();
-  }
-
-  @AfterEach
-  void printRequests() {
-    wireMock
-        .findAll(RequestPatternBuilder.allRequests())
-        .forEach(
-            request -> {
-              System.out.println(request.getAbsoluteUrl());
-              System.out.println(request);
-              System.out.println("+++++++++++++++++");
-            });
   }
 
   @ParameterizedTest
