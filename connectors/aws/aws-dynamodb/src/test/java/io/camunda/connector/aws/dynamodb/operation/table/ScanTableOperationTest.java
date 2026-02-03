@@ -9,10 +9,6 @@ package io.camunda.connector.aws.dynamodb.operation.table;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.dynamodbv2.document.Item;
-import com.amazonaws.services.dynamodbv2.document.ItemCollection;
-import com.amazonaws.services.dynamodbv2.document.ScanOutcome;
-import com.amazonaws.services.dynamodbv2.document.internal.IteratorSupport;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
 import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.AwsDynamoDbResult;
@@ -23,6 +19,10 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
+import software.amazon.awssdk.services.dynamodb.document.Item;
+import software.amazon.awssdk.services.dynamodb.document.ItemCollection;
+import software.amazon.awssdk.services.dynamodb.document.ScanOutcome;
+import software.amazon.awssdk.services.dynamodb.document.internal.IteratorSupport;
 
 class ScanTableOperationTest extends BaseDynamoDbOperationTest {
 

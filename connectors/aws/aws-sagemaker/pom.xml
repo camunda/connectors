@@ -39,9 +39,8 @@
     </dependency>
 
     <dependency>
-      <groupId>com.amazonaws</groupId>
-      <artifactId>aws-java-sdk-sagemakerruntime</artifactId>
-      <version>${version.aws-java-sdk}</version>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sagemakerruntime</artifactId>
     </dependency>
 
     <dependency>

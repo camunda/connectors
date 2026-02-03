@@ -6,9 +6,6 @@
  */
 package io.camunda.connector.awslambda;
 
-import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.model.InvokeRequest;
-import com.amazonaws.services.lambda.model.InvokeResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
@@ -22,6 +19,10 @@ import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import io.camunda.connector.awslambda.model.AwsLambdaResult;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import java.util.Optional;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.services.lambda.LambdaClient;
+import software.amazon.awssdk.services.lambda.model.InvokeRequest;
+import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 
 @OutboundConnector(
     name = "AWS Lambda",
@@ -65,17 +66,18 @@ public class LambdaConnectorFunction implements OutboundConnectorFunction {
     return new AwsLambdaResult(invokeLambdaFunction(request), objectMapper);
   }
 
-  private InvokeResult invokeLambdaFunction(AwsLambdaRequest request) {
+  private InvokeResponse invokeLambdaFunction(AwsLambdaRequest request) {
     var region =
         AwsUtils.extractRegionOrDefault(
             request.getConfiguration(), request.getAwsFunction().getRegion());
-    AWSLambda awsLambda = createAwsLambdaClient(request, region);
+    LambdaClient awsLambda = createAwsLambdaClient(request, region);
     try {
 
       final InvokeRequest invokeRequest =
-          new InvokeRequest()
-              .withFunctionName(request.getAwsFunction().getFunctionName())
-              .withPayload(objectMapper.writeValueAsString(request.getAwsFunction().getPayload()));
+          InvokeRequest.builder()
+              .functionName(request.getAwsFunction().getFunctionName())
+              .payload(objectMapper.writeValueAsString(request.getAwsFunction().getPayload()))
+          .build();
       return awsLambda.invoke(invokeRequest);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Error mapping payload to json.");
@@ -86,7 +88,7 @@ public class LambdaConnectorFunction implements OutboundConnectorFunction {
     }
   }
 
-  private AWSLambda createAwsLambdaClient(AwsLambdaRequest request, String region) {
+  private LambdaClient createAwsLambdaClient(AwsLambdaRequest request, String region) {
     Optional<String> endpoint =
         Optional.ofNullable(request.getConfiguration()).map(AwsBaseConfiguration::endpoint);
 

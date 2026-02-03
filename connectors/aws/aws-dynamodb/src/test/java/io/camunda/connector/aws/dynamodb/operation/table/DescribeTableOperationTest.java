@@ -8,13 +8,13 @@ package io.camunda.connector.aws.dynamodb.operation.table;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
 import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.AwsInput;
 import io.camunda.connector.aws.dynamodb.model.DescribeTable;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.dynamodb.model.TableDescription;
 
 class DescribeTableOperationTest extends BaseDynamoDbOperationTest {
 
@@ -28,7 +28,7 @@ class DescribeTableOperationTest extends BaseDynamoDbOperationTest {
     // Then
     assertThat(invoke).isNotNull();
     TableDescription result = (TableDescription) invoke;
-    assertThat(result.getTableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
+    assertThat(result.tableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
   }
 
   @Test

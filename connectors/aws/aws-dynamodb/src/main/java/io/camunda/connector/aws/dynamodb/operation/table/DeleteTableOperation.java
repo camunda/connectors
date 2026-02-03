@@ -6,10 +6,10 @@
  */
 package io.camunda.connector.aws.dynamodb.operation.table;
 
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import io.camunda.connector.aws.dynamodb.model.AwsDynamoDbResult;
 import io.camunda.connector.aws.dynamodb.model.DeleteTable;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 public class DeleteTableOperation implements AwsDynamoDbOperation {
   private final DeleteTable deleteTableModel;
@@ -19,7 +19,7 @@ public class DeleteTableOperation implements AwsDynamoDbOperation {
   }
 
   @Override
-  public Object invoke(final DynamoDB dynamoDB) {
+  public Object invoke(final DynamoDbClient dynamoDB) {
     var table = dynamoDB.getTable(deleteTableModel.tableName());
     table.delete();
     try {

@@ -23,8 +23,8 @@
             <version>${version.localstack}</version>
         </dependency>
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-bom</artifactId>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>bom</artifactId>
             <version>${version.aws-java-sdk}</version>
             <type>pom</type>
         </dependency>
@@ -49,9 +49,8 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-sns</artifactId>
-            <version>${version.aws-java-sdk}</version>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>sns</artifactId>
         </dependency>
 
         <dependency>

@@ -38,9 +38,8 @@ except in compliance with the proprietary license.</license.inlineheader>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.amazonaws</groupId>
-      <artifactId>aws-java-sdk-sns</artifactId>
-      <version>${version.aws-java-sdk}</version>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sns</artifactId>
     </dependency>
   </dependencies>
 

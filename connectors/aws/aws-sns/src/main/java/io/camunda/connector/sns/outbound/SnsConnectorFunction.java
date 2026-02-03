@@ -8,9 +8,6 @@ package io.camunda.connector.sns.outbound;
 
 import static io.camunda.connector.aws.AwsUtils.extractRegionOrDefault;
 
-import com.amazonaws.services.sns.AmazonSNS;
-import com.amazonaws.services.sns.model.PublishRequest;
-import com.amazonaws.services.sns.model.PublishResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
@@ -24,6 +21,10 @@ import io.camunda.connector.sns.outbound.model.SnsConnectorRequest;
 import io.camunda.connector.sns.outbound.model.SnsConnectorResult;
 import io.camunda.connector.sns.suppliers.SnsClientSupplier;
 import java.util.Optional;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
+import software.amazon.awssdk.services.sns.model.PublishResponse;
 
 @OutboundConnector(
     name = "AWS SNS Outbound",
@@ -63,11 +64,11 @@ public class SnsConnectorFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(final OutboundConnectorContext context) {
     final var request = context.bindVariables(SnsConnectorRequest.class);
-    AmazonSNS snsClient = createSnsClient(request);
-    return new SnsConnectorResult(sendMsgToSns(snsClient, request).getMessageId());
+    SnsClient snsClient = createSnsClient(request);
+    return new SnsConnectorResult(sendMsgToSns(snsClient, request).messageId());
   }
 
-  private AmazonSNS createSnsClient(final SnsConnectorRequest request) {
+  private SnsClient createSnsClient(final SnsConnectorRequest request) {
     Optional<String> endpoint =
         Optional.ofNullable(request.getConfiguration()).map(AwsBaseConfiguration::endpoint);
     var credentialsProvider = CredentialsProviderSupport.credentialsProvider(request);
@@ -78,20 +79,21 @@ public class SnsConnectorFunction implements OutboundConnectorFunction {
         .orElseGet(() -> snsClientSupplier.getSnsClient(credentialsProvider, region));
   }
 
-  private PublishResult sendMsgToSns(final AmazonSNS snsClient, SnsConnectorRequest request) {
+  private PublishResponse sendMsgToSns(final SnsClient snsClient, SnsConnectorRequest request) {
     try {
       String topicMessage =
           request.getTopic().getMessage() instanceof String
               ? request.getTopic().getMessage().toString()
               : objectMapper.writeValueAsString(request.getTopic().getMessage());
       PublishRequest message =
-          new PublishRequest()
-              .withTopicArn(request.getTopic().getTopicArn())
-              .withMessage(topicMessage)
-              .withMessageGroupId(request.getTopic().getMessageGroupId())
-              .withMessageDeduplicationId(request.getTopic().getMessageDeduplicationId())
-              .withMessageAttributes(request.getTopic().getAwsSnsNativeMessageAttributes())
-              .withSubject(request.getTopic().getSubject());
+          PublishRequest.builder()
+              .topicArn(request.getTopic().getTopicArn())
+              .message(topicMessage)
+              .messageGroupId(request.getTopic().getMessageGroupId())
+              .messageDeduplicationId(request.getTopic().getMessageDeduplicationId())
+              .messageAttributes(request.getTopic().getAwsSnsNativeMessageAttributes())
+              .subject(request.getTopic().getSubject())
+          .build();
       return snsClient.publish(message);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Error mapping message to json.");

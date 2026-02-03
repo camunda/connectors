@@ -6,9 +6,6 @@
  */
 package io.camunda.connector.inbound;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.QueueAttributeName;
-import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
@@ -29,6 +26,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
+import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
 
 @InboundConnector(name = "AWS SQS Inbound", type = "io.camunda:aws-sqs-inbound:1")
 @ElementTemplate(
@@ -83,7 +83,7 @@ public class SqsExecutable implements InboundConnectorExecutable<InboundConnecto
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsExecutable.class);
   private final AmazonSQSClientSupplier sqsClientSupplier;
   private final ExecutorService executorService;
-  private AmazonSQS amazonSQS;
+  private SqsClient amazonSQS;
   private SqsQueueConsumer sqsQueueConsumer;
   private InboundConnectorContext context;
 
@@ -123,7 +123,7 @@ public class SqsExecutable implements InboundConnectorExecutable<InboundConnecto
     try {
       amazonSQS.getQueueAttributes(
           properties.getQueue().url(),
-          List.of(QueueAttributeName.ApproximateNumberOfMessages.toString()));
+          List.of(QueueAttributeName.APPROXIMATE_NUMBER_OF_MESSAGES.toString()));
     } catch (QueueDoesNotExistException e) {
       LOGGER.error("Queue does not exist, failing subscription activation");
       throw new RuntimeException("Queue does not exist: " + properties.getQueue().url());

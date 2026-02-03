@@ -39,8 +39,8 @@
     </dependency>
 
     <dependency>
-      <groupId>com.amazonaws</groupId>
-      <artifactId>aws-java-sdk-comprehend</artifactId>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>comprehend</artifactId>
       <version>${version.aws-java-sdk}</version>
     </dependency>
 

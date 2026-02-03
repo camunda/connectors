@@ -13,9 +13,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntime;
-import com.amazonaws.services.sagemakerruntime.model.InvokeEndpointRequest;
-import com.amazonaws.services.sagemakerruntime.model.InvokeEndpointResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.aws.ObjectMapperSupplier;
@@ -24,20 +21,23 @@ import java.nio.ByteBuffer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
+import software.amazon.awssdk.services.sagemakerruntime.model.InvokeEndpointRequest;
+import software.amazon.awssdk.services.sagemakerruntime.model.InvokeEndpointResponse;
 
 class SageMakerSyncCallerTest {
 
   @Test
   void sageMakerSyncCaller_HappyCase() throws JsonProcessingException {
-    var runtime = mock(AmazonSageMakerRuntime.class);
-    var mockedAwsCall = new InvokeEndpointResult();
-    mockedAwsCall.setBody(
-        ByteBuffer.wrap(
-            ObjectMapperSupplier.getMapperInstance()
-                .writeValueAsBytes("{\"generated_text\": \"the answer is 42\"}")));
-    mockedAwsCall.setContentType("application/json");
-    mockedAwsCall.setCustomAttributes("my-custom-attribute");
-    mockedAwsCall.setInvokedProductionVariant("variant01");
+    var runtime = mock(SageMakerRuntimeClient.class);
+    var mockedAwsCall = InvokeEndpointResponse.builder()
+        .build();
+    mockedAwsCall = mockedAwsCall.toBuilder().body(ByteBuffer.wrap(
+        ObjectMapperSupplier.getMapperInstance()
+            .writeValueAsBytes("{\"generated_text\": \"the answer is 42\"}"))).build();
+    mockedAwsCall = mockedAwsCall.toBuilder().contentType("application/json").build();
+    mockedAwsCall = mockedAwsCall.toBuilder().customAttributes("my-custom-attribute").build();
+    mockedAwsCall = mockedAwsCall.toBuilder().invokedProductionVariant("variant01").build();
     when(runtime.invokeEndpoint(any(InvokeEndpointRequest.class))).thenReturn(mockedAwsCall);
     var captor = ArgumentCaptor.forClass(InvokeEndpointRequest.class);
     var request =
@@ -48,29 +48,29 @@ class SageMakerSyncCallerTest {
     verify(runtime).invokeEndpoint(captor.capture());
 
     var mappedRequest = captor.getValue();
-    assertThat(mappedRequest.getEndpointName()).isEqualTo(request.getInput().endpointName());
-    assertThat(mappedRequest.getBody())
+    assertThat(mappedRequest.endpointName()).isEqualTo(request.getInput().endpointName());
+    assertThat(mappedRequest.body().asByteBuffer())
         .isEqualTo(
             ByteBuffer.wrap(
                 ObjectMapperSupplier.getMapperInstance()
                     .writeValueAsBytes(request.getInput().body())));
-    assertThat(mappedRequest.getContentType()).isEqualTo(request.getInput().contentType());
-    assertThat(mappedRequest.getAccept()).isEqualTo(request.getInput().accept());
-    assertThat(mappedRequest.getCustomAttributes())
+    assertThat(mappedRequest.contentType()).isEqualTo(request.getInput().contentType());
+    assertThat(mappedRequest.accept()).isEqualTo(request.getInput().accept());
+    assertThat(mappedRequest.customAttributes())
         .isEqualTo(request.getInput().customAttributes());
-    assertThat(mappedRequest.getTargetModel()).isEqualTo(request.getInput().targetModel());
-    assertThat(mappedRequest.getTargetVariant()).isEqualTo(request.getInput().targetVariant());
-    assertThat(mappedRequest.getTargetContainerHostname())
+    assertThat(mappedRequest.targetModel()).isEqualTo(request.getInput().targetModel());
+    assertThat(mappedRequest.targetVariant()).isEqualTo(request.getInput().targetVariant());
+    assertThat(mappedRequest.targetContainerHostname())
         .isEqualTo(request.getInput().targetContainerHostname());
-    assertThat(mappedRequest.getInferenceId()).isEqualTo(request.getInput().inferenceId());
-    assertThat(mappedRequest.getEnableExplanations()).isNull();
-    assertThat(mappedRequest.getInferenceComponentName())
+    assertThat(mappedRequest.inferenceId()).isEqualTo(request.getInput().inferenceId());
+    assertThat(mappedRequest.enableExplanations()).isNull();
+    assertThat(mappedRequest.inferenceComponentName())
         .isEqualTo(request.getInput().inferenceComponentName());
   }
 
   @Test
   void sageMaker_ExceptionCase() throws JsonProcessingException {
-    var runtime = mock(AmazonSageMakerRuntime.class);
+    var runtime = mock(SageMakerRuntimeClient.class);
     var request =
         ObjectMapperSupplier.getMapperInstance()
             .readValue(REAL_TIME_EXECUTION_JSON, SageMakerRequest.class);

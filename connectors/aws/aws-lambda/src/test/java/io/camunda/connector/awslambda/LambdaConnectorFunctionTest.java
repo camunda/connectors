@@ -12,8 +12,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.model.InvokeResult;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.awslambda.model.AwsLambdaResult;
@@ -21,24 +19,28 @@ import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.lambda.LambdaClient;
+import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 
 class LambdaConnectorFunctionTest extends BaseTest {
 
-  private AWSLambda awsLambda;
+  private LambdaClient awsLambda;
   private AwsLambdaSupplier supplier;
   private LambdaConnectorFunction function;
-  private InvokeResult invokeResult;
+  private InvokeResponse invokeResult;
 
   @BeforeEach
   public void init() {
     supplier = mock(AwsLambdaSupplier.class);
-    awsLambda = mock(AWSLambda.class);
+    awsLambda = mock(LambdaClient.class);
     function = new LambdaConnectorFunction(supplier, objectMapper);
     invokeResult =
-        new InvokeResult()
-            .withStatusCode(200)
-            .withPayload(ACTUAL_BYTEBUFFER_PAYLOAD)
-            .withExecutedVersion(EXECUTED_VERSION);
+        InvokeResponse.builder()
+            .statusCode(200)
+            .payload(SdkBytes.fromByteBuffer(ACTUAL_BYTEBUFFER_PAYLOAD))
+            .executedVersion(EXECUTED_VERSION)
+        .build();
   }
 
   @ParameterizedTest(name = "execute connector with valid data")

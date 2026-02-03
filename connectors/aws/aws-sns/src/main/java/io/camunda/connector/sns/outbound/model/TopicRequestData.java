@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.sns.outbound.model;
 
-import com.amazonaws.services.sns.model.MessageAttributeValue;
 import com.amazonaws.util.StringUtils;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
@@ -19,6 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
 
 public class TopicRequestData {
 
@@ -179,9 +179,10 @@ public class TopicRequestData {
 
   private Function<SnsMessageAttribute, MessageAttributeValue> messageAttributeTransformer() {
     return snsMessageAttribute -> {
-      MessageAttributeValue msgAttr = new MessageAttributeValue();
-      msgAttr.setDataType(snsMessageAttribute.getDataType());
-      msgAttr.setStringValue(snsMessageAttribute.getStringValue());
+      MessageAttributeValue msgAttr = MessageAttributeValue.builder()
+          .build();
+      msgAttr = msgAttr.toBuilder().dataType(snsMessageAttribute.getDataType()).build();
+      msgAttr = msgAttr.toBuilder().stringValue(snsMessageAttribute.getStringValue()).build();
       return msgAttr;
     };
   }

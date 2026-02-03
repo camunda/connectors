@@ -8,8 +8,8 @@ package io.camunda.connector.comprehend.caller;
 
 import com.amazonaws.AmazonWebServiceResult;
 import com.amazonaws.ResponseMetadata;
-import com.amazonaws.services.comprehend.AmazonComprehendClient;
 import io.camunda.connector.comprehend.model.ComprehendRequestData;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
 
 public interface ComprehendCaller<
     T extends AmazonWebServiceResult<ResponseMetadata>, R extends ComprehendRequestData> {
@@ -18,5 +18,5 @@ public interface ComprehendCaller<
       "If you chose TEXTRACT_ANALYZE_DOCUMENT as the read action, "
           + "you must specify one feature types";
 
-  T call(AmazonComprehendClient client, R requestData);
+  T call(ComprehendClient client, R requestData);
 }

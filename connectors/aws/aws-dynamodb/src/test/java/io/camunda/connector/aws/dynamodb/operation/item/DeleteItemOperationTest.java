@@ -9,8 +9,6 @@ package io.camunda.connector.aws.dynamodb.operation.item;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.dynamodbv2.document.DeleteItemOutcome;
-import com.amazonaws.services.dynamodbv2.document.KeyAttribute;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
@@ -24,6 +22,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import software.amazon.awssdk.services.dynamodb.document.DeleteItemOutcome;
+import software.amazon.awssdk.services.dynamodb.document.KeyAttribute;
 
 class DeleteItemOperationTest extends BaseDynamoDbOperationTest {
 

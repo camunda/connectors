@@ -9,11 +9,6 @@ package io.camunda.connector.aws.dynamodb.operation.item;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.dynamodbv2.document.AttributeUpdate;
-import com.amazonaws.services.dynamodbv2.document.KeyAttribute;
-import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
-import com.amazonaws.services.dynamodbv2.document.UpdateItemOutcome;
-import com.amazonaws.services.dynamodbv2.model.AttributeAction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
@@ -32,6 +27,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import software.amazon.awssdk.services.dynamodb.document.AttributeUpdate;
+import software.amazon.awssdk.services.dynamodb.document.KeyAttribute;
+import software.amazon.awssdk.services.dynamodb.document.PrimaryKey;
+import software.amazon.awssdk.services.dynamodb.document.UpdateItemOutcome;
+import software.amazon.awssdk.services.dynamodb.model.AttributeAction;
 
 class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
   @Mock private UpdateItemOutcome updateItemOutcome;
