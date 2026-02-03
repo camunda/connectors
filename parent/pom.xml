@@ -124,7 +124,7 @@ limitations under the License.</license.inlineheader>
     <version.bouncycastle>1.83</version.bouncycastle>
     <version.sendGrid>4.10.3</version.sendGrid>
 
-    <version.slack>1.46.0</version.slack>
+    <version.slack>1.47.0</version.slack>
 
     <version.testcontainers>2.0.3</version.testcontainers>
     <version.awaitility>4.3.0</version.awaitility>
