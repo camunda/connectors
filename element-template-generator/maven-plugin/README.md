@@ -121,3 +121,23 @@ If used together with `generateHybridTemplates`, the file name of the hybrid tem
 If the element template is generated for multiple element types, the file name will be
 `my-custom-template-<element-type>.json`. If used together with `generateHybridTemplates`, the
 file name of the hybrid template will be `my-custom-template-<element-type>-hybrid.json`.
+
+## Prevent generation of META-INF file
+
+If the connector is meant to function as spring bean only (because it needs to inject beans in order to function properly), you will have to prevent the generation of the META-INF file for SPI.
+
+This can be done like this:
+
+```xml
+
+<configuration>
+  <connectors>
+    <connector>
+      <connectorClass>io.camunda.connector.MyConnector</connectorClass>
+      <writeMetaInfFileGeneration>false</writeMetaInfFileGeneration>
+    </connector>
+  </connectors>
+</configuration>
+```
+
+Otherwise, the according META-INF file is created.
