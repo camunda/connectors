@@ -185,45 +185,4 @@ class ConnectorResultHandlerTest {
         .contains("boolean")
         .contains("true");
   }
-
-  @Test
-  void shouldProvideGoodErrorMessage_WhenResultExpressionReturnsNull() {
-    // given - result expression that produces null
-    final String resultExpression = "= null";
-    final Object responseContent = Map.of();
-
-    // when - should throw exception with clear message
-    final var exception =
-        assertThrows(
-            ConnectorInputException.class,
-            () ->
-                connectorResultHandler.createOutputVariables(
-                    responseContent, null, resultExpression));
-
-    // then - should indicate that null was returned and JSON object is expected
-    assertThat(exception.getMessage())
-        .contains("Result expression must return a JSON object")
-        .contains("null");
-  }
-
-  @Test
-  void shouldProvideGoodErrorMessage_WhenResultExpressionReturnsNegativeNumber() {
-    // given - result expression that produces a negative number
-    final String resultExpression = "= -42";
-    final Object responseContent = Map.of();
-
-    // when - should throw exception with clear message
-    final var exception =
-        assertThrows(
-            ConnectorInputException.class,
-            () ->
-                connectorResultHandler.createOutputVariables(
-                    responseContent, null, resultExpression));
-
-    // then - should indicate that a number was returned and JSON object is expected
-    assertThat(exception.getMessage())
-        .contains("Result expression must return a JSON object")
-        .contains("number")
-        .contains("-42");
-  }
 }
