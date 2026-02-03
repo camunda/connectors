@@ -191,8 +191,7 @@ class ConnectorResultHandlerTest {
   void shouldProvideGoodErrorMessage_WhenErrorExpressionReturnsArray() {
     // given - error expression that produces an array (invalid type)
     final Object responseContent = Map.of("status", "error");
-    final Map<String, String> jobHeaders =
-        Map.of(Keywords.ERROR_EXPRESSION_KEYWORD, "= [1, 2, 3]");
+    final Map<String, String> jobHeaders = Map.of(Keywords.ERROR_EXPRESSION_KEYWORD, "= [1, 2, 3]");
     // ErrorExpressionJobContext is required as context for FEEL evaluation;
     // the retries count (3) is a dummy value that doesn't affect error message validation
     final ErrorExpressionJobContext jobContext =
