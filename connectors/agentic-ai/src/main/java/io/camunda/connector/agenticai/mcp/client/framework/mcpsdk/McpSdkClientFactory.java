@@ -22,7 +22,6 @@ import io.modelcontextprotocol.spec.McpClientTransport;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public class McpSdkClientFactory implements McpClientFactory {
@@ -78,13 +77,14 @@ public class McpSdkClientFactory implements McpClientFactory {
   private HttpClientStreamableHttpTransport createStreamableHttpTransport(
       McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration
           streamableHttpConfig) {
+    var headerSuppliers = headersSupplierFactory.createHttpHeadersSupplier(streamableHttpConfig);
 
     return HttpClientStreamableHttpTransport.builder(streamableHttpConfig.url())
         .connectTimeout(timeout(streamableHttpConfig.timeout()))
         .supportedProtocolVersions(List.of("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"))
         .customizeRequest(
             request -> {
-              var headers = customHeaders(streamableHttpConfig);
+              var headers = headerSuppliers.get();
               headers.forEach(request::header);
             })
         .build();
@@ -92,22 +92,17 @@ public class McpSdkClientFactory implements McpClientFactory {
 
   private HttpClientSseClientTransport createSseTransport(
       McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration sseConfig) {
+    var headerSuppliers = headersSupplierFactory.createHttpHeadersSupplier(sseConfig);
+
     return HttpClientSseClientTransport.builder(sseConfig.url())
         .connectTimeout(timeout(sseConfig.timeout()))
         .customizeRequest(
             request -> {
-              var headers = customHeaders(sseConfig);
+              var headers = headerSuppliers.get();
               headers.forEach(request::header);
             })
         // todo proxy configuration
         .build();
-  }
-
-  private Map<String, String> customHeaders(
-      McpClientConfigurationProperties.McpClientHttpTransportConfiguration transportConfiguration) {
-    var suppliers = headersSupplierFactory.createHttpHeadersSupplier(transportConfiguration);
-
-    return suppliers.get();
   }
 
   private Duration timeout(Duration setTimeout) {
