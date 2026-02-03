@@ -1,0 +1,51 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connectors-e2e-test-parent</artifactId>
+    <relativePath>../pom.xml</relativePath>
+    <version>8.8.7</version>
+  </parent>
+
+  <description>CSV Connector tests</description>
+  <name>Connectors E2e Test Csv</name>
+  <artifactId>connectors-e2e-test-csv</artifactId>
+  <packaging>jar</packaging>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <dependencies>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-csv</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>camunda-process-test-spring</artifactId>
+      <version>${version.camunda}</version>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connectors-e2e-test-base</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>
