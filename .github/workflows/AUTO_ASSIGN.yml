@@ -13,8 +13,8 @@ jobs:
         name: Get Team Members
         uses: garnertb/get-team-members@v1
         with:
-          org: camunda
-          team_slug: connectors
+          org: 'camunda'
+          team_slug: 'connectors'
           token: ${{ secrets.GITHUB_TOKEN }}
           role: ''
       - name: Assign Reviewer
