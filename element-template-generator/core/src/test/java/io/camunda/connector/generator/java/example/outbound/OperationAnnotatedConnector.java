@@ -32,7 +32,8 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyC
 @ElementTemplate(
     engineVersion = "^8.8",
     id = OperationAnnotatedConnector.ID,
-    name = OperationAnnotatedConnector.NAME)
+    name = OperationAnnotatedConnector.NAME,
+    propertyGroups = {@ElementTemplate.PropertyGroup(id = "customGroup", label = "Custom Group")})
 public class OperationAnnotatedConnector implements OutboundConnectorProvider {
 
   public static final String ID = "operation-annotated-connector-id";
@@ -40,7 +41,13 @@ public class OperationAnnotatedConnector implements OutboundConnectorProvider {
   public static final String NAME = "Operation Annotated Connector";
 
   record Operation1Request(
-      @TemplateProperty(id = "p1") String param1,
+      @TemplateProperty(
+              id = "p1",
+              group = "customGroup",
+              label = "p1 Label",
+              description = "p1 Description",
+              tooltip = "p1 tooltip")
+          String param1,
       @TemplateProperty(condition = @PropertyCondition(property = "p1", equals = "myValue"))
           String param2) {}
 

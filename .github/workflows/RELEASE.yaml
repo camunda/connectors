@@ -239,7 +239,7 @@ jobs:
       - name: Log Maven release status
         run: |
           echo "Maven release is enabled (skip-maven-release: ${{ inputs.skip-maven-release }})"
-          
+
       - name: Download repository
         uses: actions/download-artifact@v5
         with:
@@ -340,7 +340,7 @@ jobs:
       - name: Log Docker release status
         run: |
           echo "Docker release is enabled (skip-docker-release: ${{ inputs.skip-docker-release }})"
-          
+
       - name: Download repository
         uses: actions/download-artifact@v5
         with:
@@ -591,3 +591,43 @@ jobs:
           revision-id: ${{ steps.fossa-context.outputs.head-revision }}
           attribution-format: "TXT"
           sbom-format: "CYCLONEDX_JSON"
+
+  notify-prs-released:
+    name: Notify PRs that they have been released
+    needs:
+      - setup
+      - maven-release
+      - docker-release
+      - bundle-and-build-changelog
+    uses: ./.github/workflows/NOTIFY_PRS_RELEASED.yml
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    # Automatically notify PRs for non-RC releases (case-insensitive check)
+    if: |
+      !contains(inputs.version, 'rc') &&
+      needs.setup.result == 'success' &&
+      needs.maven-release.result == 'success' &&
+      needs.docker-release.result == 'success' &&
+      needs.bundle-and-build-changelog.result == 'success'
+    with:
+      version: ${{ inputs.version }}
+
+  notify-failure:
+    name: Notify on failure
+    runs-on: ubuntu-latest
+    needs: [ create-release, setup, maven-release, docker-release, bundle-and-build-changelog, helm-deploy, fossa_release ]
+    if: failure()
+    steps:
+      - name: Send Slack notification on failure
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          method: chat.postMessage
+          payload: |
+            {
+              "channel": "${{ secrets.CONNECTORS_QA_SLACK_CHANNEL_ID }}",
+              "text": ":alarm: ${{ secrets.CONNECTORS_RELEASE_MANAGER_SLACK_GROUP_ID }} Release workflow failed for version `${{ inputs.version }}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }

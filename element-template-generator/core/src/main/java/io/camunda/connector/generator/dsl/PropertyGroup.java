@@ -26,6 +26,7 @@ import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
@@ -193,6 +194,10 @@ public record PropertyGroup(
 
     private PropertyGroupBuilder() {}
 
+    public String getId() {
+      return id;
+    }
+
     public PropertyGroupBuilder id(String id) {
       this.id = id;
       return this;
@@ -254,6 +259,22 @@ public record PropertyGroup(
       if (id == null) {
         throw new IllegalStateException("id is required before properties can be set");
       }
+    }
+
+    @Override
+    public boolean equals(Object object) {
+      if (object == null || getClass() != object.getClass()) return false;
+      PropertyGroupBuilder that = (PropertyGroupBuilder) object;
+      return Objects.equals(properties, that.properties)
+          && Objects.equals(id, that.id)
+          && Objects.equals(label, that.label)
+          && Objects.equals(tooltip, that.tooltip)
+          && Objects.equals(openByDefault, that.openByDefault);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(properties, id, label, tooltip, openByDefault);
     }
   }
 }

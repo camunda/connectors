@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.generator.java.example.outbound;
 
+import static io.camunda.connector.generator.java.example.outbound.MyConnectorFunction.AllPropertiesInPredefinedGroups.*;
+
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -23,6 +25,7 @@ import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
 public abstract class MyConnectorFunction implements OutboundConnectorFunction {
 
@@ -38,10 +41,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
     return null;
   }
 
-  @OutboundConnector(
-      name = "my-connector",
-      type = "my-connector-type",
-      inputVariables = {})
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
   @ElementTemplate(
       engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
@@ -65,10 +65,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       })
   public static class FullyAnnotated extends MyConnectorFunction {}
 
-  @OutboundConnector(
-      name = "my-connector",
-      type = "my-connector-type",
-      inputVariables = {})
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
   @ElementTemplate(
       engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
@@ -76,10 +73,26 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       inputDataClass = MyConnectorInput.class)
   public static class MinimallyAnnotated extends MyConnectorFunction {}
 
-  @OutboundConnector(
-      name = "my-connector",
-      type = "my-connector-type",
-      inputVariables = {})
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
+      inputDataClass = PredefinedGroupInput.class,
+      propertyGroups = {
+        @PropertyGroup(id = "predefinedGroup1", label = "Predefined Group One"),
+        @PropertyGroup(id = "predefinedGroup2", label = "Predefined Group Two"),
+        @PropertyGroup(id = "predefinedGroup3", label = "Predefined Group Three")
+      })
+  public static class AllPropertiesInPredefinedGroups extends MyConnectorFunction {
+
+    record PredefinedGroupInput(
+        @TemplateProperty(group = "predefinedGroup1") String property1,
+        @TemplateProperty(group = "predefinedGroup2") String property2,
+        @TemplateProperty(group = "predefinedGroup3") String property3) {}
+  }
+
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
   @ElementTemplate(
       engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
@@ -88,10 +101,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       defaultResultVariable = "myResultVariable")
   public static class MinimallyAnnotatedWithResultVariable extends MyConnectorFunction {}
 
-  @OutboundConnector(
-      name = "my-connector",
-      type = "my-connector-type",
-      inputVariables = {})
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
   @ElementTemplate(
       engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
@@ -100,10 +110,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       defaultResultExpression = "={ myResponse: response }")
   public static class MinimallyAnnotatedWithResultExpression extends MyConnectorFunction {}
 
-  @OutboundConnector(
-      name = "my-connector",
-      type = "my-connector-type",
-      inputVariables = {})
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
   @ElementTemplate(
       engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
@@ -115,10 +122,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       })
   public static class MinimallyAnnotatedWithExtensionProperties extends MyConnectorFunction {}
 
-  @OutboundConnector(
-      name = "my-connector",
-      type = "my-connector-type",
-      inputVariables = {})
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
   @ElementTemplate(
       engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
@@ -127,10 +131,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       icon = "my-connector-icon.svg")
   public static class MinimallyAnnotatedWithSvgIcon extends MyConnectorFunction {}
 
-  @OutboundConnector(
-      name = "my-connector",
-      type = "my-connector-type",
-      inputVariables = {})
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
   @ElementTemplate(
       engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
@@ -139,10 +140,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       icon = "my-connector-icon.png")
   public static class MinimallyAnnotatedWithPngIcon extends MyConnectorFunction {}
 
-  @OutboundConnector(
-      name = "my-connector",
-      type = "my-connector-type",
-      inputVariables = {})
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
   @ElementTemplate(
       engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
@@ -151,10 +149,7 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       icon = "my-connector-icon.png")
   public static class WithDuplicatePropertyIds extends MyConnectorFunction {}
 
-  @OutboundConnector(
-      name = "my-connector",
-      type = "my-connector-type",
-      inputVariables = {})
+  @OutboundConnector(name = "my-connector", type = "my-connector-type")
   @ElementTemplate(
       engineVersion = "^8.7",
       id = MyConnectorFunction.ID,

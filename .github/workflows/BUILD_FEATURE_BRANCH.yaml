@@ -7,7 +7,7 @@ on:
       - '!main'
 
 jobs:
-  run-tests:
+  build-pr-image-and-push:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
