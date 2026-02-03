@@ -95,7 +95,7 @@ limitations under the License.</license.inlineheader>
     <version.hamcrest>3.0</version.hamcrest>
 
     <version.spring-boot>4.0.2</version.spring-boot>
-    <version.spring-cloud-gcp-starter-logging>7.4.3</version.spring-cloud-gcp-starter-logging>
+    <version.spring-cloud-gcp-starter-logging>7.4.4</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.27</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
