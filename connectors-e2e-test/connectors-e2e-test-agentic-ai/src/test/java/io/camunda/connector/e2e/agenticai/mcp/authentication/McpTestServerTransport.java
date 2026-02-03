@@ -52,7 +52,7 @@ public enum McpTestServerTransport {
     properties.put("%s.url".formatted(springConfigPrefix(clientName)), mcpServerBaseUrl + urlPath);
   }
 
-  public void applyRemoteConnnectorInputMappings(
+  public void applyRemoteConnectorInputMappings(
       Map<String, String> inputMappings, String mcpServerBaseUrl) {
     inputMappings.put("data.transport.type", type);
     inputMappings.put(

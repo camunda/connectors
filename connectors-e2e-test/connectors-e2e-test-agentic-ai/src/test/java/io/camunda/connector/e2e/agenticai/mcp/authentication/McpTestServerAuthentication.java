@@ -33,7 +33,7 @@ public enum McpTestServerAuthentication {
     }
 
     @Override
-    public void applyRemoteConnnectorInputMappings(
+    public void applyRemoteConnectorInputMappings(
         Map<String, String> inputMappings, String configPrefix, KeycloakContainer keycloak) {
       inputMappings.put(configPrefix + ".authentication.type", "basic");
       inputMappings.put(configPrefix + ".authentication.username", TEST_USERNAME);
@@ -49,7 +49,7 @@ public enum McpTestServerAuthentication {
     }
 
     @Override
-    public void applyRemoteConnnectorInputMappings(
+    public void applyRemoteConnectorInputMappings(
         Map<String, String> inputMappings, String configPrefix, KeycloakContainer keycloak) {
       inputMappings.put(
           configPrefix + ".headers", "={ \"X-Api-Key\": \"%s\" }".formatted(TEST_API_KEY));
@@ -70,7 +70,7 @@ public enum McpTestServerAuthentication {
     }
 
     @Override
-    public void applyRemoteConnnectorInputMappings(
+    public void applyRemoteConnectorInputMappings(
         Map<String, String> inputMappings, String configPrefix, KeycloakContainer keycloak) {
       assertKeycloakPresent(keycloak);
       inputMappings.put(configPrefix + ".authentication.type", "oauth-client-credentials-flow");
@@ -114,6 +114,6 @@ public enum McpTestServerAuthentication {
   public abstract void applySpringConfigProperties(
       Map<String, String> properties, String configPrefix, KeycloakContainer keycloak);
 
-  public abstract void applyRemoteConnnectorInputMappings(
+  public abstract void applyRemoteConnectorInputMappings(
       Map<String, String> inputMappings, String configPrefix, KeycloakContainer keycloak);
 }

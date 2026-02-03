@@ -50,7 +50,8 @@ public class BpmnUtil {
     assertThat(element)
         .describedAs("Element with ID %s is expected to exist", elementId)
         .isNotNull()
-        .describedAs("Element with ID %s is expected to be an child instance of BaseElement")
+        .describedAs(
+            "Element with ID %s is expected to be a child instance of BaseElement", elementId)
         .isInstanceOf(BaseElement.class);
 
     updateInputMappings(

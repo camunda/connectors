@@ -39,9 +39,9 @@ public class McpAuthenticationTests {
 
   @Nested
   @TestPropertySource(properties = {"mcp.test.transport=HTTP", "mcp.test.auth=OAUTH2"})
-  class OAuth2AuthenticationHttpTest extends BaseMcpAuthenticationTest {}
+  public class OAuth2AuthenticationHttpTest extends BaseMcpAuthenticationTest {}
 
   @Nested
   @TestPropertySource(properties = {"mcp.test.transport=SSE", "mcp.test.auth=OAUTH2"})
-  class OAuth2AuthenticationSseTest extends BaseMcpAuthenticationTest {}
+  public class OAuth2AuthenticationSseTest extends BaseMcpAuthenticationTest {}
 }

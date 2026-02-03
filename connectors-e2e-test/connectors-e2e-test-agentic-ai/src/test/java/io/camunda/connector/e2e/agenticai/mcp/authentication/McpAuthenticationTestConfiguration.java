@@ -123,20 +123,20 @@ class McpAuthenticationTestConfiguration {
       @Qualifier("mcpTestServer") GenericContainer<?> mcpServer,
       Optional<KeycloakContainer> keycloak) {
     return additionalInputMappings -> {
-      Map<String, String> inputMapings = new LinkedHashMap<>();
-      inputMapings.putAll(additionalInputMappings);
+      Map<String, String> inputMappings = new LinkedHashMap<>();
+      inputMappings.putAll(additionalInputMappings);
 
       testProperties
           .transport()
-          .applyRemoteConnnectorInputMappings(inputMapings, mcpServerBaseUrl(mcpServer));
+          .applyRemoteConnectorInputMappings(inputMappings, mcpServerBaseUrl(mcpServer));
       testProperties
           .auth()
-          .applyRemoteConnnectorInputMappings(
-              inputMapings,
+          .applyRemoteConnectorInputMappings(
+              inputMappings,
               testProperties.transport().remoteConnectorInputMappingPrefix(),
               keycloak.orElse(null));
 
-      return inputMapings;
+      return inputMappings;
     };
   }
 
