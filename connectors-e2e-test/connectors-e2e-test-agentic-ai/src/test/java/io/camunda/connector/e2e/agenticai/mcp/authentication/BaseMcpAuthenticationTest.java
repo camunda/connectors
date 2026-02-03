@@ -26,6 +26,7 @@ import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListTools
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
+import io.camunda.connector.e2e.agenticai.mcp.authentication.McpAuthenticationTestConfiguration.McpRemoteClientInputMappingsProvider;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.Bpmn;
@@ -46,7 +47,7 @@ import org.springframework.test.context.TestPropertySource;
 @Import(McpAuthenticationTestConfiguration.class)
 abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
 
-  @Autowired private McpRemoteClientConnectorPropertiesProvider remoteClientProperties;
+  @Autowired private McpRemoteClientInputMappingsProvider remoteClientProperties;
 
   @Value("classpath:mcp-connectors-standalone.bpmn")
   private Resource testProcess;
@@ -80,7 +81,7 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
                 updateInputMappings(
                     bpmnModel,
                     st,
-                    remoteClientProperties.mcpRemoteClientConnnectorProperties(
+                    remoteClientProperties.mcpRemoteClientInputMappings(
                         Map.of(
                             "data.connectorMode.standaloneModeFilters.tools.excluded",
                             "=[\"uppercase\", \"lowercase\"]"))));

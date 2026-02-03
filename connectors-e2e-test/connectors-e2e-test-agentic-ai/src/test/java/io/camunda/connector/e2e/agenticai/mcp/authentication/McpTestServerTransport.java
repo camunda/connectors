@@ -37,24 +37,25 @@ public enum McpTestServerTransport {
     return Optional.ofNullable(testServerProfile);
   }
 
-  public String configPrefix(String clientName) {
+  public String springConfigPrefix(String clientName) {
     return "camunda.connector.agenticai.mcp.client.clients.%s.%s".formatted(clientName, type);
   }
 
-  public String remoteConfigPrefix() {
+  public String remoteConnectorInputMappingPrefix() {
     return "data.transport.%s".formatted(type);
   }
 
-  public void applyConfigProperties(
+  public void applySpringConfigProperties(
       Map<String, String> properties, String clientName, String mcpServerBaseUrl) {
     properties.put(
         "camunda.connector.agenticai.mcp.client.clients.%s.type".formatted(clientName), type);
-    properties.put("%s.url".formatted(configPrefix(clientName)), mcpServerBaseUrl + urlPath);
+    properties.put("%s.url".formatted(springConfigPrefix(clientName)), mcpServerBaseUrl + urlPath);
   }
 
-  public void applyRemoteConnnectorProperties(
-      Map<String, String> properties, String mcpServerBaseUrl) {
-    properties.put("data.transport.type", type);
-    properties.put("%s.url".formatted(remoteConfigPrefix()), mcpServerBaseUrl + urlPath);
+  public void applyRemoteConnnectorInputMappings(
+      Map<String, String> inputMappings, String mcpServerBaseUrl) {
+    inputMappings.put("data.transport.type", type);
+    inputMappings.put(
+        "%s.url".formatted(remoteConnectorInputMappingPrefix()), mcpServerBaseUrl + urlPath);
   }
 }

@@ -16,39 +16,16 @@
  */
 package io.camunda.connector.e2e.agenticai.mcp.authentication;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dasniko.testcontainers.keycloak.KeycloakContainer;
 import java.util.Map;
 import java.util.Optional;
 
 public enum McpTestServerAuthentication {
-  NONE(null) {
-    @Override
-    public void applyConfigProperties(
-        Map<String, String> properties, String configPrefix, KeycloakContainer keycloak) {}
-
-    @Override
-    public void applyRemoteConnnectorProperties(
-        Map<String, String> properties, String configPrefix, KeycloakContainer keycloak) {}
-  },
-
-  API_KEY("auth-api-key") {
-    @Override
-    public void applyConfigProperties(
-        Map<String, String> properties, String configPrefix, KeycloakContainer keycloak) {
-      properties.put(configPrefix + ".headers.X-Api-Key", TEST_API_KEY);
-    }
-
-    @Override
-    public void applyRemoteConnnectorProperties(
-        Map<String, String> properties, String configPrefix, KeycloakContainer keycloak) {
-      properties.put(
-          configPrefix + ".headers", "={ \"X-Api-Key\": \"%s\" }".formatted(TEST_API_KEY));
-    }
-  },
-
   BASIC("auth-basic") {
     @Override
-    public void applyConfigProperties(
+    public void applySpringConfigProperties(
         Map<String, String> properties, String configPrefix, KeycloakContainer keycloak) {
       properties.put(configPrefix + ".authentication.type", "basic");
       properties.put(configPrefix + ".authentication.basic.username", TEST_USERNAME);
@@ -56,17 +33,32 @@ public enum McpTestServerAuthentication {
     }
 
     @Override
-    public void applyRemoteConnnectorProperties(
+    public void applyRemoteConnnectorInputMappings(
+        Map<String, String> inputMappings, String configPrefix, KeycloakContainer keycloak) {
+      inputMappings.put(configPrefix + ".authentication.type", "basic");
+      inputMappings.put(configPrefix + ".authentication.username", TEST_USERNAME);
+      inputMappings.put(configPrefix + ".authentication.password", TEST_PASSWORD);
+    }
+  },
+
+  API_KEY("auth-api-key") {
+    @Override
+    public void applySpringConfigProperties(
         Map<String, String> properties, String configPrefix, KeycloakContainer keycloak) {
-      properties.put(configPrefix + ".authentication.type", "basic");
-      properties.put(configPrefix + ".authentication.username", TEST_USERNAME);
-      properties.put(configPrefix + ".authentication.password", TEST_PASSWORD);
+      properties.put(configPrefix + ".headers.X-Api-Key", TEST_API_KEY);
+    }
+
+    @Override
+    public void applyRemoteConnnectorInputMappings(
+        Map<String, String> inputMappings, String configPrefix, KeycloakContainer keycloak) {
+      inputMappings.put(
+          configPrefix + ".headers", "={ \"X-Api-Key\": \"%s\" }".formatted(TEST_API_KEY));
     }
   },
 
   OAUTH2("auth-oauth2") {
     @Override
-    public void applyConfigProperties(
+    public void applySpringConfigProperties(
         Map<String, String> properties, String configPrefix, KeycloakContainer keycloak) {
       assertKeycloakPresent(keycloak);
       properties.put(configPrefix + ".authentication.type", "oauth");
@@ -78,14 +70,27 @@ public enum McpTestServerAuthentication {
     }
 
     @Override
-    public void applyRemoteConnnectorProperties(
-        Map<String, String> properties, String configPrefix, KeycloakContainer keycloak) {
+    public void applyRemoteConnnectorInputMappings(
+        Map<String, String> inputMappings, String configPrefix, KeycloakContainer keycloak) {
       assertKeycloakPresent(keycloak);
-      properties.put(configPrefix + ".authentication.type", "oauth-client-credentials-flow");
-      properties.put(
+      inputMappings.put(configPrefix + ".authentication.type", "oauth-client-credentials-flow");
+      inputMappings.put(
           configPrefix + ".authentication.oauthTokenEndpoint", oauthTokenEndpoint(keycloak));
-      properties.put(configPrefix + ".authentication.clientId", TEST_CLIENT_ID);
-      properties.put(configPrefix + ".authentication.clientSecret", TEST_CLIENT_SECRET);
+      inputMappings.put(configPrefix + ".authentication.clientId", TEST_CLIENT_ID);
+      inputMappings.put(configPrefix + ".authentication.clientSecret", TEST_CLIENT_SECRET);
+    }
+
+    private static void assertKeycloakPresent(KeycloakContainer keycloak) {
+      assertThat(keycloak)
+          .describedAs("Keycloak container is required with oauth2 authentication")
+          .isNotNull();
+    }
+
+    private static String oauthTokenEndpoint(KeycloakContainer keycloak) {
+      return keycloak.getAuthServerUrl()
+          + "/realms/"
+          + TEST_REALM
+          + "/protocol/openid-connect/token";
     }
   };
 
@@ -106,19 +111,9 @@ public enum McpTestServerAuthentication {
     return Optional.ofNullable(testServerProfile);
   }
 
-  public abstract void applyConfigProperties(
+  public abstract void applySpringConfigProperties(
       Map<String, String> properties, String configPrefix, KeycloakContainer keycloak);
 
-  public abstract void applyRemoteConnnectorProperties(
-      Map<String, String> properties, String configPrefix, KeycloakContainer keycloak);
-
-  private static void assertKeycloakPresent(KeycloakContainer keycloak) {
-    if (keycloak == null) {
-      throw new IllegalStateException("Keycloak container is required with oauth2 authentication");
-    }
-  }
-
-  private static String oauthTokenEndpoint(KeycloakContainer keycloak) {
-    return keycloak.getAuthServerUrl() + "/realms/" + TEST_REALM + "/protocol/openid-connect/token";
-  }
+  public abstract void applyRemoteConnnectorInputMappings(
+      Map<String, String> inputMappings, String configPrefix, KeycloakContainer keycloak);
 }
