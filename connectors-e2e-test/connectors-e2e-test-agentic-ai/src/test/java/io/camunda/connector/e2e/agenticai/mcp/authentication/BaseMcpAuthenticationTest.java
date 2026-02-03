@@ -17,6 +17,8 @@
 package io.camunda.connector.e2e.agenticai.mcp.authentication;
 
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
+import static io.camunda.connector.e2e.agenticai.BpmnUtil.serviceTasksByType;
+import static io.camunda.connector.e2e.agenticai.BpmnUtil.updateInputMappings;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
@@ -28,14 +30,8 @@ import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -132,47 +128,6 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
               assertThat(toolCallResult.name()).isEqualTo("add");
               assertThat(toolCallResult.content()).hasSize(1).containsExactly(textContent("8"));
               assertThat(toolCallResult.isError()).isFalse();
-            });
-  }
-
-  private List<ServiceTask> serviceTasksByType(
-      BpmnModelInstance bpmnModel, Predicate<String> typePredicate) {
-    return bpmnModel.getModelElementsByType(ServiceTask.class).stream()
-        .filter(
-            st -> {
-              var taskDefinition = st.getSingleExtensionElement(ZeebeTaskDefinition.class);
-              var type = taskDefinition.getType();
-              return type != null && typePredicate.test(type);
-            })
-        .toList();
-  }
-
-  private void updateInputMappings(
-      BpmnModelInstance bpmnModel, String serviceTaskId, Map<String, String> inputMappings) {
-    updateInputMappings(
-        bpmnModel, (ServiceTask) bpmnModel.getModelElementById(serviceTaskId), inputMappings);
-  }
-
-  private void updateInputMappings(
-      BpmnModelInstance bpmnModel, ServiceTask serviceTask, Map<String, String> inputMappings) {
-    ZeebeIoMapping ioMapping = serviceTask.getSingleExtensionElement(ZeebeIoMapping.class);
-    inputMappings.forEach(
-        (target, source) -> {
-          getOrCreateInputMapping(bpmnModel, ioMapping, target, source).setSource(source);
-        });
-  }
-
-  private ZeebeInput getOrCreateInputMapping(
-      BpmnModelInstance bpmnModel, ZeebeIoMapping ioMapping, String target, String source) {
-    return ioMapping.getChildElementsByType(ZeebeInput.class).stream()
-        .filter(input -> target.equals(input.getTarget()))
-        .findFirst()
-        .orElseGet(
-            () -> {
-              final var im = bpmnModel.newInstance(ZeebeInput.class);
-              im.setTarget(target);
-              ioMapping.addChildElement(im);
-              return im;
             });
   }
 }
