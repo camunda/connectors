@@ -39,10 +39,6 @@ jobs:
 
             // Output as a comma-separated string
             return usernames.join(',');
-
-      - name: Display Team Members
-        run: |
-          echo "Team Members: ${{ steps.get-members.outputs.result }}"
       # Auto-assign reviewer based on custom weights
 #      - id: assign-reviewer
 #        name: Assign Reviewer
