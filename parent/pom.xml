@@ -88,7 +88,7 @@ limitations under the License.</license.inlineheader>
     <version.failsafe>3.3.2</version.failsafe>
 
     <version.spring-boot>3.5.10</version.spring-boot>
-    <version.spring-cloud-gcp-starter-logging>5.13.9</version.spring-cloud-gcp-starter-logging>
+    <version.spring-cloud-gcp-starter-logging>5.13.10</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.27</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
