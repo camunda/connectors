@@ -6,28 +6,28 @@
  */
 package io.camunda.connector.common.suppliers;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.awscore.client.builder.AwsSyncClientBuilder;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.sqs.SqsClient;
 
 public class DefaultAmazonSQSClientSupplier implements AmazonSQSClientSupplier {
 
-  public AmazonSQS sqsClient(
-      final AWSCredentialsProvider credentialsProvider, final String region) {
-    return AmazonSQSClientBuilder.standard()
-        .withCredentials(credentialsProvider)
-        .withRegion(region)
+  public SqsClient sqsClient(
+      final AwsCredentialsProvider credentialsProvider, final String region) {
+    return SqsClient.builder()
+        .credentialsProvider(credentialsProvider)
+        .region(Region.of(region))
         .build();
   }
 
-  public AmazonSQS sqsClient(
-      final AWSCredentialsProvider credentialsProvider,
+  public SqsClient sqsClient(
+      final AwsCredentialsProvider credentialsProvider,
       final String region,
       final String endpoint) {
-    return AmazonSQSClientBuilder.standard()
-        .withCredentials(credentialsProvider)
-        .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endpoint, region))
+    return SqsClient.builder()
+        .credentialsProvider(credentialsProvider)
+        .endpointOverride(new AwsSyncClientBuilder.EndpointConfiguration(endpoint, region))
         .build();
   }
 }

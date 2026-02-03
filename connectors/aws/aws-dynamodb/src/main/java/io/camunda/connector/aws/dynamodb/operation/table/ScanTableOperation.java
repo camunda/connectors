@@ -6,14 +6,14 @@
  */
 package io.camunda.connector.aws.dynamodb.operation.table;
 
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.Item;
-import com.amazonaws.services.dynamodbv2.document.ItemCollection;
-import com.amazonaws.services.dynamodbv2.document.ScanOutcome;
 import io.camunda.connector.aws.dynamodb.model.AwsDynamoDbResult;
 import io.camunda.connector.aws.dynamodb.model.ScanTable;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
 import java.util.ArrayList;
+import software.amazon.awssdk.services.dynamodb.document.DynamoDb;
+import software.amazon.awssdk.services.dynamodb.document.Item;
+import software.amazon.awssdk.services.dynamodb.document.ItemCollection;
+import software.amazon.awssdk.services.dynamodb.document.ScanOutcome;
 
 public class ScanTableOperation implements AwsDynamoDbOperation {
 
@@ -24,7 +24,7 @@ public class ScanTableOperation implements AwsDynamoDbOperation {
   }
 
   @Override
-  public Object invoke(final DynamoDB dynamoDB) {
+  public Object invoke(final DynamoDb dynamoDB) {
 
     final ItemCollection<ScanOutcome> scan =
         dynamoDB

@@ -6,26 +6,27 @@
  */
 package io.camunda.connector.comprehend.supplier;
 
-import com.amazonaws.services.comprehend.AmazonComprehendAsyncClient;
-import com.amazonaws.services.comprehend.AmazonComprehendClient;
 import io.camunda.connector.aws.CredentialsProviderSupport;
 import io.camunda.connector.comprehend.model.ComprehendRequest;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.comprehend.ComprehendAsyncClient;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
 
 public class ComprehendClientSupplier {
 
-  public AmazonComprehendClient getSyncClient(ComprehendRequest comprehendRequest) {
-    return (AmazonComprehendClient)
-        AmazonComprehendClient.builder()
-            .withCredentials(CredentialsProviderSupport.credentialsProvider(comprehendRequest))
-            .withRegion(comprehendRequest.getConfiguration().region())
+  public ComprehendClient getSyncClient(ComprehendRequest comprehendRequest) {
+    return (ComprehendClient)
+        ComprehendClient.builder()
+            .credentialsProvider(CredentialsProviderSupport.credentialsProvider(comprehendRequest))
+            .region(Region.of(comprehendRequest.getConfiguration().region()))
             .build();
   }
 
-  public AmazonComprehendAsyncClient getAsyncClient(ComprehendRequest comprehendRequest) {
-    return (AmazonComprehendAsyncClient)
-        AmazonComprehendAsyncClient.asyncBuilder()
-            .withCredentials(CredentialsProviderSupport.credentialsProvider(comprehendRequest))
-            .withRegion(comprehendRequest.getConfiguration().region())
+  public ComprehendAsyncClient getAsyncClient(ComprehendRequest comprehendRequest) {
+    return (ComprehendAsyncClient)
+        ComprehendAsyncClient.builder()
+            .credentialsProvider(CredentialsProviderSupport.credentialsProvider(comprehendRequest))
+            .region(Region.of(comprehendRequest.getConfiguration().region()))
             .build();
   }
 }

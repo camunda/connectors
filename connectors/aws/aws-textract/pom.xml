@@ -39,8 +39,8 @@ except in compliance with the proprietary license.</license.inlineheader>
     </dependency>
 
     <dependency>
-      <groupId>com.amazonaws</groupId>
-      <artifactId>aws-java-sdk-textract</artifactId>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>textract</artifactId>
       <version>${version.aws-java-sdk}</version>
     </dependency>
 

@@ -8,8 +8,8 @@ package io.camunda.connector.comprehend.caller;
 
 import static io.camunda.connector.comprehend.model.ComprehendDocumentReadAction.TEXTRACT_ANALYZE_DOCUMENT;
 
-import com.amazonaws.services.comprehend.AmazonComprehendClient;
-import com.amazonaws.services.comprehend.model.*;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
+import software.amazon.awssdk.services.comprehend.model.*;
 import com.amazonaws.util.CollectionUtils;
 import io.camunda.connector.comprehend.model.ComprehendAsyncRequestData;
 import io.camunda.connector.comprehend.model.ComprehendDocumentReadAction;
@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AsyncComprehendCaller
-    implements ComprehendCaller<StartDocumentClassificationJobResult, ComprehendAsyncRequestData> {
+    implements ComprehendCaller<StartDocumentClassificationJobResponse, ComprehendAsyncRequestData> {
 
   public static final String VPC_CONFIG_EXCEPTION_MSG =
       "Or both VpcConfig fields SecurityGroupIds and Subnets or none";
@@ -34,66 +34,69 @@ public class AsyncComprehendCaller
   private static final int INITIAL_FEATURES_CAPACITY = 2;
 
   @Override
-  public StartDocumentClassificationJobResult call(
-      AmazonComprehendClient client, ComprehendAsyncRequestData asyncRequest) {
+  public StartDocumentClassificationJobResponse call(
+      ComprehendClient client, ComprehendAsyncRequestData asyncRequest) {
     LOGGER.debug(
         "Starting async comprehend task for document classification with request data: {}",
         asyncRequest);
-    var docClassificationRequest = new StartDocumentClassificationJobRequest();
+    var docClassificationRequest = StartDocumentClassificationJobRequest.builder()
+        .build();
 
     if (StringUtils.isNotBlank(asyncRequest.clientRequestToken())) {
-      docClassificationRequest.withClientRequestToken(asyncRequest.clientRequestToken());
+      docClassificationRequest.clientRequestToken(asyncRequest.clientRequestToken());
     }
 
-    docClassificationRequest.withDataAccessRoleArn(asyncRequest.dataAccessRoleArn());
+    docClassificationRequest.dataAccessRoleArn(asyncRequest.dataAccessRoleArn());
 
     if (StringUtils.isNotBlank(asyncRequest.documentClassifierArn())) {
-      docClassificationRequest.withDocumentClassifierArn(asyncRequest.documentClassifierArn());
+      docClassificationRequest.documentClassifierArn(asyncRequest.documentClassifierArn());
     }
 
     if (StringUtils.isNotBlank(asyncRequest.flywheelArn())) {
-      docClassificationRequest.withFlywheelArn(asyncRequest.flywheelArn());
+      docClassificationRequest.flywheelArn(asyncRequest.flywheelArn());
     }
 
-    docClassificationRequest.withInputDataConfig(prepareInputConfig(asyncRequest));
+    docClassificationRequest.inputDataConfig(prepareInputConfig(asyncRequest));
 
     if (StringUtils.isNotBlank(asyncRequest.jobName())) {
-      docClassificationRequest.withJobName(asyncRequest.jobName());
+      docClassificationRequest.jobName(asyncRequest.jobName());
     }
 
-    docClassificationRequest.withOutputDataConfig(prepareOutputDataConf(asyncRequest));
+    docClassificationRequest.outputDataConfig(prepareOutputDataConf(asyncRequest));
 
     if (asyncRequest.tags() != null && !asyncRequest.tags().isEmpty()) {
-      docClassificationRequest.withTags(prepareTags(asyncRequest));
+      docClassificationRequest.tags(prepareTags(asyncRequest));
     }
 
     if (StringUtils.isNotBlank(asyncRequest.volumeKmsKeyId())) {
-      docClassificationRequest.withVolumeKmsKeyId(asyncRequest.volumeKmsKeyId());
+      docClassificationRequest.volumeKmsKeyId(asyncRequest.volumeKmsKeyId());
     }
 
-    docClassificationRequest.withVpcConfig(prepareVpcConfig(asyncRequest));
+    docClassificationRequest.vpcConfig(prepareVpcConfig(asyncRequest));
 
     return client.startDocumentClassificationJob(docClassificationRequest);
   }
 
   private InputDataConfig prepareInputConfig(ComprehendAsyncRequestData request) {
     var inputConfig =
-        new InputDataConfig()
-            .withS3Uri(request.inputS3Uri())
-            .withDocumentReaderConfig(prepareDocumentReaderConfig(request));
+        InputDataConfig.builder()
+            .s3Uri(request.inputS3Uri())
+            .documentReaderConfig(prepareDocumentReaderConfig(request))
+        .build();
 
     if (request.comprehendInputFormat() != ComprehendInputFormat.NO_DATA) {
-      inputConfig.withInputFormat(request.comprehendInputFormat().name());
+      inputConfig.inputFormat(request.comprehendInputFormat().name());
     }
 
     return inputConfig;
   }
 
   private OutputDataConfig prepareOutputDataConf(ComprehendAsyncRequestData request) {
-    var outputConf = new OutputDataConfig().withS3Uri(request.outputS3Uri());
+    var outputConf = OutputDataConfig.builder().s3Uri(request.outputS3Uri())
+        .build();
 
     if (StringUtils.isNotBlank(request.outputKmsKeyId())) {
-      outputConf.withKmsKeyId(request.outputKmsKeyId());
+      outputConf.kmsKeyId(request.outputKmsKeyId());
     }
 
     return outputConf;
@@ -104,7 +107,8 @@ public class AsyncComprehendCaller
   }
 
   private Tag creatTag(Map.Entry<String, String> entry) {
-    return new Tag().withKey(entry.getKey()).withValue(entry.getValue());
+    return Tag.builder().key(entry.getKey()).value(entry.getValue())
+        .build();
   }
 
   private VpcConfig prepareVpcConfig(ComprehendAsyncRequestData request) {
@@ -116,7 +120,8 @@ public class AsyncComprehendCaller
     }
 
     if (!CollectionUtils.isNullOrEmpty(groupIds) && !CollectionUtils.isNullOrEmpty(subnets)) {
-      return new VpcConfig().withSecurityGroupIds(groupIds).withSubnets(subnets);
+      return VpcConfig.builder().securityGroupIds(groupIds).subnets(subnets)
+          .build();
     } else {
       LOGGER.warn(VPC_CONFIG_EXCEPTION_MSG);
       throw new IllegalArgumentException(VPC_CONFIG_EXCEPTION_MSG);
@@ -129,10 +134,11 @@ public class AsyncComprehendCaller
     }
 
     var documentReaderConfig =
-        new DocumentReaderConfig().withDocumentReadAction(requestData.documentReadAction().name());
+        DocumentReaderConfig.builder().documentReadAction(requestData.documentReadAction().name())
+        .build();
 
     if (requestData.documentReadMode() != (ComprehendDocumentReadMode.NO_DATA)) {
-      documentReaderConfig.withDocumentReadMode(requestData.documentReadMode().name());
+      documentReaderConfig.documentReadMode(requestData.documentReadMode().name());
     }
 
     if (requestData.documentReadAction() == TEXTRACT_ANALYZE_DOCUMENT) {
@@ -141,7 +147,7 @@ public class AsyncComprehendCaller
         LOGGER.warn("DocumentReadAction: TEXTRACT_ANALYZE_DOCUMENT, but features not selected.");
         throw new IllegalArgumentException(READ_ACTION_WITHOUT_FEATURES_EX);
       }
-      documentReaderConfig.withFeatureTypes(features);
+      documentReaderConfig.featureTypes(features);
     }
 
     return documentReaderConfig;

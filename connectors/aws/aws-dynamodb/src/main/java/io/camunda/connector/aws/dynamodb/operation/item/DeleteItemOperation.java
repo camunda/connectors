@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.aws.dynamodb.operation.item;
 
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.KeyAttribute;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.aws.ObjectMapperSupplier;
@@ -16,6 +14,8 @@ import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import software.amazon.awssdk.services.dynamodb.document.DynamoDb;
+import software.amazon.awssdk.services.dynamodb.document.KeyAttribute;
 
 public class DeleteItemOperation implements AwsDynamoDbOperation {
 
@@ -28,7 +28,7 @@ public class DeleteItemOperation implements AwsDynamoDbOperation {
   }
 
   @Override
-  public Object invoke(final DynamoDB dynamoDb) {
+  public Object invoke(final DynamoDb dynamoDb) {
     return dynamoDb.getTable(deleteItemModel.tableName()).deleteItem(createKeyAttributes());
   }
 

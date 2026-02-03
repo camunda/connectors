@@ -8,8 +8,6 @@ package io.camunda.connector.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.aws.ObjectMapperSupplier;
@@ -20,6 +18,9 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 
 class MessageMapperTest {
   private final String MESSAGE_ID = "messageID";
@@ -41,23 +42,25 @@ class MessageMapperTest {
   public void setUp() {
     messageAttributes = new HashMap<>();
     MessageAttributeValue attributeValue =
-        new MessageAttributeValue()
-            .withStringValue(ATTRIBUTE_STRING_VALUE)
-            .withBinaryValue(ATTRIBUTE_BINARY_TYPE)
-            .withDataType(ATTRIBUTE_DATA_TYPE)
-            .withBinaryListValues(List.of(ATTRIBUTE_BINARY_TYPE))
-            .withStringListValues(List.of(ATTRIBUTE_STRING_VALUE));
+        MessageAttributeValue.builder()
+            .stringValue(ATTRIBUTE_STRING_VALUE)
+            .binaryValue(SdkBytes.fromByteBuffer(ATTRIBUTE_BINARY_TYPE))
+            .dataType(ATTRIBUTE_DATA_TYPE)
+            .binaryListValues(List.of(ATTRIBUTE_BINARY_TYPE))
+            .stringListValues(List.of(ATTRIBUTE_STRING_VALUE))
+        .build();
     messageAttributes.put(ATTRIBUTE_KEY, attributeValue);
 
     awsMessage =
-        new Message()
-            .withMessageId(MESSAGE_ID)
-            .withReceiptHandle(RECEIPT_HANDLE)
-            .withMD5OfMessageAttributes(MD5_OF_MESSAGE_ATTRIBUTES)
-            .withBody(STRING_BODY)
-            .withMD5OfBody(JSON_BODY)
-            .withAttributes(ATTRIBUTES)
-            .withMessageAttributes(messageAttributes);
+        Message.builder()
+            .messageId(MESSAGE_ID)
+            .receiptHandle(RECEIPT_HANDLE)
+            .md5OfMessageAttributes(MD5_OF_MESSAGE_ATTRIBUTES)
+            .body(STRING_BODY)
+            .md5OfBody(JSON_BODY)
+            .attributes(ATTRIBUTES)
+            .messageAttributes(messageAttributes)
+        .build();
   }
 
   @Test
@@ -86,7 +89,7 @@ class MessageMapperTest {
   @Test
   public void toSqsInboundMessage_shouldMapStringJsonBodyToObject() {
     // Given
-    awsMessage.setBody(JSON_BODY);
+    awsMessage = awsMessage.toBuilder().body(JSON_BODY).build();
     // When
     SqsInboundMessage sqsInboundMessage = MessageMapper.toSqsInboundMessage(awsMessage);
     // then
@@ -98,8 +101,8 @@ class MessageMapperTest {
   @Test
   public void toSqsInboundMessage_shouldWorkWithEmptyAttributes() {
     // Given
-    awsMessage.setMessageAttributes(new HashMap<>());
-    awsMessage.setAttributes(new HashMap<>());
+    awsMessage = awsMessage.toBuilder().messageAttributes(new HashMap<>()).build();
+    awsMessage = awsMessage.toBuilder().attributes(new HashMap<>()).build();
     // When
     SqsInboundMessage sqsInboundMessage = MessageMapper.toSqsInboundMessage(awsMessage);
     // then

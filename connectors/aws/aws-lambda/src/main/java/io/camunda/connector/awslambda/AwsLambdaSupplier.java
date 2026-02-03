@@ -6,28 +6,28 @@
  */
 package io.camunda.connector.awslambda;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.awscore.client.builder.AwsSyncClientBuilder;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.lambda.LambdaClient;
 
 public class AwsLambdaSupplier {
 
-  public AWSLambda awsLambdaService(
-      final AWSCredentialsProvider credentialsProvider, final String region) {
-    return AWSLambdaClientBuilder.standard()
-        .withCredentials(credentialsProvider)
-        .withRegion(region)
+  public LambdaClient awsLambdaService(
+      final AwsCredentialsProvider credentialsProvider, final String region) {
+    return LambdaClient.builder()
+        .credentialsProvider(credentialsProvider)
+        .region(Region.of(region))
         .build();
   }
 
-  public AWSLambda awsLambdaService(
-      final AWSCredentialsProvider credentialsProvider,
+  public LambdaClient awsLambdaService(
+      final AwsCredentialsProvider credentialsProvider,
       final String region,
       final String endpoint) {
-    return AWSLambdaClientBuilder.standard()
-        .withCredentials(credentialsProvider)
-        .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endpoint, region))
+    return LambdaClient.builder()
+        .credentialsProvider(credentialsProvider)
+        .endpointOverride(new AwsSyncClientBuilder.EndpointConfiguration(endpoint, region))
         .build();
   }
 }

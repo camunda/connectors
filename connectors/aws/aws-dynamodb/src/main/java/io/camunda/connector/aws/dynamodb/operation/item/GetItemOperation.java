@@ -6,9 +6,6 @@
  */
 package io.camunda.connector.aws.dynamodb.operation.item;
 
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.Item;
-import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.aws.ObjectMapperSupplier;
@@ -16,6 +13,9 @@ import io.camunda.connector.aws.dynamodb.model.GetItem;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
 import java.util.HashMap;
 import java.util.Optional;
+import software.amazon.awssdk.services.dynamodb.document.DynamoDb;
+import software.amazon.awssdk.services.dynamodb.document.Item;
+import software.amazon.awssdk.services.dynamodb.document.PrimaryKey;
 
 public class GetItemOperation implements AwsDynamoDbOperation {
 
@@ -28,7 +28,7 @@ public class GetItemOperation implements AwsDynamoDbOperation {
   }
 
   @Override
-  public Object invoke(final DynamoDB dynamoDB) {
+  public Object invoke(final DynamoDb dynamoDB) {
     return Optional.ofNullable(
             dynamoDB.getTable(getItemModel.tableName()).getItem(createPrimaryKey()))
         .map(Item::attributes)

@@ -6,9 +6,6 @@
  */
 package io.camunda.connector.outbound;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
-import com.amazonaws.services.sqs.model.SendMessageResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
@@ -25,6 +22,10 @@ import io.camunda.connector.outbound.model.QueueRequestData;
 import io.camunda.connector.outbound.model.SqsConnectorRequest;
 import io.camunda.connector.outbound.model.SqsConnectorResult;
 import java.util.Optional;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 @OutboundConnector(
     name = "AWS SQS Outbound",
@@ -71,11 +72,11 @@ public class SqsConnectorFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(final OutboundConnectorContext context) {
     var request = context.bindVariables(SqsConnectorRequest.class);
-    AmazonSQS sqsClient = createAwsSqsClient(request);
-    return new SqsConnectorResult(sendMsgToSqs(sqsClient, request.getQueue()).getMessageId());
+    SqsClient sqsClient = createAwsSqsClient(request);
+    return new SqsConnectorResult(sendMsgToSqs(sqsClient, request.getQueue()).messageId());
   }
 
-  private AmazonSQS createAwsSqsClient(SqsConnectorRequest request) {
+  private SqsClient createAwsSqsClient(SqsConnectorRequest request) {
     var region =
         AwsUtils.extractRegionOrDefault(request.getConfiguration(), request.getQueue().getRegion());
     Optional<String> endpoint =
@@ -86,19 +87,20 @@ public class SqsConnectorFunction implements OutboundConnectorFunction {
         .orElseGet(() -> sqsClientSupplier.sqsClient(credentialsProvider, region));
   }
 
-  private SendMessageResult sendMsgToSqs(final AmazonSQS sqsClient, final QueueRequestData queue) {
+  private SendMessageResponse sendMsgToSqs(final SqsClient sqsClient, final QueueRequestData queue) {
     try {
       String payload =
           queue.getMessageBody() instanceof String
               ? queue.getMessageBody().toString()
               : objectMapper.writeValueAsString(queue.getMessageBody());
       SendMessageRequest message =
-          new SendMessageRequest()
-              .withQueueUrl(queue.getUrl())
-              .withMessageBody(payload)
-              .withMessageAttributes(queue.getAwsSqsNativeMessageAttributes())
-              .withMessageGroupId(queue.getMessageGroupId())
-              .withMessageDeduplicationId(queue.getMessageDeduplicationId());
+          SendMessageRequest.builder()
+              .queueUrl(queue.getUrl())
+              .messageBody(payload)
+              .messageAttributes(queue.getAwsSqsNativeMessageAttributes())
+              .messageGroupId(queue.getMessageGroupId())
+              .messageDeduplicationId(queue.getMessageDeduplicationId())
+          .build();
       return sqsClient.sendMessage(message);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Error mapping payload to json.");

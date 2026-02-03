@@ -8,10 +8,6 @@ package io.camunda.connector.aws.eventbridge;
 
 import static io.camunda.connector.aws.AwsUtils.extractRegionOrDefault;
 
-import com.amazonaws.services.eventbridge.AmazonEventBridge;
-import com.amazonaws.services.eventbridge.model.PutEventsRequest;
-import com.amazonaws.services.eventbridge.model.PutEventsRequestEntry;
-import com.amazonaws.services.eventbridge.model.PutEventsResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
@@ -22,6 +18,11 @@ import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import java.util.Optional;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
+import software.amazon.awssdk.services.eventbridge.model.PutEventsRequest;
+import software.amazon.awssdk.services.eventbridge.model.PutEventsRequestEntry;
+import software.amazon.awssdk.services.eventbridge.model.PutEventsResponse;
 
 @OutboundConnector(
     name = "AWS EventBridge",
@@ -65,12 +66,12 @@ public class EventBridgeFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(OutboundConnectorContext context) throws JsonProcessingException {
     var eventBridgeRequest = context.bindVariables(AwsEventBridgeRequest.class);
-    AmazonEventBridge amazonEventBridgeClient = createEventBridgeClient(eventBridgeRequest);
+    EventBridgeClient amazonEventBridgeClient = createEventBridgeClient(eventBridgeRequest);
     return objectMapper.convertValue(
         putEvents(amazonEventBridgeClient, eventBridgeRequest.getInput()), Object.class);
   }
 
-  private AmazonEventBridge createEventBridgeClient(final AwsEventBridgeRequest request) {
+  private EventBridgeClient createEventBridgeClient(final AwsEventBridgeRequest request) {
     Optional<String> endpoint =
         Optional.ofNullable(request.getConfiguration()).map(AwsBaseConfiguration::endpoint);
     var credentialsProvider = CredentialsProviderSupport.credentialsProvider(request);
@@ -87,14 +88,16 @@ public class EventBridgeFunction implements OutboundConnectorFunction {
                     credentialsProvider, region));
   }
 
-  public PutEventsResult putEvents(final AmazonEventBridge client, final AwsEventBridgeInput input)
+  public PutEventsResponse putEvents(final EventBridgeClient client, final AwsEventBridgeInput input)
       throws JsonProcessingException {
     PutEventsRequestEntry entry =
-        new PutEventsRequestEntry()
-            .withSource(input.getSource())
-            .withDetailType(input.getDetailType())
-            .withEventBusName(input.getEventBusName())
-            .withDetail(objectMapper.writeValueAsString(input.getDetail()));
-    return client.putEvents(new PutEventsRequest().withEntries(entry));
+        PutEventsRequestEntry.builder()
+            .source(input.getSource())
+            .detailType(input.getDetailType())
+            .eventBusName(input.getEventBusName())
+            .detail(objectMapper.writeValueAsString(input.getDetail()))
+        .build();
+    return client.putEvents(PutEventsRequest.builder().entries(entry)
+        .build());
   }
 }

@@ -6,28 +6,28 @@
  */
 package io.camunda.connector.aws.eventbridge;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.services.eventbridge.AmazonEventBridge;
-import com.amazonaws.services.eventbridge.AmazonEventBridgeClient;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.awscore.client.builder.AwsSyncClientBuilder;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
 
 public class AwsEventBridgeClientSupplier {
 
-  public AmazonEventBridge getAmazonEventBridgeClient(
-      final AWSCredentialsProvider credentialsProvider, final String region) {
-    return AmazonEventBridgeClient.builder()
-        .withCredentials(credentialsProvider)
-        .withRegion(region)
+  public EventBridgeClient getAmazonEventBridgeClient(
+      final AwsCredentialsProvider credentialsProvider, final String region) {
+    return EventBridgeClient.builder()
+        .credentialsProvider(credentialsProvider)
+        .region(Region.of(region))
         .build();
   }
 
-  public AmazonEventBridge getAmazonEventBridgeClient(
-      final AWSCredentialsProvider credentialsProvider,
+  public EventBridgeClient getAmazonEventBridgeClient(
+      final AwsCredentialsProvider credentialsProvider,
       final String region,
       final String endpoint) {
-    return AmazonEventBridgeClient.builder()
-        .withCredentials(credentialsProvider)
-        .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endpoint, region))
+    return EventBridgeClient.builder()
+        .credentialsProvider(credentialsProvider)
+        .endpointOverride(new AwsSyncClientBuilder.EndpointConfiguration(endpoint, region))
         .build();
   }
 }

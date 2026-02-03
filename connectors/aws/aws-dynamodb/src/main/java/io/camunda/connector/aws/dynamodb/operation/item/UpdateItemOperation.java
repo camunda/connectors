@@ -6,13 +6,13 @@
  */
 package io.camunda.connector.aws.dynamodb.operation.item;
 
-import com.amazonaws.services.dynamodbv2.document.AttributeUpdate;
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
 import io.camunda.connector.aws.dynamodb.model.UpdateItem;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
 import java.util.List;
 import java.util.Map;
+import software.amazon.awssdk.services.dynamodb.document.AttributeUpdate;
+import software.amazon.awssdk.services.dynamodb.document.DynamoDb;
+import software.amazon.awssdk.services.dynamodb.document.PrimaryKey;
 
 public class UpdateItemOperation implements AwsDynamoDbOperation {
 
@@ -23,7 +23,7 @@ public class UpdateItemOperation implements AwsDynamoDbOperation {
   }
 
   @Override
-  public Object invoke(final DynamoDB dynamoDB) {
+  public Object invoke(final DynamoDb dynamoDB) {
 
     List<AttributeUpdate> attributeUpdates =
         updateItemModel.keyAttributes().entrySet().stream()

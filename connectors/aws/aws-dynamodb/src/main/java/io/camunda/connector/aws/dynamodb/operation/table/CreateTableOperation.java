@@ -6,19 +6,15 @@
  */
 package io.camunda.connector.aws.dynamodb.operation.table;
 
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
-import com.amazonaws.services.dynamodbv2.model.BillingMode;
-import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
-import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
-import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
-import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import io.camunda.connector.aws.dynamodb.model.CreateTable;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.document.DynamoDb;
+import software.amazon.awssdk.services.dynamodb.model.*;
 
 public class CreateTableOperation implements AwsDynamoDbOperation {
 
@@ -28,12 +24,8 @@ public class CreateTableOperation implements AwsDynamoDbOperation {
     this.createTableModel = createTableModel;
   }
 
-  public TableDescription invoke(final DynamoDB dynamoDB) {
-    try {
-      return dynamoDB.createTable(buildCreateTableRequest()).waitForActive();
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
+  public TableDescription invoke(final DynamoDbClient dynamoDB) {
+    return dynamoDB.createTable(buildCreateTableRequest()).tableDescription();
   }
 
   private CreateTableRequest buildCreateTableRequest() {
@@ -41,24 +33,26 @@ public class CreateTableOperation implements AwsDynamoDbOperation {
     List<AttributeDefinition> attributeDefinitions = buildAttributeDefinitions();
 
     CreateTableRequest request =
-        new CreateTableRequest()
-            .withTableName(createTableModel.tableName())
-            .withKeySchema(keySchemaElements)
-            .withAttributeDefinitions(attributeDefinitions)
-            .withDeletionProtectionEnabled(createTableModel.deletionProtection());
+        CreateTableRequest.builder()
+            .tableName(createTableModel.tableName())
+            .keySchema(keySchemaElements)
+            .attributeDefinitions(attributeDefinitions)
+            .deletionProtectionEnabled(createTableModel.deletionProtection())
+            .build();
 
     BillingMode billingMode =
         Optional.ofNullable(createTableModel.billingModeStr())
             .map(BillingMode::valueOf)
             .orElse(BillingMode.PROVISIONED);
 
-    request.withBillingMode(billingMode);
+    request.billingMode(billingMode);
 
     if (BillingMode.PROVISIONED == billingMode) {
-      request.withProvisionedThroughput(
-          new ProvisionedThroughput()
-              .withReadCapacityUnits(createTableModel.readCapacityUnits())
-              .withWriteCapacityUnits(createTableModel.writeCapacityUnits()));
+      request.provisionedThroughput(
+          ProvisionedThroughput.builder()
+              .readCapacityUnits(createTableModel.readCapacityUnits())
+              .writeCapacityUnits(createTableModel.writeCapacityUnits())
+              .build());
     }
 
     return request;

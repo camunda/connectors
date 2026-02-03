@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.outbound.model;
 
-import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.util.StringUtils;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -18,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 
 public class QueueRequestData {
 
@@ -130,9 +130,10 @@ public class QueueRequestData {
 
   private Function<SqsMessageAttribute, MessageAttributeValue> messageAttributeTransformer() {
     return snsMessageAttribute -> {
-      MessageAttributeValue msgAttr = new MessageAttributeValue();
-      msgAttr.setDataType(snsMessageAttribute.getDataType());
-      msgAttr.setStringValue(snsMessageAttribute.getStringValue());
+      MessageAttributeValue msgAttr = MessageAttributeValue.builder()
+          .build();
+      msgAttr = msgAttr.toBuilder().dataType(snsMessageAttribute.getDataType()).build();
+      msgAttr = msgAttr.toBuilder().stringValue(snsMessageAttribute.getStringValue()).build();
       return msgAttr;
     };
   }

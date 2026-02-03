@@ -11,9 +11,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.dynamodbv2.model.BillingMode;
-import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
-import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
 import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
@@ -23,6 +20,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import software.amazon.awssdk.services.dynamodb.model.BillingMode;
+import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.TableDescription;
 
 class CreateTableOperationTest extends BaseDynamoDbOperationTest {
 
@@ -47,7 +47,8 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
             true);
     when(dynamoDB.createTable(requestArgumentCaptor.capture())).thenReturn(table);
     when(table.waitForActive())
-        .thenReturn(new TableDescription().withTableName(TestDynamoDBData.ActualValue.TABLE_NAME));
+        .thenReturn(
+            TableDescription.builder().tableName(TestDynamoDBData.ActualValue.TABLE_NAME).build());
   }
 
   @Test
@@ -77,13 +78,13 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
 
     CreateTableRequest value = requestArgumentCaptor.getValue();
 
-    assertThat(value.getTableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
-    assertThat(value.getKeySchema().get(0).getAttributeName())
+    assertThat(value.tableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
+    assertThat(value.keySchema().get(0).attributeName())
         .isEqualTo(TestDynamoDBData.ActualValue.PARTITION_KEY);
-    assertThat(value.getKeySchema().get(0).getKeyType())
+    assertThat(value.keySchema().get(0).keyType())
         .isEqualTo(TestDynamoDBData.ActualValue.PARTITION_KEY_ROLE_HASH);
-    assertThat(value.getDeletionProtectionEnabled()).isTrue();
-    assertThat(value.getBillingMode()).isEqualTo(BillingMode.PROVISIONED.name());
+    assertThat(value.deletionProtectionEnabled()).isTrue();
+    assertThat(value.billingMode()).isEqualTo(BillingMode.PROVISIONED.name());
   }
 
   @Test
@@ -99,20 +100,20 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
 
     CreateTableRequest value = requestArgumentCaptor.getValue();
 
-    assertThat(value.getTableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
-    assertThat(value.getKeySchema().get(0).getAttributeName())
+    assertThat(value.tableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
+    assertThat(value.keySchema().get(0).attributeName())
         .isEqualTo(TestDynamoDBData.ActualValue.PARTITION_KEY);
-    assertThat(value.getKeySchema().get(0).getKeyType())
+    assertThat(value.keySchema().get(0).keyType())
         .isEqualTo(TestDynamoDBData.ActualValue.PARTITION_KEY_ROLE_HASH);
-    assertThat(value.getKeySchema().get(1).getAttributeName())
+    assertThat(value.keySchema().get(1).attributeName())
         .isEqualTo(TestDynamoDBData.ActualValue.SORT_KEY);
-    assertThat(value.getKeySchema().get(1).getKeyType())
+    assertThat(value.keySchema().get(1).keyType())
         .isEqualTo(TestDynamoDBData.ActualValue.SORT_KEY_ROLE_RANGE);
-    assertThat(value.getDeletionProtectionEnabled()).isTrue();
-    assertThat(value.getBillingMode()).isEqualTo(BillingMode.PROVISIONED.name());
-    assertThat(value.getProvisionedThroughput().getReadCapacityUnits())
+    assertThat(value.deletionProtectionEnabled()).isTrue();
+    assertThat(value.billingMode()).isEqualTo(BillingMode.PROVISIONED.name());
+    assertThat(value.provisionedThroughput().readCapacityUnits())
         .isEqualTo(TestDynamoDBData.ActualValue.READ_CAPACITY);
-    assertThat(value.getProvisionedThroughput().getWriteCapacityUnits())
+    assertThat(value.provisionedThroughput().writeCapacityUnits())
         .isEqualTo(TestDynamoDBData.ActualValue.WRITE_CAPACITY);
   }
 

@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.sagemaker;
 
-import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntime;
-import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntimeAsync;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -21,6 +19,8 @@ import io.camunda.connector.sagemaker.model.SageMakerRequest;
 import io.camunda.connector.sagemaker.model.SageMakerSyncResponse;
 import io.camunda.connector.sagemaker.suppliers.SageMakeClientSupplier;
 import java.util.function.BiFunction;
+import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeAsyncClient;
+import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
 
 @OutboundConnector(
     name = "AWS SageMaker",
@@ -51,9 +51,9 @@ import java.util.function.BiFunction;
 public class SagemakerConnectorFunction implements OutboundConnectorFunction {
 
   private final SageMakeClientSupplier sageMakeClientSupplier;
-  private final BiFunction<AmazonSageMakerRuntime, SageMakerRequest, SageMakerSyncResponse>
+  private final BiFunction<SageMakerRuntimeClient, SageMakerRequest, SageMakerSyncResponse>
       syncCallerFunction;
-  private final BiFunction<AmazonSageMakerRuntimeAsync, SageMakerRequest, SageMakerAsyncResponse>
+  private final BiFunction<SageMakerRuntimeAsyncClient, SageMakerRequest, SageMakerAsyncResponse>
       asyncCallerFunction;
 
   public SagemakerConnectorFunction() {
@@ -65,9 +65,9 @@ public class SagemakerConnectorFunction implements OutboundConnectorFunction {
 
   public SagemakerConnectorFunction(
       final SageMakeClientSupplier sageMakeClientSupplier,
-      final BiFunction<AmazonSageMakerRuntime, SageMakerRequest, SageMakerSyncResponse>
+      final BiFunction<SageMakerRuntimeClient, SageMakerRequest, SageMakerSyncResponse>
           syncCallerFunction,
-      final BiFunction<AmazonSageMakerRuntimeAsync, SageMakerRequest, SageMakerAsyncResponse>
+      final BiFunction<SageMakerRuntimeAsyncClient, SageMakerRequest, SageMakerAsyncResponse>
           asyncCallerFunction) {
     this.sageMakeClientSupplier = sageMakeClientSupplier;
     this.syncCallerFunction = syncCallerFunction;
