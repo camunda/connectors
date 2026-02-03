@@ -32,37 +32,37 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 
 @TestConfiguration(proxyBeanMethods = false)
-@EnableConfigurationProperties(McpTestMatrixProperties.class)
-class McpTestMatrixTestConfiguration {
+@EnableConfigurationProperties(McpAuthenticationTestProperties.class)
+class McpAuthenticationTestConfiguration {
 
   private static final String MCP_TEST_SERVER_VERSION = "1.1.0";
 
   @Bean
-  Network mcpNetwork() {
+  public Network mcpTestServerNetwork() {
     return Network.newNetwork();
   }
 
   @Bean
-  GenericContainer<?> mcpTestServer(
-      McpTestMatrixProperties matrix,
-      Network mcpNetwork,
+  public GenericContainer<?> mcpTestServer(
+      McpAuthenticationTestProperties testProperties,
+      @Qualifier("mcpTestServerNetwork") Network mcpTestServerNetwork,
       ObjectProvider<KeycloakContainer> keycloak) {
 
     final var profiles = new ArrayList<String>();
-    matrix.transport().getProfile().ifPresent(profiles::add);
-    matrix.auth().getProfile().ifPresent(profiles::add);
+    testProperties.transport().getTestServerProfile().ifPresent(profiles::add);
+    testProperties.auth().getTestServerProfile().ifPresent(profiles::add);
 
     GenericContainer<?> container =
         new GenericContainer<>(
                 "registry.camunda.cloud/mcp/mcp-test-server:" + MCP_TEST_SERVER_VERSION)
-            .withNetwork(mcpNetwork)
+            .withNetwork(mcpTestServerNetwork)
             .withExposedPorts(12001)
             .withEnv("SPRING_PROFILES_ACTIVE", String.join(",", profiles))
             .withEnv(
                 "SPRING_AI_MCP_SERVER_NAME",
                 "MCP Test Server(%s)".formatted(String.join(",", profiles)));
 
-    if (matrix.auth() == McpTestServerAuthentication.OAUTH2) {
+    if (testProperties.auth() == McpTestServerAuthentication.OAUTH2) {
       // must match keycloak network alias
       container.withEnv("MCP_SERVER_AUTH_OAUTH2_ISSUERURL", "http://keycloak:8080/realms/testme");
       // force bean creation so keycloak is part of the context for oauth cases
@@ -74,22 +74,23 @@ class McpTestMatrixTestConfiguration {
 
   @Bean
   @ConditionalOnProperty(name = "mcp.test.auth", havingValue = "OAUTH2")
-  KeycloakContainer keycloakContainer(Network mcpNetwork) {
+  public KeycloakContainer keycloakContainer(
+      @Qualifier("mcpTestServerNetwork") Network mcpTestServerNetwork) {
     return new KeycloakContainer("quay.io/keycloak/keycloak:26.5")
-        .withNetwork(mcpNetwork)
+        .withNetwork(mcpTestServerNetwork)
         .withNetworkAliases("keycloak")
         .withRealmImportFile("/keycloak/testme-realm.json");
   }
 
   @Bean
-  DynamicPropertyRegistrar mcpStandaloneClientPropertiesRegistrar(
-      McpTestMatrixProperties matrix,
+  public DynamicPropertyRegistrar mcpStandaloneClientPropertiesRegistrar(
+      McpAuthenticationTestProperties testProperties,
       @Qualifier("mcpTestServer") ObjectProvider<GenericContainer<?>> mcpServer,
       ObjectProvider<KeycloakContainer> keycloak) {
 
     return (DynamicPropertyRegistry registry) -> {
       KeycloakContainer kc =
-          matrix.auth() == McpTestServerAuthentication.OAUTH2
+          testProperties.auth() == McpTestServerAuthentication.OAUTH2
               ? ensureStarted(keycloak.getObject())
               : null;
       GenericContainer<?> server = ensureStarted(mcpServer.getObject());
@@ -97,24 +98,24 @@ class McpTestMatrixTestConfiguration {
       final var baseUrl = mcpServerBaseUrl(server);
 
       Map<String, String> props = new LinkedHashMap<>();
-      final var standalonePrefix = matrix.transport().standaloneConfigPrefix("a-mcp-client");
+      final var standalonePrefix = testProperties.transport().configPrefix("a-mcp-client");
 
-      matrix.transport().applyStandalone(props, "a-mcp-client", baseUrl);
-      matrix.auth().applyStandalone(props, standalonePrefix, kc);
+      testProperties.transport().applyConfigProperties(props, "a-mcp-client", baseUrl);
+      testProperties.auth().applyConfigProperties(props, standalonePrefix, kc);
 
       props.forEach((k, v) -> registry.add(k, () -> v));
     };
   }
 
   @Bean
-  RemoteMcpClientPropertiesProvider remoteMcpClientPropertiesProvider(
-      McpTestMatrixProperties matrix,
+  public McpRemoteClientConnectorPropertiesProvider remoteMcpClientPropertiesProvider(
+      McpAuthenticationTestProperties testProperties,
       @Qualifier("mcpTestServer") ObjectProvider<GenericContainer<?>> mcpServer,
       ObjectProvider<KeycloakContainer> keycloak) {
 
     return additionalProperties -> {
       KeycloakContainer kc =
-          matrix.auth() == McpTestServerAuthentication.OAUTH2
+          testProperties.auth() == McpTestServerAuthentication.OAUTH2
               ? ensureStarted(keycloak.getObject())
               : null;
       GenericContainer<?> server = ensureStarted(mcpServer.getObject());
@@ -124,9 +125,9 @@ class McpTestMatrixTestConfiguration {
       Map<String, String> properties = new LinkedHashMap<>();
       properties.putAll(additionalProperties);
 
-      final var remotePrefix = matrix.transport().remoteConfigPrefix();
-      matrix.transport().applyRemote(properties, baseUrl);
-      matrix.auth().applyRemote(properties, remotePrefix, kc);
+      final var remotePrefix = testProperties.transport().remoteConfigPrefix();
+      testProperties.transport().applyRemoteConnnectorProperties(properties, baseUrl);
+      testProperties.auth().applyRemoteConnnectorProperties(properties, remotePrefix, kc);
 
       return properties;
     };

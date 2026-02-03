@@ -18,6 +18,6 @@ package io.camunda.connector.e2e.agenticai.mcp.authentication;
 
 import java.util.Map;
 
-interface RemoteMcpClientPropertiesProvider {
-  Map<String, String> remoteProperties(Map<String, String> additionalProperties);
+interface McpRemoteClientConnectorPropertiesProvider {
+  Map<String, String> mcpRemoteClientConnnectorProperties(Map<String, String> additionalProperties);
 }

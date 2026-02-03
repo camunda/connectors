@@ -23,23 +23,23 @@ import java.util.Optional;
 public enum McpTestServerAuthentication {
   NONE(null) {
     @Override
-    public void applyStandalone(
+    public void applyConfigProperties(
         Map<String, String> properties, String configPrefix, KeycloakContainer keycloak) {}
 
     @Override
-    public void applyRemote(
+    public void applyRemoteConnnectorProperties(
         Map<String, String> properties, String configPrefix, KeycloakContainer keycloak) {}
   },
 
   API_KEY("auth-api-key") {
     @Override
-    public void applyStandalone(
+    public void applyConfigProperties(
         Map<String, String> properties, String configPrefix, KeycloakContainer keycloak) {
       properties.put(configPrefix + ".headers.X-Api-Key", TEST_API_KEY);
     }
 
     @Override
-    public void applyRemote(
+    public void applyRemoteConnnectorProperties(
         Map<String, String> properties, String configPrefix, KeycloakContainer keycloak) {
       properties.put(
           configPrefix + ".headers", "={ \"X-Api-Key\": \"%s\" }".formatted(TEST_API_KEY));
@@ -48,7 +48,7 @@ public enum McpTestServerAuthentication {
 
   BASIC("auth-basic") {
     @Override
-    public void applyStandalone(
+    public void applyConfigProperties(
         Map<String, String> properties, String configPrefix, KeycloakContainer keycloak) {
       properties.put(configPrefix + ".authentication.type", "basic");
       properties.put(configPrefix + ".authentication.basic.username", TEST_USERNAME);
@@ -56,7 +56,7 @@ public enum McpTestServerAuthentication {
     }
 
     @Override
-    public void applyRemote(
+    public void applyRemoteConnnectorProperties(
         Map<String, String> properties, String configPrefix, KeycloakContainer keycloak) {
       properties.put(configPrefix + ".authentication.type", "basic");
       properties.put(configPrefix + ".authentication.username", TEST_USERNAME);
@@ -66,7 +66,7 @@ public enum McpTestServerAuthentication {
 
   OAUTH2("auth-oauth2") {
     @Override
-    public void applyStandalone(
+    public void applyConfigProperties(
         Map<String, String> properties, String configPrefix, KeycloakContainer keycloak) {
       assertKeycloakPresent(keycloak);
       properties.put(configPrefix + ".authentication.type", "oauth");
@@ -78,7 +78,7 @@ public enum McpTestServerAuthentication {
     }
 
     @Override
-    public void applyRemote(
+    public void applyRemoteConnnectorProperties(
         Map<String, String> properties, String configPrefix, KeycloakContainer keycloak) {
       assertKeycloakPresent(keycloak);
       properties.put(configPrefix + ".authentication.type", "oauth-client-credentials-flow");
@@ -92,23 +92,24 @@ public enum McpTestServerAuthentication {
   private static final String TEST_USERNAME = "test-user";
   private static final String TEST_PASSWORD = "test-password";
   private static final String TEST_API_KEY = "test.test-key";
+  private static final String TEST_REALM = "testme";
   private static final String TEST_CLIENT_ID = "testme-client-authorized";
   private static final String TEST_CLIENT_SECRET = "testme-secret";
 
-  private final String profile;
+  private final String testServerProfile;
 
-  McpTestServerAuthentication(String profile) {
-    this.profile = profile;
+  McpTestServerAuthentication(String testServerProfile) {
+    this.testServerProfile = testServerProfile;
   }
 
-  public Optional<String> getProfile() {
-    return Optional.ofNullable(profile);
+  public Optional<String> getTestServerProfile() {
+    return Optional.ofNullable(testServerProfile);
   }
 
-  public abstract void applyStandalone(
+  public abstract void applyConfigProperties(
       Map<String, String> properties, String configPrefix, KeycloakContainer keycloak);
 
-  public abstract void applyRemote(
+  public abstract void applyRemoteConnnectorProperties(
       Map<String, String> properties, String configPrefix, KeycloakContainer keycloak);
 
   private static void assertKeycloakPresent(KeycloakContainer keycloak) {
@@ -118,6 +119,6 @@ public enum McpTestServerAuthentication {
   }
 
   private static String oauthTokenEndpoint(KeycloakContainer keycloak) {
-    return keycloak.getAuthServerUrl() + "/realms/testme/protocol/openid-connect/token";
+    return keycloak.getAuthServerUrl() + "/realms/" + TEST_REALM + "/protocol/openid-connect/token";
   }
 }

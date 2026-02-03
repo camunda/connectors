@@ -20,61 +20,41 @@ import java.util.Map;
 import java.util.Optional;
 
 public enum McpTestServerTransport {
-  HTTP(
-      null,
-      "http",
-      "/mcp",
-      "camunda.connector.agenticai.mcp.client.clients.%s.http",
-      "data.transport.http"),
-  SSE(
-      "transport-sse",
-      "sse",
-      "/sse",
-      "camunda.connector.agenticai.mcp.client.clients.%s.sse",
-      "data.transport.sse");
+  HTTP(null, "http", "/mcp"),
+  SSE("transport-sse", "sse", "/sse");
 
-  private final String profile;
+  private final String testServerProfile;
   private final String type;
   private final String urlPath;
-  private final String standaloneConfigPrefixPattern;
-  private final String remoteConfigPrefix;
 
-  McpTestServerTransport(
-      String profile,
-      String type,
-      String urlPath,
-      String standaloneConfigPrefixPattern,
-      String remoteConfigPrefix) {
-    this.profile = profile;
+  McpTestServerTransport(String testServerProfile, String type, String urlPath) {
+    this.testServerProfile = testServerProfile;
     this.type = type;
     this.urlPath = urlPath;
-    this.standaloneConfigPrefixPattern = standaloneConfigPrefixPattern;
-    this.remoteConfigPrefix = remoteConfigPrefix;
   }
 
-  public Optional<String> getProfile() {
-    return Optional.ofNullable(profile);
+  public Optional<String> getTestServerProfile() {
+    return Optional.ofNullable(testServerProfile);
   }
 
-  public String standaloneConfigPrefix(String clientName) {
-    return standaloneConfigPrefixPattern.formatted(clientName);
+  public String configPrefix(String clientName) {
+    return "camunda.connector.agenticai.mcp.client.clients.%s.%s".formatted(clientName, type);
   }
 
   public String remoteConfigPrefix() {
-    return remoteConfigPrefix;
+    return "data.transport.%s".formatted(type);
   }
 
-  public void applyStandalone(
+  public void applyConfigProperties(
       Map<String, String> properties, String clientName, String mcpServerBaseUrl) {
-    final var configPrefix = standaloneConfigPrefix(clientName);
-
     properties.put(
         "camunda.connector.agenticai.mcp.client.clients.%s.type".formatted(clientName), type);
-    properties.put(configPrefix + ".url", mcpServerBaseUrl + urlPath);
+    properties.put("%s.url".formatted(configPrefix(clientName)), mcpServerBaseUrl + urlPath);
   }
 
-  public void applyRemote(Map<String, String> properties, String mcpServerBaseUrl) {
+  public void applyRemoteConnnectorProperties(
+      Map<String, String> properties, String mcpServerBaseUrl) {
     properties.put("data.transport.type", type);
-    properties.put(remoteConfigPrefix + ".url", mcpServerBaseUrl + urlPath);
+    properties.put("%s.url".formatted(remoteConfigPrefix()), mcpServerBaseUrl + urlPath);
   }
 }

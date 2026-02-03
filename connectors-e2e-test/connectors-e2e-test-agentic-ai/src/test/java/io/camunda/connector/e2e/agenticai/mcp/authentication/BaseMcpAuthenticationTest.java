@@ -47,16 +47,16 @@ import org.springframework.test.context.TestPropertySource;
 @SlowTest
 @TestPropertySource(properties = {"camunda.connector.agenticai.mcp.client.enabled=true"})
 @ActiveProfiles("mcp-standalone-test")
-@Import(McpTestMatrixTestConfiguration.class)
+@Import(McpAuthenticationTestConfiguration.class)
 abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
 
-  @Autowired private RemoteMcpClientPropertiesProvider remoteClientProperties;
+  @Autowired private McpRemoteClientConnectorPropertiesProvider remoteClientProperties;
 
   @Value("classpath:mcp-connectors-standalone.bpmn")
   private Resource testProcess;
 
   @Test
-  void toolsListAndCall() throws IOException {
+  void shouldListAndCallTools() throws IOException {
     BpmnModelInstance bpmnModel = Bpmn.readModelFromStream(testProcess.getInputStream());
 
     // MCP Client
@@ -84,7 +84,7 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
                 updateInputMappings(
                     bpmnModel,
                     st,
-                    remoteClientProperties.remoteProperties(
+                    remoteClientProperties.mcpRemoteClientConnnectorProperties(
                         Map.of(
                             "data.connectorMode.standaloneModeFilters.tools.excluded",
                             "=[\"uppercase\", \"lowercase\"]"))));

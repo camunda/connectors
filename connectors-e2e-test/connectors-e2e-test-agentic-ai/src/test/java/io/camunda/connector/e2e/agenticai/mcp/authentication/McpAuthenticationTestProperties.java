@@ -16,18 +16,11 @@
  */
 package io.camunda.connector.e2e.agenticai.mcp.authentication;
 
+import jakarta.validation.constraints.NotNull;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
+@Validated
 @ConfigurationProperties(prefix = "mcp.test")
-public record McpTestMatrixProperties(
-    McpTestServerTransport transport, McpTestServerAuthentication auth) {
-
-  public McpTestMatrixProperties {
-    if (transport == null) {
-      transport = McpTestServerTransport.HTTP;
-    }
-    if (auth == null) {
-      auth = McpTestServerAuthentication.NONE;
-    }
-  }
-}
+public record McpAuthenticationTestProperties(
+    @NotNull McpTestServerTransport transport, @NotNull McpTestServerAuthentication auth) {}
