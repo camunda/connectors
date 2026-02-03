@@ -20,16 +20,6 @@ import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-import com.amazonaws.services.eventbridge.AmazonEventBridge;
-import com.amazonaws.services.eventbridge.model.DeleteRuleRequest;
-import com.amazonaws.services.eventbridge.model.PutRuleRequest;
-import com.amazonaws.services.eventbridge.model.PutTargetsRequest;
-import com.amazonaws.services.eventbridge.model.RemoveTargetsRequest;
-import com.amazonaws.services.eventbridge.model.Target;
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
-import com.amazonaws.services.sqs.model.GetQueueAttributesResult;
-import com.amazonaws.services.sqs.model.Message;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.aws.ObjectMapperSupplier;
@@ -41,6 +31,14 @@ import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
+import software.amazon.awssdk.services.eventbridge.model.*;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.DeleteQueueRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueAttributesRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueAttributesResponse;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 
 @SlowTest
 public class AwsEventBridgeTest extends BaseAwsTest {
@@ -62,8 +60,8 @@ public class AwsEventBridgeTest extends BaseAwsTest {
             }
             """;
 
-  private AmazonEventBridge eventBridgeClient;
-  private AmazonSQS sqsClient;
+  private EventBridgeClient eventBridgeClient;
+  private SqsClient sqsClient;
   private String queueUrl;
 
   @BeforeEach
@@ -72,33 +70,38 @@ public class AwsEventBridgeTest extends BaseAwsTest {
     sqsClient = AwsTestHelper.initSqsClient(localstack);
     // Create an SQS queue and get its ARN
     queueUrl = AwsTestHelper.createQueue(sqsClient, QUEUE_NAME, false);
-    GetQueueAttributesResult queueAttributes =
+    GetQueueAttributesResponse queueAttributes =
         sqsClient.getQueueAttributes(
-            new GetQueueAttributesRequest(queueUrl).withAttributeNames("QueueArn"));
-    String queueArn = queueAttributes.getAttributes().get("QueueArn");
+            GetQueueAttributesRequest.builder()
+                .queueUrl(queueUrl)
+                .attributeNames(QueueAttributeName.QUEUE_ARN)
+                .build());
+    String queueArn = queueAttributes.attributesAsStrings().get("QueueArn");
     // Define an event pattern
     // Create a rule on the default event bus and add the SQS queue as a target
     eventBridgeClient.putRule(
-        new PutRuleRequest()
-            .withName(RULE_NAME)
-            .withEventPattern(EVENT_PATTERN)
-            .withEventBusName(EVENT_BUS_NAME));
+        PutRuleRequest.builder()
+            .name(RULE_NAME)
+            .eventPattern(EVENT_PATTERN)
+            .eventBusName(EVENT_BUS_NAME)
+            .build());
     eventBridgeClient.putTargets(
-        new PutTargetsRequest()
-            .withRule(RULE_NAME)
-            .withEventBusName(EVENT_BUS_NAME)
-            .withTargets(new Target().withArn(queueArn).withId(TARGET_ID)));
+        PutTargetsRequest.builder()
+            .rule(RULE_NAME)
+            .eventBusName(EVENT_BUS_NAME)
+            .targets(Target.builder().arn(queueArn).id(TARGET_ID).build())
+            .build());
   }
 
   @AfterEach
   public void cleanUpResources() {
     // Clean up resources
-    sqsClient.deleteQueue(queueUrl);
+    sqsClient.deleteQueue(DeleteQueueRequest.builder().queueUrl(queueUrl).build());
     // Remove targets from the rule
     eventBridgeClient.removeTargets(
-        new RemoveTargetsRequest().withRule(RULE_NAME).withIds(TARGET_ID));
+        RemoveTargetsRequest.builder().rule(RULE_NAME).ids(TARGET_ID).build());
     // Now delete the rule
-    eventBridgeClient.deleteRule(new DeleteRuleRequest().withName(RULE_NAME));
+    eventBridgeClient.deleteRule(DeleteRuleRequest.builder().name(RULE_NAME).build());
   }
 
   @Test
@@ -145,7 +148,7 @@ public class AwsEventBridgeTest extends BaseAwsTest {
     ObjectMapper objectMapper = ObjectMapperSupplier.getMapperInstance();
 
     // Parse the body of the first message
-    var dataMap = objectMapper.readValue(messages.getFirst().getBody(), Map.class);
+    var dataMap = objectMapper.readValue(messages.getFirst().body(), Map.class);
 
     // Assert the expected values
     assertEquals(SOURCE, dataMap.get("source"));

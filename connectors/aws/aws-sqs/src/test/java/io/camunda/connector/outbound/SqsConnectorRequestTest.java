@@ -8,7 +8,6 @@ package io.camunda.connector.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.outbound.model.SqsConnectorRequest;
 import io.camunda.connector.outbound.model.SqsMessageAttribute;
@@ -17,6 +16,7 @@ import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 
 class SqsConnectorRequestTest extends BaseTest {
 

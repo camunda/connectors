@@ -8,12 +8,12 @@ package io.camunda.connector.comprehend.supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.amazonaws.services.comprehend.AmazonComprehendAsyncClient;
-import com.amazonaws.services.comprehend.AmazonComprehendClient;
 import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.comprehend.model.ComprehendRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.comprehend.ComprehendAsyncClient;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
 
 class ComprehendClientSupplierTest {
 
@@ -34,7 +34,7 @@ class ComprehendClientSupplierTest {
     var amazonComprehendClient = clientSupplier.getSyncClient(request);
 
     assertThat(amazonComprehendClient).isNotNull();
-    assertThat(amazonComprehendClient).isInstanceOf(AmazonComprehendClient.class);
+    assertThat(amazonComprehendClient).isInstanceOf(ComprehendClient.class);
   }
 
   @Test
@@ -42,6 +42,6 @@ class ComprehendClientSupplierTest {
     var amazonComprehendAsyncClient = clientSupplier.getAsyncClient(request);
 
     assertThat(amazonComprehendAsyncClient).isNotNull();
-    assertThat(amazonComprehendAsyncClient).isInstanceOf(AmazonComprehendAsyncClient.class);
+    assertThat(amazonComprehendAsyncClient).isInstanceOf(ComprehendAsyncClient.class);
   }
 }
