@@ -15,7 +15,9 @@ jobs:
         name: Get Team Members
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: echo "MEMBERS=gh api /orgs/camunda/teams/connectors/members --jq '[.[].login] | join(",")'" >> $GITHUB_OUTPUT
+        run: |
+          members="$(gh api /orgs/camunda/teams/connectors/members --jq '[.[].login] | join(",")')"
+          echo 'MEMBERS='members >> $GITHUB_OUTPUT
       - id: assign-reviewer
         name: Assign Reviewer
         run: |
