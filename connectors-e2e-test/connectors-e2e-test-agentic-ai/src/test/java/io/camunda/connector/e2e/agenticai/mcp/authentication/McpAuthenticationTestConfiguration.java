@@ -144,7 +144,7 @@ class McpAuthenticationTestConfiguration {
     return "http://%s:%s".formatted(mcpServer.getHost(), mcpServer.getMappedPort(12001));
   }
 
-  static interface McpRemoteClientInputMappingsProvider {
+  interface McpRemoteClientInputMappingsProvider {
     Map<String, String> mcpRemoteClientInputMappings(Map<String, String> additionalInputMappings);
   }
 }
