@@ -3,6 +3,8 @@ name: Auto Assign PR Reviewers
 on:
   pull_request:
     types: [opened, ready_for_review, review_requested]
+  pull_request_target:
+    types: [opened, ready_for_review, review_requested]
 
 jobs:
   auto-assign:
