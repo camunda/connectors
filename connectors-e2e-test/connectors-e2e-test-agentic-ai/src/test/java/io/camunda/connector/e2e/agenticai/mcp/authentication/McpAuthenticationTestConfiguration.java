@@ -17,6 +17,7 @@
 package io.camunda.connector.e2e.agenticai.mcp.authentication;
 
 import dasniko.testcontainers.keycloak.KeycloakContainer;
+import io.camunda.connector.test.utils.DockerImages;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -35,9 +36,6 @@ import org.testcontainers.containers.Network;
 @EnableConfigurationProperties(McpAuthenticationTestProperties.class)
 class McpAuthenticationTestConfiguration {
 
-  private static final String MCP_TEST_SERVER_VERSION = "1.1.0";
-  private static final String KEYCLOAK_VERSION = "26.5";
-
   @Bean
   public Network mcpTestServerNetwork() {
     return Network.newNetwork();
@@ -48,7 +46,7 @@ class McpAuthenticationTestConfiguration {
   public KeycloakContainer keycloakContainer(
       @Qualifier("mcpTestServerNetwork") Network mcpTestServerNetwork) {
     final var keycloak =
-        new KeycloakContainer("quay.io/keycloak/keycloak:" + KEYCLOAK_VERSION)
+        new KeycloakContainer(DockerImages.get("keycloak"))
             .withNetwork(mcpTestServerNetwork)
             .withNetworkAliases("keycloak")
             .withRealmImportFile("/keycloak/testme-realm.json");
@@ -68,8 +66,7 @@ class McpAuthenticationTestConfiguration {
     testProperties.auth().getTestServerProfile().ifPresent(profiles::add);
 
     GenericContainer<?> mcpTestServer =
-        new GenericContainer<>(
-                "registry.camunda.cloud/mcp/mcp-test-server:" + MCP_TEST_SERVER_VERSION)
+        new GenericContainer<>(DockerImages.get("mcp-test-server"))
             .withNetwork(mcpTestServerNetwork)
             .withExposedPorts(12001)
             .withEnv("SPRING_PROFILES_ACTIVE", String.join(",", profiles))
