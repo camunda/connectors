@@ -11,18 +11,18 @@ jobs:
     steps:
       - id: get-members
         name: Get Team Members
-        uses: GuillaumeFalourd/github-team-members@v1
+        uses: paritytech/list-team-members@main
         with:
-          org_slug: 'camunda'
-          team_slug: 'connectors'
-          token: ${{ secrets.GITHUB_TOKEN }}
+          organization: 'camunda'
+          team: 'connectors'
+          ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - id: assign-reviewer
         name: Assign Reviewer
         uses: Joxtacy/auto-assign-reviewers@v0.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # Team members to consider for assignment can later be fetched from GitHub automatically
-          team_members: ${{ steps.get-members.outputs.members }}
+          team_members: ${{ steps.get-members.outputs.usernames }}
           # Adjust these weights to prioritize different factors
           weight_open_prs: 0          # Default: 10
           weight_lines_per_100: 0     # Default: 1
