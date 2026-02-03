@@ -34,7 +34,7 @@ public class McpLangchain4JRemoteClientConfiguration {
 
   @PostConstruct
   void init() {
-    LOGGER.info("MCP client framework is set to langchain4j");
+    LOGGER.info("MCP remote client framework is set to langchain4j");
   }
 
   @Bean
