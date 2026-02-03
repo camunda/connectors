@@ -31,7 +31,7 @@ public class McpBaseConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public McpClientHeadersSupplierFactory langchain4JMcpClientHeadersSupplierFactory(
+  public McpClientHeadersSupplierFactory mcpClientHeadersSupplierFactory(
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new McpClientHeadersSupplierFactory(
         new OAuthService(), new CustomApacheHttpClient(), objectMapper);
