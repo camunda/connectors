@@ -16,6 +16,7 @@ jobs:
           org: camunda
           team_slug: connectors
           token: ${{ secrets.GITHUB_TOKEN }}
+          role: ''
       - name: Assign Reviewer
         uses: Joxtacy/auto-assign-reviewers@v0.1.0
         with:
