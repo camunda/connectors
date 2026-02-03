@@ -18,21 +18,20 @@
         <skip.central.release>true</skip.central.release>
     </properties>
 
-  <modules>
-    <module>connectors-e2e-test-base</module>
-    <module>connectors-e2e-test-http</module>
-    <module>connectors-e2e-test-automation-anywhere</module>
-    <module>connectors-e2e-test-kafka</module>
-    <module>connectors-e2e-test-aws</module>
-    <module>connectors-e2e-test-easy-post</module>
-    <module>connectors-e2e-test-soap</module>
-    <module>connectors-e2e-test-rabbitmq</module>
-    <module>connectors-e2e-test-servicenow</module>
-    <module>connectors-e2e-test-message</module>
-    <module>connectors-e2e-test-agentic-ai</module>
-    <module>connectors-e2e-email</module>
-    <module>connectors-e2e-test-csv</module>
-  </modules>
+    <modules>
+        <module>connectors-e2e-test-base</module>
+        <module>connectors-e2e-test-http</module>
+        <module>connectors-e2e-test-automation-anywhere</module>
+        <module>connectors-e2e-test-kafka</module>
+        <module>connectors-e2e-test-aws</module>
+        <module>connectors-e2e-test-easy-post</module>
+        <module>connectors-e2e-test-soap</module>
+        <module>connectors-e2e-test-rabbitmq</module>
+      <module>connectors-e2e-test-servicenow</module>
+        <module>connectors-e2e-test-message</module>
+        <module>connectors-e2e-test-agentic-ai</module>
+        <module>connectors-e2e-email</module>
+    </modules>
 
     <dependencies>
         <dependency>
