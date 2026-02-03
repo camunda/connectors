@@ -112,8 +112,7 @@ public class ConnectorResultHandler {
               new FeelEngineWrapperException(
                   String.format(
                       "Result expression must return a JSON object, but got %s. Evaluated value: %s",
-                      node.getNodeType().name().toLowerCase(),
-                      jsonVars),
+                      node.getNodeType().name().toLowerCase(), jsonVars),
                   expression,
                   jsonVars));
         }
