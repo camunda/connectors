@@ -11,7 +11,9 @@ jobs:
     steps:
       - id: get-members
         name: Get Team Members
-        uses: paritytech/list-team-members@main
+        run: |
+          members = gh api /orgs/camunda/teams/connectors/members --jq '[.[].login] | join(",")'
+          echo 'MEMBERS='members >> $GITHUB_ENV
         with:
           organization: 'camunda'
           team: 'connectors'
@@ -22,7 +24,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # Team members to consider for assignment can later be fetched from GitHub automatically
-          team_members: ${{ steps.get-members.outputs.usernames }}
+          team_members: ${{ steps.get-members.outputs.MEMBERS }}
           # Adjust these weights to prioritize different factors
           weight_open_prs: 0          # Default: 10
           weight_lines_per_100: 0     # Default: 1
