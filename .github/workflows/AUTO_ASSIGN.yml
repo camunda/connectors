@@ -16,19 +16,34 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - id: get-members
-        name: Get Team Members
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Use the correct API endpoint for team members
-          members="$(gh api \
-            -H "Accept: application/vnd.github+json" \
-            /orgs/camunda/teams/connectors/members \
-            --jq '[.[].login] | join(",")')"
-          echo "MEMBERS=$members" >> $GITHUB_OUTPUT
-          echo "Found team members: $members"
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
+      - name: Get Team Members
+        id: get-members
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const teamSlug = 'connectors';
+            const org = context.repo.owner;
+
+            // Fetch team members
+            const members = await github.rest.teams.listMembersInOrg({
+              org,
+              team_slug: teamSlug,
+            });
+
+            // Extract usernames
+            const usernames = members.data.map(member => member.login);
+
+            // Output as a comma-separated string
+            return usernames.join(',');
+
+      - name: Display Team Members
+        run: |
+          echo "Team Members: ${{ steps.get-members.outputs.result }}"
+      # Auto-assign reviewer based on custom weights
 #      - id: assign-reviewer
 #        name: Assign Reviewer
 #        uses: Joxtacy/auto-assign-reviewers@v0.1.0
