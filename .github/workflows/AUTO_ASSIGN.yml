@@ -1,0 +1,42 @@
+name: Auto Assign PR Reviewers
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, review_requested]
+
+jobs:
+  fork-guard:
+    name: Skip if external fork
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+    steps:
+      - name: Explain skip in logs
+        run: |
+          echo "🛑 External fork; skipping auto-assignment."
+          echo "Push to a branch in the main repository to run full CI."
+
+  auto-assign:
+    runs-on: ubuntu-latest
+    # Only run if:
+    # 1. The PR is not from a fork (security requirement)
+    # 2. The "connectors" team is in the requested reviewers
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.requested_teams.*.slug, 'connectors')
+    steps:
+      - id: get-members
+        uses: garnertb/get-team-members@v1
+        with:
+          org: camunda
+          team_slug: connectors
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Assign Reviewer
+        uses: Joxtacy/auto-assign-reviewers@v0.1.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Team members to consider for assignment can later be fetched from GitHub automatically
+          team_members: ${{ steps.get-members.outputs.members }}
+          # Adjust these weights to prioritize different factors
+          weight_open_prs: 0          # Default: 10
+          weight_lines_per_100: 0     # Default: 1
+          weight_recent_reviews: 10   # Default: 3
