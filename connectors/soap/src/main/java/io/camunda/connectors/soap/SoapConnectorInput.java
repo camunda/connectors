@@ -193,7 +193,7 @@ public record SoapConnectorInput(
     @TemplateSubType(id = "usernameToken", label = "WSS username token")
     record UsernameToken(
         @TemplateProperty(label = "Username", group = "authentication") @NotNull String username,
-        @TemplateProperty(label = "Password", group = "authentication") @NotNull String password,
+        @TemplateProperty(label = "Password", group = "authentication") String password,
         @TemplateProperty(label = "Encoded", group = "authentication", type = PropertyType.Dropdown)
             @NotNull
             SoapConnectorInput.YesNo encoded)
@@ -215,12 +215,6 @@ public record SoapConnectorInput(
     record Signature(
         @Valid Certificate certificate,
         @TemplateProperty(
-                label = "Use binary security token",
-                group = "authentication",
-                description = "Whether a binary security token should be inserted")
-            @NotNull
-            YesNo useBinarySecurityToken,
-        @TemplateProperty(
                 label = "Signature algorithm",
                 group = "authentication",
                 optional = true,
@@ -233,13 +227,6 @@ public record SoapConnectorInput(
                 description = "Fully qualified name of an alternative digest algorithm")
             String digestAlgorithm,
         @TemplateProperty(
-                label = "Canonicalization algorithm",
-                group = "authentication",
-                optional = true,
-                description =
-                    "Fully qualified name of an alternative canonicalization algorithm (this field has no effect)")
-            String canonicalizationAlgorithm,
-        @TemplateProperty(
                 label = "Timestamp timeout in seconds",
                 description = "If set, adds a timestamp header with the given timeout",
                 group = "authentication",
@@ -250,8 +237,7 @@ public record SoapConnectorInput(
                 group = "authentication",
                 feel = FeelMode.required,
                 optional = true,
-                description =
-                    "Array of signature parts with namespace, localName, encryptionModifier and id. If ID is given, namespace and localName are ignored. The encryptionModifier can be omitted")
+                description = "Array of signature parts with namespace and localName")
             List<EncryptionPart> encryptionParts)
         implements Authentication {
       @JsonTypeInfo(use = Id.NAME, property = "certificateType")
@@ -261,7 +247,7 @@ public record SoapConnectorInput(
       })
       @TemplateDiscriminatorProperty(
           name = "certificateType",
-          label = "Authentication",
+          label = "Certificate type",
           description = "From where the certificate is obtained",
           group = "authentication")
       @NotNull
@@ -298,21 +284,25 @@ public record SoapConnectorInput(
                     label = "Keystore location",
                     description = "The keystore to use",
                     group = "authentication")
+                @NotNull
                 String keystoreLocation,
             @TemplateProperty(
                     label = "Keystore password",
                     description = "The password to access the keystore",
                     group = "authentication")
+                @NotNull
                 String keystorePassword,
             @TemplateProperty(
                     label = "Certificate alias",
                     description = "The alias for the certificate in the keystore",
                     group = "authentication")
+                @NotNull
                 String alias,
             @TemplateProperty(
                     label = "Certificate password",
                     description = "The password to access the certificate",
                     group = "authentication")
+                @NotNull
                 String password)
             implements Certificate {
           @Override

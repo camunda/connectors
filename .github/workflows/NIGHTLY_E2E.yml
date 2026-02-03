@@ -23,11 +23,16 @@ jobs:
       - name: Fetch release branches
         id: set-matrix
         run: |
-          # Get all release/* branches
-          git ls-remote --heads https://github.com/${{ github.repository }}.git | \
-          awk '{print $2}' | sed 's|refs/heads/||' | grep '^release/' > releases.txt || true
-          all_branches=$( (echo "main"; cat releases.txt) | grep -v '^$' | jq -R -s -c 'split("\n")[:-1]' )
-          echo "branches=$all_branches" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            # For PR, only test the PR's head ref
+            echo "branches=[\"${{ github.head_ref }}\"]" >> $GITHUB_OUTPUT
+          else
+            # For scheduled/manual runs, test main and all stable branches
+            git ls-remote --heads https://github.com/${{ github.repository }}.git | \
+            awk '{print $2}' | sed 's|refs/heads/||' | grep '^stable/' > stables.txt || true
+            all_branches=$( (echo "main"; cat stables.txt) | grep -v '^$' | jq -R -s -c 'split("\n")[:-1]' )
+            echo "branches=$all_branches" >> $GITHUB_OUTPUT
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -120,5 +125,5 @@ jobs:
           payload: |
             {
               "channel": ${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }},
-              "text": ":alarm: Nightly E2E test run failed on branch `${{ matrix.branch}}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              "text": ":alarm: E2E test run failed on branch `${{ matrix.branch}}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             }
