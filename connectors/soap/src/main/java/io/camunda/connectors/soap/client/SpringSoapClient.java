@@ -11,7 +11,6 @@ import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 
 import io.camunda.connectors.soap.SoapConnectorInput.Authentication;
-import io.camunda.connectors.soap.SoapConnectorInput.Authentication.None;
 import io.camunda.connectors.soap.SoapConnectorInput.Authentication.Signature;
 import io.camunda.connectors.soap.SoapConnectorInput.Authentication.Signature.Certificate.KeystoreCertificate;
 import io.camunda.connectors.soap.SoapConnectorInput.Authentication.Signature.Certificate.SingleCertificate;
@@ -36,7 +35,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
@@ -73,16 +71,6 @@ public class SpringSoapClient implements SoapClient {
   private static final String SINGLE_CERTIFICATE_ALIAS = "user";
   private static final String SINGLE_CERTIFICATE_PASSWORD = "pw";
 
-  private final Supplier<WebServiceClient> webServiceClientFactory;
-
-  public SpringSoapClient() {
-    this(WebServiceClient::new);
-  }
-
-  public SpringSoapClient(Supplier<WebServiceClient> webServiceClientFactory) {
-    this.webServiceClientFactory = webServiceClientFactory;
-  }
-
   @Override
   public String sendSoapRequest(
       String serviceUrl,
@@ -99,7 +87,7 @@ public class SpringSoapClient implements SoapClient {
     final var marshaller = buildMarshaller(namespaces);
     final var unmarshaller = buildUnmarshaller(namespaces);
     ClientInterceptor[] interceptors = buildInterceptors(soapHeader, authentication, namespaces);
-    WebServiceClient wsClient = webServiceClientFactory.get();
+    WebServiceClient wsClient = new WebServiceClient();
     wsClient.setDefaultUri(serviceUrl);
     wsClient.setMessageSender(messageSender);
     wsClient.setInterceptors(interceptors);
@@ -148,8 +136,8 @@ public class SpringSoapClient implements SoapClient {
   private ClientInterceptor[] buildInterceptors(
       String soapHeader, Authentication authentication, Map<String, String> namespaces) {
     List<ClientInterceptor> interceptorList = new ArrayList<>();
+    handleAuthentication(authentication).ifPresent(interceptorList::add);
     handleSoapHeader(soapHeader, namespaces).ifPresent(interceptorList::add);
-    interceptorList.addAll(handleAuthentication(authentication));
     interceptorList.add(new LoggingInterceptor());
     return interceptorList.toArray(new ClientInterceptor[0]);
   }
@@ -162,21 +150,11 @@ public class SpringSoapClient implements SoapClient {
     return of(new HeaderClientInterceptor(soapHeader, namespaces));
   }
 
-  private List<Wss4jSecurityInterceptor> handleAuthentication(Authentication authentication) {
-    final List<Wss4jSecurityInterceptor> interceptors = new ArrayList<>();
-    switch (authentication) {
-      case UsernameToken usernameToken -> interceptors.add(handleUsernameToken(usernameToken));
-      case Signature signature -> interceptors.add(handleSignature(signature));
-      case None ignored -> {}
-    }
-    return interceptors;
-  }
-
-  private Wss4jSecurityInterceptor handleUsernameToken(UsernameToken usernameToken) {
+  private Optional<ClientInterceptor> handleAuthentication(Authentication authentication) {
     final var securityInterceptor = new Wss4jSecurityInterceptor();
-    securityInterceptor.setSecurementActions(WSS4JConstants.USERNAME_TOKEN_LN);
-    securityInterceptor.setSecurementUsername(usernameToken.username());
-    if (usernameToken.password() != null) {
+    if (authentication instanceof UsernameToken usernameToken) {
+      securityInterceptor.setSecurementActions(WSS4JConstants.USERNAME_TOKEN_LN);
+      securityInterceptor.setSecurementUsername(usernameToken.username());
       if (YesNo.Yes.equals(usernameToken.encoded())) {
         try {
           securityInterceptor.setSecurementPassword(
@@ -190,57 +168,47 @@ public class SpringSoapClient implements SoapClient {
         securityInterceptor.setSecurementPassword(usernameToken.password());
         securityInterceptor.setSecurementPasswordType(WSS4JConstants.PW_TEXT);
       }
-    }
-    try {
-      securityInterceptor.afterPropertiesSet();
-    } catch (Exception e) {
-      throw new RuntimeException("Error while setting up username token interceptor", e);
-    }
-    return securityInterceptor;
-  }
-
-  private Wss4jSecurityInterceptor handleSignature(Signature signature) {
-    final var securityInterceptor = new Wss4jSecurityInterceptor();
-
-    securityInterceptor.setEnableSignatureConfirmation(true);
-    securityInterceptor.setSecurementSignatureKeyIdentifier("DirectReference");
-    if (signature.timestamp() != null) {
-      securityInterceptor.setSecurementActions(
-          String.format("%s %s", WSS4JConstants.TIMESTAMP_TOKEN_LN, WSS4JConstants.SIG_LN));
-      securityInterceptor.setSecurementTimeToLive(signature.timestamp());
-    } else {
-      securityInterceptor.setSecurementActions(String.format("%s", WSS4JConstants.SIG_LN));
-    }
-    if (signature.certificate() instanceof SingleCertificate singleCertificate) {
-      Crypto crypto = cryptoFromSingleCertificate(singleCertificate);
-      securityInterceptor.setSecurementUsername(SINGLE_CERTIFICATE_ALIAS);
-      securityInterceptor.setSecurementPassword(SINGLE_CERTIFICATE_PASSWORD);
-      securityInterceptor.setSecurementSignatureCrypto(crypto);
-      securityInterceptor.setValidationSignatureCrypto(crypto);
-    } else if (signature.certificate() instanceof KeystoreCertificate keystoreCertificate) {
-      Crypto crypto = cryptoFromKeystoreCertificate(keystoreCertificate);
-      securityInterceptor.setSecurementUsername(keystoreCertificate.alias());
-      securityInterceptor.setSecurementPassword(keystoreCertificate.password());
-      securityInterceptor.setSecurementSignatureCrypto(crypto);
-      securityInterceptor.setValidationSignatureCrypto(crypto);
-    }
-    if (signature.encryptionParts() != null && !signature.encryptionParts().isEmpty()) {
+    } else if (authentication instanceof Signature signature) {
+      securityInterceptor.setEnableSignatureConfirmation(true);
+      securityInterceptor.setSecurementSignatureKeyIdentifier("DirectReference");
+      if (signature.timestamp() != null) {
+        securityInterceptor.setSecurementActions(
+            String.format("%s %s", WSS4JConstants.TIMESTAMP_TOKEN_LN, WSS4JConstants.SIG_LN));
+        securityInterceptor.setSecurementTimeToLive(signature.timestamp());
+      } else {
+        securityInterceptor.setSecurementActions(String.format("%s", WSS4JConstants.SIG_LN));
+      }
+      if (signature.certificate() instanceof SingleCertificate singleCertificate) {
+        Crypto crypto = cryptoFromSingleCertificate(singleCertificate);
+        securityInterceptor.setSecurementUsername(SINGLE_CERTIFICATE_ALIAS);
+        securityInterceptor.setSecurementPassword(SINGLE_CERTIFICATE_PASSWORD);
+        securityInterceptor.setSecurementSignatureCrypto(crypto);
+        securityInterceptor.setValidationSignatureCrypto(crypto);
+      } else if (signature.certificate() instanceof KeystoreCertificate keystoreCertificate) {
+        Crypto crypto = cryptoFromKeystoreCertificate(keystoreCertificate);
+        securityInterceptor.setSecurementUsername(keystoreCertificate.alias());
+        securityInterceptor.setSecurementPassword(keystoreCertificate.password());
+        securityInterceptor.setSecurementSignatureCrypto(crypto);
+        securityInterceptor.setValidationSignatureCrypto(crypto);
+      }
       securityInterceptor.setSecurementSignatureParts(
           signature.encryptionParts().stream()
               .map(part -> String.format("{}{%s}%s;", part.namespace(), part.localName()))
               .collect(Collectors.joining("")));
+      securityInterceptor.setSecurementMustUnderstand(true);
+      ofNullable(signature.digestAlgorithm())
+          .ifPresent(securityInterceptor::setSecurementSignatureDigestAlgorithm);
+      ofNullable(signature.signatureAlgorithm())
+          .ifPresent(securityInterceptor::setSecurementSignatureAlgorithm);
+    } else {
+      return empty();
     }
-    securityInterceptor.setSecurementMustUnderstand(true);
-    ofNullable(signature.digestAlgorithm())
-        .ifPresent(securityInterceptor::setSecurementSignatureDigestAlgorithm);
-    ofNullable(signature.signatureAlgorithm())
-        .ifPresent(securityInterceptor::setSecurementSignatureAlgorithm);
     try {
       securityInterceptor.afterPropertiesSet();
     } catch (Exception e) {
-      throw new RuntimeException("Error while setting up signature interceptor", e);
+      throw new RuntimeException(e);
     }
-    return securityInterceptor;
+    return of(securityInterceptor);
   }
 
   private Crypto cryptoFromSingleCertificate(SingleCertificate certificate) {

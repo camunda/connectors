@@ -4,8 +4,7 @@ on:
   push:
     branches:
     - main
-    - release*
-    - stable/*
+    - release/*
     tags:
     - '*'
   pull_request:
@@ -57,10 +56,10 @@ jobs:
           }]
         mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
     - name: Setup fossa-cli
-      uses: camunda/infra-global-github-actions/fossa/setup@df04776905b3ec480c5eb1ce4fb640b6bdf0c276
+      uses: camunda/infra-global-github-actions/fossa/setup@8a60c6ac7a1a041dec275e1ef3635dd6bf2b072c
     - name: Get context info
       id: info
-      uses: camunda/infra-global-github-actions/fossa/info@df04776905b3ec480c5eb1ce4fb640b6bdf0c276
+      uses: camunda/infra-global-github-actions/fossa/info@8a60c6ac7a1a041dec275e1ef3635dd6bf2b072c
     - name: Adjust pom.xml files for FOSSA
       run: |
         # The parent/pom.xml must be the actual root, otherwise, FOSSA won't detect the hierarchy correctly
@@ -72,7 +71,7 @@ jobs:
           'del(.project.modules.module[] | select(. == "parent"))' \
           pom.xml
     - name: Analyze project
-      uses: camunda/infra-global-github-actions/fossa/analyze@df04776905b3ec480c5eb1ce4fb640b6bdf0c276
+      uses: camunda/infra-global-github-actions/fossa/analyze@8a60c6ac7a1a041dec275e1ef3635dd6bf2b072c
       with:
         api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
         branch: ${{  steps.info.outputs.head-ref }}
@@ -82,7 +81,7 @@ jobs:
     # It does not fail for pre-existing issues already present in the base branch.
     - name: Check Pull Request for new License Issues
       if: steps.info.outputs.is-pull-request == 'true'
-      uses: camunda/infra-global-github-actions/fossa/pr-check@df04776905b3ec480c5eb1ce4fb640b6bdf0c276
+      uses: camunda/infra-global-github-actions/fossa/pr-check@8a60c6ac7a1a041dec275e1ef3635dd6bf2b072c
       with:
         api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
         base-ref: ${{ steps.info.outputs.base-ref }}
