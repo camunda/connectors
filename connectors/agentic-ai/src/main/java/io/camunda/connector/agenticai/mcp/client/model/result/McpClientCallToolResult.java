@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client.model.result;
 
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
-import io.camunda.connector.agenticai.model.message.content.BinaryContent;
+import io.camunda.connector.agenticai.model.message.content.BlobContent;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceBlobDocumentContent;
@@ -37,7 +37,7 @@ public record McpClientCallToolResult(String name, List<Content> content, Boolea
 
   private Content createDocumentIfEligible(Content content, DocumentFactory documentFactory) {
     return switch (content) {
-      case BinaryContent binaryContent -> createFromBinary(binaryContent, documentFactory);
+      case BlobContent blobContent -> createFromBinary(blobContent, documentFactory);
       case EmbeddedResourceContent embeddedResourceContent ->
           createFromEmbeddedResource(embeddedResourceContent, documentFactory);
       case DocumentContent documentContent -> documentContent;
@@ -67,14 +67,14 @@ public record McpClientCallToolResult(String name, List<Content> content, Boolea
   }
 
   private DocumentContent createFromBinary(
-      BinaryContent binaryContent, DocumentFactory documentFactory) {
+          BlobContent blobContent, DocumentFactory documentFactory) {
     var createdDocument =
         documentFactory.create(
-            DocumentCreationRequest.from(binaryContent.blob())
-                .contentType(binaryContent.mimeType())
-                .customProperties(binaryContent.metadata())
+            DocumentCreationRequest.from(blobContent.blob())
+                .contentType(blobContent.mimeType())
+                .customProperties(blobContent.metadata())
                 .build());
 
-    return new DocumentContent(createdDocument, binaryContent.metadata());
+    return new DocumentContent(createdDocument, blobContent.metadata());
   }
 }

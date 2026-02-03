@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.McpClientErrorCodes;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
-import io.camunda.connector.agenticai.model.message.content.BinaryContent;
+import io.camunda.connector.agenticai.model.message.content.BlobContent;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
@@ -145,8 +145,8 @@ final class ToolCallRequest {
         resourceLink.meta());
   }
 
-  private BinaryContent fromBlob(String blob, String mimeType, Map<String, Object> metadata) {
-    return new BinaryContent(Base64.getDecoder().decode(blob), mimeType, metadata);
+  private BlobContent fromBlob(String blob, String mimeType, Map<String, Object> metadata) {
+    return new BlobContent(Base64.getDecoder().decode(blob), mimeType, metadata);
   }
 
   private Map<String, Object> fromObjectContent(Object responseContent) {

@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.BinaryDataToContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentModule;
-import io.camunda.connector.agenticai.model.message.content.BinaryContent;
+import io.camunda.connector.agenticai.model.message.content.BlobContent;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceBlobDocumentContent;
@@ -47,7 +47,7 @@ public class ContentConverterImpl implements ContentConverter {
           documentToContentConverter.convert(documentContent.document());
       case ObjectContent objectContent ->
           new dev.langchain4j.data.message.TextContent(convertToString(objectContent.content()));
-      case BinaryContent binaryContent -> convertBinaryContent(binaryContent);
+      case BlobContent blobContent -> convertBinaryContent(blobContent);
       case EmbeddedResourceContent embeddedResourceContent ->
           convertEmbeddedResourceContent(embeddedResourceContent);
       case ResourceLinkContent resourceLinkContent ->
@@ -59,20 +59,20 @@ public class ContentConverterImpl implements ContentConverter {
     };
   }
 
-  private dev.langchain4j.data.message.Content convertBinaryContent(BinaryContent binaryContent) {
-    final var mimeType = binaryContent.mimeType();
+  private dev.langchain4j.data.message.Content convertBinaryContent(BlobContent blobContent) {
+    final var mimeType = blobContent.mimeType();
     if (mimeType == null) {
       return new dev.langchain4j.data.message.TextContent(
-          Base64.getEncoder().encodeToString(binaryContent.blob()));
+          Base64.getEncoder().encodeToString(blobContent.blob()));
     }
 
     final var contentType = ContentType.parse(mimeType);
     return Optional.ofNullable(
-            BinaryDataToContentConverter.convert(binaryContent.blob(), contentType))
+            BinaryDataToContentConverter.convert(blobContent.blob(), contentType))
         .orElseGet(
             () ->
                 new dev.langchain4j.data.message.TextContent(
-                    Base64.getEncoder().encodeToString(binaryContent.blob())));
+                    Base64.getEncoder().encodeToString(blobContent.blob())));
   }
 
   private dev.langchain4j.data.message.Content convertEmbeddedResourceContent(

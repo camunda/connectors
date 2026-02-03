@@ -8,5 +8,5 @@ package io.camunda.connector.agenticai.model.message.content;
 
 import java.util.Map;
 
-public record BinaryContent(byte[] blob, String mimeType, Map<String, Object> metadata)
+public record BlobContent(byte[] blob, String mimeType, Map<String, Object> metadata)
     implements Content {}

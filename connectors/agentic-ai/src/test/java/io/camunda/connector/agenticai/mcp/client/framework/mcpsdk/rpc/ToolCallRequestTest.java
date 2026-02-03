@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
-import io.camunda.connector.agenticai.model.message.content.BinaryContent;
+import io.camunda.connector.agenticai.model.message.content.BlobContent;
 import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.model.message.content.ResourceLinkContent;
@@ -282,7 +282,7 @@ class ToolCallRequestTest {
                 new McpClientCallToolResult(
                     "a-name",
                     List.of(
-                        new BinaryContent(
+                        new BlobContent(
                             "image".getBytes(StandardCharsets.UTF_8), "image/png", null)),
                     false))),
         argumentSet(

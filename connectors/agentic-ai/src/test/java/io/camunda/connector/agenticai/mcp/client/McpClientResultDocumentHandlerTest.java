@@ -12,7 +12,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.mcp.client.model.result.*;
-import io.camunda.connector.agenticai.model.message.content.BinaryContent;
+import io.camunda.connector.agenticai.model.message.content.BlobContent;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceBlobDocumentContent;
 import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent;
@@ -24,7 +24,6 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.test.document.TestDocument;
 import io.camunda.connector.runtime.test.document.TestDocumentMetadata;
 import java.nio.charset.StandardCharsets;
-import java.time.*;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -219,7 +218,7 @@ class McpClientResultDocumentHandlerTest {
             "get-commits",
             List.of(
                 new TextContent("text", Map.of()),
-                new BinaryContent("blob".getBytes(StandardCharsets.UTF_8), "image/png", Map.of())),
+                new BlobContent("blob".getBytes(StandardCharsets.UTF_8), "image/png", Map.of())),
             false),
         new McpClientCallToolResult(
             "get-commits",

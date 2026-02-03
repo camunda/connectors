@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.PdfFileContent;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverterImpl;
-import io.camunda.connector.agenticai.model.message.content.BinaryContent;
+import io.camunda.connector.agenticai.model.message.content.BlobContent;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceBlobDocumentContent;
 import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent;
@@ -94,7 +94,7 @@ class ContentConverterTest {
     @Test
     void supportsBinaryContentWithTextMimeType() throws JsonProcessingException {
       final var binaryContent =
-          new BinaryContent("Hello, world!".getBytes(StandardCharsets.UTF_8), "text/plain", null);
+          new BlobContent("Hello, world!".getBytes(StandardCharsets.UTF_8), "text/plain", null);
 
       final var content = contentConverter.convertToContent(binaryContent);
 
@@ -106,7 +106,7 @@ class ContentConverterTest {
     @Test
     void supportsBinaryContentWithJsonMimeType() throws JsonProcessingException {
       final var binaryContent =
-          new BinaryContent(
+          new BlobContent(
               "{\"key\":\"value\"}".getBytes(StandardCharsets.UTF_8), "application/json", null);
 
       final var content = contentConverter.convertToContent(binaryContent);
@@ -119,7 +119,7 @@ class ContentConverterTest {
     @Test
     void supportsBinaryContentWithPdfMimeType() throws JsonProcessingException {
       final var pdfData = "<PDF CONTENT>".getBytes(StandardCharsets.UTF_8);
-      final var binaryContent = new BinaryContent(pdfData, "application/pdf", null);
+      final var binaryContent = new BlobContent(pdfData, "application/pdf", null);
 
       final var content = contentConverter.convertToContent(binaryContent);
 
@@ -131,7 +131,7 @@ class ContentConverterTest {
     @Test
     void supportsBinaryContentWithImageMimeType() throws JsonProcessingException {
       final var imageData = "fake-image-data".getBytes(StandardCharsets.UTF_8);
-      final var binaryContent = new BinaryContent(imageData, "image/png", null);
+      final var binaryContent = new BlobContent(imageData, "image/png", null);
 
       final var content = contentConverter.convertToContent(binaryContent);
 
@@ -144,7 +144,7 @@ class ContentConverterTest {
     @Test
     void supportsBinaryContentWithNullMimeType() throws JsonProcessingException {
       final var data = "some-data".getBytes(StandardCharsets.UTF_8);
-      final var binaryContent = new BinaryContent(data, null, null);
+      final var binaryContent = new BlobContent(data, null, null);
 
       final var content = contentConverter.convertToContent(binaryContent);
 
@@ -156,7 +156,7 @@ class ContentConverterTest {
     @Test
     void supportsBinaryContentWithUnsupportedMimeType() throws JsonProcessingException {
       final var data = "archive-content".getBytes(StandardCharsets.UTF_8);
-      final var binaryContent = new BinaryContent(data, "application/zip", null);
+      final var binaryContent = new BlobContent(data, "application/zip", null);
 
       final var content = contentConverter.convertToContent(binaryContent);
 
