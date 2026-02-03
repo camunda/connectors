@@ -11,13 +11,13 @@ jobs:
     steps:
       - id: get-members
         name: Get Team Members
-        uses: garnertb/get-team-members@v1
+        uses: GuillaumeFalourd/github-team-members@v1
         with:
-          org: 'camunda'
+          org_slug: 'camunda'
           team_slug: 'connectors'
           token: ${{ secrets.GITHUB_TOKEN }}
-          role: ''
-      - name: Assign Reviewer
+      - id: assign-reviewer
+        name: Assign Reviewer
         uses: Joxtacy/auto-assign-reviewers@v0.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
