@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -184,5 +185,31 @@ class ConnectorResultHandlerTest {
         .contains("Result expression must return a JSON object")
         .contains("boolean")
         .contains("true");
+  }
+
+  @Test
+  void shouldProvideGoodErrorMessage_WhenErrorExpressionReturnsArray() {
+    // given - error expression that produces an array (invalid type)
+    final Object responseContent = Map.of("status", "error");
+    final Map<String, String> jobHeaders =
+        Map.of(Keywords.ERROR_EXPRESSION_KEYWORD, "= [1, 2, 3]");
+    // ErrorExpressionJobContext is required as context for FEEL evaluation;
+    // the retries count (3) is a dummy value that doesn't affect error message validation
+    final ErrorExpressionJobContext jobContext =
+        new ErrorExpressionJobContext(new ErrorExpressionJobContext.ErrorExpressionJob(3));
+
+    // when - should throw exception with clear message
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () ->
+                connectorResultHandler.examineErrorExpression(
+                    responseContent, jobHeaders, jobContext));
+
+    // then - should indicate that an array was returned and "Error expression" is mentioned
+    assertThat(exception.getMessage())
+        .contains("Error expression must return a JSON object")
+        .contains("array")
+        .contains("[1,2,3]");
   }
 }

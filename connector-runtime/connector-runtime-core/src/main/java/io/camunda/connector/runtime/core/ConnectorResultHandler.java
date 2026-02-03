@@ -70,7 +70,8 @@ public class ConnectorResultHandler {
       if (mappedResponseJson != null) {
         verifyNoForbiddenLiterals(mappedResponseJson);
         var mappedResponse =
-            parseJsonVarsAsTypeOrThrow(mappedResponseJson, Map.class, resultExpression);
+            parseJsonVarsAsTypeOrThrow(
+                mappedResponseJson, Map.class, resultExpression, "Result expression");
         if (mappedResponse != null) {
           outputVariables.putAll(mappedResponse);
         }
@@ -90,8 +91,14 @@ public class ConnectorResultHandler {
             expression ->
                 feelEngineWrapper.evaluateToJson(
                     expression, responseContent, wrapResponse(responseContent), jobContext))
-        .filter(json -> !parseJsonVarsAsTypeOrThrow(json, Map.class, errorExpression).isEmpty())
-        .map(json -> parseJsonVarsAsTypeOrThrow(json, ConnectorError.class, errorExpression))
+        .filter(
+            json ->
+                !parseJsonVarsAsTypeOrThrow(json, Map.class, errorExpression, "Error expression")
+                    .isEmpty())
+        .map(
+            json ->
+                parseJsonVarsAsTypeOrThrow(
+                    json, ConnectorError.class, errorExpression, "Error expression"))
         .filter(
             error -> {
               if (error instanceof BpmnError bpmnError) {
@@ -102,7 +109,10 @@ public class ConnectorResultHandler {
   }
 
   private <T> T parseJsonVarsAsTypeOrThrow(
-      final String jsonVars, Class<T> type, final String expression) {
+      final String jsonVars,
+      Class<T> type,
+      final String expression,
+      final String expressionNameForError) {
     try {
       // When expecting a Map (from a FEEL evaluation), check if it's actually a JSON object
       if (type.equals(Map.class)) {
@@ -111,8 +121,8 @@ public class ConnectorResultHandler {
           throw new ConnectorInputException(
               new FeelEngineWrapperException(
                   String.format(
-                      "Result expression must return a JSON object, but got %s. Evaluated value: %s",
-                      node.getNodeType().name().toLowerCase(), jsonVars),
+                      "%s must return a JSON object, but got %s. Evaluated value: %s",
+                      expressionNameForError, node.getNodeType().name().toLowerCase(), jsonVars),
                   expression,
                   jsonVars));
         }
