@@ -19,7 +19,7 @@ jobs:
       - id: get-members
         name: Get Team Members
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Use the correct API endpoint for team members
           members="$(gh api \
