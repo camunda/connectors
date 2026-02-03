@@ -116,7 +116,11 @@ public class HttpCommonRequest {
       type = PropertyType.Boolean,
       defaultValueType = TemplateProperty.DefaultValueType.Boolean,
       defaultValue = "false",
-      tooltip = "Null values will not be sent")
+      tooltip = "Null values will not be sent",
+      condition =
+          @PropertyCondition(
+              property = "method",
+              oneOf = {"POST", "PUT", "PATCH"}))
   private boolean ignoreNullValues;
 
   // write getters for all attributes of this class
