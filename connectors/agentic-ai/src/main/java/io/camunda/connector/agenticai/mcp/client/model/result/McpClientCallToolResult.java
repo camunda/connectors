@@ -67,7 +67,7 @@ public record McpClientCallToolResult(String name, List<Content> content, Boolea
   }
 
   private DocumentContent createFromBinary(
-          BlobContent blobContent, DocumentFactory documentFactory) {
+      BlobContent blobContent, DocumentFactory documentFactory) {
     var createdDocument =
         documentFactory.create(
             DocumentCreationRequest.from(blobContent.blob())
