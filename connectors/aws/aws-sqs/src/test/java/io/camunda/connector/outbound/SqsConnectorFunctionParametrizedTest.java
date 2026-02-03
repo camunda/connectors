@@ -23,10 +23,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
-import com.amazonaws.services.sqs.model.SendMessageResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -52,6 +48,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 @ExtendWith(MockitoExtension.class)
 class SqsConnectorFunctionParametrizedTest {
@@ -65,7 +65,7 @@ class SqsConnectorFunctionParametrizedTest {
   private static final ObjectMapper objectMapper = ObjectMapperSupplier.getMapperInstance();
 
   @Mock private AmazonSQSClientSupplier sqsClientSupplier;
-  @Mock private AmazonSQS sqsClient;
+  @Mock private SqsClient sqsClient;
   @Captor private ArgumentCaptor<SendMessageRequest> sendMessageRequest;
 
   private SqsConnectorFunction function;
@@ -79,10 +79,10 @@ class SqsConnectorFunctionParametrizedTest {
   @MethodSource("successRequestCases")
   void execute_ShouldSucceedSuccessCases(final String input) throws JsonProcessingException {
     // given
-    when(sqsClientSupplier.sqsClient(any(AWSCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
+    when(sqsClientSupplier.sqsClient(any(AwsCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
         .thenReturn(sqsClient);
-    SendMessageResult sendMessageResult = mock(SendMessageResult.class);
-    when(sendMessageResult.getMessageId()).thenReturn(MSG_ID);
+    SendMessageResponse sendMessageResult = mock(SendMessageResponse.class);
+    when(sendMessageResult.messageId()).thenReturn(MSG_ID);
     when(sqsClient.sendMessage(sendMessageRequest.capture())).thenReturn(sendMessageResult);
     OutboundConnectorContext ctx =
         OutboundConnectorContextBuilder.create()
@@ -100,9 +100,9 @@ class SqsConnectorFunctionParametrizedTest {
     assertThat(connectorResultObject).isInstanceOf(SqsConnectorResult.class);
     SqsConnectorResult connectorResult = (SqsConnectorResult) connectorResultObject;
     assertThat(connectorResult.getMessageId()).isEqualTo(MSG_ID);
-    assertThat(initialRequest.getMessageBody())
+    assertThat(initialRequest.messageBody())
         .isEqualTo(objectMapper.writeValueAsString(request.getQueue().getMessageBody()));
-    assertThat(initialRequest.getMessageAttributes().size())
+    assertThat(initialRequest.messageAttributes().size())
         .isEqualTo(request.getQueue().getAwsSqsNativeMessageAttributes().size());
   }
 
@@ -111,10 +111,10 @@ class SqsConnectorFunctionParametrizedTest {
   @MockitoSettings(strictness = Strictness.LENIENT)
   void execute_ShouldThrowExceptionOnMalformedRequests(final String incomingJson) {
     // given
-    when(sqsClientSupplier.sqsClient(any(AWSCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
+    when(sqsClientSupplier.sqsClient(any(AwsCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
         .thenReturn(sqsClient);
-    SendMessageResult sendMessageResult = mock(SendMessageResult.class);
-    when(sendMessageResult.getMessageId()).thenReturn(MSG_ID);
+    SendMessageResponse sendMessageResult = mock(SendMessageResponse.class);
+    when(sendMessageResult.messageId()).thenReturn(MSG_ID);
     when(sqsClient.sendMessage(sendMessageRequest.capture())).thenReturn(sendMessageResult);
 
     OutboundConnectorContext ctx =

@@ -9,25 +9,23 @@ package io.camunda.connector.aws.dynamodb.operation.table;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.dynamodbv2.document.Item;
-import com.amazonaws.services.dynamodbv2.document.ItemCollection;
-import com.amazonaws.services.dynamodbv2.document.ScanOutcome;
-import com.amazonaws.services.dynamodbv2.document.internal.IteratorSupport;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
 import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.AwsDynamoDbResult;
 import io.camunda.connector.aws.dynamodb.model.ScanTable;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
+import software.amazon.awssdk.services.dynamodb.model.ScanResponse;
 
 class ScanTableOperationTest extends BaseDynamoDbOperationTest {
 
-  @Mock private ItemCollection<ScanOutcome> itemCollection;
-  @Mock private IteratorSupport<Item, ScanOutcome> iterator;
+  @Captor private ArgumentCaptor<ScanRequest> requestCaptor;
   private ScanTableOperation scanTableOperation;
   private ScanTable scanTable;
 
@@ -45,16 +43,6 @@ class ScanTableOperationTest extends BaseDynamoDbOperationTest {
 
   @BeforeEach
   public void setUp() {
-
-    List<Item> itemList = new ArrayList<>();
-    itemList.add(
-        new Item().withPrimaryKey("id", "123").withString("name", "John").withNumber("age", 30));
-    itemList.add(
-        new Item().withPrimaryKey("id", "456").withString("name", "Jane").withNumber("age", 35));
-    when(iterator.hasNext()).thenReturn(true, true, false);
-    when(iterator.next()).thenReturn(itemList.get(0), itemList.get(1));
-    when(itemCollection.iterator()).thenReturn(iterator);
-
     scanTable =
         new ScanTable(
             TestDynamoDBData.ActualValue.TABLE_NAME,
@@ -68,12 +56,22 @@ class ScanTableOperationTest extends BaseDynamoDbOperationTest {
   public void invoke_shouldScanTableWithoutFilter() {
     // Given
     scanTable = new ScanTable(TestDynamoDBData.ActualValue.TABLE_NAME, null, null, null, null);
-    when(dynamoDB.getTable(TestDynamoDBData.ActualValue.TABLE_NAME).scan(null, null, null, null))
-        .thenReturn(itemCollection);
+    List<Map<String, AttributeValue>> items =
+        List.of(
+            Map.of(
+                "id", AttributeValue.builder().s("123").build(),
+                "name", AttributeValue.builder().s("John").build()),
+            Map.of(
+                "id", AttributeValue.builder().s("456").build(),
+                "name", AttributeValue.builder().s("Jane").build()));
+    when(dynamoDB.scan(requestCaptor.capture()))
+        .thenReturn(ScanResponse.builder().items(items).build());
     scanTableOperation = new ScanTableOperation(scanTable);
     // When
     final AwsDynamoDbResult result = (AwsDynamoDbResult) scanTableOperation.invoke(dynamoDB);
     // Then
     assertThatResultIsOk(result);
+    assertThat(requestCaptor.getValue().tableName())
+        .isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
   }
 }
