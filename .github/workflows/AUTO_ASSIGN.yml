@@ -16,38 +16,14 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Get Team Members
-        id: get-members
-        uses: actions/github-script@v6
+      - id: assign-reviewer
+        name: Assign Reviewer
+        uses: Joxtacy/auto-assign-reviewers@v0.1.0
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const teamSlug = 'connectors';
-            const org = context.repo.owner;
-
-            // Fetch team members
-            const members = await github.rest.teams.listMembersInOrg({
-              org,
-              team_slug: teamSlug,
-            });
-
-            // Extract usernames
-            const usernames = members.data.map(member => member.login);
-
-            // Output as a comma-separated string
-            return usernames.join(',');
-      # Auto-assign reviewer based on custom weights
-#      - id: assign-reviewer
-#        name: Assign Reviewer
-#        uses: Joxtacy/auto-assign-reviewers@v0.1.0
-#        with:
-#          github_token: ${{ secrets.GITHUB_TOKEN }}
-#          # Team members fetched from GitHub API
-#          team_members: ${{ steps.get-members.outputs.MEMBERS }}
-#          # Adjust these weights to prioritize different factors
-#          weight_open_prs: 15          # Weight for open PRs (lower is better)
-#          weight_lines_per_100: 2      # Weight per 100 lines of code
-#          weight_recent_reviews: 3     # Weight for recent reviews
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Team members fetched from GitHub API
+          team_members: 'sbuettner,ztefanie,johnBgood,vringar,mathias-vandaele,chillleader'
+          # Adjust these weights to prioritize different factors
+          weight_open_prs: 15          # Weight for open PRs (lower is better)
+          weight_lines_per_100: 2      # Weight per 100 lines of code
+          weight_recent_reviews: 3     # Weight for recent reviews
