@@ -38,5 +38,5 @@ jobs:
           team_members: ${{ steps.get-members.outputs.members }}
           # Adjust these weights to prioritize different factors
           weight_open_prs: 0          # Default: 10
-          weight_lines_per_100: 2      # Default: 1
-          weight_recent_reviews: 10     # Default: 3
+          weight_lines_per_100: 0     # Default: 1
+          weight_recent_reviews: 10   # Default: 3
