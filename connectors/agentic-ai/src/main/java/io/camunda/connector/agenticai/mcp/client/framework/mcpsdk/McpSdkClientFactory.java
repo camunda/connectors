@@ -54,15 +54,15 @@ public class McpSdkClientFactory implements McpClientFactory {
   private McpClientTransport createTransport(
       McpClientConfigurationProperties.McpClientConfiguration config) {
     return switch (config.transport()) {
-      case McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration
-              sseHttpMcpClientTransportConfiguration ->
-          createSseTransport(sseHttpMcpClientTransportConfiguration);
       case McpClientConfigurationProperties.StdioMcpClientTransportConfiguration
               stdioMcpClientTransportConfiguration ->
           createStdioTransport(stdioMcpClientTransportConfiguration);
       case McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration
               streamableHttpMcpClientTransportConfiguration ->
           createStreamableHttpTransport(streamableHttpMcpClientTransportConfiguration);
+      case McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration
+              sseHttpMcpClientTransportConfiguration ->
+          createSseTransport(sseHttpMcpClientTransportConfiguration);
     };
   }
 
