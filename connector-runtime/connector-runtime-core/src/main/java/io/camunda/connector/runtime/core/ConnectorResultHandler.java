@@ -104,7 +104,7 @@ public class ConnectorResultHandler {
   private <T> T parseJsonVarsAsTypeOrThrow(
       final String jsonVars, Class<T> type, final String expression) {
     try {
-      // When expecting a Map (result expression output), check if it's actually a JSON object
+      // When expecting a Map (from a FEEL evaluation), check if it's actually a JSON object
       if (type.equals(Map.class)) {
         JsonNode node = objectMapper.readTree(jsonVars);
         if (!node.isObject()) {
