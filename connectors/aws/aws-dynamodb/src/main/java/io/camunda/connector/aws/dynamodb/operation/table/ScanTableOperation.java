@@ -6,14 +6,13 @@
  */
 package io.camunda.connector.aws.dynamodb.operation.table;
 
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.Item;
-import com.amazonaws.services.dynamodbv2.document.ItemCollection;
-import com.amazonaws.services.dynamodbv2.document.ScanOutcome;
+import io.camunda.connector.aws.dynamodb.AwsDynamoDbAttributeValueMapper;
 import io.camunda.connector.aws.dynamodb.model.AwsDynamoDbResult;
 import io.camunda.connector.aws.dynamodb.model.ScanTable;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
-import java.util.ArrayList;
+import java.util.List;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
 
 public class ScanTableOperation implements AwsDynamoDbOperation {
 
@@ -24,21 +23,27 @@ public class ScanTableOperation implements AwsDynamoDbOperation {
   }
 
   @Override
-  public Object invoke(final DynamoDB dynamoDB) {
-
-    final ItemCollection<ScanOutcome> scan =
-        dynamoDB
-            .getTable(scanTableModel.tableName())
-            .scan(
-                scanTableModel.filterExpression(),
-                scanTableModel.projectionExpression(),
-                scanTableModel.expressionAttributeNames(),
-                scanTableModel.expressionAttributeValues());
-
-    final var items = new ArrayList<>();
-    for (final Item item : scan) {
-      items.add(item.asMap());
+  public Object invoke(final DynamoDbClient dynamoDB) {
+    ScanRequest.Builder request = ScanRequest.builder().tableName(scanTableModel.tableName());
+    if (scanTableModel.filterExpression() != null) {
+      request.filterExpression(scanTableModel.filterExpression());
     }
+    if (scanTableModel.projectionExpression() != null) {
+      request.projectionExpression(scanTableModel.projectionExpression());
+    }
+    if (scanTableModel.expressionAttributeNames() != null) {
+      request.expressionAttributeNames(scanTableModel.expressionAttributeNames());
+    }
+    if (scanTableModel.expressionAttributeValues() != null) {
+      request.expressionAttributeValues(
+          AwsDynamoDbAttributeValueMapper.toAttributeValueMap(
+              scanTableModel.expressionAttributeValues()));
+    }
+
+    List<java.util.Map<String, Object>> items =
+        dynamoDB.scan(request.build()).items().stream()
+            .map(AwsDynamoDbAttributeValueMapper::toSimpleMap)
+            .toList();
 
     return new AwsDynamoDbResult("scanTable", "OK", items.isEmpty() ? null : items);
   }

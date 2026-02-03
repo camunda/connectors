@@ -6,10 +6,6 @@
  */
 package io.camunda.connector.inbound;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
-import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
@@ -25,20 +21,28 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
 public class SqsQueueConsumer implements Runnable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsQueueConsumer.class);
 
-  private static final List<String> ALL_ATTRIBUTES_KEY = List.of("All");
+  private static final String ALL_ATTRIBUTES_KEY = "All";
+  private static final MessageSystemAttributeName ALL_QUEUE_ATTRIBUTES =
+      MessageSystemAttributeName.ALL;
 
-  private final AmazonSQS sqsClient;
+  private final SqsClient sqsClient;
   private final SqsInboundProperties properties;
   private final InboundConnectorContext context;
   private final AtomicBoolean queueConsumerActive;
 
   public SqsQueueConsumer(
-      AmazonSQS sqsClient, SqsInboundProperties properties, InboundConnectorContext context) {
+      SqsClient sqsClient, SqsInboundProperties properties, InboundConnectorContext context) {
     this.sqsClient = sqsClient;
     this.properties = properties;
     this.context = context;
@@ -50,7 +54,7 @@ public class SqsQueueConsumer implements Runnable {
     LOGGER.info("Started SQS consumer for queue {}", properties.getQueue().url());
 
     final ReceiveMessageRequest receiveMessageRequest = createReceiveMessageRequest();
-    ReceiveMessageResult receiveMessageResult;
+    ReceiveMessageResponse receiveMessageResult;
     do {
       try {
         receiveMessageResult = sqsClient.receiveMessage(receiveMessageRequest);
@@ -59,7 +63,7 @@ public class SqsQueueConsumer implements Runnable {
         continue;
       }
       try {
-        List<Message> messages = receiveMessageResult.getMessages();
+        List<Message> messages = receiveMessageResult.messages();
         for (Message message : messages) {
           context.log(
               Activity.level(Severity.INFO)
@@ -84,7 +88,11 @@ public class SqsQueueConsumer implements Runnable {
     switch (result) {
       case Success ignored -> {
         LOGGER.debug("ACK - message correlated successfully");
-        sqsClient.deleteMessage(properties.getQueue().url(), message.getReceiptHandle());
+        sqsClient.deleteMessage(
+            DeleteMessageRequest.builder()
+                .queueUrl(properties.getQueue().url())
+                .receiptHandle(message.receiptHandle())
+                .build());
       }
 
       case Failure failure -> {
@@ -95,7 +103,11 @@ public class SqsQueueConsumer implements Runnable {
           }
           case Ignore ignored -> {
             LOGGER.debug("ACK - message ignored");
-            sqsClient.deleteMessage(properties.getQueue().url(), message.getReceiptHandle());
+            sqsClient.deleteMessage(
+                DeleteMessageRequest.builder()
+                    .queueUrl(properties.getQueue().url())
+                    .receiptHandle(message.receiptHandle())
+                    .build());
           }
         }
       }
@@ -103,17 +115,29 @@ public class SqsQueueConsumer implements Runnable {
   }
 
   private ReceiveMessageRequest createReceiveMessageRequest() {
-    return new ReceiveMessageRequest()
-        .withWaitTimeSeconds(Math.max(Integer.parseInt(properties.getQueue().pollingWaitTime()), 1))
-        .withQueueUrl(properties.getQueue().url())
-        .withMessageAttributeNames(
+    int waitTimeSeconds;
+    try {
+      waitTimeSeconds = Integer.parseInt(properties.getQueue().pollingWaitTime());
+    } catch (NumberFormatException e) {
+      LOGGER.warn(
+          "Invalid pollingWaitTime '{}', falling back to default value 1 second",
+          properties.getQueue().pollingWaitTime(),
+          e);
+      waitTimeSeconds = 1;
+    }
+    return ReceiveMessageRequest.builder()
+        .waitTimeSeconds(Math.max(waitTimeSeconds, 1))
+        .queueUrl(properties.getQueue().url())
+        .messageAttributeNames(
             Optional.ofNullable(properties.getQueue().messageAttributeNames())
                 .filter(list -> !list.isEmpty())
-                .orElse(ALL_ATTRIBUTES_KEY))
-        .withAttributeNames(
+                .orElse(List.of(ALL_ATTRIBUTES_KEY)))
+        .messageSystemAttributeNames(
             Optional.ofNullable(properties.getQueue().attributeNames())
                 .filter(list -> !list.isEmpty())
-                .orElse(ALL_ATTRIBUTES_KEY));
+                .map(names -> names.stream().map(MessageSystemAttributeName::fromValue).toList())
+                .orElse(List.of(ALL_QUEUE_ATTRIBUTES)))
+        .build();
   }
 
   public boolean isQueueConsumerActive() {

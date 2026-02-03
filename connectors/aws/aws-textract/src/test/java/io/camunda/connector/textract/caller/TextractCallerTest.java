@@ -11,6 +11,7 @@ import static io.camunda.connector.textract.util.TextractTestUtils.FULL_FILLED_A
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.camunda.connector.textract.model.DocumentLocationType;
 import com.amazonaws.services.textract.model.AnalyzeDocumentResult;
 import com.amazonaws.services.textract.model.DocumentLocation;
 import com.amazonaws.services.textract.model.S3Object;
@@ -18,18 +19,22 @@ import io.camunda.connector.textract.model.TextractExecutionType;
 import io.camunda.connector.textract.model.TextractRequestData;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.textract.model.AnalyzeDocumentResponse;
+import software.amazon.awssdk.services.textract.model.DocumentLocation;
+import software.amazon.awssdk.services.textract.model.FeatureType;
+import software.amazon.awssdk.services.textract.model.S3Object;
 
 class TextractCallerTest {
 
-  private final TextractCaller<AnalyzeDocumentResult> textractCaller = (data, client) -> null;
+  private final TextractCaller<AnalyzeDocumentResponse> textractCaller = (data, client) -> null;
 
   @Test
   void prepareS3Obj() {
     S3Object s3Object = textractCaller.prepareS3Obj(FULL_FILLED_ASYNC_TEXTRACT_DATA);
 
-    assertThat(s3Object.getBucket()).isEqualTo(FULL_FILLED_ASYNC_TEXTRACT_DATA.documentS3Bucket());
-    assertThat(s3Object.getName()).isEqualTo(FULL_FILLED_ASYNC_TEXTRACT_DATA.documentName());
-    assertThat(s3Object.getVersion()).isEqualTo(FULL_FILLED_ASYNC_TEXTRACT_DATA.documentVersion());
+    assertThat(s3Object.bucket()).isEqualTo(FULL_FILLED_ASYNC_TEXTRACT_DATA.documentS3Bucket());
+    assertThat(s3Object.name()).isEqualTo(FULL_FILLED_ASYNC_TEXTRACT_DATA.documentName());
+    assertThat(s3Object.version()).isEqualTo(FULL_FILLED_ASYNC_TEXTRACT_DATA.documentVersion());
   }
 
   @Test
@@ -51,8 +56,10 @@ class TextractCallerTest {
             "role-arn",
             "outputBucket",
             "prefix");
-    Set<String> featureTypes = textractCaller.prepareFeatureTypes(requestData1);
-    assertThat(featureTypes).containsExactlyInAnyOrder("FORMS", "LAYOUT", "SIGNATURES", "TABLES");
+    Set<FeatureType> featureTypes = textractCaller.prepareFeatureTypes(requestData1);
+    assertThat(featureTypes)
+        .containsExactlyInAnyOrder(
+            FeatureType.FORMS, FeatureType.LAYOUT, FeatureType.SIGNATURES, FeatureType.TABLES);
   }
 
   @Test
@@ -101,8 +108,8 @@ class TextractCallerTest {
             "role-arn",
             "outputBucket",
             "prefix");
-    Set<String> featureTypes = textractCaller.prepareFeatureTypes(requestData);
-    assertThat(featureTypes).containsExactlyInAnyOrder("TABLES", "LAYOUT");
+    Set<FeatureType> featureTypes = textractCaller.prepareFeatureTypes(requestData);
+    assertThat(featureTypes).containsExactlyInAnyOrder(FeatureType.TABLES, FeatureType.LAYOUT);
   }
 
   @Test
@@ -110,6 +117,6 @@ class TextractCallerTest {
     DocumentLocation documentLocation =
         textractCaller.prepareDocumentLocation(FULL_FILLED_ASYNC_TEXTRACT_DATA);
 
-    assertThat(documentLocation.getS3Object()).isNotNull();
+    assertThat(documentLocation.s3Object()).isNotNull();
   }
 }

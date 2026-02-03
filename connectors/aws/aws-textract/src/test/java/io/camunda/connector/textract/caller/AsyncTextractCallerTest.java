@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import com.amazonaws.services.textract.AmazonTextractAsyncClient;
 import com.amazonaws.services.textract.model.StartDocumentAnalysisRequest;
 import com.amazonaws.services.textract.model.StartDocumentAnalysisResult;
+import io.camunda.connector.textract.model.DocumentLocationType;
 import io.camunda.connector.textract.model.TextractExecutionType;
 import io.camunda.connector.textract.model.TextractRequestData;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.textract.TextractClient;
+import software.amazon.awssdk.services.textract.model.StartDocumentAnalysisRequest;
+import software.amazon.awssdk.services.textract.model.StartDocumentAnalysisResponse;
 
 @ExtendWith(MockitoExtension.class)
 class AsyncTextractCallerTest {
@@ -32,9 +36,9 @@ class AsyncTextractCallerTest {
   void callWithAllFields() {
     TextractRequestData requestData = prepareReqData("roleArn", "topicArna");
 
-    AmazonTextractAsyncClient asyncClient = Mockito.mock(AmazonTextractAsyncClient.class);
+    TextractClient asyncClient = Mockito.mock(TextractClient.class);
     when(asyncClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
-        .thenReturn(new StartDocumentAnalysisResult());
+        .thenReturn(StartDocumentAnalysisResponse.builder().build());
 
     new AsyncTextractCaller().call(requestData, asyncClient);
 
@@ -43,21 +47,21 @@ class AsyncTextractCallerTest {
     final StartDocumentAnalysisRequest startDocumentAnalysisRequest =
         requestArgumentCaptor.getValue();
 
-    assertThat(startDocumentAnalysisRequest.getFeatureTypes().size()).isEqualTo(4);
-    assertThat(startDocumentAnalysisRequest.getDocumentLocation()).isNotNull();
-    assertThat(startDocumentAnalysisRequest.getClientRequestToken())
+    assertThat(startDocumentAnalysisRequest.featureTypes().size()).isEqualTo(4);
+    assertThat(startDocumentAnalysisRequest.documentLocation()).isNotNull();
+    assertThat(startDocumentAnalysisRequest.clientRequestToken())
         .isEqualTo(requestData.clientRequestToken());
-    assertThat(startDocumentAnalysisRequest.getJobTag()).isEqualTo(requestData.jobTag());
-    assertThat(startDocumentAnalysisRequest.getKMSKeyId()).isEqualTo(requestData.kmsKeyId());
-    assertThat(startDocumentAnalysisRequest.getNotificationChannel()).isNotNull();
-    assertThat(startDocumentAnalysisRequest.getNotificationChannel().getRoleArn())
+    assertThat(startDocumentAnalysisRequest.jobTag()).isEqualTo(requestData.jobTag());
+    assertThat(startDocumentAnalysisRequest.kmsKeyId()).isEqualTo(requestData.kmsKeyId());
+    assertThat(startDocumentAnalysisRequest.notificationChannel()).isNotNull();
+    assertThat(startDocumentAnalysisRequest.notificationChannel().roleArn())
         .isEqualTo(requestData.notificationChannelRoleArn());
-    assertThat(startDocumentAnalysisRequest.getNotificationChannel().getSNSTopicArn())
+    assertThat(startDocumentAnalysisRequest.notificationChannel().snsTopicArn())
         .isEqualTo(requestData.notificationChannelSnsTopicArn());
-    assertThat(startDocumentAnalysisRequest.getOutputConfig()).isNotNull();
-    assertThat(startDocumentAnalysisRequest.getOutputConfig().getS3Bucket())
+    assertThat(startDocumentAnalysisRequest.outputConfig()).isNotNull();
+    assertThat(startDocumentAnalysisRequest.outputConfig().s3Bucket())
         .isEqualTo(requestData.outputConfigS3Bucket());
-    assertThat(startDocumentAnalysisRequest.getOutputConfig().getS3Prefix())
+    assertThat(startDocumentAnalysisRequest.outputConfig().s3Prefix())
         .isEqualTo(requestData.outputConfigS3Prefix());
   }
 
@@ -65,9 +69,9 @@ class AsyncTextractCallerTest {
   void callWithoutNotificationChanelFieldsShouldNotCreateNotificationObj() {
     TextractRequestData requestData = prepareReqData("", "");
 
-    AmazonTextractAsyncClient asyncClient = Mockito.mock(AmazonTextractAsyncClient.class);
+    TextractClient asyncClient = Mockito.mock(TextractClient.class);
     when(asyncClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
-        .thenReturn(new StartDocumentAnalysisResult());
+        .thenReturn(StartDocumentAnalysisResponse.builder().build());
 
     new AsyncTextractCaller().call(requestData, asyncClient);
 
@@ -76,16 +80,16 @@ class AsyncTextractCallerTest {
     final StartDocumentAnalysisRequest startDocumentAnalysisRequest =
         requestArgumentCaptor.getValue();
 
-    assertThat(startDocumentAnalysisRequest.getNotificationChannel()).isNull();
+    assertThat(startDocumentAnalysisRequest.notificationChannel()).isNull();
   }
 
   @Test
   void callWithoutOutputS3BucketShouldNotCreateOutputObj() {
     TextractRequestData requestData = prepareReqDataWithoutOutputS3Bucket();
 
-    AmazonTextractAsyncClient asyncClient = Mockito.mock(AmazonTextractAsyncClient.class);
+    TextractClient asyncClient = Mockito.mock(TextractClient.class);
     when(asyncClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
-        .thenReturn(new StartDocumentAnalysisResult());
+        .thenReturn(StartDocumentAnalysisResponse.builder().build());
 
     new AsyncTextractCaller().call(requestData, asyncClient);
 
@@ -94,7 +98,7 @@ class AsyncTextractCallerTest {
     final StartDocumentAnalysisRequest startDocumentAnalysisRequest =
         requestArgumentCaptor.getValue();
 
-    assertThat(startDocumentAnalysisRequest.getOutputConfig()).isNull();
+    assertThat(startDocumentAnalysisRequest.outputConfig()).isNull();
   }
 
   private TextractRequestData prepareReqData(String roleArn, String topicArn) {
