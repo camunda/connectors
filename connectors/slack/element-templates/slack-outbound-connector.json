@@ -431,7 +431,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "reaction",
     "binding" : {
       "name" : "data.timestamp",
