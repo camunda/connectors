@@ -36,6 +36,7 @@ import org.testcontainers.containers.Network;
 class McpAuthenticationTestConfiguration {
 
   private static final String MCP_TEST_SERVER_VERSION = "1.1.0";
+  private static final String KEYCLOAK_VERSION = "26.5";
 
   @Bean
   public Network mcpTestServerNetwork() {
@@ -47,7 +48,7 @@ class McpAuthenticationTestConfiguration {
   public KeycloakContainer keycloakContainer(
       @Qualifier("mcpTestServerNetwork") Network mcpTestServerNetwork) {
     final var keycloak =
-        new KeycloakContainer("quay.io/keycloak/keycloak:26.5")
+        new KeycloakContainer("quay.io/keycloak/keycloak:" + KEYCLOAK_VERSION)
             .withNetwork(mcpTestServerNetwork)
             .withNetworkAliases("keycloak")
             .withRealmImportFile("/keycloak/testme-realm.json");
