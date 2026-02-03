@@ -20,6 +20,8 @@ import io.modelcontextprotocol.client.transport.StdioClientTransport;
 import io.modelcontextprotocol.json.McpJsonMapper;
 import io.modelcontextprotocol.spec.McpClientTransport;
 import io.modelcontextprotocol.spec.McpSchema;
+import io.modelcontextprotocol.spec.ProtocolVersions;
+
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -81,7 +83,12 @@ public class McpSdkClientFactory implements McpClientFactory {
 
     return HttpClientStreamableHttpTransport.builder(streamableHttpConfig.url())
         .connectTimeout(timeout(streamableHttpConfig.timeout()))
-        .supportedProtocolVersions(List.of("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"))
+        .supportedProtocolVersions(
+            List.of(
+                ProtocolVersions.MCP_2024_11_05,
+                ProtocolVersions.MCP_2025_03_26,
+                ProtocolVersions.MCP_2025_06_18,
+                ProtocolVersions.MCP_2025_11_25))
         .customizeRequest(
             request -> {
               var headers = headerSuppliers.get();
