@@ -3,34 +3,40 @@ name: Auto Assign PR Reviewers
 on:
   pull_request:
     types: [opened, ready_for_review, review_requested]
-  pull_request_target:
-    types: [opened, ready_for_review, review_requested]
 
 jobs:
   auto-assign:
     runs-on: ubuntu-latest
-    if: contains(github.event.pull_request.requested_teams.*.slug, 'connectors')
+    # Only run if:
+    # 1. The PR is not from a fork (security requirement)
+    # 2. The "connectors" team is in the requested reviewers
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.requested_teams.*.slug, 'connectors')
+    permissions:
+      pull-requests: write
     steps:
       - id: get-members
         name: Get Team Members
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          members="$(gh api orgs/camunda/teams/connectors/members --jq '[.[].login] | join(",")')"
-          echo 'MEMBERS='members >> $GITHUB_OUTPUT
-      - id: assign-reviewer
-        name: Assign Reviewer
-        run: |
-          echo "Assigned reviewers: ${{ steps.get-members.outputs.MEMBERS }}"
+          # Use the correct API endpoint for team members
+          members="$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            /orgs/camunda/teams/connectors/members \
+            --jq '[.[].login] | join(",")')"
+          echo "MEMBERS=$members" >> $GITHUB_OUTPUT
+          echo "Found team members: $members"
 
 #      - id: assign-reviewer
 #        name: Assign Reviewer
 #        uses: Joxtacy/auto-assign-reviewers@v0.1.0
 #        with:
 #          github_token: ${{ secrets.GITHUB_TOKEN }}
-#          # Team members to consider for assignment can later be fetched from GitHub automatically
+#          # Team members fetched from GitHub API
 #          team_members: ${{ steps.get-members.outputs.MEMBERS }}
 #          # Adjust these weights to prioritize different factors
-#          weight_open_prs: 0          # Default: 10
-#          weight_lines_per_100: 0     # Default: 1
-#          weight_recent_reviews: 10   # Default: 3
+#          weight_open_prs: 15          # Weight for open PRs (lower is better)
+#          weight_lines_per_100: 2      # Weight per 100 lines of code
+#          weight_recent_reviews: 3     # Weight for recent reviews
