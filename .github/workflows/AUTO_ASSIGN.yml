@@ -46,8 +46,16 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-            TEAM_MEMBERS=$(gh api orgs/camunda/teams/connectors-dev/members --jq '[.[].login] | join(",")')
-            echo "team_members=$TEAM_MEMBERS" >> $GITHUB_OUTPUT
+            set -euo pipefail
+            echo "Fetching team members for team 'connectors-dev'..."
+            TEAM_MEMBERS=$(gh api orgs/camunda/teams/connectors-dev/members --jq '[.[].login] | join(",")' || echo "")
+            if [ -z "$TEAM_MEMBERS" ]; then
+              echo "Error: Failed to fetch team members or team has no members." >&2
+              echo "Please check GitHub token permissions, team slug, and API rate limits." >&2
+              exit 1
+            fi
+            echo "Fetched team members: $TEAM_MEMBERS"
+            echo "team_members=$TEAM_MEMBERS" >> "$GITHUB_OUTPUT"
       - name: Assign Reviewer
         uses: Joxtacy/auto-assign-reviewers@v0.1.0
         with:
