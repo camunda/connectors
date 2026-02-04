@@ -493,6 +493,11 @@
       "name" : "ignoreNullValues",
       "type" : "zeebe:input"
     },
+    "condition" : {
+      "property" : "method",
+      "oneOf" : [ "POST", "PUT", "PATCH" ],
+      "type" : "simple"
+    },
     "tooltip" : "Null values will not be sent",
     "type" : "Boolean"
   }, {
