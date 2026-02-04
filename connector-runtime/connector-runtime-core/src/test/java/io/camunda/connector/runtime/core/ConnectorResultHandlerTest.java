@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -100,5 +101,114 @@ class ConnectorResultHandlerTest {
 
     // then - should evaluate successfully with null values
     assertThat(actual).containsEntry("status", null);
+  }
+
+  @Test
+  void shouldProvideGoodErrorMessage_WhenResultExpressionReturnsArray() {
+    // given - result expression that produces an array
+    final String resultExpression = "= [1, 2, 3]";
+    final Object responseContent = Map.of();
+
+    // when - should throw exception with clear message
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () ->
+                connectorResultHandler.createOutputVariables(
+                    responseContent, null, resultExpression));
+
+    // then - should indicate that an array was returned and JSON object is expected
+    assertThat(exception.getMessage())
+        .contains("Result expression must return a JSON object")
+        .contains("array")
+        .contains("[1,2,3]");
+  }
+
+  @Test
+  void shouldProvideGoodErrorMessage_WhenResultExpressionReturnsString() {
+    // given - result expression that produces a string
+    final String resultExpression = "= \"hello\"";
+    final Object responseContent = Map.of();
+
+    // when - should throw exception with clear message
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () ->
+                connectorResultHandler.createOutputVariables(
+                    responseContent, null, resultExpression));
+
+    // then - should indicate that a string was returned and JSON object is expected
+    assertThat(exception.getMessage())
+        .contains("Result expression must return a JSON object")
+        .contains("string")
+        .contains("\"hello\"");
+  }
+
+  @Test
+  void shouldProvideGoodErrorMessage_WhenResultExpressionReturnsNumber() {
+    // given - result expression that produces a number
+    final String resultExpression = "= 42";
+    final Object responseContent = Map.of();
+
+    // when - should throw exception with clear message
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () ->
+                connectorResultHandler.createOutputVariables(
+                    responseContent, null, resultExpression));
+
+    // then - should indicate that a number was returned and JSON object is expected
+    assertThat(exception.getMessage())
+        .contains("Result expression must return a JSON object")
+        .contains("number")
+        .contains("42");
+  }
+
+  @Test
+  void shouldProvideGoodErrorMessage_WhenResultExpressionReturnsBoolean() {
+    // given - result expression that produces a boolean
+    final String resultExpression = "= true";
+    final Object responseContent = Map.of();
+
+    // when - should throw exception with clear message
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () ->
+                connectorResultHandler.createOutputVariables(
+                    responseContent, null, resultExpression));
+
+    // then - should indicate that a boolean was returned and JSON object is expected
+    assertThat(exception.getMessage())
+        .contains("Result expression must return a JSON object")
+        .contains("boolean")
+        .contains("true");
+  }
+
+  @Test
+  void shouldProvideGoodErrorMessage_WhenErrorExpressionReturnsArray() {
+    // given - error expression that produces an array (invalid type)
+    final Object responseContent = Map.of("status", "error");
+    final Map<String, String> jobHeaders = Map.of(Keywords.ERROR_EXPRESSION_KEYWORD, "= [1, 2, 3]");
+    // ErrorExpressionJobContext is required as context for FEEL evaluation;
+    // the retries count (3) is a dummy value that doesn't affect error message validation
+    final ErrorExpressionJobContext jobContext =
+        new ErrorExpressionJobContext(new ErrorExpressionJobContext.ErrorExpressionJob(3));
+
+    // when - should throw exception with clear message
+    final var exception =
+        assertThrows(
+            ConnectorInputException.class,
+            () ->
+                connectorResultHandler.examineErrorExpression(
+                    responseContent, jobHeaders, jobContext));
+
+    // then - should indicate that an array was returned and "Error expression" is mentioned
+    assertThat(exception.getMessage())
+        .contains("Error expression must return a JSON object")
+        .contains("array")
+        .contains("[1,2,3]");
   }
 }

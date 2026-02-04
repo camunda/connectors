@@ -20,6 +20,7 @@ import static io.camunda.connector.feel.FeelEngineWrapperUtil.wrapResponse;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
@@ -69,7 +70,8 @@ public class ConnectorResultHandler {
       if (mappedResponseJson != null) {
         verifyNoForbiddenLiterals(mappedResponseJson);
         var mappedResponse =
-            parseJsonVarsAsTypeOrThrow(mappedResponseJson, Map.class, resultExpression);
+            parseJsonVarsAsTypeOrThrow(
+                mappedResponseJson, Map.class, resultExpression, "Result expression");
         if (mappedResponse != null) {
           outputVariables.putAll(mappedResponse);
         }
@@ -89,8 +91,14 @@ public class ConnectorResultHandler {
             expression ->
                 feelEngineWrapper.evaluateToJson(
                     expression, responseContent, wrapResponse(responseContent), jobContext))
-        .filter(json -> !parseJsonVarsAsTypeOrThrow(json, Map.class, errorExpression).isEmpty())
-        .map(json -> parseJsonVarsAsTypeOrThrow(json, ConnectorError.class, errorExpression))
+        .filter(
+            json ->
+                !parseJsonVarsAsTypeOrThrow(json, Map.class, errorExpression, "Error expression")
+                    .isEmpty())
+        .map(
+            json ->
+                parseJsonVarsAsTypeOrThrow(
+                    json, ConnectorError.class, errorExpression, "Error expression"))
         .filter(
             error -> {
               if (error instanceof BpmnError bpmnError) {
@@ -101,10 +109,30 @@ public class ConnectorResultHandler {
   }
 
   private <T> T parseJsonVarsAsTypeOrThrow(
-      final String jsonVars, Class<T> type, final String expression) {
+      final String jsonVars,
+      Class<T> type,
+      final String expression,
+      final String expressionNameForError) {
     try {
+      // When expecting a Map (from a FEEL evaluation), check if it's actually a JSON object
+      if (type.equals(Map.class)) {
+        JsonNode node = objectMapper.readTree(jsonVars);
+        if (!node.isObject()) {
+          throw new ConnectorInputException(
+              new FeelEngineWrapperException(
+                  String.format(
+                      "%s must return a JSON object, but got %s. Evaluated value: %s",
+                      expressionNameForError, node.getNodeType().name().toLowerCase(), jsonVars),
+                  expression,
+                  jsonVars));
+        }
+      }
       return objectMapper.readValue(jsonVars, type);
+    } catch (ConnectorInputException e) {
+      // Re-throw our custom exception
+      throw e;
     } catch (JsonProcessingException e) {
+      // For other types (like ConnectorError), keep the original message
       throw new ConnectorInputException(
           new FeelEngineWrapperException(
               String.format(ERROR_CANNOT_PARSE_VARIABLES, jsonVars, type.getName()),
