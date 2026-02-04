@@ -60,7 +60,6 @@ jobs:
         uses: Joxtacy/auto-assign-reviewers@v0.1.0
         with:
           github_token: ${{ steps.app-token.outputs.token }}
-          # Team members to consider for assignment can later be fetched from GitHub automatically
           team_members: ${{ steps.get-members.outputs.team_members }}
           # Adjust these weights to prioritize different factors
           weight_open_prs: 0          # Default: 10
