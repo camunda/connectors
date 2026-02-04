@@ -24,12 +24,43 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository &&
       contains(github.event.pull_request.requested_teams.*.slug, 'connectors')
     steps:
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID}}
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+      - name: Generate a GitHub token for connectors
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
+      - name: Fetch Team Members
+        id: get-members
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+            set -euo pipefail
+            echo "Fetching team members for team 'connectors-dev'..."
+            TEAM_MEMBERS=$(gh api orgs/camunda/teams/connectors-dev/members --jq '[.[].login] | join(",")' || echo "")
+            if [ -z "$TEAM_MEMBERS" ]; then
+              echo "Error: Failed to fetch team members or team has no members." >&2
+              echo "Please check GitHub token permissions, team slug, and API rate limits." >&2
+              exit 1
+            fi
+            echo "Fetched team members: $TEAM_MEMBERS"
+            echo "team_members=$TEAM_MEMBERS" >> "$GITHUB_OUTPUT"
       - name: Assign Reviewer
         uses: Joxtacy/auto-assign-reviewers@v0.1.0
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          # Team members to consider for assignment can later be fetched from GitHub automatically
-          team_members: 'sbuettner,ztefanie,johnBgood,vringar,mathias-vandaele,chillleader'
+          github_token: ${{ steps.app-token.outputs.token }}
+          team_members: ${{ steps.get-members.outputs.team_members }}
           # Adjust these weights to prioritize different factors
           weight_open_prs: 0          # Default: 10
           weight_lines_per_100: 0     # Default: 1
