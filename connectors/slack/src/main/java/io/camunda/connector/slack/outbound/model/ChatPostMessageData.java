@@ -123,12 +123,22 @@ public record ChatPostMessageData(
     if (StringUtils.isNotBlank(thread)) {
       requestBuilder.threadTs(thread);
     }
-    requestBuilder.blocks(
-        BlockBuilder.create(new FileUploader(methodsClient))
-            .documents(documents)
-            .text(text)
-            .blockContent(blockContent)
-            .getLayoutBlocks());
+    if (MessageType.plainText.equals(messageType)) {
+      requestBuilder.text(text);
+      if (documents != null && !documents.isEmpty()) {
+        requestBuilder.blocks(
+            BlockBuilder.create(new FileUploader(methodsClient))
+                .documents(documents)
+                .getLayoutBlocks());
+      }
+    } else {
+      requestBuilder.blocks(
+          BlockBuilder.create(new FileUploader(methodsClient))
+              .documents(documents)
+              .text(text)
+              .blockContent(blockContent)
+              .getLayoutBlocks());
+    }
     ChatPostMessageResponse chatPostMessageResponse =
         methodsClient.chatPostMessage(requestBuilder.build());
     if (chatPostMessageResponse.isOk()) {
