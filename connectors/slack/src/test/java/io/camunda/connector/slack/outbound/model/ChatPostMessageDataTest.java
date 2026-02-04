@@ -262,7 +262,7 @@ class ChatPostMessageDataTest {
         new ChatPostMessageData(
             "test@test.com",
             "thread_ts",
-            MessageType.plainText,
+            MessageType.messageBlock,
             "test",
             objectMapper.readTree(blockContent),
             List.of());
