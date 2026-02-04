@@ -96,6 +96,8 @@ class McpAuthenticationTestConfiguration {
       Optional<KeycloakContainer> keycloak) {
     return (DynamicPropertyRegistry registry) -> {
       Map<String, String> properties = new LinkedHashMap<>();
+
+      // a-mcp-client configures connection + authentication
       testProperties
           .transport()
           .applySpringConfigProperties(properties, "a-mcp-client", mcpServerBaseUrl(mcpServer));
@@ -105,6 +107,12 @@ class McpAuthenticationTestConfiguration {
               properties,
               testProperties.transport().springConfigPrefix("a-mcp-client"),
               keycloak.orElse(null));
+
+      // an-unauthenticated-mcp-client configures only connection (no authentication)
+      testProperties
+          .transport()
+          .applySpringConfigProperties(
+              properties, "an-unauthenticated-mcp-client", mcpServerBaseUrl(mcpServer));
 
       properties.forEach((k, v) -> registry.add(k, () -> v));
     };
@@ -119,19 +127,22 @@ class McpAuthenticationTestConfiguration {
       McpAuthenticationTestProperties testProperties,
       @Qualifier("mcpTestServer") GenericContainer<?> mcpServer,
       Optional<KeycloakContainer> keycloak) {
-    return additionalInputMappings -> {
+    return (additionalInputMappings, includeAuth) -> {
       Map<String, String> inputMappings = new LinkedHashMap<>();
       inputMappings.putAll(additionalInputMappings);
 
       testProperties
           .transport()
           .applyRemoteConnectorInputMappings(inputMappings, mcpServerBaseUrl(mcpServer));
-      testProperties
-          .auth()
-          .applyRemoteConnectorInputMappings(
-              inputMappings,
-              testProperties.transport().remoteConnectorInputMappingPrefix(),
-              keycloak.orElse(null));
+
+      if (includeAuth) {
+        testProperties
+            .auth()
+            .applyRemoteConnectorInputMappings(
+                inputMappings,
+                testProperties.transport().remoteConnectorInputMappingPrefix(),
+                keycloak.orElse(null));
+      }
 
       return inputMappings;
     };
@@ -142,6 +153,12 @@ class McpAuthenticationTestConfiguration {
   }
 
   interface McpRemoteClientInputMappingsProvider {
-    Map<String, String> mcpRemoteClientInputMappings(Map<String, String> additionalInputMappings);
+    default Map<String, String> mcpRemoteClientInputMappings(
+        Map<String, String> additionalInputMappings) {
+      return mcpRemoteClientInputMappings(additionalInputMappings, true);
+    }
+
+    Map<String, String> mcpRemoteClientInputMappings(
+        Map<String, String> additionalInputMappings, boolean includeAuth);
   }
 }

@@ -21,6 +21,7 @@ import static io.camunda.connector.e2e.agenticai.BpmnUtil.serviceTasksByType;
 import static io.camunda.connector.e2e.agenticai.BpmnUtil.updateInputMappings;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.client.api.search.response.Incident;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
@@ -33,6 +34,8 @@ import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,7 +45,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 @SlowTest
-@TestPropertySource(properties = {"camunda.connector.agenticai.mcp.client.enabled=true"})
+@TestPropertySource(
+    properties = {
+      "camunda.connector.agenticai.mcp.client.enabled=true",
+      "camunda.connector.agenticai.mcp.client.clients.an-unauthenticated-mcp-client.enabled=true",
+      "camunda.connector.agenticai.mcp.client.clients.an-unauthenticated-mcp-client.type=HTTP"
+    })
 @ActiveProfiles("mcp-standalone-test")
 @Import(McpAuthenticationTestConfiguration.class)
 abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
@@ -51,6 +59,54 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
 
   @Value("classpath:mcp-connectors-standalone.bpmn")
   private Resource testProcess;
+
+  @Test
+  void shouldRaiseIncidentWhenAuthenticationFails() throws IOException {
+    BpmnModelInstance bpmnModel = Bpmn.readModelFromStream(testProcess.getInputStream());
+
+    // MCP Client
+    serviceTasksByType(bpmnModel, type -> type.startsWith("io.camunda.agenticai:mcpclient"))
+        .forEach(
+            st ->
+                updateInputMappings(
+                    bpmnModel,
+                    st,
+                    Map.of("data.client.clientId", "an-unauthenticated-mcp-client")));
+
+    // MCP Remote Client
+    serviceTasksByType(bpmnModel, type -> type.startsWith("io.camunda.agenticai:mcpremoteclient"))
+        .forEach(
+            st ->
+                updateInputMappings(
+                    bpmnModel,
+                    st,
+                    remoteClientProperties.mcpRemoteClientInputMappings(Map.of(), false)));
+
+    ZeebeTest zeebeTest = createProcessInstance(bpmnModel, Map.of("path", "tools"));
+
+    Awaitility.with()
+        .pollInSameThread()
+        .await()
+        .atMost(20, TimeUnit.SECONDS)
+        .untilAsserted(
+            () -> {
+              final var incidents =
+                  camundaClient
+                      .newIncidentSearchRequest()
+                      .filter(
+                          filter ->
+                              filter.processInstanceKey(
+                                  zeebeTest.getProcessInstanceEvent().getProcessInstanceKey()))
+                      .send()
+                      .join();
+
+              assertThat(incidents.items())
+                  .hasSize(2)
+                  .allSatisfy(i -> i.getErrorMessage().contains("Unexpected status code: 403"))
+                  .extracting(Incident::getElementId)
+                  .containsExactlyInAnyOrder("Client_List_Tools", "Remote_Client_List_Tools");
+            });
+  }
 
   @Test
   void shouldListAndCallTools() throws IOException {
