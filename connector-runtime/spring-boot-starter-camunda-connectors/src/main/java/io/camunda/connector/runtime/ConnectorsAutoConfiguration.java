@@ -55,6 +55,7 @@ import org.springframework.core.env.Environment;
 @AutoConfigureBefore({
   OutboundConnectorsAutoConfiguration.class,
   InboundConnectorsAutoConfiguration.class,
+  DesignTimeServicesAutoConfiguration.class,
   CamundaAutoConfiguration.class
 })
 @EnableConfigurationProperties(ConnectorProperties.class)

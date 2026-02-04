@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.discovery;
 
+import io.camunda.connector.api.designtime.ValueProvider;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
@@ -35,6 +36,10 @@ public class SPIConnectorDiscovery {
 
   public static Stream<ServiceLoader.Provider<OutboundConnectorProvider>> loadConnectorProviders() {
     return ServiceLoader.load(OutboundConnectorProvider.class).stream();
+  }
+
+  public static Stream<ServiceLoader.Provider<ValueProvider>> loadValueProviders() {
+    return ServiceLoader.load(ValueProvider.class).stream();
   }
 
   public static List<InboundConnectorConfiguration> discoverInbound() {

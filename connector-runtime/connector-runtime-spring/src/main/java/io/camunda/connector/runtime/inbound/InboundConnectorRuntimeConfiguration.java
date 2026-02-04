@@ -30,6 +30,7 @@ import io.camunda.connector.runtime.core.inbound.ProcessInstanceClient;
 import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.designtime.controller.ValueProviderRestController;
 import io.camunda.connector.runtime.inbound.controller.InboundConnectorRestController;
 import io.camunda.connector.runtime.inbound.controller.InboundInstancesRestController;
 import io.camunda.connector.runtime.inbound.controller.exception.GlobalExceptionHandler;
@@ -63,6 +64,7 @@ import org.springframework.core.env.Environment;
   ProcessInstanceClientConfiguration.class,
   InboundConnectorRestController.class,
   InboundInstancesRestController.class,
+  ValueProviderRestController.class,
   GlobalExceptionHandler.class,
 })
 public class InboundConnectorRuntimeConfiguration {
