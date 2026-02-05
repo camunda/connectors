@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc;
 
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
+import io.camunda.connector.agenticai.mcp.client.model.result.Annotations;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListResourceTemplatesResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceTemplate;
 import io.modelcontextprotocol.client.McpSyncClient;
@@ -54,7 +55,11 @@ final class ListResourceTemplatesRequest {
                 .map(
                     fr ->
                         new ResourceTemplate(
-                            fr.uriTemplate(), fr.name(), fr.description(), fr.mimeType()))
+                            fr.uriTemplate(),
+                            fr.name(),
+                            fr.description(),
+                            fr.mimeType(),
+                            mapAnnotations(fr.annotations())))
                 .toList());
 
     LOGGER.debug(
@@ -63,5 +68,14 @@ final class ListResourceTemplatesRequest {
         result.resourceTemplates().stream().map(ResourceTemplate::name).toList());
 
     return result;
+  }
+
+  private Annotations mapAnnotations(
+      io.modelcontextprotocol.spec.McpSchema.Annotations sdkAnnotations) {
+    if (sdkAnnotations == null) {
+      return null;
+    }
+    return new Annotations(
+        sdkAnnotations.audience(), sdkAnnotations.priority(), sdkAnnotations.lastModified());
   }
 }

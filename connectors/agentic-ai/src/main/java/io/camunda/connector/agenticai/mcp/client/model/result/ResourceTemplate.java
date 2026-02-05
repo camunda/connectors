@@ -13,7 +13,7 @@ import io.camunda.connector.agenticai.model.AgenticAiRecord;
 @AgenticAiRecord
 @JsonDeserialize(builder = ResourceTemplate.ResourceTemplateBuilderJacksonProxyBuilder.class)
 public record ResourceTemplate(
-    String uriTemplate, String name, String description, String mimeType) {
+    String uriTemplate, String name, String description, String mimeType, Annotations annotations) {
 
   public static ResourceTemplateBuilder builder() {
     return ResourceTemplateBuilder.builder();

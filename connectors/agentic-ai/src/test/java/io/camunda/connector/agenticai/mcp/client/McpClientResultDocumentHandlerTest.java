@@ -99,14 +99,16 @@ class McpClientResultDocumentHandlerTest {
                         "uri-{name}",
                         "Resource Template",
                         "A resource template",
-                        "application/json"))),
+                        "application/json",
+                        null))),
             new McpClientListResourceTemplatesResult(
                 List.of(
                     new ResourceTemplate(
                         "uri-{name}",
                         "Resource Template",
                         "A resource template",
-                        "application/json")))),
+                        "application/json",
+                        null)))),
         argumentSet(
             "List resources",
             new McpClientListResourcesResult(
