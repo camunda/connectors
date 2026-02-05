@@ -96,7 +96,7 @@ class DocumentToContentConverterTest {
             pdfFileContent ->
                 assertThat(pdfFileContent.pdfFile().base64Data()).isEqualTo(DUMMY_B64_VALUE));
 
-    verify(document).asByteArray();
+    verify(document, never()).asBase64();
     verify(document, never()).asInputStream();
   }
 
@@ -117,7 +117,7 @@ class DocumentToContentConverterTest {
               assertThat(imageContent.image().base64Data()).isEqualTo(DUMMY_B64_VALUE);
             });
 
-    verify(document).asByteArray();
+    verify(document, never()).asBase64();
     verify(document, never()).asInputStream();
   }
 
