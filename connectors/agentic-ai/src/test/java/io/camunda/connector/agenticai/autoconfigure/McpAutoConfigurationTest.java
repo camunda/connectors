@@ -14,8 +14,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.mcp.client.*;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientFactory;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientLoggingResolver;
 import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.McpSdkClientFactory;
 import io.camunda.connector.agenticai.mcp.client.handler.McpClientHandler;
 import io.camunda.connector.agenticai.mcp.client.handler.McpRemoteClientHandler;
@@ -34,9 +32,6 @@ public class McpAutoConfigurationTest {
           McpClientResultDocumentHandler.class,
           McpClientHeadersSupplierFactory.class,
           McpClientExecutor.class);
-
-  private static final List<Class<?>> LANGCHAIN4J_MCP_CLIENT_BEANS =
-      List.of(Langchain4JMcpClientLoggingResolver.class, Langchain4JMcpClientFactory.class);
 
   private static final List<Class<?>> MCP_SDK_MCP_CLIENT_BEANS = List.of(McpSdkClientFactory.class);
 
@@ -86,7 +81,6 @@ public class McpAutoConfigurationTest {
         .withPropertyValues("camunda.connector.agenticai.mcp.remote-client.enabled=false")
         .run(
             context -> {
-              assertDoesNotHaveAnyBeansOf(context, LANGCHAIN4J_MCP_CLIENT_BEANS);
               assertDoesNotHaveAnyBeansOf(context, MCP_SDK_MCP_CLIENT_BEANS);
               assertDoesNotHaveAnyBeansOf(context, SHARED_MCP_CLIENT_BEANS);
               assertDoesNotHaveAnyBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
@@ -132,7 +126,6 @@ public class McpAutoConfigurationTest {
             "camunda.connector.agenticai.mcp.client.framework=mcpsdk")
         .run(
             context -> {
-              assertDoesNotHaveAnyBeansOf(context, LANGCHAIN4J_MCP_CLIENT_BEANS);
               assertHasAllBeansOf(context, RUNTIME_MCP_CLIENT_BEANS);
               assertHasAllBeansOf(context, MCP_SDK_MCP_CLIENT_BEANS);
             });
@@ -144,7 +137,6 @@ public class McpAutoConfigurationTest {
         .withPropertyValues("camunda.connector.agenticai.mcp.remote-client.framework=mcpsdk")
         .run(
             context -> {
-              assertDoesNotHaveAnyBeansOf(context, LANGCHAIN4J_MCP_CLIENT_BEANS);
               assertHasAllBeansOf(context, REMOTE_MCP_CLIENT_BEANS);
               assertHasAllBeansOf(context, MCP_SDK_MCP_CLIENT_BEANS);
             });
