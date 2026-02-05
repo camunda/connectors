@@ -7,15 +7,16 @@
 package io.camunda.connector.agenticai.aiagent.framework.langchain4j.document;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.catchThrowable;
 
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.TextContent;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import org.apache.hc.core5.http.ContentType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class BinaryDataToContentConverterTest {
@@ -26,7 +27,7 @@ class BinaryDataToContentConverterTest {
 
   @Test
   void convertsPlainTextToTextContent() {
-    var result = BinaryDataToContentConverter.convert(TEXT_DATA, ContentType.TEXT_PLAIN);
+    var result = BinaryDataToContentConverter.convertFromData(TEXT_DATA, "text/plain");
 
     assertThat(result).isInstanceOf(TextContent.class);
     assertThat(((TextContent) result).text()).isEqualTo(TEXT_CONTENT);
@@ -45,8 +46,7 @@ class BinaryDataToContentConverterTest {
         "application/json;charset=UTF-8"
       })
   void convertsTextTypesToTextContent(String mimeType) {
-    var contentType = ContentType.parse(mimeType);
-    var result = BinaryDataToContentConverter.convert(TEXT_DATA, contentType);
+    var result = BinaryDataToContentConverter.convertFromData(TEXT_DATA, mimeType);
 
     assertThat(result).isInstanceOf(TextContent.class);
     assertThat(((TextContent) result).text()).isEqualTo(TEXT_CONTENT);
@@ -54,7 +54,7 @@ class BinaryDataToContentConverterTest {
 
   @Test
   void convertsPdfToPdfFileContent() {
-    var result = BinaryDataToContentConverter.convert(BINARY_DATA, ContentType.APPLICATION_PDF);
+    var result = BinaryDataToContentConverter.convertFromData(BINARY_DATA, "application/pdf");
 
     assertThat(result).isInstanceOf(PdfFileContent.class);
     assertThat(((PdfFileContent) result).pdfFile().base64Data())
@@ -64,8 +64,7 @@ class BinaryDataToContentConverterTest {
   @ParameterizedTest
   @ValueSource(strings = {"image/jpeg", "image/png", "image/gif", "image/webp"})
   void convertsImageTypesToImageContent(String mimeType) {
-    var contentType = ContentType.parse(mimeType);
-    var result = BinaryDataToContentConverter.convert(BINARY_DATA, contentType);
+    var result = BinaryDataToContentConverter.convertFromData(BINARY_DATA, mimeType);
 
     assertThat(result).isInstanceOf(ImageContent.class);
     var imageContent = (ImageContent) result;
@@ -77,9 +76,21 @@ class BinaryDataToContentConverterTest {
 
   @Test
   void returnsNullForUnsupportedContentType() {
-    var result =
-        BinaryDataToContentConverter.convert(BINARY_DATA, ContentType.create("application/zip"));
+    var result = BinaryDataToContentConverter.convertFromData(BINARY_DATA, "application/zip");
 
     assertThat(result).isNull();
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(strings = {"   ", "\t", "\n"})
+  void throwsExceptionForInvalidMimeType(String invalidMimeType) {
+    var exception =
+        catchThrowable(
+            () -> BinaryDataToContentConverter.convertFromData(BINARY_DATA, invalidMimeType));
+
+    assertThat(exception)
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Invalid mime type: " + invalidMimeType);
   }
 }

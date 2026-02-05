@@ -24,7 +24,6 @@ import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import java.util.Base64;
 import java.util.Optional;
-import org.apache.hc.core5.http.ContentType;
 
 public class ContentConverterImpl implements ContentConverter {
   private final DocumentToContentConverter documentToContentConverter;
@@ -60,15 +59,14 @@ public class ContentConverterImpl implements ContentConverter {
   }
 
   private dev.langchain4j.data.message.Content convertBinaryContent(BlobContent blobContent) {
-    final var mimeType = blobContent.mimeType();
-    if (mimeType == null) {
+    if (blobContent.mimeType() == null) {
       return new dev.langchain4j.data.message.TextContent(
           Base64.getEncoder().encodeToString(blobContent.blob()));
     }
 
-    final var contentType = ContentType.parse(mimeType);
     return Optional.ofNullable(
-            BinaryDataToContentConverter.convert(blobContent.blob(), contentType))
+            BinaryDataToContentConverter.convertFromData(
+                blobContent.blob(), blobContent.mimeType()))
         .orElseGet(
             () ->
                 new dev.langchain4j.data.message.TextContent(
@@ -87,15 +85,14 @@ public class ContentConverterImpl implements ContentConverter {
   }
 
   private dev.langchain4j.data.message.Content convertBlobResource(BlobResource blobResource) {
-    final var mimeType = blobResource.mimeType();
-    if (mimeType == null) {
+    if (blobResource.mimeType() == null) {
       return new dev.langchain4j.data.message.TextContent(
           Base64.getEncoder().encodeToString(blobResource.blob()));
     }
 
-    final var contentType = ContentType.parse(mimeType);
     return Optional.ofNullable(
-            BinaryDataToContentConverter.convert(blobResource.blob(), contentType))
+            BinaryDataToContentConverter.convertFromData(
+                blobResource.blob(), blobResource.mimeType()))
         .orElseGet(
             () ->
                 new dev.langchain4j.data.message.TextContent(

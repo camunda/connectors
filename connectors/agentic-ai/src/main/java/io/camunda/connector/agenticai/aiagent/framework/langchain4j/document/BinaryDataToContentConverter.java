@@ -55,13 +55,36 @@ public final class BinaryDataToContentConverter {
    *     type
    */
   public static ConvertedContent convert(Document camundaDocument) {
-    final var detectedContentType = getContentType(camundaDocument);
-    var targetContent = convert(camundaDocument.asByteArray(), detectedContentType);
+    final var detectedContentType =
+        getContentType(camundaDocument)
+            .orElseThrow(
+                () ->
+                    new DocumentConversionException(
+                        "Content type is unset for document with reference '%s'"
+                            .formatted(camundaDocument.reference())));
 
+    var targetContent = convert(camundaDocument.asByteArray(), detectedContentType);
     return new ConvertedContent(targetContent, detectedContentType);
   }
 
-  public static Content convert(byte[] data, ContentType detectedContentType) {
+  /**
+   * Converts binary data with a known MIME type to a Langchain4j {@link Content} object.
+   *
+   * @param data the binary data to convert to a {@link Content} object
+   * @param mimeType the MIME type of the binary data, used to determine the appropriate {@link
+   *     Content} type
+   * @return a {@link Content} object representing the converted binary data, or {@code null} if the
+   *     MIME type is unsupported
+   */
+  public static Content convertFromData(byte[] data, String mimeType) {
+    var detectedContentType =
+        parseContentType(mimeType)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid mime type: " + mimeType));
+
+    return convert(data, detectedContentType);
+  }
+
+  private static Content convert(byte[] data, ContentType detectedContentType) {
     if (isTextContent(detectedContentType)) {
       return new TextContent(new String(data, StandardCharsets.UTF_8));
     }
@@ -69,16 +92,14 @@ public final class BinaryDataToContentConverter {
     return convertBinaryDataTypes(data, detectedContentType);
   }
 
-  private static ContentType getContentType(Document camundaDocument) {
+  private static Optional<ContentType> getContentType(Document camundaDocument) {
     return Optional.ofNullable(camundaDocument.metadata())
         .map(DocumentMetadata::getContentType)
-        .filter(StringUtils::isNotBlank)
-        .map(ContentType::parse)
-        .orElseThrow(
-            () ->
-                new DocumentConversionException(
-                    "Content type is unset for document with reference '%s'"
-                        .formatted(camundaDocument.reference())));
+        .flatMap(BinaryDataToContentConverter::parseContentType);
+  }
+
+  private static Optional<ContentType> parseContentType(String contentType) {
+    return Optional.ofNullable(contentType).filter(StringUtils::isNotBlank).map(ContentType::parse);
   }
 
   private static Content convertBinaryDataTypes(byte[] data, ContentType contentType) {
@@ -98,23 +119,11 @@ public final class BinaryDataToContentConverter {
     return null;
   }
 
-  /**
-   * Checks if the content type represents text content.
-   *
-   * @param contentType the content type to check
-   * @return true if the content type is text-based
-   */
   private static boolean isTextContent(ContentType contentType) {
     return contentType.getMimeType().startsWith("text/")
         || isCompatibleWithAnyOf(contentType, ADDITIONAL_TEXT_CONTENT_TYPES);
   }
 
-  /**
-   * Checks if the content type represents image content.
-   *
-   * @param contentType the content type to check
-   * @return true if the content type is a supported image type
-   */
   private static boolean isImageContent(ContentType contentType) {
     return isCompatibleWithAnyOf(contentType, IMAGE_CONTENT_TYPES);
   }
