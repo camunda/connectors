@@ -10,7 +10,6 @@ import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.McpClientFunction;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.configuration.annotation.RuntimeMcpClientFactory;
-import io.camunda.connector.agenticai.mcp.client.configuration.langchain4j.McpLangchain4JClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.mcpsdk.McpSdkMcpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpClientHandler;
@@ -33,7 +32,6 @@ import org.springframework.context.annotation.Import;
 @EnableConfigurationProperties(McpClientConfigurationProperties.class)
 @Import({
   McpClientBaseConfiguration.class,
-  McpLangchain4JClientConfiguration.class,
   McpSdkMcpClientConfiguration.class,
 })
 public class McpClientConfiguration {

@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc;
 
-import dev.langchain4j.mcp.client.*;
 import io.camunda.connector.agenticai.mcp.McpClientErrorCodes;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientGetPromptResult;

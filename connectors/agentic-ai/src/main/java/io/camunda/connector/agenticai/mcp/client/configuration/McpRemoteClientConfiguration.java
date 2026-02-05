@@ -10,7 +10,6 @@ import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientFunction;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.configuration.annotation.RemoteMcpClientFactory;
-import io.camunda.connector.agenticai.mcp.client.configuration.langchain4j.McpLangchain4JRemoteClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.mcpsdk.McpSdkMcpRemoteClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
 import io.camunda.connector.agenticai.mcp.client.handler.DefaultMcpRemoteClientHandler;
@@ -30,7 +29,6 @@ import org.springframework.context.annotation.Import;
 @EnableConfigurationProperties(McpRemoteClientConfigurationProperties.class)
 @Import({
   McpClientBaseConfiguration.class,
-  McpLangchain4JRemoteClientConfiguration.class,
   McpSdkMcpRemoteClientConfiguration.class
 })
 public class McpRemoteClientConfiguration {
