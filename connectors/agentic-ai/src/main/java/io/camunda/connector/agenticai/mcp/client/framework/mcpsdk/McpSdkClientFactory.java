@@ -76,7 +76,7 @@ public class McpSdkClientFactory implements McpClientFactory {
   private HttpClientStreamableHttpTransport createStreamableHttpTransport(
       McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration
           streamableHttpConfig) {
-    var headerSuppliers = headersSupplierFactory.createHttpHeadersSupplier(streamableHttpConfig);
+    var headerSupplier = headersSupplierFactory.createHttpHeadersSupplier(streamableHttpConfig);
 
     return HttpClientStreamableHttpTransport.builder(streamableHttpConfig.url())
         .connectTimeout(timeout(streamableHttpConfig.timeout()))
@@ -88,7 +88,7 @@ public class McpSdkClientFactory implements McpClientFactory {
                 ProtocolVersions.MCP_2025_11_25))
         .customizeRequest(
             request -> {
-              var headers = headerSuppliers.get();
+              var headers = headerSupplier.get();
               headers.forEach(request::header);
             })
         .build();
