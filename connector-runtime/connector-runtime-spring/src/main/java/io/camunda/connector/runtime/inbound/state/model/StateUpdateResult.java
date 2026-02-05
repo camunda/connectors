@@ -14,13 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.state;
+package io.camunda.connector.runtime.inbound.state.model;
 
-public interface ProcessStateStore {
+import java.util.Map;
+import java.util.Set;
 
-  /**
-   * Update the process state based on the latest versions of the process definitions.
-   * Implementations must be idempotent.
-   */
-  void update(ProcessImportResult processDefinitions);
+/**
+ * Represents the result of a state update operation. Contains the complete picture of all active
+ * process versions for each process definition that was affected by the update.
+ *
+ * @param affectedProcesses map of process definition references to the set of currently
+ *     active/latest process definition keys (versions) for that process. An empty set indicates all
+ *     versions of this process should be deactivated.
+ */
+public record StateUpdateResult(Map<ProcessDefinitionRef, Set<Long>> affectedProcesses) {
+
+  /** Returns true if there are no affected processes in this update. */
+  public boolean isEmpty() {
+    return affectedProcesses.isEmpty();
+  }
 }

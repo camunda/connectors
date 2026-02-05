@@ -14,13 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.state;
+package io.camunda.connector.e2e.inbound;
 
-import java.util.Map;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-public record ProcessImportResult(
-    Map<ProcessDefinitionIdentifier, ProcessDefinitionVersion> processDefinitionVersions) {
-  public record ProcessDefinitionIdentifier(String bpmnProcessId, String tenantId) {}
+@SpringBootApplication
+@ImportAutoConfiguration({
+  io.camunda.connector.runtime.InboundConnectorsAutoConfiguration.class,
+  io.camunda.connector.runtime.OutboundConnectorsAutoConfiguration.class,
+  io.camunda.connector.runtime.WebhookConnectorAutoConfiguration.class,
+  io.camunda.connector.runtime.ConnectorsAutoConfiguration.class,
+})
+public class TestConnectorRuntimeApplication {
 
-  public record ProcessDefinitionVersion(long processDefinitionKey, int version) {}
+  public static void main(String[] args) {
+    SpringApplication.run(TestConnectorRuntimeApplication.class, args);
+  }
 }

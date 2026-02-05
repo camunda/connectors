@@ -5,11 +5,11 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-runtime-parent</artifactId>
-    <version>8.9.0-alpha3.1</version>
+    <version>8.9.0-alpha4</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <name>connector-runtime-core</name>
+  <name>Connector Runtime Core</name>
   <description>Camunda Connector Utilities to build runtimes</description>
   <artifactId>connector-runtime-core</artifactId>
   <packaging>jar</packaging>

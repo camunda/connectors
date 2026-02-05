@@ -21,11 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.io.FileInputStream;
 import java.util.List;
@@ -121,13 +121,16 @@ public class ProcessDefinitionInspectorUtilTests {
   private List<InboundConnectorElement> fromModel(String fileName, String processId) {
     try {
       var searchQueryClientMock = mock(SearchQueryClient.class);
-      var inspector = new ProcessDefinitionInspector(searchQueryClientMock);
+      var inspector = new ProcessDefinitionInspector(searchQueryClientMock, 100);
       var modelFile = ResourceUtils.getFile("classpath:bpmn/" + fileName);
       var model = Bpmn.readModelFromStream(new FileInputStream(modelFile));
-      var processDefinitionID = new ProcessDefinitionIdentifier(processId, "tenant1");
-      var processDefinitionVersion = new ProcessImportResult.ProcessDefinitionVersion(1, 1);
-      when(searchQueryClientMock.getProcessModel(1)).thenReturn(model);
-      return inspector.findInboundConnectors(processDefinitionID, processDefinitionVersion);
+      var processDefinitionID = new ProcessDefinitionRef(processId, "tenant1");
+      var processDefinitionKey = 1L;
+      when(searchQueryClientMock.getProcessModel(processDefinitionKey)).thenReturn(model);
+      var pdMock = mock(ProcessDefinition.class);
+      when(pdMock.getVersion()).thenReturn(1);
+      when(searchQueryClientMock.getProcessDefinition(processDefinitionKey)).thenReturn(pdMock);
+      return inspector.findInboundConnectors(processDefinitionID, processDefinitionKey);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

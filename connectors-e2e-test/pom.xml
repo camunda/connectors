@@ -7,7 +7,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
     <relativePath>../parent/pom.xml</relativePath>
-    <version>8.9.0-alpha3.1</version>
+    <version>8.9.0-alpha4</version>
   </parent>
 
   <description>Parent POM for Connectors e2e tests</description>
@@ -32,6 +32,7 @@
     <module>connectors-e2e-test-message</module>
     <module>connectors-e2e-test-agentic-ai</module>
     <module>connectors-e2e-email</module>
+    <module>connectors-e2e-test-inbound-runtime</module>
   </modules>
 
   <dependencies>

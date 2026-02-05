@@ -17,20 +17,21 @@
 package io.camunda.connector.e2e;
 
 import static io.camunda.connector.e2e.BpmnFile.replace;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.e2e.helper.KafkaTestProducer;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -84,13 +85,13 @@ public class InboundKafkaTests extends BaseKafkaTest {
             BpmnFile.Replace.replace("kafkaTopic", TOPIC));
 
     mockProcessDefinition(model);
-    processStateStore.update(
-        new ProcessImportResult(
+    processStateManager.update(
+        new ImportResult(
             Map.of(
-                new ProcessDefinitionIdentifier(
+                new ProcessDefinitionRef(
                     processDef.getProcessDefinitionId(), processDef.getTenantId()),
-                new ProcessDefinitionVersion(
-                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
+                Set.of(processDef.getProcessDefinitionKey())),
+            ImportResult.ImportType.LATEST_VERSIONS));
 
     AtomicBoolean kafkaProducerThreadRun =
         producer.startContinuousMessageSending(
@@ -127,13 +128,13 @@ public class InboundKafkaTests extends BaseKafkaTest {
             BpmnFile.Replace.replace("kafkaTopic", TOPIC));
 
     mockProcessDefinition(model);
-    processStateStore.update(
-        new ProcessImportResult(
+    processStateManager.update(
+        new ImportResult(
             Map.of(
-                new ProcessDefinitionIdentifier(
+                new ProcessDefinitionRef(
                     processDef.getProcessDefinitionId(), processDef.getTenantId()),
-                new ProcessDefinitionVersion(
-                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
+                Set.of(processDef.getProcessDefinitionKey())),
+            ImportResult.ImportType.LATEST_VERSIONS));
 
     AtomicBoolean kafkaProducerThreadRun =
         producer.startContinuousMessageSending(
@@ -155,5 +156,7 @@ public class InboundKafkaTests extends BaseKafkaTest {
         .thenReturn(camundaClient.getConfiguration().getDefaultTenantId());
     when(processDef.getProcessDefinitionId())
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
+    lenient().when(processDef.getVersion()).thenReturn(1);
+    when(searchQueryClient.getProcessDefinition(1L)).thenReturn(processDef);
   }
 }

@@ -20,25 +20,20 @@ import static io.camunda.connector.e2e.AwsService.EVENTBRIDGE;
 import static io.camunda.connector.e2e.AwsService.LAMBDA;
 import static io.camunda.connector.e2e.AwsService.SNS;
 import static io.camunda.connector.e2e.AwsService.SQS;
-import static org.mockito.Mockito.when;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
-import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.test.utils.DockerImages;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.io.File;
-import java.util.Collections;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -47,7 +42,7 @@ import org.testcontainers.utility.DockerImageName;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=false",
-      "camunda.connector.polling.enabled=true"
+      "camunda.connector.polling.enabled=false"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
@@ -60,7 +55,6 @@ public abstract class BaseAwsTest {
       DockerImageName.parse(DockerImages.get(LOCALSTACK));
   @TempDir File tempDir;
   @Autowired CamundaClient camundaClient;
-  @MockitoBean ProcessDefinitionSearch processDefinitionSearch;
 
   static LocalStackContainer localstack;
 
@@ -84,11 +78,6 @@ public abstract class BaseAwsTest {
     localstack.start();
 
     AwsTestHelper.waitForLocalStackToBeHealthy(localstack);
-  }
-
-  @BeforeEach
-  void beforeEach() {
-    when(processDefinitionSearch.query()).thenReturn(Collections.emptyList());
   }
 
   /** Stops the LocalStack container and cleans up any associated resources. */

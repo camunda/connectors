@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime;
 
-import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImporter;
+import io.camunda.connector.runtime.inbound.importer.ImportSchedulers;
 import jakarta.annotation.Nullable;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -29,17 +29,16 @@ public class ProcessDefinitionImportHealthIndicator extends AbstractHealthIndica
   private static final Logger LOG =
       LoggerFactory.getLogger(ProcessDefinitionImportHealthIndicator.class);
 
-  private final ProcessDefinitionImporter processDefinitionImporter;
+  private final ImportSchedulers importSchedulers;
 
-  public ProcessDefinitionImportHealthIndicator(
-      @Nullable ProcessDefinitionImporter processDefinitionImporter) {
-    this.processDefinitionImporter = processDefinitionImporter;
+  public ProcessDefinitionImportHealthIndicator(@Nullable ImportSchedulers importSchedulers) {
+    this.importSchedulers = importSchedulers;
   }
 
   @Override
   protected void doHealthCheck(Builder builder) {
-    var details = Map.of("operateEnabled", processDefinitionImporter != null);
-    if (processDefinitionImporter == null || processDefinitionImporter.isReady()) {
+    var details = Map.of("operateEnabled", importSchedulers != null);
+    if (importSchedulers == null || importSchedulers.isReady()) {
       builder.up().withDetails(details);
     } else {
       LOG.warn("Process definition import health check failed");

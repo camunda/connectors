@@ -27,12 +27,10 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
-import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.search.SearchQueryClient;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
-import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
-import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
+import io.camunda.connector.runtime.inbound.state.ProcessStateManager;
+import io.camunda.connector.runtime.inbound.state.model.ImportResult;
+import io.camunda.connector.runtime.inbound.state.model.ProcessDefinitionRef;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaSpringProcessTest;
 import io.camunda.zeebe.model.bpmn.instance.Process;
@@ -41,7 +39,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -68,7 +65,7 @@ import org.springframework.test.web.servlet.ResultActions;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true",
-      "camunda.connector.polling.enabled=true"
+      "camunda.connector.polling.enabled=false"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @CamundaSpringProcessTest
@@ -93,20 +90,13 @@ public class WebhookNotActivatedDocumentTests {
   @Autowired CamundaClient camundaClient;
   @Autowired MockMvc mockMvc;
 
-  @MockitoBean ProcessDefinitionSearch processDefinitionSearch;
-
-  @Autowired ProcessStateStore stateStore;
+  @Autowired ProcessStateManager stateStore;
 
   @MockitoBean SearchQueryClient searchQueryClient;
 
   @Autowired DocumentFactory documentFactory;
 
   @LocalServerPort int serverPort;
-
-  @BeforeEach
-  void beforeAll() {
-    when(processDefinitionSearch.query()).thenReturn(Collections.emptyList());
-  }
 
   @Test
   void shouldNotCreateDocumentsAndReturnResponse_whenMultipartRequestButWontActivate()
@@ -131,12 +121,12 @@ public class WebhookNotActivatedDocumentTests {
 
     // Deploy the webhook
     stateStore.update(
-        new ProcessImportResult(
+        new ImportResult(
             Map.of(
-                new ProcessDefinitionIdentifier(
+                new ProcessDefinitionRef(
                     processDef.getProcessDefinitionId(), processDef.getTenantId()),
-                new ProcessDefinitionVersion(
-                    processDef.getProcessDefinitionKey(), processDef.getVersion()))));
+                Collections.singleton(processDef.getProcessDefinitionKey())),
+            ImportResult.ImportType.LATEST_VERSIONS));
 
     var bpmnTest = ZeebeTest.with(camundaClient).deploy(model).createInstance();
     CompletableFuture<ResultActions> future = new CompletableFuture<>();
