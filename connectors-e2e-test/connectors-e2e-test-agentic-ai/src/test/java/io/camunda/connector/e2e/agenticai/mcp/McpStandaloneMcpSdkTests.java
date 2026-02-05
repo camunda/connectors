@@ -63,8 +63,13 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 
 @SlowTest
-@TestPropertySource(properties = {"camunda.connector.agenticai.mcp.client.enabled=true"})
-@ActiveProfiles({"mcp-standalone-test", "mcp-test-mcpsdk"})
+@TestPropertySource(
+    properties = {
+      "camunda.connector.agenticai.mcp.client.enabled=true",
+      "camunda.connector.agenticai.mcp.client.framework=mcpsdk",
+      "camunda.connector.agenticai.mcp.remote-client.framework=mcpsdk",
+    })
+@ActiveProfiles({"mcp-standalone-test"})
 public class McpStandaloneMcpSdkTests extends BaseAgenticAiTest {
 
   private static final WireMockServer wireMock = setupWireMockServer();
