@@ -27,6 +27,7 @@ import java.util.Optional;
 
 public class McpSdkClientFactory implements McpClientFactory {
 
+  public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
   private final ObjectMapper objectMapper;
   private final McpClientHeadersSupplierFactory headersSupplierFactory;
 
@@ -110,6 +111,6 @@ public class McpSdkClientFactory implements McpClientFactory {
   }
 
   private Duration timeout(Duration setTimeout) {
-    return setTimeout != null ? setTimeout : Duration.ofSeconds(30);
+    return setTimeout != null ? setTimeout : DEFAULT_TIMEOUT;
   }
 }
