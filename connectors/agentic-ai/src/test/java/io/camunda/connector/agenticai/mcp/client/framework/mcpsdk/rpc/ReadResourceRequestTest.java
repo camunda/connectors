@@ -214,4 +214,50 @@ class ReadResourceRequestTest {
                       "Reading resource 'conflicted-resource' is not allowed by filter configuration");
             });
   }
+
+  @Test
+  void mapsAnnotations_whenResourceContentsHaveAnnotations() {
+    final Map<String, Object> requestParams = Map.of("uri", "annotated-contents");
+    final var sdkAnnotations =
+        new io.modelcontextprotocol.spec.McpSchema.Annotations(
+            List.of("user"), 0.9, "2025-11-25T12:00:00Z");
+    final var response =
+        new McpSchema.ReadResourceResult(
+            List.of(
+                new McpSchema.TextResourceContents(
+                    "uri", "text/plain", "annotated text", sdkAnnotations),
+                new McpSchema.BlobResourceContents(
+                    "uri",
+                    "application/octet-stream",
+                    Base64.getEncoder().encodeToString("annotated binary".getBytes()),
+                    sdkAnnotations)));
+
+    when(mcpClient.readResource(new McpSchema.ReadResourceRequest("annotated-contents")))
+        .thenReturn(response);
+
+    final var result = testee.execute(mcpClient, EMPTY_FILTER, requestParams);
+
+    assertThat(result.contents()).hasSize(2);
+    
+    // Check text resource
+    assertThat(result.contents().get(0))
+        .isInstanceOfSatisfying(
+            ResourceData.TextResourceData.class,
+            textData -> {
+              assertThat(textData.annotations()).isNotNull();
+              assertThat(textData.annotations().audience()).containsExactly("user");
+              assertThat(textData.annotations().priority()).isEqualTo(0.9);
+              assertThat(textData.annotations().lastModified()).isEqualTo("2025-11-25T12:00:00Z");
+            });
+    
+    // Check blob resource
+    assertThat(result.contents().get(1))
+        .isInstanceOfSatisfying(
+            ResourceData.BlobResourceData.class,
+            blobData -> {
+              assertThat(blobData.annotations()).isNotNull();
+              assertThat(blobData.annotations().audience()).containsExactly("user");
+              assertThat(blobData.annotations().priority()).isEqualTo(0.9);
+            });
+  }
 }

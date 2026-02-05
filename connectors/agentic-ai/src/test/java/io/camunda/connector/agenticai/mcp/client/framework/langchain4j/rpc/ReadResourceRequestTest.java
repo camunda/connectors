@@ -59,11 +59,12 @@ class ReadResourceRequestTest {
         .usingRecursiveComparison()
         .isEqualTo(
             List.of(
-                new ResourceData.TextResourceData("uri", "text/plain", "text content"),
+                new ResourceData.TextResourceData("uri", "text/plain", "text content", null),
                 new ResourceData.BlobResourceData(
                     "uri",
                     "application/octet-stream",
-                    "binary content".getBytes(StandardCharsets.UTF_8))));
+                    "binary content".getBytes(StandardCharsets.UTF_8),
+                    null)));
   }
 
   @Test

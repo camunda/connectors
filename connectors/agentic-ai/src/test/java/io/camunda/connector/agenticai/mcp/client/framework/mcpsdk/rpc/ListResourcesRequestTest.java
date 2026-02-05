@@ -152,6 +152,62 @@ class ListResourcesRequestTest {
             McpClientListResourcesResult.class, res -> assertThat(res.resources()).isEmpty());
   }
 
+  @Test
+  void mapsAnnotations_whenResourcesHaveAnnotations() {
+    final var sdkAnnotations =
+        new io.modelcontextprotocol.spec.McpSchema.Annotations(
+            List.of("user", "assistant"), 0.8, "2025-11-25T10:00:00Z");
+    final var mcpResource =
+        new McpSchema.Resource(
+            "file://annotated-resource.txt",
+            "annotated-resource",
+            null,
+            "A resource with annotations",
+            "text/plain",
+            sdkAnnotations,
+            null,
+            null);
+
+    when(mcpClient.listResources())
+        .thenReturn(new McpSchema.ListResourcesResult(List.of(mcpResource), null));
+
+    final var result = testee.execute(mcpClient, EMPTY_FILTER);
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            McpClientListResourcesResult.class,
+            res -> {
+              assertThat(res.resources()).hasSize(1);
+              var resource = res.resources().get(0);
+              assertThat(resource.uri()).isEqualTo("file://annotated-resource.txt");
+              assertThat(resource.annotations()).isNotNull();
+              assertThat(resource.annotations().audience()).containsExactly("user", "assistant");
+              assertThat(resource.annotations().priority()).isEqualTo(0.8);
+              assertThat(resource.annotations().lastModified()).isEqualTo("2025-11-25T10:00:00Z");
+            });
+  }
+
+  @Test
+  void mapsNullAnnotations_whenResourcesHaveNoAnnotations() {
+    final var mcpResource =
+        createMcpResource(
+            "file://no-annotations.txt", "no-annotations", "A resource without annotations", "text/plain");
+
+    when(mcpClient.listResources())
+        .thenReturn(new McpSchema.ListResourcesResult(List.of(mcpResource), null));
+
+    final var result = testee.execute(mcpClient, EMPTY_FILTER);
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            McpClientListResourcesResult.class,
+            res -> {
+              assertThat(res.resources()).hasSize(1);
+              var resource = res.resources().get(0);
+              assertThat(resource.annotations()).isNull();
+            });
+  }
+
   private McpSchema.Resource createMcpResource(
       String uri, String name, String description, String mimeType) {
     return new McpSchema.Resource(uri, name, null, description, mimeType, null, null, null);

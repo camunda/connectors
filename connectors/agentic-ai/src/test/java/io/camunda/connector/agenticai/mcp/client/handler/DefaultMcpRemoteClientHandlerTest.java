@@ -383,7 +383,7 @@ class DefaultMcpRemoteClientHandlerTest {
                   "resource-1"));
       final var expectedResult =
           new McpClientReadResourceResult(
-              List.of(new ResourceData.TextResourceData("uri", "text/plain", "Sample text")));
+              List.of(new ResourceData.TextResourceData("uri", "text/plain", "Sample text", null)));
 
       when(remoteClientRegistry.getClient(CLIENT_ID, transport, false)).thenReturn(mcpClient);
       when(clientExecutor.execute(

@@ -120,9 +120,9 @@ class McpClientResultDocumentHandlerTest {
         argumentSet(
             "Read resource - with text content",
             new McpClientReadResourceResult(
-                List.of(new ResourceData.TextResourceData("uri", "text/plain", "Some text"))),
+                List.of(new ResourceData.TextResourceData("uri", "text/plain", "Some text", null))),
             new McpClientReadResourceResult(
-                List.of(new ResourceData.TextResourceData("uri", "text/plain", "Some text")))),
+                List.of(new ResourceData.TextResourceData("uri", "text/plain", "Some text", null)))),
         argumentSet(
             "List prompts",
             new McpClientListPromptsResult(
@@ -271,7 +271,8 @@ class McpClientResultDocumentHandlerTest {
                 new ResourceData.BlobResourceData(
                     "uri",
                     "application/octet-stream",
-                    "Some text".getBytes(StandardCharsets.UTF_8)))),
+                    "Some text".getBytes(StandardCharsets.UTF_8),
+                    null))),
         new McpClientReadResourceResult(
             List.of(
                 new ResourceData.CamundaDocumentResourceData(
@@ -281,7 +282,8 @@ class McpClientResultDocumentHandlerTest {
                         "Some text".getBytes(StandardCharsets.UTF_8),
                         createDocumentMetadata("application/octet-stream"),
                         null,
-                        "doc-id-0")))));
+                        "doc-id-0"),
+                    null))));
   }
 
   static Arguments getSinglePromptWithAllPossibleMessageTypes() {
