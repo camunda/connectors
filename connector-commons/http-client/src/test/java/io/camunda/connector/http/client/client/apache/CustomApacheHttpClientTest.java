@@ -141,7 +141,7 @@ public class CustomApacheHttpClientTest {
       assertThat(response).isNotNull();
       assertThat(response.status()).isEqualTo(200);
       assertThat(response.entity()).isEqualTo("Hello, world!");
-      assertThat(response.headers().get("Via").getFirst()).contains("squid");
+      assertThat(response.headers().get("Via").get(0)).contains("squid");
       proxy.verify(getRequestedFor(urlEqualTo("/protected")));
     }
 
@@ -337,7 +337,7 @@ public class CustomApacheHttpClientTest {
       var result = httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
       assertThat(result).isNotNull();
       assertThat(result.status()).isEqualTo(204);
-      assertThat(result.headers().get("Via").getFirst()).contains("squid");
+      assertThat(result.headers().get("Via").get(0)).contains("squid");
       proxy.verify(deleteRequestedFor(urlEqualTo("/path")));
     }
 

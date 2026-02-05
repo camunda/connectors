@@ -76,7 +76,7 @@ public class MessageWindowRuntimeMemory implements RuntimeMemory {
       int messageToEvictIndex = 0;
 
       // don't remove the system message
-      if (filtered.getFirst() instanceof SystemMessage) {
+      if (filtered.get(0) instanceof SystemMessage) {
         messageToEvictIndex = 1;
       }
 

@@ -41,28 +41,28 @@ public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuil
   @Override
   public void build(ClassicRequestBuilder builder, HttpClientRequest request) {
     if (request.hasAuthentication()) {
-      switch (request.getAuthentication()) {
-        case NoAuthentication ignored -> {}
-        case BasicAuthentication auth ->
-            builder.addHeader(
-                AUTHORIZATION,
-                Base64Helper.buildBasicAuthenticationHeader(auth.username(), auth.password()));
-        case OAuthAuthentication auth -> {
-          String token = fetchOAuthToken(auth);
-          builder.addHeader(AUTHORIZATION, String.format(BEARER, token));
+      var auth = request.getAuthentication();
+      if (auth instanceof NoAuthentication) {
+        // Do nothing
+      } else if (auth instanceof BasicAuthentication basicAuth) {
+        builder.addHeader(
+            AUTHORIZATION,
+            Base64Helper.buildBasicAuthenticationHeader(
+                basicAuth.username(), basicAuth.password()));
+      } else if (auth instanceof OAuthAuthentication oauthAuth) {
+        String token = fetchOAuthToken(oauthAuth);
+        builder.addHeader(AUTHORIZATION, String.format(BEARER, token));
+      } else if (auth instanceof BearerAuthentication bearerAuth) {
+        builder.addHeader(AUTHORIZATION, String.format(BEARER, bearerAuth.token()));
+      } else if (auth instanceof ApiKeyAuthentication apiKeyAuth) {
+        if (apiKeyAuth.isQueryLocationApiKeyAuthentication()) {
+          builder.addParameter(apiKeyAuth.name(), apiKeyAuth.value());
+        } else {
+          builder.addHeader(apiKeyAuth.name(), apiKeyAuth.value());
         }
-        case BearerAuthentication auth ->
-            builder.addHeader(AUTHORIZATION, String.format(BEARER, auth.token()));
-        case ApiKeyAuthentication auth -> {
-          if (auth.isQueryLocationApiKeyAuthentication()) {
-            builder.addParameter(auth.name(), auth.value());
-          } else {
-            builder.addHeader(auth.name(), auth.value());
-          }
-        }
-        default ->
-            throw new ConnectorInputException(
-                "Unexpected Authentication value: " + request.getAuthentication());
+      } else {
+        throw new ConnectorInputException(
+            "Unexpected Authentication value: " + request.getAuthentication());
       }
     }
   }

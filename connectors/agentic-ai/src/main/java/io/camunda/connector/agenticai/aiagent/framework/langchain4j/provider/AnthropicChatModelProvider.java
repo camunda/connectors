@@ -10,22 +10,14 @@ import dev.langchain4j.model.anthropic.AnthropicChatModel;
 import dev.langchain4j.model.chat.ChatModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
-import java.time.Duration;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class AnthropicChatModelProvider implements ChatModelProvider {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(AnthropicChatModelProvider.class);
-
-  private final AgenticAiConnectorsConfigurationProperties.ChatModelProperties chatModelProperties;
+public class AnthropicChatModelProvider extends AbstractChatModelProvider {
 
   public AnthropicChatModelProvider(
       AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties) {
-    this.chatModelProperties = agenticAiConnectorsConfigurationProperties.aiagent().chatModel();
+    super(agenticAiConnectorsConfigurationProperties);
   }
 
   @Override
@@ -65,22 +57,5 @@ public class AnthropicChatModelProvider implements ChatModelProvider {
     }
 
     return builder.build();
-  }
-
-  private Duration deriveTimeoutSetting(TimeoutConfiguration timeoutConfiguration) {
-    var derivedTimeout =
-        Optional.ofNullable(timeoutConfiguration)
-            .map(TimeoutConfiguration::timeout)
-            .filter(Duration::isPositive)
-            .or(() -> Optional.of(chatModelProperties.api().defaultTimeout()))
-            .get();
-
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug(
-          "Setting model call timeout to {} for executing requests against the LLM provider",
-          derivedTimeout);
-    }
-
-    return derivedTimeout;
   }
 }

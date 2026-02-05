@@ -12,27 +12,23 @@ import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.api.error.ConnectorInputException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GoogleVertexAiChatModelProvider implements ChatModelProvider {
+public class GoogleVertexAiChatModelProvider extends AbstractChatModelProvider {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(GoogleVertexAiChatModelProvider.class);
 
-  private final AgenticAiConnectorsConfigurationProperties.ChatModelProperties chatModelProperties;
-
   public GoogleVertexAiChatModelProvider(
       AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties) {
-    this.chatModelProperties = agenticAiConnectorsConfigurationProperties.aiagent().chatModel();
+    super(agenticAiConnectorsConfigurationProperties);
   }
 
   @Override
@@ -85,22 +81,5 @@ public class GoogleVertexAiChatModelProvider implements ChatModelProvider {
       throw new ConnectorInputException(
           "Authentication failed for provided service account credentials", e);
     }
-  }
-
-  private Duration deriveTimeoutSetting(TimeoutConfiguration timeoutConfiguration) {
-    var derivedTimeout =
-        Optional.ofNullable(timeoutConfiguration)
-            .map(TimeoutConfiguration::timeout)
-            .filter(Duration::isPositive)
-            .or(() -> Optional.of(chatModelProperties.api().defaultTimeout()))
-            .get();
-
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug(
-          "Setting model call timeout to {} for executing requests against the LLM provider",
-          derivedTimeout);
-    }
-
-    return derivedTimeout;
   }
 }

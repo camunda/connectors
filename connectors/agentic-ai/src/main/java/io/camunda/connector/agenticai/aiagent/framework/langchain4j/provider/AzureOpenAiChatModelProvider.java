@@ -13,23 +13,15 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAi
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureApiKeyAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication.AzureClientCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
-import java.time.Duration;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class AzureOpenAiChatModelProvider implements ChatModelProvider {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(AzureOpenAiChatModelProvider.class);
-
-  private final AgenticAiConnectorsConfigurationProperties.ChatModelProperties chatModelProperties;
+public class AzureOpenAiChatModelProvider extends AbstractChatModelProvider {
 
   public AzureOpenAiChatModelProvider(
       AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties) {
-    this.chatModelProperties = agenticAiConnectorsConfigurationProperties.aiagent().chatModel();
+    super(agenticAiConnectorsConfigurationProperties);
   }
 
   @Override
@@ -81,22 +73,5 @@ public class AzureOpenAiChatModelProvider implements ChatModelProvider {
     }
 
     return builder.build();
-  }
-
-  private Duration deriveTimeoutSetting(TimeoutConfiguration timeoutConfiguration) {
-    var derivedTimeout =
-        Optional.ofNullable(timeoutConfiguration)
-            .map(TimeoutConfiguration::timeout)
-            .filter(Duration::isPositive)
-            .or(() -> Optional.of(chatModelProperties.api().defaultTimeout()))
-            .get();
-
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug(
-          "Setting model call timeout to {} for executing requests against the LLM provider",
-          derivedTimeout);
-    }
-
-    return derivedTimeout;
   }
 }

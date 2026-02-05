@@ -11,26 +11,18 @@ import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
 import dev.langchain4j.model.chat.ChatModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
-import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import java.net.URI;
-import java.time.Duration;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
-public class BedrockChatModelProvider implements ChatModelProvider {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(BedrockChatModelProvider.class);
-
-  private final AgenticAiConnectorsConfigurationProperties.ChatModelProperties chatModelProperties;
+public class BedrockChatModelProvider extends AbstractChatModelProvider {
 
   public BedrockChatModelProvider(
       AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties) {
-    this.chatModelProperties = agenticAiConnectorsConfigurationProperties.aiagent().chatModel();
+    super(agenticAiConnectorsConfigurationProperties);
   }
 
   @Override
@@ -100,22 +92,5 @@ public class BedrockChatModelProvider implements ChatModelProvider {
     builder.defaultRequestParameters(requestParametersBuilder.build());
 
     return builder;
-  }
-
-  private Duration deriveTimeoutSetting(TimeoutConfiguration timeoutConfiguration) {
-    var derivedTimeout =
-        Optional.ofNullable(timeoutConfiguration)
-            .map(TimeoutConfiguration::timeout)
-            .filter(Duration::isPositive)
-            .or(() -> Optional.of(chatModelProperties.api().defaultTimeout()))
-            .get();
-
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug(
-          "Setting model call timeout to {} for executing requests against the LLM provider",
-          derivedTimeout);
-    }
-
-    return derivedTimeout;
   }
 }
