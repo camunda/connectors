@@ -84,13 +84,21 @@ class McpClientResultDocumentHandlerTest {
                     new ToolDefinition(
                         "get-commits",
                         "Get Commits",
-                        Map.of("owner", "string", "repo", "string")))),
+                        Map.of("owner", "string", "repo", "string"),
+                        null,
+                        null,
+                        null,
+                        null))),
             new McpClientListToolsResult(
                 List.of(
                     new ToolDefinition(
                         "get-commits",
                         "Get Commits",
-                        Map.of("owner", "string", "repo", "string"))))),
+                        Map.of("owner", "string", "repo", "string"),
+                        null,
+                        null,
+                        null,
+                        null))))),
         argumentSet(
             "List resource templates",
             new McpClientListResourceTemplatesResult(
@@ -100,6 +108,8 @@ class McpClientResultDocumentHandlerTest {
                         "Resource Template",
                         "A resource template",
                         "application/json",
+                        null,
+                        null,
                         null))),
             new McpClientListResourceTemplatesResult(
                 List.of(
@@ -108,17 +118,19 @@ class McpClientResultDocumentHandlerTest {
                         "Resource Template",
                         "A resource template",
                         "application/json",
-                        null)))),
+                        null,
+                        null,
+                        null))))),
         argumentSet(
             "List resources",
             new McpClientListResourcesResult(
                 List.of(
                     new ResourceDescription(
-                        "uri", "resource-1", "A resource", "application/json"))),
+                        "uri", "resource-1", "A resource", "application/json", null, null, null, null))),
             new McpClientListResourcesResult(
                 List.of(
                     new ResourceDescription(
-                        "uri", "resource-1", "A resource", "application/json")))),
+                        "uri", "resource-1", "A resource", "application/json", null, null, null, null))))),
         argumentSet(
             "Read resource - with text content",
             new McpClientReadResourceResult(
@@ -134,7 +146,9 @@ class McpClientResultDocumentHandlerTest {
                         "Code review",
                         List.of(
                             new PromptDescription.PromptArgument(
-                                "file", "File to review", true))))),
+                                "file", "File to review", true)),
+                        null,
+                        null))),
             new McpClientListPromptsResult(
                 List.of(
                     new PromptDescription(
@@ -142,7 +156,9 @@ class McpClientResultDocumentHandlerTest {
                         "Code review",
                         List.of(
                             new PromptDescription.PromptArgument(
-                                "file", "File to review", true)))))),
+                                "file", "File to review", true)),
+                        null,
+                        null))))),
         argumentSet(
             "Get single prompt - empty result",
             new McpClientGetPromptResult("Code review", List.of()),

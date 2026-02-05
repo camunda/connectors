@@ -162,6 +162,6 @@ class ListResourceTemplatesRequestTest {
 
   private ResourceTemplate createResourceTemplate(
       String uri, String name, String description, String mimeType) {
-    return new ResourceTemplate(uri, name, description, mimeType);
+    return new ResourceTemplate(uri, name, description, mimeType, null, null, null);
   }
 }

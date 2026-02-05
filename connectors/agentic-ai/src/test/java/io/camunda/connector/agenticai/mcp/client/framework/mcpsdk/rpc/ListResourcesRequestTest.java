@@ -215,6 +215,6 @@ class ListResourcesRequestTest {
 
   private ResourceDescription createResourceDescription(
       String uri, String name, String description, String mimeType) {
-    return new ResourceDescription(uri, name, description, mimeType, null);
+    return new ResourceDescription(uri, name, description, mimeType, null, null, null, null);
   }
 }

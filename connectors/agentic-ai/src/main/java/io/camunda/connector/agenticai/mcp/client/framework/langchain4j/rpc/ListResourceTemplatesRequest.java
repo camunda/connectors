@@ -48,7 +48,7 @@ final class ListResourceTemplatesRequest {
                 .map(
                     fr ->
                         new ResourceTemplate(
-                            fr.uriTemplate(), fr.name(), fr.description(), fr.mimeType(), null))
+                            fr.uriTemplate(), fr.name(), fr.description(), fr.mimeType(), null, null, null))
                 .toList());
 
     LOGGER.debug(
