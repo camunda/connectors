@@ -14,6 +14,13 @@ package io.camunda.connector.agenticai.util;
  */
 public final class ResponseTextUtil {
 
+  /**
+   * Maximum length for a language specifier in markdown code blocks (e.g., "json", "javascript").
+   * If a newline appears beyond this distance from the opening fence, the input is treated as plain
+   * text rather than a code block.
+   */
+  private static final int MAX_LANGUAGE_SPECIFIER_LENGTH = 20;
+
   private ResponseTextUtil() {}
 
   /**
@@ -47,7 +54,7 @@ public final class ResponseTextUtil {
       // Find the first newline after opening ``` (after optional language specifier)
       int startIndex = trimmed.indexOf('\n');
       // If there's no newline or it's too far from the opening fence, treat as plain text
-      if (startIndex == -1 || startIndex > 20) {
+      if (startIndex == -1 || startIndex > MAX_LANGUAGE_SPECIFIER_LENGTH) {
         return response;
       }
       // Find the last ```
