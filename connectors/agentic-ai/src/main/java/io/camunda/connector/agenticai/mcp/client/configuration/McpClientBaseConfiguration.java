@@ -20,7 +20,7 @@ import org.springframework.context.annotation.Import;
 
 @Configuration
 @Import(McpDocumentHandlerConfiguration.class)
-public class McpBaseConfiguration {
+public class McpClientBaseConfiguration {
 
   @Bean
   @ConditionalOnMissingBean

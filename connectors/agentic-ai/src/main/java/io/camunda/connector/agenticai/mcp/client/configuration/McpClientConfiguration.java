@@ -32,7 +32,7 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnBooleanProperty(value = "camunda.connector.agenticai.mcp.client.enabled")
 @EnableConfigurationProperties(McpClientConfigurationProperties.class)
 @Import({
-  McpBaseConfiguration.class,
+  McpClientBaseConfiguration.class,
   McpLangchain4JClientConfiguration.class,
   McpSdkMcpClientConfiguration.class,
 })

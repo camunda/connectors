@@ -29,7 +29,7 @@ import org.springframework.context.annotation.Import;
     matchIfMissing = true)
 @EnableConfigurationProperties(McpRemoteClientConfigurationProperties.class)
 @Import({
-  McpBaseConfiguration.class,
+  McpClientBaseConfiguration.class,
   McpLangchain4JRemoteClientConfiguration.class,
   McpSdkMcpRemoteClientConfiguration.class
 })
