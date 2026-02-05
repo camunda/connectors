@@ -177,4 +177,28 @@ class ResponseTextUtilTest {
     // then
     assertThat(result).isEqualTo(expected);
   }
+
+  @Test
+  void stripMarkdownCodeBlocks_shouldReturnOriginal_whenNoNewlineAfterOpeningFence() {
+    // given - malformed markdown with no newline after opening fence
+    String input = "```json{\"test\":\"value\"}\n```";
+
+    // when
+    String result = ResponseTextUtil.stripMarkdownCodeBlocks(input);
+
+    // then
+    assertThat(result).isEqualTo(input);
+  }
+
+  @Test
+  void stripMarkdownCodeBlocks_shouldReturnOriginal_whenNewlineTooFarFromOpeningFence() {
+    // given - malformed markdown with language specifier longer than 20 chars
+    String input = "```verylonglanguagespecifierthatexceedslimit\n{\"test\":\"value\"}\n```";
+
+    // when
+    String result = ResponseTextUtil.stripMarkdownCodeBlocks(input);
+
+    // then
+    assertThat(result).isEqualTo(input);
+  }
 }

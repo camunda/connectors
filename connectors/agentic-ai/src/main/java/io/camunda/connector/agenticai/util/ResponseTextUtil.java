@@ -44,14 +44,16 @@ public final class ResponseTextUtil {
 
     // Check if response is wrapped in markdown code blocks
     if (trimmed.startsWith("```") && trimmed.endsWith("```")) {
-      // Find the first newline after opening ```
+      // Find the first newline after opening ``` (after optional language specifier)
       int startIndex = trimmed.indexOf('\n');
-      if (startIndex != -1) {
-        // Find the last ```
-        int endIndex = trimmed.lastIndexOf("```");
-        if (endIndex > startIndex) {
-          return trimmed.substring(startIndex + 1, endIndex).trim();
-        }
+      // If there's no newline or it's too far from the opening fence, treat as plain text
+      if (startIndex == -1 || startIndex > 20) {
+        return response;
+      }
+      // Find the last ```
+      int endIndex = trimmed.lastIndexOf("```");
+      if (endIndex > startIndex) {
+        return trimmed.substring(startIndex + 1, endIndex).trim();
       }
     }
 
