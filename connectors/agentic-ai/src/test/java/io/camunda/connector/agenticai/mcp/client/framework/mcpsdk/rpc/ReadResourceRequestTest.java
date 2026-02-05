@@ -238,7 +238,7 @@ class ReadResourceRequestTest {
     final var result = testee.execute(mcpClient, EMPTY_FILTER, requestParams);
 
     assertThat(result.contents()).hasSize(2);
-    
+
     // Check text resource
     assertThat(result.contents().get(0))
         .isInstanceOfSatisfying(
@@ -249,7 +249,7 @@ class ReadResourceRequestTest {
               assertThat(textData.annotations().priority()).isEqualTo(0.9);
               assertThat(textData.annotations().lastModified()).isEqualTo("2025-11-25T12:00:00Z");
             });
-    
+
     // Check blob resource
     assertThat(result.contents().get(1))
         .isInstanceOfSatisfying(
