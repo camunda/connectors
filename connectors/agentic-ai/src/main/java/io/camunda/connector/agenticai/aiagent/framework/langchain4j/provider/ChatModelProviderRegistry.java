@@ -66,8 +66,8 @@ public class ChatModelProviderRegistry {
       provider = providers.get(customConfig.providerType());
       if (provider == null) {
         throw new IllegalStateException(
-            "No chat model provider registered for custom provider type: %s"
-                .formatted(customConfig.providerType()));
+            "No chat model provider registered for custom provider type: %s. Available types: %s"
+                .formatted(customConfig.providerType(), providers.keySet()));
       }
     } else {
       // For built-in providers, look up by the configuration class type
@@ -75,8 +75,8 @@ public class ChatModelProviderRegistry {
           .filter(p -> p.supports(providerConfiguration))
           .findFirst()
           .orElseThrow(() -> new IllegalStateException(
-              "No chat model provider found for configuration type: %s"
-                  .formatted(providerConfiguration.getClass().getSimpleName())));
+              "No chat model provider found for configuration type: %s. Available types: %s"
+                  .formatted(providerConfiguration.getClass().getSimpleName(), providers.keySet())));
     }
 
     return provider.createChatModel(providerConfiguration);
