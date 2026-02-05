@@ -42,7 +42,7 @@ public class ChatModelProviderRegistry {
     final var type = provider.getProviderType();
     if (providers.containsKey(type)) {
       throw new IllegalArgumentException(
-          "Chat model provider with type '%s' is already registered.".formatted(type));
+          "Chat model provider with type '%s' is already registered".formatted(type));
     }
 
     LOGGER.debug("Registering chat model provider of type '{}'", type);
