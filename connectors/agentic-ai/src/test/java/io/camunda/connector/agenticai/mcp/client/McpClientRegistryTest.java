@@ -14,6 +14,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,16 +27,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class McpClientRegistryTest {
 
-  private McpClientRegistry<MockAutoCloseableClient> registry;
+  private McpClientRegistry registry;
 
   @BeforeEach
   void setUp() {
-    registry = new McpClientRegistry<>();
+    registry = new McpClientRegistry();
   }
 
   @Test
   void registersClientWithValidId() {
-    var client = mock(MockAutoCloseableClient.class);
+    var client = mock(McpClientDelegate.class);
     registry.register("test-client", () -> client);
   }
 
@@ -43,7 +44,7 @@ class McpClientRegistryTest {
   @NullAndEmptySource
   @ValueSource(strings = "  ")
   void throwsException_whenRegisterIdIsNullOrBlank(String id) {
-    var client = mock(MockAutoCloseableClient.class);
+    var client = mock(McpClientDelegate.class);
 
     assertThatThrownBy(() -> registry.register(id, () -> client))
         .isInstanceOf(IllegalArgumentException.class)
@@ -59,8 +60,8 @@ class McpClientRegistryTest {
 
   @Test
   void throwsException_whenRegisteringDuplicateId() {
-    var client1 = mock(MockAutoCloseableClient.class);
-    var client2 = mock(MockAutoCloseableClient.class);
+    var client1 = mock(McpClientDelegate.class);
+    var client2 = mock(McpClientDelegate.class);
     registry.register("test-client", () -> client1);
 
     assertThatThrownBy(() -> registry.register("test-client", () -> client2))
@@ -70,7 +71,7 @@ class McpClientRegistryTest {
 
   @Test
   void returnsClient_whenClientExists() {
-    var client = mock(MockAutoCloseableClient.class);
+    var client = mock(McpClientDelegate.class);
     registry.register("test-client", () -> client);
 
     var result = registry.getClient("test-client");
@@ -89,9 +90,9 @@ class McpClientRegistryTest {
 
   @Test
   void allowsMultipleClientsWithDifferentIds() {
-    var client1 = mock(MockAutoCloseableClient.class);
-    var client2 = mock(MockAutoCloseableClient.class);
-    var client3 = mock(MockAutoCloseableClient.class);
+    var client1 = mock(McpClientDelegate.class);
+    var client2 = mock(McpClientDelegate.class);
+    var client3 = mock(McpClientDelegate.class);
 
     registry.register("client-1", () -> client1);
     registry.register("client-2", () -> client2);
@@ -120,9 +121,9 @@ class McpClientRegistryTest {
 
   @Test
   void closesAllConstructedClients_whenRegistryIsClosed() throws Exception {
-    var client1 = mock(MockAutoCloseableClient.class);
-    var client2 = mock(MockAutoCloseableClient.class);
-    var client3 = mock(MockAutoCloseableClient.class);
+    var client1 = mock(McpClientDelegate.class);
+    var client2 = mock(McpClientDelegate.class);
+    var client3 = mock(McpClientDelegate.class);
 
     registry.register("client-1", () -> client1);
     registerAndForceConstruction("client-2", () -> client2);
@@ -137,9 +138,9 @@ class McpClientRegistryTest {
 
   @Test
   void doesNotCloseNotConstructedClient_whenRegistryIsClosed() throws Exception {
-    var client1 = mock(MockAutoCloseableClient.class);
-    var client2 = mock(MockAutoCloseableClient.class);
-    var client3 = mock(MockAutoCloseableClient.class);
+    var client1 = mock(McpClientDelegate.class);
+    var client2 = mock(McpClientDelegate.class);
+    var client3 = mock(McpClientDelegate.class);
 
     registry.register("client-1", () -> client1);
     registry.register("client-2", () -> client2);
@@ -154,9 +155,9 @@ class McpClientRegistryTest {
 
   @Test
   void continuesClosingOtherClients_whenOneClientThrowsException() throws Exception {
-    var client1 = mock(MockAutoCloseableClient.class);
-    var client2 = mock(MockAutoCloseableClient.class);
-    var client3 = mock(MockAutoCloseableClient.class);
+    var client1 = mock(McpClientDelegate.class);
+    var client2 = mock(McpClientDelegate.class);
+    var client3 = mock(McpClientDelegate.class);
     doThrow(new RuntimeException("Close failed")).when(client2).close();
 
     // force all clients to be constructed
@@ -178,18 +179,15 @@ class McpClientRegistryTest {
 
   @Test
   void doesNotThrowException_whenClientCloseThrowsException() throws Exception {
-    var client = mock(MockAutoCloseableClient.class);
+    var client = mock(McpClientDelegate.class);
     doThrow(new RuntimeException("Close failed")).when(client).close();
     registerAndForceConstruction("test-client", () -> client);
 
     assertThatCode(() -> registry.close()).doesNotThrowAnyException();
   }
 
-  private void registerAndForceConstruction(
-      String id, Supplier<MockAutoCloseableClient> clientSupplier) {
+  private void registerAndForceConstruction(String id, Supplier<McpClientDelegate> clientSupplier) {
     registry.register(id, clientSupplier);
     registry.getClient(id);
   }
-
-  interface MockAutoCloseableClient extends AutoCloseable {}
 }

@@ -170,6 +170,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwks>0.23.0</version.auth0.jwks>
 
     <version.langchain4j>1.10.0</version.langchain4j>
+    <version.mcp-sdk>0.17.2</version.mcp-sdk>
 
     <version.scala>3.8.1</version.scala>
 
@@ -251,6 +252,15 @@ limitations under the License.</license.inlineheader>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-bom</artifactId>
         <version>${version.langchain4j}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- MPC SDK BOM -->
+      <dependency>
+        <groupId>io.modelcontextprotocol.sdk</groupId>
+        <artifactId>mcp-bom</artifactId>
+        <version>${version.mcp-sdk}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

@@ -12,6 +12,10 @@
     ]
   },
   "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
     "transformers": [
       "response-template"
     ],
@@ -19,6 +23,7 @@
       "jsonrpc": "2.0",
       "id": "{{jsonPath request.body '$.id'}}",
       "result": {
+        "nextCursor": null,
         "prompts": [
           {
             "name": "promptA",

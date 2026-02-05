@@ -16,11 +16,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.transport.McpTransport;
 import dev.langchain4j.mcp.client.transport.http.HttpMcpTransport;
 import dev.langchain4j.mcp.client.transport.http.StreamableHttpMcpTransport;
 import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverterImpl;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration.AuthenticationType;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
@@ -28,6 +32,8 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigur
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.SseHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StdioMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration;
+import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
+import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication;
 import java.time.Duration;
 import java.util.List;
@@ -42,6 +48,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockedConstruction;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class Langchain4JMcpClientFactoryTest {
@@ -65,17 +72,22 @@ class Langchain4JMcpClientFactoryTest {
   @Mock private StreamableHttpMcpTransport streamableHttpMcpTransport;
   @Mock private HttpMcpTransport sseMcpTransport;
 
-  @Mock private Langchain4JMcpClientHeadersSupplierFactory headersSupplierFactory;
+  @Mock private McpClientHeadersSupplierFactory headersSupplierFactory;
 
   @Captor private ArgumentCaptor<Supplier<Map<String, String>>> headersSupplierCaptor;
 
+  private ObjectMapper objectMapper = new ObjectMapper();
+  private ToolSpecificationConverter toolSpecificationConverter =
+      new ToolSpecificationConverterImpl(new JsonSchemaConverter(objectMapper));
   private Langchain4JMcpClientLoggingResolver loggingResolver;
   private Langchain4JMcpClientFactory factory;
 
   @BeforeEach
   void setUp() {
     loggingResolver = new Langchain4JMcpClientLoggingResolver();
-    factory = new Langchain4JMcpClientFactory(loggingResolver, headersSupplierFactory);
+    factory =
+        new Langchain4JMcpClientFactory(
+            loggingResolver, headersSupplierFactory, objectMapper, toolSpecificationConverter);
   }
 
   @Test
@@ -94,7 +106,7 @@ class Langchain4JMcpClientFactoryTest {
                     CLIENT_ID,
                     createMcpClientConfiguration(McpClientType.STDIO, stdioConfig, null, null));
 
-            assertThat(client).isEqualTo(mcpClient);
+            assertInternalClientIsEqual(client, mcpClient);
 
             final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
             verify(transportBuilder).command(List.of("command", "arg1", "arg2"));
@@ -152,7 +164,7 @@ class Langchain4JMcpClientFactoryTest {
                     CLIENT_ID,
                     createMcpClientConfiguration(McpClientType.STDIO, stdioConfig, null, null));
 
-            assertThat(client).isEqualTo(mcpClient);
+            assertInternalClientIsEqual(client, mcpClient);
 
             final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
             verify(transportBuilder).command(List.of("command"));
@@ -185,7 +197,7 @@ class Langchain4JMcpClientFactoryTest {
                     createMcpClientConfiguration(
                         McpClientType.HTTP, null, streamableHttpTransportConfig, null));
 
-            assertThat(client).isEqualTo(mcpClient);
+            assertInternalClientIsEqual(client, mcpClient);
 
             final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
             verify(transportBuilder).url(streamableHttpTransportConfig.url());
@@ -256,7 +268,7 @@ class Langchain4JMcpClientFactoryTest {
                     CLIENT_ID,
                     createMcpClientConfiguration(McpClientType.SSE, null, null, sseConfig));
 
-            assertThat(client).isEqualTo(mcpClient);
+            assertInternalClientIsEqual(client, mcpClient);
 
             final var transportBuilder = mockedTransportBuilder.constructed().getFirst();
             verify(transportBuilder).sseUrl(sseConfig.url());
@@ -310,7 +322,7 @@ class Langchain4JMcpClientFactoryTest {
   void doesNotApplyTimeoutsAndReconnectIntervalIfNull() {
     withMockedMcpClientBuilder(
         mockedMcpClientConstruction -> {
-          try (MockedConstruction<StdioMcpTransport.Builder> mockedTransportBuilder =
+          try (MockedConstruction<StdioMcpTransport.Builder> ignored =
               mockConstruction(
                   StdioMcpTransport.Builder.class,
                   withSettings().defaultAnswer(CALLS_REAL_METHODS),
@@ -322,7 +334,7 @@ class Langchain4JMcpClientFactoryTest {
                     new McpClientConfiguration(
                         true, McpClientType.STDIO, stdioConfig, null, null, null, null, null));
 
-            assertThat(client).isEqualTo(mcpClient);
+            assertInternalClientIsEqual(client, mcpClient);
 
             final var mcpClientBuilder = mockedMcpClientConstruction.constructed().getFirst();
             verify(mcpClientBuilder).key(CLIENT_ID);
@@ -355,6 +367,12 @@ class Langchain4JMcpClientFactoryTest {
     verify(mcpClientBuilder).initializationTimeout(Duration.ofSeconds(1));
     verify(mcpClientBuilder).toolExecutionTimeout(Duration.ofSeconds(2));
     verify(mcpClientBuilder).reconnectInterval(Duration.ofSeconds(3));
+  }
+
+  private void assertInternalClientIsEqual(
+      McpClientDelegate clientDelegate, DefaultMcpClient expectedClient) {
+    var internalClient = ReflectionTestUtils.getField(clientDelegate, "delegate");
+    assertThat(internalClient).isEqualTo(expectedClient);
   }
 
   private static McpClientConfiguration createMcpClientConfiguration(

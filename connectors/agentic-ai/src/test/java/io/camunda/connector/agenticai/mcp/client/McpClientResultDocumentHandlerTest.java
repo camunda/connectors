@@ -12,6 +12,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.agenticai.mcp.client.model.result.*;
+import io.camunda.connector.agenticai.model.message.content.BlobContent;
+import io.camunda.connector.agenticai.model.message.content.DocumentContent;
+import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceBlobDocumentContent;
+import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent;
+import io.camunda.connector.agenticai.model.message.content.ResourceLinkContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.document.DocumentCreationRequest;
@@ -19,7 +24,6 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.test.document.TestDocument;
 import io.camunda.connector.runtime.test.document.TestDocumentMetadata;
 import java.nio.charset.StandardCharsets;
-import java.time.*;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -87,12 +91,6 @@ class McpClientResultDocumentHandlerTest {
                         "get-commits",
                         "Get Commits",
                         Map.of("owner", "string", "repo", "string"))))),
-        argumentSet(
-            "Call tool",
-            new McpClientCallToolResult(
-                "get-commits", List.of(new TextContent("text", Map.of())), false),
-            new McpClientCallToolResult(
-                "get-commits", List.of(new TextContent("text", Map.of())), false)),
         argumentSet(
             "List resource templates",
             new McpClientListResourceTemplatesResult(
@@ -162,11 +160,107 @@ class McpClientResultDocumentHandlerTest {
                     new McpClientGetPromptResult.PromptMessage(
                         "user",
                         new McpClientGetPromptResult.TextMessage(
-                            "Please review the following code."))))));
+                            "Please review the following code."))))),
+        argumentSet(
+            "Call tool - with embedded text resource",
+            new McpClientCallToolResult(
+                "get-resource",
+                List.of(
+                    new EmbeddedResourceContent(
+                        new EmbeddedResourceContent.TextResource(
+                            "uri://resource", "text/plain", "text content"),
+                        null)),
+                false),
+            new McpClientCallToolResult(
+                "get-resource",
+                List.of(
+                    new EmbeddedResourceContent(
+                        new EmbeddedResourceContent.TextResource(
+                            "uri://resource", "text/plain", "text content"),
+                        null)),
+                false)),
+        argumentSet(
+            "Call tool - with resource link",
+            new McpClientCallToolResult(
+                "get-link",
+                List.of(
+                    new ResourceLinkContent(
+                        "uri://external-resource",
+                        "a link",
+                        "A link!",
+                        "application/octet-stream",
+                        Map.of("linkMeta", "value"))),
+                false),
+            new McpClientCallToolResult(
+                "get-link",
+                List.of(
+                    new ResourceLinkContent(
+                        "uri://external-resource",
+                        "a link",
+                        "A link!",
+                        "application/octet-stream",
+                        Map.of("linkMeta", "value"))),
+                false)));
   }
 
   static Stream<Arguments> mcpClientResultsWithBinaryDocumentContainers() {
-    return Stream.of(getSinglePromptWithAllPossibleMessageTypes(), readResourceWithBinaryContent());
+    return Stream.of(
+        getSinglePromptWithAllPossibleMessageTypes(),
+        readResourceWithBinaryContent(),
+        callToolWithBinaryContent(),
+        callToolWithEmbeddedBlobResource());
+  }
+
+  private static Arguments callToolWithBinaryContent() {
+    return argumentSet(
+        "Call tool - with binary content",
+        new McpClientCallToolResult(
+            "get-commits",
+            List.of(
+                new TextContent("text", Map.of()),
+                new BlobContent("blob".getBytes(StandardCharsets.UTF_8), "image/png", Map.of())),
+            false),
+        new McpClientCallToolResult(
+            "get-commits",
+            List.of(
+                new TextContent("text", Map.of()),
+                new DocumentContent(
+                    new TestDocument(
+                        "blob".getBytes(StandardCharsets.UTF_8),
+                        new TestDocumentMetadata("image/png", null, null, null, null, null, null),
+                        null,
+                        "doc-id-0"),
+                    Map.of())),
+            false));
+  }
+
+  private static Arguments callToolWithEmbeddedBlobResource() {
+    return argumentSet(
+        "Call tool - with embedded blob resource",
+        new McpClientCallToolResult(
+            "get-resource",
+            List.of(
+                new EmbeddedResourceContent(
+                    new EmbeddedResourceContent.BlobResource(
+                        "uri://resource",
+                        "application/pdf",
+                        "document data".getBytes(StandardCharsets.UTF_8)),
+                    Map.of("meta", "value"))),
+            false),
+        new McpClientCallToolResult(
+            "get-resource",
+            List.of(
+                new EmbeddedResourceContent(
+                    new EmbeddedResourceBlobDocumentContent(
+                        "uri://resource",
+                        "application/pdf",
+                        new TestDocument(
+                            "document data".getBytes(StandardCharsets.UTF_8),
+                            createDocumentMetadata("application/pdf"),
+                            null,
+                            "doc-id-0")),
+                    Map.of("meta", "value"))),
+            false));
   }
 
   private static Arguments readResourceWithBinaryContent() {
