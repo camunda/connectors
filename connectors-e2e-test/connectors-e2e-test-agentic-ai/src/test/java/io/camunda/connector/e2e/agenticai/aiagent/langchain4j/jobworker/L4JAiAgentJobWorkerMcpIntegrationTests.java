@@ -47,7 +47,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientDelegate;
+import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc.McpSdkMcpClientDelegate;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
@@ -112,12 +112,12 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
 
     // clients configured on the runtime
     doReturn(
-            new Langchain4JMcpClientDelegate(
+            new McpSdkMcpClientDelegate(
                 MCP_CLIENT_ID, aMcpClient, objectMapper, toolSpecificationConverter))
         .when(mcpClientRegistry)
         .getClient(MCP_CLIENT_ID);
     doReturn(
-            new Langchain4JMcpClientDelegate(
+            new McpSdkMcpClientDelegate(
                 MCP_CLIENT_ID, filesystemMcpClient, objectMapper, toolSpecificationConverter))
         .when(mcpClientRegistry)
         .getClient("filesystem");
@@ -145,7 +145,7 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
                             "Unexpected remote MCP client ID: " + clientId.elementId());
                   };
 
-              return new Langchain4JMcpClientDelegate(
+              return new McpSdkMcpClientDelegate(
                   MCP_CLIENT_ID, internalClient, objectMapper, toolSpecificationConverter);
             })
         .when(remoteMcpClientRegistry)
