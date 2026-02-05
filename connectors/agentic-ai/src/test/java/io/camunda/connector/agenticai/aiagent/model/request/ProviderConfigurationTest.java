@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.CustomProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
@@ -18,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVerte
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel.GoogleVertexAiModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.util.ConnectorUtils;
+import java.util.Map;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.time.Duration;
@@ -149,5 +151,36 @@ class ProviderConfigurationTest {
 
   private void simulateSaaSEnvironment() {
     environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
+  }
+
+  @Nested
+  class CustomProviderConfigurationTest {
+
+    @Test
+    void validationShouldSucceed_WhenProviderTypeIsSet() {
+      final var config = new CustomProviderConfiguration("my-provider", Map.of("key", "value"));
+      assertThat(validator.validate(config)).isEmpty();
+    }
+
+    @Test
+    void validationShouldSucceed_WhenParametersAreNull() {
+      final var config = new CustomProviderConfiguration("my-provider", null);
+      assertThat(validator.validate(config)).isEmpty();
+    }
+
+    @Test
+    void validationShouldFail_WhenProviderTypeIsBlank() {
+      final var config = new CustomProviderConfiguration("", Map.of());
+      assertThat(validator.validate(config))
+          .hasSize(1)
+          .extracting(ConstraintViolation::getMessage)
+          .containsExactly("must not be empty");
+    }
+
+    @Test
+    void validationShouldFail_WhenProviderTypeIsNull() {
+      final var config = new CustomProviderConfiguration(null, Map.of());
+      assertThat(validator.validate(config)).hasSizeGreaterThan(0);
+    }
   }
 }
