@@ -20,7 +20,10 @@ import java.io.IOException;
     defaultValue = "chat.postMessage")
 @TemplateSubType(id = "method", label = "Method")
 public sealed interface SlackRequestData
-    permits ChatPostMessageData, ConversationsCreateData, ConversationsInviteData {
+    permits ChatPostMessageData,
+        ConversationsCreateData,
+        ConversationsInviteData,
+        ReactionsAddData {
 
   SlackResponse invoke(MethodsClient methodsClient) throws SlackApiException, IOException;
 }

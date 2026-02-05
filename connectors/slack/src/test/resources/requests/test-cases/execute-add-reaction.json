@@ -1,0 +1,11 @@
+[
+  {
+    "token": "{{secrets.TOKEN_KEY}}",
+    "method": "reactions.add",
+    "data": {
+      "channel": "{{secrets.REACTION_CHANNEL_ID_KEY}}",
+      "emoji": "{{secrets.REACTION_EMOJI_KEY}}",
+      "timestamp": "{{secrets.REACTION_TIMESTAMP_KEY}}"
+    }
+  }
+]
