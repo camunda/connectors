@@ -6,7 +6,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-e2e-test-parent</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>8.9.0-alpha4-rc3</version>
+    <version>8.9.0-alpha4</version>
   </parent>
 
   <description>E2E tests for inbound connector runtime multi-version lifecycle</description>
