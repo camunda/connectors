@@ -192,7 +192,8 @@ class ResponseTextUtilTest {
 
   @Test
   void stripMarkdownCodeBlocks_shouldReturnOriginal_whenNewlineTooFarFromOpeningFence() {
-    // given - malformed markdown with language specifier longer than 20 chars
+    // given - malformed markdown with language specifier longer than MAX_LANGUAGE_SPECIFIER_LENGTH
+    // (45 characters > 20 character limit)
     String input = "```verylonglanguagespecifierthatexceedslimit\n{\"test\":\"value\"}\n```";
 
     // when

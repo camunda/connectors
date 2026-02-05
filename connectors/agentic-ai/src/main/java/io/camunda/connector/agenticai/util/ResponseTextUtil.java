@@ -18,6 +18,11 @@ public final class ResponseTextUtil {
    * Maximum length for a language specifier in markdown code blocks (e.g., "json", "javascript").
    * If a newline appears beyond this distance from the opening fence, the input is treated as plain
    * text rather than a code block.
+   *
+   * <p>Common language specifiers are short (e.g., "json", "javascript", "typescript", "python"),
+   * typically under 15 characters. A threshold of 20 characters provides a reasonable buffer while
+   * preventing accidental extraction from malformed input where the opening fence is not followed by
+   * a newline.
    */
   private static final int MAX_LANGUAGE_SPECIFIER_LENGTH = 20;
 
