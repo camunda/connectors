@@ -55,7 +55,10 @@ final class ListResourcesRequest {
                             fr.name(),
                             fr.description(),
                             fr.mimeType(),
-                            McpSdkMapper.mapAnnotations(fr.annotations())))
+                            McpSdkMapper.mapAnnotations(fr.annotations()),
+                            fr.title(),
+                            McpSdkMapper.mapIcons(fr.icons()),
+                            fr.size()))
                 .toList());
 
     LOGGER.debug(

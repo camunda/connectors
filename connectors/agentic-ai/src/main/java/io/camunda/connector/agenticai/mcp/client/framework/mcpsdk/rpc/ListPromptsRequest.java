@@ -52,7 +52,9 @@ final class ListPromptsRequest {
                         new PromptDescription(
                             fr.name(),
                             fr.description(),
-                            fr.arguments().stream().map(this::from).toList()))
+                            fr.arguments().stream().map(this::from).toList(),
+                            fr.title(),
+                            McpSdkMapper.mapIcons(fr.icons())))
                 .toList());
 
     LOGGER.debug(

@@ -8,12 +8,21 @@ package io.camunda.connector.agenticai.mcp.client.model.result;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+import io.camunda.connector.agenticai.mcp.client.model.Annotations;
+import io.camunda.connector.agenticai.mcp.client.model.Icon;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import java.util.List;
 
 @AgenticAiRecord
 @JsonDeserialize(builder = ResourceTemplate.ResourceTemplateBuilderJacksonProxyBuilder.class)
 public record ResourceTemplate(
-    String uriTemplate, String name, String description, String mimeType, Annotations annotations) {
+    String uriTemplate,
+    String name,
+    String description,
+    String mimeType,
+    Annotations annotations,
+    String title,
+    List<Icon> icons) {
 
   public static ResourceTemplateBuilder builder() {
     return ResourceTemplateBuilder.builder();
