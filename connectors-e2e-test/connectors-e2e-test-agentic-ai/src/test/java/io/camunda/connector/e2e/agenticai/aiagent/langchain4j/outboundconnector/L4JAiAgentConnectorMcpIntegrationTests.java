@@ -36,7 +36,6 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
@@ -54,6 +53,7 @@ import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportC
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
+import io.modelcontextprotocol.client.McpSyncClient;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -82,10 +82,10 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
   @MockitoBean private McpClientRegistry mcpClientRegistry;
   @MockitoBean private McpRemoteClientRegistry remoteMcpClientRegistry;
 
-  @Mock private McpClient aMcpClient;
-  @Mock private McpClient aHttpRemoteMcpClient;
-  @Mock private McpClient aSseRemoteMcpClient;
-  @Mock private McpClient filesystemMcpClient;
+  @Mock private McpSyncClient aMcpClient;
+  @Mock private McpSyncClient aHttpRemoteMcpClient;
+  @Mock private McpSyncClient aSseRemoteMcpClient;
+  @Mock private McpSyncClient filesystemMcpClient;
 
   @Captor private ArgumentCaptor<ToolExecutionRequest> aMcpClientToolExecutionRequestCaptor;
 
@@ -111,14 +111,10 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
     when(filesystemMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
 
     // clients configured on the runtime
-    doReturn(
-            new McpSdkMcpClientDelegate(
-                MCP_CLIENT_ID, aMcpClient, objectMapper, toolSpecificationConverter))
+    doReturn(new McpSdkMcpClientDelegate(MCP_CLIENT_ID, aMcpClient, objectMapper))
         .when(mcpClientRegistry)
         .getClient(MCP_CLIENT_ID);
-    doReturn(
-            new McpSdkMcpClientDelegate(
-                MCP_CLIENT_ID, filesystemMcpClient, objectMapper, toolSpecificationConverter))
+    doReturn(new McpSdkMcpClientDelegate(MCP_CLIENT_ID, filesystemMcpClient, objectMapper))
         .when(mcpClientRegistry)
         .getClient("filesystem");
 
@@ -145,8 +141,7 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
                             "Unexpected remote MCP client ID: " + clientId.elementId());
                   };
 
-              return new McpSdkMcpClientDelegate(
-                  MCP_CLIENT_ID, internalClient, objectMapper, toolSpecificationConverter);
+              return new McpSdkMcpClientDelegate(MCP_CLIENT_ID, internalClient, objectMapper);
             })
         .when(remoteMcpClientRegistry)
         .getClient(
