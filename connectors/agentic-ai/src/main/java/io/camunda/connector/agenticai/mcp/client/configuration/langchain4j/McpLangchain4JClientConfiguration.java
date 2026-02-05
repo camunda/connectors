@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.mcp.client.configuration.langchain4j;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
-import io.camunda.connector.agenticai.mcp.client.configuration.annotation.LocalMcpClientFactory;
+import io.camunda.connector.agenticai.mcp.client.configuration.annotation.RuntimeMcpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.Langchain4JMcpClientLoggingResolver;
@@ -52,7 +52,7 @@ public class McpLangchain4JClientConfiguration {
   }
 
   @Bean
-  @LocalMcpClientFactory
+  @RuntimeMcpClientFactory
   public McpClientFactory langchain4JMcpClientFactory(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
       ToolSpecificationConverter toolSpecificationConverter,

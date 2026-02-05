@@ -15,4 +15,4 @@ import org.springframework.beans.factory.annotation.Qualifier;
 @Qualifier
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.TYPE, ElementType.METHOD, ElementType.PARAMETER})
-public @interface LocalMcpClientFactory {}
+public @interface RuntimeMcpClientFactory {}

@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client.configuration.mcpsdk;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.mcp.client.configuration.annotation.LocalMcpClientFactory;
+import io.camunda.connector.agenticai.mcp.client.configuration.annotation.RuntimeMcpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.McpSdkClientFactory;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
@@ -31,7 +31,7 @@ public class McpSdkMcpClientConfiguration {
   }
 
   @Bean
-  @LocalMcpClientFactory
+  @RuntimeMcpClientFactory
   public McpSdkClientFactory mcpSdkMcpClientFactory(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
       McpClientHeadersSupplierFactory headersSupplierFactory) {

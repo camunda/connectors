@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.mcp.client.configuration;
 import io.camunda.connector.agenticai.mcp.client.McpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.McpClientFunction;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
-import io.camunda.connector.agenticai.mcp.client.configuration.annotation.LocalMcpClientFactory;
+import io.camunda.connector.agenticai.mcp.client.configuration.annotation.RuntimeMcpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.configuration.langchain4j.McpLangchain4JClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.mcpsdk.McpSdkMcpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientExecutor;
@@ -57,7 +57,7 @@ public class McpClientConfiguration {
   @ConditionalOnMissingBean
   public McpClientRegistry mcpClientRegistry(
       McpClientConfigurationProperties configuration,
-      @LocalMcpClientFactory McpClientFactory clientFactory) {
+      @RuntimeMcpClientFactory McpClientFactory clientFactory) {
     final var registry = new McpClientRegistry();
     configuration
         .clients()
