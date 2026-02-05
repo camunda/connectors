@@ -31,13 +31,12 @@ class ListToolsRequestTest {
 
   @Mock private McpSyncClient mcpClient;
 
-  private final ListToolsRequest testee = new ListToolsRequest(new ObjectMapper());
+  private final ListToolsRequest testee = new ListToolsRequest("testClient", new ObjectMapper());
 
   @Test
   void returnsEmptyList_whenNoToolsAvailable() {
     when(mcpClient.listTools())
         .thenReturn(new McpSchema.ListToolsResult(Collections.emptyList(), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, EMPTY_FILTER);
 
@@ -53,7 +52,6 @@ class ListToolsRequestTest {
 
     when(mcpClient.listTools())
         .thenReturn(new McpSchema.ListToolsResult(List.of(toolSpec1, toolSpec2), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, EMPTY_FILTER);
 
@@ -80,7 +78,6 @@ class ListToolsRequestTest {
 
     when(mcpClient.listTools())
         .thenReturn(new McpSchema.ListToolsResult(List.of(toolSpec1, toolSpec2), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, filter);
 
@@ -102,7 +99,6 @@ class ListToolsRequestTest {
 
     when(mcpClient.listTools())
         .thenReturn(new McpSchema.ListToolsResult(List.of(toolSpec1, toolSpec2), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, filter);
 

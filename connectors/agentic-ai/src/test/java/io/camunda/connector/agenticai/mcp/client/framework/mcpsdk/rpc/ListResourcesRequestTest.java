@@ -29,13 +29,12 @@ class ListResourcesRequestTest {
 
   @Mock private McpSyncClient mcpClient;
 
-  private final ListResourcesRequest testee = new ListResourcesRequest();
+  private final ListResourcesRequest testee = new ListResourcesRequest("testClient");
 
   @Test
   void returnsEmptyList_whenNoResourcesAvailable() {
     when(mcpClient.listResources())
         .thenReturn(new McpSchema.ListResourcesResult(Collections.emptyList(), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, EMPTY_FILTER);
 
@@ -60,7 +59,6 @@ class ListResourcesRequestTest {
 
     when(mcpClient.listResources())
         .thenReturn(new McpSchema.ListResourcesResult(List.of(mcpResource1, mcpResource2), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, EMPTY_FILTER);
 
@@ -91,7 +89,6 @@ class ListResourcesRequestTest {
 
     when(mcpClient.listResources())
         .thenReturn(new McpSchema.ListResourcesResult(List.of(mcpResource1, mcpResource2), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, filter);
 
@@ -123,7 +120,6 @@ class ListResourcesRequestTest {
 
     when(mcpClient.listResources())
         .thenReturn(new McpSchema.ListResourcesResult(List.of(mcpResource1, mcpResource2), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, filter);
 
@@ -148,7 +144,6 @@ class ListResourcesRequestTest {
 
     when(mcpClient.listResources())
         .thenReturn(new McpSchema.ListResourcesResult(List.of(mcpResource1), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, filter);
 

@@ -23,6 +23,12 @@ final class GetPromptRequest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GetPromptRequest.class);
 
+  private final String clientId;
+
+  GetPromptRequest(String clientId) {
+    this.clientId = clientId;
+  }
+
   public McpClientGetPromptResult execute(
       McpSyncClient client, AllowDenyList promptNameFilter, Map<String, Object> params) {
     final var getPromptParams = parseParams(params);
@@ -30,7 +36,7 @@ final class GetPromptRequest {
     if (!promptNameFilter.isPassing(getPromptParams.name())) {
       LOGGER.error(
           "MCP({}): Prompt '{}' is not allowed by the filter {}.",
-          client.getClientInfo().name(),
+          clientId,
           getPromptParams.name(),
           promptNameFilter);
       throw new ConnectorException(
@@ -41,7 +47,7 @@ final class GetPromptRequest {
 
     LOGGER.debug(
         "MCP({}): Executing get prompt '{}' with arguments: {}",
-        client.getClientInfo().name(),
+        clientId,
         getPromptParams.name(),
         getPromptParams.arguments());
 
@@ -54,18 +60,14 @@ final class GetPromptRequest {
 
       LOGGER.debug(
           "MCP({}): Successfully retrieved prompt '{}' with {} messages",
-          client.getClientInfo().name(),
+          clientId,
           getPromptParams.name(),
           result.messages().size());
 
       return new McpClientGetPromptResult(
           result.description(), result.messages().stream().map(this::map).toList());
     } catch (Exception e) {
-      LOGGER.error(
-          "MCP({}): Failed to get prompt '{}'",
-          client.getClientInfo().name(),
-          getPromptParams.name(),
-          e);
+      LOGGER.error("MCP({}): Failed to get prompt '{}'", clientId, getPromptParams.name(), e);
       throw new ConnectorException(
           McpClientErrorCodes.ERROR_CODE_GET_PROMPT_ERROR,
           "Error getting prompt '%s': %s".formatted(getPromptParams.name(), e.getMessage()),

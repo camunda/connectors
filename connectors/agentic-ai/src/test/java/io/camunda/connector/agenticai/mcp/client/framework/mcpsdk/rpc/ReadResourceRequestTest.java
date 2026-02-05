@@ -52,7 +52,6 @@ class ReadResourceRequestTest {
 
     when(mcpClient.readResource(new McpSchema.ReadResourceRequest("contents-123")))
         .thenReturn(response);
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, EMPTY_FILTER, requestParams);
 
@@ -77,7 +76,6 @@ class ReadResourceRequestTest {
                 List.of(
                     new McpSchema.TextResourceContents(
                         "allowed-resource", "text/plain", "content"))));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var filter = AllowDenyListBuilder.builder().allowed(List.of("allowed-resource")).build();
     final var parameters = Map.<String, Object>of("uri", "allowed-resource");
@@ -94,7 +92,6 @@ class ReadResourceRequestTest {
             new McpSchema.ReadResourceResult(
                 List.of(
                     new McpSchema.TextResourceContents("safe-resource", "text/plain", "content"))));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var filter = AllowDenyListBuilder.builder().denied(List.of("blocked-resource")).build();
     final var parameters = Map.<String, Object>of("uri", "safe-resource");
@@ -110,7 +107,6 @@ class ReadResourceRequestTest {
 
     when(mcpClient.readResource(new McpSchema.ReadResourceRequest("non-existing-resource")))
         .thenThrow(new RuntimeException("Resource not found"));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     assertThatThrownBy(() -> testee.execute(mcpClient, EMPTY_FILTER, requestParams))
         .isInstanceOfSatisfying(
@@ -165,7 +161,6 @@ class ReadResourceRequestTest {
   @Test
   void throwsException_whenResourceNotIncludedInFilter() {
     final var filter = AllowDenyListBuilder.builder().allowed(List.of("allowed-resource")).build();
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var parameters = Map.<String, Object>of("uri", "blocked-resource");
 
@@ -183,7 +178,6 @@ class ReadResourceRequestTest {
   @Test
   void throwsException_whenResourceExcludedInFilter() {
     final var filter = AllowDenyListBuilder.builder().denied(List.of("blocked-resource")).build();
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var parameters = Map.<String, Object>of("uri", "blocked-resource");
 
@@ -205,7 +199,6 @@ class ReadResourceRequestTest {
             .allowed(List.of("conflicted-resource"))
             .denied(List.of("conflicted-resource"))
             .build();
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var parameters = Map.<String, Object>of("uri", "conflicted-resource");
 

@@ -32,9 +32,12 @@ import org.springframework.util.CollectionUtils;
 
 final class ToolCallRequest {
   private static final Logger LOGGER = LoggerFactory.getLogger(ToolCallRequest.class);
+
+  private final String clientId;
   private final ObjectMapper objectMapper;
 
-  ToolCallRequest(ObjectMapper objectMapper) {
+  ToolCallRequest(String clientId, ObjectMapper objectMapper) {
+    this.clientId = clientId;
     this.objectMapper = objectMapper;
   }
 
@@ -46,7 +49,7 @@ final class ToolCallRequest {
     if (!toolNameFilter.isPassing(toolExecutionRequest.name())) {
       LOGGER.error(
           "MCP({}): Tool '{}' is not included in the filter {}.",
-          client.getClientInfo().name(),
+          clientId,
           toolExecutionRequest.name(),
           toolNameFilter);
       return new McpClientCallToolResult(
@@ -60,7 +63,7 @@ final class ToolCallRequest {
 
     LOGGER.debug(
         "MCP({}): Executing tool '{}' with arguments: {}",
-        client.getClientInfo().name(),
+        clientId,
         parameters.name(),
         parameters.arguments());
 
@@ -68,15 +71,11 @@ final class ToolCallRequest {
       final var result = client.callTool(toolExecutionRequest);
 
       LOGGER.debug(
-          "MCP({}): Successfully executed tool '{}'",
-          client.getClientInfo().name(),
-          toolExecutionRequest.name());
+          "MCP({}): Successfully executed tool '{}'", clientId, toolExecutionRequest.name());
 
       if (!hasContent(result)) {
         LOGGER.debug(
-            "MCP({}): Tool '{}' returned no content",
-            client.getClientInfo().name(),
-            toolExecutionRequest.name());
+            "MCP({}): Tool '{}' returned no content", clientId, toolExecutionRequest.name());
         return new McpClientCallToolResult(
             toolExecutionRequest.name(),
             List.of(TextContent.textContent(ToolCallResult.CONTENT_NO_RESULT)),
@@ -95,10 +94,7 @@ final class ToolCallRequest {
       return new McpClientCallToolResult(toolExecutionRequest.name(), mappedContent, false);
     } catch (Exception e) {
       LOGGER.error(
-          "MCP({}): Failed to execute tool '{}'",
-          client.getClientInfo().name(),
-          toolExecutionRequest.name(),
-          e);
+          "MCP({}): Failed to execute tool '{}'", clientId, toolExecutionRequest.name(), e);
       return new McpClientCallToolResult(
           toolExecutionRequest.name(),
           List.of(

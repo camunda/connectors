@@ -20,13 +20,19 @@ final class ListPromptsRequest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ListPromptsRequest.class);
 
+  private final String clientId;
+
+  ListPromptsRequest(String clientId) {
+    this.clientId = clientId;
+  }
+
   public McpClientListPromptsResult execute(McpSyncClient client, AllowDenyList promptsFilter) {
-    LOGGER.debug("MCP({}): Executing list prompts", client.getClientInfo().name());
+    LOGGER.debug("MCP({}): Executing list prompts", clientId);
 
     var fetchedPrompts = client.listPrompts().prompts();
 
     if (CollectionUtils.isEmpty(fetchedPrompts)) {
-      LOGGER.debug("MCP({}): No prompts found", client.getClientInfo().name());
+      LOGGER.debug("MCP({}): No prompts found", clientId);
       return new McpClientListPromptsResult(Collections.emptyList());
     }
 
@@ -34,10 +40,7 @@ final class ListPromptsRequest {
         fetchedPrompts.stream().filter(prompt -> promptsFilter.isPassing(prompt.name())).toList();
 
     if (filteredPrompts.isEmpty()) {
-      LOGGER.debug(
-          "MCP({}): No prompts left after filtering. Filter: {}",
-          client.getClientInfo().name(),
-          promptsFilter);
+      LOGGER.debug("MCP({}): No prompts left after filtering. Filter: {}", clientId, promptsFilter);
       return new McpClientListPromptsResult(Collections.emptyList());
     }
 
@@ -54,7 +57,7 @@ final class ListPromptsRequest {
 
     LOGGER.debug(
         "MCP({}): Resolved list of prompts: {}",
-        client.getClientInfo().name(),
+        clientId,
         result.promptDescriptions().stream().map(PromptDescription::name).toList());
 
     return result;

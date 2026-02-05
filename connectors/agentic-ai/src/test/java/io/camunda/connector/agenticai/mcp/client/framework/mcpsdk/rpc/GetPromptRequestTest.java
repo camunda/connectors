@@ -46,7 +46,7 @@ class GetPromptRequestTest {
 
   @BeforeEach
   void setUp() {
-    testee = new GetPromptRequest();
+    testee = new GetPromptRequest("testClient");
   }
 
   @ParameterizedTest
@@ -60,7 +60,6 @@ class GetPromptRequestTest {
                     new McpSchema.PromptMessage(
                         McpSchema.Role.USER,
                         new McpSchema.TextContent("Please review the following code snippet.")))));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var parameters = new LinkedHashMap<String, Object>();
     parameters.put("name", "code_review");
@@ -98,7 +97,6 @@ class GetPromptRequestTest {
       List<McpSchema.PromptMessage> messages) {
     when(mcpClient.getPrompt(any(McpSchema.GetPromptRequest.class)))
         .thenReturn(mcpPromptResult("Code Review", messages));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var parameters = Map.of("name", "code_review", "arguments", Map.of("assignee", "dev1"));
 
@@ -125,7 +123,6 @@ class GetPromptRequestTest {
                 List.of(
                     new McpSchema.PromptMessage(
                         McpSchema.Role.USER, new McpSchema.TextContent("Content")))));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var filter = AllowDenyListBuilder.builder().allowed(List.of("allowed-prompt")).build();
     final var parameters =
@@ -148,7 +145,6 @@ class GetPromptRequestTest {
                 List.of(
                     new McpSchema.PromptMessage(
                         McpSchema.Role.USER, new McpSchema.TextContent("Content")))));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var filter = AllowDenyListBuilder.builder().denied(List.of("blocked-prompt")).build();
     final var parameters = Map.of("name", "safe-prompt", "arguments", Map.of("param1", "value1"));
@@ -233,7 +229,6 @@ class GetPromptRequestTest {
   void throwsConnectorException_whenMcpClientFails() {
     when(mcpClient.getPrompt(any(McpSchema.GetPromptRequest.class)))
         .thenThrow(new RuntimeException("MCP client error"));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var parameters = Map.of("name", "code_review", "arguments", Map.of("assignee", "dev1"));
 
@@ -250,7 +245,6 @@ class GetPromptRequestTest {
   @Test
   void throwsException_whenPromptNotIncludedInFilter() {
     final var filter = AllowDenyListBuilder.builder().allowed(List.of("allowed-prompt")).build();
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var parameters =
         Map.of("name", "blocked-prompt", "arguments", Map.of("param1", "value1"));
@@ -269,7 +263,6 @@ class GetPromptRequestTest {
   @Test
   void throwsException_whenPromptExcludedInFilter() {
     final var filter = AllowDenyListBuilder.builder().denied(List.of("blocked-prompt")).build();
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var parameters =
         Map.of("name", "blocked-prompt", "arguments", Map.of("param1", "value1"));
@@ -292,7 +285,6 @@ class GetPromptRequestTest {
             .allowed(List.of("conflicted-prompt"))
             .denied(List.of("conflicted-prompt"))
             .build();
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var parameters =
         Map.of("name", "conflicted-prompt", "arguments", Map.of("param1", "value1"));

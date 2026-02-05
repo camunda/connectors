@@ -49,13 +49,12 @@ class ToolCallRequestTest {
 
   @Mock private McpSyncClient mcpClient;
 
-  private final ToolCallRequest testee = new ToolCallRequest(new ObjectMapper());
+  private final ToolCallRequest testee = new ToolCallRequest("testClient", new ObjectMapper());
 
   @Test
   void executesTool_whenToolAllowedByFilter() {
     when(mcpClient.callTool(any(McpSchema.CallToolRequest.class)))
         .thenReturn(callToolResult("Tool execution result"));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result =
         testee.execute(
@@ -78,7 +77,6 @@ class ToolCallRequestTest {
   void returnsProperlyMappedToolContent_whenDifferentContentTypesReturned(
       ToolCallExpectation expectation) {
     when(mcpClient.callTool(any(McpSchema.CallToolRequest.class))).thenReturn(expectation.result);
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result =
         testee.execute(
@@ -100,7 +98,6 @@ class ToolCallRequestTest {
   void handlesEmptyArguments(Map<String, Object> arguments) {
     when(mcpClient.callTool(any(McpSchema.CallToolRequest.class)))
         .thenReturn(callToolResult("Success with no args"));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var parameters = new LinkedHashMap<String, Object>();
     parameters.put("name", "test-tool");
@@ -125,7 +122,6 @@ class ToolCallRequestTest {
   void handlesDifferentTypesOfArguments(String toolName, Map<String, Object> arguments) {
     when(mcpClient.callTool(any(McpSchema.CallToolRequest.class)))
         .thenReturn(callToolResult("Successful result"));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result =
         testee.execute(mcpClient, EMPTY_FILTER, Map.of("name", toolName, "arguments", arguments));
@@ -144,7 +140,6 @@ class ToolCallRequestTest {
   void returnsDefaultResponseText_whenResponseContentIsEmpty() {
     when(mcpClient.callTool(any(McpSchema.CallToolRequest.class)))
         .thenReturn(new McpSchema.CallToolResult(List.of(), false, null, null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result =
         testee.execute(
@@ -179,7 +174,6 @@ class ToolCallRequestTest {
   @Test
   void returnsError_whenToolNotIncludedInFilter() {
     final var filter = AllowDenyListBuilder.builder().allowed(List.of("allowed-tool")).build();
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result =
         testee.execute(
@@ -222,7 +216,6 @@ class ToolCallRequestTest {
   @Test
   void returnsError_whenToolExcludedInFilter() {
     final var filter = AllowDenyListBuilder.builder().denied(List.of("blocked-tool")).build();
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result =
         testee.execute(
@@ -247,7 +240,6 @@ class ToolCallRequestTest {
   void returnsError_whenToolExecutionFails() {
     when(mcpClient.callTool(any(McpSchema.CallToolRequest.class)))
         .thenThrow(new RuntimeException("Tool execution failed"));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result =
         testee.execute(

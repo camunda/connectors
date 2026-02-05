@@ -53,7 +53,8 @@ public class Langchain4JMcpClientFactory implements McpClientFactory {
 
     var mcpClient = builder.build();
 
-    return new Langchain4JMcpClientDelegate(mcpClient, objectMapper, toolSpecificationConverter);
+    return new Langchain4JMcpClientDelegate(
+        clientId, mcpClient, objectMapper, toolSpecificationConverter);
   }
 
   private McpTransport createTransport(String clientId, McpClientConfiguration config) {

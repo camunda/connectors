@@ -41,15 +41,13 @@ public class McpSdkClientFactory implements McpClientFactory {
       String clientId, McpClientConfigurationProperties.McpClientConfiguration config) {
     var clientBuilder =
         McpClient.sync(createTransport(config))
-            .clientInfo(
-                new McpSchema.Implementation(
-                    "Camunda MCP Connector - Client ID: %s".formatted(clientId), "1.0.0"))
+            .clientInfo(new McpSchema.Implementation("Camunda 8 MCP Connector", "1.0.0"))
             .capabilities(McpSchema.ClientCapabilities.builder().roots(false).build());
 
     Optional.ofNullable(config.initializationTimeout()).map(clientBuilder::initializationTimeout);
     Optional.ofNullable(config.toolExecutionTimeout()).map(clientBuilder::requestTimeout);
 
-    return new McpSdkMcpClientDelegate(clientBuilder.build(), objectMapper);
+    return new McpSdkMcpClientDelegate(clientId, clientBuilder.build(), objectMapper);
   }
 
   private McpClientTransport createTransport(

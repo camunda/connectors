@@ -18,6 +18,8 @@ import java.util.Map;
 
 public interface McpClientDelegate extends AutoCloseable {
 
+  String clientId();
+
   McpClientListToolsResult listTools(AllowDenyList filter);
 
   McpClientCallToolResult callTool(Map<String, Object> params, AllowDenyList filter);

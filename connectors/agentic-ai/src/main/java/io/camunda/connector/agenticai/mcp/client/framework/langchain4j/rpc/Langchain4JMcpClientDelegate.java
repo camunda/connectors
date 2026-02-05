@@ -22,18 +22,27 @@ import java.util.Map;
 
 public class Langchain4JMcpClientDelegate implements McpClientDelegate {
 
+  private final String clientId;
+
   private final McpClient delegate;
 
   private final ObjectMapper objectMapper;
   private final ToolSpecificationConverter toolSpecificationConverter;
 
   public Langchain4JMcpClientDelegate(
+      String clientId,
       McpClient delegate,
       ObjectMapper objectMapper,
       ToolSpecificationConverter toolSpecificationConverter) {
+    this.clientId = clientId;
     this.delegate = delegate;
     this.objectMapper = objectMapper;
     this.toolSpecificationConverter = toolSpecificationConverter;
+  }
+
+  @Override
+  public String clientId() {
+    return clientId;
   }
 
   @Override

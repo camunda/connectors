@@ -21,18 +21,21 @@ import org.slf4j.LoggerFactory;
 final class ListToolsRequest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ListToolsRequest.class);
+
+  private final String clientId;
   private final ObjectMapper objectMapper;
 
-  public ListToolsRequest(ObjectMapper objectMapper) {
+  ListToolsRequest(String clientId, ObjectMapper objectMapper) {
+    this.clientId = clientId;
     this.objectMapper = objectMapper;
   }
 
   public McpClientListToolsResult execute(McpSyncClient client, AllowDenyList toolNameFilter) {
-    LOGGER.debug("MCP({}): Executing list tools", client.getClientInfo().name());
+    LOGGER.debug("MCP({}): Executing list tools", clientId);
 
     final var toolSpecifications = client.listTools().tools();
     if (toolSpecifications.isEmpty()) {
-      LOGGER.debug("MCP({}): No tools found", client.getClientInfo().name());
+      LOGGER.debug("MCP({}): No tools found", clientId);
       return new McpClientListToolsResult(Collections.emptyList());
     }
 
@@ -53,15 +56,13 @@ final class ListToolsRequest {
 
     if (filteredToolDefinitions.isEmpty()) {
       LOGGER.warn(
-          "MCP({}): No tools left after filtering tools. Filter: {}",
-          client.getClientInfo().name(),
-          toolNameFilter);
+          "MCP({}): No tools left after filtering tools. Filter: {}", clientId, toolNameFilter);
       return new McpClientListToolsResult(Collections.emptyList());
     }
 
     LOGGER.debug(
         "MCP({}): Resolved list of tools: {}",
-        client.getClientInfo().name(),
+        clientId,
         filteredToolDefinitions.stream().map(ToolDefinition::name).toList());
 
     return new McpClientListToolsResult(filteredToolDefinitions);

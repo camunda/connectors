@@ -29,13 +29,12 @@ class ListPromptsRequestTest {
 
   @Mock private McpSyncClient mcpClient;
 
-  private final ListPromptsRequest testee = new ListPromptsRequest();
+  private final ListPromptsRequest testee = new ListPromptsRequest("testClient");
 
   @Test
   void returnsEmptyList_whenNoPromptsAvailable() {
     when(mcpClient.listPrompts())
         .thenReturn(new McpSchema.ListPromptsResult(Collections.emptyList(), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, EMPTY_FILTER);
 
@@ -65,7 +64,6 @@ class ListPromptsRequestTest {
 
     when(mcpClient.listPrompts())
         .thenReturn(new McpSchema.ListPromptsResult(List.of(mcpPrompt1, mcpPrompt2), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, EMPTY_FILTER);
 
@@ -85,7 +83,6 @@ class ListPromptsRequestTest {
 
     when(mcpClient.listPrompts())
         .thenReturn(new McpSchema.ListPromptsResult(List.of(mcpPrompt1, mcpPrompt2), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, filter);
 
@@ -109,7 +106,6 @@ class ListPromptsRequestTest {
     when(mcpClient.listPrompts())
         .thenReturn(
             new McpSchema.ListPromptsResult(List.of(mcpPrompt1, mcpPrompt2, mcpPrompt3), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, filter);
 
@@ -130,7 +126,6 @@ class ListPromptsRequestTest {
 
     when(mcpClient.listPrompts())
         .thenReturn(new McpSchema.ListPromptsResult(List.of(mcpPrompt1), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, filter);
 

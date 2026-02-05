@@ -74,6 +74,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @TestPropertySource(properties = {"camunda.connector.agenticai.mcp.client.enabled=true"})
 public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnectorTest {
 
+  public static final String MCP_CLIENT_ID = "a-mcp-client";
+
   @Value("classpath:agentic-ai-connectors-mcp.bpmn")
   protected Resource testProcessWithMcp;
 
@@ -99,7 +101,7 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
 
   @BeforeEach
   void mockMcpClients() {
-    when(aMcpClient.key()).thenReturn("a-mcp-client");
+    when(aMcpClient.key()).thenReturn(MCP_CLIENT_ID);
     when(aMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
 
     when(aHttpRemoteMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
@@ -109,12 +111,14 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
     when(filesystemMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
 
     // clients configured on the runtime
-    doReturn(new Langchain4JMcpClientDelegate(aMcpClient, objectMapper, toolSpecificationConverter))
-        .when(mcpClientRegistry)
-        .getClient("a-mcp-client");
     doReturn(
             new Langchain4JMcpClientDelegate(
-                filesystemMcpClient, objectMapper, toolSpecificationConverter))
+                MCP_CLIENT_ID, aMcpClient, objectMapper, toolSpecificationConverter))
+        .when(mcpClientRegistry)
+        .getClient(MCP_CLIENT_ID);
+    doReturn(
+            new Langchain4JMcpClientDelegate(
+                MCP_CLIENT_ID, filesystemMcpClient, objectMapper, toolSpecificationConverter))
         .when(mcpClientRegistry)
         .getClient("filesystem");
 
@@ -142,7 +146,7 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
                   };
 
               return new Langchain4JMcpClientDelegate(
-                  internalClient, objectMapper, toolSpecificationConverter);
+                  MCP_CLIENT_ID, internalClient, objectMapper, toolSpecificationConverter);
             })
         .when(remoteMcpClientRegistry)
         .getClient(

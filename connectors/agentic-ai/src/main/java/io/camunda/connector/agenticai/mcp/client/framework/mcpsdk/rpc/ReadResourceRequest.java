@@ -25,6 +25,12 @@ public class ReadResourceRequest {
 
   private static final String RESOURCE_URI_KEY = "uri";
 
+  private final String clientId;
+
+  ReadResourceRequest(String clientId) {
+    this.clientId = clientId;
+  }
+
   public McpClientReadResourceResult execute(
       McpSyncClient client, AllowDenyList resourceUriFilter, Map<String, Object> params) {
     var resourceUri = getResourceUri(params);
@@ -32,7 +38,7 @@ public class ReadResourceRequest {
     if (!resourceUriFilter.isPassing(resourceUri)) {
       LOGGER.error(
           "MCP({}): Resource '{}' is not allowed by the filter {}.",
-          client.getClientInfo().name(),
+          clientId,
           resourceUri,
           resourceUriFilter);
       throw new ConnectorException(
@@ -42,18 +48,14 @@ public class ReadResourceRequest {
     }
 
     try {
-      LOGGER.debug(
-          "MCP({}): Executing read resource request with params: {}",
-          client.getClientInfo().name(),
-          params);
+      LOGGER.debug("MCP({}): Executing read resource request with params: {}", clientId, params);
       var readResourceResult = client.readResource(new McpSchema.ReadResourceRequest(resourceUri));
 
       var contentResult = readResourceResult.contents().stream().map(this::map).toList();
 
       return new McpClientReadResourceResult(contentResult);
     } catch (Exception e) {
-      LOGGER.error(
-          "MCP({}): Failed to read resource from MCP server.", client.getClientInfo().name(), e);
+      LOGGER.error("MCP({}): Failed to read resource from MCP server.", clientId, e);
       throw new ConnectorException(
           McpClientErrorCodes.ERROR_CODE_READ_RESOURCE_ERROR,
           "Failed to read resource from MCP server: %s".formatted(e.getMessage()),

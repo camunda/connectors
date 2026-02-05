@@ -18,13 +18,19 @@ final class ListResourcesRequest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ListResourcesRequest.class);
 
+  private final String clientId;
+
+  ListResourcesRequest(String clientId) {
+    this.clientId = clientId;
+  }
+
   public McpClientListResourcesResult execute(McpSyncClient client, AllowDenyList resourcesFilter) {
-    LOGGER.debug("MCP({}): Executing list resources", client.getClientInfo().name());
+    LOGGER.debug("MCP({}): Executing list resources", clientId);
 
     var fetchedResources = client.listResources().resources();
 
     if (fetchedResources.isEmpty()) {
-      LOGGER.debug("MCP({}): No resources found", client.getClientInfo().name());
+      LOGGER.debug("MCP({}): No resources found", clientId);
       return new McpClientListResourcesResult(Collections.emptyList());
     }
 
@@ -35,9 +41,7 @@ final class ListResourcesRequest {
 
     if (filteredResources.isEmpty()) {
       LOGGER.debug(
-          "MCP({}): No resources left after filtering. Filter: {}",
-          client.getClientInfo().name(),
-          resourcesFilter);
+          "MCP({}): No resources left after filtering. Filter: {}", clientId, resourcesFilter);
       return new McpClientListResourcesResult(Collections.emptyList());
     }
 
@@ -52,7 +56,7 @@ final class ListResourcesRequest {
 
     LOGGER.debug(
         "MCP({}): Resolved list of resources: {}",
-        client.getClientInfo().name(),
+        clientId,
         result.resources().stream().map(ResourceDescription::name).toList());
 
     return result;

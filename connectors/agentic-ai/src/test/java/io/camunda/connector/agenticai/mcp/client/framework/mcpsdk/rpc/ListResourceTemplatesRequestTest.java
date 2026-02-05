@@ -29,13 +29,13 @@ class ListResourceTemplatesRequestTest {
 
   @Mock private McpSyncClient mcpClient;
 
-  private final ListResourceTemplatesRequest testee = new ListResourceTemplatesRequest();
+  private final ListResourceTemplatesRequest testee =
+      new ListResourceTemplatesRequest("testClient");
 
   @Test
   void returnsEmptyList_whenNoResourcesAvailable() {
     when(mcpClient.listResourceTemplates())
         .thenReturn(new McpSchema.ListResourceTemplatesResult(Collections.emptyList(), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, EMPTY_FILTER);
 
@@ -65,7 +65,6 @@ class ListResourceTemplatesRequestTest {
         .thenReturn(
             new McpSchema.ListResourceTemplatesResult(
                 List.of(mcpResourceTemplate1, mcpResourceTemplate2), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, EMPTY_FILTER);
 
@@ -98,7 +97,6 @@ class ListResourceTemplatesRequestTest {
         .thenReturn(
             new McpSchema.ListResourceTemplatesResult(
                 List.of(mcpResourceTemplate1, mcpResourceTemplate2), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, filter);
 
@@ -132,7 +130,6 @@ class ListResourceTemplatesRequestTest {
         .thenReturn(
             new McpSchema.ListResourceTemplatesResult(
                 List.of(mcpResourceTemplate1, mcpResourceTemplate2), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, filter);
 
@@ -158,7 +155,6 @@ class ListResourceTemplatesRequestTest {
 
     when(mcpClient.listResourceTemplates())
         .thenReturn(new McpSchema.ListResourceTemplatesResult(List.of(mcpResourceTemplate1), null));
-    when(mcpClient.getClientInfo()).thenReturn(new McpSchema.Implementation("test-client", "1.0"));
 
     final var result = testee.execute(mcpClient, filter);
 

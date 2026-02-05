@@ -18,14 +18,20 @@ final class ListResourceTemplatesRequest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ListResourceTemplatesRequest.class);
 
+  private final String clientId;
+
+  ListResourceTemplatesRequest(String clientId) {
+    this.clientId = clientId;
+  }
+
   public McpClientListResourceTemplatesResult execute(
       McpSyncClient client, AllowDenyList resourcesFilter) {
-    LOGGER.debug("MCP({}): Executing list resource templates", client.getClientInfo().name());
+    LOGGER.debug("MCP({}): Executing list resource templates", clientId);
 
     var fetchedResources = client.listResourceTemplates().resourceTemplates();
 
     if (fetchedResources.isEmpty()) {
-      LOGGER.debug("MCP({}): No resource templates found", client.getClientInfo().name());
+      LOGGER.debug("MCP({}): No resource templates found", clientId);
       return new McpClientListResourceTemplatesResult(Collections.emptyList());
     }
 
@@ -37,7 +43,7 @@ final class ListResourceTemplatesRequest {
     if (filteredResources.isEmpty()) {
       LOGGER.debug(
           "MCP({}): No resource templates left after filtering. Filter: {}",
-          client.getClientInfo().name(),
+          clientId,
           resourcesFilter);
       return new McpClientListResourceTemplatesResult(Collections.emptyList());
     }
@@ -53,7 +59,7 @@ final class ListResourceTemplatesRequest {
 
     LOGGER.debug(
         "MCP({}): Resolved list of resource templates: {}",
-        client.getClientInfo().name(),
+        clientId,
         result.resourceTemplates().stream().map(ResourceTemplate::name).toList());
 
     return result;
