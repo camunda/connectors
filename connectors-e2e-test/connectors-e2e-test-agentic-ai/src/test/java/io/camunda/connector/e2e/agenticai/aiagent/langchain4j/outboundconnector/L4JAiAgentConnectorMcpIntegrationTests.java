@@ -18,7 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.outboundconnector
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_MCP_TOOL_SPECIFICATIONS;
-import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS;
+import static io.camunda.connector.e2e.agenticai.mcp.McpSdkToolSpecifications.MCP_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,7 +41,6 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
@@ -50,10 +49,12 @@ import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc.McpSdkMcpC
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.modelcontextprotocol.client.McpSyncClient;
+import io.modelcontextprotocol.spec.McpSchema;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -63,8 +64,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.skyscreamer.jsonassert.JSONAssert;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.test.context.TestPropertySource;
@@ -87,27 +86,24 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
   @Mock private McpSyncClient aSseRemoteMcpClient;
   @Mock private McpSyncClient filesystemMcpClient;
 
-  @Captor private ArgumentCaptor<ToolExecutionRequest> aMcpClientToolExecutionRequestCaptor;
+  @Captor private ArgumentCaptor<McpSchema.CallToolRequest> aMcpClientToolExecutionRequestCaptor;
 
   @Captor
-  private ArgumentCaptor<ToolExecutionRequest> aHttpRemoteMcpClientToolExecutionRequestCaptor;
+  private ArgumentCaptor<McpSchema.CallToolRequest> aHttpRemoteMcpClientToolExecutionRequestCaptor;
 
   @Captor
-  private ArgumentCaptor<ToolExecutionRequest> aSseRemoteMcpClientToolExecutionRequestCaptor;
+  private ArgumentCaptor<McpSchema.CallToolRequest> aSseRemoteMcpClientToolExecutionRequestCaptor;
 
   private final Map<String, McpRemoteClientTransportConfiguration> requestedRemoteMcpClients =
       new LinkedHashMap<>();
-  @Autowired private ToolSpecificationConverter toolSpecificationConverter;
 
   @BeforeEach
   void mockMcpClients() {
-    when(aMcpClient.key()).thenReturn(MCP_CLIENT_ID);
     when(aMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
 
     when(aHttpRemoteMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
     when(aSseRemoteMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
 
-    when(filesystemMcpClient.key()).thenReturn("filesystem");
     when(filesystemMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
 
     // clients configured on the runtime
@@ -128,14 +124,8 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
 
               var internalClient =
                   switch (clientId.elementId()) {
-                    case "A_HTTP_Remote_MCP_Client" -> {
-                      when(aHttpRemoteMcpClient.key()).thenReturn(clientId.toString());
-                      yield aHttpRemoteMcpClient;
-                    }
-                    case "A_SSE_Remote_MCP_Client" -> {
-                      when(aSseRemoteMcpClient.key()).thenReturn(clientId.toString());
-                      yield aSseRemoteMcpClient;
-                    }
+                    case "A_HTTP_Remote_MCP_Client" -> aHttpRemoteMcpClient;
+                    case "A_SSE_Remote_MCP_Client" -> aSseRemoteMcpClient;
                     default ->
                         throw new IllegalArgumentException(
                             "Unexpected remote MCP client ID: " + clientId.elementId());
@@ -223,11 +213,11 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
 
   @Test
   void handlesMcpToolCalls() throws IOException {
-    when(aMcpClient.executeTool(aMcpClientToolExecutionRequestCaptor.capture()))
+    when(aMcpClient.callTool(aMcpClientToolExecutionRequestCaptor.capture()))
         .thenReturn(toolExecutionResult("A MCP Client result"));
-    when(aHttpRemoteMcpClient.executeTool(aHttpRemoteMcpClientToolExecutionRequestCaptor.capture()))
+    when(aHttpRemoteMcpClient.callTool(aHttpRemoteMcpClientToolExecutionRequestCaptor.capture()))
         .thenReturn(toolExecutionResult("A HTTP Remote MCP Client result"));
-    when(aSseRemoteMcpClient.executeTool(aSseRemoteMcpClientToolExecutionRequestCaptor.capture()))
+    when(aSseRemoteMcpClient.callTool(aSseRemoteMcpClientToolExecutionRequestCaptor.capture()))
         .thenReturn(toolExecutionResult("A SSE Remote MCP Client result"));
 
     final var initialUserPrompt = "Explore some of your MCP tools!";
@@ -327,32 +317,30 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
     verify(filesystemMcpClient).listTools();
 
     verify(aMcpClient)
-        .executeTool(
+        .callTool(
             assertArg(
                 toolExecutionRequest -> {
                   assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
-                  JSONAssert.assertEquals(
-                      "{\"paramA1\": \"someValue\", \"paramA2\": 3}",
-                      toolExecutionRequest.arguments(),
-                      true);
+                  assertThat(toolExecutionRequest.arguments())
+                      .containsEntry("paramA1", "someValue")
+                      .containsEntry("paramA2", 3);
                 }));
     verify(aHttpRemoteMcpClient)
-        .executeTool(
+        .callTool(
             assertArg(
                 toolExecutionRequest -> {
                   assertThat(toolExecutionRequest.name()).isEqualTo("toolC");
-                  JSONAssert.assertEquals(
-                      "{\"paramC1\": \"someOtherValue\"}", toolExecutionRequest.arguments(), true);
+                  assertThat(toolExecutionRequest.arguments())
+                      .containsEntry("paramC1", "someOtherValue");
                 }));
     verify(aSseRemoteMcpClient)
-        .executeTool(
+        .callTool(
             assertArg(
                 toolExecutionRequest -> {
                   assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
-                  JSONAssert.assertEquals(
-                      "{\"paramA1\": \"someValue2\", \"paramA2\": 6}",
-                      toolExecutionRequest.arguments(),
-                      true);
+                  assertThat(toolExecutionRequest.arguments())
+                      .containsEntry("paramA1", "someValue2")
+                      .containsEntry("paramA2", 6);
                 }));
 
     verify(chatModel, times(3)).chat(any(ChatRequest.class));
@@ -384,7 +372,7 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
         .first()
         .usingRecursiveComparison()
         .ignoringFields("name")
-        .isEqualTo(MCP_TOOL_SPECIFICATIONS.get(0));
+        .isEqualTo(Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS.get(0));
     assertThat(chatRequest.toolSpecifications())
         .filteredOn(
             toolSpecification -> toolSpecification.name().equals("MCP_Filesystem_MCP_Flow___toolB"))
@@ -392,7 +380,7 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
         .first()
         .usingRecursiveComparison()
         .ignoringFields("name")
-        .isEqualTo(MCP_TOOL_SPECIFICATIONS.get(1));
+        .isEqualTo(Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS.get(1));
     assertThat(chatRequest.toolSpecifications())
         .filteredOn(
             toolSpecification ->
@@ -401,7 +389,7 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
         .first()
         .usingRecursiveComparison()
         .ignoringFields("name")
-        .isEqualTo(MCP_TOOL_SPECIFICATIONS.get(2));
+        .isEqualTo(Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS.get(2));
     assertThat(chatRequest.toolSpecifications())
         .filteredOn(
             toolSpecification ->
@@ -410,6 +398,6 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
         .first()
         .usingRecursiveComparison()
         .ignoringFields("name")
-        .isEqualTo(MCP_TOOL_SPECIFICATIONS.get(2));
+        .isEqualTo(Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS.get(2));
   }
 }
