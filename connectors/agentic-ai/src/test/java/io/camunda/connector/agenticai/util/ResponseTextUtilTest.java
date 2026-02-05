@@ -15,7 +15,12 @@ class ResponseTextUtilTest {
   @Test
   void stripMarkdownCodeBlocks_shouldStripCodeBlocks_whenValidMarkdownFormat() {
     // given
-    String input = "```json\n{\"name\": \"John\", \"age\": 30}\n```";
+    String input =
+        """
+        ```json
+        {"name": "John", "age": 30}
+        ```
+        """;
     String expected = "{\"name\": \"John\", \"age\": 30}";
 
     // when
@@ -28,7 +33,12 @@ class ResponseTextUtilTest {
   @Test
   void stripMarkdownCodeBlocks_shouldStripCodeBlocks_whenNoLanguageSpecified() {
     // given
-    String input = "```\n{\"response\": \"data\"}\n```";
+    String input =
+        """
+        ```
+        {"response": "data"}
+        ```
+        """;
     String expected = "{\"response\": \"data\"}";
 
     // when
@@ -94,7 +104,12 @@ class ResponseTextUtilTest {
   @Test
   void stripMarkdownCodeBlocks_shouldHandleJsonArray() {
     // given
-    String input = "```json\n[{\"id\": 1}, {\"id\": 2}]\n```";
+    String input =
+        """
+        ```json
+        [{"id": 1}, {"id": 2}]
+        ```
+        """;
     String expected = "[{\"id\": 1}, {\"id\": 2}]";
 
     // when
@@ -120,7 +135,10 @@ class ResponseTextUtilTest {
   @Test
   void stripMarkdownCodeBlocks_shouldNotStripPartialCodeBlocks() {
     // given - malformed input with only opening code fence
-    String input = "```json\n{\"incomplete\": \"block\"}";
+    String input =
+        """
+        ```json
+        {"incomplete": "block"}""";
 
     // when
     String result = ResponseTextUtil.stripMarkdownCodeBlocks(input);
@@ -131,8 +149,13 @@ class ResponseTextUtilTest {
 
   @Test
   void stripMarkdownCodeBlocks_shouldHandleEmptyCodeBlocks() {
-    // given
-    String input = "```\n\n```";
+    // given - empty code block edge case
+    String input =
+        """
+        ```
+
+        ```
+        """;
     String expected = "";
 
     // when
@@ -143,8 +166,8 @@ class ResponseTextUtilTest {
   }
 
   @Test
-  void stripMarkdownCodeBlocks_shouldHandleAnthropicClaudeResponse() {
-    // given - typical response from Anthropic Claude Sonnet 4.5 on Bedrock
+  void stripMarkdownCodeBlocks_shouldHandleComplexNestedJson() {
+    // given - complex nested JSON structure with arrays and objects
     String input =
         """
         ```json
