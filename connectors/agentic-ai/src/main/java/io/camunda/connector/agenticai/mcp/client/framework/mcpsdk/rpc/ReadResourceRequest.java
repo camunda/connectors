@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc;
 
 import io.camunda.connector.agenticai.mcp.McpClientErrorCodes;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
+import io.camunda.connector.agenticai.mcp.client.model.result.Annotations;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientReadResourceResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.ResourceData;
 import io.camunda.connector.api.error.ConnectorException;
@@ -88,12 +89,24 @@ public class ReadResourceRequest {
           new ResourceData.BlobResourceData(
               blobResourceContents.uri(),
               blobResourceContents.mimeType(),
-              Base64.getDecoder().decode(blobResourceContents.blob()));
+              Base64.getDecoder().decode(blobResourceContents.blob()),
+              mapAnnotations(blobResourceContents.annotations()));
       case McpSchema.TextResourceContents textResourceContents ->
           new ResourceData.TextResourceData(
               textResourceContents.uri(),
               textResourceContents.mimeType(),
-              textResourceContents.text());
+              textResourceContents.text(),
+              mapAnnotations(textResourceContents.annotations()));
     };
+  }
+
+  private Annotations mapAnnotations(io.modelcontextprotocol.spec.McpSchema.Annotations sdkAnnotations) {
+    if (sdkAnnotations == null) {
+      return null;
+    }
+    return new Annotations(
+        sdkAnnotations.audience(),
+        sdkAnnotations.priority(),
+        sdkAnnotations.lastModified());
   }
 }

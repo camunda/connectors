@@ -19,10 +19,13 @@ import io.camunda.connector.api.document.Document;
 })
 public sealed interface ResourceData {
 
-  record BlobResourceData(String uri, String mimeType, byte[] blob) implements ResourceData {}
+  record BlobResourceData(String uri, String mimeType, byte[] blob, Annotations annotations)
+      implements ResourceData {}
 
-  record TextResourceData(String uri, String mimeType, String text) implements ResourceData {}
+  record TextResourceData(String uri, String mimeType, String text, Annotations annotations)
+      implements ResourceData {}
 
-  record CamundaDocumentResourceData(String uri, String mimeType, Document document)
+  record CamundaDocumentResourceData(
+      String uri, String mimeType, Document document, Annotations annotations)
       implements ResourceData {}
 }

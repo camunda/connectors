@@ -44,11 +44,12 @@ class ReadResourceRequestTest {
     final var response =
         new McpSchema.ReadResourceResult(
             List.of(
-                new McpSchema.TextResourceContents("uri", "text/plain", "text content"),
+                new McpSchema.TextResourceContents("uri", "text/plain", "text content", null),
                 new McpSchema.BlobResourceContents(
                     "uri",
                     "application/octet-stream",
-                    Base64.getEncoder().encodeToString("binary content".getBytes()))));
+                    Base64.getEncoder().encodeToString("binary content".getBytes()),
+                    null)));
 
     when(mcpClient.readResource(new McpSchema.ReadResourceRequest("contents-123")))
         .thenReturn(response);
@@ -61,11 +62,12 @@ class ReadResourceRequestTest {
         .usingRecursiveComparison()
         .isEqualTo(
             List.of(
-                new ResourceData.TextResourceData("uri", "text/plain", "text content"),
+                new ResourceData.TextResourceData("uri", "text/plain", "text content", null),
                 new ResourceData.BlobResourceData(
                     "uri",
                     "application/octet-stream",
-                    "binary content".getBytes(StandardCharsets.UTF_8))));
+                    "binary content".getBytes(StandardCharsets.UTF_8),
+                    null)));
   }
 
   @Test
@@ -75,7 +77,7 @@ class ReadResourceRequestTest {
             new McpSchema.ReadResourceResult(
                 List.of(
                     new McpSchema.TextResourceContents(
-                        "allowed-resource", "text/plain", "content"))));
+                        "allowed-resource", "text/plain", "content", null))));
 
     final var filter = AllowDenyListBuilder.builder().allowed(List.of("allowed-resource")).build();
     final var parameters = Map.<String, Object>of("uri", "allowed-resource");
@@ -91,7 +93,7 @@ class ReadResourceRequestTest {
         .thenReturn(
             new McpSchema.ReadResourceResult(
                 List.of(
-                    new McpSchema.TextResourceContents("safe-resource", "text/plain", "content"))));
+                    new McpSchema.TextResourceContents("safe-resource", "text/plain", "content", null))));
 
     final var filter = AllowDenyListBuilder.builder().denied(List.of("blocked-resource")).build();
     final var parameters = Map.<String, Object>of("uri", "safe-resource");

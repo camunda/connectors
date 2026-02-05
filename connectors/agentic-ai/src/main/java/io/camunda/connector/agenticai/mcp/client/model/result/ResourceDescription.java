@@ -12,7 +12,8 @@ import io.camunda.connector.agenticai.model.AgenticAiRecord;
 
 @AgenticAiRecord
 @JsonDeserialize(builder = ResourceDescription.ResourceDescriptionBuilderJacksonProxyBuilder.class)
-public record ResourceDescription(String uri, String name, String description, String mimeType) {
+public record ResourceDescription(
+    String uri, String name, String description, String mimeType, Annotations annotations) {
 
   public static ResourceDescriptionBuilder builder() {
     return ResourceDescriptionBuilder.builder();
