@@ -34,7 +34,7 @@ public class AzureOpenAiChatModelProvider implements ChatModelProvider {
 
   @Override
   public String getProviderType() {
-    return AzureOpenAiProviderConfiguration.TYPE;
+    return AzureOpenAiProviderConfiguration.AZURE_OPENAI_ID;
   }
 
   @Override

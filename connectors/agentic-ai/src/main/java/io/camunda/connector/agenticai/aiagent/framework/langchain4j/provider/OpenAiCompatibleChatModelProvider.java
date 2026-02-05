@@ -34,7 +34,7 @@ public class OpenAiCompatibleChatModelProvider implements ChatModelProvider {
 
   @Override
   public String getProviderType() {
-    return OpenAiCompatibleProviderConfiguration.TYPE;
+    return OpenAiCompatibleProviderConfiguration.OPENAI_COMPATIBLE_ID;
   }
 
   @Override

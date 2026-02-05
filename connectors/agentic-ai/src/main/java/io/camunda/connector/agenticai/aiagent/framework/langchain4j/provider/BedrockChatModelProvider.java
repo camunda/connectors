@@ -35,7 +35,7 @@ public class BedrockChatModelProvider implements ChatModelProvider {
 
   @Override
   public String getProviderType() {
-    return BedrockProviderConfiguration.TYPE;
+    return BedrockProviderConfiguration.BEDROCK_ID;
   }
 
   @Override

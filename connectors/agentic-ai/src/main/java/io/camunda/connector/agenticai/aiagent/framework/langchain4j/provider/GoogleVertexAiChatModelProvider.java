@@ -37,7 +37,7 @@ public class GoogleVertexAiChatModelProvider implements ChatModelProvider {
 
   @Override
   public String getProviderType() {
-    return GoogleVertexAiProviderConfiguration.TYPE;
+    return GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID;
   }
 
   @Override
