@@ -83,6 +83,7 @@ def updatedGroups = []
         updatedGroups.add([
             id: "events",
             label: "Event handling",
+            tooltip : "Configure how event sub-process results are handled. Results are added as user messages to the running agent.",
             openByDefault: false
         ])
     }
@@ -179,7 +180,7 @@ def updatedProperties = []
             updatedProperties.add([
                 id: "data.events.behavior",
                 label: "Event handling behavior",
-                description: "Behavior in combination with an event sub-process.",
+                description: "Behavior on completing an event sub-process.",
                 optional: false,
                 value: "WAIT_FOR_TOOL_CALL_RESULTS",
                 constraints: [
@@ -197,7 +198,7 @@ def updatedProperties = []
                         value: "WAIT_FOR_TOOL_CALL_RESULTS"
                     ],
                     [
-                        name: "Interrupt tool calls",
+                        name: "Cancel tool calls",
                         value: "INTERRUPT_TOOL_CALLS"
                     ]
                 ]
