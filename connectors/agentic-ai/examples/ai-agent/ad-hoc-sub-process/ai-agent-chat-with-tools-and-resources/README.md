@@ -23,8 +23,7 @@ registry.
 
 For more information about the MCP test server, including configuration options and available features, see:
 
-- **Repository
-  **: [https://github.com/camunda/mcp/tree/main/mcp-test-server](https://github.com/camunda/mcp/tree/main/mcp-test-server)
+- **Repository**: [https://github.com/camunda/mcp/tree/main/mcp-test-server](https://github.com/camunda/mcp/tree/main/mcp-test-server)
 
 #### Running the MCP Server Locally
 
