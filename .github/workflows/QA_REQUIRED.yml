@@ -35,13 +35,13 @@ jobs:
           app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
           private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
 
-      - name: Add deploy:preview label
+      - name: Add deploy-preview label
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          echo "Adding deploy:preview label to PR #$PR_NUMBER"
-          gh pr edit "$PR_NUMBER" --repo ${{ github.repository }} --add-label "deploy:preview"
+          echo "Adding deploy-preview label to PR #$PR_NUMBER"
+          gh pr edit "$PR_NUMBER" --repo ${{ github.repository }} --add-label "deploy-preview"
 
       - name: Get Project ID and Status Field ID
         id: get-project-info
