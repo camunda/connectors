@@ -43,22 +43,6 @@ jobs:
           echo "Adding deploy:preview label to PR #$PR_NUMBER"
           gh pr edit "$PR_NUMBER" --repo ${{ github.repository }} --add-label "deploy:preview"
 
-      - name: Get PR global ID
-        id: get-pr-id
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          PR_ID=$(gh api graphql -f query='
-            query($owner: String!, $repo: String!, $number: Int!) {
-              repository(owner: $owner, name: $repo) {
-                pullRequest(number: $number) {
-                  id
-                }
-              }
-            }' -f owner='${{ github.repository_owner }}' -f repo='${{ github.event.repository.name }}' -F number=${{ github.event.pull_request.number }} --jq '.data.repository.pullRequest.id')
-          echo "pr_id=$PR_ID" >> $GITHUB_OUTPUT
-          echo "PR Global ID: $PR_ID"
-
       - name: Get Project ID and Status Field ID
         id: get-project-info
         continue-on-error: true
