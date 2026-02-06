@@ -8,7 +8,10 @@ package io.camunda.connector.agenticai.model.tool;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+import io.camunda.connector.agenticai.mcp.client.model.Annotations;
+import io.camunda.connector.agenticai.mcp.client.model.Icon;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import java.util.List;
 import java.util.Map;
 import org.springframework.lang.Nullable;
 
@@ -16,7 +19,13 @@ import org.springframework.lang.Nullable;
 @AgenticAiRecord
 @JsonDeserialize(builder = ToolDefinition.ToolDefinitionJacksonProxyBuilder.class)
 public record ToolDefinition(
-    String name, @Nullable String description, Map<String, Object> inputSchema)
+    String name,
+    @Nullable String description,
+    Map<String, Object> inputSchema,
+    @Nullable String title,
+    @Nullable List<Icon> icons,
+    @Nullable Map<String, Object> outputSchema,
+    @Nullable Annotations annotations)
     implements ToolDefinitionBuilder.With {
 
   public static ToolDefinitionBuilder builder() {

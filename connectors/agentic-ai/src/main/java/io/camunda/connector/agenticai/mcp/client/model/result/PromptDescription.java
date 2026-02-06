@@ -6,9 +6,11 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model.result;
 
+import io.camunda.connector.agenticai.mcp.client.model.Icon;
 import java.util.List;
 
-public record PromptDescription(String name, String description, List<PromptArgument> arguments) {
+public record PromptDescription(
+    String name, String description, List<PromptArgument> arguments, String title, List<Icon> icons) {
 
   public record PromptArgument(String name, String description, boolean required) {}
 }

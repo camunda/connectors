@@ -88,12 +88,14 @@ public class ReadResourceRequest {
           new ResourceData.BlobResourceData(
               blobResourceContents.uri(),
               blobResourceContents.mimeType(),
-              Base64.getDecoder().decode(blobResourceContents.blob()));
+              Base64.getDecoder().decode(blobResourceContents.blob()),
+              McpSdkMapper.mapAnnotations(blobResourceContents.annotations()));
       case McpSchema.TextResourceContents textResourceContents ->
           new ResourceData.TextResourceData(
               textResourceContents.uri(),
               textResourceContents.mimeType(),
-              textResourceContents.text());
+              textResourceContents.text(),
+              McpSdkMapper.mapAnnotations(textResourceContents.annotations()));
     };
   }
 }

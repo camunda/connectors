@@ -307,7 +307,7 @@ class DefaultMcpClientHandlerTest {
                   "resource-1"));
       final var expectedResult =
           new McpClientReadResourceResult(
-              List.of(new ResourceData.TextResourceData("uri", "text/plain", "Sample text")));
+              List.of(new ResourceData.TextResourceData("uri", "text/plain", "Sample text", null)));
 
       when(clientRegistry.getClient(CLIENT_ID)).thenReturn(mcpClient);
       when(clientExecutor.execute(

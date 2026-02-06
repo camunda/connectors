@@ -39,6 +39,9 @@ public record McpClientReadResourceResult(List<ResourceData> contents)
                 .contentType(blobResourceData.mimeType())
                 .build());
     return new ResourceData.CamundaDocumentResourceData(
-        blobResourceData.uri(), blobResourceData.mimeType(), createdDocument);
+        blobResourceData.uri(),
+        blobResourceData.mimeType(),
+        createdDocument,
+        blobResourceData.annotations());
   }
 }

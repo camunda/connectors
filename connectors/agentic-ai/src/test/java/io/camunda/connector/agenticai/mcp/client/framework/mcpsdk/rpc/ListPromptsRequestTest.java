@@ -142,6 +142,6 @@ class ListPromptsRequestTest {
 
   private PromptDescription createPrompt(
       String name, String description, List<PromptDescription.PromptArgument> arguments) {
-    return new PromptDescription(name, description, List.copyOf(arguments));
+    return new PromptDescription(name, description, List.copyOf(arguments), null, null);
   }
 }

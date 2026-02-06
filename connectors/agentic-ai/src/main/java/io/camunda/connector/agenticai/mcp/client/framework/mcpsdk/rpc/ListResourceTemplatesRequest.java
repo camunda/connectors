@@ -54,7 +54,13 @@ final class ListResourceTemplatesRequest {
                 .map(
                     fr ->
                         new ResourceTemplate(
-                            fr.uriTemplate(), fr.name(), fr.description(), fr.mimeType()))
+                            fr.uriTemplate(),
+                            fr.name(),
+                            fr.description(),
+                            fr.mimeType(),
+                            McpSdkMapper.mapAnnotations(fr.annotations()),
+                            fr.title(),
+                            McpSdkMapper.mapIcons(fr.icons())))
                 .toList());
 
     LOGGER.debug(

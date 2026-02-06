@@ -51,6 +51,13 @@ final class ListToolsRequest {
                         .name(tool.name())
                         .description(tool.description())
                         .inputSchema(parseToolParameters(tool.inputSchema()))
+                        .title(tool.title())
+                        .icons(McpSdkMapper.mapIcons(tool.icons()))
+                        .outputSchema(
+                            tool.outputSchema() != null
+                                ? parseToolParameters(tool.outputSchema())
+                                : null)
+                        .annotations(McpSdkMapper.mapAnnotations(tool.annotations()))
                         .build())
             .toList();
 

@@ -46,7 +46,9 @@ final class ListPromptsRequest {
                         new PromptDescription(
                             fr.name(),
                             fr.description(),
-                            fr.arguments().stream().map(this::from).toList()))
+                            fr.arguments().stream().map(this::from).toList(),
+                            null,
+                            null))
                 .toList());
 
     LOGGER.debug(

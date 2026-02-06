@@ -44,11 +44,12 @@ class ReadResourceRequestTest {
     final var response =
         new McpSchema.ReadResourceResult(
             List.of(
-                new McpSchema.TextResourceContents("uri", "text/plain", "text content"),
+                new McpSchema.TextResourceContents("uri", "text/plain", "text content", null),
                 new McpSchema.BlobResourceContents(
                     "uri",
                     "application/octet-stream",
-                    Base64.getEncoder().encodeToString("binary content".getBytes()))));
+                    Base64.getEncoder().encodeToString("binary content".getBytes()),
+                    null)));
 
     when(mcpClient.readResource(new McpSchema.ReadResourceRequest("contents-123")))
         .thenReturn(response);
@@ -61,11 +62,12 @@ class ReadResourceRequestTest {
         .usingRecursiveComparison()
         .isEqualTo(
             List.of(
-                new ResourceData.TextResourceData("uri", "text/plain", "text content"),
+                new ResourceData.TextResourceData("uri", "text/plain", "text content", null),
                 new ResourceData.BlobResourceData(
                     "uri",
                     "application/octet-stream",
-                    "binary content".getBytes(StandardCharsets.UTF_8))));
+                    "binary content".getBytes(StandardCharsets.UTF_8),
+                    null)));
   }
 
   @Test
@@ -75,7 +77,7 @@ class ReadResourceRequestTest {
             new McpSchema.ReadResourceResult(
                 List.of(
                     new McpSchema.TextResourceContents(
-                        "allowed-resource", "text/plain", "content"))));
+                        "allowed-resource", "text/plain", "content", null))));
 
     final var filter = AllowDenyListBuilder.builder().allowed(List.of("allowed-resource")).build();
     final var parameters = Map.<String, Object>of("uri", "allowed-resource");
@@ -91,7 +93,7 @@ class ReadResourceRequestTest {
         .thenReturn(
             new McpSchema.ReadResourceResult(
                 List.of(
-                    new McpSchema.TextResourceContents("safe-resource", "text/plain", "content"))));
+                    new McpSchema.TextResourceContents("safe-resource", "text/plain", "content", null))));
 
     final var filter = AllowDenyListBuilder.builder().denied(List.of("blocked-resource")).build();
     final var parameters = Map.<String, Object>of("uri", "safe-resource");
@@ -210,6 +212,52 @@ class ReadResourceRequestTest {
               assertThat(exception.getMessage())
                   .contains(
                       "Reading resource 'conflicted-resource' is not allowed by filter configuration");
+            });
+  }
+
+  @Test
+  void mapsAnnotations_whenResourceContentsHaveAnnotations() {
+    final Map<String, Object> requestParams = Map.of("uri", "annotated-contents");
+    final var sdkAnnotations =
+        new io.modelcontextprotocol.spec.McpSchema.Annotations(
+            List.of("user"), 0.9, "2025-11-25T12:00:00Z");
+    final var response =
+        new McpSchema.ReadResourceResult(
+            List.of(
+                new McpSchema.TextResourceContents(
+                    "uri", "text/plain", "annotated text", sdkAnnotations),
+                new McpSchema.BlobResourceContents(
+                    "uri",
+                    "application/octet-stream",
+                    Base64.getEncoder().encodeToString("annotated binary".getBytes()),
+                    sdkAnnotations)));
+
+    when(mcpClient.readResource(new McpSchema.ReadResourceRequest("annotated-contents")))
+        .thenReturn(response);
+
+    final var result = testee.execute(mcpClient, EMPTY_FILTER, requestParams);
+
+    assertThat(result.contents()).hasSize(2);
+
+    // Check text resource
+    assertThat(result.contents().get(0))
+        .isInstanceOfSatisfying(
+            ResourceData.TextResourceData.class,
+            textData -> {
+              assertThat(textData.annotations()).isNotNull();
+              assertThat(textData.annotations().audience()).containsExactly("user");
+              assertThat(textData.annotations().priority()).isEqualTo(0.9);
+              assertThat(textData.annotations().lastModified()).isEqualTo("2025-11-25T12:00:00Z");
+            });
+
+    // Check blob resource
+    assertThat(result.contents().get(1))
+        .isInstanceOfSatisfying(
+            ResourceData.BlobResourceData.class,
+            blobData -> {
+              assertThat(blobData.annotations()).isNotNull();
+              assertThat(blobData.annotations().audience()).containsExactly("user");
+              assertThat(blobData.annotations().priority()).isEqualTo(0.9);
             });
   }
 }

@@ -85,12 +85,14 @@ public class ReadResourceRequest {
           new ResourceData.BlobResourceData(
               mcpBlobResourceContents.uri(),
               mcpBlobResourceContents.mimeType(),
-              Base64.getDecoder().decode(mcpBlobResourceContents.blob()));
+              Base64.getDecoder().decode(mcpBlobResourceContents.blob()),
+              null);
       case McpTextResourceContents mcpTextResourceContents ->
           new ResourceData.TextResourceData(
               mcpTextResourceContents.uri(),
               mcpTextResourceContents.mimeType(),
-              mcpTextResourceContents.text());
+              mcpTextResourceContents.text(),
+              null);
     };
   }
 }
