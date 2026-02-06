@@ -25,7 +25,7 @@ jobs:
           secrets: |
             secret/data/products/connectors/ci/common GITHUB_APP_ID;
             secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
-            secret/data/products/connectors/ci/common QA_MANAGER_SLACK_MENTION;
+            secret/data/products/connectors/ci/common CONNECTORS_QA_MANAGER_SLACK_GROUP_ID;
             secret/data/products/connectors/ci/common CONNECTORS_QA_SLACK_CHANNEL_ID;
 
       - name: Generate a GitHub token
@@ -178,7 +178,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "Hi ${{ steps.vault-secrets.outputs.QA_MANAGER_SLACK_MENTION }} :wave:"
+                    "text": "Hi ${{ steps.vault-secrets.outputs.CONNECTORS_QA_MANAGER_SLACK_GROUP_ID }} :wave:"
                   }
                 },
                 {

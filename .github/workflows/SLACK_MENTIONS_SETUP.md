@@ -28,7 +28,7 @@ Used in `DEPLOY_SNAPSHOTS.yaml` to notify the connector medic when the deploy sn
 - If `connector-medic` is a **user group**: `<!subteam^S0123456789>`
 - If it's an **individual user**: `<@U024BE7LH>`
 
-### 3. QA_MANAGER_SLACK_MENTION
+### 3. CONNECTORS_QA_MANAGER_SLACK_GROUP_ID
 Used in `QA_REQUIRED.yml` to notify the QA manager when a PR is ready to be tested.
 
 **Value format:**

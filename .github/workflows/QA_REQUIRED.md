@@ -35,7 +35,7 @@ This workflow automates the QA review process when a pull request is labeled wit
 ### Vault Secrets (stored in HashiCorp Vault)
 - `GITHUB_APP_ID` - GitHub App ID for authentication
 - `GITHUB_APP_PRIVATE_KEY` - GitHub App private key
-- `QA_MANAGER_SLACK_MENTION` - Slack mention string for QA manager (format: `<@USERID>` or `<!subteam^GROUPID>`)
+- `CONNECTORS_QA_MANAGER_SLACK_GROUP_ID` - Slack mention string for QA manager (format: `<@USERID>` or `<!subteam^GROUPID>`)
 - `CONNECTORS_QA_SLACK_CHANNEL_ID` - Slack channel ID for QA notifications (e.g., `C01234567`)
 
 ### GitHub Secrets
