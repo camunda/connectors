@@ -12,8 +12,8 @@ This workflow automates the QA review process when a pull request is labeled wit
 
 ## Steps Performed
 
-1. **Add `deploy:preview` label**
-   - Automatically adds the `deploy:preview` label to trigger preview environment deployment
+1. **Add `deploy-preview` label**
+   - Automatically adds the `deploy-preview` label to trigger preview environment deployment
 
 2. **Update PR status to "In QA"**
    - Uses GitHub GraphQL API to update the PR status in the project board
