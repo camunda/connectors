@@ -47,47 +47,48 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          # Get the project number from the PR - assumes PR is already in a project
-          # Query to find the project and status field
-          PROJECT_INFO=$(gh api graphql -f query='
-            query($owner: String!, $number: Int!) {
-              organization(login: $owner) {
-                projectsV2(first: 10) {
-                  nodes {
-                    id
-                    title
-                    number
-                    items(first: 100) {
-                      nodes {
+          # Extract repo name from full repository path
+          REPO_NAME="${{ github.event.repository.name }}"
+          
+          # Query the PR directly to get its project items
+          PR_INFO=$(gh api graphql -f query='
+            query($organization: String!, $repoName: String!, $prNumber: Int!) {
+              repository(owner: $organization, name: $repoName) {
+                pullRequest(number: $prNumber) {
+                  id
+                  title
+                  number
+                  projectItems(first: 1) {
+                    nodes {
+                      id
+                      project {
                         id
-                        content {
-                          ... on PullRequest {
-                            number
+                        title
+                        field(name: "Status") {
+                          ... on ProjectV2SingleSelectField {
+                            id
+                            options {
+                              id
+                              name
+                            }
                           }
-                        }
-                      }
-                    }
-                    field(name: "Status") {
-                      ... on ProjectV2SingleSelectField {
-                        id
-                        options {
-                          id
-                          name
                         }
                       }
                     }
                   }
                 }
               }
-            }' -f owner='${{ github.repository_owner }}' -F number=${{ github.event.pull_request.number }})
+            }' -f organization='${{ github.repository_owner }}' -f repoName="$REPO_NAME" -F prNumber=${{ github.event.pull_request.number }})
           
-          echo "$PROJECT_INFO" > project_info.json
+          echo "$PR_INFO" > project_info.json
+          echo "Raw PR info:"
+          echo "$PR_INFO" | jq .
           
-          # Find the project that contains this PR
-          PROJECT_ID=$(echo "$PROJECT_INFO" | jq -r '.data.organization.projectsV2.nodes[] | select(.items.nodes[].content.number == ${{ github.event.pull_request.number }}) | .id' | head -1)
-          FIELD_ID=$(echo "$PROJECT_INFO" | jq -r '.data.organization.projectsV2.nodes[] | select(.items.nodes[].content.number == ${{ github.event.pull_request.number }}) | .field.id' | head -1)
-          STATUS_OPTION_ID=$(echo "$PROJECT_INFO" | jq -r '.data.organization.projectsV2.nodes[] | select(.items.nodes[].content.number == ${{ github.event.pull_request.number }}) | .field.options[] | select(.name == "In QA") | .id' | head -1)
-          ITEM_ID=$(echo "$PROJECT_INFO" | jq -r '.data.organization.projectsV2.nodes[] | select(.items.nodes[].content.number == ${{ github.event.pull_request.number }}) | .items.nodes[] | select(.content.number == ${{ github.event.pull_request.number }}) | .id' | head -1)
+          # Extract the project item info from the PR
+          ITEM_ID=$(echo "$PR_INFO" | jq -r '.data.repository.pullRequest.projectItems.nodes[0].id // empty')
+          PROJECT_ID=$(echo "$PR_INFO" | jq -r '.data.repository.pullRequest.projectItems.nodes[0].project.id // empty')
+          FIELD_ID=$(echo "$PR_INFO" | jq -r '.data.repository.pullRequest.projectItems.nodes[0].project.field.id // empty')
+          STATUS_OPTION_ID=$(echo "$PR_INFO" | jq -r '.data.repository.pullRequest.projectItems.nodes[0].project.field.options[] | select(.name == "In QA") | .id' | head -1)
           
           echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
           echo "field_id=$FIELD_ID" >> $GITHUB_OUTPUT
