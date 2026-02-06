@@ -214,11 +214,11 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
   @Test
   void handlesMcpToolCalls() throws IOException {
     when(aMcpClient.callTool(aMcpClientToolExecutionRequestCaptor.capture()))
-        .thenReturn(toolExecutionResult("A MCP Client result"));
+        .thenReturn(mcpCallToolResult("A MCP Client result"));
     when(aHttpRemoteMcpClient.callTool(aHttpRemoteMcpClientToolExecutionRequestCaptor.capture()))
-        .thenReturn(toolExecutionResult("A HTTP Remote MCP Client result"));
+        .thenReturn(mcpCallToolResult("A HTTP Remote MCP Client result"));
     when(aSseRemoteMcpClient.callTool(aSseRemoteMcpClientToolExecutionRequestCaptor.capture()))
-        .thenReturn(toolExecutionResult("A SSE Remote MCP Client result"));
+        .thenReturn(mcpCallToolResult("A SSE Remote MCP Client result"));
 
     final var initialUserPrompt = "Explore some of your MCP tools!";
     final var expectedConversation =
@@ -322,8 +322,7 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
                 toolExecutionRequest -> {
                   assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
                   assertThat(toolExecutionRequest.arguments())
-                      .containsEntry("paramA1", "someValue")
-                      .containsEntry("paramA2", 3);
+                      .containsExactly(entry("paramA1", "someValue"), entry("paramA2", 3));
                 }));
     verify(aHttpRemoteMcpClient)
         .callTool(
@@ -331,7 +330,7 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
                 toolExecutionRequest -> {
                   assertThat(toolExecutionRequest.name()).isEqualTo("toolC");
                   assertThat(toolExecutionRequest.arguments())
-                      .containsEntry("paramC1", "someOtherValue");
+                      .containsExactly(entry("paramC1", "someOtherValue"));
                 }));
     verify(aSseRemoteMcpClient)
         .callTool(
@@ -339,8 +338,7 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
                 toolExecutionRequest -> {
                   assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
                   assertThat(toolExecutionRequest.arguments())
-                      .containsEntry("paramA1", "someValue2")
-                      .containsEntry("paramA2", 6);
+                      .containsExactly(entry("paramA1", "someValue2"), entry("paramA2", 6));
                 }));
 
     verify(chatModel, times(3)).chat(any(ChatRequest.class));
@@ -399,5 +397,11 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
         .usingRecursiveComparison()
         .ignoringFields("name")
         .isEqualTo(Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS.get(2));
+  }
+
+  protected McpSchema.CallToolResult mcpCallToolResult(String resultText) {
+    return McpSchema.CallToolResult.builder()
+        .addContent(new McpSchema.TextContent(resultText))
+        .build();
   }
 }

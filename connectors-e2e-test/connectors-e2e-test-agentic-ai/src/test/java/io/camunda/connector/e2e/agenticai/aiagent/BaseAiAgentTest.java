@@ -31,7 +31,6 @@ import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
 import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import io.modelcontextprotocol.spec.McpSchema;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
@@ -147,11 +146,5 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
 
   protected Map<String, Object> userFollowUpFeedback(String followUp) {
     return Map.of("userSatisfied", false, "followUpUserPrompt", followUp);
-  }
-
-  protected McpSchema.CallToolResult toolExecutionResult(String resultText) {
-    return McpSchema.CallToolResult.builder()
-        .addContent(new McpSchema.TextContent(resultText))
-        .build();
   }
 }
