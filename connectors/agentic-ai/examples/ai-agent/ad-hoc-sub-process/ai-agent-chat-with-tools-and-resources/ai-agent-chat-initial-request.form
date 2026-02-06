@@ -1,0 +1,23 @@
+{
+  "components": [
+    {
+      "label": "How can I help you today?",
+      "type": "textarea",
+      "layout": {
+        "row": "Row_0aav7jn",
+        "columns": null
+      },
+      "id": "Field_12i4zil",
+      "key": "inputText"
+    }
+  ],
+  "type": "default",
+  "id": "ai-agent-chat-initial-request",
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.8.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.43.1"
+  },
+  "schemaVersion": 19
+}
