@@ -172,7 +172,7 @@ jobs:
           method: chat.postMessage
           payload: |
             {
-              "channel": "${{ steps.vault-secrets.outputs.CONNECTORS_QA_SLACK_CHANNEL_ID }}",
+              "channel": ${{ toJson(steps.vault-secrets.outputs.CONNECTORS_QA_SLACK_CHANNEL_ID) }},
               "blocks": [
                 {
                   "type": "section",
