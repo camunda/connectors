@@ -61,6 +61,7 @@ jobs:
 
       - name: Get Project ID and Status Field ID
         id: get-project-info
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
@@ -117,6 +118,7 @@ jobs:
           echo "Item ID: $ITEM_ID"
 
       - name: Update PR status to "In QA"
+        continue-on-error: true
         if: steps.get-project-info.outputs.project_id != '' && steps.get-project-info.outputs.item_id != ''
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
