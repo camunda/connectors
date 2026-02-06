@@ -4,6 +4,10 @@ on:
   pull_request:
     types: [ labeled ]
 
+concurrency:
+  group: qa-required-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   process-qa-label:
     name: Process QA Required Label
@@ -84,11 +88,16 @@ jobs:
           echo "Raw PR info:"
           echo "$PR_INFO" | jq .
           
+          # List all status options to find the correct one
+          echo "Available status options:"
+          echo "$PR_INFO" | jq -r '.data.repository.pullRequest.projectItems.nodes[0].project.field.options[] | "\(.id): \(.name)"'
+          
           # Extract the project item info from the PR
           ITEM_ID=$(echo "$PR_INFO" | jq -r '.data.repository.pullRequest.projectItems.nodes[0].id // empty')
           PROJECT_ID=$(echo "$PR_INFO" | jq -r '.data.repository.pullRequest.projectItems.nodes[0].project.id // empty')
           FIELD_ID=$(echo "$PR_INFO" | jq -r '.data.repository.pullRequest.projectItems.nodes[0].project.field.id // empty')
-          STATUS_OPTION_ID=$(echo "$PR_INFO" | jq -r '.data.repository.pullRequest.projectItems.nodes[0].project.field.options[] | select(.name == "In QA") | .id' | head -1)
+          # Use the known status ID for "In QA" (with emojis)
+          STATUS_OPTION_ID="96fa6798"
           
           echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
           echo "field_id=$FIELD_ID" >> $GITHUB_OUTPUT
@@ -116,21 +125,31 @@ jobs:
           fi
           
           echo "Updating PR status to 'In QA'"
+          echo "Project ID: $PROJECT_ID"
+          echo "Item ID: $ITEM_ID"
+          echo "Field ID: $FIELD_ID"
+          echo "Status Option ID: $STATUS_OPTION_ID"
+          
           gh api graphql -f query='
-            mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $statusOptionId: String!) {
+            mutation($projectItemId: ID!, $statusValue: String!) {
               updateProjectV2ItemFieldValue(input: {
-                projectId: $projectId
-                itemId: $itemId
-                fieldId: $fieldId
+                itemId: $projectItemId,
+                fieldId: "'"$FIELD_ID"'",
                 value: {
-                  singleSelectOptionId: $statusOptionId
-                }
+                  singleSelectOptionId: $statusValue
+                },
+                projectId: "'"$PROJECT_ID"'"
               }) {
                 projectV2Item {
                   id
+                  fieldValueByName(name: "Status") {
+                    ... on ProjectV2ItemFieldSingleSelectValue {
+                      name
+                    }
+                  }
                 }
               }
-            }' -f projectId="$PROJECT_ID" -f itemId="$ITEM_ID" -f fieldId="$FIELD_ID" -f statusOptionId="$STATUS_OPTION_ID"
+            }' -f projectItemId="$ITEM_ID" -f statusValue="$STATUS_OPTION_ID"
 
       - name: Add Szik as assignee
         env:
