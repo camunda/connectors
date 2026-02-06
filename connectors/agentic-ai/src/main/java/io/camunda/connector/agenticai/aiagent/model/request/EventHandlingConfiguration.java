@@ -12,7 +12,7 @@ import jakarta.validation.constraints.NotNull;
 public record EventHandlingConfiguration(
     @TemplateProperty(
             label = "Event handling behavior",
-            description = "Behavior in combination with an event sub-process.",
+            description = "Behavior on completing an event sub-process.",
             group = "events",
             type = TemplateProperty.PropertyType.Dropdown,
             defaultValue = "WAIT_FOR_TOOL_CALL_RESULTS",
@@ -22,7 +22,7 @@ public record EventHandlingConfiguration(
                   label = "Wait for tool call results"),
               @TemplateProperty.DropdownPropertyChoice(
                   value = "INTERRUPT_TOOL_CALLS",
-                  label = "Interrupt tool calls")
+                  label = "Cancel tool calls")
             })
         @NotNull
         EventHandlingBehavior behavior) {
