@@ -2,17 +2,17 @@
 name: QA Required
 on:
   pull_request:
-    types: [ labeled, synchronize ]
+    types: [ labeled ]
 
 jobs:
   process-qa-label:
     name: Process QA Required Label
     runs-on: ubuntu-latest
-    # Only run if the PR has the 'qa:required' label
+    # Only run if the 'qa:required' label was just added
     if: |
       github.event.pull_request.state != 'closed' && 
-      (contains(github.event.label.name, 'qa:required') || contains(github.event.pull_request.labels.*.name, 'qa:required'))
-    
+      github.event.label.name == 'qa:required'
+
     steps:
       - name: Import Secrets
         id: vault-secrets
