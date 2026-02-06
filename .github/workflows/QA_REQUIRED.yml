@@ -2,7 +2,7 @@
 name: QA Required
 on:
   pull_request:
-    types: [labeled, synchronize]
+    types: [ labeled, synchronize ]
 
 jobs:
   process-qa-label:
@@ -25,8 +25,6 @@ jobs:
           secrets: |
             secret/data/products/connectors/ci/common GITHUB_APP_ID;
             secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
-            secret/data/products/connectors/ci/common CONNECTORS_QA_MANAGER_SLACK_GROUP_ID;
-            secret/data/products/connectors/ci/common CONNECTORS_QA_SLACK_CHANNEL_ID;
 
       - name: Generate a GitHub token
         id: app-token
@@ -156,13 +154,13 @@ jobs:
           method: chat.postMessage
           payload: |
             {
-              "channel": ${{ toJson(steps.vault-secrets.outputs.CONNECTORS_QA_SLACK_CHANNEL_ID) }},
+              "channel": "${{ secrets.CONNECTORS_QA_SLACK_CHANNEL_ID }}",
               "blocks": [
                 {
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "Hi ${{ steps.vault-secrets.outputs.CONNECTORS_QA_MANAGER_SLACK_GROUP_ID }} :wave:"
+                    "text": "Hi ${{ secrets.CONNECTORS_QA_MANAGER_SLACK_GROUP_ID }} :wave:"
                   }
                 },
                 {
