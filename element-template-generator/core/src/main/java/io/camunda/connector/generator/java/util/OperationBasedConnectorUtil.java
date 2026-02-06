@@ -68,7 +68,7 @@ public class OperationBasedConnectorUtil {
         .label("Operation")
         .description("The operation to execute")
         .feel(Property.FeelMode.disabled)
-        .value(getOperationId(methods.getFirst().annotation()))
+        .value(getOperationId(methods.get(0).annotation()))
         .group("operation");
   }
 
@@ -179,48 +179,50 @@ public class OperationBasedConnectorUtil {
   private static PropertyCondition mapCondition(PropertyCondition condition, Operation operation) {
     var operationId = getOperationId(operation);
     var operationCondition = new PropertyCondition.Equals(OPERATION_PROPERTY_ID, operationId);
-    return switch (condition) {
-      case null -> new PropertyCondition.AllMatch(List.of(operationCondition));
-      case PropertyCondition.Equals eq ->
-          new PropertyCondition.AllMatch(
-              List.of(operationCondition, mapPropertyCondition(eq, operationId)));
-      case PropertyCondition.IsActive isActive ->
-          new PropertyCondition.AllMatch(
-              List.of(operationCondition, mapPropertyCondition(isActive, operationId)));
-      case PropertyCondition.AllMatch allMatch -> {
-        PropertyCondition.AllMatch allMatchPatched = mapPropertyCondition(allMatch, operationId);
-        allMatchPatched.allMatch().add(operationCondition);
-        yield allMatchPatched;
-      }
-      case PropertyCondition.OneOf oneOf ->
-          new PropertyCondition.AllMatch(
-              List.of(operationCondition, mapPropertyCondition(oneOf, operationId)));
-    };
+    if (condition == null) {
+      return new PropertyCondition.AllMatch(List.of(operationCondition));
+    } else if (condition instanceof PropertyCondition.Equals eq) {
+      return new PropertyCondition.AllMatch(
+          List.of(operationCondition, mapPropertyCondition(eq, operationId)));
+    } else if (condition instanceof PropertyCondition.IsActive isActive) {
+      return new PropertyCondition.AllMatch(
+          List.of(operationCondition, mapPropertyCondition(isActive, operationId)));
+    } else if (condition instanceof PropertyCondition.AllMatch allMatch) {
+      PropertyCondition.AllMatch allMatchPatched = mapPropertyCondition(allMatch, operationId);
+      allMatchPatched.allMatch().add(operationCondition);
+      return allMatchPatched;
+    } else if (condition instanceof PropertyCondition.OneOf oneOf) {
+      return new PropertyCondition.AllMatch(
+          List.of(operationCondition, mapPropertyCondition(oneOf, operationId)));
+    } else {
+      return condition;
+    }
   }
 
   private static <T extends PropertyCondition> T mapPropertyCondition(
       T condition, String operationId) {
-    return (T)
-        switch (condition) {
-          case PropertyCondition.Equals eq ->
-              new PropertyCondition.Equals(
-                  concatenateOperationIdAndPropertyId(operationId, eq.property()), eq.equals());
-          case PropertyCondition.IsActive isActive ->
-              new PropertyCondition.IsActive(
-                  concatenateOperationIdAndPropertyId(operationId, isActive.property()),
-                  isActive.isActive());
-          case PropertyCondition.OneOf oneOf ->
-              new PropertyCondition.OneOf(
-                  concatenateOperationIdAndPropertyId(operationId, oneOf.property()),
-                  oneOf.oneOf());
-          case PropertyCondition.AllMatch allMatch -> {
-            List<PropertyCondition> mappedConditions =
-                allMatch.allMatch().stream()
-                    .map(nested -> mapPropertyCondition(nested, operationId))
-                    .toList();
-            yield new PropertyCondition.AllMatch(mappedConditions);
-          }
-        };
+    if (condition instanceof PropertyCondition.Equals eq) {
+      return (T)
+          new PropertyCondition.Equals(
+              concatenateOperationIdAndPropertyId(operationId, eq.property()), eq.equals());
+    } else if (condition instanceof PropertyCondition.IsActive isActive) {
+      return (T)
+          new PropertyCondition.IsActive(
+              concatenateOperationIdAndPropertyId(operationId, isActive.property()),
+              isActive.isActive());
+    } else if (condition instanceof PropertyCondition.OneOf oneOf) {
+      return (T)
+          new PropertyCondition.OneOf(
+              concatenateOperationIdAndPropertyId(operationId, oneOf.property()), oneOf.oneOf());
+    } else if (condition instanceof PropertyCondition.AllMatch allMatch) {
+      List<PropertyCondition> mappedConditions =
+          allMatch.allMatch().stream()
+              .map(nested -> mapPropertyCondition(nested, operationId))
+              .toList();
+      return (T) new PropertyCondition.AllMatch(mappedConditions);
+    } else {
+      return condition;
+    }
   }
 
   private static String concatenateVariablePathWithName(String variablePath, String name) {
@@ -230,11 +232,14 @@ public class OperationBasedConnectorUtil {
   private static PropertyBinding mapBinding(PropertyBinding propertyBinding, Variable variable) {
     String variableName = getVariableName(variable);
     if (!variableName.isBlank()) {
-      if (propertyBinding instanceof PropertyBinding.ZeebeInput(String name)) {
-        return new PropertyBinding.ZeebeInput(concatenateVariablePathWithName(variableName, name));
-      } else if (propertyBinding instanceof PropertyBinding.ZeebeTaskHeader(String key)) {
+      if (propertyBinding instanceof PropertyBinding.ZeebeInput) {
+        PropertyBinding.ZeebeInput input = (PropertyBinding.ZeebeInput) propertyBinding;
+        return new PropertyBinding.ZeebeInput(
+            concatenateVariablePathWithName(variableName, input.name()));
+      } else if (propertyBinding instanceof PropertyBinding.ZeebeTaskHeader) {
+        PropertyBinding.ZeebeTaskHeader header = (PropertyBinding.ZeebeTaskHeader) propertyBinding;
         return new PropertyBinding.ZeebeTaskHeader(
-            concatenateVariablePathWithName(variableName, key));
+            concatenateVariablePathWithName(variableName, header.key()));
       } else {
         return propertyBinding;
       }

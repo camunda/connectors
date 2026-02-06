@@ -129,16 +129,17 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
     }
     builder.optional(AnnotationProcessor.isOptional(field));
 
-    switch (builder) {
-      case DropdownProperty.DropdownPropertyBuilder ignored -> {}
-      case NumberProperty.NumberPropertyBuilder ignored -> manageFeelMode(annotation, builder);
-      case BooleanProperty.BooleanPropertyBuilder ignored -> manageFeelMode(annotation, builder);
-      default -> {
-        if (annotation.feel() == Property.FeelMode.system_default) {
-          builder.feel(determineDefaultFeelModeBasedOnContext(context));
-        } else {
-          builder.feel(annotation.feel());
-        }
+    if (builder instanceof DropdownProperty.DropdownPropertyBuilder) {
+      // Do nothing
+    } else if (builder instanceof NumberProperty.NumberPropertyBuilder) {
+      manageFeelMode(annotation, builder);
+    } else if (builder instanceof BooleanProperty.BooleanPropertyBuilder) {
+      manageFeelMode(annotation, builder);
+    } else {
+      if (annotation.feel() == Property.FeelMode.system_default) {
+        builder.feel(determineDefaultFeelModeBasedOnContext(context));
+      } else {
+        builder.feel(annotation.feel());
       }
     }
 

@@ -17,12 +17,21 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JA
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverterImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AnthropicChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AzureOpenAiChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.BedrockChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderRegistry;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.GoogleVertexAiChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiCompatibleChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverterImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverterImpl;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
+import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -37,9 +46,58 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ChatModelFactory langchain4JChatModelFactory(
+  public AnthropicChatModelProvider langchain4JAnthropicChatModelProvider(
       AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties) {
-    return new ChatModelFactoryImpl(agenticAiConnectorsConfigurationProperties);
+    return new AnthropicChatModelProvider(agenticAiConnectorsConfigurationProperties);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AzureOpenAiChatModelProvider langchain4JAzureOpenAiChatModelProvider(
+      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties) {
+    return new AzureOpenAiChatModelProvider(agenticAiConnectorsConfigurationProperties);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public BedrockChatModelProvider langchain4JBedrockChatModelProvider(
+      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties) {
+    return new BedrockChatModelProvider(agenticAiConnectorsConfigurationProperties);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public GoogleVertexAiChatModelProvider langchain4JGoogleVertexAiChatModelProvider(
+      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties) {
+    return new GoogleVertexAiChatModelProvider(agenticAiConnectorsConfigurationProperties);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public OpenAiChatModelProvider langchain4JOpenAiChatModelProvider(
+      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties) {
+    return new OpenAiChatModelProvider(agenticAiConnectorsConfigurationProperties);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public OpenAiCompatibleChatModelProvider langchain4JOpenAiCompatibleChatModelProvider(
+      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties) {
+    return new OpenAiCompatibleChatModelProvider(agenticAiConnectorsConfigurationProperties);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ChatModelProviderRegistry langchain4JChatModelProviderRegistry(
+      List<ChatModelProvider> chatModelProviders) {
+    return new ChatModelProviderRegistry(chatModelProviders);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ChatModelFactory langchain4JChatModelFactory(
+      ChatModelProviderRegistry chatModelProviderRegistry) {
+    return new ChatModelFactoryImpl(chatModelProviderRegistry);
   }
 
   @Bean

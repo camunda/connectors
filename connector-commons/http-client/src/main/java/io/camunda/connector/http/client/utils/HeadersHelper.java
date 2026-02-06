@@ -25,7 +25,7 @@ public class HeadersHelper {
     return headers.entrySet().stream()
         .filter(e -> e.getKey().equalsIgnoreCase(headerName))
         .map(Map.Entry::getValue)
-        .map(List::getFirst)
+        .map(list -> list.get(0))
         .map(Object::toString)
         .findFirst()
         .orElse(null);
@@ -60,7 +60,7 @@ public class HeadersHelper {
                   if (values == null || values.isEmpty()) {
                     return "";
                   } else if (values.size() == 1) {
-                    return values.getFirst();
+                    return values.get(0);
                   } else {
                     return values;
                   }

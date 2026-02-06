@@ -279,27 +279,23 @@ public class TemplatePropertiesUtil {
 
   private static PropertyCondition addConditionPrefix(
       PropertyCondition condition, String path, String discriminatorPropertyId) {
-    switch (condition) {
-      case AllMatch allMatchCondition -> {
-        return new AllMatch(
-            allMatchCondition.allMatch().stream()
-                .map(
-                    subCondition -> addConditionPrefix(subCondition, path, discriminatorPropertyId))
-                .toList());
+    if (condition instanceof AllMatch allMatchCondition) {
+      return new AllMatch(
+          allMatchCondition.allMatch().stream()
+              .map(subCondition -> addConditionPrefix(subCondition, path, discriminatorPropertyId))
+              .toList());
+    } else if (condition instanceof Equals equalsCondition) {
+      if (!equalsCondition.property().equals(discriminatorPropertyId)) {
+        return equalsCondition;
       }
-      case Equals equalsCondition -> {
-        if (!equalsCondition.property().equals(discriminatorPropertyId)) {
-          return equalsCondition;
-        }
-        return new Equals(path + "." + equalsCondition.property(), equalsCondition.equals());
+      return new Equals(path + "." + equalsCondition.property(), equalsCondition.equals());
+    } else if (condition instanceof OneOf oneOfCondition) {
+      if (!oneOfCondition.property().equals(discriminatorPropertyId)) {
+        return oneOfCondition;
       }
-      case OneOf oneOfCondition -> {
-        if (!oneOfCondition.property().equals(discriminatorPropertyId)) {
-          return oneOfCondition;
-        }
-        return new OneOf(path + "." + oneOfCondition.property(), oneOfCondition.oneOf());
-      }
-      default -> throw new IllegalStateException("Unknown condition type: " + condition.getClass());
+      return new OneOf(path + "." + oneOfCondition.property(), oneOfCondition.oneOf());
+    } else {
+      throw new IllegalStateException("Unknown condition type: " + condition.getClass());
     }
   }
 
@@ -398,10 +394,13 @@ public class TemplatePropertiesUtil {
   }
 
   public static boolean isOutbound(TemplateGenerationContext context) {
-    return switch (context) {
-      case TemplateGenerationContext.Inbound unused -> false;
-      case Outbound unused -> true;
-    };
+    if (context instanceof TemplateGenerationContext.Inbound) {
+      return false;
+    } else if (context instanceof Outbound) {
+      return true;
+    } else {
+      throw new IllegalArgumentException("Unknown context type: " + context);
+    }
   }
 
   private static List<PropertyBuilder> handleSealedType(

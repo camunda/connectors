@@ -33,24 +33,27 @@ public class DocumentHelper {
    * @param transformer the transformer to apply to each document (e.g. convert to Base64 etc)
    */
   public Object parseDocumentsInBody(Object input, Function<Document, Object> transformer) {
-    return switch (input) {
-      case Map<?, ?> map ->
-          map.entrySet().stream()
-              .filter(e -> e.getValue() != null)
-              .map(
-                  (Map.Entry<?, ?> e) ->
-                      new AbstractMap.SimpleEntry<>(
-                          e.getKey(), parseDocumentsInBody(e.getValue(), transformer)))
-              .collect(
-                  Collectors.toMap(
-                      AbstractMap.SimpleEntry::getKey,
-                      AbstractMap.SimpleEntry::getValue,
-                      (a, b) -> b,
-                      () -> new HashMap<>(map)));
-      case Collection list -> list.stream().map(o -> parseDocumentsInBody(o, transformer)).toList();
-      case Document doc -> transformer.apply(doc);
-      case null -> null;
-      default -> input;
-    };
+    if (input instanceof Map<?, ?> map) {
+      return map.entrySet().stream()
+          .filter(e -> e.getValue() != null)
+          .map(
+              (Map.Entry<?, ?> e) ->
+                  new AbstractMap.SimpleEntry<>(
+                      e.getKey(), parseDocumentsInBody(e.getValue(), transformer)))
+          .collect(
+              Collectors.toMap(
+                  AbstractMap.SimpleEntry::getKey,
+                  AbstractMap.SimpleEntry::getValue,
+                  (a, b) -> b,
+                  () -> new HashMap<>(map)));
+    } else if (input instanceof Collection list) {
+      return list.stream().map(o -> parseDocumentsInBody(o, transformer)).toList();
+    } else if (input instanceof Document doc) {
+      return transformer.apply(doc);
+    } else if (input == null) {
+      return null;
+    } else {
+      return input;
+    }
   }
 }

@@ -56,7 +56,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
   @Override
   public dev.langchain4j.data.message.SystemMessage fromSystemMessage(SystemMessage systemMessage) {
     if (systemMessage.content().size() == 1
-        && systemMessage.content().getFirst() instanceof TextContent textContent) {
+        && systemMessage.content().get(0) instanceof TextContent textContent) {
       return new dev.langchain4j.data.message.SystemMessage(textContent.text());
     }
 
@@ -103,7 +103,7 @@ public class ChatMessageConverterImpl implements ChatMessageConverter {
 
     if (!CollectionUtils.isEmpty(assistantMessage.content())) {
       if (assistantMessage.content().size() != 1
-          || !(assistantMessage.content().getFirst() instanceof TextContent textContent)) {
+          || !(assistantMessage.content().get(0) instanceof TextContent textContent)) {
         throw new IllegalArgumentException(
             "AiMessage currently only supports a single TextContent block, %d content blocks found instead."
                 .formatted(assistantMessage.content().size()));

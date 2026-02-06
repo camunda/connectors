@@ -64,6 +64,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProvi
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.*;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import java.net.URI;
 import java.time.Duration;
@@ -97,14 +98,24 @@ class ChatModelFactoryTest {
   private static final TimeoutConfiguration MODEL_TIMEOUT =
       new TimeoutConfiguration(Duration.ofSeconds(30));
 
+  private static final AgenticAiConnectorsConfigurationProperties configProperties =
+      new AgenticAiConnectorsConfigurationProperties(
+          null,
+          new AgenticAiConnectorsConfigurationProperties.AiAgentProperties(
+              new AgenticAiConnectorsConfigurationProperties.ChatModelProperties(
+                  new AgenticAiConnectorsConfigurationProperties.ChatModelProperties
+                      .ApiProperties(Duration.ofMinutes(3)))));
+
   private final ChatModelFactory chatModelFactory =
       new ChatModelFactoryImpl(
-          new AgenticAiConnectorsConfigurationProperties(
-              null,
-              new AgenticAiConnectorsConfigurationProperties.AiAgentProperties(
-                  new AgenticAiConnectorsConfigurationProperties.ChatModelProperties(
-                      new AgenticAiConnectorsConfigurationProperties.ChatModelProperties
-                          .ApiProperties(Duration.ofMinutes(3))))));
+          new ChatModelProviderRegistry(
+              List.of(
+                  new AnthropicChatModelProvider(configProperties),
+                  new AzureOpenAiChatModelProvider(configProperties),
+                  new BedrockChatModelProvider(configProperties),
+                  new GoogleVertexAiChatModelProvider(configProperties),
+                  new OpenAiChatModelProvider(configProperties),
+                  new OpenAiCompatibleChatModelProvider(configProperties))));
 
   static Stream<TimeoutConfiguration> defaultTimeoutYieldingConfigs() {
     return Stream.of(
