@@ -9,11 +9,14 @@ package io.camunda.connector.agenticai.aiagent.model;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import io.soabase.recordbuilder.core.RecordBuilder;
 import java.util.Objects;
 
 @AgenticAiRecord
 @JsonDeserialize(builder = AgentMetrics.AgentMetricsJacksonProxyBuilder.class)
-public record AgentMetrics(int modelCalls, TokenUsage tokenUsage)
+public record AgentMetrics(
+    int modelCalls,
+    @RecordBuilder.Initializer(source = TokenUsage.class, value = "empty") TokenUsage tokenUsage)
     implements AgentMetricsBuilder.With {
   public AgentMetrics {
     if (modelCalls < 0) {
@@ -36,7 +39,7 @@ public record AgentMetrics(int modelCalls, TokenUsage tokenUsage)
   }
 
   public static AgentMetricsBuilder builder() {
-    return AgentMetricsBuilder.builder().tokenUsage(TokenUsage.empty());
+    return AgentMetricsBuilder.builder();
   }
 
   @JsonPOJOBuilder(withPrefix = "")
