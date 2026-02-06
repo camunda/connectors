@@ -21,6 +21,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+import static io.camunda.connector.e2e.agenticai.BpmnUtil.serviceTasksByType;
+import static io.camunda.connector.e2e.agenticai.BpmnUtil.updateInputMappings;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -44,10 +46,6 @@ import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import io.camunda.zeebe.model.bpmn.instance.ServiceTask;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeIoMapping;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -360,7 +358,15 @@ public class McpStandaloneLangchain4JTests extends BaseAgenticAiTest {
       throws IOException {
     BpmnModelInstance bpmnModel =
         Bpmn.readModelFromStream(new ClassPathResource(processDefinitionFilePath).getInputStream());
-    setRemoteMcpClientUrl(bpmnModel, wireMock.baseUrl() + "/mcp");
+
+    serviceTasksByType(bpmnModel, type -> type.startsWith("io.camunda.agenticai:mcpremoteclient"))
+        .forEach(
+            mcpRemoteClient ->
+                updateInputMappings(
+                    bpmnModel,
+                    mcpRemoteClient,
+                    Map.of("data.transport.http.url", wireMock.baseUrl() + "/mcp")));
+
     return bpmnModel;
   }
 
@@ -371,43 +377,5 @@ public class McpStandaloneLangchain4JTests extends BaseAgenticAiTest {
     ZeebeTest zeebeTest = createProcessInstance(model, variables).waitForProcessCompletion();
 
     assertion.accept(zeebeTest.getProcessInstanceEvent());
-  }
-
-  private void setRemoteMcpClientUrl(BpmnModelInstance bpmnModel, String url) {
-    updateServiceTaskInput(bpmnModel, url);
-  }
-
-  private void updateServiceTaskInput(BpmnModelInstance bpmnModel, String value) {
-    var serviceTasks =
-        bpmnModel.getModelElementsByType(ServiceTask.class).stream()
-            .filter(
-                st -> {
-                  var taskDefinition = st.getSingleExtensionElement(ZeebeTaskDefinition.class);
-                  var type = taskDefinition.getType();
-
-                  return type != null && type.startsWith("io.camunda.agenticai:mcpremoteclient");
-                })
-            .toList();
-    assertThat(serviceTasks).isNotEmpty();
-
-    serviceTasks.forEach(
-        serviceTask -> {
-          ZeebeIoMapping ioMapping = serviceTask.getSingleExtensionElement(ZeebeIoMapping.class);
-          assertThat(ioMapping).isNotNull();
-
-          final var inputMapping =
-              ioMapping.getChildElementsByType(ZeebeInput.class).stream()
-                  .filter(input -> "data.transport.http.url".equals(input.getTarget()))
-                  .findFirst()
-                  .orElseGet(
-                      () -> {
-                        final var im = bpmnModel.newInstance(ZeebeInput.class);
-                        im.setTarget("data.transport.http.url");
-                        ioMapping.addChildElement(im);
-                        return im;
-                      });
-
-          inputMapping.setSource(value);
-        });
   }
 }
