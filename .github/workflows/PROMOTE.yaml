@@ -1,0 +1,426 @@
+name: Promote RC to final release
+run-name: Promote ${{ inputs.rc-version }} to final release
+
+on:
+  workflow_dispatch:
+    inputs:
+      rc-version:
+        description: 'RC version to promote (e.g., 8.7.0-rc1). The final version will be derived automatically.'
+        required: true
+        type: string
+      latest:
+        description: 'Mark this release as latest (push latest docker tags & mark GitHub release latest)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+
+  validate-and-derive-version:
+    name: Validate RC and derive final version
+    runs-on: ubuntu-latest
+    outputs:
+      final-version: ${{ steps.derive.outputs.final-version }}
+      rc-commit: ${{ steps.get-commit.outputs.rc-commit }}
+    steps:
+      - name: Check version contains 'rc'
+        run: |
+          if [[ ! "${{ inputs.rc-version }}" == *"rc"* ]]; then
+            echo "::error::Version '${{ inputs.rc-version }}' is not an RC version."
+            exit 1
+          fi
+          echo "Version '${{ inputs.rc-version }}' is a valid RC version."
+
+      - name: Derive final version
+        id: derive
+        run: |
+          RC_VERSION="${{ inputs.rc-version }}"
+          # Remove -rcX suffix to get the final version
+          FINAL_VERSION=$(echo "$RC_VERSION" | sed 's/-rc[0-9]*$//')
+          echo "Derived final version: $FINAL_VERSION from RC: $RC_VERSION"
+          echo "final-version=$FINAL_VERSION" >> $GITHUB_OUTPUT
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.rc-version }}
+          fetch-depth: 0
+
+      - name: Get RC commit SHA
+        id: get-commit
+        run: |
+          RC_COMMIT=$(git rev-parse HEAD)
+          echo "RC commit: $RC_COMMIT"
+          echo "rc-commit=$RC_COMMIT" >> $GITHUB_OUTPUT
+
+  create-final-release:
+    name: Create GitHub Release for final version
+    needs: validate-and-derive-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.rc-version }}
+          fetch-depth: 0
+
+      - name: Create final version tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -fa ${{ needs.validate-and-derive-version.outputs.final-version }} -m "ci: release version ${{ needs.validate-and-derive-version.outputs.final-version }}"
+          git push --force origin ${{ needs.validate-and-derive-version.outputs.final-version }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.validate-and-derive-version.outputs.final-version }}
+          name: ${{ needs.validate-and-derive-version.outputs.final-version }}
+          draft: false
+          prerelease: false
+          make_latest: ${{ inputs.latest && 'true' || 'false' }}
+          generate_release_notes: false
+          target_commitish: ${{ needs.validate-and-derive-version.outputs.rc-commit }}
+          body: |
+            ## 🚧 Release in Progress
+            
+            This release is currently being promoted from ${{ inputs.rc-version }}.
+            
+            **Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            This message will be replaced with the full changelog once the release process completes.
+
+  maven-release:
+    needs: [validate-and-derive-version, create-final-release]
+    name: Deploy to Maven Central and Artifactory
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Log Maven release status
+        run: |
+          echo "Deploying final version ${{ needs.validate-and-derive-version.outputs.final-version }} to Artifactory and Maven Central"
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.validate-and-derive-version.outputs.final-version }}
+          fetch-depth: 0
+
+      - name: Prepare Java and Maven settings
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21.0.9'
+
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common ARTIFACTORY_USR;
+            secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_USR;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_PSW;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC;
+
+      - name: Import GPG key
+        id: import_gpg
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC }}
+          passphrase: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
+
+      - name: 'Create settings.xml'
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
+               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
+             },
+            {
+               "id": "central",
+               "username": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}",
+               "password": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}"
+             }
+            ]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+
+      - name: Restore cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Set final version in pom.xml
+        run: mvn -B versions:set -DnewVersion=${{ needs.validate-and-derive-version.outputs.final-version }} -DgenerateBackupPoms=false -f parent
+
+      - name: Deploy artifacts to Artifactory and Maven Central
+        run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded
+        env:
+          NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
+          NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
+          MAVEN_USR: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}
+          MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
+          MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
+
+  docker-retag:
+    needs: [validate-and-derive-version, create-final-release]
+    runs-on: ubuntu-latest
+    name: Retag Docker images from RC to final
+    permissions:
+      contents: read
+    steps:
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common DOCKERHUB_USER;
+            secret/data/products/connectors/ci/common DOCKERHUB_PASSWORD;
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
+          password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
+
+      - name: Retag connector-runtime
+        run: |
+          docker pull camunda/connectors:${{ inputs.rc-version }}
+          docker tag camunda/connectors:${{ inputs.rc-version }} camunda/connectors:${{ needs.validate-and-derive-version.outputs.final-version }}
+          docker push camunda/connectors:${{ needs.validate-and-derive-version.outputs.final-version }}
+
+      - name: Retag bundle-default
+        run: |
+          docker pull camunda/connectors-bundle:${{ inputs.rc-version }}
+          docker tag camunda/connectors-bundle:${{ inputs.rc-version }} camunda/connectors-bundle:${{ needs.validate-and-derive-version.outputs.final-version }}
+          docker push camunda/connectors-bundle:${{ needs.validate-and-derive-version.outputs.final-version }}
+
+      - name: Retag bundle-saas
+        run: |
+          docker pull camunda/connectors-bundle-saas:${{ inputs.rc-version }}
+          docker tag camunda/connectors-bundle-saas:${{ inputs.rc-version }} camunda/connectors-bundle-saas:${{ needs.validate-and-derive-version.outputs.final-version }}
+          docker push camunda/connectors-bundle-saas:${{ needs.validate-and-derive-version.outputs.final-version }}
+
+      # Push latest tags if requested
+      - name: Push latest tag - connector-runtime
+        if: ${{ inputs.latest }}
+        run: |
+          docker tag camunda/connectors:${{ needs.validate-and-derive-version.outputs.final-version }} camunda/connectors:latest
+          docker push camunda/connectors:latest
+
+      - name: Push latest tag - bundle-default
+        if: ${{ inputs.latest }}
+        run: |
+          docker tag camunda/connectors-bundle:${{ needs.validate-and-derive-version.outputs.final-version }} camunda/connectors-bundle:latest
+          docker push camunda/connectors-bundle:latest
+
+      - name: Push latest tag - bundle-saas
+        if: ${{ inputs.latest }}
+        run: |
+          docker tag camunda/connectors-bundle-saas:${{ needs.validate-and-derive-version.outputs.final-version }} camunda/connectors-bundle-saas:latest
+          docker push camunda/connectors-bundle-saas:latest
+
+      # Update README in Dockerhub
+      - uses: actions/checkout@v6
+        if: ${{ inputs.latest }}
+        with:
+          ref: ${{ needs.validate-and-derive-version.outputs.final-version }}
+          sparse-checkout: bundle/README.md
+
+      - name: Push README to Dockerhub - bundle-default
+        if: ${{ inputs.latest }}
+        uses: christian-korneck/update-container-description-action@v1
+        env:
+          DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
+          DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
+        with:
+          destination_container_repo: camunda/connectors-bundle
+          provider: dockerhub
+          readme_file: bundle/README.md
+          short_description: 'Camunda out-of-the-box Connectors Bundle'
+
+      - name: Push README to Dockerhub - bundle-saas
+        if: ${{ inputs.latest }}
+        uses: christian-korneck/update-container-description-action@v1
+        env:
+          DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
+          DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
+        with:
+          destination_container_repo: camunda/connectors-bundle-saas
+          provider: dockerhub
+          readme_file: bundle/README.md
+          short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
+
+  bundle-and-build-changelog:
+    needs: [validate-and-derive-version, create-final-release]
+    name: Bundle and generate changelogs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.validate-and-derive-version.outputs.final-version }}
+          fetch-depth: 0
+
+      - name: Install asdf & tools
+        uses: asdf-vm/actions/install@v4
+
+      - name: Install element templates CLI
+        run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
+
+      - name: Identify previous release version
+        id: prev_version
+        uses: camunda/infra-global-github-actions/previous-version@main
+        with:
+          version: "${{ needs.validate-and-derive-version.outputs.final-version }}"
+          verbose: 'false'
+
+      - name: Bundle element templates
+        run: bash bundle/bundle-templates.sh ${{ needs.validate-and-derive-version.outputs.final-version }}
+
+      - name: Build Changelog
+        id: changelog
+        uses: Requarks/changelog-action@v1
+        with:
+          token: ${{ github.token }}
+          fromTag: ${{ needs.validate-and-derive-version.outputs.final-version }}
+          toTag: ${{ steps.prev_version.outputs.previous_version }}
+          writeToFile: false
+          excludeTypes: build,docs,other,style,ci
+          excludeScopes: deps
+
+      - name: Generate sbom reports
+        run: |
+          mvn cyclonedx:makeAggregateBom -pl bundle/default-bundle
+
+      - name: Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: false
+          make_latest: ${{ inputs.latest && 'true' || 'false' }}
+          body: ${{ steps.changelog.outputs.changes }}
+          tag_name: ${{ needs.validate-and-derive-version.outputs.final-version }}
+          files: |
+            bundle/default-bundle/target/connectors-bundle-sbom.json
+            bundle/default-bundle/target/connectors-bundle-sbom.xml
+            connectors-bundle-templates-${{ needs.validate-and-derive-version.outputs.final-version }}.tar.gz
+            connectors-bundle-templates-${{ needs.validate-and-derive-version.outputs.final-version }}.zip
+
+  version-bump-docs-links:
+    needs: [validate-and-derive-version, maven-release, docker-retag, bundle-and-build-changelog]
+    name: Version bump documentation links, if this is the first minor release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Fetch main branch
+        run: git fetch origin main
+
+      - name: Configure git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Determine if first minor release
+        id: version_check
+        env:
+          VERSION: ${{ needs.validate-and-derive-version.outputs.final-version }}
+        run: |
+          if [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.0$ ]]; then
+            major="${BASH_REMATCH[1]}"
+            minor="${BASH_REMATCH[2]}"
+            current_minor="${major}.${minor}"
+            previous_minor="${major}.$((minor - 1))"
+          
+            echo "Version $VERSION matches first minor release pattern (x.y.0)"
+            echo "is_first_minor=true" >> $GITHUB_OUTPUT
+            echo "current_minor=${current_minor}" >> $GITHUB_OUTPUT
+            echo "previous_minor=${previous_minor}" >> $GITHUB_OUTPUT
+          else
+            echo "Version $VERSION does NOT match first minor release pattern - skipping docs version bump"
+            echo "is_first_minor=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Collect connector template links
+        if: steps.version_check.outputs.is_first_minor == 'true'
+        run: |
+          chmod +x ./.github/workflows/scripts/version_bump_all_element_templates_docs_links_versions.sh
+          ./.github/workflows/scripts/version_bump_all_element_templates_docs_links_versions.sh ${{ steps.version_check.outputs.previous_minor }} ${{ steps.version_check.outputs.current_minor }}
+        shell: bash
+
+      - name: Create pull request to main branch
+        if: steps.version_check.outputs.is_first_minor == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: chore/version-bump-docs-links
+          commit-message: "ci: bump docs version from ${{ steps.version_check.outputs.previous_minor }} to ${{ steps.version_check.outputs.current_minor }}"
+          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          base: main
+          title: "chore(docs-links): bump versions from ${{ steps.version_check.outputs.previous_minor }} to ${{ steps.version_check.outputs.current_minor }}"
+          labels: "no milestone"
+          body: |
+            This bumps docs version of latest's element templates of a connector to latest minor version.
+
+  notify-prs-released:
+    name: Notify PRs that they have been released
+    needs:
+      - validate-and-derive-version
+      - maven-release
+      - docker-retag
+      - bundle-and-build-changelog
+    uses: ./.github/workflows/NOTIFY_PRS_RELEASED.yml
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    if: |
+      needs.validate-and-derive-version.result == 'success' &&
+      needs.maven-release.result == 'success' &&
+      needs.docker-retag.result == 'success' &&
+      needs.bundle-and-build-changelog.result == 'success'
+    with:
+      version: ${{ needs.validate-and-derive-version.outputs.final-version }}
+
+  notify-failure:
+    name: Notify on failure
+    runs-on: ubuntu-latest
+    needs: [validate-and-derive-version, create-final-release, maven-release, docker-retag, bundle-and-build-changelog, version-bump-docs-links]
+    if: failure()
+    steps:
+      - name: Send Slack notification on failure
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          method: chat.postMessage
+          payload: |
+            {
+              "channel": "${{ secrets.CONNECTORS_QA_SLACK_CHANNEL_ID }}",
+              "text": ":alarm: ${{ secrets.CONNECTORS_RELEASE_MANAGER_SLACK_GROUP_ID }} Promote workflow failed for RC version `${{ inputs.rc-version }}` (final: `${{ needs.validate-and-derive-version.outputs.final-version }}`).\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
+

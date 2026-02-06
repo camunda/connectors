@@ -1,11 +1,11 @@
-name: Release a new version
-run-name: Release a new version ${{ inputs.version }}
+name: Release a new RC version
+run-name: Release a new RC version ${{ inputs.version }}
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release (e.g., 8.7.0, 8.7.1). Make sure to select the correct branch.'
+        description: 'RC version to release (e.g., 8.7.0-rc1, 8.7.1-rc2). Make sure to select the correct branch.'
         required: true
         type: string
       skip-maven-release:
@@ -18,16 +18,25 @@ on:
         required: false
         type: boolean
         default: false
-      latest:
-        description: 'Mark this release as latest (push latest docker tags & mark GitHub release latest)'
-        required: false
-        type: boolean
-        default: false
 
 jobs:
 
+  validate-rc-version:
+    name: Validate RC version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check version contains 'rc'
+        run: |
+          if [[ ! "${{ inputs.version }}" == *"rc"* ]]; then
+            echo "::error::Version '${{ inputs.version }}' is not an RC version. This workflow only handles RC releases."
+            echo "::error::For final releases, use the PROMOTE.yaml workflow to promote an existing RC."
+            exit 1
+          fi
+          echo "Version '${{ inputs.version }}' is a valid RC version."
+
   create-release:
     name: Create GitHub Release
+    needs: validate-rc-version
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -43,8 +52,8 @@ jobs:
           tag_name: ${{ inputs.version }}
           name: ${{ inputs.version }}
           draft: false
-          prerelease: false
-          make_latest: ${{ inputs.latest && 'true' || 'false' }}
+          prerelease: true
+          make_latest: false
           generate_release_notes: false
           target_commitish: ${{ github.ref }}
           body: |
@@ -168,66 +177,6 @@ jobs:
           include-hidden-files: 'true'
 
 
-  version-bump-docs-links:
-    needs: setup
-    name: Version bump documentation links, if this is the first minor release
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Fetch main branch
-        run: git fetch origin main
-
-      - name: Configure git user
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Determine if first minor release
-        id: version_check
-        env:
-          VERSION: ${{ inputs.version }}  # e.g. "8.8.0"
-        run: |
-          if [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.0$ ]]; then
-            major="${BASH_REMATCH[1]}"
-            minor="${BASH_REMATCH[2]}"
-            current_minor="${major}.${minor}"
-            previous_minor="${major}.$((minor - 1))"
-          
-            echo "Version $VERSION matches first minor release pattern (x.y.0)"
-            echo "is_first_minor=true" >> $GITHUB_OUTPUT
-            echo "current_minor=${current_minor}" >> $GITHUB_OUTPUT
-            echo "previous_minor=${previous_minor}" >> $GITHUB_OUTPUT
-          else
-            echo "Version $VERSION does NOT match first minor release pattern - skipping docs version bump"
-            echo "is_first_minor=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Collect connector template links
-        if: steps.version_check.outputs.is_first_minor == 'true'
-        run: |
-          chmod +x ./.github/workflows/scripts/version_bump_all_element_templates_docs_links_versions.sh
-          ./.github/workflows/scripts/version_bump_all_element_templates_docs_links_versions.sh ${{ steps.version_check.outputs.previous_minor }} ${{ steps.version_check.outputs.current_minor }}
-        shell: bash
-
-      - name: Create pull request to main branch
-        if: steps.version_check.outputs.is_first_minor == 'true'
-        uses: peter-evans/create-pull-request@v8
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: chore/version-bump-docs-links
-          commit-message: "ci: bump docs version from ${{ steps.version_check.outputs.previous_minor }} to ${{ steps.version_check.outputs.current_minor }}"
-          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
-          base: main
-          title: "chore(docs-links): bump versions from ${{ steps.version_check.outputs.previous_minor }} to ${{ steps.version_check.outputs.current_minor }}"
-          body: |
-            This bumps docs version of latest's element templates of a connector to latest minor version.
 
   maven-release:
     needs: setup
@@ -240,6 +189,7 @@ jobs:
       - name: Log Maven release status
         run: |
           echo "Maven release is enabled (skip-maven-release: ${{ inputs.skip-maven-release }})"
+          echo "Deploying RC version to Artifactory only"
 
       - name: Download repository
         uses: actions/download-artifact@v7
@@ -264,8 +214,6 @@ jobs:
           secrets: |
             secret/data/products/connectors/ci/common ARTIFACTORY_USR;
             secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
-            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_USR;
-            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_PSW;
             secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE;
             secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC;
 
@@ -285,11 +233,6 @@ jobs:
                "id": "camunda-nexus",
                "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
                "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
-             },
-            {
-               "id": "central",
-               "username": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}",
-               "password": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}"
              }
             ]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
@@ -302,32 +245,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - name: Log Maven deployment target
-        run: |
-          if [[ "${{ inputs.version }}" == *"rc"* ]]; then
-            echo "Version contains 'rc' - deploying to Artifactory only"
-          else
-            echo "Version does not contain 'rc' - deploying to Artifactory and Maven Central (Staging)"
-          fi
-
-      - name: Deploy artifacts to Artifactory and Maven Central (Staging)
-        if: "! contains(inputs.version, 'rc')"
-        run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded
-        env:
-          NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
-          NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
-          MAVEN_USR: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}
-          MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
-          MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
-
       - name: Deploy artifacts to Artifactory
-        if: "contains(inputs.version, 'rc')"
         run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true -Pe2eExcluded
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
-          MAVEN_USR: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}
-          MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
   docker-release:
@@ -411,73 +333,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           provenance: false
 
-      # Build & push bundle docker images (with 'latest' tag)
-
-      - name: Log latest tag push decision
-        run: |
-          echo "Tag type: ${{ needs.setup.outputs.tagType }}"
-          echo "Latest input: ${{ inputs.latest }}"
-          if [[ "${{ inputs.latest }}" == "true" && "${{ needs.setup.outputs.tagType }}" == "NORMAL" ]]; then
-            echo "Will push 'latest' tags for all images"
-          else
-            echo "Will NOT push 'latest' tags (either latest not requested or not a NORMAL release)"
-          fi
-
-      - name: Build and Push Docker Image tag latest - connector-runtime
-        if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
-        uses: docker/build-push-action@v6
-        with:
-          context: connector-runtime/connector-runtime-application/
-          push: true
-          tags: camunda/connectors:latest
-          platforms: linux/amd64,linux/arm64
-          provenance: false
-
-      - name: Build and Push Docker Image tag latest - bundle-default
-        if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
-        uses: docker/build-push-action@v6
-        with:
-          context: bundle/default-bundle/
-          push: true
-          tags: camunda/connectors-bundle:latest
-          platforms: linux/amd64,linux/arm64
-          provenance: false
-
-      - name: Build and Push Docker Image tag latest - bundle-saas
-        if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
-        uses: docker/build-push-action@v6
-        with:
-          context: bundle/camunda-saas-bundle/
-          push: true
-          tags: camunda/connectors-bundle-saas:latest
-          platforms: linux/amd64,linux/arm64
-          provenance: false
-
-      # Update README in Dockerhub
-
-      - name: Push README to Dockerhub - bundle-default
-        if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
-        uses: christian-korneck/update-container-description-action@v1
-        env:
-          DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
-          DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
-        with:
-          destination_container_repo: camunda/connectors-bundle
-          provider: dockerhub
-          readme_file: bundle/README.md
-          short_description: 'Camunda out-of-the-box Connectors Bundle'
-
-      - name: Push README to Dockerhub - bundle-saas
-        if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
-        uses: christian-korneck/update-container-description-action@v1
-        env:
-          DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
-          DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
-        with:
-          destination_container_repo: camunda/connectors-bundle-saas
-          provider: dockerhub
-          readme_file: bundle/README.md
-          short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
 
   bundle-and-build-changelog:
     needs: setup
@@ -511,8 +366,8 @@ jobs:
       - name: Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          prerelease: ${{ needs.setup.outputs.tagType != 'NORMAL' }}
-          make_latest: ${{ (inputs.latest && needs.setup.outputs.tagType == 'NORMAL') && 'true' || 'false' }}
+          prerelease: true
+          make_latest: false
           body: ${{ steps.changelog.outputs.changes }}
           tag_name: ${{ inputs.version }}
           files: |
@@ -592,28 +447,6 @@ jobs:
           attribution-format: "TXT"
           sbom-format: "CYCLONEDX_JSON"
 
-  notify-prs-released:
-    name: Notify PRs that they have been released
-    needs:
-      - setup
-      - maven-release
-      - docker-release
-      - bundle-and-build-changelog
-    uses: ./.github/workflows/NOTIFY_PRS_RELEASED.yml
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: write
-
-    # Automatically notify PRs for non-RC releases (case-insensitive check)
-    if: |
-      !contains(inputs.version, 'rc') &&
-      needs.setup.result == 'success' &&
-      needs.maven-release.result == 'success' &&
-      needs.docker-release.result == 'success' &&
-      needs.bundle-and-build-changelog.result == 'success'
-    with:
-      version: ${{ inputs.version }}
 
   notify-failure:
     name: Notify on failure
