@@ -1,0 +1,190 @@
+---
+name: QA Required
+on:
+  pull_request:
+    types: [labeled, synchronize]
+
+jobs:
+  process-qa-label:
+    name: Process QA Required Label
+    runs-on: ubuntu-latest
+    # Only run if the PR has the 'qa:required' label
+    if: |
+      github.event.pull_request.state != 'closed' && 
+      (contains(github.event.label.name, 'qa:required') || contains(github.event.pull_request.labels.*.name, 'qa:required'))
+    
+    steps:
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID}}
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+            secret/data/products/connectors/ci/common QA_MANAGER_SLACK_MENTION;
+            secret/data/products/connectors/ci/common CONNECTORS_QA_SLACK_CHANNEL_ID;
+
+      - name: Generate a GitHub token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
+
+      - name: Add deploy:preview label
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "Adding deploy:preview label to PR #$PR_NUMBER"
+          gh pr edit "$PR_NUMBER" --repo ${{ github.repository }} --add-label "deploy:preview"
+
+      - name: Get PR global ID
+        id: get-pr-id
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          PR_ID=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $number: Int!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $number) {
+                  id
+                }
+              }
+            }' -f owner='${{ github.repository_owner }}' -f repo='${{ github.event.repository.name }}' -F number=${{ github.event.pull_request.number }} --jq '.data.repository.pullRequest.id')
+          echo "pr_id=$PR_ID" >> $GITHUB_OUTPUT
+          echo "PR Global ID: $PR_ID"
+
+      - name: Get Project ID and Status Field ID
+        id: get-project-info
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          # Get the project number from the PR - assumes PR is already in a project
+          # Query to find the project and status field
+          PROJECT_INFO=$(gh api graphql -f query='
+            query($owner: String!, $number: Int!) {
+              organization(login: $owner) {
+                projectsV2(first: 10) {
+                  nodes {
+                    id
+                    title
+                    number
+                    items(first: 100) {
+                      nodes {
+                        id
+                        content {
+                          ... on PullRequest {
+                            number
+                          }
+                        }
+                      }
+                    }
+                    field(name: "Status") {
+                      ... on ProjectV2SingleSelectField {
+                        id
+                        options {
+                          id
+                          name
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }' -f owner='${{ github.repository_owner }}' -F number=${{ github.event.pull_request.number }})
+          
+          echo "$PROJECT_INFO" > project_info.json
+          
+          # Find the project that contains this PR
+          PROJECT_ID=$(echo "$PROJECT_INFO" | jq -r '.data.organization.projectsV2.nodes[] | select(.items.nodes[].content.number == ${{ github.event.pull_request.number }}) | .id' | head -1)
+          FIELD_ID=$(echo "$PROJECT_INFO" | jq -r '.data.organization.projectsV2.nodes[] | select(.items.nodes[].content.number == ${{ github.event.pull_request.number }}) | .field.id' | head -1)
+          STATUS_OPTION_ID=$(echo "$PROJECT_INFO" | jq -r '.data.organization.projectsV2.nodes[] | select(.items.nodes[].content.number == ${{ github.event.pull_request.number }}) | .field.options[] | select(.name == "In QA") | .id' | head -1)
+          ITEM_ID=$(echo "$PROJECT_INFO" | jq -r '.data.organization.projectsV2.nodes[] | select(.items.nodes[].content.number == ${{ github.event.pull_request.number }}) | .items.nodes[] | select(.content.number == ${{ github.event.pull_request.number }}) | .id' | head -1)
+          
+          echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
+          echo "field_id=$FIELD_ID" >> $GITHUB_OUTPUT
+          echo "status_option_id=$STATUS_OPTION_ID" >> $GITHUB_OUTPUT
+          echo "item_id=$ITEM_ID" >> $GITHUB_OUTPUT
+          
+          echo "Project ID: $PROJECT_ID"
+          echo "Field ID: $FIELD_ID"
+          echo "Status Option ID: $STATUS_OPTION_ID"
+          echo "Item ID: $ITEM_ID"
+
+      - name: Update PR status to "In QA"
+        if: steps.get-project-info.outputs.project_id != '' && steps.get-project-info.outputs.item_id != ''
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PROJECT_ID: ${{ steps.get-project-info.outputs.project_id }}
+          ITEM_ID: ${{ steps.get-project-info.outputs.item_id }}
+          FIELD_ID: ${{ steps.get-project-info.outputs.field_id }}
+          STATUS_OPTION_ID: ${{ steps.get-project-info.outputs.status_option_id }}
+        run: |
+          if [ -z "$STATUS_OPTION_ID" ]; then
+            echo "Warning: Could not find 'In QA' status option in the project"
+            exit 0
+          fi
+          
+          echo "Updating PR status to 'In QA'"
+          gh api graphql -f query='
+            mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $statusOptionId: String!) {
+              updateProjectV2ItemFieldValue(input: {
+                projectId: $projectId
+                itemId: $itemId
+                fieldId: $fieldId
+                value: {
+                  singleSelectOptionId: $statusOptionId
+                }
+              }) {
+                projectV2Item {
+                  id
+                }
+              }
+            }' -f projectId="$PROJECT_ID" -f itemId="$ITEM_ID" -f fieldId="$FIELD_ID" -f statusOptionId="$STATUS_OPTION_ID"
+
+      - name: Add Szik as assignee
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "Adding Szik as assignee to PR #$PR_NUMBER"
+          # Get current assignees
+          CURRENT_ASSIGNEES=$(gh pr view "$PR_NUMBER" --repo ${{ github.repository }} --json assignees --jq '.assignees[].login' | tr '\n' ',' | sed 's/,$//')
+          
+          # Add Szik if not already assigned
+          if echo "$CURRENT_ASSIGNEES" | grep -q "Szik"; then
+            echo "Szik is already assigned"
+          else
+            gh pr edit "$PR_NUMBER" --repo ${{ github.repository }} --add-assignee "Szik"
+          fi
+
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          method: chat.postMessage
+          payload: |
+            {
+              "channel": "${{ steps.vault-secrets.outputs.CONNECTORS_QA_SLACK_CHANNEL_ID }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "Hi ${{ steps.vault-secrets.outputs.QA_MANAGER_SLACK_MENTION }} :wave:"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "The pull request <${{ github.event.pull_request.html_url }}|#${{ github.event.pull_request.number }}> is ready to be tested :boom:"
+                  }
+                }
+              ]
+            }
