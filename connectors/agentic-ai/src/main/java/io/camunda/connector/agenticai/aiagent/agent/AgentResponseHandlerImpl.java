@@ -88,10 +88,10 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
             .orElseGet(DEFAULT_RESPONSE_CONFIGURATION::format);
 
     switch (format) {
-      case TextResponseFormatConfiguration textFormat ->
-          handleTextResponseFormat(responseBuilder, responseText, textFormat);
-      case JsonResponseFormatConfiguration ignored ->
-          handleJsonResponseFormat(responseBuilder, responseText);
+      case TextResponseFormatConfiguration textFormat -> handleTextResponseFormat(
+          responseBuilder, responseText, textFormat);
+      case JsonResponseFormatConfiguration ignored -> handleJsonResponseFormat(
+          responseBuilder, responseText);
     }
   }
 

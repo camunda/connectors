@@ -15,8 +15,7 @@ class ResponseTextUtilTest {
   @Test
   void stripMarkdownCodeBlocks_shouldStripCodeBlocks_whenValidMarkdownFormat() {
     // given
-    String input =
-        """
+    String input = """
         ```json
         {"name": "John", "age": 30}
         ```
@@ -33,8 +32,7 @@ class ResponseTextUtilTest {
   @Test
   void stripMarkdownCodeBlocks_shouldStripCodeBlocks_whenNoLanguageSpecified() {
     // given
-    String input =
-        """
+    String input = """
         ```
         {"response": "data"}
         ```
@@ -104,8 +102,7 @@ class ResponseTextUtilTest {
   @Test
   void stripMarkdownCodeBlocks_shouldHandleJsonArray() {
     // given
-    String input =
-        """
+    String input = """
         ```json
         [{"id": 1}, {"id": 2}]
         ```
@@ -135,8 +132,7 @@ class ResponseTextUtilTest {
   @Test
   void stripMarkdownCodeBlocks_shouldNotStripPartialCodeBlocks() {
     // given - malformed input with only opening code fence
-    String input =
-        """
+    String input = """
         ```json
         {"incomplete": "block"}""";
 
@@ -150,8 +146,7 @@ class ResponseTextUtilTest {
   @Test
   void stripMarkdownCodeBlocks_shouldHandleEmptyCodeBlocks() {
     // given - empty code block edge case
-    String input =
-        """
+    String input = """
         ```
 
         ```
