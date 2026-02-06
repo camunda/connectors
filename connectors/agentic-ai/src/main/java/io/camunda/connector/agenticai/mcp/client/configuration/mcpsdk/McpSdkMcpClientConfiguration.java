@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @ConditionalOnExpression(
-    "'${camunda.connector.agenticai.mcp.client.framework:langchain4j}' == 'mcpsdk' and ${camunda.connector.agenticai.mcp.client.enabled:false}")
+    "'${camunda.connector.agenticai.mcp.client.framework:mcpsdk}' == 'mcpsdk' and ${camunda.connector.agenticai.mcp.client.enabled:false}")
 @Configuration
 public class McpSdkMcpClientConfiguration {
 

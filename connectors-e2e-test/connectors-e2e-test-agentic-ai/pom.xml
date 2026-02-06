@@ -43,6 +43,11 @@
     </dependency>
 
     <dependency>
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>camunda-process-test-spring</artifactId>
       <version>${version.camunda}</version>

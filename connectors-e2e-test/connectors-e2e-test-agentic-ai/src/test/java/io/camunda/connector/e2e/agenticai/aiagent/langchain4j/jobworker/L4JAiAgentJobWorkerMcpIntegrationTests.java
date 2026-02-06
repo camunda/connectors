@@ -18,7 +18,7 @@ package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_MCP_TOOL_SPECIFICATIONS;
-import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.MCP_TOOL_SPECIFICATIONS;
+import static io.camunda.connector.e2e.agenticai.mcp.McpSdkToolSpecifications.MCP_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,24 +36,24 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.mcp.client.McpClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
-import io.camunda.connector.agenticai.mcp.client.framework.langchain4j.rpc.Langchain4JMcpClientDelegate;
+import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc.McpSdkMcpClientDelegate;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.SseHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
+import io.modelcontextprotocol.client.McpSyncClient;
+import io.modelcontextprotocol.spec.McpSchema;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -63,8 +63,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.skyscreamer.jsonassert.JSONAssert;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.test.context.TestPropertySource;
@@ -82,43 +80,36 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
   @MockitoBean private McpClientRegistry mcpClientRegistry;
   @MockitoBean private McpRemoteClientRegistry remoteMcpClientRegistry;
 
-  @Mock private McpClient aMcpClient;
-  @Mock private McpClient aHttpRemoteMcpClient;
-  @Mock private McpClient aSseRemoteMcpClient;
-  @Mock private McpClient filesystemMcpClient;
+  @Mock private McpSyncClient aMcpClient;
+  @Mock private McpSyncClient aHttpRemoteMcpClient;
+  @Mock private McpSyncClient aSseRemoteMcpClient;
+  @Mock private McpSyncClient filesystemMcpClient;
 
-  @Captor private ArgumentCaptor<ToolExecutionRequest> aMcpClientToolExecutionRequestCaptor;
-
-  @Captor
-  private ArgumentCaptor<ToolExecutionRequest> aHttpRemoteMcpClientToolExecutionRequestCaptor;
+  @Captor private ArgumentCaptor<McpSchema.CallToolRequest> aMcpClientToolExecutionRequestCaptor;
 
   @Captor
-  private ArgumentCaptor<ToolExecutionRequest> aSseRemoteMcpClientToolExecutionRequestCaptor;
+  private ArgumentCaptor<McpSchema.CallToolRequest> aHttpRemoteMcpClientToolExecutionRequestCaptor;
+
+  @Captor
+  private ArgumentCaptor<McpSchema.CallToolRequest> aSseRemoteMcpClientToolExecutionRequestCaptor;
 
   private final Map<String, McpRemoteClientTransportConfiguration> requestedRemoteMcpClients =
       new LinkedHashMap<>();
-  @Autowired private ToolSpecificationConverter toolSpecificationConverter;
 
   @BeforeEach
   void mockMcpClients() {
-    when(aMcpClient.key()).thenReturn(MCP_CLIENT_ID);
     when(aMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
 
     when(aHttpRemoteMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
     when(aSseRemoteMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
 
-    when(filesystemMcpClient.key()).thenReturn("filesystem");
     when(filesystemMcpClient.listTools()).thenReturn(MCP_TOOL_SPECIFICATIONS);
 
     // clients configured on the runtime
-    doReturn(
-            new Langchain4JMcpClientDelegate(
-                MCP_CLIENT_ID, aMcpClient, objectMapper, toolSpecificationConverter))
+    doReturn(new McpSdkMcpClientDelegate(MCP_CLIENT_ID, aMcpClient, objectMapper))
         .when(mcpClientRegistry)
         .getClient(MCP_CLIENT_ID);
-    doReturn(
-            new Langchain4JMcpClientDelegate(
-                MCP_CLIENT_ID, filesystemMcpClient, objectMapper, toolSpecificationConverter))
+    doReturn(new McpSdkMcpClientDelegate(MCP_CLIENT_ID, filesystemMcpClient, objectMapper))
         .when(mcpClientRegistry)
         .getClient("filesystem");
 
@@ -132,21 +123,14 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
 
               var internalClient =
                   switch (clientId.elementId()) {
-                    case "A_HTTP_Remote_MCP_Client" -> {
-                      when(aHttpRemoteMcpClient.key()).thenReturn(clientId.toString());
-                      yield aHttpRemoteMcpClient;
-                    }
-                    case "A_SSE_Remote_MCP_Client" -> {
-                      when(aSseRemoteMcpClient.key()).thenReturn(clientId.toString());
-                      yield aSseRemoteMcpClient;
-                    }
+                    case "A_HTTP_Remote_MCP_Client" -> aHttpRemoteMcpClient;
+                    case "A_SSE_Remote_MCP_Client" -> aSseRemoteMcpClient;
                     default ->
                         throw new IllegalArgumentException(
                             "Unexpected remote MCP client ID: " + clientId.elementId());
                   };
 
-              return new Langchain4JMcpClientDelegate(
-                  MCP_CLIENT_ID, internalClient, objectMapper, toolSpecificationConverter);
+              return new McpSdkMcpClientDelegate(MCP_CLIENT_ID, internalClient, objectMapper);
             })
         .when(remoteMcpClientRegistry)
         .getClient(
@@ -228,12 +212,12 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
 
   @Test
   void handlesMcpToolCalls() throws IOException {
-    when(aMcpClient.executeTool(aMcpClientToolExecutionRequestCaptor.capture()))
-        .thenReturn(toolExecutionResult("A MCP Client result"));
-    when(aHttpRemoteMcpClient.executeTool(aHttpRemoteMcpClientToolExecutionRequestCaptor.capture()))
-        .thenReturn(toolExecutionResult("A HTTP Remote MCP Client result"));
-    when(aSseRemoteMcpClient.executeTool(aSseRemoteMcpClientToolExecutionRequestCaptor.capture()))
-        .thenReturn(toolExecutionResult("A SSE Remote MCP Client result"));
+    when(aMcpClient.callTool(aMcpClientToolExecutionRequestCaptor.capture()))
+        .thenReturn(mcpCallToolResult("A MCP Client result"));
+    when(aHttpRemoteMcpClient.callTool(aHttpRemoteMcpClientToolExecutionRequestCaptor.capture()))
+        .thenReturn(mcpCallToolResult("A HTTP Remote MCP Client result"));
+    when(aSseRemoteMcpClient.callTool(aSseRemoteMcpClientToolExecutionRequestCaptor.capture()))
+        .thenReturn(mcpCallToolResult("A SSE Remote MCP Client result"));
 
     final var initialUserPrompt = "Explore some of your MCP tools!";
     final var expectedConversation =
@@ -331,34 +315,36 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
     verify(filesystemMcpClient).listTools();
 
     verify(aMcpClient)
-        .executeTool(
+        .callTool(
             assertArg(
                 toolExecutionRequest -> {
                   assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
-                  JSONAssert.assertEquals(
-                      "{\"paramA1\": \"someValue\", \"paramA2\": 3}",
-                      toolExecutionRequest.arguments(),
-                      true);
+                  assertThat(toolExecutionRequest.arguments())
+                      .containsExactly(entry("paramA1", "someValue"), entry("paramA2", 3));
                 }));
     verify(aHttpRemoteMcpClient)
-        .executeTool(
+        .callTool(
             assertArg(
                 toolExecutionRequest -> {
                   assertThat(toolExecutionRequest.name()).isEqualTo("toolC");
-                  JSONAssert.assertEquals(
-                      "{\"paramC1\": \"someOtherValue\"}", toolExecutionRequest.arguments(), true);
+                  assertThat(toolExecutionRequest.arguments())
+                      .containsExactly(entry("paramC1", "someOtherValue"));
                 }));
     verify(aSseRemoteMcpClient)
-        .executeTool(
+        .callTool(
             assertArg(
                 toolExecutionRequest -> {
                   assertThat(toolExecutionRequest.name()).isEqualTo("toolA");
-                  JSONAssert.assertEquals(
-                      "{\"paramA1\": \"someValue2\", \"paramA2\": 6}",
-                      toolExecutionRequest.arguments(),
-                      true);
+                  assertThat(toolExecutionRequest.arguments())
+                      .containsExactly(entry("paramA1", "someValue2"), entry("paramA2", 6));
                 }));
 
     verify(chatModel, times(3)).chat(any(ChatRequest.class));
+  }
+
+  protected McpSchema.CallToolResult mcpCallToolResult(String resultText) {
+    return McpSchema.CallToolResult.builder()
+        .addContent(new McpSchema.TextContent(resultText))
+        .build();
   }
 }

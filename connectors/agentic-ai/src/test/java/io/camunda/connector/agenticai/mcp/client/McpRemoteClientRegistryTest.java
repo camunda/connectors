@@ -19,7 +19,6 @@ import static org.mockito.Mockito.when;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Ticker;
-import dev.langchain4j.mcp.client.McpClient;
 import io.camunda.connector.agenticai.mcp.client.McpRemoteClientRegistry.McpRemoteClientIdentifier;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration.AuthenticationType;
@@ -428,9 +427,9 @@ class McpRemoteClientRegistryTest {
   }
 
   @SuppressWarnings("unchecked")
-  private Cache<@NonNull McpRemoteClientIdentifier, McpClient> getCache(
+  private Cache<@NonNull McpRemoteClientIdentifier, McpClientDelegate> getCache(
       McpRemoteClientRegistry registry) {
-    return (Cache<@NonNull McpRemoteClientIdentifier, McpClient>)
+    return (Cache<@NonNull McpRemoteClientIdentifier, McpClientDelegate>)
         ReflectionTestUtils.getField(registry, "cache");
   }
 
