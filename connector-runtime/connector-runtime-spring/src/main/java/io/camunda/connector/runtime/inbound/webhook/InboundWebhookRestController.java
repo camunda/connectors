@@ -87,9 +87,18 @@ public class InboundWebhookRestController {
     Optional.ofNullable(webhookHttpResponse.headers())
         .orElse(Collections.emptyMap())
         .forEach(headers::add);
-    return ResponseEntity.status(status)
-        .headers(headers)
-        .body(escapeValue(webhookHttpResponse.body()));
+
+    String contentType =
+        Optional.ofNullable(webhookHttpResponse.headers())
+            .map(h -> h.get("Content-Type"))
+            .orElse(null);
+
+    Object body =
+        isXmlContentType(contentType)
+            ? webhookHttpResponse.body()
+            : escapeValue(webhookHttpResponse.body());
+
+    return ResponseEntity.status(status).headers(headers).body(body);
   }
 
   protected static Object escapeValue(Object value) {
@@ -97,6 +106,14 @@ public class InboundWebhookRestController {
       case String s -> HtmlUtils.htmlEscape(s);
       case null, default -> value;
     };
+  }
+
+  private static boolean isXmlContentType(String contentType) {
+    if (contentType == null) {
+      return false;
+    }
+    String lowerContentType = contentType.toLowerCase();
+    return lowerContentType.contains("application/xml") || lowerContentType.contains("text/xml");
   }
 
   private static io.camunda.connector.api.inbound.webhook.Part mapToCamundaPart(Part part) {

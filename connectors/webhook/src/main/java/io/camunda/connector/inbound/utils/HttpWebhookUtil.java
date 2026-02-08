@@ -38,6 +38,8 @@ public class HttpWebhookUtil {
           .filter(Objects::nonNull)
           .map(param -> param.split("="))
           .collect(Collectors.toMap(param -> param[0], param -> param.length == 1 ? "" : param[1]));
+    } else if (isXmlContentType(contentTypeHeader)) {
+      return new String(rawBody, StandardCharsets.UTF_8);
     } else {
       // Do our best to parse to JSON (throws exception otherwise)
       try {
@@ -46,5 +48,13 @@ public class HttpWebhookUtil {
         throw new RuntimeException(e);
       }
     }
+  }
+
+  private static boolean isXmlContentType(String contentType) {
+    if (contentType == null) {
+      return false;
+    }
+    String lowerContentType = contentType.toLowerCase();
+    return lowerContentType.contains("application/xml") || lowerContentType.contains("text/xml");
   }
 }
