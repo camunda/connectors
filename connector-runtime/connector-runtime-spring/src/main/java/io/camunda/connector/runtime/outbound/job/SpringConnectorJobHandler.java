@@ -95,7 +95,13 @@ public class SpringConnectorJobHandler implements JobHandler {
   protected static FinalCommandStep<FailJobResponse> prepareFailJobCommand(
       JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
     var retries = result.retries();
-    var errorMessage = truncateErrorMessage(result.exception().getMessage());
+    var baseMessage = result.exception().getMessage();
+    var errorMessage =
+        truncateErrorMessage(
+            baseMessage
+                + (result.responseValue() != null
+                    ? " | Error variables: " + result.responseValue()
+                    : ""));
     Duration backoff = result.retryBackoff();
     var command =
         client.newFailCommand(job).retries(Math.max(retries, 0)).errorMessage(errorMessage);
