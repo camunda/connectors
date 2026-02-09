@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT;
 import static io.camunda.connector.agenticai.util.JacksonExceptionMessageExtractor.humanReadableJsonProcessingExceptionMessage;
+import static io.camunda.connector.agenticai.util.ResponseTextUtil.stripMarkdownCodeBlocks;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -127,7 +128,10 @@ public class AgentResponseHandlerImpl implements AgentResponseHandler {
 
   private void parseTextToResponseJson(AgentResponseBuilder responseBuilder, String responseText)
       throws JsonProcessingException {
-    Object responseJson = objectMapper.readValue(responseText, Object.class);
+    // Strip markdown code blocks before parsing to handle AI models (like Anthropic Claude)
+    // that wrap JSON responses in ```json ... ``` code fences
+    String cleanedText = stripMarkdownCodeBlocks(responseText);
+    Object responseJson = objectMapper.readValue(cleanedText, Object.class);
     responseBuilder.responseJson(responseJson);
   }
 }

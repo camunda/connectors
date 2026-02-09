@@ -2,17 +2,22 @@
 name: QA Required
 on:
   pull_request:
-    types: [labeled, synchronize]
+    types: [ labeled ]
+
+# Only cancel if the same PR gets qa:required label added again
+concurrency:
+  group: qa-required-${{ github.event.pull_request.number }}-${{ github.event.label.name }}
+  cancel-in-progress: true
 
 jobs:
   process-qa-label:
     name: Process QA Required Label
     runs-on: ubuntu-latest
-    # Only run if the PR has the 'qa:required' label
+    # Only run if the 'qa:required' label was just added
     if: |
       github.event.pull_request.state != 'closed' && 
-      (contains(github.event.label.name, 'qa:required') || contains(github.event.pull_request.labels.*.name, 'qa:required'))
-    
+      github.event.label.name == 'qa:required'
+
     steps:
       - name: Import Secrets
         id: vault-secrets
@@ -25,8 +30,6 @@ jobs:
           secrets: |
             secret/data/products/connectors/ci/common GITHUB_APP_ID;
             secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
-            secret/data/products/connectors/ci/common CONNECTORS_QA_MANAGER_SLACK_GROUP_ID;
-            secret/data/products/connectors/ci/common CONNECTORS_QA_SLACK_CHANNEL_ID;
 
       - name: Generate a GitHub token
         id: app-token
@@ -49,47 +52,53 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          # Get the project number from the PR - assumes PR is already in a project
-          # Query to find the project and status field
-          PROJECT_INFO=$(gh api graphql -f query='
-            query($owner: String!, $number: Int!) {
-              organization(login: $owner) {
-                projectsV2(first: 10) {
-                  nodes {
-                    id
-                    title
-                    number
-                    items(first: 100) {
-                      nodes {
+          # Extract repo name from full repository path
+          REPO_NAME="${{ github.event.repository.name }}"
+          
+          # Query the PR directly to get its project items
+          PR_INFO=$(gh api graphql -f query='
+            query($organization: String!, $repoName: String!, $prNumber: Int!) {
+              repository(owner: $organization, name: $repoName) {
+                pullRequest(number: $prNumber) {
+                  id
+                  title
+                  number
+                  projectItems(first: 1) {
+                    nodes {
+                      id
+                      project {
                         id
-                        content {
-                          ... on PullRequest {
-                            number
+                        title
+                        field(name: "Status") {
+                          ... on ProjectV2SingleSelectField {
+                            id
+                            options {
+                              id
+                              name
+                            }
                           }
-                        }
-                      }
-                    }
-                    field(name: "Status") {
-                      ... on ProjectV2SingleSelectField {
-                        id
-                        options {
-                          id
-                          name
                         }
                       }
                     }
                   }
                 }
               }
-            }' -f owner='${{ github.repository_owner }}' -F number=${{ github.event.pull_request.number }})
+            }' -f organization='${{ github.repository_owner }}' -f repoName="$REPO_NAME" -F prNumber=${{ github.event.pull_request.number }})
           
-          echo "$PROJECT_INFO" > project_info.json
+          echo "$PR_INFO" > project_info.json
+          echo "Raw PR info:"
+          echo "$PR_INFO" | jq .
           
-          # Find the project that contains this PR
-          PROJECT_ID=$(echo "$PROJECT_INFO" | jq -r '.data.organization.projectsV2.nodes[] | select(.items.nodes[].content.number == ${{ github.event.pull_request.number }}) | .id' | head -1)
-          FIELD_ID=$(echo "$PROJECT_INFO" | jq -r '.data.organization.projectsV2.nodes[] | select(.items.nodes[].content.number == ${{ github.event.pull_request.number }}) | .field.id' | head -1)
-          STATUS_OPTION_ID=$(echo "$PROJECT_INFO" | jq -r '.data.organization.projectsV2.nodes[] | select(.items.nodes[].content.number == ${{ github.event.pull_request.number }}) | .field.options[] | select(.name == "In QA") | .id' | head -1)
-          ITEM_ID=$(echo "$PROJECT_INFO" | jq -r '.data.organization.projectsV2.nodes[] | select(.items.nodes[].content.number == ${{ github.event.pull_request.number }}) | .items.nodes[] | select(.content.number == ${{ github.event.pull_request.number }}) | .id' | head -1)
+          # List all status options to find the correct one
+          echo "Available status options:"
+          echo "$PR_INFO" | jq -r '.data.repository.pullRequest.projectItems.nodes[0].project.field.options[] | "\(.id): \(.name)"'
+          
+          # Extract the project item info from the PR
+          ITEM_ID=$(echo "$PR_INFO" | jq -r '.data.repository.pullRequest.projectItems.nodes[0].id // empty')
+          PROJECT_ID=$(echo "$PR_INFO" | jq -r '.data.repository.pullRequest.projectItems.nodes[0].project.id // empty')
+          FIELD_ID=$(echo "$PR_INFO" | jq -r '.data.repository.pullRequest.projectItems.nodes[0].project.field.id // empty')
+          # Use the known status ID for "In QA" (with emojis)
+          STATUS_OPTION_ID="96fa6798"
           
           echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
           echo "field_id=$FIELD_ID" >> $GITHUB_OUTPUT
@@ -117,23 +126,34 @@ jobs:
           fi
           
           echo "Updating PR status to 'In QA'"
+          echo "Project ID: $PROJECT_ID"
+          echo "Item ID: $ITEM_ID"
+          echo "Field ID: $FIELD_ID"
+          echo "Status Option ID: $STATUS_OPTION_ID"
+          
           gh api graphql -f query='
-            mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $statusOptionId: String!) {
+            mutation($projectItemId: ID!, $statusValue: String!) {
               updateProjectV2ItemFieldValue(input: {
-                projectId: $projectId
-                itemId: $itemId
-                fieldId: $fieldId
+                itemId: $projectItemId,
+                fieldId: "'"$FIELD_ID"'",
                 value: {
-                  singleSelectOptionId: $statusOptionId
-                }
+                  singleSelectOptionId: $statusValue
+                },
+                projectId: "'"$PROJECT_ID"'"
               }) {
                 projectV2Item {
                   id
+                  fieldValueByName(name: "Status") {
+                    ... on ProjectV2ItemFieldSingleSelectValue {
+                      name
+                    }
+                  }
                 }
               }
-            }' -f projectId="$PROJECT_ID" -f itemId="$ITEM_ID" -f fieldId="$FIELD_ID" -f statusOptionId="$STATUS_OPTION_ID"
+            }' -f projectItemId="$ITEM_ID" -f statusValue="$STATUS_OPTION_ID"
 
       - name: Add Szik as assignee
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -156,13 +176,13 @@ jobs:
           method: chat.postMessage
           payload: |
             {
-              "channel": ${{ toJson(steps.vault-secrets.outputs.CONNECTORS_QA_SLACK_CHANNEL_ID) }},
+              "channel": "${{ secrets.CONNECTORS_QA_SLACK_CHANNEL_ID }}",
               "blocks": [
                 {
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "Hi ${{ steps.vault-secrets.outputs.CONNECTORS_QA_MANAGER_SLACK_GROUP_ID }} :wave:"
+                    "text": "Hi ${{ secrets.CONNECTORS_QA_MANAGER_SLACK_GROUP_ID }} :wave:"
                   }
                 },
                 {
