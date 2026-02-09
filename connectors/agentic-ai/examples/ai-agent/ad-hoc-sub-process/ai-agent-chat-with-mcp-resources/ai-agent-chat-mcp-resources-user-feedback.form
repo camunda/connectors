@@ -66,9 +66,9 @@
     }
   ],
   "type": "default",
-  "id": "ai-agent-chat-user-feedback",
+  "id": "ai-agent-chat-mcp-resources-initial-request",
   "executionPlatform": "Camunda Cloud",
-  "executionPlatformVersion": "8.8.0",
+  "executionPlatformVersion": "8.9.0",
   "exporter": {
     "name": "Camunda Modeler",
     "version": "5.43.1"
