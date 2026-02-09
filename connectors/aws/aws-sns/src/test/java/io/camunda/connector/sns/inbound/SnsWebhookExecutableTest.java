@@ -8,22 +8,17 @@ package io.camunda.connector.sns.inbound;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.sns.message.SnsMessageManager;
-import com.amazonaws.services.sns.message.SnsNotification;
-import com.amazonaws.services.sns.message.SnsSubscriptionConfirmation;
-import com.amazonaws.services.sns.message.SnsUnknownMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
-import io.camunda.connector.sns.suppliers.SnsClientSupplier;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
+import java.net.http.HttpClient;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,9 +36,8 @@ import org.mockito.quality.Strictness;
 class SnsWebhookExecutableTest {
 
   @Mock private InboundConnectorContext ctx;
-  @Mock private ObjectMapper mapper;
-  @Mock private SnsClientSupplier snsClientSupplier;
-  @Mock private SnsMessageManager messageManager;
+  @Mock private HttpClient httpClient;
+  private ObjectMapper mapper;
   private SnsWebhookExecutable testObject;
 
   private final Map<String, String> snsRequestHeaders =
@@ -89,8 +83,8 @@ class SnsWebhookExecutableTest {
 
   @BeforeEach
   void beforeEach() {
-    when(snsClientSupplier.messageManager(anyString())).thenReturn(messageManager);
-    testObject = new SnsWebhookExecutable(mapper, snsClientSupplier);
+    mapper = ObjectMapperSupplier.getMapperInstance();
+    testObject = new SnsWebhookExecutable(mapper, httpClient);
   }
 
   @Test
@@ -108,21 +102,22 @@ class SnsWebhookExecutableTest {
     // Configure payload
     final var headers = new HashMap<>(snsRequestHeaders);
     headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
-    final var confirmation = mock(SnsSubscriptionConfirmation.class);
+    @SuppressWarnings("unchecked")
+    HttpResponse<Void> okResponse = (HttpResponse<Void>) mock(HttpResponse.class);
+    when(okResponse.statusCode()).thenReturn(200);
     final var payload = mock(WebhookProcessingPayload.class);
     when(payload.method()).thenReturn("GET");
     when(payload.headers()).thenReturn(headers);
     when(payload.rawBody())
         .thenReturn(SUBSCRIPTION_CONFIRMATION_REQUEST.getBytes(StandardCharsets.UTF_8));
 
-    when(messageManager.parseMessage(any())).thenReturn(confirmation);
+    when(httpClient.send(any(), any(HttpResponse.BodyHandler.class))).thenReturn(okResponse);
 
     // when
     testObject.activate(ctx);
     final var result = testObject.triggerWebhook(payload);
 
     // then
-    verify(confirmation).confirmSubscription();
     Assertions.assertThat(result.connectorData()).containsEntry("snsEventType", "Subscription");
   }
 
@@ -142,21 +137,22 @@ class SnsWebhookExecutableTest {
     // Configure payload
     final var headers = new HashMap<>(snsRequestHeaders);
     headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
-    final var confirmation = mock(SnsSubscriptionConfirmation.class);
+    @SuppressWarnings("unchecked")
+    HttpResponse<Void> okResponse = (HttpResponse<Void>) mock(HttpResponse.class);
+    when(okResponse.statusCode()).thenReturn(200);
     final var payload = mock(WebhookProcessingPayload.class);
     when(payload.method()).thenReturn("GET");
     when(payload.headers()).thenReturn(headers);
     when(payload.rawBody())
         .thenReturn(SUBSCRIPTION_CONFIRMATION_REQUEST.getBytes(StandardCharsets.UTF_8));
 
-    when(messageManager.parseMessage(any())).thenReturn(confirmation);
+    when(httpClient.send(any(), any(HttpResponse.BodyHandler.class))).thenReturn(okResponse);
 
     // when
     testObject.activate(ctx);
     final var result = testObject.triggerWebhook(payload);
 
     // then
-    verify(confirmation).confirmSubscription();
     Assertions.assertThat(result.connectorData()).containsEntry("snsEventType", "Subscription");
   }
 
@@ -179,21 +175,22 @@ class SnsWebhookExecutableTest {
     // Configure payload
     final var headers = new HashMap<>(snsRequestHeaders);
     headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
-    final var confirmation = mock(SnsSubscriptionConfirmation.class);
+    @SuppressWarnings("unchecked")
+    HttpResponse<Void> okResponse = (HttpResponse<Void>) mock(HttpResponse.class);
+    when(okResponse.statusCode()).thenReturn(200);
     final var payload = mock(WebhookProcessingPayload.class);
     when(payload.method()).thenReturn("GET");
     when(payload.headers()).thenReturn(headers);
     when(payload.rawBody())
         .thenReturn(SUBSCRIPTION_CONFIRMATION_REQUEST.getBytes(StandardCharsets.UTF_8));
 
-    when(messageManager.parseMessage(any())).thenReturn(confirmation);
+    when(httpClient.send(any(), any(HttpResponse.BodyHandler.class))).thenReturn(okResponse);
 
     // when
     testObject.activate(ctx);
     final var result = testObject.triggerWebhook(payload);
 
     // then
-    verify(confirmation).confirmSubscription();
     Assertions.assertThat(result.connectorData()).containsEntry("snsEventType", "Subscription");
   }
 
@@ -213,14 +210,16 @@ class SnsWebhookExecutableTest {
     // Configure payload
     final var headers = new HashMap<>(snsRequestHeaders);
     headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
-    final var confirmation = mock(SnsSubscriptionConfirmation.class);
+    @SuppressWarnings("unchecked")
+    HttpResponse<Void> okResponse = (HttpResponse<Void>) mock(HttpResponse.class);
+    when(okResponse.statusCode()).thenReturn(200);
     final var payload = mock(WebhookProcessingPayload.class);
     when(payload.method()).thenReturn("GET");
     when(payload.headers()).thenReturn(headers);
     when(payload.rawBody())
         .thenReturn(SUBSCRIPTION_CONFIRMATION_REQUEST.getBytes(StandardCharsets.UTF_8));
 
-    when(messageManager.parseMessage(any())).thenReturn(confirmation);
+    when(httpClient.send(any(), any(HttpResponse.BodyHandler.class))).thenReturn(okResponse);
 
     // when & then
     testObject.activate(ctx);
@@ -242,14 +241,16 @@ class SnsWebhookExecutableTest {
     // Configure payload
     final var headers = new HashMap<>(snsRequestHeaders);
     headers.put("x-amz-sns-message-type", "SubscriptionConfirmation");
-    final var confirmation = mock(SnsSubscriptionConfirmation.class);
+    @SuppressWarnings("unchecked")
+    HttpResponse<Void> okResponse = (HttpResponse<Void>) mock(HttpResponse.class);
+    when(okResponse.statusCode()).thenReturn(200);
     final var payload = mock(WebhookProcessingPayload.class);
     when(payload.method()).thenReturn("GET");
     when(payload.headers()).thenReturn(headers);
     when(payload.rawBody())
         .thenReturn(SUBSCRIPTION_CONFIRMATION_REQUEST.getBytes(StandardCharsets.UTF_8));
 
-    when(messageManager.parseMessage(any())).thenReturn(confirmation);
+    when(httpClient.send(any(), any(HttpResponse.BodyHandler.class))).thenReturn(okResponse);
 
     // when & then
     testObject.activate(ctx);
@@ -271,13 +272,15 @@ class SnsWebhookExecutableTest {
     // Configure payload
     final var headers = new HashMap<>(snsRequestHeaders);
     headers.put("x-amz-sns-message-type", "Notification");
-    final var notification = mock(SnsNotification.class);
+    @SuppressWarnings("unchecked")
+    HttpResponse<Void> okResponse = (HttpResponse<Void>) mock(HttpResponse.class);
+    when(okResponse.statusCode()).thenReturn(200);
     final var payload = mock(WebhookProcessingPayload.class);
     when(payload.method()).thenReturn("GET");
     when(payload.headers()).thenReturn(headers);
     when(payload.rawBody()).thenReturn(NOTIFICATION_REQUEST.getBytes(StandardCharsets.UTF_8));
 
-    when(messageManager.parseMessage(any())).thenReturn(notification);
+    when(httpClient.send(any(), any(HttpResponse.BodyHandler.class))).thenReturn(okResponse);
 
     // when
     testObject.activate(ctx);
@@ -303,13 +306,15 @@ class SnsWebhookExecutableTest {
     // Configure payload
     final var headers = new HashMap<>(snsRequestHeaders);
     headers.put("x-amz-sns-message-type", "CorruptedNotification");
-    final var unknownMessage = mock(SnsUnknownMessage.class);
+    @SuppressWarnings("unchecked")
+    HttpResponse<Void> okResponse = (HttpResponse<Void>) mock(HttpResponse.class);
+    when(okResponse.statusCode()).thenReturn(200);
     final var payload = mock(WebhookProcessingPayload.class);
     when(payload.method()).thenReturn("GET");
     when(payload.headers()).thenReturn(headers);
     when(payload.rawBody()).thenReturn(NOTIFICATION_REQUEST.getBytes(StandardCharsets.UTF_8));
 
-    when(messageManager.parseMessage(any())).thenReturn(unknownMessage);
+    when(httpClient.send(any(), any(HttpResponse.BodyHandler.class))).thenReturn(okResponse);
 
     // when & then
     testObject.activate(ctx);
