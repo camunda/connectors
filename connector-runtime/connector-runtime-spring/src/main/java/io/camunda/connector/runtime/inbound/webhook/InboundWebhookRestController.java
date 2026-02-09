@@ -90,9 +90,13 @@ public class InboundWebhookRestController {
 
     String contentType =
         Optional.ofNullable(webhookHttpResponse.headers())
-            .map(h -> h.get("Content-Type"))
+            .flatMap(
+                h ->
+                    h.entrySet().stream()
+                        .filter(e -> e.getKey().equalsIgnoreCase(HttpHeaders.CONTENT_TYPE))
+                        .map(Map.Entry::getValue)
+                        .findFirst())
             .orElse(null);
-
     Object body =
         isXmlContentType(contentType)
             ? webhookHttpResponse.body()
