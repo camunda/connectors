@@ -59,17 +59,27 @@ public record ConnectorProperties(
    *
    * @param maxSize Maximum number of process definitions to cache. Default is 1000.
    */
-  public record ProcessDefinitionCache(int maxSize) {
+  public record ProcessDefinitionCache(int maxSize, Endpoint endpoint) {
     public static final int DEFAULT_MAX_SIZE = 1000;
 
     public ProcessDefinitionCache {
       if (maxSize <= 0) {
         maxSize = DEFAULT_MAX_SIZE;
       }
+      if (endpoint == null) {
+        endpoint = new Endpoint();
+      }
     }
 
     public ProcessDefinitionCache() {
-      this(DEFAULT_MAX_SIZE);
+      this(DEFAULT_MAX_SIZE, new Endpoint());
+    }
+
+    /** Configuration for the actuator endpoint that clears the cache. */
+    public record Endpoint(boolean enabled) {
+      public Endpoint() {
+        this(false);
+      }
     }
   }
 }

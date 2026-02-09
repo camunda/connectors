@@ -50,11 +50,12 @@
       <artifactId>tomcat-annotations-api</artifactId>
       <scope>provided</scope>
     </dependency>
-    <dependency>
-      <groupId>io.micrometer</groupId>
-      <artifactId>micrometer-core</artifactId>
-      <scope>provided</scope>
-    </dependency>
+
+     <dependency>
+       <groupId>io.micrometer</groupId>
+       <artifactId>micrometer-core</artifactId>
+       <scope>provided</scope>
+     </dependency>
     <dependency>
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-commons</artifactId>

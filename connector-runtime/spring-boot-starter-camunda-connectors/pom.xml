@@ -223,7 +223,7 @@
       <artifactId>spring-boot-jackson2</artifactId>
       <scope>test</scope>
     </dependency>
-  </dependencies>
+   </dependencies>
 
   <build>
     <plugins>
