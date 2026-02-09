@@ -41,7 +41,7 @@ The server will be available at `http://localhost:12001/mcp`.
 
 ### AWS Bedrock Credentials
 
-The AI Agent uses Amazon Bedrock with the `anthropic.claude-sonnet-4-5-20250929-v1:0` model. You need to configure the
+The AI Agent uses Amazon Bedrock with the `eu.anthropic.claude-sonnet-4-5-20250929-v1:0` model. You need to configure the
 following secret:
 
 - `AWS_BEDROCK_API_KEY`: Your AWS Bedrock long-term API key. Follow the [AWS Bedrock Documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/getting-started-api-keys.html) to get instructions on creating a long-term API key.
@@ -102,7 +102,7 @@ The process is pre-configured with:
 
 - **MCP Server URL**: `http://localhost:12001/mcp`
 - **LLM Provider**: Amazon Bedrock (us-east-1 region)
-- **Model**: `anthropic.claude-sonnet-4-5-20250929-v1:0`
+- **Model**: `eu.anthropic.claude-sonnet-4-5-20250929-v1:0`
 
 To modify these settings, edit the corresponding input mappings in the BPMN file using Camunda Modeler.
 
