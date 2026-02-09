@@ -113,9 +113,9 @@ To modify these settings, edit the corresponding input mappings in the BPMN file
 
 Example inputs which can be entered in the initial form:
 
-- `Send Ervin a joke about asian cooking`: this will need to do multiple tool calling steps to find a user named "Ervin"
+- `Send Ervin a joke about Asian cooking`: this will need to do multiple tool calling steps to find a user named "Ervin"
   and to compose an e-mail for the "Ask human to send email" task. The LLM should use the provided Jokes Guide (markdown
-  resource) and the Cooking Essentials PDF as a knowledge base to formulate a joke about asian cooking. The email
-  sending user can provide feedback to update the message such as "include emojis" or "include a spanish translation".
+  resource) and the Cooking Essentials PDF as a knowledge base to formulate a joke about Asian cooking. The email
+  sending user can provide feedback to update the message such as "include emojis" or "include a Spanish translation".
 
 _Made with ❤️ by Camunda_
