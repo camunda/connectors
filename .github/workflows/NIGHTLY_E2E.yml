@@ -1,9 +1,11 @@
-name: Nightly E2E test run
+name: E2E test run
 
 on:
   workflow_dispatch:
   schedule: # Run nightly
     - cron: "0 3 * * *"  # Runs daily at 03:00 UTC
+  pull_request:
+    types: [ labeled, synchronize ]
 
 jobs:
 
@@ -12,18 +14,23 @@ jobs:
     outputs:
       branches: ${{ steps.set-matrix.outputs.branches }}
     steps:
-      - name: Fetch release branches
+      - name: Fetch stable branches
         id: set-matrix
         run: |
-          # Get all release/* branches
-          git ls-remote --heads https://github.com/${{ github.repository }}.git | \
-          awk '{print $2}' | sed 's|refs/heads/||' | grep '^release/' > releases.txt || true
-          all_branches=$( (echo "main"; cat releases.txt) | grep -v '^$' | jq -R -s -c 'split("\n")[:-1]' )
-          echo "branches=$all_branches" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            # For PR, only test the PR's head ref
+            echo "branches=[\"${{ github.head_ref }}\"]" >> $GITHUB_OUTPUT
+          else
+            # For scheduled/manual runs, test main and all stable branches
+            git ls-remote --heads https://github.com/${{ github.repository }}.git | \
+            awk '{print $2}' | sed 's|refs/heads/||' | grep '^stable/' > stables.txt || true
+            all_branches=$( (echo "main"; cat stables.txt) | grep -v '^$' | jq -R -s -c 'split("\n")[:-1]' )
+            echo "branches=$all_branches" >> $GITHUB_OUTPUT
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  run-tests:
+  run-e2e-tests:
     name: (${{ matrix.branch }}) Nightly E2E test run
     needs: get-branches
     runs-on: ubuntu-latest
@@ -86,6 +93,25 @@ jobs:
       - name: Build Connectors
         run: mvn --batch-mode clean test -PcheckFormat
 
+      - name: Publish Test Report
+        if: always()
+        uses: scacap/action-surefire-report@v1
+
+      - name: Sanitize branch name for artifact
+        id: sanitize
+        run: |
+          SANITIZED="${BRANCH//\//-}"
+          echo "branch=$SANITIZED" >> $GITHUB_OUTPUT
+        env:
+          BRANCH: ${{ matrix.branch }}
+
+      - name: Upload detailed surefire reports
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: surefire-reports-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: '**/target/surefire-reports/*.xml'
+
       - name: Send Slack notification on failure
         if: failure()
         uses: slackapi/slack-github-action@v2.1.1
@@ -95,5 +121,5 @@ jobs:
           payload: |
             {
               "channel": ${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }},
-              "text": ":alarm: Nightly E2E test run failed on branch `${{ matrix.branch}}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              "text": ":alarm: E2E test run failed on branch `${{ matrix.branch}}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             }
