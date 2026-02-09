@@ -21,7 +21,6 @@ import io.camunda.connector.sns.outbound.model.SnsConnectorRequest;
 import io.camunda.connector.sns.outbound.model.SnsConnectorResult;
 import io.camunda.connector.sns.suppliers.SnsClientSupplier;
 import java.util.Optional;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.PublishRequest;
 import software.amazon.awssdk.services.sns.model.PublishResponse;
@@ -93,13 +92,13 @@ public class SnsConnectorFunction implements OutboundConnectorFunction {
               .messageDeduplicationId(request.getTopic().getMessageDeduplicationId())
               .messageAttributes(request.getTopic().getAwsSnsNativeMessageAttributes())
               .subject(request.getTopic().getSubject())
-          .build();
+              .build();
       return snsClient.publish(message);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Error mapping message to json.");
     } finally {
       if (snsClient != null) {
-        snsClient.shutdown();
+        snsClient.close();
       }
     }
   }

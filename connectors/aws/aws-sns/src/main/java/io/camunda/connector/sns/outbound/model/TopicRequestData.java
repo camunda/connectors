@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.sns.outbound.model;
 
-import com.amazonaws.util.StringUtils;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -92,9 +91,9 @@ public class TopicRequestData {
   @AssertTrue
   public boolean hasValidTopicProperties() {
     if (TopicType.standard == type) {
-      return StringUtils.isNullOrEmpty(messageGroupId);
+      return messageGroupId == null || messageGroupId.isEmpty();
     } else if (TopicType.fifo == type) {
-      return StringUtils.hasValue(messageGroupId);
+      return messageGroupId != null && !messageGroupId.isEmpty();
     } else throw new IllegalArgumentException("No valid type value " + type);
   }
 
@@ -179,9 +178,7 @@ public class TopicRequestData {
 
   private Function<SnsMessageAttribute, MessageAttributeValue> messageAttributeTransformer() {
     return snsMessageAttribute -> {
-      MessageAttributeValue msgAttr = MessageAttributeValue.builder()
-          .build();
-      msgAttr = msgAttr.toBuilder().dataType(snsMessageAttribute.getDataType()).build();
+      MessageAttributeValue msgAttr = MessageAttributeValue.builder().build();
       msgAttr = msgAttr.toBuilder().stringValue(snsMessageAttribute.getStringValue()).build();
       return msgAttr;
     };

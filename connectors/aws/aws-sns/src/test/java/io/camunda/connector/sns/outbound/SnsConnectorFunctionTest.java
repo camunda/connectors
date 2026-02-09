@@ -48,8 +48,7 @@ public class SnsConnectorFunctionTest extends BaseTest {
             .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
             .variables(DEFAULT_REQUEST_BODY)
             .build();
-    publishResult = PublishResponse.builder()
-        .build();
+    publishResult = PublishResponse.builder().build();
     publishResult = publishResult.toBuilder().messageId(MSG_ID).build();
   }
 
@@ -81,7 +80,7 @@ public class SnsConnectorFunctionTest extends BaseTest {
     Object execute = connector.execute(context);
 
     // Then
-    Mockito.verify(snsClient, Mockito.times(1)).shutdown();
+    Mockito.verify(snsClient, Mockito.times(1)).close();
 
     Assertions.assertThat(execute).isInstanceOf(SnsConnectorResult.class);
     var result = (SnsConnectorResult) execute;
@@ -109,7 +108,7 @@ public class SnsConnectorFunctionTest extends BaseTest {
     connector.execute(context);
 
     // Then
-    Mockito.verify(snsClient, Mockito.times(1)).shutdown();
+    Mockito.verify(snsClient, Mockito.times(1)).close();
     String message = requestArgumentCaptor.getValue().message();
     Assertions.assertThat(message).isEqualTo("{\"key\":\"value\"}");
   }
@@ -135,7 +134,7 @@ public class SnsConnectorFunctionTest extends BaseTest {
     connector.execute(context);
 
     // Then
-    Mockito.verify(snsClient, Mockito.times(1)).shutdown();
+    Mockito.verify(snsClient, Mockito.times(1)).close();
     String message = requestArgumentCaptor.getValue().message();
     Assertions.assertThat(message).isEqualTo("{\"key\":\"\\\"normal\\\" value\"}");
   }

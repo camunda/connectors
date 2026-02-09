@@ -41,6 +41,14 @@ except in compliance with the proprietary license.</license.inlineheader>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>sns</artifactId>
     </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>regions</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sdk-core</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
