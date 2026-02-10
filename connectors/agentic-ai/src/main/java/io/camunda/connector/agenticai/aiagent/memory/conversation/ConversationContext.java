@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 
@@ -18,7 +19,8 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InPr
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
   @JsonSubTypes.Type(value = InProcessConversationContext.class, name = "in-process"),
-  @JsonSubTypes.Type(value = CamundaDocumentConversationContext.class, name = "camunda-document")
+  @JsonSubTypes.Type(value = CamundaDocumentConversationContext.class, name = "camunda-document"),
+  @JsonSubTypes.Type(value = AwsAgentCoreConversationContext.class, name = "aws-agentcore")
 })
 public interface ConversationContext {
   String conversationId();

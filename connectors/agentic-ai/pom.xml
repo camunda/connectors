@@ -166,6 +166,10 @@
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
+      <artifactId>bedrockagentcore</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>sdk-core</artifactId>
     </dependency>
     <dependency>
@@ -288,6 +292,16 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-object-mapper</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-document</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-feel</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
