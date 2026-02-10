@@ -64,6 +64,9 @@ class ListToolsRequestTest {
                   .extracting(McpToolDefinition::name)
                   .containsExactly("tool1", "tool2");
               assertThat(res.toolDefinitions())
+                  .extracting(McpToolDefinition::title)
+                  .containsExactly("First Tool", "Second Tool");
+              assertThat(res.toolDefinitions())
                   .extracting(McpToolDefinition::description)
                   .containsExactly("Tool 1 description", "Tool 2 description");
             });
@@ -71,8 +74,8 @@ class ListToolsRequestTest {
 
   @Test
   void filtersTools_whenFilterConfigured() {
-    final var toolSpec1 = createTool("allowed-tool", "Allowed tool");
-    final var toolSpec2 = createTool("blocked-tool", "Blocked tool");
+    final var toolSpec1 = createTool("allowed-tool", "Allowed Tool", "Allowed tool");
+    final var toolSpec2 = createTool("blocked-tool", "Blocked Tool", "Blocked tool");
     final var filter =
         AllowDenyListBuilder.builder().allowed(List.of("allowed-tool")).denied(List.of()).build();
 
@@ -92,8 +95,8 @@ class ListToolsRequestTest {
 
   @Test
   void returnsEmptyList_whenAllToolsFiltered() {
-    final var toolSpec1 = createTool("blocked-tool1", "Blocked tool 1");
-    final var toolSpec2 = createTool("blocked-tool2", "Blocked tool 2");
+    final var toolSpec1 = createTool("blocked-tool1", "Blocked Tool 1", "Blocked tool 1");
+    final var toolSpec2 = createTool("blocked-tool2", "Blocked Tool 2", "Blocked tool 2");
     final var filter =
         AllowDenyListBuilder.builder().allowed(List.of("allowed-tool")).denied(List.of()).build();
 
@@ -107,10 +110,10 @@ class ListToolsRequestTest {
             McpClientListToolsResult.class, res -> assertThat(res.toolDefinitions()).isEmpty());
   }
 
-  private McpSchema.Tool createTool(String name, String description) {
+  private McpSchema.Tool createTool(String name, String title, String description) {
     return new McpSchema.Tool(
         name,
-        "",
+        title,
         description,
         new McpSchema.JsonSchema(
             "object",

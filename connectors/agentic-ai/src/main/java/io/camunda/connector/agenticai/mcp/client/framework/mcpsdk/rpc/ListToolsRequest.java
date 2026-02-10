@@ -50,6 +50,7 @@ final class ListToolsRequest {
                 tool ->
                     McpToolDefinitionBuilder.builder()
                         .name(tool.name())
+                        .title(tool.title())
                         .description(tool.description())
                         .inputSchema(parseToolParameters(tool.inputSchema()))
                         .build())
