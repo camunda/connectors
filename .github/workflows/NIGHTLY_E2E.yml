@@ -104,6 +104,7 @@ jobs:
         uses: scacap/action-surefire-report@v1
 
       - name: Sanitize branch name for artifact
+        if: always()
         id: sanitize
         run: |
           SANITIZED="${BRANCH//\//-}"
