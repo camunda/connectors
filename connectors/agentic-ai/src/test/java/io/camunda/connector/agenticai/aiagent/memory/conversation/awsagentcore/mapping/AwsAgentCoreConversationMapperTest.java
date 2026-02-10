@@ -455,4 +455,160 @@ class AwsAgentCoreConversationMapperTest {
     assertThat(reconstructed.content().get(0)).isInstanceOf(TextContent.class);
     assertThat(reconstructed.content().get(1)).isInstanceOf(ObjectContent.class);
   }
+
+  // ==================== Metadata Tests ====================
+
+  @Test
+  void shouldConvertMetadataToAwsMetadataValue() {
+    // given
+    Map<String, Object> metadata =
+        Map.of("key1", "value1", "key2", 123, "key3", Map.of("nested", "value"));
+
+    // when
+    var awsMetadata = mapper.toAwsMetadata(metadata);
+
+    // then
+    assertThat(awsMetadata).hasSize(3);
+    assertThat(awsMetadata.get("key1").stringValue()).isEqualTo("value1");
+    assertThat(awsMetadata.get("key2").stringValue()).isEqualTo("123");
+    assertThat(awsMetadata.get("key3").stringValue()).contains("nested");
+  }
+
+  @Test
+  void shouldConvertAwsMetadataValueToMetadata() {
+    // given
+    var awsMetadata =
+        Map.of(
+            "key1",
+            software.amazon.awssdk.services.bedrockagentcore.model.MetadataValue.fromStringValue(
+                "value1"),
+            "key2",
+            software.amazon.awssdk.services.bedrockagentcore.model.MetadataValue.fromStringValue(
+                "123"));
+
+    // when
+    Map<String, Object> metadata = mapper.fromAwsMetadata(awsMetadata);
+
+    // then
+    assertThat(metadata).hasSize(2).containsEntry("key1", "value1").containsEntry("key2", "123");
+  }
+
+  @Test
+  void shouldHandleNullAndEmptyMetadata() {
+    // when/then - null metadata
+    assertThat(mapper.toAwsMetadata(null)).isEmpty();
+    assertThat(mapper.fromAwsMetadata(null)).isEmpty();
+
+    // when/then - empty metadata
+    assertThat(mapper.toAwsMetadata(Map.of())).isEmpty();
+    assertThat(mapper.fromAwsMetadata(Map.of())).isEmpty();
+  }
+
+  @Test
+  void shouldSkipNullValuesInMetadata() {
+    // given
+    Map<String, Object> metadata = Map.of("key1", "value1");
+
+    // when
+    var awsMetadata = mapper.toAwsMetadata(metadata);
+
+    // then
+    assertThat(awsMetadata).hasSize(1);
+    assertThat(awsMetadata.get("key1").stringValue()).isEqualTo("value1");
+  }
+
+  @Test
+  void shouldPreserveMetadataInUserMessageRoundTrip() {
+    // given
+    Map<String, Object> metadata =
+        Map.of("userId", "user123", "sessionId", "session456", "timestamp", "2024-01-15");
+
+    UserMessage original =
+        UserMessage.builder().content(List.of(textContent("Hello"))).metadata(metadata).build();
+
+    // when
+    List<PayloadType> payloads = mapper.toPayloads(original);
+    var awsMetadata = mapper.toAwsMetadata(original.metadata());
+    Event event = Event.builder().payload(payloads).metadata(awsMetadata).build();
+    List<Message> messages = mapper.fromEvent(event);
+
+    // then
+    assertThat(messages).hasSize(1);
+    UserMessage reconstructed = (UserMessage) messages.get(0);
+    assertThat(reconstructed.metadata())
+        .hasSize(3)
+        .containsEntry("userId", "user123")
+        .containsEntry("sessionId", "session456")
+        .containsEntry("timestamp", "2024-01-15");
+  }
+
+  @Test
+  void shouldPreserveMetadataInAssistantMessageRoundTrip() {
+    // given
+    Map<String, Object> metadata = Map.of("modelName", "gpt-4", "temperature", "0.7");
+
+    AssistantMessage original =
+        AssistantMessage.builder()
+            .content(List.of(textContent("Response")))
+            .metadata(metadata)
+            .build();
+
+    // when
+    List<PayloadType> payloads = mapper.toPayloads(original);
+    var awsMetadata = mapper.toAwsMetadata(original.metadata());
+    Event event = Event.builder().payload(payloads).metadata(awsMetadata).build();
+    List<Message> messages = mapper.fromEvent(event);
+
+    // then
+    assertThat(messages).hasSize(1);
+    AssistantMessage reconstructed = (AssistantMessage) messages.get(0);
+    assertThat(reconstructed.metadata())
+        .hasSize(2)
+        .containsEntry("modelName", "gpt-4")
+        .containsEntry("temperature", "0.7");
+  }
+
+  @Test
+  void shouldPreserveMetadataInToolCallResultMessageRoundTrip() {
+    // given
+    Map<String, Object> metadata = Map.of("toolName", "search", "executionTime", "150ms");
+
+    ToolCallResultMessage original =
+        ToolCallResultMessage.builder()
+            .results(List.of(ToolCallResult.builder().content("Result").build()))
+            .metadata(metadata)
+            .build();
+
+    // when
+    List<PayloadType> payloads = mapper.toPayloads(original);
+    var awsMetadata = mapper.toAwsMetadata(original.metadata());
+    Event event = Event.builder().payload(payloads).metadata(awsMetadata).build();
+    List<Message> messages = mapper.fromEvent(event);
+
+    // then
+    assertThat(messages).hasSize(1);
+    ToolCallResultMessage reconstructed = (ToolCallResultMessage) messages.get(0);
+    assertThat(reconstructed.metadata())
+        .hasSize(2)
+        .containsEntry("toolName", "search")
+        .containsEntry("executionTime", "150ms");
+  }
+
+  @Test
+  void shouldHandleEmptyMetadataInRoundTrip() {
+    // given
+    UserMessage original =
+        UserMessage.builder().content(List.of(textContent("Hello"))).metadata(Map.of()).build();
+
+    // when
+    List<PayloadType> payloads = mapper.toPayloads(original);
+    var awsMetadata = mapper.toAwsMetadata(original.metadata());
+    Event event = Event.builder().payload(payloads).metadata(awsMetadata).build();
+    List<Message> messages = mapper.fromEvent(event);
+
+    // then
+    assertThat(messages).hasSize(1);
+    UserMessage reconstructed = (UserMessage) messages.get(0);
+    assertThat(reconstructed.metadata()).isEmpty();
+  }
 }

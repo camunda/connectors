@@ -16,7 +16,9 @@ import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -24,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.services.bedrockagentcore.model.Conversational;
 import software.amazon.awssdk.services.bedrockagentcore.model.Event;
+import software.amazon.awssdk.services.bedrockagentcore.model.MetadataValue;
 import software.amazon.awssdk.services.bedrockagentcore.model.PayloadType;
 import software.amazon.awssdk.services.bedrockagentcore.model.Role;
 
@@ -97,8 +100,11 @@ public class AwsAgentCoreConversationMapper {
       return List.of();
     }
 
+    // Extract metadata from event
+    Map<String, Object> metadata = fromAwsMetadata(event.metadata());
+
     try {
-      return extractMessagesFromPayloads(payloads);
+      return extractMessagesFromPayloads(payloads, metadata);
     } catch (IOException e) {
       throw new AgentCoreMapperException(
           "Failed to extract messages from event: " + e.getMessage(), e);
@@ -167,7 +173,8 @@ public class AwsAgentCoreConversationMapper {
 
   // ==================== Payloads to Messages ====================
 
-  private List<Message> extractMessagesFromPayloads(List<PayloadType> payloads) throws IOException {
+  private List<Message> extractMessagesFromPayloads(
+      List<PayloadType> payloads, Map<String, Object> metadata) throws IOException {
     // Separate payloads by type
     List<Conversational> conversationals = new ArrayList<>();
     List<Document> blobs = new ArrayList<>();
@@ -187,7 +194,7 @@ public class AwsAgentCoreConversationMapper {
         BlobEnvelope envelope = BlobEnvelope.fromDocument(blobs.get(0), objectMapper);
         if (envelope.is(BlobEnvelopeType.TOOL_CALLS)) {
           // AssistantMessage with toolCalls but no text content
-          return List.of(reconstructAssistantMessage(conversationals, blobs));
+          return List.of(reconstructAssistantMessage(conversationals, blobs, metadata));
         }
         // Blob exists but is not a recognized envelope type
         throw new AgentCoreMapperException(
@@ -199,9 +206,9 @@ public class AwsAgentCoreConversationMapper {
 
     Role primaryRole = conversationals.get(0).role();
     return switch (primaryRole) {
-      case USER -> List.of(reconstructUserMessage(conversationals, blobs));
-      case ASSISTANT -> List.of(reconstructAssistantMessage(conversationals, blobs));
-      case TOOL -> List.of(reconstructToolCallResultMessage(conversationals, blobs));
+      case USER -> List.of(reconstructUserMessage(conversationals, blobs, metadata));
+      case ASSISTANT -> List.of(reconstructAssistantMessage(conversationals, blobs, metadata));
+      case TOOL -> List.of(reconstructToolCallResultMessage(conversationals, blobs, metadata));
       case OTHER, UNKNOWN_TO_SDK_VERSION ->
           throw new IllegalStateException(
               "OTHER/UNKNOWN_TO_SDK_VERSION role is not supported in conversational payloads");
@@ -209,7 +216,8 @@ public class AwsAgentCoreConversationMapper {
   }
 
   private UserMessage reconstructUserMessage(
-      List<Conversational> conversationals, List<Document> blobs) throws IOException {
+      List<Conversational> conversationals, List<Document> blobs, Map<String, Object> metadata)
+      throws IOException {
     List<Content> content = new ArrayList<>();
 
     // Add text content from conversationals
@@ -223,11 +231,12 @@ public class AwsAgentCoreConversationMapper {
     // Add non-text content from blobs
     content.addAll(parseContentFromBlobs(blobs));
 
-    return UserMessage.builder().content(content).build();
+    return UserMessage.builder().content(content).metadata(metadata).build();
   }
 
   private AssistantMessage reconstructAssistantMessage(
-      List<Conversational> conversationals, List<Document> blobs) throws IOException {
+      List<Conversational> conversationals, List<Document> blobs, Map<String, Object> metadata)
+      throws IOException {
     List<Content> content = new ArrayList<>();
     List<ToolCall> toolCalls = List.of();
 
@@ -259,11 +268,16 @@ public class AwsAgentCoreConversationMapper {
       }
     }
 
-    return AssistantMessage.builder().content(content).toolCalls(toolCalls).build();
+    return AssistantMessage.builder()
+        .content(content)
+        .toolCalls(toolCalls)
+        .metadata(metadata)
+        .build();
   }
 
   private ToolCallResultMessage reconstructToolCallResultMessage(
-      List<Conversational> conversationals, List<Document> blobs) throws IOException {
+      List<Conversational> conversationals, List<Document> blobs, Map<String, Object> metadata)
+      throws IOException {
     List<ToolCallResult> results = List.of();
 
     // Try to parse full structure from blob envelope
@@ -291,7 +305,7 @@ public class AwsAgentCoreConversationMapper {
       }
     }
 
-    return ToolCallResultMessage.builder().results(results).build();
+    return ToolCallResultMessage.builder().results(results).metadata(metadata).build();
   }
 
   // ==================== Helper Methods ====================
@@ -394,6 +408,62 @@ public class AwsAgentCoreConversationMapper {
   private List<ToolCallResult> parseToolCallResultsFromEnvelope(BlobEnvelope envelope)
       throws IOException {
     return envelope.parseData(TOOL_CALL_RESULTS_TYPE, objectMapper);
+  }
+
+  /**
+   * Convert Message metadata to AWS AgentCore MetadataValue map.
+   *
+   * <p>AWS AgentCore only supports string values in metadata. Non-string values are converted to
+   * JSON strings. Null values are skipped.
+   *
+   * @param metadata the message metadata (may be null or empty)
+   * @return AWS MetadataValue map (empty if metadata is null or empty)
+   */
+  public Map<String, MetadataValue> toAwsMetadata(Map<String, Object> metadata) {
+    if (metadata == null || metadata.isEmpty()) {
+      return Map.of();
+    }
+
+    Map<String, MetadataValue> awsMetadata = new HashMap<>();
+    for (Map.Entry<String, Object> entry : metadata.entrySet()) {
+      if (entry.getValue() != null) {
+        String stringValue = convertToString(entry.getValue());
+        awsMetadata.put(entry.getKey(), MetadataValue.fromStringValue(stringValue));
+      }
+    }
+    return awsMetadata;
+  }
+
+  /**
+   * Convert AWS AgentCore MetadataValue map to Message metadata.
+   *
+   * @param awsMetadata the AWS metadata (may be null or empty)
+   * @return Message metadata map (empty if awsMetadata is null or empty)
+   */
+  public Map<String, Object> fromAwsMetadata(Map<String, MetadataValue> awsMetadata) {
+    if (awsMetadata == null || awsMetadata.isEmpty()) {
+      return Map.of();
+    }
+
+    Map<String, Object> metadata = new HashMap<>();
+    for (Map.Entry<String, MetadataValue> entry : awsMetadata.entrySet()) {
+      if (entry.getValue() != null && entry.getValue().stringValue() != null) {
+        metadata.put(entry.getKey(), entry.getValue().stringValue());
+      }
+    }
+    return metadata;
+  }
+
+  private String convertToString(Object value) {
+    if (value instanceof String) {
+      return (String) value;
+    }
+    try {
+      return objectMapper.writeValueAsString(value);
+    } catch (JsonProcessingException e) {
+      // Fallback to toString for non-serializable objects
+      return value.toString();
+    }
   }
 
   /**

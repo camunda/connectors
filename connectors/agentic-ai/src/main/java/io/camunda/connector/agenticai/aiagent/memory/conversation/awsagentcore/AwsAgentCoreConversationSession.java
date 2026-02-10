@@ -236,6 +236,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
 
       final var eventTimestamp = Instant.now();
       final var messageIndex = startMessageIndex + offset;
+      final var metadata = mapper.toAwsMetadata(message.metadata());
       final var request =
           CreateEventRequest.builder()
               .memoryId(config.memoryId())
@@ -244,6 +245,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
               .payload(payloads)
               .eventTimestamp(eventTimestamp)
               .clientToken(sessionId + ":" + messageIndex)
+              .metadata(metadata)
               .build();
 
       try {
