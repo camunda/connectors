@@ -109,7 +109,7 @@ jobs:
 
       # Build
       - name: Build Connectors
-        run: mvn --batch-mode clean test javadoc:javadoc -PcheckFormat -Dquickly
+        run: mvn --batch-mode -U clean test javadoc:javadoc -PcheckFormat -Dquickly
 
       - name: Publish Test Report
         if: always() && steps.internal.outputs.internal == 'true'
