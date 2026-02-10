@@ -89,10 +89,10 @@ limitations under the License.</license.inlineheader>
 
     <version.spring-boot>3.5.10</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>5.13.10</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.5.27</version.logback>
+    <version.logback>1.5.29</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.41.22</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.41.25</version.software-aws-java-sdk>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
 
@@ -118,7 +118,7 @@ limitations under the License.</license.inlineheader>
 
     <version.kafka-clients>3.9.1</version.kafka-clients>
 
-    <version.microsoft-graph>6.60.0</version.microsoft-graph>
+    <version.microsoft-graph>6.61.0</version.microsoft-graph>
     <version.azure-identity>1.18.2</version.azure-identity>
 
     <version.bouncycastle>1.83</version.bouncycastle>
@@ -828,7 +828,7 @@ limitations under the License.</license.inlineheader>
         </plugin>
         <plugin>
           <artifactId>maven-dependency-plugin</artifactId>
-          <version>3.9.0</version>
+          <version>3.10.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
