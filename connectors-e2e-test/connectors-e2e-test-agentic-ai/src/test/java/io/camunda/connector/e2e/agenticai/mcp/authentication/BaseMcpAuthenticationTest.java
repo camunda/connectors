@@ -35,6 +35,7 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,9 +103,15 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
 
               assertThat(incidents.items())
                   .hasSize(2)
-                  .allSatisfy(i -> i.getErrorMessage().contains("Unexpected status code: 403"))
                   .extracting(Incident::getElementId)
                   .containsExactlyInAnyOrder("Client_List_Tools", "Remote_Client_List_Tools");
+
+              final var errorMessages =
+                  incidents.items().stream()
+                      .map(Incident::getErrorMessage)
+                      .collect(Collectors.toSet());
+              assertThat(errorMessages)
+                  .containsExactly("Client failed to initialize listing tools");
             });
   }
 
