@@ -64,6 +64,9 @@ class ListToolsRequestTest {
                   .extracting(McpToolDefinition::name)
                   .containsExactly("tool1", "tool2");
               assertThat(res.toolDefinitions())
+                  .extracting(ToolDefinition::title)
+                  .containsExactly("First Tool", "Second Tool");
+              assertThat(res.toolDefinitions())
                   .extracting(McpToolDefinition::title)
                   .containsExactly("First Tool", "Second Tool");
               assertThat(res.toolDefinitions())
