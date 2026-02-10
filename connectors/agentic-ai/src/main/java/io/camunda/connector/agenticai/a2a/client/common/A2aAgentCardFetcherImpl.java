@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 public class A2aAgentCardFetcherImpl implements A2aAgentCardFetcher {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(A2aAgentCardFetcherImpl.class);
+  private static final String DEFAULT_AGENT_CARD_PATH = ".well-known/agent-card.json";
 
   @Override
   public A2aAgentCard fetchAgentCard(A2aConnectionConfiguration connection) {
@@ -34,13 +35,15 @@ public class A2aAgentCardFetcherImpl implements A2aAgentCardFetcher {
   @Override
   public AgentCard fetchAgentCardRaw(A2aConnectionConfiguration connection) {
     final var relativeCardPath =
-        isNotBlank(connection.agentCardLocation()) ? connection.agentCardLocation() : null;
+        isNotBlank(connection.agentCardLocation())
+            ? connection.agentCardLocation()
+            : DEFAULT_AGENT_CARD_PATH;
     try {
       return A2A.getAgentCard(connection.url(), relativeCardPath, Collections.emptyMap());
     } catch (A2AClientError e) {
       throw new ConnectorException(
           ERROR_CODE_A2A_CLIENT_AGENT_CARD_RETRIEVAL_FAILED,
-          "Failed to load agent card from %s".formatted(connection.agentCardLocation()),
+          "Failed to load agent card from %s".formatted(relativeCardPath),
           e);
     }
   }
