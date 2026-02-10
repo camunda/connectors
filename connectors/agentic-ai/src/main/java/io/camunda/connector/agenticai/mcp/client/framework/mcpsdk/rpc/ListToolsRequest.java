@@ -49,6 +49,7 @@ final class ListToolsRequest {
                 tool ->
                     ToolDefinition.builder()
                         .name(tool.name())
+                        .title(tool.title())
                         .description(tool.description())
                         .inputSchema(parseToolParameters(tool.inputSchema()))
                         .build())
