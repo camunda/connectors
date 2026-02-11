@@ -192,7 +192,8 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AwsAgentCoreConversationMapper aiAgentAwsAgentCoreConversationMapper(ObjectMapper mapper) {
+  public AwsAgentCoreConversationMapper aiAgentAwsAgentCoreConversationMapper(
+      @ConnectorsObjectMapper ObjectMapper mapper) {
     return new AwsAgentCoreConversationMapper(mapper);
   }
 
