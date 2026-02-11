@@ -253,7 +253,7 @@ public AwsAgentCoreConversationStore aiAgentAwsAgentCoreConversationStore() {
 - **System messages not stored in AgentCore**: System prompts are preserved in conversation context only
 - **Pre-provisioned memory**: Memory resources must be pre-provisioned (not created by connector)
 - **Long-term memory extraction**: Managed by AWS AgentCore (not controlled by this implementation)
-- **Message metadata lossy**: See mapping/README.md for details on what fields are preserved vs. lost
+- **Message metadata serialization**: All metadata keys are preserved, but complex values are JSON-serialized to strings; see mapping/README.md for details on field behavior
 
 ## Future Enhancements
 
