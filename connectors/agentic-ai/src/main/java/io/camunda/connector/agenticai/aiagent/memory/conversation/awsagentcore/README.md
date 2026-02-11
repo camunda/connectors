@@ -201,22 +201,6 @@ The default credentials chain looks for credentials in this order:
 4. Amazon ECS container credentials
 5. Instance profile credentials (EC2)
 
-## Features
-
-### Incremental Message Storage
-Only new messages are stored to AgentCore Memory, avoiding duplicate writes by tracking the `storedMessageCount`.
-
-### Message Type Support
-Supports conversion between Camunda message types and AgentCore conversational payloads:
-- `UserMessage` → Role.USER
-- `AssistantMessage` → Role.ASSISTANT
-- `ToolCallResultMessage` → Role.TOOL
-
-### Error Handling
-- Gracefully handles missing memory on load (starts fresh conversation)
-- Throws `IllegalStateException` if write operations fail
-- Validates configuration at runtime
-
 ## Usage Example
 
 ```java
@@ -259,8 +243,15 @@ The store is automatically registered in `AgenticAiConnectorsAutoConfiguration`:
 ```java
 @Bean
 @ConditionalOnMissingBean
-public AwsAgentCoreConversationStore aiAgentAwsAgentCoreConversationStore() {
-  return new AwsAgentCoreConversationStore(new DefaultBedrockAgentCoreClientFactory());
+public AwsAgentCoreConversationMapper aiAgentAwsAgentCoreConversationMapper(ObjectMapper objectMapper) {
+  return new AwsAgentCoreConversationMapper(objectMapper);
+}
+
+@Bean
+@ConditionalOnMissingBean
+public AwsAgentCoreConversationStore aiAgentAwsAgentCoreConversationStore(
+    AwsAgentCoreConversationMapper conversationMapper) {
+  return new AwsAgentCoreConversationStore(conversationMapper);
 }
 ```
 
@@ -269,7 +260,7 @@ public AwsAgentCoreConversationStore aiAgentAwsAgentCoreConversationStore() {
 - **System messages not stored in AgentCore**: System prompts are preserved in conversation context only
 - **Pre-provisioned memory**: Memory resources must be pre-provisioned (not created by connector)
 - **Long-term memory extraction**: Managed by AWS AgentCore (not controlled by this implementation)
-- **Message metadata lossy**: See mapping/README.md for details on what fields are preserved vs. lost
+- **Message metadata serialization**: All metadata keys are preserved, but complex values are JSON-serialized to strings; see mapping/README.md for details on field behavior
 
 ## Future Enhancements
 
