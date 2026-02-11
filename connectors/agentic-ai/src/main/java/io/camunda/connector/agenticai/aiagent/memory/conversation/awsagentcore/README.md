@@ -243,8 +243,15 @@ The store is automatically registered in `AgenticAiConnectorsAutoConfiguration`:
 ```java
 @Bean
 @ConditionalOnMissingBean
-public AwsAgentCoreConversationStore aiAgentAwsAgentCoreConversationStore() {
-  return new AwsAgentCoreConversationStore(new DefaultBedrockAgentCoreClientFactory());
+public AwsAgentCoreConversationMapper aiAgentAwsAgentCoreConversationMapper(ObjectMapper objectMapper) {
+  return new AwsAgentCoreConversationMapper(objectMapper);
+}
+
+@Bean
+@ConditionalOnMissingBean
+public AwsAgentCoreConversationStore aiAgentAwsAgentCoreConversationStore(
+    AwsAgentCoreConversationMapper conversationMapper) {
+  return new AwsAgentCoreConversationStore(conversationMapper);
 }
 ```
 
