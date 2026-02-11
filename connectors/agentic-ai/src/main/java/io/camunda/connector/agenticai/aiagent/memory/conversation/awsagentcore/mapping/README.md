@@ -365,7 +365,7 @@ The deserializer handles legacy formats for smooth migration:
 ✅ ToolCallResult structure (id, name, content via typed blob)  
 
 ### What is NOT preserved (lossy):
-❌ `Message.metadata` maps - not stored  
+❌ `Message.metadata` value types - metadata is stored and round-trips, but all values are converted to strings  
 ❌ `UserMessage.name` field - not stored  
 ❌ `ToolCallResult.properties` map - round-trip behavior depends on @JsonAnySetter/@JsonAnyGetter through nested JSON
 ❌ Exact ordering of text vs non-text content within a single message (text always comes first on reconstruction)  
