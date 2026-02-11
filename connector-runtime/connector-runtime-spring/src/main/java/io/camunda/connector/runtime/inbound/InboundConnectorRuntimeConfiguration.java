@@ -160,7 +160,8 @@ public class InboundConnectorRuntimeConfiguration {
       @Value("${camunda.connector.inbound.process-definition-cache.max-size:1000}")
           int cacheMaxSize) {
     int boundedMaxSize = cacheMaxSize > 0 ? cacheMaxSize : 1000;
-    CaffeineCacheManager cacheManager = new CaffeineCacheManager("processDefinitions");
+    CaffeineCacheManager cacheManager =
+        new CaffeineCacheManager(ProcessDefinitionInspector.PROCESS_DEFINITION_CACHE_NAME);
     cacheManager.setCaffeine(Caffeine.newBuilder().maximumSize(boundedMaxSize));
     return cacheManager;
   }
@@ -170,7 +171,7 @@ public class InboundConnectorRuntimeConfiguration {
       SearchQueryClient searchQueryClient, CacheManager cacheManager) {
     Cache cache =
         Objects.requireNonNull(
-            cacheManager.getCache("processDefinitions"),
+            cacheManager.getCache(ProcessDefinitionInspector.PROCESS_DEFINITION_CACHE_NAME),
             "processDefinitions cache must be configured");
     return new ProcessDefinitionInspector(searchQueryClient, cache);
   }

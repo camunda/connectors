@@ -122,10 +122,12 @@ public class ProcessDefinitionInspectorUtilTests {
   private List<InboundConnectorElement> fromModel(String fileName, String processId) {
     try {
       var searchQueryClientMock = mock(SearchQueryClient.class);
-      var cacheManager = new ConcurrentMapCacheManager("processDefinitions");
+      var cacheManager =
+          new ConcurrentMapCacheManager(ProcessDefinitionInspector.PROCESS_DEFINITION_CACHE_NAME);
       var inspector =
           new ProcessDefinitionInspector(
-              searchQueryClientMock, cacheManager.getCache("processDefinitions"));
+              searchQueryClientMock,
+              cacheManager.getCache(ProcessDefinitionInspector.PROCESS_DEFINITION_CACHE_NAME));
       var modelFile = ResourceUtils.getFile("classpath:bpmn/" + fileName);
       var model = Bpmn.readModelFromStream(new FileInputStream(modelFile));
       var processDefinitionID = new ProcessDefinitionRef(processId, "tenant1");

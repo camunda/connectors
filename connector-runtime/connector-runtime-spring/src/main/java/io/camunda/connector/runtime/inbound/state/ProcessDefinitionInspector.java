@@ -71,6 +71,8 @@ public class ProcessDefinitionInspector {
 
   private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionInspector.class);
 
+  public static final String PROCESS_DEFINITION_CACHE_NAME = "processDefinitions";
+
   private static final List<Class<? extends BaseElement>> INBOUND_ELIGIBLE_TYPES =
       new ArrayList<>();
   private static final String NAME_ATTRIBUTE = "name";
@@ -123,10 +125,6 @@ public class ProcessDefinitionInspector {
         .toList();
   }
 
-  /** Clears the entire cache. */
-  public void clearCache() {
-    processDefinitionCache.clear();
-  }
 
   private List<InboundConnectorElement> inspectBpmnProcess(
       Process process, ProcessDefinitionRef identifier, long processDefinitionKey) {

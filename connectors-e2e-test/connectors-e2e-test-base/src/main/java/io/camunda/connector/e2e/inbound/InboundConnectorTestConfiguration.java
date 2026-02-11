@@ -23,7 +23,9 @@ import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
 import java.time.Duration;
+import java.util.Objects;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
 
 @TestConfiguration
@@ -31,22 +33,22 @@ public class InboundConnectorTestConfiguration {
 
   @Bean
   public InboundConnectorTestHelper inboundConnectorTestHelper(
-      ProcessDefinitionInspector processDefinitionInspector,
+      CacheManager cacheManager,
       InboundExecutableRegistry executableRegistry) {
-    return new InboundConnectorTestHelper(processDefinitionInspector, executableRegistry);
+    return new InboundConnectorTestHelper(cacheManager, executableRegistry);
   }
 
   public static class InboundConnectorTestHelper {
 
     private static final Duration DEFAULT_AWAIT_NO_EXECUTABLES_TIMEOUT = Duration.ofSeconds(10);
 
-    private final ProcessDefinitionInspector processDefinitionInspector;
+    private final CacheManager cacheManager;
     private final InboundExecutableRegistry executableRegistry;
 
     public InboundConnectorTestHelper(
-        ProcessDefinitionInspector processDefinitionInspector,
+        CacheManager cacheManager,
         InboundExecutableRegistry executableRegistry) {
-      this.processDefinitionInspector = processDefinitionInspector;
+      this.cacheManager = cacheManager;
       this.executableRegistry = executableRegistry;
     }
 
@@ -61,7 +63,9 @@ public class InboundConnectorTestConfiguration {
     }
 
     public void clearProcessDefinitionCache() {
-      processDefinitionInspector.clearCache();
+      Objects.requireNonNull(
+              cacheManager.getCache(ProcessDefinitionInspector.PROCESS_DEFINITION_CACHE_NAME))
+          .clear();
     }
 
     /** Waits until there are no active executables in the registry. */
