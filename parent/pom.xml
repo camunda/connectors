@@ -70,7 +70,7 @@ limitations under the License.</license.inlineheader>
     <nexus.release.repository>https://artifacts.camunda.com/artifactory/connectors/</nexus.release.repository>
 
     <!-- Camunda internal libraries -->
-    <version.camunda>8.8.9</version.camunda>
+    <version.camunda>8.8.11</version.camunda>
     <version.feel-engine>1.20.0</version.feel-engine>
 
     <!-- Third party dependencies -->
@@ -91,15 +91,15 @@ limitations under the License.</license.inlineheader>
 
     <version.spring-boot>3.5.10</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>7.4.4</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.5.27</version.logback>
+    <version.logback>1.5.29</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.41.21</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.41.26</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.41.21</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.41.26</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.41.21</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.41.26</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.4</version.localstack>
 
@@ -117,7 +117,7 @@ limitations under the License.</license.inlineheader>
     <version.gson-extras>3.3.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
-    <version.httpcore5>5.4</version.httpcore5>
+    <version.httpcore5>5.4.1</version.httpcore5>
     <version.httpclient5>5.6</version.httpclient5>
     <version.pdfbox>3.0.6</version.pdfbox>
     <version.collections4>4.5.0</version.collections4>
@@ -127,7 +127,7 @@ limitations under the License.</license.inlineheader>
 
     <version.kafka-clients>4.1.1</version.kafka-clients>
 
-    <version.microsoft-graph>6.60.0</version.microsoft-graph>
+    <version.microsoft-graph>6.61.0</version.microsoft-graph>
     <version.azure-identity>1.18.2</version.azure-identity>
 
     <version.bouncycastle>1.83</version.bouncycastle>
@@ -152,7 +152,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.5.0</version.auth0.jwt>
     <version.auth0.jwks>0.23.0</version.auth0.jwks>
     
-    <version.langchain4j>1.10.0</version.langchain4j>
+    <version.langchain4j>1.11.0</version.langchain4j>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.6.2</plugin.version.maven-enforcer-plugin>
@@ -838,7 +838,7 @@ limitations under the License.</license.inlineheader>
         </plugin>
         <plugin>
           <artifactId>maven-dependency-plugin</artifactId>
-          <version>3.9.0</version>
+          <version>3.10.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
