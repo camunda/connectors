@@ -52,20 +52,20 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.Cache;
 
 /**
  * Inspects the imported process elements and extracts Inbound Connector elements as {@link
  * ProcessCorrelationPoint}.
  *
  * <p>This class caches the parsed connector elements by processDefinitionKey since the BPMN model
- * is immutable once deployed. The cache uses LRU eviction with a configurable max size.
+ * is immutable once deployed. The cache is provided by Spring's CacheManager configuration.
  */
 public class ProcessDefinitionInspector {
 
@@ -83,47 +83,23 @@ public class ProcessDefinitionInspector {
   }
 
   private final SearchQueryClient searchQueryClient;
+  private final Cache processDefinitionCache;
 
-  /**
-   * LRU cache of parsed inbound connector elements by processDefinitionKey. The BPMN model is
-   * immutable once deployed, so we can safely cache the parsed elements. Uses LinkedHashMap with
-   * access-order to implement LRU eviction.
-   */
-  private final Map<Long, List<InboundConnectorElement>> connectorElementsCache;
-
-  public ProcessDefinitionInspector(SearchQueryClient searchQueryClient, int cacheMaxSize) {
+  public ProcessDefinitionInspector(
+      SearchQueryClient searchQueryClient, Cache processDefinitionCache) {
     this.searchQueryClient = searchQueryClient;
-    if (cacheMaxSize <= 0) {
-      throw new IllegalArgumentException("cacheMaxSize must be greater than 0");
+    if (processDefinitionCache == null) {
+      throw new IllegalArgumentException("processDefinitionCache must not be null");
     }
-    this.connectorElementsCache = createLruCache(cacheMaxSize);
-    LOG.info("Process definition cache initialized with max size: {}", cacheMaxSize);
-  }
-
-  private Map<Long, List<InboundConnectorElement>> createLruCache(int maxSize) {
-    return Collections.synchronizedMap(
-        new LinkedHashMap<>(16, 0.75f, true) {
-          @Override
-          protected boolean removeEldestEntry(
-              Map.Entry<Long, List<InboundConnectorElement>> eldest) {
-            boolean shouldRemove = size() > maxSize;
-            if (shouldRemove) {
-              LOG.debug(
-                  "Cache size exceeded {}, evicting oldest entry for process definition key: {}",
-                  maxSize,
-                  eldest.getKey());
-            }
-            return shouldRemove;
-          }
-        });
+    this.processDefinitionCache = processDefinitionCache;
   }
 
   public List<InboundConnectorElement> findInboundConnectors(
       ProcessDefinitionRef identifier, long processDefinitionKey) {
 
-    return connectorElementsCache.computeIfAbsent(
+    return processDefinitionCache.get(
         processDefinitionKey,
-        key -> {
+        () -> {
           LOG.debug(
               "Cache miss for process {} (key {}), fetching and parsing BPMN model.",
               identifier.bpmnProcessId(),
@@ -149,7 +125,7 @@ public class ProcessDefinitionInspector {
 
   /** Clears the entire cache. */
   public void clearCache() {
-    connectorElementsCache.clear();
+    processDefinitionCache.clear();
   }
 
   private List<InboundConnectorElement> inspectBpmnProcess(

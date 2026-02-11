@@ -31,6 +31,7 @@ import java.io.FileInputStream;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.util.ResourceUtils;
 
 public class ProcessDefinitionInspectorUtilTests {
@@ -121,7 +122,10 @@ public class ProcessDefinitionInspectorUtilTests {
   private List<InboundConnectorElement> fromModel(String fileName, String processId) {
     try {
       var searchQueryClientMock = mock(SearchQueryClient.class);
-      var inspector = new ProcessDefinitionInspector(searchQueryClientMock, 100);
+      var cacheManager = new ConcurrentMapCacheManager("processDefinitions");
+      var inspector =
+          new ProcessDefinitionInspector(
+              searchQueryClientMock, cacheManager.getCache("processDefinitions"));
       var modelFile = ResourceUtils.getFile("classpath:bpmn/" + fileName);
       var model = Bpmn.readModelFromStream(new FileInputStream(modelFile));
       var processDefinitionID = new ProcessDefinitionRef(processId, "tenant1");

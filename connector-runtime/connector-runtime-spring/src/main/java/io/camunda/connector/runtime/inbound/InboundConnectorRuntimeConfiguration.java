@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.validation.ValidationProvider;
@@ -49,9 +50,13 @@ import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
+import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -151,11 +156,23 @@ public class InboundConnectorRuntimeConfiguration {
   }
 
   @Bean
-  public ProcessDefinitionInspector processDefinitionInspector(
-      SearchQueryClient searchQueryClient,
+  public CacheManager processDefinitionCacheManager(
       @Value("${camunda.connector.inbound.process-definition-cache.max-size:1000}")
           int cacheMaxSize) {
-    return new ProcessDefinitionInspector(searchQueryClient, cacheMaxSize);
+    int boundedMaxSize = cacheMaxSize > 0 ? cacheMaxSize : 1000;
+    CaffeineCacheManager cacheManager = new CaffeineCacheManager("processDefinitions");
+    cacheManager.setCaffeine(Caffeine.newBuilder().maximumSize(boundedMaxSize));
+    return cacheManager;
+  }
+
+  @Bean
+  public ProcessDefinitionInspector processDefinitionInspector(
+      SearchQueryClient searchQueryClient, CacheManager cacheManager) {
+    Cache cache =
+        Objects.requireNonNull(
+            cacheManager.getCache("processDefinitions"),
+            "processDefinitions cache must be configured");
+    return new ProcessDefinitionInspector(searchQueryClient, cache);
   }
 
   @Bean
