@@ -201,22 +201,6 @@ The default credentials chain looks for credentials in this order:
 4. Amazon ECS container credentials
 5. Instance profile credentials (EC2)
 
-## Features
-
-### Incremental Message Storage
-Only new messages are stored to AgentCore Memory, avoiding duplicate writes by tracking the `storedMessageCount`.
-
-### Message Type Support
-Supports conversion between Camunda message types and AgentCore conversational payloads:
-- `UserMessage` → Role.USER
-- `AssistantMessage` → Role.ASSISTANT
-- `ToolCallResultMessage` → Role.TOOL
-
-### Error Handling
-- Gracefully handles missing memory on load (starts fresh conversation)
-- Throws `IllegalStateException` if write operations fail
-- Validates configuration at runtime
-
 ## Usage Example
 
 ```java
