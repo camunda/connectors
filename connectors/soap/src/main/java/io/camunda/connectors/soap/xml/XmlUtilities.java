@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
@@ -47,6 +48,15 @@ public final class XmlUtilities {
   private static Document xmlStringToDocument(String xmlString, boolean namespaceAware) {
     DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
     documentBuilderFactory.setNamespaceAware(namespaceAware);
+    try {
+      // These settings are required to prevent XXE attacks (CWE-611)
+      documentBuilderFactory.setFeature(
+          "http://apache.org/xml/features/disallow-doctype-decl", true);
+      documentBuilderFactory.setXIncludeAware(false);
+    } catch (ParserConfigurationException e) {
+      throw new RuntimeException("Failed to configure XML parser security settings", e);
+    }
+
     try {
       return documentBuilderFactory
           .newDocumentBuilder()
@@ -99,6 +109,14 @@ public final class XmlUtilities {
     StringWriter sw = new StringWriter();
     StreamResult result = new StreamResult(sw);
     TransformerFactory transformerFactory = TransformerFactory.newInstance();
+
+    try {
+      // These settings are required to prevent XXE attacks (CWE-611)
+      transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+      transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to configure transformer security settings", e);
+    }
 
     try (InputStream in =
         XmlUtilities.class.getClassLoader().getResourceAsStream("prettyprint.xsl")) {
