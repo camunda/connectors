@@ -125,7 +125,6 @@ public class ProcessDefinitionInspector {
         .toList();
   }
 
-
   private List<InboundConnectorElement> inspectBpmnProcess(
       Process process, ProcessDefinitionRef identifier, long processDefinitionKey) {
     Collection<BaseElement> inboundEligibleElements = retrieveEligibleElementsFromProcess(process);

@@ -33,8 +33,7 @@ public class InboundConnectorTestConfiguration {
 
   @Bean
   public InboundConnectorTestHelper inboundConnectorTestHelper(
-      CacheManager cacheManager,
-      InboundExecutableRegistry executableRegistry) {
+      CacheManager cacheManager, InboundExecutableRegistry executableRegistry) {
     return new InboundConnectorTestHelper(cacheManager, executableRegistry);
   }
 
@@ -46,8 +45,7 @@ public class InboundConnectorTestConfiguration {
     private final InboundExecutableRegistry executableRegistry;
 
     public InboundConnectorTestHelper(
-        CacheManager cacheManager,
-        InboundExecutableRegistry executableRegistry) {
+        CacheManager cacheManager, InboundExecutableRegistry executableRegistry) {
       this.cacheManager = cacheManager;
       this.executableRegistry = executableRegistry;
     }
