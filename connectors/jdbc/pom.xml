@@ -62,7 +62,7 @@
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.7.9</version>
+      <version>42.7.10</version>
     </dependency>
 
     <!-- Mariadb is used because of an issue with the MySQL ConnectorJ licence (GPL). We're not mentioning Mariadb in our docs -->
@@ -105,13 +105,13 @@
     <dependency>
       <groupId>com.oracle.database.jdbc</groupId>
       <artifactId>ucp</artifactId>
-      <version>23.26.0.0.0</version>
+      <version>23.26.1.0.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.oracle.database.jdbc</groupId>
       <artifactId>ojdbc11</artifactId>
-      <version>23.26.0.0.0</version>
+      <version>23.26.1.0.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
