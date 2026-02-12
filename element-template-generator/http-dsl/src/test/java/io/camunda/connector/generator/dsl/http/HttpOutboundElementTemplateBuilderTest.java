@@ -20,7 +20,6 @@ import static io.camunda.connector.generator.java.annotation.TemplateProperty.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
-import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.ElementTemplate;
@@ -398,7 +397,13 @@ public class HttpOutboundElementTemplateBuilderTest {
         .authentication(authentications)
         .operations(operations)
         .elementType(
-            new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null))
+            new ConnectorElementType(
+                Set.of(
+                    io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.TASK),
+                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                    .SERVICE_TASK,
+                null,
+                null))
         .build();
   }
 

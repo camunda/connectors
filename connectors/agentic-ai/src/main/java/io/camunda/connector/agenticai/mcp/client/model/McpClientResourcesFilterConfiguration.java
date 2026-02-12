@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.mcp.client.model;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
@@ -22,7 +21,7 @@ public record McpClientResourcesFilterConfiguration(
             description =
                 "List of resources that can be accessed by the MCP client. By default, all resources are allowed.",
             type = TemplateProperty.PropertyType.Text,
-            feel = Property.FeelMode.required,
+            feel = TemplateProperty.FeelMode.required,
             optional = true)
         List<@NotBlank String> included,
     @FEEL
@@ -32,7 +31,7 @@ public record McpClientResourcesFilterConfiguration(
             description =
                 "List of resources that are not allowed to be accessed by the MCP client. Will override any included resources.",
             type = TemplateProperty.PropertyType.Text,
-            feel = Property.FeelMode.required,
+            feel = TemplateProperty.FeelMode.required,
             optional = true)
         List<@NotBlank String> excluded) {
 

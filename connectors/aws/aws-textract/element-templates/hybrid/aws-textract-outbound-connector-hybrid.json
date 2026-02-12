@@ -278,7 +278,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "input",
     "binding" : {
       "name" : "input.analyzeTables",
@@ -294,7 +294,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "input",
     "binding" : {
       "name" : "input.analyzeForms",
@@ -310,7 +310,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "input",
     "binding" : {
       "name" : "input.analyzeSignatures",
@@ -326,7 +326,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "input",
     "binding" : {
       "name" : "input.analyzeLayout",
@@ -341,7 +341,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "input",
     "binding" : {
       "name" : "input.analyzeQueries",

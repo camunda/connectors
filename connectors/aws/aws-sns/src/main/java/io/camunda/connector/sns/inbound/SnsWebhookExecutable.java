@@ -19,7 +19,6 @@ import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.aws.ObjectMapperSupplier;
-import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
@@ -48,23 +47,26 @@ import java.util.Optional;
     propertyGroups = {@PropertyGroup(id = "subscription", label = "Subscription Configuration")},
     elementTypes = {
       @ConnectorElementType(
-          appliesTo = BpmnType.START_EVENT,
-          elementType = BpmnType.MESSAGE_START_EVENT,
+          appliesTo = ElementTemplate.BpmnType.START_EVENT,
+          elementType = ElementTemplate.BpmnType.MESSAGE_START_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.AWSSNS.MessageStartEvent.v1",
           templateNameOverride = "SNS HTTPS Message Start Event Connector Subscription"),
       @ConnectorElementType(
-          appliesTo = {BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT},
-          elementType = BpmnType.INTERMEDIATE_CATCH_EVENT,
+          appliesTo = {
+            ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT,
+            ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT
+          },
+          elementType = ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.AWSSNS.IntermediateCatchEvent.v1",
           templateNameOverride = "SNS HTTPS Intermediate Catch Event Connector"),
       @ConnectorElementType(
-          appliesTo = BpmnType.BOUNDARY_EVENT,
-          elementType = BpmnType.BOUNDARY_EVENT,
+          appliesTo = ElementTemplate.BpmnType.BOUNDARY_EVENT,
+          elementType = ElementTemplate.BpmnType.BOUNDARY_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.AWSSNS.Boundary.v1",
           templateNameOverride = "SNS HTTPS Boundary Event Connector"),
       @ConnectorElementType(
-          appliesTo = BpmnType.RECEIVE_TASK,
-          elementType = BpmnType.RECEIVE_TASK,
+          appliesTo = ElementTemplate.BpmnType.RECEIVE_TASK,
+          elementType = ElementTemplate.BpmnType.RECEIVE_TASK,
           templateIdOverride = "io.camunda.connectors.inbound.AWSSNS.Receive.v1",
           templateNameOverride = "SNS HTTPS Receive Task Connector")
     })

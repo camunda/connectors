@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.model.request.provider.shared;
 
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import java.time.Duration;
 
@@ -17,7 +16,7 @@ public record TimeoutConfiguration(
             description =
                 "Timeout specification for API calls to the model provider defined as ISO-8601 duration (example: <code>PT60S</code>).",
             type = TemplateProperty.PropertyType.String,
-            feel = Property.FeelMode.optional,
+            feel = TemplateProperty.FeelMode.optional,
             optional = true,
             defaultValueType = TemplateProperty.DefaultValueType.String)
         Duration timeout) {}

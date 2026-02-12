@@ -29,7 +29,6 @@ import io.camunda.connector.generator.BaseTest;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
-import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.ElementTemplate.ElementTypeWrapper;
@@ -45,6 +44,7 @@ import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
+import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnector;
 import io.camunda.connector.generator.java.example.outbound.OperationAnnotatedConnectorWithPrimitiveTypes;
@@ -81,14 +81,14 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
                   .generate(MyConnectorFunction.MinimallyAnnotated.class)
                   .getFirst()
                   .elementType())
-          .isEqualTo(ElementTypeWrapper.from(BpmnType.SERVICE_TASK));
+          .isEqualTo(ElementTypeWrapper.from(ElementTemplate.BpmnType.SERVICE_TASK));
     }
 
     @Test
     void elementType_customizable() {
       assertThat(
               generator.generate(MyConnectorFunction.FullyAnnotated.class).getFirst().elementType())
-          .isEqualTo(ElementTypeWrapper.from(BpmnType.SCRIPT_TASK));
+          .isEqualTo(ElementTypeWrapper.from(ElementTemplate.BpmnType.SCRIPT_TASK));
     }
 
     @Test
@@ -98,14 +98,14 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
                   .generate(MyConnectorFunction.MinimallyAnnotated.class)
                   .getFirst()
                   .appliesTo())
-          .isEqualTo(Set.of(BpmnType.TASK.getName()));
+          .isEqualTo(Set.of(ElementTemplate.BpmnType.TASK.getName()));
     }
 
     @Test
     void appliesTo_customizable() {
       assertThat(
               generator.generate(MyConnectorFunction.FullyAnnotated.class).getFirst().appliesTo())
-          .isEqualTo(Set.of(BpmnType.SERVICE_TASK.getName()));
+          .isEqualTo(Set.of(ElementTemplate.BpmnType.SERVICE_TASK.getName()));
     }
 
     @Test
@@ -258,19 +258,25 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           hasMessageThrowEvent = false,
           hasMessageEndEvent = false;
       for (var template : templates) {
-        if (template.elementType().equals(ElementTypeWrapper.from(BpmnType.SERVICE_TASK))) {
+        if (template
+            .elementType()
+            .equals(ElementTypeWrapper.from(ElementTemplate.BpmnType.SERVICE_TASK))) {
           hasServiceTask = true;
-        } else if (template.elementType().equals(ElementTypeWrapper.from(BpmnType.SCRIPT_TASK))) {
+        } else if (template
+            .elementType()
+            .equals(ElementTypeWrapper.from(ElementTemplate.BpmnType.SCRIPT_TASK))) {
           hasScriptTask = true;
-        } else if (template.elementType().equals(ElementTypeWrapper.from(BpmnType.SEND_TASK))) {
+        } else if (template
+            .elementType()
+            .equals(ElementTypeWrapper.from(ElementTemplate.BpmnType.SEND_TASK))) {
           hasSendTask = true;
         } else if (template
             .elementType()
-            .equals(ElementTypeWrapper.from(BpmnType.INTERMEDIATE_THROW_EVENT))) {
+            .equals(ElementTypeWrapper.from(ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT))) {
           hasMessageThrowEvent = true;
         } else if (template
             .elementType()
-            .equals(ElementTypeWrapper.from(BpmnType.MESSAGE_END_EVENT))) {
+            .equals(ElementTypeWrapper.from(ElementTemplate.BpmnType.MESSAGE_END_EVENT))) {
           hasMessageEndEvent = true;
         }
       }
@@ -292,12 +298,12 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           templates.stream()
               .collect(Collectors.toMap(t -> t.elementType().originalType().getId(), t -> t));
 
-      for (var elementType : BpmnType.values()) {
+      for (var elementType : ElementTemplate.BpmnType.values()) {
         var template = templateMap.get(elementType.getId());
         if (template == null) {
           continue;
         }
-        if (elementType == BpmnType.INTERMEDIATE_THROW_EVENT) {
+        if (elementType == ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT) {
           assertThat(template.id()).isEqualTo("my-custom-id-for-intermediate-event");
           assertThat(template.name()).isEqualTo("My custom name for intermediate event");
         } else {
@@ -319,21 +325,26 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               null,
               Set.of(
                   new ConnectorElementType(
-                      Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null),
+                      Set.of(ElementTemplate.BpmnType.TASK),
+                      ElementTemplate.BpmnType.SERVICE_TASK,
+                      null,
+                      null),
                   new ConnectorElementType(
-                      Set.of(BpmnType.INTERMEDIATE_THROW_EVENT),
-                      BpmnType.INTERMEDIATE_THROW_EVENT,
+                      Set.of(ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT),
+                      ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT,
                       null,
                       null)),
               Map.of());
       var templates = generator.generate(MyConnectorFunction.FullyAnnotated.class, config);
       boolean hasServiceTask = false, hasMessageThrowEvent = false;
       for (var template : templates) {
-        if (template.elementType().equals(ElementTypeWrapper.from(BpmnType.SERVICE_TASK))) {
+        if (template
+            .elementType()
+            .equals(ElementTypeWrapper.from(ElementTemplate.BpmnType.SERVICE_TASK))) {
           hasServiceTask = true;
         } else if (template
             .elementType()
-            .equals(ElementTypeWrapper.from(BpmnType.INTERMEDIATE_THROW_EVENT))) {
+            .equals(ElementTypeWrapper.from(ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT))) {
           hasMessageThrowEvent = true;
         }
       }
@@ -352,7 +363,10 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               null,
               Set.of(
                   new ConnectorElementType(
-                      Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null)),
+                      Set.of(ElementTemplate.BpmnType.TASK),
+                      ElementTemplate.BpmnType.SERVICE_TASK,
+                      null,
+                      null)),
               Map.of());
       var templates =
           generator.generate(MyConnectorFunction.WithMultipleElementTypes.class, config);
@@ -361,17 +375,21 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           hasMessageThrowEvent = false,
           hasMessageEndEvent = false;
       for (var template : templates) {
-        if (template.elementType().equals(ElementTypeWrapper.from(BpmnType.SERVICE_TASK))) {
+        if (template
+            .elementType()
+            .equals(ElementTypeWrapper.from(ElementTemplate.BpmnType.SERVICE_TASK))) {
           hasServiceTask = true;
-        } else if (template.elementType().equals(ElementTypeWrapper.from(BpmnType.SCRIPT_TASK))) {
+        } else if (template
+            .elementType()
+            .equals(ElementTypeWrapper.from(ElementTemplate.BpmnType.SCRIPT_TASK))) {
           hasScriptTask = true;
         } else if (template
             .elementType()
-            .equals(ElementTypeWrapper.from(BpmnType.INTERMEDIATE_THROW_EVENT))) {
+            .equals(ElementTypeWrapper.from(ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT))) {
           hasMessageThrowEvent = true;
         } else if (template
             .elementType()
-            .equals(ElementTypeWrapper.from(BpmnType.MESSAGE_END_EVENT))) {
+            .equals(ElementTypeWrapper.from(ElementTemplate.BpmnType.MESSAGE_END_EVENT))) {
           hasMessageEndEvent = true;
         }
       }
@@ -392,10 +410,13 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               null,
               Set.of(
                   new ConnectorElementType(
-                      Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null),
+                      Set.of(ElementTemplate.BpmnType.TASK),
+                      ElementTemplate.BpmnType.SERVICE_TASK,
+                      null,
+                      null),
                   new ConnectorElementType(
-                      Set.of(BpmnType.INTERMEDIATE_CATCH_EVENT),
-                      BpmnType.INTERMEDIATE_CATCH_EVENT,
+                      Set.of(ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT),
+                      ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT,
                       null,
                       null)),
               Map.of());

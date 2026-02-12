@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.google.gcs.model.request;
 
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
@@ -18,7 +17,7 @@ public record DownloadObject(
             id = "downloadOperationProject",
             group = "operation",
             tooltip = "The project where the bucket is located.",
-            feel = Property.FeelMode.optional,
+            feel = TemplateProperty.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "operation.project"))
         @NotBlank
         String project,
@@ -27,7 +26,7 @@ public record DownloadObject(
             id = "downloadOperationBucket",
             group = "operation",
             tooltip = "A bucket acts as a directory that organizes a set of objects.",
-            feel = Property.FeelMode.optional,
+            feel = TemplateProperty.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "operation.bucket"))
         @NotBlank
         String bucket,
@@ -36,7 +35,7 @@ public record DownloadObject(
             id = "downloadOperationFileName",
             group = "operation",
             tooltip = "Specify the name of the document to be downloaded.",
-            feel = Property.FeelMode.optional,
+            feel = TemplateProperty.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "operation.fileName"))
         @NotBlank
         String fileName,
