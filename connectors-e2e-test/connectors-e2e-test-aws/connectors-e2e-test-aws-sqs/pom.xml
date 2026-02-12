@@ -23,5 +23,11 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>sqs</artifactId>
+            <version>${version.aws-java-sdk}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
