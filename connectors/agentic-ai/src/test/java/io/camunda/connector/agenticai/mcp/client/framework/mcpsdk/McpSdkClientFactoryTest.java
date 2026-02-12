@@ -7,6 +7,9 @@
 package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,6 +24,7 @@ import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
 import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc.McpSdkMcpClientDelegate;
 import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication;
+import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
 import io.modelcontextprotocol.client.McpSyncClient;
 import java.time.Duration;
 import java.util.List;
@@ -48,6 +52,7 @@ class McpSdkClientFactoryTest {
           "X-Dummy", "Test",
           "Authorization", "Bearer test-token");
 
+  @Mock private JdkHttpClientProxyConfigurator httpClientProxyConfigurator;
   @Mock private McpClientHeadersSupplierFactory headersSupplierFactory;
 
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -55,7 +60,8 @@ class McpSdkClientFactoryTest {
 
   @BeforeEach
   void setUp() {
-    factory = new McpSdkClientFactory(objectMapper, headersSupplierFactory);
+    factory =
+        new McpSdkClientFactory(objectMapper, httpClientProxyConfigurator, headersSupplierFactory);
   }
 
   @Test
@@ -66,6 +72,7 @@ class McpSdkClientFactoryTest {
             CLIENT_ID, createMcpClientConfiguration(McpClientType.STDIO, stdioConfig, null, null));
 
     assertClientIsOfCorrectType(client);
+    verifyNoInteractions(httpClientProxyConfigurator);
   }
 
   @Test
@@ -91,6 +98,7 @@ class McpSdkClientFactoryTest {
                 McpClientType.HTTP, null, streamableHttpTransportConfig, null));
 
     assertClientIsOfCorrectType(client);
+    verify(httpClientProxyConfigurator).configure(any());
   }
 
   @Test
@@ -104,6 +112,7 @@ class McpSdkClientFactoryTest {
             CLIENT_ID, createMcpClientConfiguration(McpClientType.SSE, null, null, sseConfig));
 
     assertClientIsOfCorrectType(client);
+    verify(httpClientProxyConfigurator).configure(any());
   }
 
   @Test
