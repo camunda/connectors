@@ -14,6 +14,10 @@
   <artifactId>connectors-e2e-test-agentic-ai</artifactId>
   <packaging>jar</packaging>
 
+  <properties>
+    <testcontainers-keycloak.version>4.1.1</testcontainers-keycloak.version>
+  </properties>
+
   <build>
     <plugins>
       <plugin>
@@ -39,6 +43,11 @@
     </dependency>
 
     <dependency>
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>camunda-process-test-spring</artifactId>
       <version>${version.camunda}</version>
@@ -49,6 +58,22 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connectors-e2e-test-base</artifactId>
       <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.dasniko</groupId>
+      <artifactId>testcontainers-keycloak</artifactId>
+      <version>${testcontainers-keycloak.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

@@ -70,7 +70,7 @@ import org.springframework.test.context.TestPropertySource;
       "camunda.connector.agenticai.mcp.remote-client.framework=mcpsdk",
     })
 @ActiveProfiles({"mcp-standalone-test"})
-public class McpStandaloneMcpSdkTests extends BaseAgenticAiTest {
+public class McpStandaloneTests extends BaseAgenticAiTest {
 
   private static final WireMockServer wireMock = setupWireMockServer();
 

@@ -97,6 +97,10 @@
       <artifactId>spring-boot-micrometer-metrics</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-cache</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
     </dependency>
@@ -205,11 +209,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-web</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>tools.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
       <scope>test</scope>
@@ -223,7 +222,7 @@
       <artifactId>spring-boot-jackson2</artifactId>
       <scope>test</scope>
     </dependency>
-  </dependencies>
+   </dependencies>
 
   <build>
     <plugins>
@@ -245,6 +244,8 @@
                 <ignoredDependency>org.springframework.boot:spring-boot-configuration-processor</ignoredDependency>
                 <ignoredDependency>org.springframework.boot:spring-boot-starter-webmvc</ignoredDependency>
                 <ignoredDependency>org.springframework.boot:spring-boot-starter-actuator</ignoredDependency>
+                <ignoredDependency>org.springframework.boot:spring-boot-starter-web</ignoredDependency>
+                <ignoredDependency>org.springframework.boot:spring-boot-starter-cache</ignoredDependency>
               </ignoredDependencies>
             </configuration>
           </execution>

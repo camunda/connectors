@@ -28,6 +28,19 @@ Used in `DEPLOY_SNAPSHOTS.yaml` to notify the connector medic when the deploy sn
 - If `connector-medic` is a **user group**: `<!subteam^S0123456789>`
 - If it's an **individual user**: `<@U024BE7LH>`
 
+### 3. CONNECTORS_QA_MANAGER_SLACK_GROUP_ID
+Used in `QA_REQUIRED.yml` to notify the QA manager when a PR is ready to be tested.
+
+**Value format:**
+- If this is a **user group**: `<!subteam^S0123456789>`
+- If it's an **individual user**: `<@U024BE7LH>`
+
+### 4. CONNECTORS_QA_SLACK_CHANNEL_ID
+Used in `QA_REQUIRED.yml` to specify the Slack channel where QA notifications should be posted (e.g., `#connectors-qa`).
+
+**Value format:**
+- Channel ID (e.g., `C01234567` - you can find this by right-clicking on the channel name → "View channel details")
+
 ## How to Find Slack IDs
 
 ### For Individual Users:

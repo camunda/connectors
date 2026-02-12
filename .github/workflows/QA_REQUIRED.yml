@@ -1,0 +1,196 @@
+---
+name: QA Required
+on:
+  pull_request:
+    types: [ labeled ]
+
+# Only cancel if the same PR gets qa:required label added again
+concurrency:
+  group: qa-required-${{ github.event.pull_request.number }}-${{ github.event.label.name }}
+  cancel-in-progress: true
+
+jobs:
+  process-qa-label:
+    name: Process QA Required Label
+    runs-on: ubuntu-latest
+    # Only run if the 'qa:required' label was just added
+    if: |
+      github.event.pull_request.state != 'closed' && 
+      github.event.label.name == 'qa:required'
+
+    steps:
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID}}
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+
+      - name: Generate a GitHub token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
+
+      - name: Add deploy-preview label
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "Adding deploy-preview label to PR #$PR_NUMBER"
+          gh pr edit "$PR_NUMBER" --repo ${{ github.repository }} --add-label "deploy-preview"
+
+      - name: Get Project ID and Status Field ID
+        id: get-project-info
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          # Extract repo name from full repository path
+          REPO_NAME="${{ github.event.repository.name }}"
+          
+          # Query the PR directly to get its project items
+          PR_INFO=$(gh api graphql -f query='
+            query($organization: String!, $repoName: String!, $prNumber: Int!) {
+              repository(owner: $organization, name: $repoName) {
+                pullRequest(number: $prNumber) {
+                  id
+                  title
+                  number
+                  projectItems(first: 1) {
+                    nodes {
+                      id
+                      project {
+                        id
+                        title
+                        field(name: "Status") {
+                          ... on ProjectV2SingleSelectField {
+                            id
+                            options {
+                              id
+                              name
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }' -f organization='${{ github.repository_owner }}' -f repoName="$REPO_NAME" -F prNumber=${{ github.event.pull_request.number }})
+          
+          echo "$PR_INFO" > project_info.json
+          echo "Raw PR info:"
+          echo "$PR_INFO" | jq .
+          
+          # List all status options to find the correct one
+          echo "Available status options:"
+          echo "$PR_INFO" | jq -r '.data.repository.pullRequest.projectItems.nodes[0].project.field.options[] | "\(.id): \(.name)"'
+          
+          # Extract the project item info from the PR
+          ITEM_ID=$(echo "$PR_INFO" | jq -r '.data.repository.pullRequest.projectItems.nodes[0].id // empty')
+          PROJECT_ID=$(echo "$PR_INFO" | jq -r '.data.repository.pullRequest.projectItems.nodes[0].project.id // empty')
+          FIELD_ID=$(echo "$PR_INFO" | jq -r '.data.repository.pullRequest.projectItems.nodes[0].project.field.id // empty')
+          # Use the known status ID for "In QA" (with emojis)
+          STATUS_OPTION_ID="96fa6798"
+          
+          echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
+          echo "field_id=$FIELD_ID" >> $GITHUB_OUTPUT
+          echo "status_option_id=$STATUS_OPTION_ID" >> $GITHUB_OUTPUT
+          echo "item_id=$ITEM_ID" >> $GITHUB_OUTPUT
+          
+          echo "Project ID: $PROJECT_ID"
+          echo "Field ID: $FIELD_ID"
+          echo "Status Option ID: $STATUS_OPTION_ID"
+          echo "Item ID: $ITEM_ID"
+
+      - name: Update PR status to "In QA"
+        continue-on-error: true
+        if: steps.get-project-info.outputs.project_id != '' && steps.get-project-info.outputs.item_id != ''
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PROJECT_ID: ${{ steps.get-project-info.outputs.project_id }}
+          ITEM_ID: ${{ steps.get-project-info.outputs.item_id }}
+          FIELD_ID: ${{ steps.get-project-info.outputs.field_id }}
+          STATUS_OPTION_ID: ${{ steps.get-project-info.outputs.status_option_id }}
+        run: |
+          if [ -z "$STATUS_OPTION_ID" ]; then
+            echo "Warning: Could not find 'In QA' status option in the project"
+            exit 0
+          fi
+          
+          echo "Updating PR status to 'In QA'"
+          echo "Project ID: $PROJECT_ID"
+          echo "Item ID: $ITEM_ID"
+          echo "Field ID: $FIELD_ID"
+          echo "Status Option ID: $STATUS_OPTION_ID"
+          
+          gh api graphql -f query='
+            mutation($projectItemId: ID!, $statusValue: String!) {
+              updateProjectV2ItemFieldValue(input: {
+                itemId: $projectItemId,
+                fieldId: "'"$FIELD_ID"'",
+                value: {
+                  singleSelectOptionId: $statusValue
+                },
+                projectId: "'"$PROJECT_ID"'"
+              }) {
+                projectV2Item {
+                  id
+                  fieldValueByName(name: "Status") {
+                    ... on ProjectV2ItemFieldSingleSelectValue {
+                      name
+                    }
+                  }
+                }
+              }
+            }' -f projectItemId="$ITEM_ID" -f statusValue="$STATUS_OPTION_ID"
+
+      - name: Add Szik as assignee
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "Adding Szik as assignee to PR #$PR_NUMBER"
+          # Get current assignees
+          CURRENT_ASSIGNEES=$(gh pr view "$PR_NUMBER" --repo ${{ github.repository }} --json assignees --jq '.assignees[].login' | tr '\n' ',' | sed 's/,$//')
+          
+          # Add Szik if not already assigned
+          if echo "$CURRENT_ASSIGNEES" | grep -q "Szik"; then
+            echo "Szik is already assigned"
+          else
+            gh pr edit "$PR_NUMBER" --repo ${{ github.repository }} --add-assignee "Szik"
+          fi
+
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
+          method: chat.postMessage
+          payload: |
+            {
+              "channel": "${{ secrets.CONNECTORS_QA_SLACK_CHANNEL_ID }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "Hi ${{ secrets.CONNECTORS_QA_MANAGER_SLACK_GROUP_ID }} :wave:"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "The pull request <${{ github.event.pull_request.html_url }}|#${{ github.event.pull_request.number }}> is ready to be tested :boom:"
+                  }
+                }
+              ]
+            }

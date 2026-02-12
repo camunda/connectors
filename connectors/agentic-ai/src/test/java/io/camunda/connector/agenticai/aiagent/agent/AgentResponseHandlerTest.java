@@ -155,6 +155,42 @@ class AgentResponseHandlerTest {
     }
 
     @Test
+    void parsesJsonWrappedInMarkdownCodeBlocks() {
+      // given - JSON wrapped in markdown code blocks (common with Anthropic Claude)
+      String markdownWrappedJson = "```json\n" + HAIKU_JSON + "\n```";
+
+      // when
+      final var response =
+          createResponse(
+              new OutboundConnectorResponseConfiguration(
+                  new TextResponseFormatConfiguration(true), false),
+              assistantMessage(markdownWrappedJson));
+
+      // then
+      assertThat(response.responseMessage()).isNull();
+      assertThat(response.responseText()).isEqualTo(markdownWrappedJson);
+      assertThat(response.responseJson()).satisfies(HAIKU_JSON_ASSERTIONS);
+    }
+
+    @Test
+    void parsesJsonWrappedInMarkdownCodeBlocksWithoutLanguage() {
+      // given - JSON wrapped in markdown code blocks without language specifier
+      String markdownWrappedJson = "```\n" + HAIKU_JSON + "\n```";
+
+      // when
+      final var response =
+          createResponse(
+              new OutboundConnectorResponseConfiguration(
+                  new TextResponseFormatConfiguration(true), false),
+              assistantMessage(markdownWrappedJson));
+
+      // then
+      assertThat(response.responseMessage()).isNull();
+      assertThat(response.responseText()).isEqualTo(markdownWrappedJson);
+      assertThat(response.responseJson()).satisfies(HAIKU_JSON_ASSERTIONS);
+    }
+
+    @Test
     void returnsAssistantMessageIfConfigured() {
       AssistantMessage assistantMessage = assistantMessage(HAIKU_TEXT);
       final var response =
@@ -205,6 +241,42 @@ class AgentResponseHandlerTest {
               e -> {
                 assertThat(e.getErrorCode()).isEqualTo(ERROR_CODE_FAILED_TO_PARSE_RESPONSE_CONTENT);
               });
+    }
+
+    @Test
+    void parsesJsonWrappedInMarkdownCodeBlocks() {
+      // given - JSON wrapped in markdown code blocks (common with Anthropic Claude on Bedrock)
+      String markdownWrappedJson = "```json\n" + HAIKU_JSON + "\n```";
+
+      // when
+      final var response =
+          createResponse(
+              new OutboundConnectorResponseConfiguration(
+                  new JsonResponseFormatConfiguration(null, null), false),
+              assistantMessage(markdownWrappedJson));
+
+      // then
+      assertThat(response.responseMessage()).isNull();
+      assertThat(response.responseText()).isNull();
+      assertThat(response.responseJson()).satisfies(HAIKU_JSON_ASSERTIONS);
+    }
+
+    @Test
+    void parsesJsonWrappedInMarkdownCodeBlocksWithoutLanguage() {
+      // given - JSON wrapped in markdown code blocks without language specifier
+      String markdownWrappedJson = "```\n" + HAIKU_JSON + "\n```";
+
+      // when
+      final var response =
+          createResponse(
+              new OutboundConnectorResponseConfiguration(
+                  new JsonResponseFormatConfiguration(null, null), false),
+              assistantMessage(markdownWrappedJson));
+
+      // then
+      assertThat(response.responseMessage()).isNull();
+      assertThat(response.responseText()).isNull();
+      assertThat(response.responseJson()).satisfies(HAIKU_JSON_ASSERTIONS);
     }
   }
 
