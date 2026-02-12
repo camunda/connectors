@@ -94,12 +94,12 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.29</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.41.27</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.41.28</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.41.27</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.41.28</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.41.27</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.41.28</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.4</version.localstack>
 
