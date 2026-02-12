@@ -28,12 +28,11 @@ class SyncComprehendCallerTest {
         ClassifyDocumentRequest.builder()
             .text(syncRequest.text())
             .endpointArn(syncRequest.endpointArn())
-        .build();
+            .build();
 
     ComprehendClient syncClient = Mockito.mock(ComprehendClient.class);
     when(syncClient.classifyDocument(expectedClassifyDocumentRequest))
-        .thenReturn(ClassifyDocumentResponse.builder()
-        .build());
+        .thenReturn(ClassifyDocumentResponse.builder().build());
 
     syncCaller.call(syncClient, syncRequest);
 

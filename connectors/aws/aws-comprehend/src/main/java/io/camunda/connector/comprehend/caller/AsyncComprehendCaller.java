@@ -8,9 +8,6 @@ package io.camunda.connector.comprehend.caller;
 
 import static io.camunda.connector.comprehend.model.ComprehendDocumentReadAction.TEXTRACT_ANALYZE_DOCUMENT;
 
-import software.amazon.awssdk.services.comprehend.ComprehendClient;
-import software.amazon.awssdk.services.comprehend.model.*;
-import com.amazonaws.util.CollectionUtils;
 import io.camunda.connector.comprehend.model.ComprehendAsyncRequestData;
 import io.camunda.connector.comprehend.model.ComprehendDocumentReadAction;
 import io.camunda.connector.comprehend.model.ComprehendDocumentReadMode;
@@ -22,9 +19,19 @@ import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.services.comprehend.ComprehendAsyncClient;
+import software.amazon.awssdk.services.comprehend.model.DocumentReadFeatureTypes;
+import software.amazon.awssdk.services.comprehend.model.DocumentReaderConfig;
+import software.amazon.awssdk.services.comprehend.model.InputDataConfig;
+import software.amazon.awssdk.services.comprehend.model.OutputDataConfig;
+import software.amazon.awssdk.services.comprehend.model.StartDocumentClassificationJobRequest;
+import software.amazon.awssdk.services.comprehend.model.StartDocumentClassificationJobResponse;
+import software.amazon.awssdk.services.comprehend.model.Tag;
+import software.amazon.awssdk.services.comprehend.model.VpcConfig;
 
 public class AsyncComprehendCaller
-    implements ComprehendCaller<StartDocumentClassificationJobResponse, ComprehendAsyncRequestData> {
+    implements ComprehendCaller<
+        ComprehendAsyncClient, StartDocumentClassificationJobResponse, ComprehendAsyncRequestData> {
 
   public static final String VPC_CONFIG_EXCEPTION_MSG =
       "Or both VpcConfig fields SecurityGroupIds and Subnets or none";
@@ -35,71 +42,65 @@ public class AsyncComprehendCaller
 
   @Override
   public StartDocumentClassificationJobResponse call(
-      ComprehendClient client, ComprehendAsyncRequestData asyncRequest) {
+      ComprehendAsyncClient client, ComprehendAsyncRequestData asyncRequest) {
     LOGGER.debug(
         "Starting async comprehend task for document classification with request data: {}",
         asyncRequest);
-    var docClassificationRequest = StartDocumentClassificationJobRequest.builder()
-        .build();
+    StartDocumentClassificationJobRequest.Builder requestBuilder =
+        StartDocumentClassificationJobRequest.builder()
+            .dataAccessRoleArn(asyncRequest.dataAccessRoleArn())
+            .inputDataConfig(prepareInputConfig(asyncRequest))
+            .outputDataConfig(prepareOutputDataConf(asyncRequest))
+            .vpcConfig(prepareVpcConfig(asyncRequest));
 
     if (StringUtils.isNotBlank(asyncRequest.clientRequestToken())) {
-      docClassificationRequest.clientRequestToken(asyncRequest.clientRequestToken());
+      requestBuilder.clientRequestToken(asyncRequest.clientRequestToken());
     }
 
-    docClassificationRequest.dataAccessRoleArn(asyncRequest.dataAccessRoleArn());
-
     if (StringUtils.isNotBlank(asyncRequest.documentClassifierArn())) {
-      docClassificationRequest.documentClassifierArn(asyncRequest.documentClassifierArn());
+      requestBuilder.documentClassifierArn(asyncRequest.documentClassifierArn());
     }
 
     if (StringUtils.isNotBlank(asyncRequest.flywheelArn())) {
-      docClassificationRequest.flywheelArn(asyncRequest.flywheelArn());
+      requestBuilder.flywheelArn(asyncRequest.flywheelArn());
     }
-
-    docClassificationRequest.inputDataConfig(prepareInputConfig(asyncRequest));
 
     if (StringUtils.isNotBlank(asyncRequest.jobName())) {
-      docClassificationRequest.jobName(asyncRequest.jobName());
+      requestBuilder.jobName(asyncRequest.jobName());
     }
 
-    docClassificationRequest.outputDataConfig(prepareOutputDataConf(asyncRequest));
-
     if (asyncRequest.tags() != null && !asyncRequest.tags().isEmpty()) {
-      docClassificationRequest.tags(prepareTags(asyncRequest));
+      requestBuilder.tags(prepareTags(asyncRequest));
     }
 
     if (StringUtils.isNotBlank(asyncRequest.volumeKmsKeyId())) {
-      docClassificationRequest.volumeKmsKeyId(asyncRequest.volumeKmsKeyId());
+      requestBuilder.volumeKmsKeyId(asyncRequest.volumeKmsKeyId());
     }
 
-    docClassificationRequest.vpcConfig(prepareVpcConfig(asyncRequest));
-
-    return client.startDocumentClassificationJob(docClassificationRequest);
+    return client.startDocumentClassificationJob(requestBuilder.build()).join();
   }
 
   private InputDataConfig prepareInputConfig(ComprehendAsyncRequestData request) {
-    var inputConfig =
+    InputDataConfig.Builder builder =
         InputDataConfig.builder()
             .s3Uri(request.inputS3Uri())
-            .documentReaderConfig(prepareDocumentReaderConfig(request))
-        .build();
+            .documentReaderConfig(prepareDocumentReaderConfig(request));
 
     if (request.comprehendInputFormat() != ComprehendInputFormat.NO_DATA) {
-      inputConfig.inputFormat(request.comprehendInputFormat().name());
+      builder.inputFormat(request.comprehendInputFormat().name());
     }
 
-    return inputConfig;
+    return builder.build();
   }
 
   private OutputDataConfig prepareOutputDataConf(ComprehendAsyncRequestData request) {
-    var outputConf = OutputDataConfig.builder().s3Uri(request.outputS3Uri())
-        .build();
+    OutputDataConfig.Builder builder = OutputDataConfig.builder().s3Uri(request.outputS3Uri());
 
     if (StringUtils.isNotBlank(request.outputKmsKeyId())) {
-      outputConf.kmsKeyId(request.outputKmsKeyId());
+      builder.kmsKeyId(request.outputKmsKeyId());
     }
 
-    return outputConf;
+    return builder.build();
   }
 
   private List<Tag> prepareTags(ComprehendAsyncRequestData request) {
@@ -107,21 +108,19 @@ public class AsyncComprehendCaller
   }
 
   private Tag creatTag(Map.Entry<String, String> entry) {
-    return Tag.builder().key(entry.getKey()).value(entry.getValue())
-        .build();
+    return Tag.builder().key(entry.getKey()).value(entry.getValue()).build();
   }
 
   private VpcConfig prepareVpcConfig(ComprehendAsyncRequestData request) {
     List<String> groupIds = request.securityGroupIds();
     List<String> subnets = request.subnets();
 
-    if (CollectionUtils.isNullOrEmpty(groupIds) && CollectionUtils.isNullOrEmpty(subnets)) {
+    if (isNullOrEmpty(groupIds) && isNullOrEmpty(subnets)) {
       return null;
     }
 
-    if (!CollectionUtils.isNullOrEmpty(groupIds) && !CollectionUtils.isNullOrEmpty(subnets)) {
-      return VpcConfig.builder().securityGroupIds(groupIds).subnets(subnets)
-          .build();
+    if (!isNullOrEmpty(groupIds) && !isNullOrEmpty(subnets)) {
+      return VpcConfig.builder().securityGroupIds(groupIds).subnets(subnets).build();
     } else {
       LOGGER.warn(VPC_CONFIG_EXCEPTION_MSG);
       throw new IllegalArgumentException(VPC_CONFIG_EXCEPTION_MSG);
@@ -134,15 +133,14 @@ public class AsyncComprehendCaller
     }
 
     var documentReaderConfig =
-        DocumentReaderConfig.builder().documentReadAction(requestData.documentReadAction().name())
-        .build();
+        DocumentReaderConfig.builder().documentReadAction(requestData.documentReadAction().name());
 
     if (requestData.documentReadMode() != (ComprehendDocumentReadMode.NO_DATA)) {
       documentReaderConfig.documentReadMode(requestData.documentReadMode().name());
     }
 
     if (requestData.documentReadAction() == TEXTRACT_ANALYZE_DOCUMENT) {
-      List<String> features = prepareFeatures(requestData);
+      List<DocumentReadFeatureTypes> features = prepareFeatures(requestData);
       if (features.isEmpty()) {
         LOGGER.warn("DocumentReadAction: TEXTRACT_ANALYZE_DOCUMENT, but features not selected.");
         throw new IllegalArgumentException(READ_ACTION_WITHOUT_FEATURES_EX);
@@ -150,17 +148,21 @@ public class AsyncComprehendCaller
       documentReaderConfig.featureTypes(features);
     }
 
-    return documentReaderConfig;
+    return documentReaderConfig.build();
   }
 
-  private List<String> prepareFeatures(ComprehendAsyncRequestData requestData) {
-    List<String> features = new ArrayList<>(INITIAL_FEATURES_CAPACITY);
+  private List<DocumentReadFeatureTypes> prepareFeatures(ComprehendAsyncRequestData requestData) {
+    List<DocumentReadFeatureTypes> features = new ArrayList<>(INITIAL_FEATURES_CAPACITY);
     if (requestData.featureTypeForms()) {
-      features.add(DocumentReadFeatureTypes.FORMS.name());
+      features.add(DocumentReadFeatureTypes.FORMS);
     }
     if (requestData.featureTypeTables()) {
-      features.add(DocumentReadFeatureTypes.TABLES.name());
+      features.add(DocumentReadFeatureTypes.TABLES);
     }
     return features;
+  }
+
+  private boolean isNullOrEmpty(List<String> values) {
+    return values == null || values.isEmpty();
   }
 }

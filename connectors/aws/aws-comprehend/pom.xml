@@ -43,6 +43,16 @@
       <artifactId>comprehend</artifactId>
       <version>${version.aws-java-sdk}</version>
     </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>regions</artifactId>
+      <version>${version.aws-java-sdk}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sdk-core</artifactId>
+      <version>${version.aws-java-sdk}</version>
+    </dependency>
 
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -80,5 +90,4 @@
   </build>
 
 </project>
-
 
