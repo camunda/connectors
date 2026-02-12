@@ -147,6 +147,26 @@ class A2aAgentCardFetcherTest {
     }
   }
 
+  @ParameterizedTest
+  @NullAndEmptySource
+  void shouldIncludeDefaultPathInErrorMessageWhenLocationIsNullOrEmpty(String agentCardLocation) {
+    final var request = buildConfiguration(agentCardLocation);
+    final var expectedException = new A2AClientError("Agent card not found");
+
+    try (MockedStatic<A2A> a2aStatic = mockStatic(A2A.class)) {
+      a2aStatic
+          .when(() -> A2A.getAgentCard(anyString(), any(), anyMap()))
+          .thenThrow(expectedException);
+
+      assertThatThrownBy(() -> agentCardFetcher.fetchAgentCard(request))
+          .isInstanceOf(ConnectorException.class)
+          .hasFieldOrPropertyWithValue(
+              "errorCode", "ERROR_CODE_A2A_CLIENT_AGENT_CARD_RETRIEVAL_FAILED")
+          .hasMessageContaining("Failed to load agent card from .well-known/agent-card.json")
+          .hasCause(expectedException);
+    }
+  }
+
   private void assertAgentCard(
       A2aAgentCard agentCardResult, List<String> inputModes, List<String> outputModes) {
     assertThat(agentCardResult.name()).isEqualTo("Travel agent");
