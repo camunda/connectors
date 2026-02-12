@@ -7,8 +7,6 @@
 package io.camunda.connector.aws.dynamodb.operation.table;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -22,6 +20,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import software.amazon.awssdk.services.dynamodb.model.BillingMode;
 import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.CreateTableResponse;
 import software.amazon.awssdk.services.dynamodb.model.TableDescription;
 
 class CreateTableOperationTest extends BaseDynamoDbOperationTest {
@@ -45,15 +44,18 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
             TestDynamoDBData.ActualValue.WRITE_CAPACITY,
             BillingMode.PROVISIONED.name(),
             true);
-    when(dynamoDB.createTable(requestArgumentCaptor.capture())).thenReturn(table);
-    when(table.waitForActive())
+    when(dynamoDB.createTable(requestArgumentCaptor.capture()))
         .thenReturn(
-            TableDescription.builder().tableName(TestDynamoDBData.ActualValue.TABLE_NAME).build());
+            CreateTableResponse.builder()
+                .tableDescription(
+                    TableDescription.builder()
+                        .tableName(TestDynamoDBData.ActualValue.TABLE_NAME)
+                        .build())
+                .build());
   }
 
   @Test
-  public void invoke_shouldCreateTableWithPartitionKeyAndAllOptionalKeys()
-      throws InterruptedException {
+  public void invoke_shouldCreateTableWithPartitionKeyAndAllOptionalKeys() {
     // Given
     createTable =
         new CreateTable(
@@ -72,8 +74,6 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
     // When
     Object invoke = operation.invoke(dynamoDB);
     // Then
-    verify(table, times(1)).waitForActive();
-
     assertThat(invoke).isNotNull();
 
     CreateTableRequest value = requestArgumentCaptor.getValue();
@@ -81,21 +81,19 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
     assertThat(value.tableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
     assertThat(value.keySchema().get(0).attributeName())
         .isEqualTo(TestDynamoDBData.ActualValue.PARTITION_KEY);
-    assertThat(value.keySchema().get(0).keyType())
+    assertThat(value.keySchema().get(0).keyTypeAsString())
         .isEqualTo(TestDynamoDBData.ActualValue.PARTITION_KEY_ROLE_HASH);
     assertThat(value.deletionProtectionEnabled()).isTrue();
-    assertThat(value.billingMode()).isEqualTo(BillingMode.PROVISIONED.name());
+    assertThat(value.billingMode()).isEqualTo(BillingMode.PROVISIONED);
   }
 
   @Test
-  public void invoke_shouldCreateTableWithOutOptionalProperties() throws InterruptedException {
+  public void invoke_shouldCreateTableWithOutOptionalProperties() {
     // Given
     CreateTableOperation operation = new CreateTableOperation(createTable);
     // When
     Object invoke = operation.invoke(dynamoDB);
     // Then
-    verify(table, times(1)).waitForActive();
-
     assertThat(invoke).isNotNull();
 
     CreateTableRequest value = requestArgumentCaptor.getValue();
@@ -103,14 +101,14 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
     assertThat(value.tableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
     assertThat(value.keySchema().get(0).attributeName())
         .isEqualTo(TestDynamoDBData.ActualValue.PARTITION_KEY);
-    assertThat(value.keySchema().get(0).keyType())
+    assertThat(value.keySchema().get(0).keyTypeAsString())
         .isEqualTo(TestDynamoDBData.ActualValue.PARTITION_KEY_ROLE_HASH);
     assertThat(value.keySchema().get(1).attributeName())
         .isEqualTo(TestDynamoDBData.ActualValue.SORT_KEY);
-    assertThat(value.keySchema().get(1).keyType())
+    assertThat(value.keySchema().get(1).keyTypeAsString())
         .isEqualTo(TestDynamoDBData.ActualValue.SORT_KEY_ROLE_RANGE);
     assertThat(value.deletionProtectionEnabled()).isTrue();
-    assertThat(value.billingMode()).isEqualTo(BillingMode.PROVISIONED.name());
+    assertThat(value.billingMode()).isEqualTo(BillingMode.PROVISIONED);
     assertThat(value.provisionedThroughput().readCapacityUnits())
         .isEqualTo(TestDynamoDBData.ActualValue.READ_CAPACITY);
     assertThat(value.provisionedThroughput().writeCapacityUnits())

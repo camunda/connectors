@@ -9,7 +9,7 @@ package io.camunda.connector.aws.dynamodb;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.aws.CredentialsProviderSupport;
+import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @OutboundConnector(
@@ -51,11 +51,11 @@ public class AwsDynamoDbServiceConnectorFunction implements OutboundConnectorFun
   public Object execute(OutboundConnectorContext context) throws Exception {
     final AwsDynamoDbOperationFactory operationFactory = AwsDynamoDbOperationFactory.getInstance();
     final AwsDynamoDbRequest dynamoDbRequest = context.bindVariables(AwsDynamoDbRequest.class);
-    return operationFactory
-        .createOperation(dynamoDbRequest.getInput())
-        .invoke(
-            AwsDynamoDbClientSupplier.getDynamoDdClient(
-                CredentialsProviderSupport.credentialsProvider(dynamoDbRequest),
-                dynamoDbRequest.getConfiguration().region()));
+    try (var dynamoDbClient =
+        AwsDynamoDbClientSupplier.getDynamoDbClient(
+            CredentialsProviderSupportV2.credentialsProvider(dynamoDbRequest),
+            dynamoDbRequest.getConfiguration())) {
+      return operationFactory.createOperation(dynamoDbRequest.getInput()).invoke(dynamoDbClient);
+    }
   }
 }

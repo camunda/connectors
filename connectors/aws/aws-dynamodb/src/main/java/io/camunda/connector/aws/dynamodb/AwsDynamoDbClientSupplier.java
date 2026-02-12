@@ -6,22 +6,27 @@
  */
 package io.camunda.connector.aws.dynamodb;
 
+import io.camunda.connector.aws.AwsUtils;
+import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
+import java.net.URI;
+import java.util.Optional;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.document.DynamoDb;
 
 public final class AwsDynamoDbClientSupplier {
 
   private AwsDynamoDbClientSupplier() {}
 
-  public static DynamoDb getDynamoDdClient(
-      final AwsCredentialsProvider credentialsProvider, final String region) {
-    DynamoDbClient client =
-        DynamoDbClient.builder()
-            .credentialsProvider(credentialsProvider)
-            .region(Region.of(region))
-            .build();
-    return new DynamoDb(client);
+  public static DynamoDbClient getDynamoDbClient(
+      final AwsCredentialsProvider credentialsProvider, final AwsBaseConfiguration configuration) {
+    var region = AwsUtils.extractRegionOrDefault(configuration, null);
+    var builder =
+        DynamoDbClient.builder().credentialsProvider(credentialsProvider).region(Region.of(region));
+    Optional.ofNullable(configuration)
+        .map(AwsBaseConfiguration::endpoint)
+        .filter(endpoint -> !endpoint.isBlank())
+        .ifPresent(endpoint -> builder.endpointOverride(URI.create(endpoint)));
+    return builder.build();
   }
 }

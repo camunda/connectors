@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.document.DynamoDb;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
 public class CreateTableOperation implements AwsDynamoDbOperation {
@@ -32,17 +31,16 @@ public class CreateTableOperation implements AwsDynamoDbOperation {
     List<KeySchemaElement> keySchemaElements = buildKeySchemaElements();
     List<AttributeDefinition> attributeDefinitions = buildAttributeDefinitions();
 
-    CreateTableRequest request =
+    CreateTableRequest.Builder request =
         CreateTableRequest.builder()
             .tableName(createTableModel.tableName())
             .keySchema(keySchemaElements)
             .attributeDefinitions(attributeDefinitions)
-            .deletionProtectionEnabled(createTableModel.deletionProtection())
-            .build();
+            .deletionProtectionEnabled(createTableModel.deletionProtection());
 
     BillingMode billingMode =
         Optional.ofNullable(createTableModel.billingModeStr())
-            .map(BillingMode::valueOf)
+            .map(BillingMode::fromValue)
             .orElse(BillingMode.PROVISIONED);
 
     request.billingMode(billingMode);
@@ -55,16 +53,22 @@ public class CreateTableOperation implements AwsDynamoDbOperation {
               .build());
     }
 
-    return request;
+    return request.build();
   }
 
   private List<KeySchemaElement> buildKeySchemaElements() {
     List<KeySchemaElement> keySchemaElements = new ArrayList<>();
     keySchemaElements.add(
-        new KeySchemaElement(createTableModel.partitionKey(), createTableModel.partitionKeyRole()));
+        KeySchemaElement.builder()
+            .attributeName(createTableModel.partitionKey())
+            .keyType(KeyType.fromValue(createTableModel.partitionKeyRole()))
+            .build());
     if (Objects.nonNull(createTableModel.sortKey()) && !createTableModel.sortKey().isBlank()) {
       keySchemaElements.add(
-          new KeySchemaElement(createTableModel.sortKey(), createTableModel.sortKeyRole()));
+          KeySchemaElement.builder()
+              .attributeName(createTableModel.sortKey())
+              .keyType(KeyType.fromValue(createTableModel.sortKeyRole()))
+              .build());
     }
     return keySchemaElements;
   }
@@ -72,11 +76,16 @@ public class CreateTableOperation implements AwsDynamoDbOperation {
   private List<AttributeDefinition> buildAttributeDefinitions() {
     List<AttributeDefinition> attributeDefinitions = new ArrayList<>();
     attributeDefinitions.add(
-        new AttributeDefinition(
-            createTableModel.partitionKey(), createTableModel.partitionKeyType()));
+        AttributeDefinition.builder()
+            .attributeName(createTableModel.partitionKey())
+            .attributeType(ScalarAttributeType.fromValue(createTableModel.partitionKeyType()))
+            .build());
     if (Objects.nonNull(createTableModel.sortKey()) && !createTableModel.sortKey().isBlank()) {
       attributeDefinitions.add(
-          new AttributeDefinition(createTableModel.sortKey(), createTableModel.sortKeyType()));
+          AttributeDefinition.builder()
+              .attributeName(createTableModel.sortKey())
+              .attributeType(ScalarAttributeType.fromValue(createTableModel.sortKeyType()))
+              .build());
     }
     return attributeDefinitions;
   }

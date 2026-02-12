@@ -24,14 +24,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import software.amazon.awssdk.services.dynamodb.document.Item;
-import software.amazon.awssdk.services.dynamodb.document.KeyAttribute;
-import software.amazon.awssdk.services.dynamodb.document.PrimaryKey;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.GetItemResponse;
 
 class GetItemOperationTest extends BaseDynamoDbOperationTest {
 
   private GetItemOperation getItemOperation;
-  @Captor private ArgumentCaptor<PrimaryKey> keyAttributesCaptor;
+  @Captor private ArgumentCaptor<GetItemRequest> requestCaptor;
 
   @BeforeEach
   public void setup() {
@@ -44,36 +44,39 @@ class GetItemOperationTest extends BaseDynamoDbOperationTest {
   @Test
   void invoke_shouldReturnItemAttributes_whenItemExists() {
     // Given
-    Item mockItem = Item.fromMap(Map.of("id", "1", "type", "user", "name", "Alice"));
-    when(table.getItem(keyAttributesCaptor.capture())).thenReturn(mockItem);
+    Map<String, AttributeValue> item =
+        Map.of(
+            "id", AttributeValue.builder().s("1").build(),
+            "type", AttributeValue.builder().s("user").build(),
+            "name", AttributeValue.builder().s("Alice").build());
+    when(dynamoDB.getItem(requestCaptor.capture()))
+        .thenReturn(GetItemResponse.builder().item(item).build());
 
     // When
-    Iterable<Map.Entry<String, Object>> result =
-        (Iterable<Map.Entry<String, Object>>) getItemOperation.invoke(dynamoDB);
+    Map<String, Object> result = (Map<String, Object>) getItemOperation.invoke(dynamoDB);
 
     // Then
-    verify(dynamoDB, times(1)).getTable(TestDynamoDBData.ActualValue.TABLE_NAME);
-    verify(table, times(1)).getItem(any(PrimaryKey.class));
-    ArrayList<KeyAttribute> keyAttributes =
-        new ArrayList<>(keyAttributesCaptor.getValue().getComponents());
-    assertThat(keyAttributes)
-        .asList()
-        .contains(new KeyAttribute("id", "1"), new KeyAttribute("type", "user"));
-    assertThat(result).containsExactlyElementsOf(mockItem.attributes());
+    verify(dynamoDB, times(1)).getItem(any(GetItemRequest.class));
+    ArrayList<Map.Entry<String, AttributeValue>> keyAttributes =
+        new ArrayList<>(requestCaptor.getValue().key().entrySet());
+    assertThat(keyAttributes).extracting(Map.Entry::getKey).containsExactlyInAnyOrder("id", "type");
+    assertThat(result)
+        .containsEntry("id", "1")
+        .containsEntry("type", "user")
+        .containsEntry("name", "Alice");
   }
 
   @SuppressWarnings("unchecked")
   @Test
   void invoke_shouldReturnNull_whenItemDoesNotExist() {
     // Given
-    when(table.getItem(any(KeyAttribute.class), any(KeyAttribute.class))).thenReturn(null);
+    when(dynamoDB.getItem(requestCaptor.capture())).thenReturn(GetItemResponse.builder().build());
 
     // When
     Map<String, Object> result = (Map<String, Object>) getItemOperation.invoke(dynamoDB);
 
     // Then
-    verify(dynamoDB, times(1)).getTable(TestDynamoDBData.ActualValue.TABLE_NAME);
-    verify(table, times(1)).getItem(any(PrimaryKey.class));
+    verify(dynamoDB, times(1)).getItem(any(GetItemRequest.class));
     assertThat(result).isNull();
   }
 
