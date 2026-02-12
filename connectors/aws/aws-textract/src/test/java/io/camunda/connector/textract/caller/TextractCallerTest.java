@@ -18,6 +18,7 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.textract.model.AnalyzeDocumentResponse;
 import software.amazon.awssdk.services.textract.model.DocumentLocation;
+import software.amazon.awssdk.services.textract.model.FeatureType;
 import software.amazon.awssdk.services.textract.model.S3Object;
 
 class TextractCallerTest {
@@ -56,8 +57,10 @@ class TextractCallerTest {
             "role-arn",
             "outputBucket",
             "prefix");
-    Set<String> featureTypes = textractCaller.prepareFeatureTypes(requestData1);
-    assertThat(featureTypes).containsExactlyInAnyOrder("FORMS", "LAYOUT", "SIGNATURES", "TABLES");
+    Set<FeatureType> featureTypes = textractCaller.prepareFeatureTypes(requestData1);
+    assertThat(featureTypes)
+        .containsExactlyInAnyOrder(
+            FeatureType.FORMS, FeatureType.LAYOUT, FeatureType.SIGNATURES, FeatureType.TABLES);
   }
 
   @Test
@@ -114,8 +117,8 @@ class TextractCallerTest {
             "role-arn",
             "outputBucket",
             "prefix");
-    Set<String> featureTypes = textractCaller.prepareFeatureTypes(requestData);
-    assertThat(featureTypes).containsExactlyInAnyOrder("TABLES", "LAYOUT");
+    Set<FeatureType> featureTypes = textractCaller.prepareFeatureTypes(requestData);
+    assertThat(featureTypes).containsExactlyInAnyOrder(FeatureType.TABLES, FeatureType.LAYOUT);
   }
 
   @Test

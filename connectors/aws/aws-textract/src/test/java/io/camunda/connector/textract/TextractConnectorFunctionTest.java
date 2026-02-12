@@ -47,8 +47,7 @@ class TextractConnectorFunctionTest {
     var outBounderContext = prepareConnectorContext(TextractTestUtils.SYNC_EXECUTION_JSON);
 
     when(clientSupplier.getSyncTextractClient(any())).thenCallRealMethod();
-    when(syncCaller.call(any(), any())).thenReturn(AnalyzeDocumentResponse.builder()
-        .build());
+    when(syncCaller.call(any(), any())).thenReturn(AnalyzeDocumentResponse.builder().build());
 
     var result = textractConnectorFunction.execute(outBounderContext);
     assertThat(result).isInstanceOf(AnalyzeDocumentResponse.class);
@@ -59,8 +58,8 @@ class TextractConnectorFunctionTest {
     var outBounderContext = prepareConnectorContext(TextractTestUtils.ASYNC_EXECUTION_JSON);
 
     when(clientSupplier.getAsyncTextractClient(any())).thenCallRealMethod();
-    when(asyncCaller.call(any(), any())).thenReturn(StartDocumentAnalysisResponse.builder()
-        .build());
+    when(asyncCaller.call(any(), any()))
+        .thenReturn(StartDocumentAnalysisResponse.builder().build());
 
     var result = textractConnectorFunction.execute(outBounderContext);
     assertThat(result).isInstanceOf(StartDocumentAnalysisResponse.class);
@@ -71,8 +70,8 @@ class TextractConnectorFunctionTest {
     var outBounderContext = prepareConnectorContext(TextractTestUtils.POLLING_EXECUTION_JSON);
 
     when(clientSupplier.getAsyncTextractClient(any())).thenCallRealMethod();
-    when(pollingCaller.call(any(), any())).thenReturn(GetDocumentAnalysisResponse.builder()
-        .build());
+    when(pollingCaller.call(any(), any()))
+        .thenReturn(GetDocumentAnalysisResponse.builder().build());
 
     var result = textractConnectorFunction.execute(outBounderContext);
     assertThat(result).isInstanceOf(GetDocumentAnalysisResponse.class);

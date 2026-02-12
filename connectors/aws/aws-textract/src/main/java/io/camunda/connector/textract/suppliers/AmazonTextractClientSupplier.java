@@ -9,7 +9,6 @@ package io.camunda.connector.textract.suppliers;
 import io.camunda.connector.aws.CredentialsProviderSupport;
 import io.camunda.connector.textract.model.TextractRequest;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.textract.TextractAsyncClient;
 import software.amazon.awssdk.services.textract.TextractClient;
 
 public class AmazonTextractClientSupplier {
@@ -21,8 +20,8 @@ public class AmazonTextractClientSupplier {
         .build();
   }
 
-  public TextractAsyncClient getAsyncTextractClient(final TextractRequest request) {
-    return TextractAsyncClient.builder()
+  public TextractClient getAsyncTextractClient(final TextractRequest request) {
+    return TextractClient.builder()
         .credentialsProvider(CredentialsProviderSupport.credentialsProvider(request))
         .region(Region.of(request.getConfiguration().region()))
         .build();

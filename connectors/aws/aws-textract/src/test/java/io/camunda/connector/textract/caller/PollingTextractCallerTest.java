@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.textract.TextractAsyncClient;
+import software.amazon.awssdk.services.textract.TextractClient;
 import software.amazon.awssdk.services.textract.model.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,11 +33,11 @@ class PollingTextractCallerTest {
     Pair<GetDocumentAnalysisRequest, GetDocumentAnalysisResponse> firstRequestResp =
         callSequence.getFirst();
 
-    TextractAsyncClient asyncClient = Mockito.mock(TextractAsyncClient.class);
+    TextractClient asyncClient = Mockito.mock(TextractClient.class);
     StartDocumentAnalysisResponse startDocRequest =
-        StartDocumentAnalysisResponse.builder().jobId(firstRequestResp.getLeft().jobId())
-        .build();
-    when(asyncClient.startDocumentAnalysis(any())).thenReturn(startDocRequest);
+        StartDocumentAnalysisResponse.builder().jobId(firstRequestResp.getLeft().jobId()).build();
+    when(asyncClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
+        .thenReturn(startDocRequest);
 
     when(asyncClient.getDocumentAnalysis(firstRequestResp.getLeft()))
         .thenReturn(firstRequestResp.getRight());
@@ -73,7 +73,7 @@ class PollingTextractCallerTest {
             .jobId(jobId)
             .maxResults(MAX_RESULT)
             .nextToken(null)
-        .build();
+            .build();
 
     String nextToken = "2";
     GetDocumentAnalysisRequest secondDocRequest =
@@ -81,25 +81,23 @@ class PollingTextractCallerTest {
             .jobId(jobId)
             .maxResults(MAX_RESULT)
             .nextToken(nextToken)
-        .build();
+            .build();
 
     GetDocumentAnalysisResponse firstDocResult =
         GetDocumentAnalysisResponse.builder()
             .jobStatus(JobStatus.SUCCEEDED.toString())
             .nextToken(nextToken)
-            .blocks(List.of(Block.builder().text("AAA")
-                .build(),  Block.builder().text("BBB")
-                .build()))
-        .build();
+            .blocks(
+                List.of(Block.builder().text("AAA").build(), Block.builder().text("BBB").build()))
+            .build();
 
     GetDocumentAnalysisResponse secondDocResult =
         GetDocumentAnalysisResponse.builder()
             .jobStatus(JobStatus.SUCCEEDED.toString())
             .nextToken(null)
-            .blocks(List.of(Block.builder().text("CCC")
-                .build(),  Block.builder().text("DDD")
-                .build()))
-        .build();
+            .blocks(
+                List.of(Block.builder().text("CCC").build(), Block.builder().text("DDD").build()))
+            .build();
 
     return List.of(
         Pair.of(firstDocRequest, firstDocResult), Pair.of(secondDocRequest, secondDocResult));

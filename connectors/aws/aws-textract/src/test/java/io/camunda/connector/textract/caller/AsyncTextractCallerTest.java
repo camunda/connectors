@@ -20,7 +20,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.textract.TextractAsyncClient;
+import software.amazon.awssdk.services.textract.TextractClient;
 import software.amazon.awssdk.services.textract.model.StartDocumentAnalysisRequest;
 import software.amazon.awssdk.services.textract.model.StartDocumentAnalysisResponse;
 
@@ -33,10 +33,9 @@ class AsyncTextractCallerTest {
   void callWithAllFields() {
     TextractRequestData requestData = prepareReqData("roleArn", "topicArna");
 
-    TextractAsyncClient asyncClient = Mockito.mock(TextractAsyncClient.class);
+    TextractClient asyncClient = Mockito.mock(TextractClient.class);
     when(asyncClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
-        .thenReturn(StartDocumentAnalysisResponse.builder()
-        .build());
+        .thenReturn(StartDocumentAnalysisResponse.builder().build());
 
     new AsyncTextractCaller().call(requestData, asyncClient);
 
@@ -67,10 +66,9 @@ class AsyncTextractCallerTest {
   void callWithoutNotificationChanelFieldsShouldNotCreateNotificationObj() {
     TextractRequestData requestData = prepareReqData("", "");
 
-    TextractAsyncClient asyncClient = Mockito.mock(TextractAsyncClient.class);
+    TextractClient asyncClient = Mockito.mock(TextractClient.class);
     when(asyncClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
-        .thenReturn(StartDocumentAnalysisResponse.builder()
-        .build());
+        .thenReturn(StartDocumentAnalysisResponse.builder().build());
 
     new AsyncTextractCaller().call(requestData, asyncClient);
 
@@ -86,10 +84,9 @@ class AsyncTextractCallerTest {
   void callWithoutOutputS3BucketShouldNotCreateOutputObj() {
     TextractRequestData requestData = prepareReqDataWithoutOutputS3Bucket();
 
-    TextractAsyncClient asyncClient = Mockito.mock(TextractAsyncClient.class);
+    TextractClient asyncClient = Mockito.mock(TextractClient.class);
     when(asyncClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
-        .thenReturn(StartDocumentAnalysisResponse.builder()
-        .build());
+        .thenReturn(StartDocumentAnalysisResponse.builder().build());
 
     new AsyncTextractCaller().call(requestData, asyncClient);
 
