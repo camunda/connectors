@@ -16,9 +16,10 @@ import java.time.Duration;
 
 public record EmailPollingConfig(
     @TemplateProperty(
-            label = "User ID/User Principal Name",
+            label = "Mailbox Owner",
             feel = Property.FeelMode.optional,
-            description = "The ID or Principal Name of the mailboxes owner.")
+            tooltip =
+                "The email address or user ID of the mailbox to monitor (e.g., user@example.com). <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#configuration\" target=\"_blank\">Learn more</a>")
         @NotBlank
         @FEEL
         String userId,

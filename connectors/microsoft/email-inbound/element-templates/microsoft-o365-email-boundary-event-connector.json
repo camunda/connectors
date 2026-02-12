@@ -49,8 +49,7 @@
     "type" : "Hidden"
   }, {
     "id" : "authentication.tenantId",
-    "label" : "Tenant id",
-    "description" : "The tenant id. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+    "label" : "Tenant ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -61,11 +60,11 @@
       "name" : "authentication.tenantId",
       "type" : "zeebe:property"
     },
+    "tooltip" : "Your Microsoft Entra (Azure AD) tenant ID. Find this in Azure Portal → Microsoft Entra ID → Overview. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#authentication\" target=\"_blank\">Learn more</a>",
     "type" : "String"
   }, {
     "id" : "authentication.clientId",
-    "label" : "Client id",
-    "description" : "The client id of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+    "label" : "Client ID",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -76,11 +75,11 @@
       "name" : "authentication.clientId",
       "type" : "zeebe:property"
     },
+    "tooltip" : "The application (client) ID from your app registration. Find this in Azure Portal → App registrations → Your app → Overview. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#authentication\" target=\"_blank\">Learn more</a>",
     "type" : "String"
   }, {
     "id" : "authentication.clientSecret",
-    "label" : "Client secret",
-    "description" : "The client secret of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+    "label" : "Client Secret",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -91,11 +90,11 @@
       "name" : "authentication.clientSecret",
       "type" : "zeebe:property"
     },
+    "tooltip" : "The client secret value from your app registration. Create this in Azure Portal → App registrations → Your app → Certificates & secrets. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#authentication\" target=\"_blank\">Learn more</a>",
     "type" : "String"
   }, {
     "id" : "pollingConfig.userId",
-    "label" : "User ID/User Principal Name",
-    "description" : "The ID or Principal Name of the mailboxes owner.",
+    "label" : "Mailbox Owner",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -106,6 +105,7 @@
       "name" : "pollingConfig.userId",
       "type" : "zeebe:property"
     },
+    "tooltip" : "The email address or user ID of the mailbox to monitor (e.g., user@example.com). <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#configuration\" target=\"_blank\">Learn more</a>",
     "type" : "String"
   }, {
     "id" : "pollingConfig.folder.folderSpecification",

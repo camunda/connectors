@@ -15,24 +15,27 @@ public record InboundAuthentication(
     @FEEL
         @TemplateProperty(
             group = "authentication",
-            description =
-                "The tenant id. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+            label = "Tenant ID",
+            tooltip =
+                "Your Microsoft Entra (Azure AD) tenant ID. Find this in Azure Portal → Microsoft Entra ID → Overview. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#authentication\" target=\"_blank\">Learn more</a>",
             feel = Property.FeelMode.optional)
         @NotBlank
         String tenantId,
     @FEEL
         @TemplateProperty(
             group = "authentication",
-            description =
-                "The client id of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+            label = "Client ID",
+            tooltip =
+                "The application (client) ID from your app registration. Find this in Azure Portal → App registrations → Your app → Overview. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#authentication\" target=\"_blank\">Learn more</a>",
             feel = Property.FeelMode.optional)
         @NotBlank
         String clientId,
     @FEEL
         @TemplateProperty(
             group = "authentication",
-            description =
-                "The client secret of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
+            label = "Client Secret",
+            tooltip =
+                "The client secret value from your app registration. Create this in Azure Portal → App registrations → Your app → Certificates & secrets. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#authentication\" target=\"_blank\">Learn more</a>",
             feel = Property.FeelMode.optional)
         @NotBlank
         String clientSecret) {}
