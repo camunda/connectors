@@ -29,13 +29,14 @@ class SageMakerAsyncCallerTest {
   @Test
   void sageMakerAsyncCaller_HappyCase() throws JsonProcessingException {
     var runtime = mock(SageMakerRuntimeAsyncClient.class);
-    var mockedAwsCall = InvokeEndpointAsyncResponse.builder()
-        .build();
-    mockedAwsCall = mockedAwsCall.toBuilder().outputLocation("s3://result-bucket/result-object").build();
+    var mockedAwsCall = InvokeEndpointAsyncResponse.builder().build();
+    mockedAwsCall =
+        mockedAwsCall.toBuilder().outputLocation("s3://result-bucket/result-object").build();
     mockedAwsCall = mockedAwsCall.toBuilder().inferenceId("inference01").build();
-    mockedAwsCall = mockedAwsCall.toBuilder().failureLocation("s3://result-bucket/failures-object").build();
+    mockedAwsCall =
+        mockedAwsCall.toBuilder().failureLocation("s3://result-bucket/failures-object").build();
     when(runtime.invokeEndpointAsync(any(InvokeEndpointAsyncRequest.class)))
-        .thenReturn(mockedAwsCall);
+        .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(mockedAwsCall));
     var captor = ArgumentCaptor.forClass(InvokeEndpointAsyncRequest.class);
     var request =
         ObjectMapperSupplier.getMapperInstance()
@@ -49,13 +50,12 @@ class SageMakerAsyncCallerTest {
     assertThat(mappedRequest.contentType()).isEqualTo(request.getInput().contentType());
     assertThat(mappedRequest.endpointName()).isEqualTo(request.getInput().endpointName());
     assertThat(mappedRequest.accept()).isEqualTo(request.getInput().accept());
-    assertThat(mappedRequest.customAttributes())
-        .isEqualTo(request.getInput().customAttributes());
+    assertThat(mappedRequest.customAttributes()).isEqualTo(request.getInput().customAttributes());
     assertThat(mappedRequest.inferenceId()).isEqualTo(request.getInput().inferenceId());
     assertThat(mappedRequest.inputLocation()).isEqualTo(request.getInput().inputLocation());
     assertThat(mappedRequest.invocationTimeoutSeconds())
         .isEqualTo(Integer.parseInt(request.getInput().invocationTimeoutSeconds()));
-    assertThat(mappedRequest.requestTtlSeconds())
+    assertThat(mappedRequest.requestTTLSeconds())
         .isEqualTo(Integer.parseInt(request.getInput().requestTTLSeconds()));
   }
 

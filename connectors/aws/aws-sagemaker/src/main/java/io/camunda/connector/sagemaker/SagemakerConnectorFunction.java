@@ -9,7 +9,7 @@ package io.camunda.connector.sagemaker;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.aws.CredentialsProviderSupport;
+import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.sagemaker.caller.SageMakerAsyncCaller;
 import io.camunda.connector.sagemaker.caller.SageMakerSyncCaller;
@@ -80,14 +80,14 @@ public class SagemakerConnectorFunction implements OutboundConnectorFunction {
     if (request.getInput().invocationType() == SageMakerInvocationType.ASYNC) {
       return asyncCallerFunction.apply(
           sageMakeClientSupplier.getAsyncClient(
-              CredentialsProviderSupport.credentialsProvider(request),
-              request.getConfiguration().region()),
+              CredentialsProviderSupportV2.credentialsProvider(request),
+              request.getConfiguration()),
           request);
     } else {
       return syncCallerFunction.apply(
           sageMakeClientSupplier.getSyncClient(
-              CredentialsProviderSupport.credentialsProvider(request),
-              request.getConfiguration().region()),
+              CredentialsProviderSupportV2.credentialsProvider(request),
+              request.getConfiguration()),
           request);
     }
   }

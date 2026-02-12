@@ -17,10 +17,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.sagemaker.model.SageMakerRequest;
-import java.nio.ByteBuffer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
 import software.amazon.awssdk.services.sagemakerruntime.model.InvokeEndpointRequest;
 import software.amazon.awssdk.services.sagemakerruntime.model.InvokeEndpointResponse;
@@ -30,11 +30,14 @@ class SageMakerSyncCallerTest {
   @Test
   void sageMakerSyncCaller_HappyCase() throws JsonProcessingException {
     var runtime = mock(SageMakerRuntimeClient.class);
-    var mockedAwsCall = InvokeEndpointResponse.builder()
-        .build();
-    mockedAwsCall = mockedAwsCall.toBuilder().body(ByteBuffer.wrap(
-        ObjectMapperSupplier.getMapperInstance()
-            .writeValueAsBytes("{\"generated_text\": \"the answer is 42\"}"))).build();
+    var mockedAwsCall = InvokeEndpointResponse.builder().build();
+    mockedAwsCall =
+        mockedAwsCall.toBuilder()
+            .body(
+                SdkBytes.fromByteArray(
+                    ObjectMapperSupplier.getMapperInstance()
+                        .writeValueAsBytes("{\"generated_text\": \"the answer is 42\"}")))
+            .build();
     mockedAwsCall = mockedAwsCall.toBuilder().contentType("application/json").build();
     mockedAwsCall = mockedAwsCall.toBuilder().customAttributes("my-custom-attribute").build();
     mockedAwsCall = mockedAwsCall.toBuilder().invokedProductionVariant("variant01").build();
@@ -49,15 +52,12 @@ class SageMakerSyncCallerTest {
 
     var mappedRequest = captor.getValue();
     assertThat(mappedRequest.endpointName()).isEqualTo(request.getInput().endpointName());
-    assertThat(mappedRequest.body().asByteBuffer())
+    assertThat(mappedRequest.body().asByteArray())
         .isEqualTo(
-            ByteBuffer.wrap(
-                ObjectMapperSupplier.getMapperInstance()
-                    .writeValueAsBytes(request.getInput().body())));
+            ObjectMapperSupplier.getMapperInstance().writeValueAsBytes(request.getInput().body()));
     assertThat(mappedRequest.contentType()).isEqualTo(request.getInput().contentType());
     assertThat(mappedRequest.accept()).isEqualTo(request.getInput().accept());
-    assertThat(mappedRequest.customAttributes())
-        .isEqualTo(request.getInput().customAttributes());
+    assertThat(mappedRequest.customAttributes()).isEqualTo(request.getInput().customAttributes());
     assertThat(mappedRequest.targetModel()).isEqualTo(request.getInput().targetModel());
     assertThat(mappedRequest.targetVariant()).isEqualTo(request.getInput().targetVariant());
     assertThat(mappedRequest.targetContainerHostname())
