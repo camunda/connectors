@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.java.util;
 
+import static io.camunda.connector.generator.java.annotation.TemplateProperty.*;
 import static io.camunda.connector.util.reflection.ReflectionUtil.getAllFields;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -23,9 +24,10 @@ import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.generator.dsl.*;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
-import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
+import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyCondition.OneOf;

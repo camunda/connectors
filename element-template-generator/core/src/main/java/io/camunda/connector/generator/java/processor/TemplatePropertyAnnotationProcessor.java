@@ -134,7 +134,7 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
       case NumberProperty.NumberPropertyBuilder ignored -> manageFeelMode(annotation, builder);
       case BooleanProperty.BooleanPropertyBuilder ignored -> manageFeelMode(annotation, builder);
       default -> {
-        if (annotation.feel() == Property.FeelMode.system_default) {
+        if (annotation.feel() == TemplateProperty.FeelMode.system_default) {
           builder.feel(determineDefaultFeelModeBasedOnContext(context));
         } else {
           builder.feel(annotation.feel());
@@ -176,11 +176,11 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
   }
 
   private void manageFeelMode(TemplateProperty annotation, PropertyBuilder builder) {
-    if (annotation.feel() == Property.FeelMode.disabled) {
+    if (annotation.feel() == TemplateProperty.FeelMode.disabled) {
       throw new IllegalStateException(
           "`disabled` is not a valid feel property for " + annotation.type());
-    } else if (annotation.feel() == Property.FeelMode.system_default) {
-      builder.feel(Property.FeelMode.staticFeel);
+    } else if (annotation.feel() == TemplateProperty.FeelMode.system_default) {
+      builder.feel(TemplateProperty.FeelMode.staticFeel);
     } else {
       builder.feel(annotation.feel());
     }
@@ -197,11 +197,11 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
     }
   }
 
-  private Property.FeelMode determineDefaultFeelModeBasedOnContext(
+  private TemplateProperty.FeelMode determineDefaultFeelModeBasedOnContext(
       final TemplateGenerationContext context) {
     return context instanceof TemplateGenerationContext.Inbound
-        ? Property.FeelMode.disabled
-        : Property.FeelMode.optional;
+        ? TemplateProperty.FeelMode.disabled
+        : TemplateProperty.FeelMode.optional;
   }
 
   public static PropertyCondition buildCondition(

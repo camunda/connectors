@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import static io.camunda.connector.generator.java.annotation.TemplateProperty.*;
+
 public final class StringProperty extends Property {
 
   public static final String TYPE = "String";

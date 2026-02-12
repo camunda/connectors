@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import static io.camunda.connector.generator.java.annotation.TemplateProperty.*;
+
 import java.util.List;
 
 public final class DropdownProperty extends Property {

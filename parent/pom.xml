@@ -352,6 +352,12 @@ limitations under the License.</license.inlineheader>
 
       <dependency>
         <groupId>io.camunda.connector</groupId>
+        <artifactId>element-template-generator-annotations</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-core</artifactId>
         <version>${project.version}</version>
       </dependency>
