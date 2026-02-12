@@ -39,7 +39,7 @@ class SagemakerConnectorFunctionTest {
     var sageMakeClientSupplier = Mockito.mock(SageMakeClientSupplier.class);
     Mockito.when(
             sageMakeClientSupplier.getSyncClient(
-                any(AwsCredentialsProvider.class), ArgumentMatchers.anyString()))
+                any(AwsCredentialsProvider.class), ArgumentMatchers.any()))
         .thenReturn(syncRuntime);
 
     var syncCallerFunction = Mockito.mock(BiFunction.class);
@@ -72,7 +72,7 @@ class SagemakerConnectorFunctionTest {
     var sageMakeClientSupplier = Mockito.mock(SageMakeClientSupplier.class);
     Mockito.when(
             sageMakeClientSupplier.getAsyncClient(
-                any(AwsCredentialsProvider.class), ArgumentMatchers.anyString()))
+                any(AwsCredentialsProvider.class), ArgumentMatchers.any()))
         .thenReturn(asyncRuntime);
 
     var syncCallerFunction = Mockito.mock(BiFunction.class);

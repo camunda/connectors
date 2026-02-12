@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.sagemaker.suppliers;
 
+import io.camunda.connector.aws.AwsUtils;
+import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeAsyncClient;
@@ -14,18 +16,30 @@ import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
 public class SageMakeClientSupplier {
 
   public SageMakerRuntimeClient getSyncClient(
-      final AwsCredentialsProvider credentialsProvider, final String region) {
-    return SageMakerRuntimeClient.builder()
-        .credentialsProvider(credentialsProvider)
-        .region(Region.of(region))
-        .build();
+      final AwsCredentialsProvider credentialsProvider, final AwsBaseConfiguration configuration) {
+    var builder =
+        SageMakerRuntimeClient.builder()
+            .credentialsProvider(credentialsProvider)
+            .region(Region.of(AwsUtils.extractRegionOrDefault(configuration, null)));
+    if (configuration != null
+        && configuration.endpoint() != null
+        && !configuration.endpoint().isBlank()) {
+      builder = builder.endpointOverride(java.net.URI.create(configuration.endpoint()));
+    }
+    return builder.build();
   }
 
   public SageMakerRuntimeAsyncClient getAsyncClient(
-      final AwsCredentialsProvider credentialsProvider, final String region) {
-    return SageMakerRuntimeAsyncClient.builder()
-        .credentialsProvider(credentialsProvider)
-        .region(Region.of(region))
-        .build();
+      final AwsCredentialsProvider credentialsProvider, final AwsBaseConfiguration configuration) {
+    var builder =
+        SageMakerRuntimeAsyncClient.builder()
+            .credentialsProvider(credentialsProvider)
+            .region(Region.of(AwsUtils.extractRegionOrDefault(configuration, null)));
+    if (configuration != null
+        && configuration.endpoint() != null
+        && !configuration.endpoint().isBlank()) {
+      builder = builder.endpointOverride(java.net.URI.create(configuration.endpoint()));
+    }
+    return builder.build();
   }
 }

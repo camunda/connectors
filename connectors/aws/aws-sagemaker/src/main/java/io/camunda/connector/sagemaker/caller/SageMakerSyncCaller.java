@@ -11,8 +11,8 @@ import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.sagemaker.model.SageMakerEnableExplanations;
 import io.camunda.connector.sagemaker.model.SageMakerRequest;
 import io.camunda.connector.sagemaker.model.SageMakerSyncResponse;
-import java.nio.ByteBuffer;
 import java.util.function.BiFunction;
+import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
 import software.amazon.awssdk.services.sagemakerruntime.model.InvokeEndpointRequest;
 
@@ -22,28 +22,30 @@ public final class SageMakerSyncCaller {
       SYNC_REQUEST =
           (runtime, request) -> {
             try {
-              InvokeEndpointRequest invokeEndpointRequest = InvokeEndpointRequest.builder()
-                  .build();
-              invokeEndpointRequest = invokeEndpointRequest.toBuilder().endpointName(request.getInput().endpointName()).build();
-              invokeEndpointRequest = invokeEndpointRequest.toBuilder().body(ByteBuffer.wrap(
-                  ObjectMapperSupplier.getMapperInstance()
-                      .writeValueAsBytes(request.getInput().body()))).build();
-              invokeEndpointRequest = invokeEndpointRequest.toBuilder().contentType(request.getInput().contentType()).build();
-              invokeEndpointRequest = invokeEndpointRequest.toBuilder().accept(request.getInput().accept()).build();
-              invokeEndpointRequest = invokeEndpointRequest.toBuilder().customAttributes(request.getInput().customAttributes()).build();
-              invokeEndpointRequest = invokeEndpointRequest.toBuilder().targetModel(request.getInput().targetModel()).build();
-              invokeEndpointRequest = invokeEndpointRequest.toBuilder().targetVariant(request.getInput().targetVariant()).build();
-
-              invokeEndpointRequest = invokeEndpointRequest.toBuilder().targetContainerHostname(request.getInput().targetContainerHostname()).build();
-              invokeEndpointRequest = invokeEndpointRequest.toBuilder().inferenceId(request.getInput().inferenceId()).build();
-
-              invokeEndpointRequest = invokeEndpointRequest.toBuilder().enableExplanations(request.getInput().enableExplanations() == SageMakerEnableExplanations.NOT_SET
-                  ? null
-                  : request.getInput().enableExplanations() == SageMakerEnableExplanations.YES
-                  ? "1"
-                  : "0").build();
-
-              invokeEndpointRequest = invokeEndpointRequest.toBuilder().inferenceComponentName(request.getInput().inferenceComponentName()).build();
+              InvokeEndpointRequest invokeEndpointRequest =
+                  InvokeEndpointRequest.builder()
+                      .endpointName(request.getInput().endpointName())
+                      .body(
+                          SdkBytes.fromByteArray(
+                              ObjectMapperSupplier.getMapperInstance()
+                                  .writeValueAsBytes(request.getInput().body())))
+                      .contentType(request.getInput().contentType())
+                      .accept(request.getInput().accept())
+                      .customAttributes(request.getInput().customAttributes())
+                      .targetModel(request.getInput().targetModel())
+                      .targetVariant(request.getInput().targetVariant())
+                      .targetContainerHostname(request.getInput().targetContainerHostname())
+                      .inferenceId(request.getInput().inferenceId())
+                      .enableExplanations(
+                          request.getInput().enableExplanations()
+                                  == SageMakerEnableExplanations.NOT_SET
+                              ? null
+                              : request.getInput().enableExplanations()
+                                      == SageMakerEnableExplanations.YES
+                                  ? "1"
+                                  : "0")
+                      .inferenceComponentName(request.getInput().inferenceComponentName())
+                      .build();
 
               var result = runtime.invokeEndpoint(invokeEndpointRequest);
               return new SageMakerSyncResponse(result);
