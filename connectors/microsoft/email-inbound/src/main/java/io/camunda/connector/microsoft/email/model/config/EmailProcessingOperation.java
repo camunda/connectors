@@ -37,7 +37,7 @@ public sealed interface EmailProcessingOperation {
   @TemplateSubType(id = DeleteOperation.TYPE, label = "Delete")
   record DeleteOperation(
       @TemplateProperty(
-              label = "Tick if email should be really deleted.",
+              label = "Force delete (email is permanently deleted)",
               defaultValue = "false",
               defaultValueType = TemplateProperty.DefaultValueType.Boolean)
           @FEEL

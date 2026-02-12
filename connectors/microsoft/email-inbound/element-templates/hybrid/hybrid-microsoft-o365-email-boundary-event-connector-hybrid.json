@@ -295,7 +295,7 @@
     } ]
   }, {
     "id" : "operation.force",
-    "label" : "Tick if email should be really deleted.",
+    "label" : "Force delete (email is permanently deleted)",
     "optional" : false,
     "value" : false,
     "feel" : "static",
