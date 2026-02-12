@@ -16,10 +16,8 @@
  */
 package io.camunda.connector.http.client.client.apache.proxy;
 
-import static io.camunda.connector.http.client.client.apache.proxy.ProxyHandler.CONNECTOR_HTTP_NON_PROXY_HOSTS_ENV_VAR;
-
-import java.util.Objects;
-import java.util.stream.Stream;
+import io.camunda.connector.http.client.proxy.NonProxyHostsMatcher;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import org.apache.hc.client5.http.impl.routing.DefaultProxyRoutePlanner;
 import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.HttpHost;
@@ -36,32 +34,15 @@ public class ProxyRoutePlanner extends DefaultProxyRoutePlanner {
 
   @Override
   protected HttpHost determineProxy(HttpHost target, HttpContext context) throws HttpException {
-    if (getNonProxyHosts()
-        .filter(Objects::nonNull)
-        .anyMatch(
-            nonProxyHosts ->
-                target.getHostName().matches(sanitizedNonProxyHostsRegex(nonProxyHosts)))) {
+    if (NonProxyHostsMatcher.isNonProxyHost(target.getHostName())) {
       LOG.debug(
           "Not using proxy for target host [{}] as it matched either system properties (http.nonProxyHosts) or environment variables ({})",
           target.getHostName(),
-          CONNECTOR_HTTP_NON_PROXY_HOSTS_ENV_VAR);
+          ProxyConfiguration.CONNECTOR_HTTP_NON_PROXY_HOSTS_ENV_VAR);
       return null;
     }
     var proxy = super.determineProxy(target, context);
     LOG.debug("Using proxy for target host [{}] => [{}]", target.getHostName(), proxy);
     return proxy;
-  }
-
-  private String sanitizedNonProxyHostsRegex(String nonProxyHosts) {
-    return nonProxyHosts != null
-        ? nonProxyHosts.replace(
-            "*", ".*") // This is required as the nonProxyHosts property uses * as a wildcard
-        : null;
-  }
-
-  private Stream<String> getNonProxyHosts() {
-    return Stream.of(
-        System.getProperty("http.nonProxyHosts"),
-        System.getenv(CONNECTOR_HTTP_NON_PROXY_HOSTS_ENV_VAR));
   }
 }
