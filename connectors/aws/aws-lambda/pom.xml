@@ -37,7 +37,14 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>lambda</artifactId>
-      <version>2.41.18</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>regions</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sdk-core</artifactId>
     </dependency>
   </dependencies>
 

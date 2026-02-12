@@ -20,7 +20,7 @@ public class AwsLambdaResult {
     this.statusCode = invokeResult.statusCode();
     this.executedVersion = invokeResult.executedVersion();
     try {
-      this.payload = objectMapper.readValue(invokeResult.payload().asByteBuffer().array(), Object.class);
+      this.payload = objectMapper.readValue(invokeResult.payload().asByteArray(), Object.class);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
