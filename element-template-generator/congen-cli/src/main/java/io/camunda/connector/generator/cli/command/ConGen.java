@@ -19,7 +19,7 @@ package io.camunda.connector.generator.cli.command;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
-import io.camunda.connector.generator.dsl.BpmnType;
+import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -96,10 +96,12 @@ public class ConGen {
         Map.of()); // todo: do we need to support feature overrides from the CLI?
   }
 
-  private BpmnType parseBpmnType(String type) {
+  private ElementTemplate.BpmnType parseBpmnType(String type) {
     var supportedTypes =
-        Arrays.stream(BpmnType.values()).map(BpmnType::getId).collect(Collectors.joining(", "));
-    return Arrays.stream(BpmnType.values())
+        Arrays.stream(ElementTemplate.BpmnType.values())
+            .map(ElementTemplate.BpmnType::getId)
+            .collect(Collectors.joining(", "));
+    return Arrays.stream(ElementTemplate.BpmnType.values())
         .filter(bpmnType -> bpmnType.getId().equalsIgnoreCase(type))
         .findFirst()
         .orElseThrow(
@@ -108,18 +110,21 @@ public class ConGen {
                     "Unsupported BPMN type: " + type + ". Supported types: " + supportedTypes));
   }
 
-  private Set<BpmnType> getAppliesToFromBpmnType(BpmnType bpmnType) {
+  private Set<ElementTemplate.BpmnType> getAppliesToFromBpmnType(
+      ElementTemplate.BpmnType bpmnType) {
     if (bpmnType == null) {
       return null;
     }
     return switch (bpmnType) {
-      case SERVICE_TASK, TASK, SCRIPT_TASK -> Set.of(BpmnType.TASK);
+      case SERVICE_TASK, TASK, SCRIPT_TASK -> Set.of(ElementTemplate.BpmnType.TASK);
       case INTERMEDIATE_THROW_EVENT, INTERMEDIATE_CATCH_EVENT ->
-          Set.of(BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT);
-      case START_EVENT -> Set.of(BpmnType.START_EVENT);
-      case RECEIVE_TASK -> Set.of(BpmnType.RECEIVE_TASK);
-      case MESSAGE_START_EVENT -> Set.of(BpmnType.MESSAGE_START_EVENT);
-      case END_EVENT, MESSAGE_END_EVENT -> Set.of(BpmnType.END_EVENT);
+          Set.of(
+              ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT,
+              ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT);
+      case START_EVENT -> Set.of(ElementTemplate.BpmnType.START_EVENT);
+      case RECEIVE_TASK -> Set.of(ElementTemplate.BpmnType.RECEIVE_TASK);
+      case MESSAGE_START_EVENT -> Set.of(ElementTemplate.BpmnType.MESSAGE_START_EVENT);
+      case END_EVENT, MESSAGE_END_EVENT -> Set.of(ElementTemplate.BpmnType.END_EVENT);
       default -> throw new IllegalArgumentException("Unsupported BPMN type: " + bpmnType);
     };
   }

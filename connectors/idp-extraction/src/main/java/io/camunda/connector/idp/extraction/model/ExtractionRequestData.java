@@ -7,7 +7,6 @@
 package io.camunda.connector.idp.extraction.model;
 
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
@@ -24,7 +23,7 @@ public record ExtractionRequestData(
             description = "Specify the document",
             defaultValue = "= input.document",
             binding = @PropertyBinding(name = "document"),
-            feel = Property.FeelMode.disabled,
+            feel = TemplateProperty.FeelMode.disabled,
             constraints = @PropertyConstraints(notEmpty = true))
         @NotNull
         Document document,
@@ -36,7 +35,7 @@ public record ExtractionRequestData(
             defaultValue = "= input.extractionType",
             description = "Specify extraction type (structured or unstructured)",
             binding = @PropertyBinding(name = "extractionType"),
-            feel = Property.FeelMode.disabled,
+            feel = TemplateProperty.FeelMode.disabled,
             constraints = @PropertyConstraints(notEmpty = true))
         @NotNull
         ExtractionType extractionType,
@@ -48,7 +47,7 @@ public record ExtractionRequestData(
             description = "Array of taxonomy items",
             defaultValue = "= input.taxonomyItems",
             binding = @PropertyBinding(name = "taxonomyItems"),
-            feel = Property.FeelMode.disabled)
+            feel = TemplateProperty.FeelMode.disabled)
         List<TaxonomyItem> taxonomyItems,
     @TemplateProperty(
             id = "includedFields",
@@ -58,7 +57,7 @@ public record ExtractionRequestData(
             description = "List of fields that should be returned from the extraction",
             defaultValue = "= input.includedFields",
             binding = @PropertyBinding(name = "includedFields"),
-            feel = Property.FeelMode.disabled)
+            feel = TemplateProperty.FeelMode.disabled)
         List<String> includedFields,
     @TemplateProperty(
             id = "renameMappings",
@@ -68,7 +67,7 @@ public record ExtractionRequestData(
             description = "List of keys that should be renamed and not be given the default name",
             defaultValue = "= input.renameMappings",
             binding = @PropertyBinding(name = "renameMappings"),
-            feel = Property.FeelMode.disabled)
+            feel = TemplateProperty.FeelMode.disabled)
         Map<String, String> renameMappings,
     @TemplateProperty(
             id = "delimiter",
@@ -78,7 +77,7 @@ public record ExtractionRequestData(
             description = "The delimiter used for the variable name of the extracted field",
             defaultValue = "= input.delimiter",
             binding = @PropertyBinding(name = "delimiter"),
-            feel = Property.FeelMode.disabled)
+            feel = TemplateProperty.FeelMode.disabled)
         String delimiter,
     @TemplateProperty(
             id = "converseData",
@@ -88,7 +87,7 @@ public record ExtractionRequestData(
             description = "Specify the parameters for AWS Bedrock",
             defaultValue = "= input.converseData",
             binding = @PropertyBinding(name = "converseData"),
-            feel = Property.FeelMode.disabled)
+            feel = TemplateProperty.FeelMode.disabled)
         ConverseData converseData) {
 
   // Compact constructor that sets default value for extractionType if null

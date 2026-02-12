@@ -7,9 +7,8 @@
 package io.camunda.connector.http.base.model;
 
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
-import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.http.base.model.auth.Authentication;
@@ -106,7 +105,7 @@ public class HttpCommonRequest {
       label = "Skip URL encoding",
       description = "Skip the default URL decoding and encoding behavior",
       type = TemplateProperty.PropertyType.Hidden,
-      feel = Property.FeelMode.disabled,
+      feel = TemplateProperty.FeelMode.disabled,
       group = "endpoint",
       optional = true)
   private String skipEncoding;

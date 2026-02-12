@@ -303,7 +303,7 @@
     "label" : "Create document",
     "optional" : false,
     "value" : true,
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "downloadObject",
     "binding" : {
       "name" : "action.asFile",

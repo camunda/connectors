@@ -83,74 +83,14 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "WSS signature",
+      "value" : "signature"
+    }, {
       "name" : "None",
       "value" : "none"
     }, {
       "name" : "WSS username token",
       "value" : "usernameToken"
-    }, {
-      "name" : "WSS signature",
-      "value" : "signature"
-    } ]
-  }, {
-    "id" : "authentication.username",
-    "label" : "Username",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.username",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.authentication",
-      "equals" : "usernameToken",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "authentication.password",
-    "label" : "Password",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.password",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.authentication",
-      "equals" : "usernameToken",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "authentication.encoded",
-    "label" : "Encoded",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "group" : "authentication",
-    "binding" : {
-      "name" : "authentication.encoded",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "authentication.authentication",
-      "equals" : "usernameToken",
-      "type" : "simple"
-    },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Yes",
-      "value" : "Yes"
-    }, {
-      "name" : "No",
-      "value" : "No"
     } ]
   }, {
     "id" : "authentication.certificate.certificateType",
@@ -369,7 +309,7 @@
     "label" : "Timestamp timeout in seconds",
     "description" : "If set, adds a timestamp header with the given timeout",
     "optional" : true,
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.timestamp",
@@ -398,6 +338,66 @@
       "type" : "simple"
     },
     "type" : "String"
+  }, {
+    "id" : "authentication.username",
+    "label" : "Username",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.username",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.authentication",
+      "equals" : "usernameToken",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.password",
+    "label" : "Password",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.password",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.authentication",
+      "equals" : "usernameToken",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.encoded",
+    "label" : "Encoded",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.encoded",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.authentication",
+      "equals" : "usernameToken",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Yes",
+      "value" : "Yes"
+    }, {
+      "name" : "No",
+      "value" : "No"
+    } ]
   }, {
     "id" : "soapVersion.version",
     "label" : "SOAP version",
@@ -592,7 +592,7 @@
     "description" : "Sets timeout in seconds to establish a connection or 0 for an infinite timeout",
     "optional" : true,
     "value" : 20,
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "timeout",
     "binding" : {
       "name" : "connectionTimeoutInSeconds",

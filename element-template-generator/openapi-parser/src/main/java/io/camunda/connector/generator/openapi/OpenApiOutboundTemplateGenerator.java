@@ -23,7 +23,6 @@ import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.api.RestTemplateGenerator;
-import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
 import io.camunda.connector.generator.dsl.http.FactoryUtils;
@@ -49,10 +48,18 @@ public class OpenApiOutboundTemplateGenerator
     implements CliCompatibleTemplateGenerator<OpenApiGenerationSource>,
         RestTemplateGenerator<OpenApiGenerationSource> {
 
-  private static final Set<BpmnType> SUPPORTED_ELEMENT_TYPES =
-      Set.of(BpmnType.SERVICE_TASK, BpmnType.INTERMEDIATE_THROW_EVENT);
+  private static final Set<io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType>
+      SUPPORTED_ELEMENT_TYPES =
+          Set.of(
+              io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.SERVICE_TASK,
+              io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                  .INTERMEDIATE_THROW_EVENT);
   private static final ConnectorElementType DEFAULT_ELEMENT_TYPE =
-      new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null);
+      new ConnectorElementType(
+          Set.of(io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.TASK),
+          io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.SERVICE_TASK,
+          null,
+          null);
 
   public OpenApiOutboundTemplateGenerator() {
     super();
@@ -170,7 +177,10 @@ public class OpenApiOutboundTemplateGenerator
                   String.format("Unsupported element type '%s'", t.elementType().getName())
                       + " for OpenAPI generator. Supported element types: "
                       + SUPPORTED_ELEMENT_TYPES.stream()
-                          .map(BpmnType::getName)
+                          .map(
+                              io.camunda.connector.generator.java.annotation.ElementTemplate
+                                      .BpmnType
+                                  ::getName)
                           .collect(Collectors.joining(", ")));
             });
     if (elementTypes.isEmpty()) {

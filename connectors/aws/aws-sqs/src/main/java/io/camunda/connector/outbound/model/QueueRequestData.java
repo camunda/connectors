@@ -8,7 +8,6 @@ package io.camunda.connector.outbound.model;
 
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.util.StringUtils;
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotEmpty;
@@ -35,7 +34,7 @@ public class QueueRequestData {
   @TemplateProperty(
       label = "Message body",
       group = "input",
-      feel = Property.FeelMode.required,
+      feel = TemplateProperty.FeelMode.required,
       type = TemplateProperty.PropertyType.Text,
       description = "Data to send to the SQS queue")
   @NotNull
@@ -60,7 +59,7 @@ public class QueueRequestData {
       group = "input",
       type = TemplateProperty.PropertyType.Text,
       optional = true,
-      feel = Property.FeelMode.required,
+      feel = TemplateProperty.FeelMode.required,
       description = "Message attributes metadata")
   private Map<String, SqsMessageAttribute> messageAttributes;
 

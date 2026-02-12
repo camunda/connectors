@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.sns.inbound.model;
 
-import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import jakarta.validation.constraints.NotBlank;

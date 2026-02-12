@@ -14,7 +14,6 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.Severity;
-import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import java.time.Duration;
 import java.util.Properties;
@@ -42,23 +41,26 @@ import org.slf4j.LoggerFactory;
     },
     elementTypes = {
       @ElementTemplate.ConnectorElementType(
-          appliesTo = BpmnType.START_EVENT,
-          elementType = BpmnType.MESSAGE_START_EVENT,
+          appliesTo = ElementTemplate.BpmnType.START_EVENT,
+          elementType = ElementTemplate.BpmnType.MESSAGE_START_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.KafkaMessageStart.v1",
           templateNameOverride = "Kafka Message Start Event Connector"),
       @ElementTemplate.ConnectorElementType(
-          appliesTo = {BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT},
-          elementType = BpmnType.INTERMEDIATE_CATCH_EVENT,
+          appliesTo = {
+            ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT,
+            ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT
+          },
+          elementType = ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.KafkaIntermediate.v1",
           templateNameOverride = "Kafka Intermediate Catch Event Connector"),
       @ElementTemplate.ConnectorElementType(
-          appliesTo = BpmnType.BOUNDARY_EVENT,
-          elementType = BpmnType.BOUNDARY_EVENT,
+          appliesTo = ElementTemplate.BpmnType.BOUNDARY_EVENT,
+          elementType = ElementTemplate.BpmnType.BOUNDARY_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.KafkaBoundary.v1",
           templateNameOverride = "Kafka Boundary Event Connector"),
       @ElementTemplate.ConnectorElementType(
-          appliesTo = BpmnType.RECEIVE_TASK,
-          elementType = BpmnType.RECEIVE_TASK,
+          appliesTo = ElementTemplate.BpmnType.RECEIVE_TASK,
+          elementType = ElementTemplate.BpmnType.RECEIVE_TASK,
           templateIdOverride = "io.camunda.connectors.inbound.KafkaReceive.v1",
           templateNameOverride = "Kafka Receive Task Connector")
     })

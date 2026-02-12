@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.aws.dynamodb.model;
 
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
@@ -25,7 +24,7 @@ public record DeleteItem(
             label = "Primary key components",
             id = "deleteItem.primaryKeyComponents",
             group = "input",
-            feel = Property.FeelMode.required,
+            feel = TemplateProperty.FeelMode.required,
             description = "Simple or composite primary key")
         @NotNull
         Object primaryKeyComponents)

@@ -248,7 +248,7 @@
     "label" : "Return document as reference",
     "optional" : false,
     "value" : true,
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "operation",
     "binding" : {
       "name" : "operation.asFile",
@@ -326,7 +326,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "additionalProperties",
     "binding" : {
       "name" : "operation.timeout",

@@ -19,6 +19,7 @@ package io.camunda.connector.generator.java.processor;
 import static io.camunda.connector.generator.java.util.TemplatePropertiesUtil.isOutbound;
 
 import io.camunda.connector.generator.dsl.*;
+import io.camunda.connector.generator.dsl.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.EqualsBoolean;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.NestedPropertyCondition;

@@ -7,9 +7,8 @@
 package io.camunda.connector.textract.model;
 
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.generator.dsl.Property;
-import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.FeelMode;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import org.apache.commons.lang3.StringUtils;
@@ -57,7 +56,7 @@ public record TextractRequestData(
             group = "document",
             label = "Camunda Document",
             description = "The Camunda document of the process that should be analyzed.",
-            feel = Property.FeelMode.required,
+            feel = TemplateProperty.FeelMode.required,
             type = TemplateProperty.PropertyType.String,
             condition =
                 @TemplateProperty.PropertyCondition(

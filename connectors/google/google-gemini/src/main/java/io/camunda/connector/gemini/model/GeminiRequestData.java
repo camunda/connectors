@@ -7,7 +7,6 @@
 package io.camunda.connector.gemini.model;
 
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
@@ -31,7 +30,7 @@ public record GeminiRequestData(
             label = "Model",
             group = "input",
             description = "Select gemini model.",
-            feel = Property.FeelMode.disabled,
+            feel = TemplateProperty.FeelMode.disabled,
             choices = {
               @TemplateProperty.DropdownPropertyChoice(
                   value = "GEMINI_2_5_PRO",
@@ -69,14 +68,14 @@ public record GeminiRequestData(
             label = "Prompts",
             group = "input",
             description = "Provide a list of prompts",
-            feel = Property.FeelMode.required)
+            feel = TemplateProperty.FeelMode.required)
         @NotNull
         List<Object> prompts,
     @TemplateProperty(
             label = "System instructions",
             group = "input",
             description = "System instructions inform how the model should respond.",
-            feel = Property.FeelMode.disabled,
+            feel = TemplateProperty.FeelMode.disabled,
             tooltip =
                 "System instructions inform how the model should respond."
                     + " Use them to give the model context to understand the task, "
@@ -101,7 +100,7 @@ public record GeminiRequestData(
             label = "Vertex AI data store path",
             group = "input",
             description = "Vertex AI datastore path",
-            feel = Property.FeelMode.disabled,
+            feel = TemplateProperty.FeelMode.disabled,
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.grounding",
@@ -130,7 +129,7 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Hate speech",
             group = "input",
-            feel = Property.FeelMode.disabled,
+            feel = TemplateProperty.FeelMode.disabled,
             defaultValue = "OFF",
             choices = {
               @TemplateProperty.DropdownPropertyChoice(value = "OFF", label = "OFF"),
@@ -157,7 +156,7 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Dangerous content",
             group = "input",
-            feel = Property.FeelMode.disabled,
+            feel = TemplateProperty.FeelMode.disabled,
             defaultValue = "OFF",
             choices = {
               @TemplateProperty.DropdownPropertyChoice(value = "OFF", label = "OFF"),
@@ -184,7 +183,7 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Sexually explicit content",
             group = "input",
-            feel = Property.FeelMode.disabled,
+            feel = TemplateProperty.FeelMode.disabled,
             defaultValue = "OFF",
             choices = {
               @TemplateProperty.DropdownPropertyChoice(value = "OFF", label = "OFF"),
@@ -211,7 +210,7 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Harassment content",
             group = "input",
-            feel = Property.FeelMode.disabled,
+            feel = TemplateProperty.FeelMode.disabled,
             defaultValue = "OFF",
             choices = {
               @TemplateProperty.DropdownPropertyChoice(value = "OFF", label = "OFF"),
@@ -240,7 +239,7 @@ public record GeminiRequestData(
             label = "Add stop sequence",
             group = "input",
             description = "Vertex AI datastore path",
-            feel = Property.FeelMode.required,
+            feel = TemplateProperty.FeelMode.required,
             optional = true,
             tooltip =
                 "A stop sequence is a series of characters (including spaces) that stops response generation if the model encounters it."
@@ -331,7 +330,7 @@ public record GeminiRequestData(
             label = "Function call description",
             description = "Describe function calls.",
             group = "input",
-            feel = Property.FeelMode.required,
+            feel = TemplateProperty.FeelMode.required,
             optional = true)
         List<Object> functionCalls) {
 

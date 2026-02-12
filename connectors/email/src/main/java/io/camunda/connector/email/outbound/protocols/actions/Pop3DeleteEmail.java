@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.email.outbound.protocols.actions;
 
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotNull;
@@ -18,7 +17,7 @@ public record Pop3DeleteEmail(
             group = "deleteEmailPop3",
             id = "pop3MessageIdDelete",
             tooltip = "The ID of the message, typically returned by a previous email task.",
-            feel = Property.FeelMode.optional,
+            feel = TemplateProperty.FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.messageId"))
         @NotNull
         String messageId)

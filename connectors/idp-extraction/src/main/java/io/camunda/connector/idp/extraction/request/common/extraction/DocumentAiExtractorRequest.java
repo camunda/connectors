@@ -8,7 +8,6 @@ package io.camunda.connector.idp.extraction.request.common.extraction;
 
 import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Dropdown;
 
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthenticationType;
@@ -35,7 +34,7 @@ public record DocumentAiExtractorRequest(
             label = "Bearer token",
             description = "Enter a valid Google API Bearer token",
             group = "extractor",
-            feel = Property.FeelMode.optional,
+            feel = TemplateProperty.FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -47,7 +46,7 @@ public record DocumentAiExtractorRequest(
             label = "Client ID",
             description = "Enter Google API Client ID",
             group = "extractor",
-            feel = Property.FeelMode.optional,
+            feel = TemplateProperty.FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -59,7 +58,7 @@ public record DocumentAiExtractorRequest(
             label = "Client secret",
             description = "Enter Google API client Secret",
             group = "extractor",
-            feel = Property.FeelMode.optional,
+            feel = TemplateProperty.FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -71,7 +70,7 @@ public record DocumentAiExtractorRequest(
             label = "Refresh token",
             description = "Enter a valid Google API refresh token",
             group = "extractor",
-            feel = Property.FeelMode.optional,
+            feel = TemplateProperty.FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -83,7 +82,7 @@ public record DocumentAiExtractorRequest(
             label = "Service account json",
             description = "Enter a the contents of your service account json file",
             group = "extractor",
-            feel = Property.FeelMode.optional,
+            feel = TemplateProperty.FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             condition =
                 @TemplateProperty.PropertyCondition(

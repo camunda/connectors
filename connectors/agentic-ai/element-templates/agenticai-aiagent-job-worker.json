@@ -1405,7 +1405,7 @@
     "description" : "Maximum number of recent conversation messages which are passed to the model.",
     "optional" : false,
     "value" : 20,
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "memory",
     "binding" : {
       "name" : "data.memory.contextWindowSize",
@@ -1419,7 +1419,7 @@
     "description" : "Maximum number of calls to the model as a safety limit to prevent infinite loops.",
     "optional" : false,
     "value" : 10,
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "limits",
     "binding" : {
       "name" : "data.limits.maxModelCalls",
@@ -1471,7 +1471,7 @@
     "label" : "Parse text as JSON",
     "description" : "Tries to parse the LLM response text as JSON object.",
     "optional" : true,
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "response",
     "binding" : {
       "name" : "data.response.format.parseJson",
@@ -1525,7 +1525,7 @@
     "label" : "Include assistant message",
     "description" : "Include the full assistant message as part of the result object.",
     "optional" : true,
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "response",
     "binding" : {
       "name" : "data.response.includeAssistantMessage",

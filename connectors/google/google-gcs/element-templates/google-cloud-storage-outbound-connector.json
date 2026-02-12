@@ -145,7 +145,7 @@
     "label" : "Return document as reference",
     "optional" : false,
     "value" : true,
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "operation",
     "binding" : {
       "name" : "operation.asDocument",

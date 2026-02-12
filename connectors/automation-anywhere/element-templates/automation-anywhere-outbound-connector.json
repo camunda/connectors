@@ -293,7 +293,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "input",
     "binding" : {
       "name" : "operation.workItemId",
@@ -311,7 +311,7 @@
     "description" : "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
     "optional" : true,
     "value" : 20,
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "timeout",
     "binding" : {
       "name" : "configuration.connectionTimeoutInSeconds",

@@ -381,7 +381,7 @@
     "description" : "Store the response as a document in the document store",
     "optional" : false,
     "value" : false,
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "endpoint",
     "binding" : {
       "name" : "graphql.storeResponse",
@@ -420,7 +420,7 @@
     "description" : "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
     "optional" : true,
     "value" : 20,
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "timeout",
     "binding" : {
       "name" : "graphql.connectionTimeoutInSeconds",

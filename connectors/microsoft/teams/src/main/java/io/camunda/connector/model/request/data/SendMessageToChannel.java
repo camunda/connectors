@@ -7,7 +7,6 @@
 package io.camunda.connector.model.request.data;
 
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.model.MSTeamsMethodTypes;
@@ -55,7 +54,7 @@ public record SendMessageToChannel(
             label = "documents",
             group = "data",
             id = "sendMessageToChannel.documents",
-            feel = Property.FeelMode.required,
+            feel = TemplateProperty.FeelMode.required,
             optional = true)
         List<Document> documents)
     implements ChannelData {}

@@ -10,7 +10,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.mcp.client.model.auth.Authentication;
 import io.camunda.connector.agenticai.mcp.client.model.auth.NoAuthentication;
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -65,7 +64,7 @@ public sealed interface McpRemoteClientTransportConfiguration
                 description =
                     "URL to connect to the MCP server. Typically ends with <code>/mcp</code>.",
                 type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.optional,
+                feel = TemplateProperty.FeelMode.optional,
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             @NotBlank
             String url,
@@ -73,7 +72,7 @@ public sealed interface McpRemoteClientTransportConfiguration
                 group = "transport",
                 label = "HTTP headers",
                 description = "Map of HTTP headers to add to the request.",
-                feel = Property.FeelMode.required,
+                feel = TemplateProperty.FeelMode.required,
                 optional = true)
             Map<String, String> headers,
         @TemplateProperty(
@@ -81,7 +80,7 @@ public sealed interface McpRemoteClientTransportConfiguration
                 description =
                     "Timeout for individual HTTP requests as ISO-8601 duration (example: <code>PT30S</code>)",
                 type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.optional,
+                feel = TemplateProperty.FeelMode.optional,
                 optional = true)
             Duration timeout)
         implements McpRemoteClientConnection {
@@ -106,7 +105,7 @@ public sealed interface McpRemoteClientTransportConfiguration
                 description =
                     "URL to connect to the MCP server. Typically ends with <code>/sse</code>.",
                 type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.optional,
+                feel = TemplateProperty.FeelMode.optional,
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             @NotBlank
             String url,
@@ -114,7 +113,7 @@ public sealed interface McpRemoteClientTransportConfiguration
                 group = "transport",
                 label = "HTTP headers",
                 description = "Map of HTTP headers to add to the request.",
-                feel = Property.FeelMode.required,
+                feel = TemplateProperty.FeelMode.required,
                 optional = true)
             Map<String, String> headers,
         @TemplateProperty(
@@ -122,7 +121,7 @@ public sealed interface McpRemoteClientTransportConfiguration
                 description =
                     "Timeout for individual HTTP requests as ISO-8601 duration (example: <code>PT30S</code>)",
                 type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.optional,
+                feel = TemplateProperty.FeelMode.optional,
                 optional = true)
             Duration timeout)
         implements McpRemoteClientConnection {

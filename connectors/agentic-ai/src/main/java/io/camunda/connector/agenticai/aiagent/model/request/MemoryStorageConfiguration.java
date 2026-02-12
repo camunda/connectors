@@ -11,7 +11,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -70,7 +69,7 @@ public sealed interface MemoryStorageConfiguration
               label = "Custom document properties",
               description =
                   "An optional map of custom properties to be stored with the conversation document.",
-              feel = Property.FeelMode.required,
+              feel = TemplateProperty.FeelMode.required,
               optional = true)
           Map<String, Object> customProperties)
       implements MemoryStorageConfiguration {
@@ -86,7 +85,7 @@ public sealed interface MemoryStorageConfiguration
           @TemplateProperty(
               label = "Implementation type",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = TemplateProperty.FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           @NotBlank
           String storeType,
@@ -94,7 +93,7 @@ public sealed interface MemoryStorageConfiguration
           @TemplateProperty(
               label = "Parameters",
               description = "Parameters for the custom memory storage implementation.",
-              feel = Property.FeelMode.required,
+              feel = TemplateProperty.FeelMode.required,
               optional = true)
           Map<String, Object> parameters)
       implements MemoryStorageConfiguration {}

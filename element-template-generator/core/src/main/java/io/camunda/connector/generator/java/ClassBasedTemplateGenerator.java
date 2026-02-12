@@ -243,11 +243,11 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
         newGroups.add(PropertyGroup.ACTIVATION_GROUP);
       }
 
-      if (elementType.elementType().equals(BpmnType.MESSAGE_START_EVENT)) {
+      if (elementType.elementType().equals(ElementTemplate.BpmnType.MESSAGE_START_EVENT)) {
         newGroups.add(PropertyGroup.CORRELATION_GROUP_MESSAGE_START_EVENT);
-      } else if (elementType.elementType().equals(BpmnType.INTERMEDIATE_CATCH_EVENT)
-          || elementType.elementType().equals(BpmnType.BOUNDARY_EVENT)
-          || elementType.elementType().equals(BpmnType.RECEIVE_TASK)) {
+      } else if (elementType.elementType().equals(ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT)
+          || elementType.elementType().equals(ElementTemplate.BpmnType.BOUNDARY_EVENT)
+          || elementType.elementType().equals(ElementTemplate.BpmnType.RECEIVE_TASK)) {
         newGroups.add(
             PropertyGroup.CORRELATION_GROUP_INTERMEDIATE_CATCH_EVENT_OR_BOUNDARY_OR_RECEIVE);
       }

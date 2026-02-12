@@ -416,7 +416,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "input",
     "binding" : {
       "name" : "input.readCapacityUnits",
@@ -442,7 +442,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "input",
     "binding" : {
       "name" : "input.writeCapacityUnits",

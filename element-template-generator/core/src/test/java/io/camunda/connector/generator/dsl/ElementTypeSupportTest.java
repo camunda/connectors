@@ -30,12 +30,19 @@ public class ElementTypeSupportTest extends BaseTest {
             .id("id")
             .name("name")
             .type("type", false)
-            .appliesTo(BpmnType.TASK)
-            .elementType(BpmnType.SERVICE_TASK)
+            .appliesTo(io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.TASK)
+            .elementType(
+                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                    .SERVICE_TASK)
             .build();
 
-    assertThat(template.appliesTo()).containsExactly(BpmnType.TASK.getName());
-    assertThat(template.elementType().value()).isEqualTo(BpmnType.SERVICE_TASK.getName());
+    assertThat(template.appliesTo())
+        .containsExactly(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.TASK.getName());
+    assertThat(template.elementType().value())
+        .isEqualTo(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.SERVICE_TASK
+                .getName());
     assertThat(template.elementType().eventDefinition()).isNull();
   }
 
@@ -46,13 +53,24 @@ public class ElementTypeSupportTest extends BaseTest {
             .id("id")
             .name("name")
             .type("type", false)
-            .appliesTo(BpmnType.INTERMEDIATE_THROW_EVENT)
-            .elementType(BpmnType.INTERMEDIATE_THROW_EVENT)
+            .appliesTo(
+                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                    .INTERMEDIATE_THROW_EVENT)
+            .elementType(
+                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                    .INTERMEDIATE_THROW_EVENT)
             .build();
 
-    assertThat(template.appliesTo()).containsExactly(BpmnType.INTERMEDIATE_THROW_EVENT.getName());
+    assertThat(template.appliesTo())
+        .containsExactly(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                .INTERMEDIATE_THROW_EVENT
+                .getName());
     assertThat(template.elementType().value())
-        .isEqualTo(BpmnType.INTERMEDIATE_THROW_EVENT.getName());
+        .isEqualTo(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                .INTERMEDIATE_THROW_EVENT
+                .getName());
     assertThat(template.elementType().eventDefinition()).isEqualTo("bpmn:MessageEventDefinition");
   }
 
@@ -63,12 +81,18 @@ public class ElementTypeSupportTest extends BaseTest {
             .id("id")
             .name("name")
             .type("type", false)
-            .appliesTo(BpmnType.TASK)
-            .elementType(BpmnType.SCRIPT_TASK)
+            .appliesTo(io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.TASK)
+            .elementType(
+                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.SCRIPT_TASK)
             .build();
 
-    assertThat(template.appliesTo()).containsExactly(BpmnType.TASK.getName());
-    assertThat(template.elementType().value()).isEqualTo(BpmnType.SCRIPT_TASK.getName());
+    assertThat(template.appliesTo())
+        .containsExactly(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.TASK.getName());
+    assertThat(template.elementType().value())
+        .isEqualTo(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.SCRIPT_TASK
+                .getName());
     assertThat(template.elementType().eventDefinition()).isNull();
   }
 
@@ -79,11 +103,17 @@ public class ElementTypeSupportTest extends BaseTest {
             .id("id")
             .name("name")
             .type("type", false)
-            .appliesTo(BpmnType.TASK)
-            .elementType(BpmnType.SEND_TASK)
+            .appliesTo(io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.TASK)
+            .elementType(
+                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.SEND_TASK)
             .build();
-    assertThat(template.appliesTo()).containsExactly(BpmnType.TASK.getName());
-    assertThat(template.elementType().value()).isEqualTo(BpmnType.SEND_TASK.getName());
+    assertThat(template.appliesTo())
+        .containsExactly(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.TASK.getName());
+    assertThat(template.elementType().value())
+        .isEqualTo(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.SEND_TASK
+                .getName());
     assertThat(template.elementType().eventDefinition()).isNull();
   }
 
@@ -94,12 +124,22 @@ public class ElementTypeSupportTest extends BaseTest {
             .id("id")
             .name("name")
             .type("type", false)
-            .appliesTo(BpmnType.END_EVENT)
-            .elementType(BpmnType.MESSAGE_END_EVENT)
+            .appliesTo(
+                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.END_EVENT)
+            .elementType(
+                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                    .MESSAGE_END_EVENT)
             .build();
 
-    assertThat(template.appliesTo()).containsExactly(BpmnType.END_EVENT.getName());
-    assertThat(template.elementType().value()).isEqualTo(BpmnType.MESSAGE_END_EVENT.getName());
+    assertThat(template.appliesTo())
+        .containsExactly(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.END_EVENT
+                .getName());
+    assertThat(template.elementType().value())
+        .isEqualTo(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                .MESSAGE_END_EVENT
+                .getName());
     assertThat(template.elementType().eventDefinition()).isEqualTo("bpmn:MessageEventDefinition");
   }
 
@@ -110,12 +150,20 @@ public class ElementTypeSupportTest extends BaseTest {
             .id("id")
             .name("name")
             .type("type", false)
-            .appliesTo(BpmnType.START_EVENT)
-            .elementType(BpmnType.START_EVENT)
+            .appliesTo(
+                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.START_EVENT)
+            .elementType(
+                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.START_EVENT)
             .build();
 
-    assertThat(template.appliesTo()).containsExactly(BpmnType.START_EVENT.getName());
-    assertThat(template.elementType().value()).isEqualTo(BpmnType.START_EVENT.getName());
+    assertThat(template.appliesTo())
+        .containsExactly(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.START_EVENT
+                .getName());
+    assertThat(template.elementType().value())
+        .isEqualTo(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.START_EVENT
+                .getName());
     assertThat(template.elementType().eventDefinition()).isNull();
   }
 
@@ -126,13 +174,24 @@ public class ElementTypeSupportTest extends BaseTest {
             .id("id")
             .name("name")
             .type("type", false)
-            .appliesTo(BpmnType.INTERMEDIATE_CATCH_EVENT)
-            .elementType(BpmnType.INTERMEDIATE_CATCH_EVENT)
+            .appliesTo(
+                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                    .INTERMEDIATE_CATCH_EVENT)
+            .elementType(
+                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                    .INTERMEDIATE_CATCH_EVENT)
             .build();
 
-    assertThat(template.appliesTo()).containsExactly(BpmnType.INTERMEDIATE_CATCH_EVENT.getName());
+    assertThat(template.appliesTo())
+        .containsExactly(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                .INTERMEDIATE_CATCH_EVENT
+                .getName());
     assertThat(template.elementType().value())
-        .isEqualTo(BpmnType.INTERMEDIATE_CATCH_EVENT.getName());
+        .isEqualTo(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                .INTERMEDIATE_CATCH_EVENT
+                .getName());
     assertThat(template.elementType().eventDefinition()).isEqualTo("bpmn:MessageEventDefinition");
   }
 
@@ -143,12 +202,22 @@ public class ElementTypeSupportTest extends BaseTest {
             .id("id")
             .name("name")
             .type("type", false)
-            .appliesTo(BpmnType.RECEIVE_TASK)
-            .elementType(BpmnType.RECEIVE_TASK)
+            .appliesTo(
+                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                    .RECEIVE_TASK)
+            .elementType(
+                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                    .RECEIVE_TASK)
             .build();
 
-    assertThat(template.appliesTo()).containsExactly(BpmnType.RECEIVE_TASK.getName());
-    assertThat(template.elementType().value()).isEqualTo(BpmnType.RECEIVE_TASK.getName());
+    assertThat(template.appliesTo())
+        .containsExactly(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.RECEIVE_TASK
+                .getName());
+    assertThat(template.elementType().value())
+        .isEqualTo(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.RECEIVE_TASK
+                .getName());
     assertThat(template.elementType().eventDefinition()).isNull();
   }
 
@@ -159,12 +228,22 @@ public class ElementTypeSupportTest extends BaseTest {
             .id("id")
             .name("name")
             .type("type", false)
-            .appliesTo(BpmnType.START_EVENT)
-            .elementType(BpmnType.MESSAGE_START_EVENT)
+            .appliesTo(
+                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.START_EVENT)
+            .elementType(
+                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                    .MESSAGE_START_EVENT)
             .build();
 
-    assertThat(template.appliesTo()).containsExactly(BpmnType.START_EVENT.getName());
-    assertThat(template.elementType().value()).isEqualTo(BpmnType.MESSAGE_START_EVENT.getName());
+    assertThat(template.appliesTo())
+        .containsExactly(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.START_EVENT
+                .getName());
+    assertThat(template.elementType().value())
+        .isEqualTo(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                .MESSAGE_START_EVENT
+                .getName());
     assertThat(template.elementType().eventDefinition()).isEqualTo("bpmn:MessageEventDefinition");
   }
 
@@ -175,12 +254,22 @@ public class ElementTypeSupportTest extends BaseTest {
             .id("id")
             .name("name")
             .type("type", false)
-            .appliesTo(BpmnType.BOUNDARY_EVENT)
-            .elementType(BpmnType.BOUNDARY_EVENT)
+            .appliesTo(
+                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                    .BOUNDARY_EVENT)
+            .elementType(
+                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                    .BOUNDARY_EVENT)
             .build();
 
-    assertThat(template.appliesTo()).containsExactly(BpmnType.BOUNDARY_EVENT.getName());
-    assertThat(template.elementType().value()).isEqualTo(BpmnType.BOUNDARY_EVENT.getName());
+    assertThat(template.appliesTo())
+        .containsExactly(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.BOUNDARY_EVENT
+                .getName());
+    assertThat(template.elementType().value())
+        .isEqualTo(
+            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.BOUNDARY_EVENT
+                .getName());
     assertThat(template.elementType().eventDefinition()).isEqualTo("bpmn:MessageEventDefinition");
   }
 }

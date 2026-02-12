@@ -737,7 +737,7 @@
     "label" : "Enable client caching",
     "description" : "If enabled, the MCP client instance is cached on the connector runtime and reused across requests.",
     "optional" : true,
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "options",
     "binding" : {
       "name" : "data.options.clientCache",

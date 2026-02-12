@@ -102,7 +102,7 @@
     "label" : "Skip Header Record",
     "optional" : false,
     "value" : true,
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "operation",
     "binding" : {
       "name" : "format.skipHeaderRecord",
@@ -239,7 +239,7 @@
     "label" : "Skip Header Record",
     "optional" : false,
     "value" : true,
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "operation",
     "binding" : {
       "name" : "format.skipHeaderRecord",

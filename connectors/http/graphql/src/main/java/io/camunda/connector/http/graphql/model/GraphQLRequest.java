@@ -7,7 +7,6 @@
 package io.camunda.connector.http.graphql.model;
 
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.model.auth.Authentication;
@@ -43,7 +42,7 @@ public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authe
       @TemplateProperty(
               id = "variables",
               group = "graphql",
-              feel = Property.FeelMode.required,
+              feel = TemplateProperty.FeelMode.required,
               optional = true)
           @FEEL
           Map<String, Object> variables,
@@ -67,7 +66,7 @@ public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authe
           String url,
       @FEEL
           @TemplateProperty(
-              feel = Property.FeelMode.required,
+              feel = TemplateProperty.FeelMode.required,
               group = "endpoint",
               optional = true,
               description = "Map of HTTP headers to add to the request")

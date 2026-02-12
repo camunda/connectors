@@ -21,7 +21,6 @@ import static io.camunda.connector.generator.java.example.outbound.MyConnectorFu
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
@@ -46,7 +45,9 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       engineVersion = "^8.7",
       id = MyConnectorFunction.ID,
       elementTypes = {
-        @ConnectorElementType(appliesTo = BpmnType.SERVICE_TASK, elementType = BpmnType.SCRIPT_TASK)
+        @ConnectorElementType(
+            appliesTo = ElementTemplate.BpmnType.SERVICE_TASK,
+            elementType = ElementTemplate.BpmnType.SCRIPT_TASK)
       },
       name = MyConnectorFunction.NAME,
       version = MyConnectorFunction.VERSION,
@@ -162,15 +163,21 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       name = MyConnectorFunction.NAME,
       inputDataClass = MyConnectorInput.class,
       elementTypes = {
-        @ConnectorElementType(appliesTo = BpmnType.TASK, elementType = BpmnType.SERVICE_TASK),
-        @ConnectorElementType(appliesTo = BpmnType.TASK, elementType = BpmnType.SCRIPT_TASK),
-        @ConnectorElementType(appliesTo = BpmnType.TASK, elementType = BpmnType.SEND_TASK),
         @ConnectorElementType(
-            appliesTo = BpmnType.END_EVENT,
-            elementType = BpmnType.MESSAGE_END_EVENT),
+            appliesTo = ElementTemplate.BpmnType.TASK,
+            elementType = ElementTemplate.BpmnType.SERVICE_TASK),
         @ConnectorElementType(
-            appliesTo = BpmnType.INTERMEDIATE_THROW_EVENT,
-            elementType = BpmnType.INTERMEDIATE_THROW_EVENT,
+            appliesTo = ElementTemplate.BpmnType.TASK,
+            elementType = ElementTemplate.BpmnType.SCRIPT_TASK),
+        @ConnectorElementType(
+            appliesTo = ElementTemplate.BpmnType.TASK,
+            elementType = ElementTemplate.BpmnType.SEND_TASK),
+        @ConnectorElementType(
+            appliesTo = ElementTemplate.BpmnType.END_EVENT,
+            elementType = ElementTemplate.BpmnType.MESSAGE_END_EVENT),
+        @ConnectorElementType(
+            appliesTo = ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT,
+            elementType = ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT,
             templateNameOverride = "My custom name for intermediate event",
             templateIdOverride = "my-custom-id-for-intermediate-event")
       },

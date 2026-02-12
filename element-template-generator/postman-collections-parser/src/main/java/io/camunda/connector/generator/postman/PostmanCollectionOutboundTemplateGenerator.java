@@ -21,7 +21,6 @@ import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.api.RestTemplateGenerator;
-import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
 import io.camunda.connector.generator.dsl.http.FactoryUtils;
@@ -49,10 +48,18 @@ public class PostmanCollectionOutboundTemplateGenerator
 
   private static final String EMPTY_FEEL_STRING = "=\"\"";
 
-  private static final Set<BpmnType> SUPPORTED_ELEMENT_TYPES =
-      Set.of(BpmnType.SERVICE_TASK, BpmnType.INTERMEDIATE_THROW_EVENT);
+  private static final Set<io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType>
+      SUPPORTED_ELEMENT_TYPES =
+          Set.of(
+              io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.SERVICE_TASK,
+              io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
+                  .INTERMEDIATE_THROW_EVENT);
   private static final ConnectorElementType DEFAULT_ELEMENT_TYPE =
-      new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null);
+      new ConnectorElementType(
+          Set.of(io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.TASK),
+          io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.SERVICE_TASK,
+          null,
+          null);
 
   @Override
   public String getGeneratorId() {

@@ -31,7 +31,7 @@
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>element-template-generator-core</artifactId>
+      <artifactId>element-template-generator-annotations</artifactId>
     </dependency>
 
     <!-- Langchain4j dependencies -->
