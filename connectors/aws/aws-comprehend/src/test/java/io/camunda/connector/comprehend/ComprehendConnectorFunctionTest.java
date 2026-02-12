@@ -47,8 +47,7 @@ class ComprehendConnectorFunctionTest {
 
     ComprehendClient syncClient = Mockito.mock(ComprehendClient.class);
     when(syncClient.classifyDocument(any(ClassifyDocumentRequest.class)))
-        .thenReturn(ClassifyDocumentResponse.builder()
-        .build());
+        .thenReturn(ClassifyDocumentResponse.builder().build());
 
     when(clientSupplier.getSyncClient(any(ComprehendRequest.class))).thenReturn(syncClient);
 
@@ -63,8 +62,9 @@ class ComprehendConnectorFunctionTest {
     ComprehendAsyncClient asyncClient = Mockito.mock(ComprehendAsyncClient.class);
     when(asyncClient.startDocumentClassificationJob(
             any(StartDocumentClassificationJobRequest.class)))
-        .thenReturn(StartDocumentClassificationJobResponse.builder()
-        .build());
+        .thenReturn(
+            java.util.concurrent.CompletableFuture.completedFuture(
+                StartDocumentClassificationJobResponse.builder().build()));
 
     when(clientSupplier.getAsyncClient(any(ComprehendRequest.class))).thenReturn(asyncClient);
 

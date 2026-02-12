@@ -6,8 +6,13 @@
  */
 package io.camunda.connector.comprehend.supplier;
 
-import io.camunda.connector.aws.CredentialsProviderSupport;
+import io.camunda.connector.aws.AwsUtils;
+import io.camunda.connector.aws.CredentialsProviderSupportV2;
+import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.comprehend.model.ComprehendRequest;
+import java.net.URI;
+import java.util.Optional;
+import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.comprehend.ComprehendAsyncClient;
 import software.amazon.awssdk.services.comprehend.ComprehendClient;
@@ -15,18 +20,23 @@ import software.amazon.awssdk.services.comprehend.ComprehendClient;
 public class ComprehendClientSupplier {
 
   public ComprehendClient getSyncClient(ComprehendRequest comprehendRequest) {
-    return (ComprehendClient)
-        ComprehendClient.builder()
-            .credentialsProvider(CredentialsProviderSupport.credentialsProvider(comprehendRequest))
-            .region(Region.of(comprehendRequest.getConfiguration().region()))
-            .build();
+    return configureBuilder(ComprehendClient.builder(), comprehendRequest).build();
   }
 
   public ComprehendAsyncClient getAsyncClient(ComprehendRequest comprehendRequest) {
-    return (ComprehendAsyncClient)
-        ComprehendAsyncClient.builder()
-            .credentialsProvider(CredentialsProviderSupport.credentialsProvider(comprehendRequest))
-            .region(Region.of(comprehendRequest.getConfiguration().region()))
-            .build();
+    return configureBuilder(ComprehendAsyncClient.builder(), comprehendRequest).build();
+  }
+
+  private <B extends AwsClientBuilder<B, ?>> B configureBuilder(
+      B builder, ComprehendRequest comprehendRequest) {
+    AwsBaseConfiguration configuration = comprehendRequest.getConfiguration();
+    builder
+        .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(comprehendRequest))
+        .region(Region.of(AwsUtils.extractRegionOrDefault(configuration, null)));
+    Optional.ofNullable(configuration)
+        .map(AwsBaseConfiguration::endpoint)
+        .filter(endpoint -> !endpoint.isBlank())
+        .ifPresent(endpoint -> builder.endpointOverride(URI.create(endpoint)));
+    return builder;
   }
 }

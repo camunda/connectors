@@ -14,7 +14,8 @@ import software.amazon.awssdk.services.comprehend.model.ClassifyDocumentRequest;
 import software.amazon.awssdk.services.comprehend.model.ClassifyDocumentResponse;
 
 public class SyncComprehendCaller
-    implements ComprehendCaller<ClassifyDocumentResponse, ComprehendSyncRequestData> {
+    implements ComprehendCaller<
+        ComprehendClient, ClassifyDocumentResponse, ComprehendSyncRequestData> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SyncComprehendCaller.class);
 
@@ -28,7 +29,7 @@ public class SyncComprehendCaller
         ClassifyDocumentRequest.builder()
             .text(requestData.text())
             .endpointArn(requestData.endpointArn())
-        .build();
+            .build();
 
     return client.classifyDocument(classifyDocumentRequest);
   }
