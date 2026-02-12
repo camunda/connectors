@@ -171,10 +171,10 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
       ValString message, ValContext variables, ValNumber retries, ValDayTimeDuration retryBackoff) {
     java.util.Map<String, Object> javaMap = new HashMap<>();
     javaMap.put(ERROR_TYPE_PROPERTY, JOB_ERROR_TYPE_VALUE);
-    javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(0), message.value());
-    javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(1), JavaConverters.asJava(variables.properties()));
-    javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(2), retries.value());
-    javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(3), retryBackoff.value());
+    javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(0), message);
+    javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(1), variables);
+    javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(2), retries);
+    javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(3), retryBackoff);
     return new ValContext(
         new Context.StaticContext(Map.from(JavaConverters.asScala(javaMap)), Map$.MODULE$.empty()));
   }
