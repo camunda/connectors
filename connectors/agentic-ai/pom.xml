@@ -20,7 +20,7 @@
   <properties>
     <version.record-builder>48</version.record-builder>
     <version.groovy>4.0.30</version.groovy>
-    <version.gmavenplus-plugin>4.3.0</version.gmavenplus-plugin>
+    <version.gmavenplus-plugin>4.3.1</version.gmavenplus-plugin>
   </properties>
 
   <licenses>
