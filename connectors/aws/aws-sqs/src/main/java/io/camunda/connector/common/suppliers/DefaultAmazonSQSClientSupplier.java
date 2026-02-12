@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.common.suppliers;
 
+import java.net.URI;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.awscore.client.builder.AwsSyncClientBuilder;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsClient;
 
@@ -27,7 +27,8 @@ public class DefaultAmazonSQSClientSupplier implements AmazonSQSClientSupplier {
       final String endpoint) {
     return SqsClient.builder()
         .credentialsProvider(credentialsProvider)
-        .endpointOverride(new AwsSyncClientBuilder.EndpointConfiguration(endpoint, region))
+        .region(Region.of(region))
+        .endpointOverride(URI.create(endpoint))
         .build();
   }
 }

@@ -16,11 +16,13 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
+import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
 
 class MessageMapperTest {
   private final String MESSAGE_ID = "messageID";
@@ -30,7 +32,8 @@ class MessageMapperTest {
   private final String STRING_BODY = "just string message";
   private final String ATTRIBUTE_DATA_TYPE = "data type";
   private final String ATTRIBUTE_STRING_VALUE = "string value";
-  private final String ATTRIBUTE_KEY = "attributeKey";
+  private final String ATTRIBUTE_KEY =
+      MessageSystemAttributeName.APPROXIMATE_FIRST_RECEIVE_TIMESTAMP.toString();
   private final ByteBuffer ATTRIBUTE_BINARY_TYPE = ByteBuffer.wrap("binary value".getBytes());
 
   private static final ObjectMapper objectMapper = ObjectMapperSupplier.getMapperInstance();
@@ -46,9 +49,9 @@ class MessageMapperTest {
             .stringValue(ATTRIBUTE_STRING_VALUE)
             .binaryValue(SdkBytes.fromByteBuffer(ATTRIBUTE_BINARY_TYPE))
             .dataType(ATTRIBUTE_DATA_TYPE)
-            .binaryListValues(List.of(ATTRIBUTE_BINARY_TYPE))
+            .binaryListValues(List.of(SdkBytes.fromByteBuffer(ATTRIBUTE_BINARY_TYPE)))
             .stringListValues(List.of(ATTRIBUTE_STRING_VALUE))
-        .build();
+            .build();
     messageAttributes.put(ATTRIBUTE_KEY, attributeValue);
 
     awsMessage =
@@ -58,9 +61,14 @@ class MessageMapperTest {
             .md5OfMessageAttributes(MD5_OF_MESSAGE_ATTRIBUTES)
             .body(STRING_BODY)
             .md5OfBody(JSON_BODY)
-            .attributes(ATTRIBUTES)
+            .attributes(
+                ATTRIBUTES.entrySet().stream()
+                    .collect(
+                        Collectors.toMap(
+                            entry -> MessageSystemAttributeName.fromValue(entry.getKey()),
+                            Map.Entry::getValue)))
             .messageAttributes(messageAttributes)
-        .build();
+            .build();
   }
 
   @Test
@@ -76,7 +84,7 @@ class MessageMapperTest {
     assertThat(sqsInboundMessage.body()).isEqualTo(STRING_BODY);
 
     io.camunda.connector.inbound.model.message.MessageAttributeValue
-        sqsInboundMessageAttributeValue = sqsInboundMessage.messageAttributes().get("attributeKey");
+        sqsInboundMessageAttributeValue = sqsInboundMessage.messageAttributes().get(ATTRIBUTE_KEY);
     assertThat(sqsInboundMessageAttributeValue.stringValue()).isEqualTo(ATTRIBUTE_STRING_VALUE);
     assertThat(sqsInboundMessageAttributeValue.dataType()).isEqualTo(ATTRIBUTE_DATA_TYPE);
     assertThat(sqsInboundMessageAttributeValue.binaryValue()).isEqualTo(ATTRIBUTE_BINARY_TYPE);
