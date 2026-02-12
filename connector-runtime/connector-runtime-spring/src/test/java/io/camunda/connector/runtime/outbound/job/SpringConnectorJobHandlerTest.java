@@ -1148,7 +1148,7 @@ class SpringConnectorJobHandlerTest {
               .withErrorExpressionHeader(errorExpression)
               .executeAndCaptureResult(jobHandler, false, false);
       // then
-      assertThat(result.getErrorMessage()).isEqualTo("MyError");
+      assertThat(result.getErrorMessage()).startsWith("MyError");
       assertThat(result.getVariables()).containsEntry("myVar", "myVal");
       assertThat(result.getVariables()).containsEntry("error", "MyError");
     }
@@ -1172,7 +1172,7 @@ class SpringConnectorJobHandlerTest {
               .withErrorExpressionHeader(errorExpression)
               .executeAndCaptureResult(jobHandler, false, false);
       // then - error message takes precedence over user-provided "error" key
-      assertThat(result.getErrorMessage()).isEqualTo("ActualError");
+      assertThat(result.getErrorMessage()).startsWith("ActualError");
       assertThat(result.getVariables()).containsEntry("error", "ActualError");
       assertThat(result.getVariables()).containsEntry("otherVar", "value");
       assertThat(result.getVariables()).doesNotContainValue("UserProvidedError");
@@ -1498,5 +1498,31 @@ class SpringConnectorJobHandlerTest {
 
     // then
     assertThat(result.getErrorMessage()).startsWith("test: ***");
+  }
+
+  @Test
+  void shouldIncludeErrorVariablesInFailJobErrorMessage() throws Exception {
+    // given
+    var errorMessage = "HTTP request failed";
+    Map<String, Object> errorVariables = Map.of("status", 400);
+
+    var jobHandler =
+        newConnectorJobHandler(
+            context -> {
+              throw new ConnectorExceptionBuilder()
+                  .message(errorMessage)
+                  .errorVariables(errorVariables)
+                  .build();
+            });
+
+    // when
+    var result = JobBuilder.create().executeAndCaptureResult(jobHandler, false);
+
+    // then
+    assertThat(result.getErrorMessage())
+        .startsWith("HTTP request failed | Error variables: ")
+        .contains("status=400")
+        .contains("type=io.camunda.connector.api.error.ConnectorException")
+        .contains("message=HTTP request failed");
   }
 }
