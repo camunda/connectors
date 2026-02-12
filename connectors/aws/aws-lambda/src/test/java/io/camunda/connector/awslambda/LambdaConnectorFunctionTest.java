@@ -40,7 +40,7 @@ class LambdaConnectorFunctionTest extends BaseTest {
             .statusCode(200)
             .payload(SdkBytes.fromByteBuffer(ACTUAL_BYTEBUFFER_PAYLOAD))
             .executedVersion(EXECUTED_VERSION)
-        .build();
+            .build();
   }
 
   @ParameterizedTest(name = "execute connector with valid data")
@@ -49,7 +49,8 @@ class LambdaConnectorFunctionTest extends BaseTest {
     // Given valid data
     OutboundConnectorContext context = getContextBuilderWithSecrets().variables(input).build();
     when(supplier.awsLambdaService(any(), any())).thenReturn(awsLambda);
-    when(awsLambda.invoke(any())).thenReturn(invokeResult);
+    when(awsLambda.invoke(any(software.amazon.awssdk.services.lambda.model.InvokeRequest.class)))
+        .thenReturn(invokeResult);
     // When connector execute
     Object execute = function.execute(context);
     // Then return connector result and result status = 200 and payload
@@ -69,7 +70,8 @@ class LambdaConnectorFunctionTest extends BaseTest {
             .validation(new DefaultValidationProvider())
             .build();
     when(supplier.awsLambdaService(any(), any())).thenReturn(awsLambda);
-    when(awsLambda.invoke(any())).thenReturn(invokeResult);
+    when(awsLambda.invoke(any(software.amazon.awssdk.services.lambda.model.InvokeRequest.class)))
+        .thenReturn(invokeResult);
     // When connector execute
     // Then throw IllegalArgumentException
     ConnectorInputException thrown =

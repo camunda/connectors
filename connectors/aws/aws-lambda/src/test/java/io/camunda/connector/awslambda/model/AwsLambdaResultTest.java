@@ -34,7 +34,7 @@ class AwsLambdaResultTest extends BaseTest {
             .statusCode(statusCode)
             .executedVersion(version)
             .payload(SdkBytes.fromByteBuffer(wrap))
-        .build();
+            .build();
 
     // When
     AwsLambdaResult awsLambdaResult = new AwsLambdaResult(invokeResult, objectMapper);

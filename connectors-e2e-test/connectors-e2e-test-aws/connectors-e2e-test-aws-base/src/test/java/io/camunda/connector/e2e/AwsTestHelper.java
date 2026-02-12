@@ -227,7 +227,7 @@ public class AwsTestHelper {
         .credentialsProvider(
             StaticCredentialsProvider.create(
                 AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
-        .endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.SQS))
+        .endpointOverride(localstack.getEndpointOverride(AwsService.SQS))
         .region(Region.of(localstack.getRegion()))
         .build();
   }
@@ -243,7 +243,7 @@ public class AwsTestHelper {
         .credentialsProvider(
             StaticCredentialsProvider.create(
                 AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
-        .endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.SQS))
+        .endpointOverride(localstack.getEndpointOverride(AwsService.EVENTBRIDGE))
         .region(Region.of(localstack.getRegion()))
         .build();
   }

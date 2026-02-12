@@ -19,7 +19,7 @@ import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import io.camunda.connector.awslambda.model.AwsLambdaResult;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import java.util.Optional;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.InvokeRequest;
 import software.amazon.awssdk.services.lambda.model.InvokeResponse;
@@ -76,14 +76,16 @@ public class LambdaConnectorFunction implements OutboundConnectorFunction {
       final InvokeRequest invokeRequest =
           InvokeRequest.builder()
               .functionName(request.getAwsFunction().getFunctionName())
-              .payload(objectMapper.writeValueAsString(request.getAwsFunction().getPayload()))
-          .build();
+              .payload(
+                  SdkBytes.fromUtf8String(
+                      objectMapper.writeValueAsString(request.getAwsFunction().getPayload())))
+              .build();
       return awsLambda.invoke(invokeRequest);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Error mapping payload to json.");
     } finally {
       if (awsLambda != null) {
-        awsLambda.shutdown();
+        awsLambda.close();
       }
     }
   }
