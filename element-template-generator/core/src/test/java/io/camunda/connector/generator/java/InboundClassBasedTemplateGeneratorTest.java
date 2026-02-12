@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.java;
 
+import static io.camunda.connector.generator.java.annotation.TemplateProperty.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -29,7 +30,6 @@ import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.dsl.HiddenProperty;
-import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.MessageProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;

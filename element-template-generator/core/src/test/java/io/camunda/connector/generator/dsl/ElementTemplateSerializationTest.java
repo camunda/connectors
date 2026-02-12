@@ -16,10 +16,11 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import static io.camunda.connector.generator.java.annotation.TemplateProperty.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.ElementTemplate.Metadata;
-import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
