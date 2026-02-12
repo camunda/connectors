@@ -37,7 +37,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.RECORD_COMPONENT})
 public @interface TemplateProperty {
-  public static boolean OPTIONAL_DEFAULT = false;
+  boolean OPTIONAL_DEFAULT = false;
 
   /** Custom property ID that can be referenced in conditions */
   String id() default "";
