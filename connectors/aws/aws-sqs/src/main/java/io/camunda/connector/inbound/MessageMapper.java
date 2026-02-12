@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 
@@ -22,8 +23,7 @@ public class MessageMapper {
   public static SqsInboundMessage toSqsInboundMessage(final Message message) {
     Map<String, io.camunda.connector.inbound.model.message.MessageAttributeValue>
         sqsInboundMessageAttributes = new HashMap<>();
-    for (Map.Entry<String, MessageAttributeValue> entry :
-        message.messageAttributes().entrySet()) {
+    for (Map.Entry<String, MessageAttributeValue> entry : message.messageAttributes().entrySet()) {
       io.camunda.connector.inbound.model.message.MessageAttributeValue sqsInboundMessageAttribute =
           toSqsInboundMessageAttribute(entry.getValue());
 
@@ -53,9 +53,11 @@ public class MessageMapper {
       toSqsInboundMessageAttribute(final MessageAttributeValue attributeValue) {
     return new io.camunda.connector.inbound.model.message.MessageAttributeValue(
         attributeValue.stringValue(),
-        attributeValue.binaryValue().asByteBuffer(),
+        attributeValue.binaryValue() != null ? attributeValue.binaryValue().asByteBuffer() : null,
         attributeValue.stringListValues(),
-        attributeValue.binaryListValues(),
+        attributeValue.binaryListValues() != null
+            ? attributeValue.binaryListValues().stream().map(SdkBytes::asByteBuffer).toList()
+            : null,
         attributeValue.dataType());
   }
 }

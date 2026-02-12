@@ -20,13 +20,13 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.GetQueueAttributesRequest;
 import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
 
@@ -122,8 +122,10 @@ public class SqsExecutable implements InboundConnectorExecutable<InboundConnecto
 
     try {
       amazonSQS.getQueueAttributes(
-          properties.getQueue().url(),
-          List.of(QueueAttributeName.APPROXIMATE_NUMBER_OF_MESSAGES.toString()));
+          GetQueueAttributesRequest.builder()
+              .queueUrl(properties.getQueue().url())
+              .attributeNames(QueueAttributeName.APPROXIMATE_NUMBER_OF_MESSAGES)
+              .build());
     } catch (QueueDoesNotExistException e) {
       LOGGER.error("Queue does not exist, failing subscription activation");
       throw new RuntimeException("Queue does not exist: " + properties.getQueue().url());
@@ -164,7 +166,7 @@ public class SqsExecutable implements InboundConnectorExecutable<InboundConnecto
     }
     if (amazonSQS != null) {
       LOGGER.debug("Shutting down SQS client");
-      amazonSQS.shutdown();
+      amazonSQS.close();
       LOGGER.debug("SQS client shut down successfully");
     }
   }

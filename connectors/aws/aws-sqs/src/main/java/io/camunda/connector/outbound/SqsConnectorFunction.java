@@ -22,7 +22,6 @@ import io.camunda.connector.outbound.model.QueueRequestData;
 import io.camunda.connector.outbound.model.SqsConnectorRequest;
 import io.camunda.connector.outbound.model.SqsConnectorResult;
 import java.util.Optional;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
@@ -87,7 +86,8 @@ public class SqsConnectorFunction implements OutboundConnectorFunction {
         .orElseGet(() -> sqsClientSupplier.sqsClient(credentialsProvider, region));
   }
 
-  private SendMessageResponse sendMsgToSqs(final SqsClient sqsClient, final QueueRequestData queue) {
+  private SendMessageResponse sendMsgToSqs(
+      final SqsClient sqsClient, final QueueRequestData queue) {
     try {
       String payload =
           queue.getMessageBody() instanceof String
@@ -100,13 +100,13 @@ public class SqsConnectorFunction implements OutboundConnectorFunction {
               .messageAttributes(queue.getAwsSqsNativeMessageAttributes())
               .messageGroupId(queue.getMessageGroupId())
               .messageDeduplicationId(queue.getMessageDeduplicationId())
-          .build();
+              .build();
       return sqsClient.sendMessage(message);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Error mapping payload to json.");
     } finally {
       if (sqsClient != null) {
-        sqsClient.shutdown();
+        sqsClient.close();
       }
     }
   }

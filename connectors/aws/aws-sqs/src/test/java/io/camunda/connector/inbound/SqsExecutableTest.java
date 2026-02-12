@@ -45,6 +45,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.GetQueueAttributesRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
@@ -93,13 +94,12 @@ class SqsExecutableTest {
     var definition = createDefinition();
     InboundConnectorContext context = createConnectorContext(properties, definition);
     InboundConnectorContext spyContext = spy(context);
-    Message message = createMessage().receiptHandle("receiptHandle");
+    Message message = createMessage().toBuilder().receiptHandle("receiptHandle").build();
     Message message1 = spy(message);
     when(supplier.sqsClient(any(AwsCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
         .thenReturn(sqsClient);
     when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
-        .thenReturn(ReceiveMessageResponse.builder().messages(message1)
-        .build());
+        .thenReturn(ReceiveMessageResponse.builder().messages(message1).build());
     consumer =
         new SqsQueueConsumer(
             sqsClient,
@@ -124,7 +124,7 @@ class SqsExecutableTest {
   @Test
   public void deactivateTest() {
     // Given
-    when(sqsClient.getQueueAttributes(any(), any())).thenReturn(null);
+    when(sqsClient.getQueueAttributes(any(GetQueueAttributesRequest.class))).thenReturn(null);
     when(supplier.sqsClient(any(AwsCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
         .thenReturn(sqsClient);
     Map<String, Object> properties =
@@ -153,7 +153,8 @@ class SqsExecutableTest {
   @Test
   public void nonExistingQueueTest() {
     // Given
-    when(sqsClient.getQueueAttributes(any(), any())).thenThrow(new QueueDoesNotExistException(""));
+    when(sqsClient.getQueueAttributes(any(GetQueueAttributesRequest.class)))
+        .thenThrow(QueueDoesNotExistException.builder().message("").build());
     when(supplier.sqsClient(any(AwsCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
         .thenReturn(sqsClient);
     Map<String, Object> properties =
@@ -195,7 +196,6 @@ class SqsExecutableTest {
   }
 
   private Message createMessage() {
-    return Message.builder().messageId("1").body("{\"a\":\"c\"}")
-        .build();
+    return Message.builder().messageId("1").body("{\"a\":\"c\"}").build();
   }
 }

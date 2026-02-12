@@ -31,7 +31,9 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
@@ -54,8 +56,7 @@ public class SqsQueueConsumerTest {
   void setUp() {
     properties = new SqsInboundProperties();
 
-    message = Message.builder().messageId("message id").body("body msg")
-        .build();
+    message = Message.builder().messageId("message id").body("body msg").build();
 
     queue = new SqsInboundQueueProperties("us-east-1", "my-queue", null, null, "1");
 
@@ -84,11 +85,17 @@ public class SqsQueueConsumerTest {
     // then
     verify(sqsClient, atLeast(1)).receiveMessage(any(ReceiveMessageRequest.class));
     verify(context).correlate(any(CorrelationRequest.class));
-    verify(sqsClient).deleteMessage(queue.url(), message.receiptHandle());
+    ArgumentCaptor<DeleteMessageRequest> deleteCaptor =
+        ArgumentCaptor.forClass(DeleteMessageRequest.class);
+    verify(sqsClient).deleteMessage(deleteCaptor.capture());
 
     ReceiveMessageRequest receiveMessageRequest = requestArgumentCaptor.getValue();
     assertThat(receiveMessageRequest.attributeNamesAsStrings()).isEqualTo(List.of("All"));
     assertThat(receiveMessageRequest.messageAttributeNames()).isEqualTo(List.of("All"));
+
+    DeleteMessageRequest deleteRequest = deleteCaptor.getValue();
+    assertThat(deleteRequest.queueUrl()).isEqualTo(queue.url());
+    assertThat(deleteRequest.receiptHandle()).isEqualTo(message.receiptHandle());
   }
 
   @Test
@@ -127,9 +134,10 @@ public class SqsQueueConsumerTest {
                 .messageId(message.messageId())
                 .build());
     ReceiveMessageRequest receiveMessageRequest = requestArgumentCaptor.getValue();
-    assertThat(receiveMessageRequest.attributeNamesAsStrings()).isEqualTo(attributeNames);
+    assertThat(receiveMessageRequest.attributeNames())
+        .isEqualTo(attributeNames.stream().map(QueueAttributeName::fromValue).toList());
     assertThat(receiveMessageRequest.messageAttributeNames()).isEqualTo(messageAttributeNames);
-    verify(sqsClient).deleteMessage(queue.url(), message.receiptHandle());
+    verify(sqsClient).deleteMessage(any(DeleteMessageRequest.class));
   }
 
   @Test
@@ -181,7 +189,7 @@ public class SqsQueueConsumerTest {
     // then
     verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
     verify(context).correlate(any(CorrelationRequest.class));
-    verify(sqsClient).deleteMessage(queue.url(), message.receiptHandle());
+    verify(sqsClient).deleteMessage(any(DeleteMessageRequest.class));
   }
 
   @Test
