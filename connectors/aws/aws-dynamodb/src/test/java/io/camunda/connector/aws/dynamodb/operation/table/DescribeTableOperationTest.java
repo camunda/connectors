@@ -14,21 +14,37 @@ import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.AwsInput;
 import io.camunda.connector.aws.dynamodb.model.DescribeTable;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTableResponse;
 import software.amazon.awssdk.services.dynamodb.model.TableDescription;
 
 class DescribeTableOperationTest extends BaseDynamoDbOperationTest {
+
+  @Captor private ArgumentCaptor<DescribeTableRequest> requestCaptor;
 
   @Test
   public void invoke_shouldReturnDescribeTableResult() {
     // Given
     DescribeTable describeTable = new DescribeTable(TestDynamoDBData.ActualValue.TABLE_NAME);
     DescribeTableOperation operation = new DescribeTableOperation(describeTable);
+    org.mockito.Mockito.when(dynamoDB.describeTable(requestCaptor.capture()))
+        .thenReturn(
+            DescribeTableResponse.builder()
+                .table(
+                    TableDescription.builder()
+                        .tableName(TestDynamoDBData.ActualValue.TABLE_NAME)
+                        .build())
+                .build());
     // When
     Object invoke = operation.invoke(dynamoDB);
     // Then
     assertThat(invoke).isNotNull();
     TableDescription result = (TableDescription) invoke;
     assertThat(result.tableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
+    assertThat(requestCaptor.getValue().tableName())
+        .isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
   }
 
   @Test

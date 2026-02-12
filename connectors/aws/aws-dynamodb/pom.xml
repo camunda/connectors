@@ -39,6 +39,16 @@
       <artifactId>dynamodb</artifactId>
       <version>${version.aws-java-sdk}</version>
     </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>regions</artifactId>
+      <version>${version.aws-java-sdk}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sdk-core</artifactId>
+      <version>${version.aws-java-sdk}</version>
+    </dependency>
   </dependencies>
 
   <build>
@@ -72,5 +82,4 @@
   </build>
 
 </project>
-
 

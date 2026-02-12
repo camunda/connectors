@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.aws.dynamodb.AwsDynamoDbAttributeValueMapper;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
 import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.AwsInput;
@@ -26,54 +27,47 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.Mock;
-import software.amazon.awssdk.services.dynamodb.document.AttributeUpdate;
-import software.amazon.awssdk.services.dynamodb.document.KeyAttribute;
-import software.amazon.awssdk.services.dynamodb.document.PrimaryKey;
-import software.amazon.awssdk.services.dynamodb.document.UpdateItemOutcome;
 import software.amazon.awssdk.services.dynamodb.model.AttributeAction;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValueUpdate;
+import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.UpdateItemResponse;
 
 class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
-  @Mock private UpdateItemOutcome updateItemOutcome;
-  @Captor private ArgumentCaptor<PrimaryKey> primaryKeyArgumentCaptor;
-  @Captor private ArgumentCaptor<AttributeUpdate[]> attributeUpdateArgumentCaptor;
+  @Captor private ArgumentCaptor<UpdateItemRequest> requestCaptor;
 
   @ParameterizedTest
   @MethodSource("updateItemCases")
   void testUpdateItemOperation(String attributeName, Object newValue) {
     // Setup
-    AttributeUpdate attributeUpdate = new AttributeUpdate(attributeName).put(newValue);
-    Map<String, Object> attributeUpdates = Map.of(attributeUpdate.getAttributeName(), newValue);
+    Map<String, Object> attributeUpdates = Map.of(attributeName, newValue);
     UpdateItem updateItem =
         new UpdateItem(
             TestDynamoDBData.ActualValue.TABLE_NAME, Map.of("id", "123"), attributeUpdates, "PUT");
     UpdateItemOperation operation = new UpdateItemOperation(updateItem);
 
     // Given
-    when(table.updateItem(
-            primaryKeyArgumentCaptor.capture(), attributeUpdateArgumentCaptor.capture()))
-        .thenReturn(updateItemOutcome);
+    when(dynamoDB.updateItem(requestCaptor.capture()))
+        .thenReturn(UpdateItemResponse.builder().build());
     // When
     Object result = operation.invoke(dynamoDB);
     // Then
-    assertThat(result).isInstanceOf(UpdateItemOutcome.class);
+    assertThat(result).isInstanceOf(UpdateItemResponse.class);
 
-    PrimaryKey value = primaryKeyArgumentCaptor.getValue();
+    UpdateItemRequest request = requestCaptor.getValue();
+    assertThat(request.tableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
+    assertThat(request.key().get("id").s()).isEqualTo("123");
 
-    assertThat(value.getComponents().contains(new KeyAttribute("id", "123"))).isTrue();
-
-    AttributeUpdate expectedAttributeUpdate = attributeUpdateArgumentCaptor.getValue()[0];
-    assertThat(expectedAttributeUpdate.getAttributeName()).isEqualTo(attributeName);
-    assertThat(expectedAttributeUpdate.getValue()).isEqualTo(newValue);
-    assertThat(expectedAttributeUpdate.getAction()).isEqualTo(AttributeAction.PUT);
+    AttributeValueUpdate expectedAttributeUpdate = request.attributeUpdates().get(attributeName);
+    assertThat(expectedAttributeUpdate.value())
+        .isEqualTo(AwsDynamoDbAttributeValueMapper.toAttributeValue(newValue));
+    assertThat(expectedAttributeUpdate.action()).isEqualTo(AttributeAction.PUT);
   }
 
   @ParameterizedTest
   @MethodSource("updateItemCases")
   void testDeleteItemOperation(String attributeName, Object newValue) {
     // Setup
-    AttributeUpdate attributeUpdate = new AttributeUpdate(attributeName).put(newValue);
-    Map<String, Object> attributeUpdates = Map.of(attributeUpdate.getAttributeName(), newValue);
+    Map<String, Object> attributeUpdates = Map.of(attributeName, newValue);
     UpdateItem updateItem =
         new UpdateItem(
             TestDynamoDBData.ActualValue.TABLE_NAME,
@@ -83,22 +77,21 @@ class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
     UpdateItemOperation operation = new UpdateItemOperation(updateItem);
 
     // Given
-    when(table.updateItem(
-            primaryKeyArgumentCaptor.capture(), attributeUpdateArgumentCaptor.capture()))
-        .thenReturn(updateItemOutcome);
+    when(dynamoDB.updateItem(requestCaptor.capture()))
+        .thenReturn(UpdateItemResponse.builder().build());
     // When
     Object result = operation.invoke(dynamoDB);
     // Then
-    assertThat(result).isInstanceOf(UpdateItemOutcome.class);
+    assertThat(result).isInstanceOf(UpdateItemResponse.class);
 
-    PrimaryKey value = primaryKeyArgumentCaptor.getValue();
+    UpdateItemRequest request = requestCaptor.getValue();
+    assertThat(request.tableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
+    assertThat(request.key().get("id").s()).isEqualTo("123");
 
-    assertThat(value.getComponents().contains(new KeyAttribute("id", "123"))).isTrue();
-
-    AttributeUpdate expectedAttributeUpdate = attributeUpdateArgumentCaptor.getValue()[0];
-    assertThat(expectedAttributeUpdate.getAttributeName()).isEqualTo(attributeName);
-    assertThat(expectedAttributeUpdate.getValue()).isNull();
-    assertThat(expectedAttributeUpdate.getAction()).isEqualTo(AttributeAction.DELETE);
+    AttributeValueUpdate expectedAttributeUpdate = request.attributeUpdates().get(attributeName);
+    assertThat(expectedAttributeUpdate.value())
+        .isEqualTo(AwsDynamoDbAttributeValueMapper.toAttributeValue(newValue));
+    assertThat(expectedAttributeUpdate.action()).isEqualTo(AttributeAction.DELETE);
   }
 
   static Stream<Arguments> updateItemCases() {
@@ -150,10 +143,7 @@ class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
         // Map with nested Set of Numbers
         Arguments.of(
             "mapWithNestedNumberSet",
-            Map.of("numberSetKey", Set.of(new BigDecimal(3), new BigDecimal(4))),
-            Map.of(
-                ":mapWithNestedNumberSet",
-                Map.of("numberSetKey", Set.of(new BigDecimal(3), new BigDecimal(4))))),
+            Map.of("numberSetKey", Set.of(new BigDecimal(3), new BigDecimal(4)))),
 
         // Map with nested Set of Strings
         Arguments.of("mapWithNestedStringSet", Map.of("stringSetKey", Set.of("C", "D"))),

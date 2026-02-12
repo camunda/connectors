@@ -6,13 +6,16 @@
  */
 package io.camunda.connector.aws.dynamodb.operation.item;
 
+import io.camunda.connector.aws.dynamodb.AwsDynamoDbAttributeValueMapper;
 import io.camunda.connector.aws.dynamodb.model.UpdateItem;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
-import java.util.List;
 import java.util.Map;
-import software.amazon.awssdk.services.dynamodb.document.AttributeUpdate;
-import software.amazon.awssdk.services.dynamodb.document.DynamoDb;
-import software.amazon.awssdk.services.dynamodb.document.PrimaryKey;
+import java.util.stream.Collectors;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeAction;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValueUpdate;
+import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.UpdateItemResponse;
 
 public class UpdateItemOperation implements AwsDynamoDbOperation {
 
@@ -23,36 +26,34 @@ public class UpdateItemOperation implements AwsDynamoDbOperation {
   }
 
   @Override
-  public Object invoke(final DynamoDb dynamoDB) {
-
-    List<AttributeUpdate> attributeUpdates =
+  public UpdateItemResponse invoke(final DynamoDbClient dynamoDB) {
+    Map<String, AttributeValueUpdate> attributeUpdates =
         updateItemModel.keyAttributes().entrySet().stream()
-            .map(
-                entry ->
-                    createAttributeUpdate(
-                        entry.getKey(), entry.getValue(), updateItemModel.attributeAction()))
-            .toList();
+            .collect(
+                Collectors.toMap(
+                    Map.Entry::getKey,
+                    entry ->
+                        AttributeValueUpdate.builder()
+                            .action(resolveAction(updateItemModel.attributeAction()))
+                            .value(
+                                AwsDynamoDbAttributeValueMapper.toAttributeValue(entry.getValue()))
+                            .build()));
 
-    return dynamoDB
-        .getTable(updateItemModel.tableName())
-        .updateItem(
-            buildPrimaryKey(updateItemModel.primaryKeyComponents()),
-            attributeUpdates.toArray(AttributeUpdate[]::new));
+    return dynamoDB.updateItem(
+        UpdateItemRequest.builder()
+            .tableName(updateItemModel.tableName())
+            .key(
+                AwsDynamoDbAttributeValueMapper.toAttributeValueMap(
+                    updateItemModel.primaryKeyComponents()))
+            .attributeUpdates(attributeUpdates)
+            .build());
   }
 
-  private AttributeUpdate createAttributeUpdate(
-      final String key, final Object value, final String action) {
-    AttributeUpdate update = new AttributeUpdate(key);
+  private AttributeAction resolveAction(final String action) {
     return switch (action.toLowerCase()) {
-      case "put" -> update.put(value);
-      case "delete" -> update.delete();
+      case "put" -> AttributeAction.PUT;
+      case "delete" -> AttributeAction.DELETE;
       default -> throw new IllegalArgumentException("Unsupported attribute action: " + action);
     };
-  }
-
-  private PrimaryKey buildPrimaryKey(Map<String, Object> primaryKeyMap) {
-    PrimaryKey primaryKey = new PrimaryKey();
-    primaryKeyMap.forEach(primaryKey::addComponent);
-    return primaryKey;
   }
 }

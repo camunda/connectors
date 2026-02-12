@@ -7,7 +7,6 @@
 package io.camunda.connector.aws.dynamodb.operation.table;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -17,25 +16,34 @@ import io.camunda.connector.aws.dynamodb.model.AwsDynamoDbResult;
 import io.camunda.connector.aws.dynamodb.model.AwsInput;
 import io.camunda.connector.aws.dynamodb.model.DeleteTable;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import software.amazon.awssdk.services.dynamodb.model.DeleteTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.DeleteTableResponse;
 
 class DeleteTableOperationTest extends BaseDynamoDbOperationTest {
 
+  @Captor private ArgumentCaptor<DeleteTableRequest> requestCaptor;
+
   @Test
-  public void invoke_shouldDeleteDynamoDbTableAndReturnStatusOk() throws InterruptedException {
+  public void invoke_shouldDeleteDynamoDbTableAndReturnStatusOk() {
     // Given
     DeleteTable deleteTable = new DeleteTable(TestDynamoDBData.ActualValue.TABLE_NAME);
     DeleteTableOperation operation = new DeleteTableOperation(deleteTable);
+    org.mockito.Mockito.when(dynamoDB.deleteTable(requestCaptor.capture()))
+        .thenReturn(DeleteTableResponse.builder().build());
     // When
     Object invoke = operation.invoke(dynamoDB);
     // Then
-    verify(table, times(1)).delete();
-    verify(table, times(1)).waitForDelete();
+    verify(dynamoDB).deleteTable(requestCaptor.getValue());
 
     assertThat(invoke).isNotNull();
     AwsDynamoDbResult result = (AwsDynamoDbResult) invoke;
     assertThat(result.getAction())
         .isEqualTo("delete Table [" + TestDynamoDBData.ActualValue.TABLE_NAME + "]");
     assertThat(result.getStatus()).isEqualTo("OK");
+    assertThat(requestCaptor.getValue().tableName())
+        .isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
   }
 
   @Test
