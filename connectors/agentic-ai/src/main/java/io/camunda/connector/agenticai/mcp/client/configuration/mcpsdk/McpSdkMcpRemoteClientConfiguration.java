@@ -7,6 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client.configuration.mcpsdk;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.agenticai.common.AgenticAiHttpSupport;
 import io.camunda.connector.agenticai.mcp.client.configuration.annotation.RemoteMcpClientFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.McpSdkClientFactory;
@@ -35,7 +36,9 @@ public class McpSdkMcpRemoteClientConfiguration {
   @RemoteMcpClientFactory
   public McpSdkClientFactory mcpSdkMcpRemoteClientFactory(
       @ConnectorsObjectMapper ObjectMapper objectMapper,
+      AgenticAiHttpSupport httpSupport,
       McpClientHeadersSupplierFactory headersSupplierFactory) {
-    return new McpSdkClientFactory(objectMapper, headersSupplierFactory);
+    return new McpSdkClientFactory(
+        objectMapper, httpSupport.getJdkHttpClientProxyConfigurator(), headersSupplierFactory);
   }
 }
