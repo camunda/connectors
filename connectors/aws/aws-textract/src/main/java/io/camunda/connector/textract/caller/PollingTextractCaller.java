@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.textract.caller;
 
-import software.amazon.awssdk.services.textract.TextractClient;
-import software.amazon.awssdk.services.textract.model.*;
 import dev.failsafe.Failsafe;
 import dev.failsafe.RetryPolicy;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -19,6 +17,8 @@ import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.services.textract.TextractClient;
+import software.amazon.awssdk.services.textract.model.*;
 
 public class PollingTextractCaller implements TextractCaller<GetDocumentAnalysisResponse> {
 
@@ -35,7 +35,7 @@ public class PollingTextractCaller implements TextractCaller<GetDocumentAnalysis
             .featureTypes(this.prepareFeatureTypes(requestData))
             .queriesConfig(prepareQueryConfig(requestData))
             .documentLocation(this.prepareDocumentLocation(requestData))
-        .build();
+            .build();
 
     final StartDocumentAnalysisResponse result = textractClient.startDocumentAnalysis(startDocReq);
     final String jobId = result.jobId();
@@ -54,7 +54,7 @@ public class PollingTextractCaller implements TextractCaller<GetDocumentAnalysis
               .jobId(jobId)
               .maxResults(MAX_RESULT)
               .nextToken(nextToken)
-          .build();
+              .build();
 
       GetDocumentAnalysisResponse nextResult = textractClient.getDocumentAnalysis(nextRequest);
       nextToken = nextResult.nextToken();
@@ -95,14 +95,16 @@ public class PollingTextractCaller implements TextractCaller<GetDocumentAnalysis
               LOGGER.debug("Textract polling job {} started", jobId);
               GetDocumentAnalysisResponse response =
                   textractClient.getDocumentAnalysis(
-                      GetDocumentAnalysisRequest.builder().jobId(jobId).maxResults(MAX_RESULT)
-                      .build());
+                      GetDocumentAnalysisRequest.builder()
+                          .jobId(jobId)
+                          .maxResults(MAX_RESULT)
+                          .build());
 
-              String status = response.jobStatus();
+              JobStatus status = response.jobStatus();
 
-              if (JobStatus.SUCCEEDED.toString().equals(status)) {
+              if (JobStatus.SUCCEEDED.equals(status)) {
                 return response;
-              } else if (JobStatus.FAILED.toString().equals(status)) {
+              } else if (JobStatus.FAILED.equals(status)) {
                 throw new ConnectorInputException("Textract polling job: " + response);
               }
               return null;

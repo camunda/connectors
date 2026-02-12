@@ -13,7 +13,6 @@ import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.textract.model.TextractRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import software.amazon.awssdk.services.textract.TextractAsyncClient;
 import software.amazon.awssdk.services.textract.TextractClient;
 
 class AmazonTextractClientSupplierTest {
@@ -32,15 +31,14 @@ class AmazonTextractClientSupplierTest {
 
   @Test
   void getSyncTextractClient() {
-    TextractClient client =
-        (TextractClient) clientSupplier.getSyncTextractClient(request);
+    TextractClient client = (TextractClient) clientSupplier.getSyncTextractClient(request);
     assertThat(client).isInstanceOf(TextractClient.class);
   }
 
   @Test
   void getAsyncTextractClient() {
-    TextractAsyncClient client = clientSupplier.getAsyncTextractClient(request);
+    TextractClient client = clientSupplier.getAsyncTextractClient(request);
     assertNotNull(client);
-    assertThat(client).isInstanceOf(TextractAsyncClient.class);
+    assertThat(client).isInstanceOf(TextractClient.class);
   }
 }
