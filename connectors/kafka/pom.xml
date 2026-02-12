@@ -98,7 +98,6 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>com.fasterxml.jackson.module</groupId>
       <artifactId>jackson-module-scala_2.13</artifactId>
-      <scope>runtime</scope>
     </dependency>
 
     <dependency>
