@@ -19,7 +19,7 @@ import com.fasterxml.jackson.dataformat.avro.AvroMapper;
 import com.fasterxml.jackson.dataformat.avro.AvroSchema;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
+import com.fasterxml.jackson.module.scala.DefaultScalaModule;
 import dev.failsafe.Failsafe;
 import dev.failsafe.RetryPolicy;
 import dev.failsafe.function.CheckedSupplier;
@@ -48,7 +48,7 @@ public class KafkaConnectorConsumer {
   public static ObjectMapper objectMapper =
       new ObjectMapper()
           .registerModule(new Jdk8Module())
-          .registerModule(DefaultScalaModule$.MODULE$)
+          .registerModule(new DefaultScalaModule())
           .registerModule(new JavaTimeModule())
           // deserialize unknown types as empty objects
           .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
