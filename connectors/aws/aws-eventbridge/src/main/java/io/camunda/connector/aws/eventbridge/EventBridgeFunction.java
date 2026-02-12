@@ -18,7 +18,6 @@ import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import java.util.Optional;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
 import software.amazon.awssdk.services.eventbridge.model.PutEventsRequest;
 import software.amazon.awssdk.services.eventbridge.model.PutEventsRequestEntry;
@@ -88,7 +87,8 @@ public class EventBridgeFunction implements OutboundConnectorFunction {
                     credentialsProvider, region));
   }
 
-  public PutEventsResponse putEvents(final EventBridgeClient client, final AwsEventBridgeInput input)
+  public PutEventsResponse putEvents(
+      final EventBridgeClient client, final AwsEventBridgeInput input)
       throws JsonProcessingException {
     PutEventsRequestEntry entry =
         PutEventsRequestEntry.builder()
@@ -96,8 +96,7 @@ public class EventBridgeFunction implements OutboundConnectorFunction {
             .detailType(input.getDetailType())
             .eventBusName(input.getEventBusName())
             .detail(objectMapper.writeValueAsString(input.getDetail()))
-        .build();
-    return client.putEvents(PutEventsRequest.builder().entries(entry)
-        .build());
+            .build();
+    return client.putEvents(PutEventsRequest.builder().entries(entry).build());
   }
 }

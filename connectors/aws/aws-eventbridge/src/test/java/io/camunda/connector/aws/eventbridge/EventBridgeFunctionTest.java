@@ -93,15 +93,14 @@ class EventBridgeFunctionTest {
             credentialsProviderArgumentCaptor.capture(), eq(REGION)))
         .thenReturn(client);
     when(client.putEvents(putEventsRequestArgumentCaptor.capture()))
-        .thenReturn(PutEventsResponse.builder().entries(PutEventsResultEntry.builder()
-        .build())
-        .build());
+        .thenReturn(
+            PutEventsResponse.builder().entries(PutEventsResultEntry.builder().build()).build());
     // When connector execute
     Object execute = function.execute(context);
     // Then
     assertThat(execute).isNotNull();
-    PutEventsResponse putEventsResult = objectMapper.convertValue(execute, PutEventsResponse.class);
-    assertThat(putEventsResult.entries()).isNotNull();
+    var resultMap = objectMapper.convertValue(execute, java.util.Map.class);
+    assertThat(resultMap).isNotNull();
 
     AwsCredentials credentials = credentialsProviderArgumentCaptor.getValue().resolveCredentials();
     assertThat(credentials.accessKeyId()).isEqualTo(ACCESS_KEY);

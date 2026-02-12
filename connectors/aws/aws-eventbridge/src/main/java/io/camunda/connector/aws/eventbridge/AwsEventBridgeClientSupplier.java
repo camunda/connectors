@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.aws.eventbridge;
 
+import java.net.URI;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.awscore.client.builder.AwsSyncClientBuilder;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
 
@@ -27,7 +27,8 @@ public class AwsEventBridgeClientSupplier {
       final String endpoint) {
     return EventBridgeClient.builder()
         .credentialsProvider(credentialsProvider)
-        .endpointOverride(new AwsSyncClientBuilder.EndpointConfiguration(endpoint, region))
+        .region(Region.of(region))
+        .endpointOverride(URI.create(endpoint))
         .build();
   }
 }
