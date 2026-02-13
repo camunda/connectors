@@ -112,19 +112,6 @@ public class InboundWebhookRestController {
     return lowerContentType.contains("application/xml") || lowerContentType.contains("text/xml");
   }
 
-  private static io.camunda.connector.api.inbound.webhook.Part mapToCamundaPart(Part part) {
-    try {
-      return new io.camunda.connector.api.inbound.webhook.Part(
-          part.getName(),
-          part.getSubmittedFileName(),
-          part.getInputStream(),
-          part.getContentType());
-    } catch (IOException e) {
-      LOG.warn("Failed to process part: {}", part.getName(), e);
-      return null;
-    }
-  }
-
   @RequestMapping(
       method = {GET, POST, PUT, DELETE},
       path = "/inbound/{context}")
