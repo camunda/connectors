@@ -1,5 +1,9 @@
 # Agentic AI connectors changelog
 
+## Unreleased
+
+- Fixed variable scoping for `toolCallResult` and `toolCallResults` by adding explicit input mappings in the AI Agent AHSP element template. These variables are now properly scoped to the Ad-Hoc Sub-Process and visible as local variables in Camunda Modeler.
+
 ## 8.8.0-alpha7
 
 - Added support to provide custom storage backends in a self-managed deployment:
