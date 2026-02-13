@@ -16,7 +16,7 @@
   </configuration>
   <input>
     <global>
-      <glob>{*.java,*.xml,*.properties, *.proto, resources/api/*.xml, rest-api*.yml }</glob>
+      <glob>{*.java,*.xml,*.properties,*.proto,resources/api/*.xml,rest-api*.yml}</glob>
     </global>
   </input>
 </cache>
