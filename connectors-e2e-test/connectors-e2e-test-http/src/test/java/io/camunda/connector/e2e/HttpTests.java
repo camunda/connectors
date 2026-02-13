@@ -315,6 +315,7 @@ public class HttpTests {
 
   @Test
   void successfulModelRun() {
+    // Prepare an HTTP mock server
     wm.stubFor(
         post(urlPathMatching("/mock"))
             .withQueryParam("testQueryParam", matching("testQueryParamValue"))
@@ -325,10 +326,31 @@ public class HttpTests {
 
     var mockUrl = "http://localhost:" + wm.getPort() + "/mock";
 
-    var model = replace("rest_connector.bpmn", replace("http://localhost/test", mockUrl));
+    var model =
+        Bpmn.createProcess().executable().startEvent().serviceTask("restTask").endEvent().done();
+
+    var elementTemplate =
+        ElementTemplate.from(
+                "../../connectors/http/rest/element-templates/http-json-connector.json")
+            .property("url", mockUrl)
+            .property("method", "post")
+            .property("headers", "={testHeader: \"testHeaderValue\"}")
+            .property("queryParameters", "={testQueryParam: \"testQueryParamValue\"}")
+            .property("connectionTimeoutInSeconds", "20")
+            .property("body", "={order: {id: 1, items:[{id:1}, {id:2}]}}")
+            .property("resultExpression", "={orderStatus: response.body.order.status}")
+            .writeTo(new File(tempDir, "template.json"));
+
+    var updatedModel =
+        new BpmnFile(model)
+            .writeToFile(new File(tempDir, "test.bpmn"))
+            .apply(elementTemplate, "restTask", new File(tempDir, "result.bpmn"));
 
     var bpmnTest =
-        ZeebeTest.with(camundaClient).deploy(model).createInstance().waitForProcessCompletion();
+        ZeebeTest.with(camundaClient)
+            .deploy(updatedModel)
+            .createInstance()
+            .waitForProcessCompletion();
 
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("orderStatus", "processing");
   }
