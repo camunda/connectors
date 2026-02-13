@@ -34,9 +34,11 @@ import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
 import software.amazon.awssdk.services.eventbridge.model.*;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.DeleteQueueRequest;
 import software.amazon.awssdk.services.sqs.model.GetQueueAttributesRequest;
 import software.amazon.awssdk.services.sqs.model.GetQueueAttributesResponse;
 import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 
 @SlowTest
 public class AwsEventBridgeTest extends BaseAwsTest {
@@ -70,7 +72,10 @@ public class AwsEventBridgeTest extends BaseAwsTest {
     queueUrl = AwsTestHelper.createQueue(sqsClient, QUEUE_NAME, false);
     GetQueueAttributesResponse queueAttributes =
         sqsClient.getQueueAttributes(
-            new GetQueueAttributesRequest(queueUrl).attributeNames("QueueArn"));
+            GetQueueAttributesRequest.builder()
+                .queueUrl(queueUrl)
+                .attributeNames(QueueAttributeName.QUEUE_ARN)
+                .build());
     String queueArn = queueAttributes.attributesAsStrings().get("QueueArn");
     // Define an event pattern
     // Create a rule on the default event bus and add the SQS queue as a target
@@ -79,27 +84,24 @@ public class AwsEventBridgeTest extends BaseAwsTest {
             .name(RULE_NAME)
             .eventPattern(EVENT_PATTERN)
             .eventBusName(EVENT_BUS_NAME)
-        .build());
+            .build());
     eventBridgeClient.putTargets(
         PutTargetsRequest.builder()
             .rule(RULE_NAME)
             .eventBusName(EVENT_BUS_NAME)
-            .targets(Target.builder().arn(queueArn).id(TARGET_ID)
-                .build())
-        .build());
+            .targets(Target.builder().arn(queueArn).id(TARGET_ID).build())
+            .build());
   }
 
   @AfterEach
   public void cleanUpResources() {
     // Clean up resources
-    sqsClient.deleteQueue(queueUrl);
+    sqsClient.deleteQueue(DeleteQueueRequest.builder().queueUrl(queueUrl).build());
     // Remove targets from the rule
     eventBridgeClient.removeTargets(
-        RemoveTargetsRequest.builder().rule(RULE_NAME).ids(TARGET_ID)
-        .build());
+        RemoveTargetsRequest.builder().rule(RULE_NAME).ids(TARGET_ID).build());
     // Now delete the rule
-    eventBridgeClient.deleteRule(DeleteRuleRequest.builder().name(RULE_NAME)
-        .build());
+    eventBridgeClient.deleteRule(DeleteRuleRequest.builder().name(RULE_NAME).build());
   }
 
   @Test

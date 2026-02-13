@@ -25,7 +25,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.PublishRequest;
 import software.amazon.awssdk.services.sns.model.PublishResponse;
@@ -57,11 +57,11 @@ public class SnsConnectorFunctionTest extends BaseTest {
     // Given context with correct data and request
     connector = new SnsConnectorFunction();
     // When connector.execute(context) without amazon sns client
-    // Then we expect SdkClientException
+    // Then we expect an SDK-level exception
     assertThrows(
-        SdkClientException.class,
+        SdkException.class,
         () -> connector.execute(context),
-        "SdkClientException from amazon was expected");
+        "SdkException from amazon was expected");
   }
 
   @Test

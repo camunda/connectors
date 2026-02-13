@@ -178,9 +178,10 @@ public class TopicRequestData {
 
   private Function<SnsMessageAttribute, MessageAttributeValue> messageAttributeTransformer() {
     return snsMessageAttribute -> {
-      MessageAttributeValue msgAttr = MessageAttributeValue.builder().build();
-      msgAttr = msgAttr.toBuilder().stringValue(snsMessageAttribute.getStringValue()).build();
-      return msgAttr;
+      return MessageAttributeValue.builder()
+          .dataType(snsMessageAttribute.getDataType())
+          .stringValue(snsMessageAttribute.getStringValue())
+          .build();
     };
   }
 
