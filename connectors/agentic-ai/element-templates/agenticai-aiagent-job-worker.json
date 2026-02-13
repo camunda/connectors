@@ -98,6 +98,22 @@
     "value" : "={\n  id: toolCall._meta.id,\n  name: toolCall._meta.name,\n  content: toolCallResult\n}",
     "type" : "Hidden"
   }, {
+    "id" : "toolCallResult",
+    "binding" : {
+      "name" : "toolCallResult",
+      "type" : "zeebe:input"
+    },
+    "value" : "",
+    "type" : "Hidden"
+  }, {
+    "id" : "toolCallResults",
+    "binding" : {
+      "name" : "toolCallResults",
+      "type" : "zeebe:input"
+    },
+    "value" : "=[]",
+    "type" : "Hidden"
+  }, {
     "id" : "provider.type",
     "label" : "Provider",
     "description" : "Specify the LLM provider to use.",
