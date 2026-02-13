@@ -138,6 +138,26 @@ def updatedProperties = []
             value: "={\n  id: toolCall._meta.id,\n  name: toolCall._meta.name,\n  content: toolCallResult\n}",
             type: "Hidden"
         ])
+
+        updatedProperties.add([
+            id: "toolCallResult",
+            binding: [
+                name: "toolCallResult",
+                type: "zeebe:input"
+            ],
+            value: "",
+            type: "Hidden"
+        ])
+
+        updatedProperties.add([
+            id: "toolCallResults",
+            binding: [
+                name: "toolCallResults",
+                type: "zeebe:input"
+            ],
+            value: "=[]",
+            type: "Hidden"
+        ])
     } else if (property.id == "id") {
         property.value = "io.camunda.connectors.agenticai.aiagent.jobworker.v1"
         updatedProperties.add(property)
