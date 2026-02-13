@@ -602,4 +602,60 @@ class HttpWebhookExecutableTest {
     assertThat(result.headers()).containsEntry("Content-Type", "application/camunda-bin");
     assertThat(result.headers()).hasSize(1);
   }
+
+  @Test
+  void triggerWebhook_XmlBody_HappyCase() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers()).thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, "application/xml"));
+    Mockito.when(payload.rawBody())
+        .thenReturn(
+            "<request><id>123</id><status>active</status></request>"
+                .getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+    var result = testObject.triggerWebhook(payload);
+
+    assertNull(result.response());
+    // XML is stored as string
+    assertThat(result.request().body()).isInstanceOf(String.class);
+    assertThat((String) result.request().body()).contains("<id>123</id>");
+  }
+
+  @Test
+  void triggerWebhook_XmlBodyWithTextXmlContentType_HappyCase() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "auth", Map.of("type", "NONE"))))
+            .build();
+
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers()).thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, "text/xml"));
+    Mockito.when(payload.rawBody())
+        .thenReturn("<?xml version=\"1.0\"?><data>test</data>".getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+    var result = testObject.triggerWebhook(payload);
+
+    assertNull(result.response());
+    assertThat(result.request().body()).isInstanceOf(String.class);
+  }
 }
