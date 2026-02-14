@@ -20,4 +20,6 @@ interface TestCasesPath {
   String VALIDATE_REQUIRED_FIELDS_FAIL = PATH + "validate-fields-fail.json";
   String FROM_JSON_FAIL = PATH + "with-wrong-method.json";
   String EXECUTE_ADD_REACTION = PATH + "execute-add-reaction.json";
+  String EXECUTE_PIN_MESSAGE = PATH + "execute-pin-message.json";
+  String EXECUTE_UNPIN_MESSAGE = PATH + "execute-unpin-message.json";
 }
