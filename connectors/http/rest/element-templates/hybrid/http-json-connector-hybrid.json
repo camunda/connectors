@@ -407,7 +407,7 @@
     "description" : "Store the response as a document in the document store",
     "optional" : false,
     "value" : false,
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "endpoint",
     "binding" : {
       "name" : "storeResponse",
@@ -438,7 +438,7 @@
         "message" : "Must be a number"
       }
     },
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "timeout",
     "binding" : {
       "name" : "connectionTimeoutInSeconds",
@@ -458,7 +458,7 @@
         "message" : "Must be a number"
       }
     },
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "timeout",
     "binding" : {
       "name" : "readTimeoutInSeconds",
@@ -487,7 +487,7 @@
     "label" : "Ignore null values",
     "optional" : false,
     "value" : false,
-    "feel" : "static",
+    "feel" : "staticFeel",
     "group" : "payload",
     "binding" : {
       "name" : "ignoreNullValues",

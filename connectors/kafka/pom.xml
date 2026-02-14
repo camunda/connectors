@@ -34,6 +34,10 @@ except in compliance with the proprietary license.</license.inlineheader>
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator-annotations</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>org.apache.kafka</groupId>
@@ -92,6 +96,11 @@ except in compliance with the proprietary license.</license.inlineheader>
     </dependency>
 
     <dependency>
+      <groupId>com.fasterxml.jackson.module</groupId>
+      <artifactId>jackson-module-scala_2.13</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>dev.failsafe</groupId>
       <artifactId>failsafe</artifactId>
     </dependency>
@@ -140,11 +149,6 @@ except in compliance with the proprietary license.</license.inlineheader>
       <groupId>org.skyscreamer</groupId>
       <artifactId>jsonassert</artifactId>
       <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>element-template-generator-core</artifactId>
     </dependency>
   </dependencies>
 

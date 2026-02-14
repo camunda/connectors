@@ -12,7 +12,6 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.email.client.jakarta.inbound.JakartaEmailListener;
 import io.camunda.connector.email.inbound.model.EmailInboundConnectorProperties;
-import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @InboundConnector(name = "Email Consumer", type = "io.camunda:connector-email-inbound:1")
@@ -36,18 +35,21 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     },
     elementTypes = {
       @ElementTemplate.ConnectorElementType(
-          appliesTo = BpmnType.START_EVENT,
-          elementType = BpmnType.MESSAGE_START_EVENT,
+          appliesTo = ElementTemplate.BpmnType.START_EVENT,
+          elementType = ElementTemplate.BpmnType.MESSAGE_START_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.EmailMessageStart.v1",
           templateNameOverride = "Email Message Start Event Connector"),
       @ElementTemplate.ConnectorElementType(
-          appliesTo = {BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT},
-          elementType = BpmnType.INTERMEDIATE_CATCH_EVENT,
+          appliesTo = {
+            ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT,
+            ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT
+          },
+          elementType = ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.EmailIntermediate.v1",
           templateNameOverride = "Email Intermediate Catch Event Connector"),
       @ElementTemplate.ConnectorElementType(
-          appliesTo = BpmnType.BOUNDARY_EVENT,
-          elementType = BpmnType.BOUNDARY_EVENT,
+          appliesTo = ElementTemplate.BpmnType.BOUNDARY_EVENT,
+          elementType = ElementTemplate.BpmnType.BOUNDARY_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.EmailBoundary.v1",
           templateNameOverride = "Email Boundary Event Connector")
     })

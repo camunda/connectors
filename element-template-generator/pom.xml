@@ -18,6 +18,7 @@
   <inceptionYear>2023</inceptionYear>
 
   <modules>
+    <module>annotations</module>
     <module>congen-cli</module>
     <module>core</module>
     <module>maven-plugin</module>

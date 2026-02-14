@@ -8,9 +8,9 @@ package io.camunda.google.model;
 
 import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Dropdown;
 
-import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import jakarta.validation.constraints.AssertTrue;
@@ -34,7 +34,7 @@ public record Authentication(
             label = "Bearer token",
             description = "Enter a valid Google API Bearer token",
             group = "authentication",
-            feel = FeelMode.optional,
+            feel = TemplateProperty.FeelMode.optional,
             constraints = @PropertyConstraints(notEmpty = true),
             condition = @PropertyCondition(property = "authentication.authType", equals = "bearer"))
         String bearerToken,

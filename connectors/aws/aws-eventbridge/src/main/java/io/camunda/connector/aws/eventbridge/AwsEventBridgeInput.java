@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.aws.eventbridge;
 
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -33,7 +32,7 @@ public class AwsEventBridgeInput {
       group = "eventDetails",
       label = "Event bus name",
       type = TemplateProperty.PropertyType.Text,
-      feel = Property.FeelMode.required,
+      feel = TemplateProperty.FeelMode.required,
       description =
           "Enter the event bus name. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>")
   @NotBlank

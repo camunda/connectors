@@ -21,7 +21,6 @@ import static io.camunda.connector.util.reflection.ReflectionUtil.getRequiredAnn
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
-import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext.Inbound;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext.Outbound;
@@ -29,39 +28,50 @@ import java.util.Set;
 
 public class TemplateGenerationContextUtil {
 
-  private static final Set<BpmnType> OUTBOUND_SUPPORTED_ELEMENT_TYPES =
+  private static final Set<ElementTemplate.BpmnType> OUTBOUND_SUPPORTED_ELEMENT_TYPES =
       Set.of(
-          BpmnType.SERVICE_TASK,
-          BpmnType.SEND_TASK,
-          BpmnType.INTERMEDIATE_THROW_EVENT,
-          BpmnType.SCRIPT_TASK,
-          BpmnType.MESSAGE_END_EVENT);
+          ElementTemplate.BpmnType.SERVICE_TASK,
+          ElementTemplate.BpmnType.SEND_TASK,
+          ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT,
+          ElementTemplate.BpmnType.SCRIPT_TASK,
+          ElementTemplate.BpmnType.MESSAGE_END_EVENT);
 
-  private static final Set<BpmnType> INBOUND_SUPPORTED_ELEMENT_TYPES =
+  private static final Set<ElementTemplate.BpmnType> INBOUND_SUPPORTED_ELEMENT_TYPES =
       Set.of(
-          BpmnType.START_EVENT,
-          BpmnType.INTERMEDIATE_CATCH_EVENT,
-          BpmnType.MESSAGE_START_EVENT,
-          BpmnType.BOUNDARY_EVENT,
-          BpmnType.RECEIVE_TASK);
+          ElementTemplate.BpmnType.START_EVENT,
+          ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT,
+          ElementTemplate.BpmnType.MESSAGE_START_EVENT,
+          ElementTemplate.BpmnType.BOUNDARY_EVENT,
+          ElementTemplate.BpmnType.RECEIVE_TASK);
   private static final GeneratorConfiguration.ConnectorElementType OUTBOUND_DEFAULT_ELEMENT_TYPE =
       new GeneratorConfiguration.ConnectorElementType(
-          Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null);
+          Set.of(ElementTemplate.BpmnType.TASK), ElementTemplate.BpmnType.SERVICE_TASK, null, null);
 
   private static final Set<GeneratorConfiguration.ConnectorElementType>
       INBOUND_DEFAULT_ELEMENT_TYPES =
           Set.of(
               new GeneratorConfiguration.ConnectorElementType(
-                  Set.of(BpmnType.START_EVENT), BpmnType.START_EVENT, null, null),
-              new GeneratorConfiguration.ConnectorElementType(
-                  Set.of(BpmnType.INTERMEDIATE_CATCH_EVENT, BpmnType.INTERMEDIATE_THROW_EVENT),
-                  BpmnType.INTERMEDIATE_CATCH_EVENT,
+                  Set.of(ElementTemplate.BpmnType.START_EVENT),
+                  ElementTemplate.BpmnType.START_EVENT,
                   null,
                   null),
               new GeneratorConfiguration.ConnectorElementType(
-                  Set.of(BpmnType.MESSAGE_START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null),
+                  Set.of(
+                      ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT,
+                      ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT),
+                  ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT,
+                  null,
+                  null),
               new GeneratorConfiguration.ConnectorElementType(
-                  Set.of(BpmnType.BOUNDARY_EVENT), BpmnType.BOUNDARY_EVENT, null, null));
+                  Set.of(ElementTemplate.BpmnType.MESSAGE_START_EVENT),
+                  ElementTemplate.BpmnType.MESSAGE_START_EVENT,
+                  null,
+                  null),
+              new GeneratorConfiguration.ConnectorElementType(
+                  Set.of(ElementTemplate.BpmnType.BOUNDARY_EVENT),
+                  ElementTemplate.BpmnType.BOUNDARY_EVENT,
+                  null,
+                  null));
 
   public static TemplateGenerationContext createContext(
       Class<?> connectorDefinition, GeneratorConfiguration configuration) {

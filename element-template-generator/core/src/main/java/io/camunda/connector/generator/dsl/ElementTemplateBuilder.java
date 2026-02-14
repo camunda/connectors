@@ -16,9 +16,10 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import static io.camunda.connector.generator.java.annotation.TemplateProperty.*;
+
 import io.camunda.connector.generator.dsl.ElementTemplate.ElementTypeWrapper;
 import io.camunda.connector.generator.dsl.ElementTemplate.Metadata;
-import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
 import java.util.ArrayList;
@@ -43,7 +44,7 @@ public class ElementTemplateBuilder {
   protected Engines engines;
   protected Metadata metadata;
   protected Set<String> appliesTo;
-  protected BpmnType elementType;
+  protected io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType elementType;
 
   private ElementTemplateBuilder(Mode mode) {
     this.mode = mode;
@@ -156,17 +157,26 @@ public class ElementTemplateBuilder {
     return this;
   }
 
-  public ElementTemplateBuilder appliesTo(Set<BpmnType> appliesTo) {
-    this.appliesTo = appliesTo.stream().map(BpmnType::getName).collect(Collectors.toSet());
+  public ElementTemplateBuilder appliesTo(
+      Set<io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType> appliesTo) {
+    this.appliesTo =
+        appliesTo.stream()
+            .map(io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType::getName)
+            .collect(Collectors.toSet());
     return this;
   }
 
-  public ElementTemplateBuilder appliesTo(BpmnType... appliesTo) {
-    this.appliesTo = Arrays.stream(appliesTo).map(BpmnType::getName).collect(Collectors.toSet());
+  public ElementTemplateBuilder appliesTo(
+      io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType... appliesTo) {
+    this.appliesTo =
+        Arrays.stream(appliesTo)
+            .map(io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType::getName)
+            .collect(Collectors.toSet());
     return this;
   }
 
-  public ElementTemplateBuilder elementType(BpmnType elementType) {
+  public ElementTemplateBuilder elementType(
+      io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType elementType) {
     this.elementType = elementType;
     return this;
   }

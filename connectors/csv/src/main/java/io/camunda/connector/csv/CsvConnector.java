@@ -19,7 +19,6 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.csv.model.*;
 import io.camunda.connector.csv.model.ReadCsvRequest.RowType;
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import java.io.IOException;
@@ -48,7 +47,7 @@ public class CsvConnector implements OutboundConnectorProvider {
               label = "Record mapping",
               tooltip =
                   "<a href=\"https://docs.camunda.io/docs/components/modeler/feel/what-is-feel/\">FEEL</a> function that allows to map each <code>record</code>. Returning <code>null</code> will exclude a record from the final results.",
-              feel = Property.FeelMode.required)
+              feel = TemplateProperty.FeelMode.required)
           Function<Map<String, Object>, Object> mapper) {
     var rowType = Optional.ofNullable(request.rowType()).orElse(RowType.Object);
     return switch (request.data()) {

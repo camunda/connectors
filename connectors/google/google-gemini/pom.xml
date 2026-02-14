@@ -58,7 +58,7 @@ except in compliance with the proprietary license.</license.inlineheader>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>element-template-generator-core</artifactId>
+      <artifactId>element-template-generator-annotations</artifactId>
     </dependency>
     <dependency>
       <groupId>com.google.cloud</groupId>
