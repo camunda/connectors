@@ -23,7 +23,9 @@ public sealed interface SlackRequestData
     permits ChatPostMessageData,
         ConversationsCreateData,
         ConversationsInviteData,
-        ReactionsAddData {
+        ReactionsAddData,
+        PinsAddData,
+        PinsRemoveData {
 
   SlackResponse invoke(MethodsClient methodsClient) throws SlackApiException, IOException;
 }
