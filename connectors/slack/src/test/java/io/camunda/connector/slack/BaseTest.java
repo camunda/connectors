@@ -50,6 +50,16 @@ public abstract class BaseTest {
       String EMOJI = "eyes";
       String TIMESTAMP = "1503435956.000247";
     }
+
+    interface PinsAddData {
+      String CHANNEL_ID = "C123ABC456";
+      String TIMESTAMP = "1503435956.000247";
+    }
+
+    interface PinsRemoveData {
+      String CHANNEL_ID = "C123ABC456";
+      String TIMESTAMP = "1503435956.000247";
+    }
   }
 
   protected interface SecretsConstant {
@@ -72,6 +82,16 @@ public abstract class BaseTest {
       String CHANNEL_ID = "REACTION_CHANNEL_ID_KEY";
       String EMOJI = "REACTION_EMOJI_KEY";
       String TIMESTAMP = "REACTION_TIMESTAMP_KEY";
+    }
+
+    interface PinsAddData {
+      String CHANNEL_ID = "PIN_CHANNEL_ID_KEY";
+      String TIMESTAMP = "PIN_TIMESTAMP_KEY";
+    }
+
+    interface PinsRemoveData {
+      String CHANNEL_ID = "UNPIN_CHANNEL_ID_KEY";
+      String TIMESTAMP = "UNPIN_TIMESTAMP_KEY";
     }
   }
 
@@ -98,7 +118,11 @@ public abstract class BaseTest {
         .secret(
             SecretsConstant.ReactionsAddData.CHANNEL_ID, ActualValue.ReactionsAddData.CHANNEL_ID)
         .secret(SecretsConstant.ReactionsAddData.EMOJI, ActualValue.ReactionsAddData.EMOJI)
-        .secret(SecretsConstant.ReactionsAddData.TIMESTAMP, ActualValue.ReactionsAddData.TIMESTAMP);
+        .secret(SecretsConstant.ReactionsAddData.TIMESTAMP, ActualValue.ReactionsAddData.TIMESTAMP)
+        .secret(SecretsConstant.PinsAddData.CHANNEL_ID, ActualValue.PinsAddData.CHANNEL_ID)
+        .secret(SecretsConstant.PinsAddData.TIMESTAMP, ActualValue.PinsAddData.TIMESTAMP)
+        .secret(SecretsConstant.PinsRemoveData.CHANNEL_ID, ActualValue.PinsRemoveData.CHANNEL_ID)
+        .secret(SecretsConstant.PinsRemoveData.TIMESTAMP, ActualValue.PinsRemoveData.TIMESTAMP);
   }
 
   protected static Stream<String> replaceSecretsSuccessTestCases() throws IOException {
@@ -139,6 +163,14 @@ public abstract class BaseTest {
 
   protected static Stream<String> executeAddReactionTestCases() throws IOException {
     return loadTestCasesFromResourceFile(TestCasesPath.EXECUTE_ADD_REACTION);
+  }
+
+  protected static Stream<String> executePinMessageTestCases() throws IOException {
+    return loadTestCasesFromResourceFile(TestCasesPath.EXECUTE_PIN_MESSAGE);
+  }
+
+  protected static Stream<String> executeUnpinMessageTestCases() throws IOException {
+    return loadTestCasesFromResourceFile(TestCasesPath.EXECUTE_UNPIN_MESSAGE);
   }
 
   @SuppressWarnings("unchecked")

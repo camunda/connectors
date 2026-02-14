@@ -1,0 +1,10 @@
+[
+  {
+    "token": "{{secrets.TOKEN_KEY}}",
+    "method": "pins.remove",
+    "data": {
+      "channel": "{{secrets.UNPIN_CHANNEL_ID_KEY}}",
+      "timestamp": "{{secrets.UNPIN_TIMESTAMP_KEY}}"
+    }
+  }
+]

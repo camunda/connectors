@@ -9,6 +9,9 @@ package io.camunda.connector.slack;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.slack.api.Slack;
@@ -18,6 +21,8 @@ import com.slack.api.methods.request.chat.ChatPostMessageRequest;
 import com.slack.api.methods.request.conversations.ConversationsCreateRequest;
 import com.slack.api.methods.request.conversations.ConversationsInviteRequest;
 import com.slack.api.methods.request.conversations.ConversationsListRequest;
+import com.slack.api.methods.request.pins.PinsAddRequest;
+import com.slack.api.methods.request.pins.PinsRemoveRequest;
 import com.slack.api.methods.request.reactions.ReactionsAddRequest;
 import com.slack.api.methods.request.users.UsersListRequest;
 import com.slack.api.methods.request.users.UsersLookupByEmailRequest;
@@ -25,6 +30,8 @@ import com.slack.api.methods.response.chat.ChatPostMessageResponse;
 import com.slack.api.methods.response.conversations.ConversationsCreateResponse;
 import com.slack.api.methods.response.conversations.ConversationsInviteResponse;
 import com.slack.api.methods.response.conversations.ConversationsListResponse;
+import com.slack.api.methods.response.pins.PinsAddResponse;
+import com.slack.api.methods.response.pins.PinsRemoveResponse;
 import com.slack.api.methods.response.reactions.ReactionsAddResponse;
 import com.slack.api.methods.response.users.UsersListResponse;
 import com.slack.api.methods.response.users.UsersLookupByEmailResponse;
@@ -40,6 +47,8 @@ import io.camunda.connector.slack.outbound.model.ConversationsCreateData;
 import io.camunda.connector.slack.outbound.model.ConversationsCreateSlackResponse;
 import io.camunda.connector.slack.outbound.model.ConversationsInviteData;
 import io.camunda.connector.slack.outbound.model.ConversationsInviteSlackResponse;
+import io.camunda.connector.slack.outbound.model.PinsAddSlackResponse;
+import io.camunda.connector.slack.outbound.model.PinsRemoveSlackResponse;
 import io.camunda.connector.slack.outbound.model.ReactionsAddSlackResponse;
 import java.io.IOException;
 import java.util.List;
@@ -361,6 +370,70 @@ public class SlackFunctionTest extends BaseTest {
     context = getContextBuilderWithSecrets().variables(input).build();
     when(reactionsAddResponse.isOk()).thenReturn(false);
     when(reactionsAddResponse.getError()).thenReturn("error string");
+
+    // When / Then
+    Throwable thrown = catchThrowable(() -> slackFunction.execute(context));
+    assertThat(thrown).isInstanceOf(RuntimeException.class).hasMessageContaining("error string");
+  }
+
+  @ParameterizedTest
+  @MethodSource("executePinMessageTestCases")
+  void execute_shouldPinMessage(String input) throws Exception {
+    // Given
+    context = getContextBuilderWithSecrets().variables(input).build();
+    PinsAddResponse mockResponse = mock(PinsAddResponse.class);
+    when(mockResponse.isOk()).thenReturn(true);
+    when(methodsClient.pinsAdd(any(PinsAddRequest.class))).thenReturn(mockResponse);
+
+    // When
+    Object result = slackFunction.execute(context);
+
+    // Then
+    assertThat(result).isInstanceOf(PinsAddSlackResponse.class);
+    verify(methodsClient, times(1)).pinsAdd(any(PinsAddRequest.class));
+  }
+
+  @ParameterizedTest
+  @MethodSource("executePinMessageTestCases")
+  void execute_shouldThrowExceptionWhenPinMessageFails(String input) throws Exception {
+    // Given
+    context = getContextBuilderWithSecrets().variables(input).build();
+    PinsAddResponse mockResponse = mock(PinsAddResponse.class);
+    when(mockResponse.isOk()).thenReturn(false);
+    when(mockResponse.getError()).thenReturn("error string");
+    when(methodsClient.pinsAdd(any(PinsAddRequest.class))).thenReturn(mockResponse);
+
+    // When / Then
+    Throwable thrown = catchThrowable(() -> slackFunction.execute(context));
+    assertThat(thrown).isInstanceOf(RuntimeException.class).hasMessageContaining("error string");
+  }
+
+  @ParameterizedTest
+  @MethodSource("executeUnpinMessageTestCases")
+  void execute_shouldUnpinMessage(String input) throws Exception {
+    // Given
+    context = getContextBuilderWithSecrets().variables(input).build();
+    PinsRemoveResponse mockResponse = mock(PinsRemoveResponse.class);
+    when(mockResponse.isOk()).thenReturn(true);
+    when(methodsClient.pinsRemove(any(PinsRemoveRequest.class))).thenReturn(mockResponse);
+
+    // When
+    Object result = slackFunction.execute(context);
+
+    // Then
+    assertThat(result).isInstanceOf(PinsRemoveSlackResponse.class);
+    verify(methodsClient, times(1)).pinsRemove(any(PinsRemoveRequest.class));
+  }
+
+  @ParameterizedTest
+  @MethodSource("executeUnpinMessageTestCases")
+  void execute_shouldThrowExceptionWhenUnpinMessageFails(String input) throws Exception {
+    // Given
+    context = getContextBuilderWithSecrets().variables(input).build();
+    PinsRemoveResponse mockResponse = mock(PinsRemoveResponse.class);
+    when(mockResponse.isOk()).thenReturn(false);
+    when(mockResponse.getError()).thenReturn("error string");
+    when(methodsClient.pinsRemove(any(PinsRemoveRequest.class))).thenReturn(mockResponse);
 
     // When / Then
     Throwable thrown = catchThrowable(() -> slackFunction.execute(context));

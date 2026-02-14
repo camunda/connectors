@@ -17,6 +17,8 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.slack.outbound.model.ChatPostMessageData;
 import io.camunda.connector.slack.outbound.model.ConversationsCreateData;
 import io.camunda.connector.slack.outbound.model.ConversationsInviteData;
+import io.camunda.connector.slack.outbound.model.PinsAddData;
+import io.camunda.connector.slack.outbound.model.PinsRemoveData;
 import io.camunda.connector.slack.outbound.model.ReactionsAddData;
 import io.camunda.connector.slack.outbound.model.SlackRequestData;
 import jakarta.validation.Valid;
@@ -45,7 +47,9 @@ public record SlackRequest<T extends SlackRequestData>(
               @JsonSubTypes.Type(
                   value = ConversationsInviteData.class,
                   name = "conversations.invite"),
-              @JsonSubTypes.Type(value = ReactionsAddData.class, name = "reactions.add")
+              @JsonSubTypes.Type(value = ReactionsAddData.class, name = "reactions.add"),
+              @JsonSubTypes.Type(value = PinsAddData.class, name = "pins.add"),
+              @JsonSubTypes.Type(value = PinsRemoveData.class, name = "pins.remove")
             })
         @Valid
         @NotNull

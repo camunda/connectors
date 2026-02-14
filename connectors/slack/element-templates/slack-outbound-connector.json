@@ -38,6 +38,12 @@
     "id" : "reaction",
     "label" : "Reaction"
   }, {
+    "id" : "pinMessage",
+    "label" : "Pin Message"
+  }, {
+    "id" : "unpinMessage",
+    "label" : "Unpin Message"
+  }, {
     "id" : "connector",
     "label" : "Connector"
   }, {
@@ -93,6 +99,12 @@
     }, {
       "name" : "Add reaction",
       "value" : "reactions.add"
+    }, {
+      "name" : "Pin Message",
+      "value" : "pins.add"
+    }, {
+      "name" : "Unpin Message",
+      "value" : "pins.remove"
     } ]
   }, {
     "id" : "data.messageType",
@@ -440,6 +452,86 @@
     "condition" : {
       "property" : "method",
       "equals" : "reactions.add",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "pinMessage.channel",
+    "label" : "Channel",
+    "description" : "Channel ID of the message to pin",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "pinMessage",
+    "binding" : {
+      "name" : "data.channel",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "method",
+      "equals" : "pins.add",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "pinMessage.timestamp",
+    "label" : "Message timestamp",
+    "description" : "Timestamp of the Slack message to pin",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "pinMessage",
+    "binding" : {
+      "name" : "data.timestamp",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "method",
+      "equals" : "pins.add",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "unpinMessage.channel",
+    "label" : "Channel",
+    "description" : "Channel ID of the message to pin",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "unpinMessage",
+    "binding" : {
+      "name" : "data.channel",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "method",
+      "equals" : "pins.remove",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "unpinMessage.timestamp",
+    "label" : "Message timestamp",
+    "description" : "Timestamp of the Slack message to unpin",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "unpinMessage",
+    "binding" : {
+      "name" : "data.timestamp",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "method",
+      "equals" : "pins.remove",
       "type" : "simple"
     },
     "type" : "String"
