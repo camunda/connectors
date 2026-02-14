@@ -1339,6 +1339,9 @@
       "name" : "Camunda Document Storage",
       "value" : "camunda-document"
     }, {
+      "name" : "AWS AgentCore Memory",
+      "value" : "aws-agentcore"
+    }, {
       "name" : "Custom Implementation (Hybrid/Self-Managed only)",
       "value" : "custom"
     } ]
@@ -1375,6 +1378,155 @@
       "property" : "data.memory.storage.type",
       "equals" : "camunda-document",
       "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.memory.storage.memoryId",
+    "label" : "Memory ID",
+    "description" : "The ID of the pre-provisioned AgentCore Memory resource.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "memory",
+    "binding" : {
+      "name" : "data.memory.storage.memoryId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.memory.storage.type",
+      "equals" : "aws-agentcore",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.memory.storage.actorId",
+    "label" : "Actor ID",
+    "description" : "Identifier of the actor associated with events (e.g., end-user or agent/user combination).",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "memory",
+    "binding" : {
+      "name" : "data.memory.storage.actorId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.memory.storage.type",
+      "equals" : "aws-agentcore",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.memory.storage.region",
+    "label" : "AWS Region",
+    "description" : "The AWS region where the AgentCore Memory resource is located. Falls back to the default AWS region provider chain if not specified.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "memory",
+    "binding" : {
+      "name" : "data.memory.storage.region",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.memory.storage.type",
+      "equals" : "aws-agentcore",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.memory.storage.endpointOverride",
+    "label" : "Endpoint Override",
+    "description" : "Optional endpoint override URI for testing or custom deployments.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "memory",
+    "binding" : {
+      "name" : "data.memory.storage.endpointOverride",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.memory.storage.type",
+      "equals" : "aws-agentcore",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.memory.storage.authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify the AWS authentication strategy for AgentCore Memory access.",
+    "value" : "credentials",
+    "group" : "memory",
+    "binding" : {
+      "name" : "data.memory.storage.authentication.type",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.memory.storage.type",
+      "equals" : "aws-agentcore",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Credentials",
+      "value" : "credentials"
+    }, {
+      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
+      "value" : "defaultCredentialsChain"
+    } ]
+  }, {
+    "id" : "data.memory.storage.authentication.accessKey",
+    "label" : "Access key",
+    "description" : "Provide an IAM access key with permissions for bedrock-agentcore:CreateEvent and bedrock-agentcore:ListEvents",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "memory",
+    "binding" : {
+      "name" : "data.memory.storage.authentication.accessKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.memory.storage.authentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "data.memory.storage.type",
+        "equals" : "aws-agentcore",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.memory.storage.authentication.secretKey",
+    "label" : "Secret key",
+    "description" : "Provide the secret key for the IAM access key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "memory",
+    "binding" : {
+      "name" : "data.memory.storage.authentication.secretKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.memory.storage.authentication.type",
+        "equals" : "credentials",
+        "type" : "simple"
+      }, {
+        "property" : "data.memory.storage.type",
+        "equals" : "aws-agentcore",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {

@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model.request;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.api.annotation.FEEL;
@@ -15,7 +16,9 @@ import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.Map;
 
@@ -27,6 +30,9 @@ import java.util.Map;
   @JsonSubTypes.Type(
       value = MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration.class,
       name = CamundaDocumentConversationStore.TYPE),
+  @JsonSubTypes.Type(
+      value = MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration.class,
+      name = AwsAgentCoreConversationStore.TYPE),
   @JsonSubTypes.Type(
       value = MemoryStorageConfiguration.CustomMemoryStorageConfiguration.class,
       name = "custom")
@@ -40,6 +46,7 @@ import java.util.Map;
 public sealed interface MemoryStorageConfiguration
     permits MemoryStorageConfiguration.InProcessMemoryStorageConfiguration,
         MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration,
+        MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration,
         MemoryStorageConfiguration.CustomMemoryStorageConfiguration {
 
   String storeType();
@@ -78,6 +85,90 @@ public sealed interface MemoryStorageConfiguration
     public String storeType() {
       return CamundaDocumentConversationStore.TYPE;
     }
+  }
+
+  @TemplateSubType(id = AwsAgentCoreConversationStore.TYPE, label = "AWS AgentCore Memory")
+  record AwsAgentCoreMemoryStorageConfiguration(
+      @FEEL
+          @TemplateProperty(
+              label = "Memory ID",
+              description = "The ID of the pre-provisioned AgentCore Memory resource.",
+              feel = Property.FeelMode.optional,
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+          @NotBlank
+          String memoryId,
+      @FEEL
+          @TemplateProperty(
+              label = "Actor ID",
+              description =
+                  "Identifier of the actor associated with events (e.g., end-user or agent/user combination).",
+              feel = Property.FeelMode.optional,
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+          @NotBlank
+          String actorId,
+      @TemplateProperty(
+              label = "AWS Region",
+              description =
+                  "The AWS region where the AgentCore Memory resource is located. Falls back to the default AWS region provider chain if not specified.",
+              optional = true)
+          String region,
+      @TemplateProperty(
+              label = "Endpoint Override",
+              description = "Optional endpoint override URI for testing or custom deployments.",
+              optional = true)
+          String endpointOverride,
+      @Valid @NotNull AwsAgentCoreAuthentication authentication)
+      implements MemoryStorageConfiguration {
+    @Override
+    public String storeType() {
+      return AwsAgentCoreConversationStore.TYPE;
+    }
+  }
+
+  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+  @JsonSubTypes({
+    @JsonSubTypes.Type(
+        value = AwsAgentCoreAuthentication.AwsStaticCredentialsAuthentication.class,
+        name = "credentials"),
+    @JsonSubTypes.Type(
+        value = AwsAgentCoreAuthentication.AwsDefaultCredentialsChainAuthentication.class,
+        name = "defaultCredentialsChain")
+  })
+  @TemplateDiscriminatorProperty(
+      label = "Authentication",
+      group = "memory",
+      name = "type",
+      defaultValue = "credentials",
+      description = "Specify the AWS authentication strategy for AgentCore Memory access.")
+  sealed interface AwsAgentCoreAuthentication {
+
+    @TemplateSubType(id = "credentials", label = "Credentials")
+    record AwsStaticCredentialsAuthentication(
+        @TemplateProperty(
+                group = "memory",
+                label = "Access key",
+                description =
+                    "Provide an IAM access key with permissions for bedrock-agentcore:CreateEvent and bedrock-agentcore:ListEvents")
+            @NotBlank
+            String accessKey,
+        @TemplateProperty(
+                group = "memory",
+                label = "Secret key",
+                description = "Provide the secret key for the IAM access key")
+            @NotBlank
+            String secretKey)
+        implements AwsAgentCoreAuthentication {
+
+      @Override
+      public String toString() {
+        return "AwsStaticCredentialsAuthentication{accessKey=[REDACTED], secretKey=[REDACTED]}";
+      }
+    }
+
+    @TemplateSubType(
+        id = "defaultCredentialsChain",
+        label = "Default Credentials Chain (Hybrid/Self-Managed only)")
+    record AwsDefaultCredentialsChainAuthentication() implements AwsAgentCoreAuthentication {}
   }
 
   @TemplateSubType(id = "custom", label = "Custom Implementation (Hybrid/Self-Managed only)")
