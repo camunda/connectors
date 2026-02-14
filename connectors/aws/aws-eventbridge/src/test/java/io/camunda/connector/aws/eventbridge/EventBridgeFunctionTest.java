@@ -11,13 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.eventbridge.AmazonEventBridge;
-import com.amazonaws.services.eventbridge.model.PutEventsRequest;
-import com.amazonaws.services.eventbridge.model.PutEventsRequestEntry;
-import com.amazonaws.services.eventbridge.model.PutEventsResult;
-import com.amazonaws.services.eventbridge.model.PutEventsResultEntry;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -39,6 +32,13 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
+import software.amazon.awssdk.services.eventbridge.model.PutEventsRequest;
+import software.amazon.awssdk.services.eventbridge.model.PutEventsRequestEntry;
+import software.amazon.awssdk.services.eventbridge.model.PutEventsResponse;
+import software.amazon.awssdk.services.eventbridge.model.PutEventsResultEntry;
 
 @ExtendWith(MockitoExtension.class)
 class EventBridgeFunctionTest {
@@ -69,8 +69,8 @@ class EventBridgeFunctionTest {
 
   private EventBridgeFunction function;
   @Mock private AwsEventBridgeClientSupplier clientSupplier;
-  @Mock private AmazonEventBridge client;
-  @Captor private ArgumentCaptor<AWSCredentialsProvider> credentialsProviderArgumentCaptor;
+  @Mock private EventBridgeClient client;
+  @Captor private ArgumentCaptor<AwsCredentialsProvider> credentialsProviderArgumentCaptor;
   @Captor private ArgumentCaptor<PutEventsRequest> putEventsRequestArgumentCaptor;
   private ObjectMapper objectMapper;
 
@@ -93,30 +93,31 @@ class EventBridgeFunctionTest {
             credentialsProviderArgumentCaptor.capture(), eq(REGION)))
         .thenReturn(client);
     when(client.putEvents(putEventsRequestArgumentCaptor.capture()))
-        .thenReturn(new PutEventsResult().withEntries(new PutEventsResultEntry()));
+        .thenReturn(
+            PutEventsResponse.builder().entries(PutEventsResultEntry.builder().build()).build());
     // When connector execute
     Object execute = function.execute(context);
     // Then
     assertThat(execute).isNotNull();
-    PutEventsResult putEventsResult = objectMapper.convertValue(execute, PutEventsResult.class);
-    assertThat(putEventsResult.getEntries()).isNotNull();
+    var resultMap = objectMapper.convertValue(execute, java.util.Map.class);
+    assertThat(resultMap).isNotNull();
 
-    AWSCredentials credentials = credentialsProviderArgumentCaptor.getValue().getCredentials();
-    assertThat(credentials.getAWSAccessKeyId()).isEqualTo(ACCESS_KEY);
-    assertThat(credentials.getAWSSecretKey()).isEqualTo(SECRET_KEY);
+    AwsCredentials credentials = credentialsProviderArgumentCaptor.getValue().resolveCredentials();
+    assertThat(credentials.accessKeyId()).isEqualTo(ACCESS_KEY);
+    assertThat(credentials.secretAccessKey()).isEqualTo(SECRET_KEY);
 
     var request = context.bindVariables(AwsEventBridgeRequest.class);
 
-    PutEventsRequestEntry entry = putEventsRequestArgumentCaptor.getValue().getEntries().get(0);
-    assertThat(entry.getDetail())
+    PutEventsRequestEntry entry = putEventsRequestArgumentCaptor.getValue().entries().get(0);
+    assertThat(entry.detail())
         .isEqualTo(
             ObjectMapperSupplier.getMapperInstance()
                 .writeValueAsString(request.getInput().getDetail()));
-    assertThat(entry.getEventBusName()).isEqualTo(EVENT_BUS_NAME);
-    assertThat(entry.getSource()).isEqualTo(SOURCE);
-    assertThat(entry.getDetailType()).isEqualTo(DETAIL_TYPE);
+    assertThat(entry.eventBusName()).isEqualTo(EVENT_BUS_NAME);
+    assertThat(entry.source()).isEqualTo(SOURCE);
+    assertThat(entry.detailType()).isEqualTo(DETAIL_TYPE);
 
-    assertThat(entry.getDetail()).isEqualTo(DETAIL_AS_STRING);
+    assertThat(entry.detail()).isEqualTo(DETAIL_AS_STRING);
   }
 
   @ParameterizedTest()

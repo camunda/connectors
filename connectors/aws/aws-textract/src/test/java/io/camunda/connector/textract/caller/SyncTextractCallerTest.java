@@ -6,22 +6,22 @@
  */
 package io.camunda.connector.textract.caller;
 
-import static com.amazonaws.services.textract.model.FeatureType.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static software.amazon.awssdk.services.textract.model.FeatureType.*;
 
-import com.amazonaws.services.textract.AmazonTextractClient;
-import com.amazonaws.services.textract.model.AnalyzeDocumentRequest;
-import com.amazonaws.services.textract.model.AnalyzeDocumentResult;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.textract.model.DocumentLocationType;
 import io.camunda.connector.textract.model.TextractExecutionType;
 import io.camunda.connector.textract.model.TextractRequestData;
-import java.nio.ByteBuffer;
 import java.util.HexFormat;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.textract.TextractClient;
+import software.amazon.awssdk.services.textract.model.AnalyzeDocumentRequest;
+import software.amazon.awssdk.services.textract.model.AnalyzeDocumentResponse;
 
 class SyncTextractCallerTest {
   @Test
@@ -48,10 +48,10 @@ class SyncTextractCallerTest {
             "outputBucket",
             "prefix");
 
-    AmazonTextractClient textractClient = mock(AmazonTextractClient.class);
+    TextractClient textractClient = mock(TextractClient.class);
 
     when(textractClient.analyzeDocument(any(AnalyzeDocumentRequest.class)))
-        .thenReturn(new AnalyzeDocumentResult());
+        .thenReturn(AnalyzeDocumentResponse.builder().build());
 
     new SyncTextractCaller().call(requestData, textractClient);
 
@@ -87,10 +87,10 @@ class SyncTextractCallerTest {
             "outputBucket",
             "prefix");
 
-    AmazonTextractClient textractClient = mock(AmazonTextractClient.class);
+    TextractClient textractClient = mock(TextractClient.class);
 
     when(textractClient.analyzeDocument(any(AnalyzeDocumentRequest.class)))
-        .thenReturn(new AnalyzeDocumentResult());
+        .thenReturn(AnalyzeDocumentResponse.builder().build());
 
     new SyncTextractCaller().call(requestData, textractClient);
 
@@ -99,13 +99,7 @@ class SyncTextractCallerTest {
 
     verify(textractClient).analyzeDocument(argumentCaptor.capture());
     AnalyzeDocumentRequest analyzeDocumentRequest = argumentCaptor.getValue();
-    assertThat(analyzeDocumentRequest)
-        .isEqualTo(
-            new AnalyzeDocumentRequest()
-                .withFeatureTypes(TABLES.name())
-                .withQueriesConfig(null)
-                .withDocument(
-                    new com.amazonaws.services.textract.model.Document()
-                        .withBytes(ByteBuffer.wrap(bytes))));
+    assertThat(analyzeDocumentRequest.featureTypes()).containsExactly(TABLES);
+    assertThat(analyzeDocumentRequest.document().bytes()).isEqualTo(SdkBytes.fromByteArray(bytes));
   }
 }

@@ -6,35 +6,22 @@
  */
 package io.camunda.connector.aws.dynamodb;
 
-import static org.mockito.Mockito.when;
-
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.Table;
-import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 public abstract class BaseDynamoDbOperationTest {
   protected static final ObjectMapper objectMapper = ObjectMapperSupplier.getMapperInstance();
-  @Mock protected DynamoDB dynamoDB;
-  @Mock protected Table table;
-
-  @BeforeEach
-  public void beforeEach() {
-    when(dynamoDB.getTable(TestDynamoDBData.ActualValue.TABLE_NAME)).thenReturn(table);
-    when(table.describe())
-        .thenReturn(new TableDescription().withTableName(TestDynamoDBData.ActualValue.TABLE_NAME));
-  }
+  @Mock protected DynamoDbClient dynamoDB;
 
   public OutboundConnectorContext getContextWithSecrets(String variables) {
     return OutboundConnectorContextBuilder.create()

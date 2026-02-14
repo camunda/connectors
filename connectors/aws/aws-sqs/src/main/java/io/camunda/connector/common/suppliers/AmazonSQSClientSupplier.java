@@ -6,11 +6,11 @@
  */
 package io.camunda.connector.common.suppliers;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.sqs.AmazonSQS;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.services.sqs.SqsClient;
 
 public interface AmazonSQSClientSupplier {
-  AmazonSQS sqsClient(AWSCredentialsProvider credentialsProvider, String region);
+  SqsClient sqsClient(AwsCredentialsProvider credentialsProvider, String region);
 
-  AmazonSQS sqsClient(AWSCredentialsProvider credentialsProvider, String region, String endpoint);
+  SqsClient sqsClient(AwsCredentialsProvider credentialsProvider, String region, String endpoint);
 }

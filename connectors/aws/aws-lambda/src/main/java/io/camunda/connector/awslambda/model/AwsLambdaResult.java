@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.awslambda.model;
 
-import com.amazonaws.services.lambda.model.InvokeResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 
 public class AwsLambdaResult {
 
@@ -16,11 +16,11 @@ public class AwsLambdaResult {
   private String executedVersion;
   private Object payload;
 
-  public AwsLambdaResult(final InvokeResult invokeResult, final ObjectMapper objectMapper) {
-    this.statusCode = invokeResult.getStatusCode();
-    this.executedVersion = invokeResult.getExecutedVersion();
+  public AwsLambdaResult(final InvokeResponse invokeResult, final ObjectMapper objectMapper) {
+    this.statusCode = invokeResult.statusCode();
+    this.executedVersion = invokeResult.executedVersion();
     try {
-      this.payload = objectMapper.readValue(invokeResult.getPayload().array(), Object.class);
+      this.payload = objectMapper.readValue(invokeResult.payload().asByteArray(), Object.class);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

@@ -9,8 +9,6 @@ package io.camunda.connector.aws.dynamodb.operation.item;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.dynamodbv2.document.DeleteItemOutcome;
-import com.amazonaws.services.dynamodbv2.document.KeyAttribute;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
@@ -24,12 +22,15 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.DeleteItemResponse;
 
 class DeleteItemOperationTest extends BaseDynamoDbOperationTest {
 
   private DeleteItemOperation deleteItemOperation;
-  @Mock private DeleteItemOutcome deleteItemOutcome;
-  @Captor private ArgumentCaptor<KeyAttribute> keyAttributeArgumentCaptor;
+  @Mock private DeleteItemResponse deleteItemOutcome;
+  @Captor private ArgumentCaptor<DeleteItemRequest> requestCaptor;
 
   @BeforeEach
   public void setup() {
@@ -43,14 +44,15 @@ class DeleteItemOperationTest extends BaseDynamoDbOperationTest {
   @Test
   public void testInvoke() {
     // Given
-    when(table.deleteItem(keyAttributeArgumentCaptor.capture())).thenReturn(deleteItemOutcome);
+    when(dynamoDB.deleteItem(requestCaptor.capture())).thenReturn(deleteItemOutcome);
     // When
     Object result = this.deleteItemOperation.invoke(dynamoDB);
     // Then
     assertThat(result).isEqualTo(deleteItemOutcome);
-    KeyAttribute keyAttribute = keyAttributeArgumentCaptor.getValue();
-    assertThat(keyAttribute.getName()).isEqualTo("id");
-    assertThat(keyAttribute.getValue()).isEqualTo("1234");
+    DeleteItemRequest request = requestCaptor.getValue();
+    assertThat(request.tableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
+    AttributeValue keyAttribute = request.key().get("id");
+    assertThat(keyAttribute.s()).isEqualTo("1234");
   }
 
   @Test

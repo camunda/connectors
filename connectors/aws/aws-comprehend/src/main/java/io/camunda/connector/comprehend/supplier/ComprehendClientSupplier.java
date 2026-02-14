@@ -6,26 +6,37 @@
  */
 package io.camunda.connector.comprehend.supplier;
 
-import com.amazonaws.services.comprehend.AmazonComprehendAsyncClient;
-import com.amazonaws.services.comprehend.AmazonComprehendClient;
-import io.camunda.connector.aws.CredentialsProviderSupport;
+import io.camunda.connector.aws.AwsUtils;
+import io.camunda.connector.aws.CredentialsProviderSupportV2;
+import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.comprehend.model.ComprehendRequest;
+import java.net.URI;
+import java.util.Optional;
+import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.comprehend.ComprehendAsyncClient;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
 
 public class ComprehendClientSupplier {
 
-  public AmazonComprehendClient getSyncClient(ComprehendRequest comprehendRequest) {
-    return (AmazonComprehendClient)
-        AmazonComprehendClient.builder()
-            .withCredentials(CredentialsProviderSupport.credentialsProvider(comprehendRequest))
-            .withRegion(comprehendRequest.getConfiguration().region())
-            .build();
+  public ComprehendClient getSyncClient(ComprehendRequest comprehendRequest) {
+    return configureBuilder(ComprehendClient.builder(), comprehendRequest).build();
   }
 
-  public AmazonComprehendAsyncClient getAsyncClient(ComprehendRequest comprehendRequest) {
-    return (AmazonComprehendAsyncClient)
-        AmazonComprehendAsyncClient.asyncBuilder()
-            .withCredentials(CredentialsProviderSupport.credentialsProvider(comprehendRequest))
-            .withRegion(comprehendRequest.getConfiguration().region())
-            .build();
+  public ComprehendAsyncClient getAsyncClient(ComprehendRequest comprehendRequest) {
+    return configureBuilder(ComprehendAsyncClient.builder(), comprehendRequest).build();
+  }
+
+  private <B extends AwsClientBuilder<B, ?>> B configureBuilder(
+      B builder, ComprehendRequest comprehendRequest) {
+    AwsBaseConfiguration configuration = comprehendRequest.getConfiguration();
+    builder
+        .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(comprehendRequest))
+        .region(Region.of(AwsUtils.extractRegionOrDefault(configuration, null)));
+    Optional.ofNullable(configuration)
+        .map(AwsBaseConfiguration::endpoint)
+        .filter(endpoint -> !endpoint.isBlank())
+        .ifPresent(endpoint -> builder.endpointOverride(URI.create(endpoint)));
+    return builder;
   }
 }

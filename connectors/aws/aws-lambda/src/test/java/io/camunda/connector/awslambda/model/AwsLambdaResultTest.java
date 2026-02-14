@@ -8,13 +8,14 @@ package io.camunda.connector.awslambda.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.amazonaws.services.lambda.model.InvokeResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.awslambda.BaseTest;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 
 class AwsLambdaResultTest extends BaseTest {
 
@@ -28,11 +29,12 @@ class AwsLambdaResultTest extends BaseTest {
       Integer statusCode, String version, String payload) throws JsonProcessingException {
     // Given invoke result from aws lambda client
     ByteBuffer wrap = ByteBuffer.wrap(payload.getBytes(StandardCharsets.UTF_8));
-    InvokeResult invokeResult =
-        new InvokeResult()
-            .withStatusCode(statusCode)
-            .withExecutedVersion(version)
-            .withPayload(wrap);
+    InvokeResponse invokeResult =
+        InvokeResponse.builder()
+            .statusCode(statusCode)
+            .executedVersion(version)
+            .payload(SdkBytes.fromByteBuffer(wrap))
+            .build();
 
     // When
     AwsLambdaResult awsLambdaResult = new AwsLambdaResult(invokeResult, objectMapper);

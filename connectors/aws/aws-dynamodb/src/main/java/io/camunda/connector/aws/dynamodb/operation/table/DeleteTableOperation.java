@@ -6,10 +6,12 @@
  */
 package io.camunda.connector.aws.dynamodb.operation.table;
 
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import io.camunda.connector.aws.dynamodb.model.AwsDynamoDbResult;
 import io.camunda.connector.aws.dynamodb.model.DeleteTable;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.DeleteTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.DeleteTableResponse;
 
 public class DeleteTableOperation implements AwsDynamoDbOperation {
   private final DeleteTable deleteTableModel;
@@ -19,14 +21,11 @@ public class DeleteTableOperation implements AwsDynamoDbOperation {
   }
 
   @Override
-  public Object invoke(final DynamoDB dynamoDB) {
-    var table = dynamoDB.getTable(deleteTableModel.tableName());
-    table.delete();
-    try {
-      table.waitForDelete();
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-    return new AwsDynamoDbResult("delete Table [" + deleteTableModel.tableName() + "]", "OK");
+  public Object invoke(final DynamoDbClient dynamoDB) {
+    DeleteTableResponse response =
+        dynamoDB.deleteTable(
+            DeleteTableRequest.builder().tableName(deleteTableModel.tableName()).build());
+    return new AwsDynamoDbResult(
+        "delete Table [" + deleteTableModel.tableName() + "]", "OK", response.tableDescription());
   }
 }

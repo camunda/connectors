@@ -6,12 +6,12 @@
  */
 package io.camunda.connector.sagemaker.model;
 
-import com.amazonaws.services.sagemakerruntime.model.InvokeEndpointAsyncResult;
+import software.amazon.awssdk.services.sagemakerruntime.model.InvokeEndpointAsyncResponse;
 
 public record SageMakerAsyncResponse(
     String outputLocation, String failureLocation, String inferenceId) {
 
-  public SageMakerAsyncResponse(InvokeEndpointAsyncResult result) {
-    this(result.getOutputLocation(), result.getFailureLocation(), result.getInferenceId());
+  public SageMakerAsyncResponse(InvokeEndpointAsyncResponse result) {
+    this(result.outputLocation(), result.failureLocation(), result.inferenceId());
   }
 }

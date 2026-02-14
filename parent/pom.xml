@@ -98,7 +98,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>7.4.4</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.27</version.logback>
 
-    <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
+    <version.aws-java-sdk>2.41.18</version.aws-java-sdk>
     <version.aws-sdk2>2.41.21</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
@@ -454,28 +454,28 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <dependency>
-        <groupId>com.amazonaws</groupId>
-        <artifactId>aws-java-sdk-lambda</artifactId>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>lambda</artifactId>
         <version>${version.aws-java-sdk}</version>
       </dependency>
       <dependency>
-        <groupId>com.amazonaws</groupId>
-        <artifactId>aws-java-sdk-sns</artifactId>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sns</artifactId>
         <version>${version.aws-java-sdk}</version>
       </dependency>
       <dependency>
-        <groupId>com.amazonaws</groupId>
-        <artifactId>aws-java-sdk-sqs</artifactId>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sqs</artifactId>
         <version>${version.aws-java-sdk}</version>
       </dependency>
       <dependency>
-        <groupId>com.amazonaws</groupId>
-        <artifactId>aws-java-sdk-sagemakerruntime</artifactId>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sagemakerruntime</artifactId>
         <version>${version.aws-java-sdk}</version>
       </dependency>
       <dependency>
-        <groupId>com.amazonaws</groupId>
-        <artifactId>aws-java-sdk-sagemaker</artifactId>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sagemaker</artifactId>
         <version>${version.aws-java-sdk}</version>
       </dependency>
       <dependency>

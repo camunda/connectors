@@ -25,10 +25,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.sns.AmazonSNS;
-import com.amazonaws.services.sns.model.PublishRequest;
-import com.amazonaws.services.sns.model.PublishResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -49,6 +45,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
+import software.amazon.awssdk.services.sns.model.PublishResponse;
 
 @ExtendWith(MockitoExtension.class)
 class SnsConnectorFunctionParametrizedTest {
@@ -60,7 +60,7 @@ class SnsConnectorFunctionParametrizedTest {
       "src/test/resources/requests/fail-test-cases.json";
 
   @Mock private SnsClientSupplier snsClientSupplier;
-  @Mock private AmazonSNS snsClient;
+  @Mock private SnsClient snsClient;
   @Captor private ArgumentCaptor<PublishRequest> publishRequest;
 
   private SnsConnectorFunction function;
@@ -93,10 +93,10 @@ class SnsConnectorFunctionParametrizedTest {
   void execute_ShouldSucceedSuccessCases(final SnsConnectorRequest expectedRequest)
       throws JsonProcessingException {
     // given
-    when(snsClientSupplier.getSnsClient(any(AWSCredentialsProvider.class), eq(ACTUAL_TOPIC_REGION)))
+    when(snsClientSupplier.getSnsClient(any(AwsCredentialsProvider.class), eq(ACTUAL_TOPIC_REGION)))
         .thenReturn(snsClient);
-    PublishResult publishResult = mock(PublishResult.class);
-    when(publishResult.getMessageId()).thenReturn(MSG_ID);
+    PublishResponse publishResult = mock(PublishResponse.class);
+    when(publishResult.messageId()).thenReturn(MSG_ID);
     when(snsClient.publish(publishRequest.capture())).thenReturn(publishResult);
     OutboundConnectorContext ctx =
         OutboundConnectorContextBuilder.create()
@@ -114,7 +114,7 @@ class SnsConnectorFunctionParametrizedTest {
     assertThat(connectorResultObject).isInstanceOf(SnsConnectorResult.class);
     SnsConnectorResult connectorResult = (SnsConnectorResult) connectorResultObject;
     assertThat(connectorResult.getMessageId()).isEqualTo(MSG_ID);
-    assertThat(initialRequest.getMessage())
+    assertThat(initialRequest.message())
         .isEqualTo(expectedRequest.getTopic().getMessage().toString());
   }
 

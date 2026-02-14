@@ -6,41 +6,37 @@
  */
 package io.camunda.connector.aws.dynamodb.operation.item;
 
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.Item;
-import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.aws.ObjectMapperSupplier;
+import io.camunda.connector.aws.dynamodb.AwsDynamoDbAttributeValueMapper;
 import io.camunda.connector.aws.dynamodb.model.GetItem;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
-import java.util.HashMap;
 import java.util.Optional;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.GetItemResponse;
 
 public class GetItemOperation implements AwsDynamoDbOperation {
 
   private final GetItem getItemModel;
-  private final ObjectMapper objectMapper;
 
   public GetItemOperation(final GetItem getItemModel) {
     this.getItemModel = getItemModel;
-    this.objectMapper = ObjectMapperSupplier.getMapperInstance();
   }
 
   @Override
-  public Object invoke(final DynamoDB dynamoDB) {
-    return Optional.ofNullable(
-            dynamoDB.getTable(getItemModel.tableName()).getItem(createPrimaryKey()))
-        .map(Item::attributes)
+  public Object invoke(final DynamoDbClient dynamoDB) {
+    var response =
+        dynamoDB.getItem(
+            GetItemRequest.builder()
+                .tableName(getItemModel.tableName())
+                .key(
+                    AwsDynamoDbAttributeValueMapper.toAttributeValueMap(
+                        getItemModel.primaryKeyComponents()))
+                .build());
+    return Optional.ofNullable(response)
+        .filter(GetItemResponse::hasItem)
+        .map(GetItemResponse::item)
+        .filter(item -> !item.isEmpty())
+        .map(AwsDynamoDbAttributeValueMapper::toSimpleMap)
         .orElse(null);
-  }
-
-  private PrimaryKey createPrimaryKey() {
-    PrimaryKey primaryKey = new PrimaryKey();
-    objectMapper
-        .convertValue(
-            getItemModel.primaryKeyComponents(), new TypeReference<HashMap<String, Object>>() {})
-        .forEach(primaryKey::addComponent);
-    return primaryKey;
   }
 }

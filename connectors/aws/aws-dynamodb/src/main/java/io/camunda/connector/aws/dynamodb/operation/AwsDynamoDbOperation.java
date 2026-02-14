@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.aws.dynamodb.operation;
 
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 public interface AwsDynamoDbOperation {
-  Object invoke(final DynamoDB dynamoDB) throws JsonProcessingException;
+  Object invoke(final DynamoDbClient dynamoDB) throws JsonProcessingException;
 }

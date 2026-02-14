@@ -8,9 +8,6 @@ package io.camunda.connector.sagemaker;
 
 import static org.mockito.ArgumentMatchers.any;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntime;
-import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntimeAsync;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.sagemaker.suppliers.SageMakeClientSupplier;
 import io.camunda.connector.sagemaker.testutils.SageMakerTestUtils;
@@ -21,6 +18,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeAsyncClient;
+import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
 
 @ExtendWith(MockitoExtension.class)
 class SagemakerConnectorFunctionTest {
@@ -34,12 +34,12 @@ class SagemakerConnectorFunctionTest {
             .variables(SageMakerTestUtils.REAL_TIME_EXECUTION_JSON)
             .build();
 
-    var syncRuntime = Mockito.mock(AmazonSageMakerRuntime.class);
+    var syncRuntime = Mockito.mock(SageMakerRuntimeClient.class);
 
     var sageMakeClientSupplier = Mockito.mock(SageMakeClientSupplier.class);
     Mockito.when(
             sageMakeClientSupplier.getSyncClient(
-                any(AWSCredentialsProvider.class), ArgumentMatchers.anyString()))
+                any(AwsCredentialsProvider.class), ArgumentMatchers.any()))
         .thenReturn(syncRuntime);
 
     var syncCallerFunction = Mockito.mock(BiFunction.class);
@@ -67,12 +67,12 @@ class SagemakerConnectorFunctionTest {
             .secret("SECRET_KEY", SageMakerTestUtils.ACTUAL_SECRET_KEY)
             .variables(SageMakerTestUtils.ASYNC_EXECUTION_JSON)
             .build();
-    var asyncRuntime = Mockito.mock(AmazonSageMakerRuntimeAsync.class);
+    var asyncRuntime = Mockito.mock(SageMakerRuntimeAsyncClient.class);
 
     var sageMakeClientSupplier = Mockito.mock(SageMakeClientSupplier.class);
     Mockito.when(
             sageMakeClientSupplier.getAsyncClient(
-                any(AWSCredentialsProvider.class), ArgumentMatchers.anyString()))
+                any(AwsCredentialsProvider.class), ArgumentMatchers.any()))
         .thenReturn(asyncRuntime);
 
     var syncCallerFunction = Mockito.mock(BiFunction.class);

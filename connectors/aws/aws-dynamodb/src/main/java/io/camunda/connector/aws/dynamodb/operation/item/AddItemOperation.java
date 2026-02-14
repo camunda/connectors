@@ -6,14 +6,12 @@
  */
 package io.camunda.connector.aws.dynamodb.operation.item;
 
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.Item;
-import com.amazonaws.services.dynamodbv2.document.PutItemOutcome;
-import com.amazonaws.services.dynamodbv2.document.Table;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import io.camunda.connector.aws.ObjectMapperSupplier;
+import io.camunda.connector.aws.dynamodb.AwsDynamoDbAttributeValueMapper;
 import io.camunda.connector.aws.dynamodb.model.AddItem;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.PutItemResponse;
 
 public class AddItemOperation implements AwsDynamoDbOperation {
 
@@ -23,12 +21,11 @@ public class AddItemOperation implements AwsDynamoDbOperation {
     this.addItemModel = addItemModel;
   }
 
-  public PutItemOutcome invoke(final DynamoDB dynamoDB) throws JsonProcessingException {
-    String itemStr =
-        ObjectMapperSupplier.getMapperInstance().writeValueAsString(addItemModel.item());
-    Item item = Item.fromJSON(itemStr);
-
-    final Table table = dynamoDB.getTable(addItemModel.tableName());
-    return table.putItem(item);
+  public PutItemResponse invoke(final DynamoDbClient dynamoDB) {
+    return dynamoDB.putItem(
+        PutItemRequest.builder()
+            .tableName(addItemModel.tableName())
+            .item(AwsDynamoDbAttributeValueMapper.toAttributeValueMap(addItemModel.item()))
+            .build());
   }
 }

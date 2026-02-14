@@ -13,12 +13,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.textract.AmazonTextractAsyncClient;
-import com.amazonaws.services.textract.model.Block;
-import com.amazonaws.services.textract.model.GetDocumentAnalysisRequest;
-import com.amazonaws.services.textract.model.GetDocumentAnalysisResult;
-import com.amazonaws.services.textract.model.JobStatus;
-import com.amazonaws.services.textract.model.StartDocumentAnalysisResult;
 import java.util.List;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -26,26 +20,29 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.textract.TextractClient;
+import software.amazon.awssdk.services.textract.model.*;
 
 @ExtendWith(MockitoExtension.class)
 class PollingTextractCallerTest {
 
   @Test
   void callUtilDocumentAnalysisResultNextTokenEqNull() throws Exception {
-    List<Pair<GetDocumentAnalysisRequest, GetDocumentAnalysisResult>> callSequence =
+    List<Pair<GetDocumentAnalysisRequest, GetDocumentAnalysisResponse>> callSequence =
         getRequestResponseSequence();
-    Pair<GetDocumentAnalysisRequest, GetDocumentAnalysisResult> firstRequestResp =
+    Pair<GetDocumentAnalysisRequest, GetDocumentAnalysisResponse> firstRequestResp =
         callSequence.getFirst();
 
-    AmazonTextractAsyncClient asyncClient = Mockito.mock(AmazonTextractAsyncClient.class);
-    StartDocumentAnalysisResult startDocRequest =
-        new StartDocumentAnalysisResult().withJobId(firstRequestResp.getLeft().getJobId());
-    when(asyncClient.startDocumentAnalysis(any())).thenReturn(startDocRequest);
+    TextractClient asyncClient = Mockito.mock(TextractClient.class);
+    StartDocumentAnalysisResponse startDocRequest =
+        StartDocumentAnalysisResponse.builder().jobId(firstRequestResp.getLeft().jobId()).build();
+    when(asyncClient.startDocumentAnalysis(any(StartDocumentAnalysisRequest.class)))
+        .thenReturn(startDocRequest);
 
     when(asyncClient.getDocumentAnalysis(firstRequestResp.getLeft()))
         .thenReturn(firstRequestResp.getRight());
 
-    Pair<GetDocumentAnalysisRequest, GetDocumentAnalysisResult> secondRequestResp =
+    Pair<GetDocumentAnalysisRequest, GetDocumentAnalysisResponse> secondRequestResp =
         callSequence.getLast();
 
     when(asyncClient.getDocumentAnalysis(secondRequestResp.getLeft()))
@@ -53,48 +50,54 @@ class PollingTextractCallerTest {
 
     List<Block> expectedBlocks =
         ListUtils.union(
-            firstRequestResp.getRight().getBlocks(), secondRequestResp.getRight().getBlocks());
+            firstRequestResp.getRight().blocks(), secondRequestResp.getRight().blocks());
 
-    GetDocumentAnalysisResult result =
+    GetDocumentAnalysisResponse result =
         new PollingTextractCaller().call(FULL_FILLED_ASYNC_TEXTRACT_DATA, asyncClient);
 
     verify(asyncClient).getDocumentAnalysis(firstRequestResp.getLeft());
     verify(asyncClient).getDocumentAnalysis(secondRequestResp.getLeft());
 
-    assertThat(result.getBlocks()).isEqualTo(expectedBlocks);
+    assertThat(result.blocks()).isEqualTo(expectedBlocks);
     assertThat(result)
         .usingRecursiveComparison()
         .ignoringFields("blocks")
         .isEqualTo(secondRequestResp.getRight());
   }
 
-  private List<Pair<GetDocumentAnalysisRequest, GetDocumentAnalysisResult>>
+  private List<Pair<GetDocumentAnalysisRequest, GetDocumentAnalysisResponse>>
       getRequestResponseSequence() {
     String jobId = "1";
     GetDocumentAnalysisRequest firstDocRequest =
-        new GetDocumentAnalysisRequest()
-            .withJobId(jobId)
-            .withMaxResults(MAX_RESULT)
-            .withNextToken(null);
+        GetDocumentAnalysisRequest.builder()
+            .jobId(jobId)
+            .maxResults(MAX_RESULT)
+            .nextToken(null)
+            .build();
 
     String nextToken = "2";
     GetDocumentAnalysisRequest secondDocRequest =
-        new GetDocumentAnalysisRequest()
-            .withJobId(jobId)
-            .withMaxResults(MAX_RESULT)
-            .withNextToken(nextToken);
+        GetDocumentAnalysisRequest.builder()
+            .jobId(jobId)
+            .maxResults(MAX_RESULT)
+            .nextToken(nextToken)
+            .build();
 
-    GetDocumentAnalysisResult firstDocResult =
-        new GetDocumentAnalysisResult()
-            .withJobStatus(JobStatus.SUCCEEDED.toString())
-            .withNextToken(nextToken)
-            .withBlocks(List.of(new Block().withText("AAA"), new Block().withText("BBB")));
+    GetDocumentAnalysisResponse firstDocResult =
+        GetDocumentAnalysisResponse.builder()
+            .jobStatus(JobStatus.SUCCEEDED.toString())
+            .nextToken(nextToken)
+            .blocks(
+                List.of(Block.builder().text("AAA").build(), Block.builder().text("BBB").build()))
+            .build();
 
-    GetDocumentAnalysisResult secondDocResult =
-        new GetDocumentAnalysisResult()
-            .withJobStatus(JobStatus.SUCCEEDED.toString())
-            .withNextToken(null)
-            .withBlocks(List.of(new Block().withText("CCC"), new Block().withText("DDD")));
+    GetDocumentAnalysisResponse secondDocResult =
+        GetDocumentAnalysisResponse.builder()
+            .jobStatus(JobStatus.SUCCEEDED.toString())
+            .nextToken(null)
+            .blocks(
+                List.of(Block.builder().text("CCC").build(), Block.builder().text("DDD").build()))
+            .build();
 
     return List.of(
         Pair.of(firstDocRequest, firstDocResult), Pair.of(secondDocRequest, secondDocResult));

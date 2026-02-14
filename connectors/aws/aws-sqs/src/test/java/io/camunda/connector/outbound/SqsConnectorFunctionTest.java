@@ -9,11 +9,6 @@ package io.camunda.connector.outbound;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 
-import com.amazonaws.SdkClientException;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
-import com.amazonaws.services.sqs.model.SendMessageResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
@@ -25,12 +20,17 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
+import software.amazon.awssdk.services.sqs.model.SqsException;
 
 public class SqsConnectorFunctionTest extends BaseTest {
 
   private SqsConnectorFunction connector;
   private OutboundConnectorContext context;
-  private SendMessageResult sendMessageResult;
+  private SendMessageResponse sendMessageResult;
 
   @BeforeEach
   public void init() {
@@ -40,8 +40,8 @@ public class SqsConnectorFunctionTest extends BaseTest {
             .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
             .variables(DEFAULT_REQUEST_BODY_WITH_JSON_PAYLOAD)
             .build();
-    sendMessageResult = new SendMessageResult();
-    sendMessageResult.setMessageId(MSG_ID);
+    sendMessageResult = SendMessageResponse.builder().build();
+    sendMessageResult = sendMessageResult.toBuilder().messageId(MSG_ID).build();
   }
 
   @Test
@@ -51,22 +51,20 @@ public class SqsConnectorFunctionTest extends BaseTest {
     // When connector.execute(context) without amazon sqs client
     // Then we expect SdkClientException
     assertThrows(
-        SdkClientException.class,
-        () -> connector.execute(context),
-        "SdkClientException from amazon was expected");
+        SqsException.class, () -> connector.execute(context), "SqsException from amazon expected");
   }
 
   @Test
   public void execute_shouldExecuteRequestAndReturnResultWithMsgId()
       throws JsonProcessingException {
     // Given
-    AmazonSQS sqsClient = Mockito.mock(AmazonSQS.class);
+    SqsClient sqsClient = Mockito.mock(SqsClient.class);
     Mockito.when(sqsClient.sendMessage(ArgumentMatchers.any(SendMessageRequest.class)))
         .thenReturn(sendMessageResult);
     AmazonSQSClientSupplier sqsClientSupplier = Mockito.mock(AmazonSQSClientSupplier.class);
     Mockito.when(
             sqsClientSupplier.sqsClient(
-                any(AWSCredentialsProvider.class), ArgumentMatchers.anyString()))
+                any(AwsCredentialsProvider.class), ArgumentMatchers.anyString()))
         .thenReturn(sqsClient);
     connector = new SqsConnectorFunction(sqsClientSupplier, objectMapper);
 
@@ -74,7 +72,7 @@ public class SqsConnectorFunctionTest extends BaseTest {
     Object execute = connector.execute(context);
 
     // Then
-    Mockito.verify(sqsClient, Mockito.times(1)).shutdown();
+    Mockito.verify(sqsClient, Mockito.times(1)).close();
 
     Assertions.assertThat(execute).isInstanceOf(SqsConnectorResult.class);
     var result = (SqsConnectorResult) execute;
@@ -85,16 +83,17 @@ public class SqsConnectorFunctionTest extends BaseTest {
   public void execute_shouldPassPayloadAsJsonWhenJsonArrivesFromForm()
       throws JsonProcessingException {
     // Given
-    AmazonSQS sqsClient = Mockito.mock(AmazonSQS.class);
+    SqsClient sqsClient = Mockito.mock(SqsClient.class);
     Mockito.when(sqsClient.sendMessage(ArgumentMatchers.any(SendMessageRequest.class)))
         .thenReturn(sendMessageResult);
     AmazonSQSClientSupplier sqsClientSupplier = Mockito.mock(AmazonSQSClientSupplier.class);
     Mockito.when(
             sqsClientSupplier.sqsClient(
-                any(AWSCredentialsProvider.class), ArgumentMatchers.anyString()))
+                any(AwsCredentialsProvider.class), ArgumentMatchers.anyString()))
         .thenReturn(sqsClient);
     ArgumentCaptor<SendMessageRequest> captor = ArgumentCaptor.forClass(SendMessageRequest.class);
-    Mockito.when(sqsClient.sendMessage(captor.capture())).thenReturn(new SendMessageResult());
+    Mockito.when(sqsClient.sendMessage(captor.capture()))
+        .thenReturn(SendMessageResponse.builder().build());
     connector = new SqsConnectorFunction(sqsClientSupplier, objectMapper);
 
     // When
@@ -102,7 +101,7 @@ public class SqsConnectorFunctionTest extends BaseTest {
 
     // Then
     SendMessageRequest capturedRequest = captor.getValue();
-    Assertions.assertThat(capturedRequest.getMessageBody()).isEqualTo("{\"data\":\"ok\"}");
+    Assertions.assertThat(capturedRequest.messageBody()).isEqualTo("{\"data\":\"ok\"}");
   }
 
   @Test
@@ -115,18 +114,19 @@ public class SqsConnectorFunctionTest extends BaseTest {
             .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
             .variables(DEFAULT_REQUEST_BODY_WITH_STRING_PAYLOAD)
             .build();
-    sendMessageResult = new SendMessageResult();
-    sendMessageResult.setMessageId(MSG_ID);
-    AmazonSQS sqsClient = Mockito.mock(AmazonSQS.class);
+    sendMessageResult = SendMessageResponse.builder().build();
+    sendMessageResult = sendMessageResult.toBuilder().messageId(MSG_ID).build();
+    SqsClient sqsClient = Mockito.mock(SqsClient.class);
     Mockito.when(sqsClient.sendMessage(ArgumentMatchers.any(SendMessageRequest.class)))
         .thenReturn(sendMessageResult);
     AmazonSQSClientSupplier sqsClientSupplier = Mockito.mock(AmazonSQSClientSupplier.class);
     Mockito.when(
             sqsClientSupplier.sqsClient(
-                any(AWSCredentialsProvider.class), ArgumentMatchers.anyString()))
+                any(AwsCredentialsProvider.class), ArgumentMatchers.anyString()))
         .thenReturn(sqsClient);
     ArgumentCaptor<SendMessageRequest> captor = ArgumentCaptor.forClass(SendMessageRequest.class);
-    Mockito.when(sqsClient.sendMessage(captor.capture())).thenReturn(new SendMessageResult());
+    Mockito.when(sqsClient.sendMessage(captor.capture()))
+        .thenReturn(SendMessageResponse.builder().build());
     connector = new SqsConnectorFunction(sqsClientSupplier, objectMapper);
 
     // When
@@ -134,6 +134,6 @@ public class SqsConnectorFunctionTest extends BaseTest {
 
     // Then
     SendMessageRequest capturedRequest = captor.getValue();
-    Assertions.assertThat(capturedRequest.getMessageBody()).isEqualTo("I am a string value!");
+    Assertions.assertThat(capturedRequest.messageBody()).isEqualTo("I am a string value!");
   }
 }

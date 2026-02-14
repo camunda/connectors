@@ -6,10 +6,6 @@
  */
 package io.camunda.connector.sns.inbound;
 
-import com.amazonaws.services.sns.message.SnsMessage;
-import com.amazonaws.services.sns.message.SnsMessageManager;
-import com.amazonaws.services.sns.message.SnsNotification;
-import com.amazonaws.services.sns.message.SnsSubscriptionConfirmation;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.Health;
@@ -27,9 +23,11 @@ import io.camunda.connector.sns.inbound.model.SnsWebhookConnectorProperties;
 import io.camunda.connector.sns.inbound.model.SnsWebhookConnectorProperties.SnsWebhookConnectorPropertiesWrapper;
 import io.camunda.connector.sns.inbound.model.SnsWebhookProcessingResult;
 import io.camunda.connector.sns.inbound.model.SubscriptionAllowListFlag;
-import io.camunda.connector.sns.suppliers.SnsClientSupplier;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.Map;
 import java.util.Optional;
 
@@ -72,19 +70,18 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
   protected static final String TOPIC_ARN_HEADER = "x-amz-sns-topic-arn";
 
   private final ObjectMapper objectMapper;
-  private final SnsClientSupplier snsClientSupplier;
+  private final HttpClient httpClient;
 
   private InboundConnectorContext context;
   private SnsWebhookConnectorProperties props;
 
   public SnsWebhookExecutable() {
-    this(ObjectMapperSupplier.getMapperInstance(), new SnsClientSupplier());
+    this(ObjectMapperSupplier.getMapperInstance(), HttpClient.newHttpClient());
   }
 
-  public SnsWebhookExecutable(
-      final ObjectMapper objectMapper, final SnsClientSupplier snsClientSupplier) {
+  public SnsWebhookExecutable(final ObjectMapper objectMapper, final HttpClient httpClient) {
     this.objectMapper = objectMapper;
-    this.snsClientSupplier = snsClientSupplier;
+    this.httpClient = httpClient;
   }
 
   @Override
@@ -93,31 +90,43 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
 
     checkMessageAllowListed(webhookProcessingPayload);
     Map bodyAsMap = objectMapper.readValue(webhookProcessingPayload.rawBody(), Map.class);
-    String region = extractRegionFromTopicArnHeader(webhookProcessingPayload.headers());
-    SnsMessageManager msgManager = snsClientSupplier.messageManager(region);
-    SnsMessage msg =
-        msgManager.parseMessage(new ByteArrayInputStream(webhookProcessingPayload.rawBody()));
-    if (msg instanceof SnsSubscriptionConfirmation ssc) {
-      return tryConfirmSubscription(webhookProcessingPayload, bodyAsMap, ssc);
-    } else if (msg instanceof SnsNotification) {
+    String messageType =
+        Optional.ofNullable(webhookProcessingPayload.headers().get("x-amz-sns-message-type"))
+            .orElseGet(
+                () -> Optional.ofNullable(bodyAsMap.get("Type")).map(Object::toString).orElse(""));
+
+    if ("SubscriptionConfirmation".equalsIgnoreCase(messageType)) {
+      return tryConfirmSubscription(webhookProcessingPayload, bodyAsMap);
+    } else if ("Notification".equalsIgnoreCase(messageType)) {
       return handleNotification(webhookProcessingPayload, bodyAsMap);
     } else {
-      String errorMessage = "Operation not supported: " + msg.getClass().getName();
+      String errorMessage = "Operation not supported: " + messageType;
       throw new IOException(errorMessage);
     }
   }
 
   private SnsWebhookProcessingResult tryConfirmSubscription(
-      WebhookProcessingPayload webhookProcessingPayload,
-      Map bodyAsMap,
-      SnsSubscriptionConfirmation confirmation) {
-    // If request was tampered, or insufficient ACL, confirmation will throw an exception
-    confirmation.confirmSubscription();
+      WebhookProcessingPayload webhookProcessingPayload, Map bodyAsMap) throws Exception {
+    confirmSubscription(bodyAsMap);
 
     return new SnsWebhookProcessingResult(
         new MappedHttpRequest(
             bodyAsMap, webhookProcessingPayload.headers(), webhookProcessingPayload.params()),
         Map.of("snsEventType", "Subscription"));
+  }
+
+  private void confirmSubscription(Map bodyAsMap) throws Exception {
+    Object subscribeUrl = bodyAsMap.get("SubscribeURL");
+    if (subscribeUrl == null) {
+      throw new Exception("SNS SubscriptionConfirmation did not contain SubscribeURL");
+    }
+    HttpRequest request =
+        HttpRequest.newBuilder().uri(URI.create(subscribeUrl.toString())).GET().build();
+    HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+    if (response.statusCode() >= 300) {
+      throw new IOException(
+          "Subscription confirmation request failed with status " + response.statusCode());
+    }
   }
 
   private SnsWebhookProcessingResult handleNotification(
@@ -152,17 +161,6 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
         new SnsWebhookConnectorProperties(
             context.bindProperties(SnsWebhookConnectorPropertiesWrapper.class));
     context.reportHealth(Health.up());
-  }
-
-  // Topic ARN header has a format arn:aws:sns:region-xyz:000011112222:TopicName, and
-  // we need to extract region from it, which is at index 3, given string is separated by ':'
-  private String extractRegionFromTopicArnHeader(final Map<String, String> headers)
-      throws Exception {
-    final var topicArn =
-        Optional.ofNullable(headers.get(TOPIC_ARN_HEADER))
-            .orElseThrow(
-                () -> new Exception("SNS request did not contain header: " + TOPIC_ARN_HEADER));
-    return topicArn.split(":")[3];
   }
 
   @Override

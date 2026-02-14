@@ -6,28 +6,30 @@
  */
 package io.camunda.connector.comprehend.caller;
 
-import com.amazonaws.services.comprehend.AmazonComprehendClient;
-import com.amazonaws.services.comprehend.model.ClassifyDocumentRequest;
-import com.amazonaws.services.comprehend.model.ClassifyDocumentResult;
 import io.camunda.connector.comprehend.model.ComprehendSyncRequestData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
+import software.amazon.awssdk.services.comprehend.model.ClassifyDocumentRequest;
+import software.amazon.awssdk.services.comprehend.model.ClassifyDocumentResponse;
 
 public class SyncComprehendCaller
-    implements ComprehendCaller<ClassifyDocumentResult, ComprehendSyncRequestData> {
+    implements ComprehendCaller<
+        ComprehendClient, ClassifyDocumentResponse, ComprehendSyncRequestData> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SyncComprehendCaller.class);
 
   @Override
-  public ClassifyDocumentResult call(
-      AmazonComprehendClient client, ComprehendSyncRequestData requestData) {
+  public ClassifyDocumentResponse call(
+      ComprehendClient client, ComprehendSyncRequestData requestData) {
     LOGGER.debug(
         "Starting sync comprehend task for document classification with request data: {}",
         requestData);
     ClassifyDocumentRequest classifyDocumentRequest =
-        new ClassifyDocumentRequest()
-            .withText(requestData.text())
-            .withEndpointArn(requestData.endpointArn());
+        ClassifyDocumentRequest.builder()
+            .text(requestData.text())
+            .endpointArn(requestData.endpointArn())
+            .build();
 
     return client.classifyDocument(classifyDocumentRequest);
   }
