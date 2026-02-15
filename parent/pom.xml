@@ -96,10 +96,10 @@ limitations under the License.</license.inlineheader>
 
     <version.spring-boot>4.0.2</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>7.4.4</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.5.27</version.logback>
+    <version.logback>1.5.29</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.41.21</version.aws-sdk2>
+    <version.aws-sdk2>2.41.26</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -124,7 +124,7 @@ limitations under the License.</license.inlineheader>
     <version.gson-extras>3.3.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
-    <version.httpcore5>5.4</version.httpcore5>
+    <version.httpcore5>5.4.1</version.httpcore5>
     <version.httpclient5>5.6</version.httpclient5>
     <version.httpclient>4.5.14</version.httpclient>
     <version.pdfbox>3.0.6</version.pdfbox>
@@ -135,7 +135,7 @@ limitations under the License.</license.inlineheader>
 
     <version.kafka-clients>4.1.1</version.kafka-clients>
 
-    <version.microsoft-graph>6.60.0</version.microsoft-graph>
+    <version.microsoft-graph>6.61.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.9.0</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.5</version.microsoft-graph-core>
     <version.azure-identity>1.18.2</version.azure-identity>
@@ -169,7 +169,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwt>4.5.0</version.auth0.jwt>
     <version.auth0.jwks>0.23.0</version.auth0.jwks>
 
-    <version.langchain4j>1.10.0</version.langchain4j>
+    <version.langchain4j>1.11.0</version.langchain4j>
     <version.mcp-sdk>0.17.2</version.mcp-sdk>
 
     <version.scala>3.8.1</version.scala>
@@ -186,7 +186,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.spotless-maven-plugin>3.2.1</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.0</plugin.version.maven-jar-plugin>
 
-    <plugin.version.maven-dependency-plugin>3.9.0</plugin.version.maven-dependency-plugin>
+    <plugin.version.maven-dependency-plugin>3.10.0</plugin.version.maven-dependency-plugin>
     <maven.dependency.analyze.skip>false</maven.dependency.analyze.skip>
   </properties>
 
