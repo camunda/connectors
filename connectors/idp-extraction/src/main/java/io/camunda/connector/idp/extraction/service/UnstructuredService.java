@@ -18,6 +18,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
 import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
+import io.camunda.connector.idp.extraction.model.ExtractionMetadata;
 import io.camunda.connector.idp.extraction.model.ExtractionResult;
 import io.camunda.connector.idp.extraction.model.LlmModel;
 import io.camunda.connector.idp.extraction.model.TaxonomyItem;
@@ -41,6 +42,7 @@ public class UnstructuredService {
       List<TaxonomyItem> taxonomyItems,
       Document document) {
     ChatResponse aiResponse;
+    long latencyMs;
     if (textExtractor == null) {
       long aiStartTime = System.currentTimeMillis();
       LOGGER.info("Starting multimodal {} conversation", aiClient.getClass().getSimpleName());
@@ -50,19 +52,18 @@ public class UnstructuredService {
               LlmModel.getExtractionUserPrompt(taxonomyItems),
               document);
       long aiEndTime = System.currentTimeMillis();
+      latencyMs = aiEndTime - aiStartTime;
       LOGGER.info(
-          "Multimodal {} conversation took {} ms",
-          aiClient.getClass().getSimpleName(),
-          (aiEndTime - aiStartTime));
+          "Multimodal {} conversation took {} ms", aiClient.getClass().getSimpleName(), latencyMs);
     } else {
-      long extractionStartTime = System.currentTimeMillis();
+      long startTime = System.currentTimeMillis();
       LOGGER.info("Starting {} text extraction", textExtractor.getClass().getSimpleName());
       String extractedText = textExtractor.extract(document);
       long extractionEndTime = System.currentTimeMillis();
       LOGGER.info(
           "{} text extraction took {} ms",
           textExtractor.getClass().getSimpleName(),
-          (extractionEndTime - extractionStartTime));
+          (extractionEndTime - startTime));
 
       long aiStartTime = System.currentTimeMillis();
       LOGGER.info("Starting {} conversation", aiClient.getClass().getSimpleName());
@@ -71,6 +72,7 @@ public class UnstructuredService {
               LlmModel.getExtractionSystemInstruction(),
               LlmModel.getExtractionUserPrompt(extractedText, taxonomyItems));
       long aiEndTime = System.currentTimeMillis();
+      latencyMs = aiEndTime - startTime;
       LOGGER.info(
           "{} conversation took {} ms",
           aiClient.getClass().getSimpleName(),
@@ -79,7 +81,7 @@ public class UnstructuredService {
 
     return new ExtractionResult(
         buildResponseJsonIfPossible(aiResponse.aiMessage().text(), taxonomyItems, aiClient),
-        aiResponse.tokenUsage());
+        new ExtractionMetadata(aiResponse.metadata().tokenUsage().totalTokenCount(), latencyMs));
   }
 
   private Map<String, Object> buildResponseJsonIfPossible(

@@ -18,6 +18,7 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
 import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
+import io.camunda.connector.idp.extraction.model.ClassificationMetadata;
 import io.camunda.connector.idp.extraction.model.ClassificationResult;
 import io.camunda.connector.idp.extraction.model.LlmModel;
 import io.camunda.connector.idp.extraction.request.classification.ClassificationRequest;
@@ -31,12 +32,13 @@ public class ClassificationService {
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   public ClassificationResult execute(ClassificationRequest request) throws Exception {
-
     TextExtractor textExtractor = getTextExtractor(request.extractor());
     AiClient aiClient = getAiClient(request.ai(), request.input().getConverseData());
-    String systemPrompt = LlmModel.getClassificationSystemPrompt(request.input().isAutoClassify());
+    String systemPrompt =
+        LlmModel.getClassificationSystemPrompt(request.input().getFallbackOutputValue());
 
     ChatResponse aiResponse;
+    long latencyMs;
     if (textExtractor == null) {
       long aiStartTime = System.currentTimeMillis();
       String userPrompt = LlmModel.getClassificationUserPrompt(request.input().getDocumentTypes());
@@ -44,10 +46,9 @@ public class ClassificationService {
       LOGGER.info("Starting multimodal {} conversation", aiClient.getClass().getSimpleName());
       aiResponse = aiClient.chat(systemPrompt, userPrompt, request.input().getDocument());
       long aiEndTime = System.currentTimeMillis();
+      latencyMs = aiEndTime - aiStartTime;
       LOGGER.info(
-          "Multimodal {} conversation took {} ms",
-          aiClient.getClass().getSimpleName(),
-          (aiEndTime - aiStartTime));
+          "Multimodal {} conversation took {} ms", aiClient.getClass().getSimpleName(), latencyMs);
     } else {
       long startTime = System.currentTimeMillis();
       LOGGER.info("Extracting text through {}", textExtractor.getClass().getSimpleName());
@@ -63,19 +64,23 @@ public class ClassificationService {
           request.input().getConverseData().modelId());
       aiResponse = aiClient.chat(systemPrompt, userPrompt);
       long endTime = System.currentTimeMillis();
+      latencyMs = endTime - startTime;
       LOGGER.info(
           "Finished ai conversation in {}ms and in total took {}ms",
           (endTime - aiStartTime),
-          (endTime - startTime));
+          latencyMs);
     }
-    return parseClassificationResponse(aiResponse, aiClient);
+    return parseClassificationResponse(aiResponse, aiClient, latencyMs);
   }
 
   private ClassificationResult parseClassificationResponse(
-      ChatResponse aiResponse, AiClient aiClient) {
+      ChatResponse aiResponse, AiClient aiClient, long latencyMs) {
     String llmResponse = aiResponse.aiMessage().text();
     try {
-      return parseAndValidateClassificationResponse(llmResponse, aiResponse);
+      return parseAndValidateClassificationResponse(
+          llmResponse,
+          new ClassificationMetadata(
+              aiResponse.metadata().tokenUsage().totalTokenCount(), latencyMs));
     } catch (JsonProcessingException | ConnectorException e) {
       LOGGER.warn(
           "Initial JSON parsing failed, attempting to clean up response with LLM. Error: {}",
@@ -96,7 +101,10 @@ public class ClassificationService {
             (cleanupEndTime - cleanupStartTime));
 
         String cleanedResponse = cleanupResponse.aiMessage().text();
-        return parseAndValidateClassificationResponse(cleanedResponse, cleanupResponse);
+        return parseAndValidateClassificationResponse(
+            cleanedResponse,
+            new ClassificationMetadata(
+                cleanupResponse.metadata().tokenUsage().totalTokenCount(), latencyMs));
       } catch (Exception cleanupException) {
         throw new ConnectorException(
             JSON_PARSING_FAILED,
@@ -109,7 +117,7 @@ public class ClassificationService {
   }
 
   private ClassificationResult parseAndValidateClassificationResponse(
-      String llmResponse, ChatResponse aiResponse) throws JsonProcessingException {
+      String llmResponse, ClassificationMetadata metadata) throws JsonProcessingException {
     // First filter out thinking content, then strip markdown code blocks
     String thinkingRemoved = StringUtil.filterThinkingContent(llmResponse);
     String cleanedResponse = StringUtil.stripMarkdownCodeBlocks(thinkingRemoved);
@@ -138,6 +146,6 @@ public class ClassificationService {
     String confidence = dataNode.has("confidence") ? dataNode.get("confidence").asText() : null;
     String reasoning = dataNode.has("reasoning") ? dataNode.get("reasoning").asText() : null;
 
-    return new ClassificationResult(extractedValue, confidence, reasoning, aiResponse.tokenUsage());
+    return new ClassificationResult(extractedValue, confidence, reasoning, metadata);
   }
 }
