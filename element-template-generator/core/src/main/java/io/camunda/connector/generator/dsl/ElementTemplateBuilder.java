@@ -76,8 +76,8 @@ public class ElementTemplateBuilder {
     switch (mode) {
       case INBOUND:
         if (configurable) {
-          groups.addFirst(
-              PropertyGroup.builder().id("connectorType").label("Connector type").build());
+          groups.add(
+              0, PropertyGroup.builder().id("connectorType").label("Connector type").build());
           property =
               StringProperty.builder()
                   .binding(ZeebeProperty.TYPE)
@@ -92,7 +92,8 @@ public class ElementTemplateBuilder {
         break;
       case OUTBOUND:
         if (configurable) {
-          groups.addFirst(
+          groups.add(
+              0,
               PropertyGroup.builder()
                   .id("taskDefinitionType")
                   .label("Task definition type")

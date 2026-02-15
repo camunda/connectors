@@ -42,7 +42,7 @@ public class DefaultRuntimeMemory implements RuntimeMemory {
         }
       } else {
         // add system message to the beginning of the conversation
-        messages.addFirst(message);
+        messages.add(0, message);
       }
     } else {
       messages.add(message);
