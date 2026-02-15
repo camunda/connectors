@@ -122,7 +122,7 @@ jobs:
           RELEASE_VERSION: ${{ inputs.version }}
 
       - name: Compile and Test
-        run: mvn -B package generate-sources source:jar javadoc:jar
+        run: mvn -B -U package generate-sources source:jar javadoc:jar
 
       - name: Publish Test Report
         if: always()
@@ -312,7 +312,7 @@ jobs:
 
       - name: Deploy artifacts to Artifactory and Maven Central (Staging)
         if: "! contains(inputs.version, 'rc')"
-        run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded
+        run: mvn -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Pe2eExcluded
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
@@ -322,7 +322,7 @@ jobs:
 
       - name: Deploy artifacts to Artifactory
         if: "contains(inputs.version, 'rc')"
-        run: mvn deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true -Pe2eExcluded
+        run: mvn -U deploy -DskipTests -PcheckFormat -Pcentral-sonatype-publish -Dskip.central.release=true -Pe2eExcluded
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
