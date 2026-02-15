@@ -51,7 +51,7 @@ final class ListResourcesRequest {
                 .map(
                     fr ->
                         new ResourceDescription(
-                            fr.uri(), fr.name(), fr.description(), fr.mimeType()))
+                            fr.uri(), fr.name(), fr.title(), fr.description(), fr.mimeType()))
                 .toList());
 
     LOGGER.debug(

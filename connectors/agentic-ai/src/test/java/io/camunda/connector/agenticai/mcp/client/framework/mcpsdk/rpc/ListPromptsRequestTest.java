@@ -49,18 +49,22 @@ class ListPromptsRequestTest {
     final var mcpPrompt1 =
         createMcpPrompt(
             "code_review",
+            "Code Review",
             "Asks the LLM to analyze code quality and suggest improvements",
             List.of(new McpSchema.PromptArgument("code", "The code to review", true)));
     final var mcpPrompt2 =
-        createMcpPrompt("four_eyes_review", "Asks the LLM to judge something", List.of());
+        createMcpPrompt(
+            "four_eyes_review", "Four Eyes Review", "Asks the LLM to judge something", List.of());
 
     final var prompt1 =
         createPrompt(
             "code_review",
+            "Code Review",
             "Asks the LLM to analyze code quality and suggest improvements",
             List.of(new PromptDescription.PromptArgument("code", "The code to review", true)));
     final var prompt2 =
-        createPrompt("four_eyes_review", "Asks the LLM to judge something", List.of());
+        createPrompt(
+            "four_eyes_review", "Four Eyes Review", "Asks the LLM to judge something", List.of());
 
     when(mcpClient.listPrompts())
         .thenReturn(new McpSchema.ListPromptsResult(List.of(mcpPrompt1, mcpPrompt2), null));
@@ -70,14 +74,22 @@ class ListPromptsRequestTest {
     assertThat(result)
         .isInstanceOfSatisfying(
             McpClientListPromptsResult.class,
-            res -> assertThat(res.promptDescriptions()).containsExactly(prompt1, prompt2));
+            res -> {
+              assertThat(res.promptDescriptions()).containsExactly(prompt1, prompt2);
+              assertThat(res.promptDescriptions())
+                  .extracting(PromptDescription::title)
+                  .containsExactly("Code Review", "Four Eyes Review");
+            });
   }
 
   @Test
   void filtersPrompts_whenFilterConfigured() {
-    final var mcpPrompt1 = createMcpPrompt("allowed-prompt", "Allowed prompt", List.of());
-    final var mcpPrompt2 = createMcpPrompt("blocked-prompt", "Blocked prompt", List.of());
-    final var prompt1 = createPrompt("allowed-prompt", "Allowed prompt", List.of());
+    final var mcpPrompt1 =
+        createMcpPrompt("allowed-prompt", "Allowed Prompt", "Allowed prompt", List.of());
+    final var mcpPrompt2 =
+        createMcpPrompt("blocked-prompt", "Blocked Prompt", "Blocked prompt", List.of());
+    final var prompt1 =
+        createPrompt("allowed-prompt", "Allowed Prompt", "Allowed prompt", List.of());
     final var filter =
         AllowDenyListBuilder.builder().allowed(List.of("allowed-prompt")).denied(List.of()).build();
 
@@ -94,9 +106,12 @@ class ListPromptsRequestTest {
 
   @Test
   void returnsEmptyList_whenAllPromptsFiltered() {
-    final var mcpPrompt1 = createMcpPrompt("blocked-prompt1", "Blocked prompt 1", List.of());
-    final var mcpPrompt2 = createMcpPrompt("blocked-prompt2", "Blocked prompt 2", List.of());
-    final var mcpPrompt3 = createMcpPrompt("blocked-prompt3", "Blocked prompt 3", List.of());
+    final var mcpPrompt1 =
+        createMcpPrompt("blocked-prompt1", "Blocked Prompt 1", "Blocked prompt 1", List.of());
+    final var mcpPrompt2 =
+        createMcpPrompt("blocked-prompt2", "Blocked Prompt 2", "Blocked prompt 2", List.of());
+    final var mcpPrompt3 =
+        createMcpPrompt("blocked-prompt3", "Blocked Prompt 3", "Blocked prompt 3", List.of());
     final var filter =
         AllowDenyListBuilder.builder()
             .allowed(List.of("allowed-prompt"))
@@ -117,7 +132,8 @@ class ListPromptsRequestTest {
 
   @Test
   void returnsEmptyList_whenPromptAllowedAndDeniedSimultaneously() {
-    final var mcpPrompt1 = createMcpPrompt("allowed-prompt", "Allowed prompt", List.of());
+    final var mcpPrompt1 =
+        createMcpPrompt("allowed-prompt", "Allowed Prompt", "Allowed prompt", List.of());
     final var filter =
         AllowDenyListBuilder.builder()
             .allowed(List.of("allowed-prompt"))
@@ -136,12 +152,15 @@ class ListPromptsRequestTest {
   }
 
   private McpSchema.Prompt createMcpPrompt(
-      String name, String description, List<McpSchema.PromptArgument> arguments) {
-    return new McpSchema.Prompt(name, description, List.copyOf(arguments));
+      String name, String title, String description, List<McpSchema.PromptArgument> arguments) {
+    return new McpSchema.Prompt(name, title, description, List.copyOf(arguments));
   }
 
   private PromptDescription createPrompt(
-      String name, String description, List<PromptDescription.PromptArgument> arguments) {
-    return new PromptDescription(name, description, List.copyOf(arguments));
+      String name,
+      String title,
+      String description,
+      List<PromptDescription.PromptArgument> arguments) {
+    return new PromptDescription(name, title, description, List.copyOf(arguments));
   }
 }

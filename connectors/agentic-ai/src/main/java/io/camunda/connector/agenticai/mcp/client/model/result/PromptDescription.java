@@ -8,7 +8,8 @@ package io.camunda.connector.agenticai.mcp.client.model.result;
 
 import java.util.List;
 
-public record PromptDescription(String name, String description, List<PromptArgument> arguments) {
+public record PromptDescription(
+    String name, String title, String description, List<PromptArgument> arguments) {
 
   public record PromptArgument(String name, String description, boolean required) {}
 }
