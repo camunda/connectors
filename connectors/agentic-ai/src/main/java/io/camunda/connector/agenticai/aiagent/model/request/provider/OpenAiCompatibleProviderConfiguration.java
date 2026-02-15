@@ -52,8 +52,7 @@ public record OpenAiCompatibleProviderConfiguration(
               description = "Map of query parameters to add to the request URL.",
               feel = Property.FeelMode.required,
               optional = true)
-          @Valid
-          Map<@NotBlank String, String> queryParameters,
+          Map<String, String> queryParameters,
       @Valid TimeoutConfiguration timeouts,
       @Valid @NotNull OpenAiCompatibleModel model) {}
 
