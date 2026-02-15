@@ -79,15 +79,22 @@ public class UnstructuredService {
           (aiEndTime - aiStartTime));
     }
 
-    return new ExtractionResult(
-        buildResponseJsonIfPossible(aiResponse.aiMessage().text(), taxonomyItems, aiClient),
-        new ExtractionMetadata(aiResponse.metadata().tokenUsage().totalTokenCount(), latencyMs));
+    int totalTokenUsage = aiResponse.metadata().tokenUsage().totalTokenCount();
+
+    return buildResponseIfPossible(
+        aiResponse.aiMessage().text(), taxonomyItems, aiClient, totalTokenUsage, latencyMs);
   }
 
-  private Map<String, Object> buildResponseJsonIfPossible(
-      String llmResponse, List<TaxonomyItem> taxonomyItems, AiClient aiClient) {
+  private ExtractionResult buildResponseIfPossible(
+      String llmResponse,
+      List<TaxonomyItem> taxonomyItems,
+      AiClient aiClient,
+      int totalTokenUsage,
+      long totalLatencyMs) {
     try {
-      return parseAndValidateResponse(llmResponse, taxonomyItems);
+      return new ExtractionResult(
+          parseAndValidateResponse(llmResponse, taxonomyItems),
+          new ExtractionMetadata(totalTokenUsage, totalLatencyMs));
     } catch (JsonProcessingException | ConnectorException e) {
       LOGGER.warn(
           "Initial JSON parsing failed, attempting to clean up response with LLM. Response: {}",
@@ -102,13 +109,20 @@ public class UnstructuredService {
                 LlmModel.getJsonExtractionSystemPrompt(),
                 LlmModel.getJsonExtractionUserPrompt(llmResponse));
         long cleanupEndTime = System.currentTimeMillis();
+        long cleanupLatencyMs = cleanupEndTime - cleanupStartTime;
         LOGGER.info(
             "JSON cleanup {} conversation took {} ms",
             aiClient.getClass().getSimpleName(),
-            (cleanupEndTime - cleanupStartTime));
+            cleanupLatencyMs);
 
         String cleanedResponse = cleanupResponse.aiMessage().text();
-        return parseAndValidateResponse(cleanedResponse, taxonomyItems);
+        int aggregatedTokenUsage =
+            totalTokenUsage + cleanupResponse.metadata().tokenUsage().totalTokenCount();
+        long aggregatedLatencyMs = totalLatencyMs + cleanupLatencyMs;
+
+        return new ExtractionResult(
+            parseAndValidateResponse(cleanedResponse, taxonomyItems),
+            new ExtractionMetadata(aggregatedTokenUsage, aggregatedLatencyMs));
       } catch (Exception cleanupException) {
         throw new ConnectorException(
             JSON_PARSING_FAILED,

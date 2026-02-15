@@ -76,11 +76,10 @@ public class ClassificationService {
   private ClassificationResult parseClassificationResponse(
       ChatResponse aiResponse, AiClient aiClient, long latencyMs) {
     String llmResponse = aiResponse.aiMessage().text();
+    int totalTokenUsage = aiResponse.metadata().tokenUsage().totalTokenCount();
     try {
       return parseAndValidateClassificationResponse(
-          llmResponse,
-          new ClassificationMetadata(
-              aiResponse.metadata().tokenUsage().totalTokenCount(), latencyMs));
+          llmResponse, new ClassificationMetadata(totalTokenUsage, latencyMs));
     } catch (JsonProcessingException | ConnectorException e) {
       LOGGER.warn(
           "Initial JSON parsing failed, attempting to clean up response with LLM. Error: {}",
@@ -95,16 +94,18 @@ public class ClassificationService {
                 LlmModel.getJsonExtractionSystemPrompt(),
                 LlmModel.getJsonExtractionUserPrompt(llmResponse));
         long cleanupEndTime = System.currentTimeMillis();
+        long cleanupLatencyMs = cleanupEndTime - cleanupStartTime;
         LOGGER.info(
             "JSON cleanup {} conversation took {} ms",
             aiClient.getClass().getSimpleName(),
-            (cleanupEndTime - cleanupStartTime));
+            cleanupLatencyMs);
 
         String cleanedResponse = cleanupResponse.aiMessage().text();
+        int aggregatedTokenUsage =
+            totalTokenUsage + cleanupResponse.metadata().tokenUsage().totalTokenCount();
+        long aggregatedLatencyMs = latencyMs + cleanupLatencyMs;
         return parseAndValidateClassificationResponse(
-            cleanedResponse,
-            new ClassificationMetadata(
-                cleanupResponse.metadata().tokenUsage().totalTokenCount(), latencyMs));
+            cleanedResponse, new ClassificationMetadata(aggregatedTokenUsage, aggregatedLatencyMs));
       } catch (Exception cleanupException) {
         throw new ConnectorException(
             JSON_PARSING_FAILED,

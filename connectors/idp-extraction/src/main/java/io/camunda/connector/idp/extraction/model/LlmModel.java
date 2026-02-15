@@ -75,7 +75,7 @@ public class LlmModel {
 
             If you have LOW confidence on all provided document types, return the fallback output value "%s" as the extractedValue.
             """
-            .formatted(fallbackOutputValue);
+            .formatted(String.valueOf(fallbackOutputValue));
   }
 
   public static String getBaseClassificationSystemPrompt() {

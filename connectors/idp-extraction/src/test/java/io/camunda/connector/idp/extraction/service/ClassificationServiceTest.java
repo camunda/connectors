@@ -324,6 +324,39 @@ class ClassificationServiceTest {
     verify(aiClient).chat(anyString(), anyString(), any(Document.class));
     // Verify cleanup call without document
     verify(aiClient).chat(anyString(), anyString());
+
+    // Verify metadata includes aggregated token usage from both initial and cleanup calls
+    // Each ChatResponse has TokenUsage(100, 50) = 150 total tokens
+    assertThat(result.metadata().tokenUsage()).isEqualTo(300);
+  }
+
+  @Test
+  void execute_shouldNotAggregateCleanupMetadata_whenInitialParsingSucceeds() throws Exception {
+    // given
+    String jsonResponse =
+        """
+        {
+          "extractedValue": "invoice",
+          "confidence": "HIGH",
+          "reasoning": "Clear invoice format"
+        }
+        """;
+
+    ClassificationRequestData requestData =
+        createRequestData(List.of(docType("invoice"), docType("receipt")));
+    ClassificationRequest request = new ClassificationRequest(null, aiProvider, requestData);
+
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+
+    setupMultimodalMocks();
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(chatResponse);
+
+    // when
+    ClassificationResult result = classificationService.execute(request);
+
+    // then
+    // Only the initial call's token usage should be included (100 + 50 = 150)
+    assertThat(result.metadata().tokenUsage()).isEqualTo(150);
   }
 
   @Test
