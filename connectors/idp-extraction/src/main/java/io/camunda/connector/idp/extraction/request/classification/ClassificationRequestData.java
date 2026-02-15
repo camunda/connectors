@@ -9,7 +9,11 @@ package io.camunda.connector.idp.extraction.request.classification;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.idp.extraction.model.ConverseData;
+import io.camunda.connector.idp.extraction.model.DocumentType;
 import io.camunda.connector.idp.extraction.request.common.DocumentRequestData;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 public class ClassificationRequestData extends DocumentRequestData {
@@ -30,26 +34,25 @@ public class ClassificationRequestData extends DocumentRequestData {
       group = "input",
       type = TemplateProperty.PropertyType.Text,
       description = "The possible classification types considered by the model",
-      defaultValue = "=[\n  \"\"\n]",
+      defaultValue =
+          "=[\n  {\n    name: \"\",\n    classificationInstructions: \"\",\n    description: \"\",\n    outputValue: \"\"\n  }\n]",
       binding = @TemplateProperty.PropertyBinding(name = "documentTypes"),
       feel = Property.FeelMode.optional)
-  List<String> documentTypes;
+  @NotNull
+  @NotEmpty
+  @Valid
+  List<DocumentType> documentTypes;
 
   @TemplateProperty(
-      id = "autoClassify",
-      label = "Auto classify",
+      id = "fallbackOutputValue",
+      label = "Fallback output value",
       group = "input",
-      type = TemplateProperty.PropertyType.Dropdown,
-      description = "The model can classify as a type not in the list if confidence is high.",
-      defaultValue = "false",
+      type = TemplateProperty.PropertyType.Text,
+      description = "The value to return if the model has low confidence on all document types.",
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-      binding = @TemplateProperty.PropertyBinding(name = "autoClassify"),
-      choices = {
-        @TemplateProperty.DropdownPropertyChoice(label = "No", value = "false"),
-        @TemplateProperty.DropdownPropertyChoice(label = "Yes", value = "true")
-      },
-      feel = Property.FeelMode.disabled)
-  boolean autoClassify;
+      binding = @TemplateProperty.PropertyBinding(name = "fallbackOutputValue"),
+      feel = Property.FeelMode.optional)
+  String fallbackOutputValue;
 
   public ConverseData getConverseData() {
     return converseData;
@@ -59,19 +62,19 @@ public class ClassificationRequestData extends DocumentRequestData {
     this.converseData = converseData;
   }
 
-  public List<String> getDocumentTypes() {
+  public List<DocumentType> getDocumentTypes() {
     return documentTypes;
   }
 
-  public void setDocumentTypes(List<String> documentTypes) {
+  public void setDocumentTypes(List<DocumentType> documentTypes) {
     this.documentTypes = documentTypes;
   }
 
-  public boolean isAutoClassify() {
-    return autoClassify;
+  public String getFallbackOutputValue() {
+    return fallbackOutputValue;
   }
 
-  public void setAutoClassify(boolean autoClassify) {
-    this.autoClassify = autoClassify;
+  public void setFallbackOutputValue(String fallbackOutputValue) {
+    this.fallbackOutputValue = fallbackOutputValue;
   }
 }

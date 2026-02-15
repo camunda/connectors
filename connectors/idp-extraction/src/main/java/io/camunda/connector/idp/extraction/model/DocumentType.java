@@ -6,5 +6,11 @@
  */
 package io.camunda.connector.idp.extraction.model;
 
-public record ClassificationResult(
-    String extractedValue, String confidence, String reasoning, ClassificationMetadata metadata) {}
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+public record DocumentType(
+    @NotNull @NotBlank String name,
+    @NotNull @NotBlank String classificationInstructions,
+    String description,
+    @NotNull @NotBlank String outputValue) {}

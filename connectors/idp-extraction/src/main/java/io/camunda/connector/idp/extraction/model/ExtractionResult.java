@@ -8,4 +8,4 @@ package io.camunda.connector.idp.extraction.model;
 
 import java.util.Map;
 
-public record ExtractionResult(Map<String, Object> extractedFields, Object metadata) {}
+public record ExtractionResult(Map<String, Object> extractedFields, ExtractionMetadata metadata) {}

@@ -6,5 +6,4 @@
  */
 package io.camunda.connector.idp.extraction.model;
 
-public record ClassificationResult(
-    String extractedValue, String confidence, String reasoning, ClassificationMetadata metadata) {}
+public record ClassificationMetadata(Integer tokenUsage, long latencyMs) {}

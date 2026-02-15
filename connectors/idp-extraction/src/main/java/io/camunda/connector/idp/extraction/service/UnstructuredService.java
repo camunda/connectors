@@ -18,6 +18,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
 import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
+import io.camunda.connector.idp.extraction.model.ExtractionMetadata;
 import io.camunda.connector.idp.extraction.model.ExtractionResult;
 import io.camunda.connector.idp.extraction.model.LlmModel;
 import io.camunda.connector.idp.extraction.model.TaxonomyItem;
@@ -41,6 +42,7 @@ public class UnstructuredService {
       List<TaxonomyItem> taxonomyItems,
       Document document) {
     ChatResponse aiResponse;
+    long latencyMs;
     if (textExtractor == null) {
       long aiStartTime = System.currentTimeMillis();
       LOGGER.info("Starting multimodal {} conversation", aiClient.getClass().getSimpleName());
@@ -50,19 +52,18 @@ public class UnstructuredService {
               LlmModel.getExtractionUserPrompt(taxonomyItems),
               document);
       long aiEndTime = System.currentTimeMillis();
+      latencyMs = aiEndTime - aiStartTime;
       LOGGER.info(
-          "Multimodal {} conversation took {} ms",
-          aiClient.getClass().getSimpleName(),
-          (aiEndTime - aiStartTime));
+          "Multimodal {} conversation took {} ms", aiClient.getClass().getSimpleName(), latencyMs);
     } else {
-      long extractionStartTime = System.currentTimeMillis();
+      long startTime = System.currentTimeMillis();
       LOGGER.info("Starting {} text extraction", textExtractor.getClass().getSimpleName());
       String extractedText = textExtractor.extract(document);
       long extractionEndTime = System.currentTimeMillis();
       LOGGER.info(
           "{} text extraction took {} ms",
           textExtractor.getClass().getSimpleName(),
-          (extractionEndTime - extractionStartTime));
+          (extractionEndTime - startTime));
 
       long aiStartTime = System.currentTimeMillis();
       LOGGER.info("Starting {} conversation", aiClient.getClass().getSimpleName());
@@ -71,21 +72,29 @@ public class UnstructuredService {
               LlmModel.getExtractionSystemInstruction(),
               LlmModel.getExtractionUserPrompt(extractedText, taxonomyItems));
       long aiEndTime = System.currentTimeMillis();
+      latencyMs = aiEndTime - startTime;
       LOGGER.info(
           "{} conversation took {} ms",
           aiClient.getClass().getSimpleName(),
           (aiEndTime - aiStartTime));
     }
 
-    return new ExtractionResult(
-        buildResponseJsonIfPossible(aiResponse.aiMessage().text(), taxonomyItems, aiClient),
-        aiResponse.tokenUsage());
+    int totalTokenUsage = aiResponse.metadata().tokenUsage().totalTokenCount();
+
+    return buildResponseIfPossible(
+        aiResponse.aiMessage().text(), taxonomyItems, aiClient, totalTokenUsage, latencyMs);
   }
 
-  private Map<String, Object> buildResponseJsonIfPossible(
-      String llmResponse, List<TaxonomyItem> taxonomyItems, AiClient aiClient) {
+  private ExtractionResult buildResponseIfPossible(
+      String llmResponse,
+      List<TaxonomyItem> taxonomyItems,
+      AiClient aiClient,
+      int totalTokenUsage,
+      long totalLatencyMs) {
     try {
-      return parseAndValidateResponse(llmResponse, taxonomyItems);
+      return new ExtractionResult(
+          parseAndValidateResponse(llmResponse, taxonomyItems),
+          new ExtractionMetadata(totalTokenUsage, totalLatencyMs));
     } catch (JsonProcessingException | ConnectorException e) {
       LOGGER.warn(
           "Initial JSON parsing failed, attempting to clean up response with LLM. Response: {}",
@@ -100,13 +109,20 @@ public class UnstructuredService {
                 LlmModel.getJsonExtractionSystemPrompt(),
                 LlmModel.getJsonExtractionUserPrompt(llmResponse));
         long cleanupEndTime = System.currentTimeMillis();
+        long cleanupLatencyMs = cleanupEndTime - cleanupStartTime;
         LOGGER.info(
             "JSON cleanup {} conversation took {} ms",
             aiClient.getClass().getSimpleName(),
-            (cleanupEndTime - cleanupStartTime));
+            cleanupLatencyMs);
 
         String cleanedResponse = cleanupResponse.aiMessage().text();
-        return parseAndValidateResponse(cleanedResponse, taxonomyItems);
+        int aggregatedTokenUsage =
+            totalTokenUsage + cleanupResponse.metadata().tokenUsage().totalTokenCount();
+        long aggregatedLatencyMs = totalLatencyMs + cleanupLatencyMs;
+
+        return new ExtractionResult(
+            parseAndValidateResponse(cleanedResponse, taxonomyItems),
+            new ExtractionMetadata(aggregatedTokenUsage, aggregatedLatencyMs));
       } catch (Exception cleanupException) {
         throw new ConnectorException(
             JSON_PARSING_FAILED,

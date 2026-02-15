@@ -69,11 +69,13 @@ public class LlmModel {
         .replace(TAXONOMY_PLACEHOLDER_FOR_MESSAGE, taxonomies);
   }
 
-  public static String getClassificationSystemPrompt(boolean autoClassify) {
-    if (autoClassify) {
-      return getClassificationAutoClassifyPrompt().formatted(getBaseClassificationSystemPrompt());
-    }
-    return getBaseClassificationSystemPrompt();
+  public static String getClassificationSystemPrompt(String fallbackOutputValue) {
+    return getBaseClassificationSystemPrompt()
+        + """
+
+            If you have LOW confidence on all provided document types, return the fallback output value "%s" as the extractedValue.
+            """
+            .formatted(String.valueOf(fallbackOutputValue));
   }
 
   public static String getBaseClassificationSystemPrompt() {
@@ -81,28 +83,21 @@ public class LlmModel {
             You are a document classification expert. You will need to analyze a document and classify it
             into one of the provided document types.
 
+            Each document type has an "outputValue" field. When classifying, always use the outputValue of the matched
+            document type as the "extractedValue" in your response.
+
             Critical: in all cases -- respond only in this valid JSON format, without any preamble.
             The response json will be validated so we need to make sure its valid:
             {
-                "extractedValue": "<one of the listed document types>",
+                "extractedValue": "<the outputValue of the matched document type>",
                 "confidence": "<HIGH or LOW>",
                 "reasoning": "<1-2 sentences on the reasoning behind your choice and confidence level."
             }
       """;
   }
 
-  public static String getClassificationAutoClassifyPrompt() {
-    return """
-            %s
-
-            You are free to classify outside the given types if you are confident the document does not match any of the listed document types.
-            You may classify it as a different type that better represents the document. Use the same case as the given types.
-
-      """;
-  }
-
   public static String getClassificationUserPrompt(
-      List<String> documentTypes, String documentContent) {
+      List<DocumentType> documentTypes, String documentContent) {
     return """
         %s
 
@@ -114,13 +109,31 @@ public class LlmModel {
         .formatted(getClassificationUserPrompt(documentTypes), documentContent);
   }
 
-  public static String getClassificationUserPrompt(List<String> documentTypes) {
+  public static String getClassificationUserPrompt(List<DocumentType> documentTypes) {
+    String formattedTypes =
+        documentTypes.stream().map(LlmModel::formatDocumentType).collect(Collectors.joining("\n"));
     return """
         Analyze this document and classify it into one of the following types:
 
         %s
         """
-        .formatted(String.join(", ", documentTypes));
+        .formatted(formattedTypes);
+  }
+
+  private static String formatDocumentType(DocumentType documentType) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("- Name: ").append(documentType.name());
+    if (documentType.description() != null && !documentType.description().isBlank()) {
+      sb.append("\n  Description: ").append(documentType.description());
+    }
+    if (documentType.classificationInstructions() != null
+        && !documentType.classificationInstructions().isBlank()) {
+      sb.append("\n  Instructions: ").append(documentType.classificationInstructions());
+    }
+    if (documentType.outputValue() != null && !documentType.outputValue().isBlank()) {
+      sb.append("\n  Output Value: ").append(documentType.outputValue());
+    }
+    return sb.toString();
   }
 
   private static String getCommonMessageTemplate() {

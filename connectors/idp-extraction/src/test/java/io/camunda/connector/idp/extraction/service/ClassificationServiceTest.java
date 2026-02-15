@@ -26,6 +26,7 @@ import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
 import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
 import io.camunda.connector.idp.extraction.model.ClassificationResult;
 import io.camunda.connector.idp.extraction.model.ConverseData;
+import io.camunda.connector.idp.extraction.model.DocumentType;
 import io.camunda.connector.idp.extraction.request.classification.ClassificationRequest;
 import io.camunda.connector.idp.extraction.request.classification.ClassificationRequestData;
 import io.camunda.connector.idp.extraction.request.common.ai.AiProvider;
@@ -82,7 +83,8 @@ class ClassificationServiceTest {
         }
         """;
 
-    ClassificationRequestData requestData = createRequestData(List.of("invoice", "receipt"));
+    ClassificationRequestData requestData =
+        createRequestData(List.of(docType("invoice"), docType("receipt")));
     ClassificationRequest request =
         new ClassificationRequest(null, aiProvider, requestData); // null extractor = multimodal
 
@@ -122,7 +124,8 @@ class ClassificationServiceTest {
         }
         """;
 
-    ClassificationRequestData requestData = createRequestData(List.of("invoice", "receipt"));
+    ClassificationRequestData requestData =
+        createRequestData(List.of(docType("invoice"), docType("receipt")));
     ExtractionProvider extractionProvider = new ExtractionProvider.ApachePdfBoxExtractorRequest();
     ClassificationRequest request =
         new ClassificationRequest(extractionProvider, aiProvider, requestData);
@@ -165,7 +168,8 @@ class ClassificationServiceTest {
         ```
         """;
 
-    ClassificationRequestData requestData = createRequestData(List.of("invoice", "receipt"));
+    ClassificationRequestData requestData =
+        createRequestData(List.of(docType("invoice"), docType("receipt")));
     ClassificationRequest request = new ClassificationRequest(null, aiProvider, requestData);
 
     ChatResponse chatResponse = createChatResponse(jsonResponse);
@@ -195,7 +199,8 @@ class ClassificationServiceTest {
         }
         """;
 
-    ClassificationRequestData requestData = createRequestData(List.of("invoice", "receipt"));
+    ClassificationRequestData requestData =
+        createRequestData(List.of(docType("invoice"), docType("receipt")));
     ClassificationRequest request = new ClassificationRequest(null, aiProvider, requestData);
 
     ChatResponse chatResponse = createChatResponse(jsonResponse);
@@ -226,7 +231,8 @@ class ClassificationServiceTest {
         }
         """;
 
-    ClassificationRequestData requestData = createRequestData(List.of("contract", "agreement"));
+    ClassificationRequestData requestData =
+        createRequestData(List.of(docType("contract"), docType("agreement")));
     ClassificationRequest request = new ClassificationRequest(null, aiProvider, requestData);
 
     ChatResponse chatResponse = createChatResponse(jsonResponse);
@@ -257,7 +263,8 @@ class ClassificationServiceTest {
     String jsonResponse = "{\"response\": " + "\"" + nestedJson.replace("\"", "\\\"") + "\"}";
     String cleanedResponse = nestedJson; // The cleanup should extract the nested JSON
 
-    ClassificationRequestData requestData = createRequestData(List.of("purchase_order", "invoice"));
+    ClassificationRequestData requestData =
+        createRequestData(List.of(docType("purchase_order"), docType("invoice")));
     ClassificationRequest request = new ClassificationRequest(null, aiProvider, requestData);
 
     ChatResponse initialResponse = createChatResponse(jsonResponse);
@@ -294,7 +301,8 @@ class ClassificationServiceTest {
         }
         """;
 
-    ClassificationRequestData requestData = createRequestData(List.of("invoice", "receipt"));
+    ClassificationRequestData requestData =
+        createRequestData(List.of(docType("invoice"), docType("receipt")));
     ClassificationRequest request = new ClassificationRequest(null, aiProvider, requestData);
 
     ChatResponse initialResponse = createChatResponse(malformedResponse);
@@ -316,6 +324,39 @@ class ClassificationServiceTest {
     verify(aiClient).chat(anyString(), anyString(), any(Document.class));
     // Verify cleanup call without document
     verify(aiClient).chat(anyString(), anyString());
+
+    // Verify metadata includes aggregated token usage from both initial and cleanup calls
+    // Each ChatResponse has TokenUsage(100, 50) = 150 total tokens
+    assertThat(result.metadata().tokenUsage()).isEqualTo(300);
+  }
+
+  @Test
+  void execute_shouldNotAggregateCleanupMetadata_whenInitialParsingSucceeds() throws Exception {
+    // given
+    String jsonResponse =
+        """
+        {
+          "extractedValue": "invoice",
+          "confidence": "HIGH",
+          "reasoning": "Clear invoice format"
+        }
+        """;
+
+    ClassificationRequestData requestData =
+        createRequestData(List.of(docType("invoice"), docType("receipt")));
+    ClassificationRequest request = new ClassificationRequest(null, aiProvider, requestData);
+
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+
+    setupMultimodalMocks();
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(chatResponse);
+
+    // when
+    ClassificationResult result = classificationService.execute(request);
+
+    // then
+    // Only the initial call's token usage should be included (100 + 50 = 150)
+    assertThat(result.metadata().tokenUsage()).isEqualTo(150);
   }
 
   @Test
@@ -323,7 +364,8 @@ class ClassificationServiceTest {
     // given
     String jsonResponse = "[]"; // Array instead of object
 
-    ClassificationRequestData requestData = createRequestData(List.of("invoice", "receipt"));
+    ClassificationRequestData requestData =
+        createRequestData(List.of(docType("invoice"), docType("receipt")));
     ClassificationRequest request = new ClassificationRequest(null, aiProvider, requestData);
 
     ChatResponse chatResponse = createChatResponse(jsonResponse);
@@ -345,7 +387,8 @@ class ClassificationServiceTest {
     // given
     String malformedResponse = "This is not JSON at all!";
 
-    ClassificationRequestData requestData = createRequestData(List.of("invoice", "receipt"));
+    ClassificationRequestData requestData =
+        createRequestData(List.of(docType("invoice"), docType("receipt")));
     ClassificationRequest request = new ClassificationRequest(null, aiProvider, requestData);
 
     ChatResponse initialResponse = createChatResponse(malformedResponse);
@@ -372,7 +415,8 @@ class ClassificationServiceTest {
         }
         """;
 
-    ClassificationRequestData requestData = createRequestData(List.of("invoice", "receipt"));
+    ClassificationRequestData requestData =
+        createRequestData(List.of(docType("invoice"), docType("receipt")));
     ClassificationRequest request = new ClassificationRequest(null, aiProvider, requestData);
 
     ChatResponse chatResponse = createChatResponse(jsonResponse);
@@ -390,18 +434,19 @@ class ClassificationServiceTest {
   }
 
   @Test
-  void execute_shouldHandleAutoClassifyMode() throws Exception {
+  void execute_shouldReturnFallbackOutputValue_whenLowConfidence() throws Exception {
     // given
     String jsonResponse =
         """
         {
-          "extractedValue": "bill_of_lading",
-          "confidence": "HIGH",
-          "reasoning": "Document classified outside provided types"
+          "extractedValue": "unknown",
+          "confidence": "LOW",
+          "reasoning": "Document does not match any provided types with high confidence"
         }
         """;
 
-    ClassificationRequestData requestData = createRequestData(List.of("invoice", "receipt"), true);
+    ClassificationRequestData requestData =
+        createRequestData(List.of(docType("invoice"), docType("receipt")), "fallback_value");
     ClassificationRequest request = new ClassificationRequest(null, aiProvider, requestData);
 
     ChatResponse chatResponse = createChatResponse(jsonResponse);
@@ -413,8 +458,8 @@ class ClassificationServiceTest {
     ClassificationResult result = classificationService.execute(request);
 
     // then
-    assertThat(result.extractedValue()).isEqualTo("bill_of_lading");
-    assertThat(result.confidence()).isEqualTo("HIGH");
+    assertThat(result.extractedValue()).isEqualTo("unknown");
+    assertThat(result.confidence()).isEqualTo("LOW");
   }
 
   @Test
@@ -432,7 +477,8 @@ class ClassificationServiceTest {
         ```
         """;
 
-    ClassificationRequestData requestData = createRequestData(List.of("invoice", "receipt"));
+    ClassificationRequestData requestData =
+        createRequestData(List.of(docType("invoice"), docType("receipt")));
     ClassificationRequest request = new ClassificationRequest(null, aiProvider, requestData);
 
     ChatResponse chatResponse = createChatResponse(jsonResponse);
@@ -449,6 +495,109 @@ class ClassificationServiceTest {
     assertThat(result.reasoning()).isEqualTo("Multiple indicators present");
   }
 
+  @Test
+  void execute_shouldIncludeDocumentTypeFieldsInPrompt_whenFieldsArePopulated() throws Exception {
+    // given
+    String jsonResponse =
+        """
+        {
+          "extractedValue": "inv_output",
+          "confidence": "HIGH",
+          "reasoning": "Matched invoice based on instructions and description"
+        }
+        """;
+
+    DocumentType invoiceType =
+        new DocumentType(
+            "invoice",
+            "Look for invoice number and line items",
+            "A commercial document issued by a seller",
+            "inv_output");
+    DocumentType receiptType =
+        new DocumentType(
+            "receipt", "Look for payment confirmation", "Proof of payment", "rec_output");
+
+    ClassificationRequestData requestData = createRequestData(List.of(invoiceType, receiptType));
+    ClassificationRequest request = new ClassificationRequest(null, aiProvider, requestData);
+
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+
+    setupMultimodalMocks();
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(chatResponse);
+
+    // when
+    ClassificationResult result = classificationService.execute(request);
+
+    // then
+    assertThat(result.extractedValue()).isEqualTo("inv_output");
+    assertThat(result.confidence()).isEqualTo("HIGH");
+    assertThat(result.reasoning())
+        .isEqualTo("Matched invoice based on instructions and description");
+  }
+
+  @Test
+  void execute_shouldPopulateMetadataWithTokenUsageAndLatency() throws Exception {
+    // given
+    String jsonResponse =
+        """
+        {
+          "extractedValue": "invoice",
+          "confidence": "HIGH",
+          "reasoning": "Invoice detected"
+        }
+        """;
+
+    ClassificationRequestData requestData =
+        createRequestData(List.of(docType("invoice"), docType("receipt")));
+    ClassificationRequest request = new ClassificationRequest(null, aiProvider, requestData);
+
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+
+    setupMultimodalMocks();
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(chatResponse);
+
+    // when
+    ClassificationResult result = classificationService.execute(request);
+
+    // then
+    assertThat(result.metadata()).isNotNull();
+    // TokenUsage is 100 input + 50 output = 150 total
+    assertThat(result.metadata().tokenUsage()).isEqualTo(150);
+    assertThat(result.metadata().latencyMs()).isGreaterThanOrEqualTo(0);
+  }
+
+  @Test
+  void execute_shouldUseFallbackOutputValueInSystemPrompt() throws Exception {
+    // given
+    String jsonResponse =
+        """
+        {
+          "extractedValue": "other_document",
+          "confidence": "LOW",
+          "reasoning": "No matching document type found"
+        }
+        """;
+
+    ClassificationRequestData requestData =
+        createRequestData(List.of(docType("invoice"), docType("receipt")), "other_document");
+    ClassificationRequest request = new ClassificationRequest(null, aiProvider, requestData);
+
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+
+    setupMultimodalMocks();
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(chatResponse);
+
+    // when
+    ClassificationResult result = classificationService.execute(request);
+
+    // then
+    assertThat(result.extractedValue()).isEqualTo("other_document");
+    assertThat(result.confidence()).isEqualTo("LOW");
+    assertThat(result.reasoning()).isEqualTo("No matching document type found");
+    assertThat(result.metadata()).isNotNull();
+    assertThat(result.metadata().tokenUsage()).isEqualTo(150);
+  }
+
   // Helper methods
 
   private void setupMultimodalMocks() {
@@ -460,21 +609,25 @@ class ClassificationServiceTest {
         .thenReturn(aiClient);
   }
 
-  private ClassificationRequestData createRequestData(List<String> documentTypes) {
-    return createRequestData(documentTypes, false);
+  private ClassificationRequestData createRequestData(List<DocumentType> documentTypes) {
+    return createRequestData(documentTypes, null);
   }
 
   private ClassificationRequestData createRequestData(
-      List<String> documentTypes, boolean autoClassify) {
+      List<DocumentType> documentTypes, String fallbackOutputValue) {
     ClassificationRequestData requestData = mock(ClassificationRequestData.class);
     ConverseData converseData = mock(ConverseData.class);
 
     when(requestData.getConverseData()).thenReturn(converseData);
     when(requestData.getDocumentTypes()).thenReturn(documentTypes);
     when(requestData.getDocument()).thenReturn(document);
-    when(requestData.isAutoClassify()).thenReturn(autoClassify);
+    when(requestData.getFallbackOutputValue()).thenReturn(fallbackOutputValue);
 
     return requestData;
+  }
+
+  private static DocumentType docType(String name) {
+    return new DocumentType(name, null, null, null);
   }
 
   private ChatResponse createChatResponse(String responseText) {
