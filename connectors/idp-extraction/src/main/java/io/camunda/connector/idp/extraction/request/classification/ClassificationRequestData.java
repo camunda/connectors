@@ -11,6 +11,9 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.idp.extraction.model.ConverseData;
 import io.camunda.connector.idp.extraction.model.DocumentType;
 import io.camunda.connector.idp.extraction.request.common.DocumentRequestData;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 public class ClassificationRequestData extends DocumentRequestData {
@@ -35,6 +38,9 @@ public class ClassificationRequestData extends DocumentRequestData {
           "=[\n  {\n    name: \"\",\n    classificationInstructions: \"\",\n    description: \"\",\n    outputValue: \"\"\n  }\n]",
       binding = @TemplateProperty.PropertyBinding(name = "documentTypes"),
       feel = Property.FeelMode.optional)
+  @NotNull
+  @NotEmpty
+  @Valid
   List<DocumentType> documentTypes;
 
   @TemplateProperty(

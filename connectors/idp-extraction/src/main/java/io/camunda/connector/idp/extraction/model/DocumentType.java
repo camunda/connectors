@@ -6,5 +6,11 @@
  */
 package io.camunda.connector.idp.extraction.model;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 public record DocumentType(
-    String name, String classificationInstructions, String description, String outputValue) {}
+    @NotNull @NotBlank String name,
+    @NotNull @NotBlank String classificationInstructions,
+    String description,
+    @NotNull @NotBlank String outputValue) {}

@@ -72,6 +72,9 @@
     "description" : "The possible classification types considered by the model",
     "optional" : false,
     "value" : "=[\n  {\n    name: \"\",\n    classificationInstructions: \"\",\n    description: \"\",\n    outputValue: \"\"\n  }\n]",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "input",
     "binding" : {
