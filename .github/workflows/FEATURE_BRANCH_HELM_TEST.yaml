@@ -135,6 +135,7 @@ jobs:
       image-source: artifactory
       connectors-version: ${{ needs.build-image.outputs.connectors-version }}
       release-branch: main
+      helm-dir: camunda-platform-8.8
 
   trigger-saas-e2e:
     name: Trigger SaaS E2E tests
