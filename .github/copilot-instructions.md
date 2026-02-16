@@ -288,6 +288,9 @@ mvn clean package
 # Quick build, skip long-running tests (faster development)
 mvn clean package -Dquickly
 
+# Quick build with Maven cache (fastest for incremental builds)
+mvn clean install -DskipTests -DskipChecks -Dquickly -Dmaven.build.cache.enabled=true -T 1C
+
 # Generate element templates for connectors
 ./connectors/create-element-templates-symlinks.sh
 
