@@ -84,7 +84,7 @@ limitations under the License.</license.inlineheader>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.21.0</version.mockito>
-    <version.junit-jupiter>6.0.2</version.junit-jupiter>
+    <version.junit-jupiter>6.0.3</version.junit-jupiter>
     <version.assertj>3.27.7</version.assertj>
     <version.jackson-bom>2.21.0</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.21.0</version.jackson-datatype-jsr310>
@@ -96,10 +96,10 @@ limitations under the License.</license.inlineheader>
 
     <version.spring-boot>4.0.2</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>7.4.4</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.5.29</version.logback>
+    <version.logback>1.5.32</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.41.26</version.aws-sdk2>
+    <version.aws-sdk2>2.41.30</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -107,7 +107,7 @@ limitations under the License.</license.inlineheader>
     <version.localstack>2.0.3</version.localstack>
 
     <version.okhttp>4.12.0</version.okhttp>
-    <version.opensearch-client>3.5.0</version.opensearch-client>
+    <version.opensearch-client>3.6.0</version.opensearch-client>
 
     <version.google-api-client>2.8.1</version.google-api-client>
 
@@ -117,7 +117,7 @@ limitations under the License.</license.inlineheader>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.42.1</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20260114-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.75.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.76.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20251110-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <version.jsr305>3.0.2</version.jsr305>
@@ -133,14 +133,14 @@ limitations under the License.</license.inlineheader>
     <version.commons-io>2.21.0</version.commons-io>
     <version.commons-codec>1.16.1</version.commons-codec>
 
-    <version.kafka-clients>4.1.1</version.kafka-clients>
+    <version.kafka-clients>4.2.0</version.kafka-clients>
 
     <version.microsoft-graph>6.61.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.9.0</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.5</version.microsoft-graph-core>
     <version.azure-identity>1.18.2</version.azure-identity>
     <version.azure-core>1.57.1</version.azure-core>
-    <version.azure-cosmos>4.77.0</version.azure-cosmos>
+    <version.azure-cosmos>4.78.0</version.azure-cosmos>
 
     <version.bouncycastle>1.83</version.bouncycastle>
     <version.box-sdk>4.16.4</version.box-sdk>
@@ -166,7 +166,7 @@ limitations under the License.</license.inlineheader>
     <version.wiremock>3.13.2</version.wiremock>
     <version.system-stubs>2.1.8</version.system-stubs>
 
-    <version.auth0.jwt>4.5.0</version.auth0.jwt>
+    <version.auth0.jwt>4.5.1</version.auth0.jwt>
     <version.auth0.jwks>0.23.0</version.auth0.jwks>
 
     <version.langchain4j>1.11.0</version.langchain4j>
