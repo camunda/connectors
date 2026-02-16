@@ -91,7 +91,7 @@ limitations under the License.</license.inlineheader>
 
     <version.spring-boot>3.5.10</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>7.4.4</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.5.31</version.logback>
+    <version.logback>1.5.32</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
     <version.software-aws-java-sdk>2.41.29</version.software-aws-java-sdk>
@@ -125,7 +125,7 @@ limitations under the License.</license.inlineheader>
     <version.commons-io>2.21.0</version.commons-io>
     <version.commons-codec>1.16.1</version.commons-codec>
 
-    <version.kafka-clients>4.1.1</version.kafka-clients>
+    <version.kafka-clients>4.2.0</version.kafka-clients>
 
     <version.microsoft-graph>6.61.0</version.microsoft-graph>
     <version.azure-identity>1.18.2</version.azure-identity>
