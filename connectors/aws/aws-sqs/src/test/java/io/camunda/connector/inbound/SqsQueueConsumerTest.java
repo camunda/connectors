@@ -33,7 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
-import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
+import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
@@ -90,8 +90,9 @@ public class SqsQueueConsumerTest {
     verify(sqsClient).deleteMessage(deleteCaptor.capture());
 
     ReceiveMessageRequest receiveMessageRequest = requestArgumentCaptor.getValue();
-    assertThat(receiveMessageRequest.attributeNamesAsStrings()).isEqualTo(List.of("All"));
     assertThat(receiveMessageRequest.messageAttributeNames()).isEqualTo(List.of("All"));
+    assertThat(receiveMessageRequest.messageSystemAttributeNames())
+        .isEqualTo(List.of(MessageSystemAttributeName.ALL));
 
     DeleteMessageRequest deleteRequest = deleteCaptor.getValue();
     assertThat(deleteRequest.queueUrl()).isEqualTo(queue.url());
@@ -117,11 +118,7 @@ public class SqsQueueConsumerTest {
         .thenReturn(new MessagePublished(null, 1L, null));
 
     // when
-    Thread thread =
-        new Thread(
-            () -> {
-              consumer.run();
-            });
+    Thread thread = new Thread(() -> consumer.run());
     consumer.setQueueConsumerActive(false);
     thread.start();
     thread.join();
@@ -134,8 +131,8 @@ public class SqsQueueConsumerTest {
                 .messageId(message.messageId())
                 .build());
     ReceiveMessageRequest receiveMessageRequest = requestArgumentCaptor.getValue();
-    assertThat(receiveMessageRequest.attributeNames())
-        .isEqualTo(attributeNames.stream().map(QueueAttributeName::fromValue).toList());
+    assertThat(receiveMessageRequest.messageSystemAttributeNames())
+        .isEqualTo(attributeNames.stream().map(MessageSystemAttributeName::fromValue).toList());
     assertThat(receiveMessageRequest.messageAttributeNames()).isEqualTo(messageAttributeNames);
     verify(sqsClient).deleteMessage(any(DeleteMessageRequest.class));
   }
@@ -152,11 +149,7 @@ public class SqsQueueConsumerTest {
     when(context.correlate(any(CorrelationRequest.class)))
         .thenReturn(new Other(new RuntimeException()));
     // when
-    Thread thread =
-        new Thread(
-            () -> {
-              consumer.run();
-            });
+    Thread thread = new Thread(() -> consumer.run());
     consumer.setQueueConsumerActive(false);
     thread.start();
     thread.join();
@@ -178,11 +171,7 @@ public class SqsQueueConsumerTest {
     when(context.correlate(any(CorrelationRequest.class)))
         .thenReturn(new ActivationConditionNotMet(true));
     // when
-    Thread thread =
-        new Thread(
-            () -> {
-              consumer.run();
-            });
+    Thread thread = new Thread(() -> consumer.run());
     consumer.setQueueConsumerActive(false);
     thread.start();
     thread.join();

@@ -21,6 +21,7 @@ public class AddItemOperation implements AwsDynamoDbOperation {
     this.addItemModel = addItemModel;
   }
 
+  @Override
   public PutItemResponse invoke(final DynamoDbClient dynamoDB) {
     return dynamoDB.putItem(
         PutItemRequest.builder()

@@ -23,6 +23,7 @@ public class CreateTableOperation implements AwsDynamoDbOperation {
     this.createTableModel = createTableModel;
   }
 
+  @Override
   public TableDescription invoke(final DynamoDbClient dynamoDB) {
     return dynamoDB.createTable(buildCreateTableRequest()).tableDescription();
   }

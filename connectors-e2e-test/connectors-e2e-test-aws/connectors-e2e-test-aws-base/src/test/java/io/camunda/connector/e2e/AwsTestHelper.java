@@ -308,7 +308,7 @@ public class AwsTestHelper {
     ReceiveMessageRequest receiveMessageRequest =
         ReceiveMessageRequest.builder()
             .queueUrl(queueUrl)
-            .attributeNames(QueueAttributeName.ALL)
+            .messageSystemAttributeNamesWithStrings("All")
             .messageAttributeNames("All")
             .waitTimeSeconds(5)
             .maxNumberOfMessages(1)

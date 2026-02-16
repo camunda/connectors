@@ -13,6 +13,7 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 
 public class DefaultAmazonSQSClientSupplier implements AmazonSQSClientSupplier {
 
+  @Override
   public SqsClient sqsClient(
       final AwsCredentialsProvider credentialsProvider, final String region) {
     return SqsClient.builder()
@@ -21,6 +22,7 @@ public class DefaultAmazonSQSClientSupplier implements AmazonSQSClientSupplier {
         .build();
   }
 
+  @Override
   public SqsClient sqsClient(
       final AwsCredentialsProvider credentialsProvider,
       final String region,

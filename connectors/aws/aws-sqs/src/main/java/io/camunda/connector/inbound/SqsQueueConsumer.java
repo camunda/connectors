@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
-import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
+import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
@@ -29,7 +29,8 @@ public class SqsQueueConsumer implements Runnable {
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsQueueConsumer.class);
 
   private static final String ALL_ATTRIBUTES_KEY = "All";
-  private static final QueueAttributeName ALL_QUEUE_ATTRIBUTES = QueueAttributeName.ALL;
+  private static final MessageSystemAttributeName ALL_QUEUE_ATTRIBUTES =
+      MessageSystemAttributeName.ALL;
 
   private final SqsClient sqsClient;
   private final SqsInboundProperties properties;
@@ -124,17 +125,27 @@ public class SqsQueueConsumer implements Runnable {
   }
 
   private ReceiveMessageRequest createReceiveMessageRequest() {
+    int waitTimeSeconds;
+    try {
+      waitTimeSeconds = Integer.parseInt(properties.getQueue().pollingWaitTime());
+    } catch (NumberFormatException e) {
+      LOGGER.warn(
+          "Invalid pollingWaitTime '{}', falling back to default value 1 second",
+          properties.getQueue().pollingWaitTime(),
+          e);
+      waitTimeSeconds = 1;
+    }
     return ReceiveMessageRequest.builder()
-        .waitTimeSeconds(Math.max(Integer.parseInt(properties.getQueue().pollingWaitTime()), 1))
+        .waitTimeSeconds(Math.max(waitTimeSeconds, 1))
         .queueUrl(properties.getQueue().url())
         .messageAttributeNames(
             Optional.ofNullable(properties.getQueue().messageAttributeNames())
                 .filter(list -> !list.isEmpty())
                 .orElse(List.of(ALL_ATTRIBUTES_KEY)))
-        .attributeNames(
+        .messageSystemAttributeNames(
             Optional.ofNullable(properties.getQueue().attributeNames())
                 .filter(list -> !list.isEmpty())
-                .map(names -> names.stream().map(QueueAttributeName::fromValue).toList())
+                .map(names -> names.stream().map(MessageSystemAttributeName::fromValue).toList())
                 .orElse(List.of(ALL_QUEUE_ATTRIBUTES)))
         .build();
   }
