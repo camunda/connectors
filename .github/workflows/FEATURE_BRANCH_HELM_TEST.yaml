@@ -173,7 +173,7 @@ jobs:
             -d '{
                   "event_type": "run-saas-generation-smoke-connectors",
                   "client_payload": {
-                      "correlation_id": "'"$CORRELATION_ID"'"
+                      "correlation_id": "'"$CORRELATION_ID"'",
                       "source_repo": "${{ github.repository }}",
                       "source_sha": "${{ github.sha }}",
                       "c8Version": "8.8",
