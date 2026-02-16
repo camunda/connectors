@@ -205,7 +205,7 @@ jobs:
           echo "Waiting for downstream E2E workflow run in camunda/c8-cross-component-e2e-tests for correlation id: $CORRELATION_ID"
 
           TARGET_REPO="camunda/c8-cross-component-e2e-tests"
-          WORKFLOW_FILE="playwright_saas_pr_trigger_monorepo.yml"
+          WORKFLOW_FILE="playwright_saas_pr_trigger_connectors.yml"
 
           gh_api_with_retry() {
             local endpoint="$1"
