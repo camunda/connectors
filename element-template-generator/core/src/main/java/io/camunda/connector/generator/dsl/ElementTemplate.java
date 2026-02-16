@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -125,25 +126,16 @@ public record ElementTemplate(
 
   @JsonInclude(Include.NON_NULL)
   public record ElementTypeWrapper(
-      String value,
-      String eventDefinition,
-      @JsonIgnore
-          io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType originalType) {
+      String value, String eventDefinition, @JsonIgnore BpmnType originalType) {
 
-    public static ElementTypeWrapper from(
-        io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType value) {
+    public static ElementTypeWrapper from(BpmnType value) {
       var haveEventDefinition =
           Set.of(
-              io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                  .INTERMEDIATE_CATCH_EVENT,
-              io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                  .INTERMEDIATE_THROW_EVENT,
-              io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                  .MESSAGE_START_EVENT,
-              io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                  .MESSAGE_END_EVENT,
-              io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                  .BOUNDARY_EVENT);
+              BpmnType.INTERMEDIATE_CATCH_EVENT,
+              BpmnType.INTERMEDIATE_THROW_EVENT,
+              BpmnType.MESSAGE_START_EVENT,
+              BpmnType.MESSAGE_END_EVENT,
+              BpmnType.BOUNDARY_EVENT);
       var messageEventDefinition = "bpmn:MessageEventDefinition";
 
       return new ElementTypeWrapper(

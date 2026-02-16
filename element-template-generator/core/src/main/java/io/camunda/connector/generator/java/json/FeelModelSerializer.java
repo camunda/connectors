@@ -28,6 +28,9 @@ public class FeelModelSerializer extends JsonSerializer<FeelMode> {
       FeelMode feelMode, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
       throws IOException {
     if (feelMode == FeelMode.staticFeel) {
+      // The Element Template specification expects "static" instead of "staticFeel" for the static
+      // FEEL mode.
+      // https://github.com/camunda/element-templates-json-schema/blob/ff13a03abd02bfb45a6fe495dd291c1d9ee61dbd/packages/zeebe-element-templates-json-schema/src/defs/properties.json#L1008
       jsonGenerator.writeString("static");
     } else {
       jsonGenerator.writeString(feelMode.name());

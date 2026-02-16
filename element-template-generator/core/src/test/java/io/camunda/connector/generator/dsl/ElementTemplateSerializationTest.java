@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import static io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.*;
 import static io.camunda.connector.generator.java.annotation.TemplateProperty.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,12 +47,8 @@ public class ElementTemplateSerializationTest {
             .id("io.camunda.connector.Template.v1")
             .type("io.camunda:template:1")
             .name("Template: Some Function")
-            .appliesTo(
-                Set.of(
-                    io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.TASK))
-            .elementType(
-                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                    .SERVICE_TASK)
+            .appliesTo(Set.of(TASK))
+            .elementType(SERVICE_TASK)
             .version(1)
             .documentationRef(
                 "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/")

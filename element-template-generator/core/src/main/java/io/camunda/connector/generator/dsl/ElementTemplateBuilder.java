@@ -22,6 +22,7 @@ import io.camunda.connector.generator.dsl.ElementTemplate.ElementTypeWrapper;
 import io.camunda.connector.generator.dsl.ElementTemplate.Metadata;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
+import io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -44,7 +45,7 @@ public class ElementTemplateBuilder {
   protected Engines engines;
   protected Metadata metadata;
   protected Set<String> appliesTo;
-  protected io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType elementType;
+  protected BpmnType elementType;
 
   private ElementTemplateBuilder(Mode mode) {
     this.mode = mode;
@@ -157,26 +158,17 @@ public class ElementTemplateBuilder {
     return this;
   }
 
-  public ElementTemplateBuilder appliesTo(
-      Set<io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType> appliesTo) {
-    this.appliesTo =
-        appliesTo.stream()
-            .map(io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType::getName)
-            .collect(Collectors.toSet());
+  public ElementTemplateBuilder appliesTo(Set<BpmnType> appliesTo) {
+    this.appliesTo = appliesTo.stream().map(BpmnType::getName).collect(Collectors.toSet());
     return this;
   }
 
-  public ElementTemplateBuilder appliesTo(
-      io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType... appliesTo) {
-    this.appliesTo =
-        Arrays.stream(appliesTo)
-            .map(io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType::getName)
-            .collect(Collectors.toSet());
+  public ElementTemplateBuilder appliesTo(BpmnType... appliesTo) {
+    this.appliesTo = Arrays.stream(appliesTo).map(BpmnType::getName).collect(Collectors.toSet());
     return this;
   }
 
-  public ElementTemplateBuilder elementType(
-      io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType elementType) {
+  public ElementTemplateBuilder elementType(BpmnType elementType) {
     this.elementType = elementType;
     return this;
   }
