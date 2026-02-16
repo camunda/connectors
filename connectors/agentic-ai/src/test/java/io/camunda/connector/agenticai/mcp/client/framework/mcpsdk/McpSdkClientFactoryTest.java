@@ -12,6 +12,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -67,6 +68,7 @@ class McpSdkClientFactoryTest {
 
   @BeforeEach
   void setUp() {
+    WireMock.reset();
     factory = new McpSdkClientFactory(objectMapper, headersSupplierFactory);
   }
 
@@ -109,13 +111,18 @@ class McpSdkClientFactoryTest {
     assertThatThrownBy(() -> client.listTools(AllowDenyList.allowingEverything()))
         .hasMessage("Client failed to initialize listing tools");
 
-    WireMock.verify(
-        1,
-        postRequestedFor(urlPathEqualTo(endpoint))
-            .withHeader("Content-Type", equalTo("application/json"))
-            .withHeader("Accept", equalTo("application/json, text/event-stream"))
-            .withHeader("Authorization", equalTo("Bearer test-token"))
-            .withHeader("X-Dummy", equalTo("Test")));
+    await()
+        .atMost(Duration.ofSeconds(2))
+        .untilAsserted(
+            () -> {
+              WireMock.verify(
+                  1,
+                  postRequestedFor(urlPathEqualTo(endpoint))
+                      .withHeader("Content-Type", equalTo("application/json"))
+                      .withHeader("Accept", equalTo("application/json, text/event-stream"))
+                      .withHeader("Authorization", equalTo("Bearer test-token"))
+                      .withHeader("X-Dummy", equalTo("Test")));
+            });
   }
 
   @ParameterizedTest
@@ -134,12 +141,17 @@ class McpSdkClientFactoryTest {
     assertThatThrownBy(() -> client.listTools(AllowDenyList.allowingEverything()))
         .hasMessage("Client failed to initialize listing tools");
 
-    WireMock.verify(
-        1,
-        getRequestedFor(urlPathEqualTo(endpoint))
-            .withHeader("Accept", equalTo("text/event-stream"))
-            .withHeader("Authorization", equalTo("Bearer test-token"))
-            .withHeader("X-Dummy", equalTo("Test")));
+    await()
+        .atMost(Duration.ofSeconds(2))
+        .untilAsserted(
+            () -> {
+              WireMock.verify(
+                  1,
+                  getRequestedFor(urlPathEqualTo(endpoint))
+                      .withHeader("Accept", equalTo("text/event-stream"))
+                      .withHeader("Authorization", equalTo("Bearer test-token"))
+                      .withHeader("X-Dummy", equalTo("Test")));
+            });
   }
 
   @Test
