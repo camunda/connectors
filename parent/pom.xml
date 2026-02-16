@@ -149,7 +149,7 @@ limitations under the License.</license.inlineheader>
     <version.wiremock>3.13.2</version.wiremock>
     <version.system-stubs-jupiter>2.1.8</version.system-stubs-jupiter>
 
-    <version.auth0.jwt>4.5.0</version.auth0.jwt>
+    <version.auth0.jwt>4.5.1</version.auth0.jwt>
     <version.auth0.jwks>0.23.0</version.auth0.jwks>
     
     <version.langchain4j>1.11.0</version.langchain4j>
