@@ -56,9 +56,13 @@ except in compliance with the proprietary license.</license.inlineheader>
         <configuration>
           <!-- AWS SDK dependencies defined in our aws-base module -->
           <ignoredUsedUndeclaredDependencies combine.children="append">
-            <dependency>com.amazonaws:aws-java-sdk-core</dependency>
+            <dependency>software.amazon.awssdk:aws-core</dependency>
             <dependency>software.amazon.awssdk:auth</dependency>
           </ignoredUsedUndeclaredDependencies>
+          <ignoredUnusedDeclaredDependencies>
+            <dependency>software.amazon.awssdk:aws-core</dependency>
+            <dependency>software.amazon.awssdk:auth</dependency>
+          </ignoredUnusedDeclaredDependencies>
         </configuration>
       </plugin>
     </plugins>
