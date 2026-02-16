@@ -27,10 +27,9 @@ import com.networknt.schema.resource.SchemaLoader.Builder;
 import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import io.camunda.connector.generator.cli.GeneratorServiceLoader;
 import io.camunda.connector.generator.dsl.ElementTemplate;
+import io.camunda.connector.generator.java.json.ElementTemplateModule;
 import java.util.List;
 import java.util.concurrent.Callable;
-
-import io.camunda.connector.generator.java.json.ElementTemplateModule;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.ParentCommand;

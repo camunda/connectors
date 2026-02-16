@@ -722,7 +722,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "staticFeel",
+    "feel" : "static",
     "group" : "listEmailsPop3",
     "binding" : {
       "name" : "data.pop3Action.maxToBeRead",
@@ -891,7 +891,7 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "staticFeel",
+    "feel" : "static",
     "group" : "listEmailsImap",
     "binding" : {
       "name" : "data.imapAction.maxToBeRead",

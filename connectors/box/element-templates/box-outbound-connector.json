@@ -326,7 +326,7 @@
     "description" : "Deletes all items contained by the folder",
     "optional" : false,
     "value" : true,
-    "feel" : "staticFeel",
+    "feel" : "static",
     "group" : "operation",
     "binding" : {
       "name" : "operation.recursive",
@@ -540,7 +540,7 @@
     "description" : "Offset for search results",
     "optional" : false,
     "value" : 0,
-    "feel" : "staticFeel",
+    "feel" : "static",
     "group" : "operation",
     "binding" : {
       "name" : "operation.offset",
@@ -558,7 +558,7 @@
     "description" : "Limit",
     "optional" : false,
     "value" : 30,
-    "feel" : "staticFeel",
+    "feel" : "static",
     "group" : "operation",
     "binding" : {
       "name" : "operation.limit",

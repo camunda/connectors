@@ -308,7 +308,7 @@
     "label" : "Create document",
     "optional" : false,
     "value" : true,
-    "feel" : "staticFeel",
+    "feel" : "static",
     "group" : "downloadObject",
     "binding" : {
       "name" : "action.asFile",
