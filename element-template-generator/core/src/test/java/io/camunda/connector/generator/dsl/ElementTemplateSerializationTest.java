@@ -25,6 +25,7 @@ import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
+import io.camunda.connector.generator.java.json.ElementTemplateModule;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -34,7 +35,8 @@ import org.skyscreamer.jsonassert.JSONAssert;
 
 public class ElementTemplateSerializationTest {
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper =
+      new ObjectMapper().registerModule(new ElementTemplateModule());
 
   @Test
   void serializationTest() throws Exception {
@@ -70,7 +72,7 @@ public class ElementTemplateSerializationTest {
                             .label("Token")
                             .description("The token for authentication.")
                             .constraints(PropertyConstraints.builder().notEmpty(true).build())
-                            .feel(FeelMode.optional)
+                            .feel(FeelMode.staticFeel)
                             .binding(new ZeebeInput("authentication.token")))
                     .build(),
                 PropertyGroup.builder()

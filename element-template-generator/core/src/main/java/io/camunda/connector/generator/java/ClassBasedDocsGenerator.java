@@ -34,6 +34,7 @@ import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.java.annotation.DataExample;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.generator.java.json.ElementTemplateModule;
 import io.camunda.connector.generator.java.util.DataExampleModel;
 import io.camunda.connector.generator.java.util.DocsDataProviderStrategy;
 import io.camunda.connector.generator.java.util.DocsPebbleExtension;
@@ -72,6 +73,7 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
           .enable(SORT_PROPERTIES_ALPHABETICALLY)
           .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
           .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+          .registerModule(new ElementTemplateModule())
           .writerWithDefaultPrettyPrinter();
   private static final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
   private final ClassLoader classLoader;

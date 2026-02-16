@@ -160,6 +160,14 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
+    void staticFeelProperty() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
+      var property = getPropertyById("feeModelStaticProperty", template);
+      assertThat(property.getType()).isEqualTo("String");
+      assertThat(property.getFeel()).isEqualTo(FeelMode.staticFeel);
+    }
+
+    @Test
     void resultExpressionPropertyWithValue() {
       var template =
           generator
