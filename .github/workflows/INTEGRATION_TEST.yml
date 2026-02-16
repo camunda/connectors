@@ -178,8 +178,8 @@ jobs:
       e2e-enabled: true
       # This scenario installs a full Camunda 8 cluster with Keycloak and Elasticsearch being external. 
       # This keycloak realm and elasticsearch prefixes are all randomly generated at installation time.
-      scenario: keycloak-original
-      shortname: keyco
+      scenario: qa-elasticsearch
+      shortname: qaes
       # Github does not guarantee that the cleanup job will run. So we need to use flags. Within the helm CI the max ttl for a namespace is set.
       # That max ttl can be overridden by setting the deployment-ttl to a non-empty value.
       # When always-delete-namespace is true, and ttl is empty, the namespace is deleted after the test run.
