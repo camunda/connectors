@@ -40,14 +40,17 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>sns</artifactId>
+      <version>${version.aws-sdk2}</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>regions</artifactId>
+      <version>${version.aws-sdk2}</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>sdk-core</artifactId>
+      <version>${version.aws-sdk2}</version>
     </dependency>
     <!-- This dependency will be removed after camunda/zeebe#9859 is resolved. -->
     <dependency>

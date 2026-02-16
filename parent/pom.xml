@@ -93,8 +93,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>7.4.4</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.32</version.logback>
 
-    <version.software-aws-java-sdk>2.41.31</version.software-aws-java-sdk>
-    <version.aws-sdk2-sts>1.12.797</version.aws-sdk2-sts>
+    <version.aws-sdk2>2.41.31</version.aws-sdk2>
     <version.software-aws-java-sdk-sts>2.41.31</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -162,7 +161,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.4.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.1</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.4</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>2.46.1</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>3.2.1</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.0</plugin.version.maven-jar-plugin>
   </properties>
 

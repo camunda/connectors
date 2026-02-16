@@ -34,14 +34,17 @@
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>sqs</artifactId>
+      <version>${version.aws-sdk2}</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>regions</artifactId>
+      <version>${version.aws-sdk2}</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>sdk-core</artifactId>
+      <version>${version.aws-sdk2}</version>
     </dependency>
   </dependencies>
 
