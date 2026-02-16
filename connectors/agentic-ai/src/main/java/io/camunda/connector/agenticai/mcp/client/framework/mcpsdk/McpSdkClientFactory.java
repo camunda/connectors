@@ -80,6 +80,8 @@ public class McpSdkClientFactory implements McpClientFactory {
     var headerSupplier = headersSupplierFactory.createHttpHeadersSupplier(streamableHttpConfig);
 
     return HttpClientStreamableHttpTransport.builder(streamableHttpConfig.url())
+        .endpoint(
+            streamableHttpConfig.url()) // see https://github.com/camunda/connectors/issues/6393
         .connectTimeout(timeout(streamableHttpConfig.timeout()))
         .supportedProtocolVersions(
             List.of(
@@ -100,6 +102,7 @@ public class McpSdkClientFactory implements McpClientFactory {
     var headerSuppliers = headersSupplierFactory.createHttpHeadersSupplier(sseConfig);
 
     return HttpClientSseClientTransport.builder(sseConfig.url())
+        .sseEndpoint(sseConfig.url()) // see https://github.com/camunda/connectors/issues/6393
         .connectTimeout(timeout(sseConfig.timeout()))
         .customizeRequest(
             request -> {
