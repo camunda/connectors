@@ -164,6 +164,7 @@ jobs:
       - name: Trigger repository_dispatch for SaaS Connectors
         env:
           GITHUB_TOKEN: ${{ steps.github-token.outputs.token }}
+          CORRELATION_ID: ${{ github.repository }}:${{ github.run_id }}:${{ github.run_attempt }}:${{ github.sha }}
         run: |
           curl -X POST \
             -H "Accept: application/vnd.github+json" \
@@ -172,6 +173,7 @@ jobs:
             -d '{
                   "event_type": "run-saas-generation-smoke-connectors",
                   "client_payload": {
+                      "correlation_id": "'"$CORRELATION_ID"'",
                       "source_repo": "${{ github.repository }}",
                       "source_sha": "${{ github.sha }}",
                       "c8Version": "8.6",
