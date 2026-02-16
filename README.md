@@ -160,6 +160,12 @@ You can also build your own runtime, tailored towards your environment. For more
 mvn clean package
 ```
 
+For faster incremental builds, you can use the Maven build cache:
+
+```bash
+mvn clean install -DskipTests -DskipChecks -Dquickly -Dmaven.build.cache.enabled=true -T 1C
+```
+
 ## Build a release
 
 1. For minor releases (x.y.0), create a new branch `release/x.y` from `main` in advance and rebase it onto `main` from time to time. This can be done using the `CREATE_RELEASE_BRANCH` workflow.
@@ -174,4 +180,5 @@ You can also trigger this for already merged PRs by posting a comment on the PR 
 
 ## CI Secrets
 
-Secrets used by the CI jobs in this repository are stored in [Vault](https://vault.int.camunda.com/ui/vault/secrets/secret/kv/products%252Fconnectors%252Fci%252Fcommon/details).
+Secrets used by the CI jobs in this repository are stored
+in [Vault](https://vault.int.camunda.com/ui/vault/secrets/secret/kv/products%252Fconnectors%252Fci%252Fcommon/details).
