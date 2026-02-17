@@ -194,31 +194,51 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "gemini-1.5-flash-001",
-      "value" : "GEMINI_1_5_FLASH_001"
+      "name" : "gemini-2.5-pro",
+      "value" : "GEMINI_2_5_PRO"
     }, {
-      "name" : "gemini-1.5-flash-002",
-      "value" : "GEMINI_1_5_FLASH_002"
+      "name" : "gemini-2.5-flash",
+      "value" : "GEMINI_2_5_FLASH"
     }, {
-      "name" : "gemini-1.5-pro-001",
-      "value" : "GEMINI_1_5_PRO_001"
+      "name" : "gemini-2.5-flash-image",
+      "value" : "GEMINI_2_5_FLASH_IMAGE"
     }, {
-      "name" : "gemini-1.5-pro-002",
-      "value" : "GEMINI_1_5_PRO_002"
+      "name" : "gemini-2.5-flash-lite",
+      "value" : "GEMINI_2_5_FLASH_LITE"
     }, {
-      "name" : "gemini-1.0-pro-001",
-      "value" : "GEMINI_1_0_PRO_001"
+      "name" : "gemini-2.0-flash",
+      "value" : "GEMINI_2_0_FLASH"
     }, {
-      "name" : "gemini-1.0-pro-002",
-      "value" : "GEMINI_1_0_PRO_002"
+      "name" : "gemini-2.0-flash-lite",
+      "value" : "GEMINI_2_0_FLASH_LITE"
     }, {
-      "name" : "gemini-1.0-pro-vision-001",
-      "value" : "GEMINI_1_0_PRO_VISION_001"
+      "name" : "Custom",
+      "value" : "CUSTOM"
     } ]
   }, {
+    "id" : "input.customModelName",
+    "label" : "Custom model name",
+    "description" : "Custom model name or identifier",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.customModelName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "input.model",
+      "equals" : "CUSTOM",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "input.prompts",
-    "label" : "Prompt",
-    "description" : "Insert prompt.",
+    "label" : "Prompts",
+    "description" : "Provide a list of prompts",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -239,11 +259,6 @@
     "binding" : {
       "name" : "input.systemInstrText",
       "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "input.model",
-      "oneOf" : [ "GEMINI_1_5_FLASH_001", "GEMINI_1_5_FLASH_002", "GEMINI_1_5_PRO_001", "GEMINI_1_5_PRO_002", "GEMINI_1_0_PRO_002" ],
-      "type" : "simple"
     },
     "tooltip" : "System instructions inform how the model should respond. Use them to give the model context to understand the task, provide more custom responses and adhere to specific guidelines. Instructions apply each time you send a request to the model.<a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/learn/prompts/system-instructions?hl=en\" Learn more about system instructions </a>",
     "type" : "String"
@@ -494,7 +509,7 @@
     "constraints" : {
       "notEmpty" : false,
       "pattern" : {
-        "value" : "(^([1-9]|[1-3][0-9]|40)$)(^$)",
+        "value" : "(^([1-9]|[1-3][0-9]|40)$)|(^$)",
         "message" : "value must be an integer between 1 and 40"
       }
     },
@@ -503,11 +518,6 @@
     "binding" : {
       "name" : "input.topK",
       "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "input.model",
-      "equals" : "GEMINI_1_0_PRO_001",
-      "type" : "simple"
     },
     "tooltip" : "Top-K specifies the number of candidate tokens when the model is selecting an output token. Use a lower value for less random responses and a higher value for more random responses.",
     "type" : "Number"
