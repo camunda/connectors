@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.email.outbound.protocols.actions;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -20,7 +20,7 @@ public record Pop3ReadEmail(
             id = "pop3MessageIdRead",
             tooltip =
                 "The ID of the message, typically returned by a previous email task. Warning: reading an email using POP3 will delete it",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.pop3Action.messageId"))
         @Valid
         @NotNull

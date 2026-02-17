@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client.model;
 
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Map;
@@ -22,7 +22,7 @@ public record McpClientOperationConfiguration(
                 "The method to be called on the MCP server. See the <a href=\"https://modelcontextprotocol.io/specification/2024-11-05/server\">MCP specification</a> for a list of available methods.<br><br>Currently supported:<br><code>tools/list</code>, <code>tools/call</code>",
             defaultValue = "=toolCall.method",
             type = TemplateProperty.PropertyType.String,
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotBlank
         String method,
@@ -34,6 +34,6 @@ public record McpClientOperationConfiguration(
             tooltip =
                 "The parameter structure depends on the method being called. See the <a href=\"https://modelcontextprotocol.io/specification/2024-11-05/server/tools#calling-tools\">MCP specification</a> for an example of the parameters for the <code>tools/call</code> method.",
             defaultValue = "=toolCall.params",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             optional = true)
         Map<String, Object> params) {}

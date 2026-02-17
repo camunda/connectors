@@ -16,14 +16,17 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import static io.camunda.connector.generator.java.annotation.BpmnType.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.ElementTemplate.Metadata;
-import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
+import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.java.json.ElementTemplateModule;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -33,7 +36,8 @@ import org.skyscreamer.jsonassert.JSONAssert;
 
 public class ElementTemplateSerializationTest {
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper =
+      new ObjectMapper().registerModule(new ElementTemplateModule());
 
   @Test
   void serializationTest() throws Exception {
@@ -43,8 +47,8 @@ public class ElementTemplateSerializationTest {
             .id("io.camunda.connector.Template.v1")
             .type("io.camunda:template:1")
             .name("Template: Some Function")
-            .appliesTo(Set.of(BpmnType.TASK))
-            .elementType(BpmnType.SERVICE_TASK)
+            .appliesTo(Set.of(TASK))
+            .elementType(SERVICE_TASK)
             .version(1)
             .documentationRef(
                 "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/")
@@ -65,7 +69,7 @@ public class ElementTemplateSerializationTest {
                             .label("Token")
                             .description("The token for authentication.")
                             .constraints(PropertyConstraints.builder().notEmpty(true).build())
-                            .feel(FeelMode.optional)
+                            .feel(FeelMode.staticFeel)
                             .binding(new ZeebeInput("authentication.token")))
                     .build(),
                 PropertyGroup.builder()

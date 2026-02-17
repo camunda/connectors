@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.model.request.data;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.model.MSTeamsMethodTypes;
@@ -47,7 +47,7 @@ public record CreateChat(
             group = "data",
             id = "createChat.members",
             label = "Members",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             description =
                 "Set array members of chat. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/#members-property'>Learn more about the required format</a>")
         List<Member> members)

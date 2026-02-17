@@ -149,7 +149,7 @@
       <dependency>
           <groupId>dev.langchain4j</groupId>
           <artifactId>langchain4j-azure-open-ai</artifactId>
-          <version>1.10.0</version>
+          <version>1.11.0</version>
       </dependency>
 
 
@@ -165,7 +165,7 @@
 
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>element-template-generator-core</artifactId>
+      <artifactId>element-template-generator-annotations</artifactId>
     </dependency>
 
     <dependency>

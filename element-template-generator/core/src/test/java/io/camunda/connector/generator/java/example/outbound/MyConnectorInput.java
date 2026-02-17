@@ -115,7 +115,9 @@ public record MyConnectorInput(
         String mayBeEmptyOrRegexValidated,
     @TemplateProperty(id = "mayBeEmptyOrRegexValidatedJakartaStyle", optional = true)
         @Pattern(regexp = "xxx", message = "Oh no!")
-        String mayBeEmptyOrRegexValidatedJakartaStyle) {
+        String mayBeEmptyOrRegexValidatedJakartaStyle,
+    @TemplateProperty(id = "feeModelStaticProperty", feel = FeelMode.staticFeel)
+        String feeModelStaticProperty) {
 
   enum MyEnum {
     @DropdownItem(label = "Value one", order = 0)

@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.email.outbound.protocols.actions;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -33,7 +33,7 @@ public record ImapListEmails(
             tooltip =
                 "Specify the folder from which you want to list emails (e.g., 'INBOX', 'Sent', 'Drafts'). If left blank, emails will be listed from the default 'INBOX' folder.",
             optional = true,
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.listEmailsFolder"))
         String listEmailsFolder,
     @TemplateProperty(
@@ -42,7 +42,7 @@ public record ImapListEmails(
                 "Choose the criterion by which the listed emails should be sorted. The default sorting is by 'Received Date'.",
             id = "imapSortField",
             group = "listEmailsImap",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             type = TemplateProperty.PropertyType.Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             defaultValue = "RECEIVED_DATE",
@@ -55,7 +55,7 @@ public record ImapListEmails(
                 "Select the sort order for the emails. Choose 'ASC' for ascending order or 'DESC' for descending order. Ascending order will list older emails first, while descending order will list newer emails first. The default sort order is 'ASC'.",
             group = "listEmailsImap",
             id = "imapSortOrder",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             type = TemplateProperty.PropertyType.Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             defaultValue = "ASC",

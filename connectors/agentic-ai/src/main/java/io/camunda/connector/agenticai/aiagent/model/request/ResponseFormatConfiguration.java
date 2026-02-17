@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.request;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -60,7 +60,7 @@ public sealed interface ResponseFormatConfiguration {
               tooltip =
                   "If supported by the model, the response will be structured according to the provided schema. A parsed "
                       + "version of the response will be available as <code>response.responseJson</code>.",
-              feel = Property.FeelMode.required,
+              feel = FeelMode.required,
               optional = true)
           Map<String, Object> schema,
       @FEEL
@@ -69,7 +69,7 @@ public sealed interface ResponseFormatConfiguration {
               label = "Response JSON schema name",
               description =
                   "An optional name for the response JSON Schema to make the model aware of the expected output.",
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               defaultValue = "Response",
               optional = true)
           String schemaName)

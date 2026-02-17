@@ -14,7 +14,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -36,7 +36,7 @@ public record JobWorkerAgentRequest(
                     + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-process/\" target=\"_blank\">See documentation</a> "
                     + "for details.",
             type = TemplateProperty.PropertyType.Text,
-            feel = Property.FeelMode.required)
+            feel = FeelMode.required)
         @Valid
         AgentContext agentContext,
     List<ToolCallResult> toolCallResults,

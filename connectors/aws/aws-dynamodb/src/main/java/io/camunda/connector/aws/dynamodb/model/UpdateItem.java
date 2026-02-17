@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.aws.dynamodb.model;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
@@ -26,14 +26,14 @@ public record UpdateItem(
             label = "Primary key components",
             id = "updateItem.primaryKeyComponents",
             group = "input",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             description = "Simple or composite primary key")
         @NotNull
         Map<String, Object> primaryKeyComponents,
     @TemplateProperty(
             label = "Key attributes",
             group = "input",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             description =
                 "DynamoDB key attributes. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>")
         @NotNull

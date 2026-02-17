@@ -7,8 +7,7 @@
 package io.camunda.connector.agenticai.a2a.client.inbound.webhook.model;
 
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
-import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
@@ -44,7 +43,7 @@ public record A2aWebhookProperties(
             description =
                 "The response returned by the A2A client connector. Should contain a task.",
             binding = @TemplateProperty.PropertyBinding(name = "clientResponse"),
-            feel = Property.FeelMode.required)
+            feel = FeelMode.required)
         @NotBlank
         @FEEL
         String clientResponse,

@@ -6,8 +6,7 @@
  */
 package io.camunda.connector.model.embedding.models;
 
-import io.camunda.connector.generator.dsl.Property;
-import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DefaultValueType;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
@@ -48,7 +47,7 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
           @TemplateProperty(
               group = "embeddingModel",
               label = "Model name",
-              feel = Property.FeelMode.required,
+              feel = FeelMode.required,
               type = TemplateProperty.PropertyType.Dropdown,
               description = "Bedrock model name or identifier",
               defaultValue = "TitanEmbedTextV2")
@@ -67,7 +66,7 @@ public record BedrockEmbeddingModelProvider(@Valid @NotNull Configuration bedroc
               group = "embeddingModel",
               label = "Embedding dimensions",
               description = "The size of the vector used to represent data",
-              feel = Property.FeelMode.required,
+              feel = FeelMode.required,
               type = TemplateProperty.PropertyType.Dropdown,
               defaultValue = "D1024",
               condition =

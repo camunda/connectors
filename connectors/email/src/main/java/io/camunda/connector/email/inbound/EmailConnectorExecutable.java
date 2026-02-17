@@ -12,7 +12,7 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.email.client.jakarta.inbound.JakartaEmailListener;
 import io.camunda.connector.email.inbound.model.EmailInboundConnectorProperties;
-import io.camunda.connector.generator.dsl.BpmnType;
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @InboundConnector(name = "Email Consumer", type = "io.camunda:connector-email-inbound:1")

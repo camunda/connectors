@@ -9,7 +9,7 @@ package io.camunda.connector.http.polling;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
-import io.camunda.connector.generator.dsl.BpmnType;
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.polling.model.PollingRequest;

@@ -18,7 +18,7 @@ import io.camunda.connector.aws.AwsUtils;
 import io.camunda.connector.aws.CredentialsProviderSupport;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.common.suppliers.DefaultAmazonSQSClientSupplier;
-import io.camunda.connector.generator.dsl.BpmnType;
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;

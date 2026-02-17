@@ -17,6 +17,10 @@
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator-annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
       <artifactId>connector-core</artifactId>
     </dependency>
     <dependency>
@@ -48,7 +52,7 @@
     <dependency>
       <groupId>io.pebbletemplates</groupId>
       <artifactId>pebble</artifactId>
-      <version>4.1.0</version>
+      <version>4.1.1</version>
     </dependency>
     <!-- Markdown generator -->
     <dependency>

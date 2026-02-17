@@ -19,7 +19,6 @@ package io.camunda.connector.generator.java.annotation;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Integer.MIN_VALUE;
 
-import io.camunda.connector.generator.dsl.Property.FeelMode;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -38,7 +37,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.RECORD_COMPONENT})
 public @interface TemplateProperty {
-  public static boolean OPTIONAL_DEFAULT = false;
+  boolean OPTIONAL_DEFAULT = false;
 
   /** Custom property ID that can be referenced in conditions */
   String id() default "";

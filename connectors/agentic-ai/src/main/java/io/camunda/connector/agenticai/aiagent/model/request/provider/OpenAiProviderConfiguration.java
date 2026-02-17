@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.request.provider;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OPENAI_ID;
 
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -35,7 +35,7 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
               group = "provider",
               label = "OpenAI API key",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String apiKey,
       @TemplateProperty(
@@ -44,7 +44,7 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
               description =
                   "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               optional = true)
           String organizationId,
       @TemplateProperty(
@@ -53,7 +53,7 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
               description =
                   "For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               optional = true)
           String projectId) {
 
@@ -72,7 +72,7 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
               description =
                   "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               defaultValue = "gpt-4o",
               defaultValueType = TemplateProperty.DefaultValueType.String,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
@@ -87,7 +87,7 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
                 tooltip =
                     "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = Property.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Integer maxCompletionTokens,
         @Min(0)
@@ -97,7 +97,7 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
                 tooltip =
                     "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = Property.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Double temperature,
         @Min(0)
@@ -107,7 +107,7 @@ public record OpenAiProviderConfiguration(@Valid @NotNull OpenAiConnection opena
                 tooltip =
                     "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = Property.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Double topP) {}
   }

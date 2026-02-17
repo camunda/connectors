@@ -19,6 +19,7 @@ package io.camunda.connector.generator.dsl;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.generator.BaseTest;
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import org.junit.jupiter.api.Test;
 
 public class ElementTypeSupportTest extends BaseTest {

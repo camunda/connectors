@@ -6,10 +6,19 @@
  */
 package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.AuthenticationConfiguration.AuthenticationType;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.McpClientConfiguration;
@@ -18,6 +27,7 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigur
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StdioMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigurationProperties.StreamableHttpMcpClientTransportConfiguration;
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
+import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc.McpSdkMcpClientDelegate;
 import io.camunda.connector.agenticai.mcp.client.model.auth.BearerAuthentication;
@@ -28,10 +38,13 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+@WireMockTest
 @ExtendWith(MockitoExtension.class)
 class McpSdkClientFactoryTest {
 
@@ -55,6 +68,7 @@ class McpSdkClientFactoryTest {
 
   @BeforeEach
   void setUp() {
+    WireMock.reset();
     factory = new McpSdkClientFactory(objectMapper, headersSupplierFactory);
   }
 
@@ -78,9 +92,11 @@ class McpSdkClientFactoryTest {
     assertClientIsOfCorrectType(client);
   }
 
-  @Test
-  void createsStreamableHttpMcpClient() {
-    final var streamableHttpTransportConfig = createStreamableHttpMcpClientTransportConfiguration();
+  @ParameterizedTest
+  @ValueSource(strings = {"/mcp", "/mcp/cluster", "/abc123/mcp/cluster"})
+  void createsStreamableHttpMcpClient(String endpoint, WireMockRuntimeInfo wireMock) {
+    final var streamableHttpTransportConfig =
+        createStreamableHttpMcpClientTransportConfiguration(wireMock, endpoint);
     when(headersSupplierFactory.createHttpHeadersSupplier(streamableHttpTransportConfig))
         .thenReturn(() -> EXPECTED_HEADERS);
 
@@ -91,11 +107,28 @@ class McpSdkClientFactoryTest {
                 McpClientType.HTTP, null, streamableHttpTransportConfig, null));
 
     assertClientIsOfCorrectType(client);
+
+    assertThatThrownBy(() -> client.listTools(AllowDenyList.allowingEverything()))
+        .hasMessage("Client failed to initialize listing tools");
+
+    await()
+        .atMost(Duration.ofSeconds(2))
+        .untilAsserted(
+            () -> {
+              WireMock.verify(
+                  1,
+                  postRequestedFor(urlPathEqualTo(endpoint))
+                      .withHeader("Content-Type", equalTo("application/json"))
+                      .withHeader("Accept", equalTo("application/json, text/event-stream"))
+                      .withHeader("Authorization", equalTo("Bearer test-token"))
+                      .withHeader("X-Dummy", equalTo("Test")));
+            });
   }
 
-  @Test
-  void createsSseHttpMcpClient() {
-    final var sseConfig = createSseHttpMcpClientTransportConfiguration();
+  @ParameterizedTest
+  @ValueSource(strings = {"/sse", "/sse/cluster", "/abc123/sse/cluster"})
+  void createsSseHttpMcpClient(String endpoint, WireMockRuntimeInfo wireMock) {
+    final var sseConfig = createSseHttpMcpClientTransportConfiguration(wireMock, endpoint);
     when(headersSupplierFactory.createHttpHeadersSupplier(sseConfig))
         .thenReturn(() -> EXPECTED_HEADERS);
 
@@ -104,6 +137,21 @@ class McpSdkClientFactoryTest {
             CLIENT_ID, createMcpClientConfiguration(McpClientType.SSE, null, null, sseConfig));
 
     assertClientIsOfCorrectType(client);
+
+    assertThatThrownBy(() -> client.listTools(AllowDenyList.allowingEverything()))
+        .hasMessage("Client failed to initialize listing tools");
+
+    await()
+        .atMost(Duration.ofSeconds(2))
+        .untilAsserted(
+            () -> {
+              WireMock.verify(
+                  1,
+                  getRequestedFor(urlPathEqualTo(endpoint))
+                      .withHeader("Accept", equalTo("text/event-stream"))
+                      .withHeader("Authorization", equalTo("Bearer test-token"))
+                      .withHeader("X-Dummy", equalTo("Test")));
+            });
   }
 
   @Test
@@ -135,9 +183,9 @@ class McpSdkClientFactoryTest {
         stdioConfig,
         httpConfig,
         sseConfig,
-        Duration.ofSeconds(1),
-        Duration.ofSeconds(2),
-        Duration.ofSeconds(3));
+        Duration.ofMillis(100),
+        Duration.ofMillis(200),
+        Duration.ofMillis(300));
   }
 
   private static StdioMcpClientTransportConfiguration createStdioMcpClientTransportConfiguration(
@@ -146,20 +194,21 @@ class McpSdkClientFactoryTest {
   }
 
   private static StreamableHttpMcpClientTransportConfiguration
-      createStreamableHttpMcpClientTransportConfiguration() {
+      createStreamableHttpMcpClientTransportConfiguration(
+          WireMockRuntimeInfo wireMock, String endpoint) {
     return new StreamableHttpMcpClientTransportConfiguration(
-        "http://localhost:123456/mcp",
+        "http://localhost:%d%s".formatted(wireMock.getHttpPort(), endpoint),
         Map.of("X-Dummy", "Test"),
         BEARER_AUTHENTICATION,
-        Duration.ofSeconds(15));
+        Duration.ofMillis(200));
   }
 
   private static SseHttpMcpClientTransportConfiguration
-      createSseHttpMcpClientTransportConfiguration() {
+      createSseHttpMcpClientTransportConfiguration(WireMockRuntimeInfo wireMock, String endpoint) {
     return new SseHttpMcpClientTransportConfiguration(
-        "http://localhost:123456/sse",
+        "http://localhost:%d%s".formatted(wireMock.getHttpPort(), endpoint),
         Map.of("X-Dummy", "Test"),
         BEARER_AUTHENTICATION,
-        Duration.ofSeconds(15));
+        Duration.ofMillis(200));
   }
 }

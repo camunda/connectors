@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.aws.s3.model.request;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
@@ -18,7 +18,7 @@ public record DeleteObject(
             id = "deleteActionBucket",
             group = "deleteObject",
             tooltip = "Bucket from where an object should be deleted",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "action.bucket"))
         @NotBlank
         String bucket,
@@ -27,7 +27,7 @@ public record DeleteObject(
             id = "deleteActionKey",
             group = "deleteObject",
             tooltip = "Key of the object which should be deleted",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "action.key"))
         @NotBlank
         String key)

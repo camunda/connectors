@@ -7,7 +7,7 @@
 package io.camunda.connector.model.embedding.models;
 
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DefaultValueType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -29,7 +29,7 @@ public record OpenAiEmbeddingModelProvider(@Valid @NotNull Configuration openAi)
               group = "embeddingModel",
               label = "OpenAI API key",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String apiKey,
       @NotBlank
@@ -39,7 +39,7 @@ public record OpenAiEmbeddingModelProvider(@Valid @NotNull Configuration openAi)
               description =
                   "Specify the model name. Details in the <a href=\"https://platform.openai.com/docs/guides/embeddings\" target=\"_blank\">documentation</a>.",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String modelName,
       @TemplateProperty(
@@ -48,7 +48,7 @@ public record OpenAiEmbeddingModelProvider(@Valid @NotNull Configuration openAi)
               description =
                   "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               optional = true)
           String organizationId,
       @TemplateProperty(
@@ -57,7 +57,7 @@ public record OpenAiEmbeddingModelProvider(@Valid @NotNull Configuration openAi)
               description =
                   "For accounts with multiple projects. Details in the <a href=\"https://platform.openai.com/docs/api-reference/authentication\" target=\"_blank\">documentation</a>.",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               optional = true)
           String projectId,
       @TemplateProperty(
@@ -65,7 +65,7 @@ public record OpenAiEmbeddingModelProvider(@Valid @NotNull Configuration openAi)
               label = "Embedding dimensions",
               description =
                   "The size of the vector used to represent data. If not specified, the default model dimensions are used. Details in the <a href=\"https://platform.openai.com/docs/guides/embeddings\" target=\"_blank\">documentation</a>.",
-              feel = Property.FeelMode.required,
+              feel = FeelMode.required,
               type = TemplateProperty.PropertyType.Number,
               optional = true)
           Integer dimensions,
@@ -82,14 +82,14 @@ public record OpenAiEmbeddingModelProvider(@Valid @NotNull Configuration openAi)
               group = "embeddingModel",
               label = "Custom headers",
               description = "Map of custom HTTP headers to add to the request.",
-              feel = Property.FeelMode.required,
+              feel = FeelMode.required,
               optional = true)
           Map<String, String> customHeaders,
       @TemplateProperty(
               group = "embeddingModel",
               label = "Custom base URL",
               tooltip = "Base URL of OpenAI API. The default is 'https://api.openai.com/v1/'",
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               type = TemplateProperty.PropertyType.String,
               optional = true)
           String baseUrl) {

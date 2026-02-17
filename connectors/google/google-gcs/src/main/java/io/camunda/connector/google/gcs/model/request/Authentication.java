@@ -7,7 +7,7 @@
 package io.camunda.connector.google.gcs.model.request;
 
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
 
@@ -18,7 +18,7 @@ public class Authentication {
       label = "JSON key of the service account",
       description =
           "This is the key of the service account in JSON format. See <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">documentation</a> for details.",
-      feel = Property.FeelMode.optional)
+      feel = FeelMode.optional)
   @NotBlank
   private String jsonKey;
 

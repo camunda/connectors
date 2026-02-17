@@ -18,7 +18,7 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.Severity;
-import io.camunda.connector.generator.dsl.BpmnType;
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundProperties;
 import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;

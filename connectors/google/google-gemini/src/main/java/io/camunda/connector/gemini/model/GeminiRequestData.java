@@ -7,7 +7,7 @@
 package io.camunda.connector.gemini.model;
 
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
@@ -17,75 +17,72 @@ public record GeminiRequestData(
             label = "Project ID",
             group = "input",
             description = "Project identifier.",
-            feel = Property.FeelMode.disabled)
+            feel = FeelMode.disabled)
         @NotNull
         String projectId,
     @TemplateProperty(
             label = "Region",
             group = "input",
             description = "Input region.",
-            feel = Property.FeelMode.disabled)
+            feel = FeelMode.disabled)
         @NotNull
         String region,
     @TemplateProperty(
             label = "Model",
             group = "input",
             description = "Select gemini model.",
-            feel = Property.FeelMode.disabled,
+            feel = FeelMode.disabled,
             choices = {
               @TemplateProperty.DropdownPropertyChoice(
-                  value = "GEMINI_1_5_FLASH_001",
-                  label = "gemini-1.5-flash-001"),
+                  value = "GEMINI_2_5_PRO",
+                  label = "gemini-2.5-pro"),
               @TemplateProperty.DropdownPropertyChoice(
-                  value = "GEMINI_1_5_FLASH_002",
-                  label = "gemini-1.5-flash-002"),
+                  value = "GEMINI_2_5_FLASH",
+                  label = "gemini-2.5-flash"),
               @TemplateProperty.DropdownPropertyChoice(
-                  value = "GEMINI_1_5_PRO_001",
-                  label = "gemini-1.5-pro-001"),
+                  value = "GEMINI_2_5_FLASH_IMAGE",
+                  label = "gemini-2.5-flash-image"),
               @TemplateProperty.DropdownPropertyChoice(
-                  value = "GEMINI_1_5_PRO_002",
-                  label = "gemini-1.5-pro-002"),
+                  value = "GEMINI_2_5_FLASH_LITE",
+                  label = "gemini-2.5-flash-lite"),
               @TemplateProperty.DropdownPropertyChoice(
-                  value = "GEMINI_1_0_PRO_001",
-                  label = "gemini-1.0-pro-001"),
+                  value = "GEMINI_2_0_FLASH",
+                  label = "gemini-2.0-flash"),
               @TemplateProperty.DropdownPropertyChoice(
-                  value = "GEMINI_1_0_PRO_002",
-                  label = "gemini-1.0-pro-002"),
-              @TemplateProperty.DropdownPropertyChoice(
-                  value = "GEMINI_1_0_PRO_VISION_001",
-                  label = "gemini-1.0-pro-vision-001")
+                  value = "GEMINI_2_0_FLASH_LITE",
+                  label = "gemini-2.0-flash-lite"),
+              @TemplateProperty.DropdownPropertyChoice(value = "CUSTOM", label = "Custom")
             })
         @NotNull
         ModelVersion model,
+    @TemplateProperty(
+            label = "Custom model name",
+            group = "input",
+            description = "Custom model name or identifier",
+            feel = FeelMode.optional,
+            condition =
+                @TemplateProperty.PropertyCondition(property = "input.model", equals = "CUSTOM"),
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+        String customModelName,
     @FEEL
         @TemplateProperty(
-            label = "Prompt",
+            label = "Prompts",
             group = "input",
-            description = "Insert prompt.",
-            feel = Property.FeelMode.required)
+            description = "Provide a list of prompts",
+            feel = FeelMode.required)
         @NotNull
         List<Object> prompts,
     @TemplateProperty(
             label = "System instructions",
             group = "input",
             description = "System instructions inform how the model should respond.",
-            feel = Property.FeelMode.disabled,
+            feel = FeelMode.disabled,
             tooltip =
                 "System instructions inform how the model should respond."
                     + " Use them to give the model context to understand the task, "
                     + "provide more custom responses and adhere to specific guidelines. "
                     + "Instructions apply each time you send a request to the model."
                     + "<a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/learn/prompts/system-instructions?hl=en\" Learn more about system instructions </a>",
-            condition =
-                @TemplateProperty.PropertyCondition(
-                    property = "input.model",
-                    oneOf = {
-                      "GEMINI_1_5_FLASH_001",
-                      "GEMINI_1_5_FLASH_002",
-                      "GEMINI_1_5_PRO_001",
-                      "GEMINI_1_5_PRO_002",
-                      "GEMINI_1_0_PRO_002"
-                    }),
             optional = true)
         String systemInstrText,
     @TemplateProperty(
@@ -104,7 +101,7 @@ public record GeminiRequestData(
             label = "Vertex AI data store path",
             group = "input",
             description = "Vertex AI datastore path",
-            feel = Property.FeelMode.disabled,
+            feel = FeelMode.disabled,
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.grounding",
@@ -133,7 +130,7 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Hate speech",
             group = "input",
-            feel = Property.FeelMode.disabled,
+            feel = FeelMode.disabled,
             defaultValue = "OFF",
             choices = {
               @TemplateProperty.DropdownPropertyChoice(value = "OFF", label = "OFF"),
@@ -160,7 +157,7 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Dangerous content",
             group = "input",
-            feel = Property.FeelMode.disabled,
+            feel = FeelMode.disabled,
             defaultValue = "OFF",
             choices = {
               @TemplateProperty.DropdownPropertyChoice(value = "OFF", label = "OFF"),
@@ -187,7 +184,7 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Sexually explicit content",
             group = "input",
-            feel = Property.FeelMode.disabled,
+            feel = FeelMode.disabled,
             defaultValue = "OFF",
             choices = {
               @TemplateProperty.DropdownPropertyChoice(value = "OFF", label = "OFF"),
@@ -214,7 +211,7 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Harassment content",
             group = "input",
-            feel = Property.FeelMode.disabled,
+            feel = FeelMode.disabled,
             defaultValue = "OFF",
             choices = {
               @TemplateProperty.DropdownPropertyChoice(value = "OFF", label = "OFF"),
@@ -243,7 +240,7 @@ public record GeminiRequestData(
             label = "Add stop sequence",
             group = "input",
             description = "Vertex AI datastore path",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             optional = true,
             tooltip =
                 "A stop sequence is a series of characters (including spaces) that stops response generation if the model encounters it."
@@ -302,10 +299,6 @@ public record GeminiRequestData(
             label = "Top-K",
             group = "input",
             optional = true,
-            condition =
-                @TemplateProperty.PropertyCondition(
-                    property = "input.model",
-                    equals = "GEMINI_1_0_PRO_001"),
             tooltip =
                 "Top-K specifies the number of candidate tokens when the model is selecting an output token. "
                     + "Use a lower value for less random responses and a higher value for more random responses.",
@@ -313,7 +306,7 @@ public record GeminiRequestData(
                 @TemplateProperty.PropertyConstraints(
                     pattern =
                         @TemplateProperty.Pattern(
-                            value = "(^([1-9]|[1-3][0-9]|40)$)(^$)",
+                            value = "(^([1-9]|[1-3][0-9]|40)$)|(^$)",
                             message = "value must be an integer between 1 and 40")))
         int topK,
     @TemplateProperty(
@@ -338,9 +331,19 @@ public record GeminiRequestData(
             label = "Function call description",
             description = "Describe function calls.",
             group = "input",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             optional = true)
         List<Object> functionCalls) {
+
+  public String resolveModelName() {
+    if (model == ModelVersion.CUSTOM) {
+      return customModelName;
+    }
+    return model.getVersion();
+  }
+
+  // Custom toString() to use resolveModelName() for clearer runtime representation
+  // Note: 'prompts' field is intentionally excluded to avoid logging large prompt content
   @Override
   public String toString() {
     return "GeminiRequestData{"
@@ -350,8 +353,9 @@ public record GeminiRequestData(
         + ", region='"
         + region
         + '\''
-        + ", model="
-        + model
+        + ", model='"
+        + resolveModelName()
+        + '\''
         + ", systemInstrText='"
         + systemInstrText
         + '\''

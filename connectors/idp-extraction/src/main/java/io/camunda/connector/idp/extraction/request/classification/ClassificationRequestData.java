@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.idp.extraction.request.classification;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.idp.extraction.model.ConverseData;
 import io.camunda.connector.idp.extraction.model.DocumentType;
@@ -25,7 +25,7 @@ public class ClassificationRequestData extends DocumentRequestData {
       description = "Specify the parameters for AWS Bedrock",
       defaultValue = "={\n  modelId: \"\",\n  temperature: 0.5,\n  topP: 0.9\n}",
       binding = @TemplateProperty.PropertyBinding(name = "converseData"),
-      feel = Property.FeelMode.optional)
+      feel = FeelMode.optional)
   ConverseData converseData;
 
   @TemplateProperty(
@@ -37,7 +37,7 @@ public class ClassificationRequestData extends DocumentRequestData {
       defaultValue =
           "=[\n  {\n    name: \"\",\n    classificationInstructions: \"\",\n    description: \"\",\n    outputValue: \"\"\n  }\n]",
       binding = @TemplateProperty.PropertyBinding(name = "documentTypes"),
-      feel = Property.FeelMode.optional)
+      feel = FeelMode.optional)
   @NotNull
   @NotEmpty
   @Valid
@@ -51,7 +51,7 @@ public class ClassificationRequestData extends DocumentRequestData {
       description = "The value to return if the model has low confidence on all document types.",
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
       binding = @TemplateProperty.PropertyBinding(name = "fallbackOutputValue"),
-      feel = Property.FeelMode.optional)
+      feel = FeelMode.optional)
   String fallbackOutputValue;
 
   public ConverseData getConverseData() {

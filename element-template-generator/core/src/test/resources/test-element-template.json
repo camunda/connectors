@@ -69,7 +69,7 @@
       "constraints": {
         "notEmpty": true
       },
-      "feel": "optional",
+      "feel": "static",
       "group": "authentication",
       "binding": {
         "name": "authentication.token",

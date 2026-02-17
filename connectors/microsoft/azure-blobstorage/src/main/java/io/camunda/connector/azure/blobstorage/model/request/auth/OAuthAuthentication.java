@@ -8,7 +8,7 @@ package io.camunda.connector.azure.blobstorage.model.request.auth;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
@@ -21,7 +21,7 @@ public record OAuthAuthentication(
             group = "authentication",
             description =
                 "The tenant id. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
-            feel = Property.FeelMode.optional)
+            feel = FeelMode.optional)
         @NotBlank
         String tenantId,
     @FEEL
@@ -29,7 +29,7 @@ public record OAuthAuthentication(
             group = "authentication",
             description =
                 "The client if of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
-            feel = Property.FeelMode.optional)
+            feel = FeelMode.optional)
         @NotBlank
         String clientId,
     @FEEL
@@ -37,7 +37,7 @@ public record OAuthAuthentication(
             group = "authentication",
             description =
                 "The client secret of the application. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
-            feel = Property.FeelMode.optional)
+            feel = FeelMode.optional)
         @NotBlank
         String clientSecret,
     @FEEL
@@ -45,7 +45,7 @@ public record OAuthAuthentication(
             group = "authentication",
             description =
                 "The account url of the storage account. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#oauth-20\">documentation</a>.",
-            feel = Property.FeelMode.optional)
+            feel = FeelMode.optional)
         @NotBlank
         String accountUrl)
     implements Authentication {

@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.request.provider;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.ANTHROPIC_ID;
 
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -29,7 +29,7 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
               group = "provider",
               description = "Optional custom API endpoint",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               optional = true)
           String endpoint,
       @Valid @NotNull AnthropicAuthentication authentication,
@@ -42,7 +42,7 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
               group = "provider",
               label = "Anthropic API key",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String apiKey) {
 
@@ -60,7 +60,7 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
               description =
                   "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               defaultValue = "claude-3-5-sonnet-20240620",
               defaultValueType = TemplateProperty.DefaultValueType.String,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
@@ -75,7 +75,7 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
                 tooltip =
                     "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-max-tokens\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = Property.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Integer maxTokens,
         @Min(0)
@@ -85,7 +85,7 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
                 tooltip =
                     "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-temperature\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = Property.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Double temperature,
         @Min(0)
@@ -95,7 +95,7 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
                 tooltip =
                     "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-p\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = Property.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Double topP,
         @Min(0)
@@ -105,7 +105,7 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
                 tooltip =
                     "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.anthropic.com/en/api/messages#body-top-k\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = Property.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Integer topK) {}
   }

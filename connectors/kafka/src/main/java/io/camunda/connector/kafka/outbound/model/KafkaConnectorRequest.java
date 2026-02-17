@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.kafka.outbound.model;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaTopic;
@@ -26,14 +26,14 @@ public record KafkaConnectorRequest(
             group = "message",
             label = "Headers",
             optional = true,
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             description = "Provide Kafka producer headers in JSON")
         Map<String, String> headers,
     @TemplateProperty(
             group = "kafka",
             label = "Additional properties",
             optional = true,
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             description = "Provide additional Kafka producer properties in JSON")
         Map<String, Object> additionalProperties) {
   @Override

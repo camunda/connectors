@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.mcp.client.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import jakarta.validation.Valid;
@@ -61,7 +61,7 @@ public record McpClientRequest(@Valid @NotNull McpClientRequestData data) {
                 description =
                     "The MCP client ID. This needs to be configured on your connector runtime.",
                 type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.optional,
+                feel = FeelMode.optional,
                 constraints = @PropertyConstraints(notEmpty = true))
             @NotBlank
             String clientId) {}

@@ -11,7 +11,7 @@ import static io.camunda.connector.generator.java.annotation.TemplateProperty.Pr
 
 import com.sendgrid.helpers.mail.objects.Email;
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
@@ -78,7 +78,7 @@ public class SendGridRequest {
 
   public record Template(
       @TemplateProperty(label = "Template ID") @NotEmpty String id,
-      @TemplateProperty(label = "Template data", feel = Property.FeelMode.required) @NotEmpty
+      @TemplateProperty(label = "Template data", feel = FeelMode.required) @NotEmpty
           Map<String, Object> data) {}
 
   @NestedProperties(
@@ -107,7 +107,7 @@ public class SendGridRequest {
       group = "content",
       label = "attachments",
       optional = true,
-      feel = Property.FeelMode.required,
+      feel = FeelMode.required,
       description =
           "List of <a href=\"https://docs.camunda.io/docs/apis-tools/camunda-api-rest/specifications/upload-document-alpha/\">Camunda Documents</a>")
   private List<Document> attachments;

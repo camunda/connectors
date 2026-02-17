@@ -9,7 +9,7 @@ package io.camunda.connector.sns.outbound.model;
 import com.amazonaws.services.sns.model.MessageAttributeValue;
 import com.amazonaws.util.StringUtils;
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
@@ -83,7 +83,7 @@ public class TopicRequestData {
   @FEEL
   @TemplateProperty(
       group = "input",
-      feel = Property.FeelMode.required,
+      feel = FeelMode.required,
       label = "messageAttributes",
       optional = true,
       description = "Message attributes metadata")
