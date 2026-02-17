@@ -7,10 +7,8 @@
 package io.camunda.connector.textract.caller;
 
 import io.camunda.connector.textract.model.TextractRequestData;
-import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.textract.TextractClient;
 import software.amazon.awssdk.services.textract.model.AnalyzeDocumentRequest;
 import software.amazon.awssdk.services.textract.model.AnalyzeDocumentResponse;
@@ -24,24 +22,14 @@ public class SyncTextractCaller implements TextractCaller<AnalyzeDocumentRespons
   public AnalyzeDocumentResponse call(
       TextractRequestData requestData, TextractClient textractClient) {
     LOGGER.debug("Starting sync task for document analysis with request data: {}", requestData);
-    final Document document = new Document().withS3Object(prepareS3Obj(requestData));
+    final Document document = Document.builder().s3Object(prepareS3Obj(requestData)).build();
 
     final AnalyzeDocumentRequest analyzeDocumentRequest =
         AnalyzeDocumentRequest.builder()
             .featureTypes(prepareFeatureTypes(requestData))
-            .queriesConfig(prepareQueryConfig(requestData))
             .document(document)
             .build();
 
     return textractClient.analyzeDocument(analyzeDocumentRequest);
-  }
-
-  private Document createDocument(TextractRequestData requestData) {
-    if (Objects.isNull(requestData.document())) {
-      return Document.builder().s3Object(prepareS3Obj(requestData)).build();
-    }
-
-    byte[] docBytes = requestData.document().asByteArray();
-    return Document.builder().bytes(SdkBytes.fromByteArray(docBytes)).build();
   }
 }

@@ -18,8 +18,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.sagemaker.model.SageMakerRequest;
-import org.junit.jupiter.api.Assertions;
-import java.nio.ByteBuffer;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.core.SdkBytes;

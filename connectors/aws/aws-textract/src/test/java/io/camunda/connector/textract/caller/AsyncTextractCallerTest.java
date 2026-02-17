@@ -11,10 +11,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.textract.AmazonTextractAsyncClient;
-import com.amazonaws.services.textract.model.StartDocumentAnalysisRequest;
-import com.amazonaws.services.textract.model.StartDocumentAnalysisResult;
-import io.camunda.connector.textract.model.DocumentLocationType;
 import io.camunda.connector.textract.model.TextractExecutionType;
 import io.camunda.connector.textract.model.TextractRequestData;
 import org.junit.jupiter.api.Test;

@@ -282,9 +282,8 @@ public class JakartaUtils {
       throws MessagingException, IOException {
     BodyPart bodyPart = multipart.getBodyPart(i);
     switch (bodyPart.getContent()) {
-      case InputStream attachment when bodyPart
-              .getDisposition()
-              .equalsIgnoreCase(Part.ATTACHMENT) ->
+      case InputStream attachment
+          when bodyPart.getDisposition().equalsIgnoreCase(Part.ATTACHMENT) ->
           emailBodyBuilder.addAttachment(
               new EmailAttachment(attachment, bodyPart.getFileName(), bodyPart.getContentType()));
       case String plainText when bodyPart.isMimeType("text/plain") ->

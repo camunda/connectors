@@ -21,10 +21,6 @@ import static io.camunda.zeebe.process.test.assertions.BpmnAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.MessageAttributeValue;
-import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.io.File;
 import java.util.List;

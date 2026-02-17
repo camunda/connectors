@@ -11,10 +11,6 @@ import static io.camunda.connector.textract.util.TextractTestUtils.FULL_FILLED_A
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.camunda.connector.textract.model.DocumentLocationType;
-import com.amazonaws.services.textract.model.AnalyzeDocumentResult;
-import com.amazonaws.services.textract.model.DocumentLocation;
-import com.amazonaws.services.textract.model.S3Object;
 import io.camunda.connector.textract.model.TextractExecutionType;
 import io.camunda.connector.textract.model.TextractRequestData;
 import java.util.Set;

@@ -68,7 +68,7 @@ public class SqsQueueConsumer implements Runnable {
           context.log(
               Activity.level(Severity.INFO)
                   .tag("Message")
-                  .message("Received SQS Message with ID " + message.getMessageId()));
+                  .message("Received SQS Message with ID " + message.messageId()));
           var result = context.correlateWithResult(MessageMapper.toSqsInboundMessage(message));
           handleCorrelationResult(message, result);
         }

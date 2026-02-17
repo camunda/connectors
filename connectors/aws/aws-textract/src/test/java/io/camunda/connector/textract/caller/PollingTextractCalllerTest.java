@@ -13,11 +13,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.textract.AmazonTextractAsyncClient;
-import com.amazonaws.services.textract.model.Block;
-import com.amazonaws.services.textract.model.GetDocumentAnalysisRequest;
-import com.amazonaws.services.textract.model.GetDocumentAnalysisResult;
-import com.amazonaws.services.textract.model.StartDocumentAnalysisResult;
 import java.util.List;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -90,7 +85,7 @@ class PollingTextractCalllerTest {
 
     GetDocumentAnalysisResponse firstDocResult =
         GetDocumentAnalysisResponse.builder()
-            .jobStatus("SUCCESS")
+            .jobStatus(JobStatus.SUCCEEDED)
             .nextToken(nextToken)
             .blocks(
                 List.of(Block.builder().text("AAA").build(), Block.builder().text("BBB").build()))
@@ -98,7 +93,7 @@ class PollingTextractCalllerTest {
 
     GetDocumentAnalysisResponse secondDocResult =
         GetDocumentAnalysisResponse.builder()
-            .jobStatus("SUCCESS")
+            .jobStatus(JobStatus.SUCCEEDED)
             .nextToken(null)
             .blocks(
                 List.of(Block.builder().text("CCC").build(), Block.builder().text("DDD").build()))
