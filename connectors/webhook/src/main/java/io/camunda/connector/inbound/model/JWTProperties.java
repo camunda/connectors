@@ -7,8 +7,8 @@
 package io.camunda.connector.inbound.model;
 
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.FeelMode;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;

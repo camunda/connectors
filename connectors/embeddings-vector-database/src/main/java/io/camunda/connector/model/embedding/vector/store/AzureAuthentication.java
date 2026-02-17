@@ -8,6 +8,7 @@ package io.camunda.connector.model.embedding.vector.store;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -35,7 +36,7 @@ public sealed interface AzureAuthentication {
               group = "embeddingsStore",
               label = "API key",
               type = TemplateProperty.PropertyType.String,
-              feel = TemplateProperty.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String apiKey)
       implements AzureAuthentication {
@@ -54,7 +55,7 @@ public sealed interface AzureAuthentication {
               label = "Client ID",
               description = "ID of a Microsoft Entra application",
               type = TemplateProperty.PropertyType.String,
-              feel = TemplateProperty.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String clientId,
       @NotBlank
@@ -63,7 +64,7 @@ public sealed interface AzureAuthentication {
               label = "Client secret",
               description = "Secret of a Microsoft Entra application",
               type = TemplateProperty.PropertyType.String,
-              feel = TemplateProperty.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String clientSecret,
       @NotBlank
@@ -73,7 +74,7 @@ public sealed interface AzureAuthentication {
               description =
                   "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
               type = TemplateProperty.PropertyType.String,
-              feel = TemplateProperty.FeelMode.optional)
+              feel = FeelMode.optional)
           String tenantId,
       @TemplateProperty(
               group = "embeddingsStore",
@@ -81,7 +82,7 @@ public sealed interface AzureAuthentication {
               description =
                   "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
               type = TemplateProperty.PropertyType.String,
-              feel = TemplateProperty.FeelMode.optional,
+              feel = FeelMode.optional,
               optional = true)
           String authorityHost)
       implements AzureAuthentication {

@@ -116,7 +116,7 @@ public record MyConnectorInput(
     @TemplateProperty(id = "mayBeEmptyOrRegexValidatedJakartaStyle", optional = true)
         @Pattern(regexp = "xxx", message = "Oh no!")
         String mayBeEmptyOrRegexValidatedJakartaStyle,
-    @TemplateProperty(id = "feeModelStaticProperty", feel = TemplateProperty.FeelMode.staticFeel)
+    @TemplateProperty(id = "feeModelStaticProperty", feel = FeelMode.staticFeel)
         String feeModelStaticProperty) {
 
   enum MyEnum {

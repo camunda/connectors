@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.gsheets.model.request.input;
 
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;

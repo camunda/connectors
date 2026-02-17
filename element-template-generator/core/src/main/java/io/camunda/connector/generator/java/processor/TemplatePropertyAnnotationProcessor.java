@@ -20,6 +20,7 @@ import static io.camunda.connector.generator.java.util.TemplatePropertiesUtil.is
 
 import io.camunda.connector.generator.dsl.*;
 import io.camunda.connector.generator.dsl.PropertyConstraints;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.EqualsBoolean;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.NestedPropertyCondition;
@@ -135,7 +136,7 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
       case NumberProperty.NumberPropertyBuilder ignored -> manageFeelMode(annotation, builder);
       case BooleanProperty.BooleanPropertyBuilder ignored -> manageFeelMode(annotation, builder);
       default -> {
-        if (annotation.feel() == TemplateProperty.FeelMode.system_default) {
+        if (annotation.feel() == FeelMode.system_default) {
           builder.feel(determineDefaultFeelModeBasedOnContext(context));
         } else {
           builder.feel(annotation.feel());
@@ -177,11 +178,11 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
   }
 
   private void manageFeelMode(TemplateProperty annotation, PropertyBuilder builder) {
-    if (annotation.feel() == TemplateProperty.FeelMode.disabled) {
+    if (annotation.feel() == FeelMode.disabled) {
       throw new IllegalStateException(
           "`disabled` is not a valid feel property for " + annotation.type());
-    } else if (annotation.feel() == TemplateProperty.FeelMode.system_default) {
-      builder.feel(TemplateProperty.FeelMode.staticFeel);
+    } else if (annotation.feel() == FeelMode.system_default) {
+      builder.feel(FeelMode.staticFeel);
     } else {
       builder.feel(annotation.feel());
     }
@@ -198,11 +199,10 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
     }
   }
 
-  private TemplateProperty.FeelMode determineDefaultFeelModeBasedOnContext(
-      final TemplateGenerationContext context) {
+  private FeelMode determineDefaultFeelModeBasedOnContext(final TemplateGenerationContext context) {
     return context instanceof TemplateGenerationContext.Inbound
-        ? TemplateProperty.FeelMode.disabled
-        : TemplateProperty.FeelMode.optional;
+        ? FeelMode.disabled
+        : FeelMode.optional;
   }
 
   public static PropertyCondition buildCondition(

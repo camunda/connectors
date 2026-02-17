@@ -16,6 +16,7 @@ import io.camunda.client.api.response.PublishMessageResponse;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.runtime.app.CamundaClientContext;
@@ -41,16 +42,16 @@ import org.slf4j.LoggerFactory;
     icon = "send.svg",
     elementTypes = {
       @ConnectorElementType(
-          elementType = ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT,
-          appliesTo = ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT,
+          elementType = BpmnType.INTERMEDIATE_THROW_EVENT,
+          appliesTo = BpmnType.INTERMEDIATE_THROW_EVENT,
           templateIdOverride = "io.camunda.connectors.message.intermediate.v1"),
       @ConnectorElementType(
-          elementType = ElementTemplate.BpmnType.MESSAGE_END_EVENT,
-          appliesTo = ElementTemplate.BpmnType.MESSAGE_END_EVENT,
+          elementType = BpmnType.MESSAGE_END_EVENT,
+          appliesTo = BpmnType.MESSAGE_END_EVENT,
           templateIdOverride = "io.camunda.connectors.message.end.v1"),
       @ConnectorElementType(
-          elementType = ElementTemplate.BpmnType.SEND_TASK,
-          appliesTo = ElementTemplate.BpmnType.TASK,
+          elementType = BpmnType.SEND_TASK,
+          appliesTo = BpmnType.TASK,
           templateIdOverride = "io.camunda.connectors.message.sendtask.v1")
     })
 public class SendMessageConnectorFunction implements OutboundConnectorFunction {

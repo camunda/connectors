@@ -7,6 +7,7 @@
 package io.camunda.connector.http.polling.model;
 
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.model.auth.Authentication;
@@ -30,13 +31,13 @@ public class PollingRuntimeProperties {
   @TemplateProperty(
       group = "endpoint",
       label = "URL",
-      feel = TemplateProperty.FeelMode.optional,
+      feel = FeelMode.optional,
       binding = @TemplateProperty.PropertyBinding(name = "url"))
   private String url;
 
   @FEEL
   @TemplateProperty(
-      feel = TemplateProperty.FeelMode.required,
+      feel = FeelMode.required,
       group = "endpoint",
       optional = true,
       description = "Map of query parameters to add to the request URL")
@@ -44,7 +45,7 @@ public class PollingRuntimeProperties {
 
   @FEEL
   @TemplateProperty(
-      feel = TemplateProperty.FeelMode.required,
+      feel = FeelMode.required,
       group = "endpoint",
       optional = true,
       description = "Map of HTTP headers to add to the request",
@@ -55,7 +56,7 @@ public class PollingRuntimeProperties {
   @TemplateProperty(
       label = "Request body",
       description = "Payload to send with the request",
-      feel = TemplateProperty.FeelMode.optional,
+      feel = FeelMode.optional,
       group = "payload",
       type = TemplateProperty.PropertyType.Text,
       binding = @TemplateProperty.PropertyBinding(name = "body"),
@@ -70,7 +71,7 @@ public class PollingRuntimeProperties {
       label = "Skip URL encoding",
       description = "Skip the default URL decoding and encoding behavior",
       type = TemplateProperty.PropertyType.Hidden,
-      feel = TemplateProperty.FeelMode.disabled,
+      feel = FeelMode.disabled,
       group = "endpoint",
       optional = true)
   private String skipEncoding;
@@ -81,7 +82,7 @@ public class PollingRuntimeProperties {
       tooltip = "Set the timeout in seconds to establish a connection or 0 for an infinite timeout",
       defaultValueType = TemplateProperty.DefaultValueType.Number,
       defaultValue = "20",
-      feel = TemplateProperty.FeelMode.optional,
+      feel = FeelMode.optional,
       constraints =
           @TemplateProperty.PropertyConstraints(
               notEmpty = true,
@@ -95,7 +96,7 @@ public class PollingRuntimeProperties {
       label = "Read timeout in seconds",
       defaultValueType = TemplateProperty.DefaultValueType.Number,
       defaultValue = "20",
-      feel = TemplateProperty.FeelMode.optional,
+      feel = FeelMode.optional,
       constraints =
           @TemplateProperty.PropertyConstraints(
               notEmpty = true,

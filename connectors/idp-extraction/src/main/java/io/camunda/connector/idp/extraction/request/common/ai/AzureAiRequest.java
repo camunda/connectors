@@ -8,6 +8,7 @@ package io.camunda.connector.idp.extraction.request.common.ai;
 
 import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Dropdown;
 
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotNull;
@@ -36,7 +37,7 @@ public record AzureAiRequest(
             type = TemplateProperty.PropertyType.Text,
             description = "Specify the endpoint of Azure AI",
             binding = @TemplateProperty.PropertyBinding(name = "endpoint"),
-            feel = TemplateProperty.FeelMode.disabled,
+            feel = FeelMode.disabled,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotNull
         String endpoint,
@@ -47,7 +48,7 @@ public record AzureAiRequest(
             type = TemplateProperty.PropertyType.Text,
             description = "Specify the API key of Azure AI",
             binding = @TemplateProperty.PropertyBinding(name = "apiKey"),
-            feel = TemplateProperty.FeelMode.disabled,
+            feel = FeelMode.disabled,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotNull
         String apiKey)

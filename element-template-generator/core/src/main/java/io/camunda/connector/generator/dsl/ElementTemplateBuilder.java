@@ -16,13 +16,12 @@
  */
 package io.camunda.connector.generator.dsl;
 
-import static io.camunda.connector.generator.java.annotation.TemplateProperty.*;
-
 import io.camunda.connector.generator.dsl.ElementTemplate.ElementTypeWrapper;
 import io.camunda.connector.generator.dsl.ElementTemplate.Metadata;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
-import io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType;
+import io.camunda.connector.generator.java.annotation.BpmnType;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;

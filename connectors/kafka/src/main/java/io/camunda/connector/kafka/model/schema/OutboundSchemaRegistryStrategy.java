@@ -10,6 +10,7 @@ package io.camunda.connector.kafka.model.schema;
 import static io.camunda.connector.kafka.model.schema.OutboundSchemaRegistryStrategy.TYPE;
 
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.kafka.model.SchemaType;
@@ -25,7 +26,7 @@ public final class OutboundSchemaRegistryStrategy extends AbstractSchemaRegistry
   @TemplateProperty(
       id = "schema",
       group = "schema",
-      feel = TemplateProperty.FeelMode.required,
+      feel = FeelMode.required,
       type = TemplateProperty.PropertyType.Text,
       label = "Schema",
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),

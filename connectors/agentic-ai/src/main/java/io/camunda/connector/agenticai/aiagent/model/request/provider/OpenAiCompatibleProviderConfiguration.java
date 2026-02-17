@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.model.request.provider.Open
 
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -32,7 +33,7 @@ public record OpenAiCompatibleProviderConfiguration(
               label = "API endpoint",
               tooltip = "Specify an endpoint to use the connector with an OpenAI compatible API. ",
               type = TemplateProperty.PropertyType.String,
-              feel = TemplateProperty.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String endpoint,
       @Valid OpenAiCompatibleAuthentication authentication,
@@ -41,7 +42,7 @@ public record OpenAiCompatibleProviderConfiguration(
               group = "provider",
               label = "Headers",
               description = "Map of HTTP headers to add to the request.",
-              feel = TemplateProperty.FeelMode.required,
+              feel = FeelMode.required,
               optional = true)
           Map<String, String> headers,
       @FEEL
@@ -49,7 +50,7 @@ public record OpenAiCompatibleProviderConfiguration(
               group = "provider",
               label = "Query Parameters",
               description = "Map of query parameters to add to the request URL.",
-              feel = TemplateProperty.FeelMode.required,
+              feel = FeelMode.required,
               optional = true)
           @Valid
           Map<@NotBlank String, String> queryParameters,
@@ -63,7 +64,7 @@ public record OpenAiCompatibleProviderConfiguration(
               tooltip =
                   "Leave blank if using HTTP headers for authentication.<br>If an Authorization header is specified in the headers, then the API key is ignored.",
               type = TemplateProperty.PropertyType.String,
-              feel = TemplateProperty.FeelMode.optional,
+              feel = FeelMode.optional,
               optional = true)
           String apiKey) {
 
@@ -81,7 +82,7 @@ public record OpenAiCompatibleProviderConfiguration(
               description =
                   "Specify the model ID. Details in the <a href=\"https://platform.openai.com/docs/models\" target=\"_blank\">documentation</a>.",
               type = TemplateProperty.PropertyType.String,
-              feel = TemplateProperty.FeelMode.optional,
+              feel = FeelMode.optional,
               defaultValue = "gpt-4o",
               defaultValueType = TemplateProperty.DefaultValueType.String,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
@@ -96,7 +97,7 @@ public record OpenAiCompatibleProviderConfiguration(
                 tooltip =
                     "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = TemplateProperty.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Integer maxCompletionTokens,
         @Min(0)
@@ -106,7 +107,7 @@ public record OpenAiCompatibleProviderConfiguration(
                 tooltip =
                     "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = TemplateProperty.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Double temperature,
         @Min(0)
@@ -116,7 +117,7 @@ public record OpenAiCompatibleProviderConfiguration(
                 tooltip =
                     "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = TemplateProperty.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Double topP,
         @FEEL
@@ -124,7 +125,7 @@ public record OpenAiCompatibleProviderConfiguration(
                 group = "model",
                 label = "Custom parameters",
                 description = "Map of additional request parameters to include.",
-                feel = TemplateProperty.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Map<String, Object> customParameters) {}
   }

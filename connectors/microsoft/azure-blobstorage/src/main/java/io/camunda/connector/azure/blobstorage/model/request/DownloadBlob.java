@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.azure.blobstorage.model.request;
 
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
@@ -17,7 +18,7 @@ public record DownloadBlob(
             id = "downloadOperationContainer",
             group = "operation",
             tooltip = "A container acts as a directory that organizes a set of blobs.",
-            feel = TemplateProperty.FeelMode.optional,
+            feel = FeelMode.optional,
             binding =
                 @TemplateProperty.PropertyBinding(
                     name = "operation.container")) // TODO can this bindings be removed?
@@ -28,7 +29,7 @@ public record DownloadBlob(
             id = "downloadOperationFileName",
             group = "operation",
             tooltip = "Specify the name of the document to be downloaded.",
-            feel = TemplateProperty.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "operation.fileName"))
         @NotBlank
         String fileName,

@@ -7,6 +7,7 @@
 package io.camunda.connector.idp.extraction.request.common.ai;
 
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotNull;
@@ -21,7 +22,7 @@ public record OpenAiRequest(
             type = TemplateProperty.PropertyType.Text,
             description = "Specify the OpenAI compatible specification endpoint.",
             binding = @TemplateProperty.PropertyBinding(name = "openAiEndpoint"),
-            feel = TemplateProperty.FeelMode.disabled,
+            feel = FeelMode.disabled,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotNull
         String openAiEndpoint,
@@ -31,7 +32,7 @@ public record OpenAiRequest(
             label = "Headers",
             group = "ai",
             description = "Map of HTTP headers to add to the request.",
-            feel = TemplateProperty.FeelMode.disabled,
+            feel = FeelMode.disabled,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotNull
         Map<String, String> openAiHeaders)

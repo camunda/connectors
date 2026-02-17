@@ -19,7 +19,7 @@ package io.camunda.connector.generator.java.json;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.FeelMode;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import java.io.IOException;
 
 public class FeelModelSerializer extends JsonSerializer<FeelMode> {

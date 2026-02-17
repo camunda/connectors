@@ -8,6 +8,7 @@ package io.camunda.connector.aws.bedrock.model;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -25,7 +26,7 @@ public final class InvokeModelData implements RequestData {
       id = "data.modelId0",
       description =
           "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>",
-      feel = TemplateProperty.FeelMode.optional,
+      feel = FeelMode.optional,
       binding = @TemplateProperty.PropertyBinding(name = "data.modelId"))
   @Valid
   @NotNull
@@ -37,7 +38,7 @@ public final class InvokeModelData implements RequestData {
       description =
           "Specify the payload. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html\" target=\"_blank\">documentation</a>",
       id = "data.payload",
-      feel = TemplateProperty.FeelMode.required,
+      feel = FeelMode.required,
       binding = @TemplateProperty.PropertyBinding(name = "data.payload"))
   @Valid
   @NotNull

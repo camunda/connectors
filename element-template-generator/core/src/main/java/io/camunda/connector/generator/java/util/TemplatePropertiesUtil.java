@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.generator.java.util;
 
-import static io.camunda.connector.generator.java.annotation.TemplateProperty.*;
 import static io.camunda.connector.util.reflection.ReflectionUtil.getAllFields;
 
 import com.fasterxml.jackson.databind.JsonNode;

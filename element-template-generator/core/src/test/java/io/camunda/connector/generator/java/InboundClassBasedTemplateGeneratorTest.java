@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.generator.java;
 
-import static io.camunda.connector.generator.java.annotation.TemplateProperty.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -37,6 +36,8 @@ import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyCondition.IsActive;
 import io.camunda.connector.generator.dsl.StringProperty;
+import io.camunda.connector.generator.java.annotation.BpmnType;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.example.inbound.MyConnectorExecutable;
 import java.util.List;
 import java.util.Map;
@@ -135,39 +136,16 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       List<ConnectorElementType> expectedTypes =
           List.of(
               new ConnectorElementType(
-                  Set.of(
-                      io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                          .INTERMEDIATE_CATCH_EVENT,
-                      io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                          .INTERMEDIATE_THROW_EVENT),
-                  io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                      .INTERMEDIATE_CATCH_EVENT,
+                  Set.of(BpmnType.INTERMEDIATE_CATCH_EVENT, BpmnType.INTERMEDIATE_THROW_EVENT),
+                  BpmnType.INTERMEDIATE_CATCH_EVENT,
                   null,
                   null),
               new ConnectorElementType(
-                  Set.of(
-                      io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                          .START_EVENT),
-                  io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                      .START_EVENT,
-                  null,
-                  null),
+                  Set.of(BpmnType.START_EVENT), BpmnType.START_EVENT, null, null),
               new ConnectorElementType(
-                  Set.of(
-                      io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                          .START_EVENT),
-                  io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                      .MESSAGE_START_EVENT,
-                  null,
-                  null),
+                  Set.of(BpmnType.START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null),
               new ConnectorElementType(
-                  Set.of(
-                      io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                          .BOUNDARY_EVENT),
-                  io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                      .BOUNDARY_EVENT,
-                  null,
-                  null));
+                  Set.of(BpmnType.BOUNDARY_EVENT), BpmnType.BOUNDARY_EVENT, null, null));
 
       // when
       var templates = generator.generate(MyConnectorExecutable.MinimallyAnnotated.class);
@@ -182,11 +160,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
                 .orElseThrow();
         assertThat(template.appliesTo())
             .containsExactlyInAnyOrderElementsOf(
-                expectedType.appliesTo().stream()
-                    .map(
-                        io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                            ::getName)
-                    .toList());
+                expectedType.appliesTo().stream().map(BpmnType::getName).toList());
       }
     }
 
@@ -195,13 +169,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       // given
       var type =
           new ConnectorElementType(
-              Set.of(
-                  io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                      .START_EVENT),
-              io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                  .MESSAGE_START_EVENT,
-              null,
-              null);
+              Set.of(BpmnType.START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null);
       var config =
           new GeneratorConfiguration(
               ConnectorMode.NORMAL, null, null, null, Set.of(type), Map.of());
@@ -224,13 +192,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
     void nonMessageTypes_dontHaveMessageIdProperty() {
       // given
       var type =
-          new ConnectorElementType(
-              Set.of(
-                  io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                      .START_EVENT),
-              io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.START_EVENT,
-              null,
-              null);
+          new ConnectorElementType(Set.of(BpmnType.START_EVENT), BpmnType.START_EVENT, null, null);
       var config =
           new GeneratorConfiguration(
               ConnectorMode.NORMAL, null, null, null, Set.of(type), Map.of());
@@ -249,22 +211,13 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       // given
       var type1 =
           new ConnectorElementType(
-              Set.of(
-                  io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                      .INTERMEDIATE_CATCH_EVENT),
-              io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                  .INTERMEDIATE_CATCH_EVENT,
+              Set.of(BpmnType.INTERMEDIATE_CATCH_EVENT),
+              BpmnType.INTERMEDIATE_CATCH_EVENT,
               null,
               null);
       var type2 =
           new ConnectorElementType(
-              Set.of(
-                  io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                      .BOUNDARY_EVENT),
-              io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                  .BOUNDARY_EVENT,
-              null,
-              null);
+              Set.of(BpmnType.BOUNDARY_EVENT), BpmnType.BOUNDARY_EVENT, null, null);
       var config =
           new GeneratorConfiguration(
               ConnectorMode.NORMAL, null, null, null, Set.of(type1, type2), Map.of());
@@ -299,13 +252,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       // given
       var type =
           new ConnectorElementType(
-              Set.of(
-                  io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                      .START_EVENT),
-              io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                  .MESSAGE_START_EVENT,
-              null,
-              null);
+              Set.of(BpmnType.START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null);
       var config =
           new GeneratorConfiguration(
               ConnectorMode.NORMAL, null, null, null, Set.of(type), Map.of());
@@ -358,13 +305,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
     // given
     var type =
         new ConnectorElementType(
-            Set.of(
-                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                    .START_EVENT),
-            io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                .MESSAGE_START_EVENT,
-            null,
-            null);
+            Set.of(BpmnType.START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null);
     var config =
         new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null, Set.of(type), Map.of());
 
@@ -390,13 +331,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       // given
       var type =
           new ConnectorElementType(
-              Set.of(
-                  io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                      .START_EVENT),
-              io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                  .MESSAGE_START_EVENT,
-              null,
-              null);
+              Set.of(BpmnType.START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null);
       var config =
           new GeneratorConfiguration(
               ConnectorMode.NORMAL, null, null, null, Set.of(type), Map.of());
@@ -414,13 +349,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       // given
       var type =
           new ConnectorElementType(
-              Set.of(
-                  io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                      .START_EVENT),
-              io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                  .MESSAGE_START_EVENT,
-              null,
-              null);
+              Set.of(BpmnType.START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null);
       var config =
           new GeneratorConfiguration(
               ConnectorMode.NORMAL,
@@ -443,13 +372,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       // given
       var type =
           new ConnectorElementType(
-              Set.of(
-                  io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                      .START_EVENT),
-              io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                  .MESSAGE_START_EVENT,
-              null,
-              null);
+              Set.of(BpmnType.START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null);
       var config =
           new GeneratorConfiguration(
               ConnectorMode.NORMAL,

@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.generator.api;
 
-import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -53,8 +53,8 @@ public record GeneratorConfiguration(
           ConnectorMode.NORMAL, null, null, null, Collections.emptySet(), Collections.emptyMap());
 
   public record ConnectorElementType(
-      Set<ElementTemplate.BpmnType> appliesTo,
-      ElementTemplate.BpmnType elementType,
+      Set<BpmnType> appliesTo,
+      BpmnType elementType,
       String templateNameOverride,
       String templateIdOverride) {}
 }

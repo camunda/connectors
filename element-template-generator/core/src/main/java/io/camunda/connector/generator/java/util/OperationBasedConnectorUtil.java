@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.generator.java.util;
 
-import static io.camunda.connector.generator.java.annotation.TemplateProperty.*;
 import static io.camunda.connector.generator.java.processor.TemplatePropertyAnnotationProcessor.buildCondition;
 import static io.camunda.connector.generator.java.processor.TemplatePropertyAnnotationProcessor.getValue;
 import static io.camunda.connector.util.reflection.ReflectionUtil.*;
@@ -27,6 +26,7 @@ import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.generator.dsl.*;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyCondition;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.util.reflection.ReflectionUtil.MethodWithAnnotation;
 import java.lang.reflect.Parameter;

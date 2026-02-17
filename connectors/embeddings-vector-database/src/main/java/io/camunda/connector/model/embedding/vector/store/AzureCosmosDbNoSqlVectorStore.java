@@ -7,6 +7,7 @@
 package io.camunda.connector.model.embedding.vector.store;
 
 import io.camunda.connector.generator.java.annotation.DropdownItem;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -51,7 +52,7 @@ public record AzureCosmosDbNoSqlVectorStore(@Valid @NotNull Configuration azureC
               group = "embeddingsStore",
               label = "Consistency level",
               description = "Specify the consistency level for the Azure Cosmos DB NoSQL store.",
-              feel = TemplateProperty.FeelMode.required,
+              feel = FeelMode.required,
               type = TemplateProperty.PropertyType.Dropdown,
               defaultValue = "EVENTUAL")
           ConsistencyLevel consistencyLevel,
@@ -61,7 +62,7 @@ public record AzureCosmosDbNoSqlVectorStore(@Valid @NotNull Configuration azureC
               label = "Distance function",
               description =
                   "The metric used to compute distance/similarity. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/vector-search\" target=\"_blank\">documentation</a>.",
-              feel = TemplateProperty.FeelMode.required,
+              feel = FeelMode.required,
               type = TemplateProperty.PropertyType.Dropdown,
               defaultValue = "COSINE")
           DistanceFunction distanceFunction,
@@ -71,7 +72,7 @@ public record AzureCosmosDbNoSqlVectorStore(@Valid @NotNull Configuration azureC
               label = "Vector index type",
               description =
                   "The type of vector index type to use. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/vector-search\" target=\"_blank\">documentation</a>.",
-              feel = TemplateProperty.FeelMode.required,
+              feel = FeelMode.required,
               type = TemplateProperty.PropertyType.Dropdown,
               defaultValue = "FLAT")
           IndexType vectorIndexType) {}

@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.idp.extraction.model.providers.azure;
 
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotNull;
 
@@ -18,7 +19,7 @@ public class DocumentIntelligenceConfiguration {
       type = TemplateProperty.PropertyType.Text,
       description = "Specify the endpoint of the Azure Document Intelligence",
       binding = @TemplateProperty.PropertyBinding(name = "endpoint"),
-      feel = TemplateProperty.FeelMode.disabled,
+      feel = FeelMode.disabled,
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
   @NotNull
   private String endpoint;
@@ -30,7 +31,7 @@ public class DocumentIntelligenceConfiguration {
       type = TemplateProperty.PropertyType.Text,
       description = "Specify the API key of the Azure Document Intelligence",
       binding = @TemplateProperty.PropertyBinding(name = "apiKey"),
-      feel = TemplateProperty.FeelMode.disabled,
+      feel = FeelMode.disabled,
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
   @NotNull
   private String apiKey;

@@ -16,8 +16,7 @@
  */
 package io.camunda.connector.generator.dsl;
 
-import static io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.*;
-import static io.camunda.connector.generator.java.annotation.TemplateProperty.*;
+import static io.camunda.connector.generator.java.annotation.BpmnType.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
@@ -26,6 +25,7 @@ import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.json.ElementTemplateModule;
 import java.nio.file.Files;
 import java.nio.file.Path;

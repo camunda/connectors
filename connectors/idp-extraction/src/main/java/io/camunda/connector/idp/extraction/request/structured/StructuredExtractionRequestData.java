@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.idp.extraction.request.structured;
 
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.idp.extraction.request.common.DocumentRequestData;
 import java.util.List;
@@ -20,7 +21,7 @@ public class StructuredExtractionRequestData extends DocumentRequestData {
       description = "List of fields that should be returned from the extraction",
       defaultValue = "=[\n  \n]",
       binding = @TemplateProperty.PropertyBinding(name = "includedFields"),
-      feel = TemplateProperty.FeelMode.optional)
+      feel = FeelMode.optional)
   List<String> includedFields;
 
   @TemplateProperty(
@@ -31,7 +32,7 @@ public class StructuredExtractionRequestData extends DocumentRequestData {
       description = "List of keys that should be renamed and not be given the default name",
       defaultValue = "={\n  \n}",
       binding = @TemplateProperty.PropertyBinding(name = "renameMappings"),
-      feel = TemplateProperty.FeelMode.optional)
+      feel = FeelMode.optional)
   Map<String, String> renameMappings;
 
   @TemplateProperty(
@@ -41,7 +42,7 @@ public class StructuredExtractionRequestData extends DocumentRequestData {
       type = TemplateProperty.PropertyType.String,
       description = "The delimiter used for the variable name of the extracted field",
       binding = @TemplateProperty.PropertyBinding(name = "delimiter"),
-      feel = TemplateProperty.FeelMode.disabled)
+      feel = FeelMode.disabled)
   String delimiter;
 
   public List<String> getIncludedFields() {

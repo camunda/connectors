@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.generator.dsl.http;
 
-import static io.camunda.connector.generator.java.annotation.TemplateProperty.*;
-
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.HiddenProperty;
@@ -32,6 +30,7 @@ import io.camunda.connector.generator.dsl.PropertyConstraints;
 import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
 import java.util.ArrayList;
 import java.util.Collection;

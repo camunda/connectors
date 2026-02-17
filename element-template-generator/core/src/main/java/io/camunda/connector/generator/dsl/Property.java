@@ -18,7 +18,7 @@ package io.camunda.connector.generator.dsl;
 
 import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.FeelMode;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import java.util.Objects;
 
 @JsonInclude(Include.NON_NULL)

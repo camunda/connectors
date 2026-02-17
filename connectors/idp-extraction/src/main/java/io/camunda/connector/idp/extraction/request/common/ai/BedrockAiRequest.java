@@ -8,6 +8,7 @@ package io.camunda.connector.idp.extraction.request.common.ai;
 
 import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Dropdown;
 
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotNull;
@@ -36,7 +37,7 @@ public record BedrockAiRequest(
             description =
                 "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
             group = "ai",
-            feel = TemplateProperty.FeelMode.optional,
+            feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -49,7 +50,7 @@ public record BedrockAiRequest(
             description =
                 "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
             group = "ai",
-            feel = TemplateProperty.FeelMode.optional,
+            feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -61,7 +62,7 @@ public record BedrockAiRequest(
             group = "ai",
             description = "Specify the AWS region",
             type = TemplateProperty.PropertyType.Text,
-            feel = TemplateProperty.FeelMode.disabled,
+            feel = FeelMode.disabled,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotNull
         String region)

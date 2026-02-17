@@ -6,13 +6,14 @@
  */
 package io.camunda.connector.csv.model;
 
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
 public record ReadCsvRequest(
     @TemplateProperty(
             label = "Data",
             tooltip = "CSV as a document or text",
-            feel = TemplateProperty.FeelMode.optional)
+            feel = FeelMode.optional)
         Object data,
     CsvFormat format,
     @TemplateProperty(

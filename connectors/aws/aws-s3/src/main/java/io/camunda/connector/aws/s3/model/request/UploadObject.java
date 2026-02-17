@@ -7,6 +7,7 @@
 package io.camunda.connector.aws.s3.model.request;
 
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
@@ -19,7 +20,7 @@ public record UploadObject(
             id = "uploadActionBucket",
             group = "uploadObject",
             tooltip = "Bucket from where an object should be uploaded",
-            feel = TemplateProperty.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "action.bucket"))
         @NotBlank
         String bucket,
@@ -30,7 +31,7 @@ public record UploadObject(
             tooltip =
                 "Key of the uploaded object, if not given. The file name from the document metadata will be used",
             optional = true,
-            feel = TemplateProperty.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "action.key"))
         String key,
     @TemplateProperty(
@@ -39,7 +40,7 @@ public record UploadObject(
             id = "uploadActionDocument",
             tooltip = "Document to be uploaded on AWS S3",
             type = TemplateProperty.PropertyType.String,
-            feel = TemplateProperty.FeelMode.required,
+            feel = FeelMode.required,
             binding = @TemplateProperty.PropertyBinding(name = "action.document"))
         @NotNull
         Document document)

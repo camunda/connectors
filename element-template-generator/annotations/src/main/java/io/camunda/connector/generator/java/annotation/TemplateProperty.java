@@ -69,14 +69,6 @@ public @interface TemplateProperty {
    */
   DropdownPropertyChoice[] choices() default {};
 
-  enum FeelMode {
-    optional,
-    required,
-    staticFeel,
-    disabled,
-    system_default,
-  }
-
   /**
    * Defines the support for FEEL expressions in the property. By default, for inbound connectors,
    * FEEL is disabled; for outbound connectors, FEEL is optional.

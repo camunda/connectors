@@ -7,6 +7,7 @@
 package io.camunda.connector.gemini.model;
 
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
@@ -16,21 +17,21 @@ public record GeminiRequestData(
             label = "Project ID",
             group = "input",
             description = "Project identifier.",
-            feel = Property.FeelMode.disabled)
+            feel = FeelMode.disabled)
         @NotNull
         String projectId,
     @TemplateProperty(
             label = "Region",
             group = "input",
             description = "Input region.",
-            feel = Property.FeelMode.disabled)
+            feel = FeelMode.disabled)
         @NotNull
         String region,
     @TemplateProperty(
             label = "Model",
             group = "input",
             description = "Select gemini model.",
-            feel = TemplateProperty.FeelMode.disabled,
+            feel = FeelMode.disabled,
             choices = {
               @TemplateProperty.DropdownPropertyChoice(
                   value = "GEMINI_2_5_PRO",
@@ -58,7 +59,7 @@ public record GeminiRequestData(
             label = "Custom model name",
             group = "input",
             description = "Custom model name or identifier",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             condition =
                 @TemplateProperty.PropertyCondition(property = "input.model", equals = "CUSTOM"),
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
@@ -68,14 +69,14 @@ public record GeminiRequestData(
             label = "Prompts",
             group = "input",
             description = "Provide a list of prompts",
-            feel = TemplateProperty.FeelMode.required)
+            feel = FeelMode.required)
         @NotNull
         List<Object> prompts,
     @TemplateProperty(
             label = "System instructions",
             group = "input",
             description = "System instructions inform how the model should respond.",
-            feel = TemplateProperty.FeelMode.disabled,
+            feel = FeelMode.disabled,
             tooltip =
                 "System instructions inform how the model should respond."
                     + " Use them to give the model context to understand the task, "
@@ -100,7 +101,7 @@ public record GeminiRequestData(
             label = "Vertex AI data store path",
             group = "input",
             description = "Vertex AI datastore path",
-            feel = TemplateProperty.FeelMode.disabled,
+            feel = FeelMode.disabled,
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "input.grounding",
@@ -129,7 +130,7 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Hate speech",
             group = "input",
-            feel = TemplateProperty.FeelMode.disabled,
+            feel = FeelMode.disabled,
             defaultValue = "OFF",
             choices = {
               @TemplateProperty.DropdownPropertyChoice(value = "OFF", label = "OFF"),
@@ -156,7 +157,7 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Dangerous content",
             group = "input",
-            feel = TemplateProperty.FeelMode.disabled,
+            feel = FeelMode.disabled,
             defaultValue = "OFF",
             choices = {
               @TemplateProperty.DropdownPropertyChoice(value = "OFF", label = "OFF"),
@@ -183,7 +184,7 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Sexually explicit content",
             group = "input",
-            feel = TemplateProperty.FeelMode.disabled,
+            feel = FeelMode.disabled,
             defaultValue = "OFF",
             choices = {
               @TemplateProperty.DropdownPropertyChoice(value = "OFF", label = "OFF"),
@@ -210,7 +211,7 @@ public record GeminiRequestData(
     @TemplateProperty(
             label = "Harassment content",
             group = "input",
-            feel = TemplateProperty.FeelMode.disabled,
+            feel = FeelMode.disabled,
             defaultValue = "OFF",
             choices = {
               @TemplateProperty.DropdownPropertyChoice(value = "OFF", label = "OFF"),
@@ -239,7 +240,7 @@ public record GeminiRequestData(
             label = "Add stop sequence",
             group = "input",
             description = "Vertex AI datastore path",
-            feel = TemplateProperty.FeelMode.required,
+            feel = FeelMode.required,
             optional = true,
             tooltip =
                 "A stop sequence is a series of characters (including spaces) that stops response generation if the model encounters it."
@@ -330,7 +331,7 @@ public record GeminiRequestData(
             label = "Function call description",
             description = "Describe function calls.",
             group = "input",
-            feel = TemplateProperty.FeelMode.required,
+            feel = FeelMode.required,
             optional = true)
         List<Object> functionCalls) {
 

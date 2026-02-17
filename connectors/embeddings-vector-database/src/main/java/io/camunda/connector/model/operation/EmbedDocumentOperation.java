@@ -9,8 +9,8 @@ package io.camunda.connector.model.operation;
 import static io.camunda.connector.model.operation.EmbedDocumentOperation.EMBED_DOCUMENT_OPERATION;
 
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -26,7 +26,7 @@ public record EmbedDocumentOperation(
             group = "document",
             id = "documentSource",
             label = "Document source",
-            feel = TemplateProperty.FeelMode.required,
+            feel = FeelMode.required,
             type = TemplateProperty.PropertyType.Dropdown,
             description = "Whether you want to embed a Camunda document file or plain text",
             defaultValue = "CamundaDocument")
@@ -46,7 +46,7 @@ public record EmbedDocumentOperation(
             label = "Documents",
             group = "document",
             id = "newDocuments",
-            feel = TemplateProperty.FeelMode.required,
+            feel = FeelMode.required,
             binding = @TemplateProperty.PropertyBinding(name = "newDocuments"),
             constraints = @PropertyConstraints(notEmpty = true),
             condition =

@@ -9,6 +9,7 @@ package io.camunda.connector.email.outbound.protocols.actions;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -24,7 +25,7 @@ public record SmtpSendEmail(
             group = "sendEmailSmtp",
             id = "smtpFrom",
             tooltip = "Address the email will be sent from",
-            feel = TemplateProperty.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.from"))
         @Valid
         @NotNull
@@ -35,7 +36,7 @@ public record SmtpSendEmail(
             id = "smtpTo",
             tooltip =
                 "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
-            feel = TemplateProperty.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.to"))
         @Valid
         @NotNull
@@ -46,7 +47,7 @@ public record SmtpSendEmail(
             id = "smtpCc",
             tooltip =
                 "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
-            feel = TemplateProperty.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.cc"),
             optional = true)
         @Valid
@@ -57,7 +58,7 @@ public record SmtpSendEmail(
             id = "smtpBcc",
             tooltip =
                 "Comma-separated list of email, e.g., 'email1@domain.com,email2@domain.com' or '=[ \"email1@domain.com\", \"email2@domain.com\"]'",
-            feel = TemplateProperty.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.bcc"),
             optional = true)
         @Valid
@@ -67,7 +68,7 @@ public record SmtpSendEmail(
             group = "sendEmailSmtp",
             id = "smtpHeaders",
             tooltip = "Additional email headers",
-            feel = TemplateProperty.FeelMode.required,
+            feel = FeelMode.required,
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.headers"),
             optional = true)
         @Valid
@@ -79,7 +80,7 @@ public record SmtpSendEmail(
             type = TemplateProperty.PropertyType.String,
             tooltip = "Email's subject",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.subject"),
-            feel = TemplateProperty.FeelMode.optional)
+            feel = FeelMode.optional)
         @Valid
         @NotNull
         String subject,
@@ -102,7 +103,7 @@ public record SmtpSendEmail(
             type = TemplateProperty.PropertyType.Text,
             tooltip = "Email's content",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.body"),
-            feel = TemplateProperty.FeelMode.optional,
+            feel = FeelMode.optional,
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "contentType",
@@ -116,7 +117,7 @@ public record SmtpSendEmail(
             type = TemplateProperty.PropertyType.Text,
             tooltip = "Email's Html content",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.htmlBody"),
-            feel = TemplateProperty.FeelMode.optional,
+            feel = FeelMode.optional,
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "contentType",
@@ -129,7 +130,7 @@ public record SmtpSendEmail(
             id = "attachmentsSmtp",
             tooltip = "Email's attachments, should be set as a list ",
             type = TemplateProperty.PropertyType.String,
-            feel = TemplateProperty.FeelMode.required,
+            feel = FeelMode.required,
             optional = true,
             description = "Email's attachment. e.g., =[ document1, document2]",
             binding = @TemplateProperty.PropertyBinding(name = "data.smtpAction.attachments"))

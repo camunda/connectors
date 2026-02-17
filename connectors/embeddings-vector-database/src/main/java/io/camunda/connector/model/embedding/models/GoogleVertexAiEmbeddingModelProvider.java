@@ -8,6 +8,7 @@ package io.camunda.connector.model.embedding.models;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -50,7 +51,7 @@ public record GoogleVertexAiEmbeddingModelProvider(@Valid @NotNull Configuration
               group = "embeddingModel",
               label = "Model name",
               description = "Vertex AI embedding model name",
-              feel = TemplateProperty.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String modelName,
       @NotNull
@@ -60,7 +61,7 @@ public record GoogleVertexAiEmbeddingModelProvider(@Valid @NotNull Configuration
               label = "Embedding dimensions",
               description =
                   "The size of the vector used to represent data. Details in the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings\" target=\"_blank\">documentation</a>.",
-              feel = TemplateProperty.FeelMode.required,
+              feel = FeelMode.required,
               type = TemplateProperty.PropertyType.Number,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           Integer dimensions,
@@ -112,7 +113,7 @@ public record GoogleVertexAiEmbeddingModelProvider(@Valid @NotNull Configuration
                 group = "embeddingModel",
                 label = "JSON key of the service account",
                 description = "This is the key of the service account in JSON format.",
-                feel = TemplateProperty.FeelMode.optional,
+                feel = FeelMode.optional,
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             String jsonKey)
         implements GoogleVertexAiAuthentication {

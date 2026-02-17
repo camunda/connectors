@@ -9,6 +9,7 @@ package io.camunda.connector.http.polling;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.polling.model.PollingRequest;
@@ -33,16 +34,13 @@ import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
     },
     elementTypes = {
       @ElementTemplate.ConnectorElementType(
-          appliesTo = {
-            ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT,
-            ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT
-          },
-          elementType = ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT,
+          appliesTo = {BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT},
+          elementType = BpmnType.INTERMEDIATE_CATCH_EVENT,
           templateIdOverride = "io.camunda.connectors.http.Polling",
           templateNameOverride = "HTTP Polling Intermediate Catch Event Connector"),
       @ElementTemplate.ConnectorElementType(
-          appliesTo = ElementTemplate.BpmnType.BOUNDARY_EVENT,
-          elementType = ElementTemplate.BpmnType.BOUNDARY_EVENT,
+          appliesTo = BpmnType.BOUNDARY_EVENT,
+          elementType = BpmnType.BOUNDARY_EVENT,
           templateIdOverride = "io.camunda.connectors.http.Polling.Boundary",
           templateNameOverride = "HTTP Polling Boundary Catch Event Connector")
     })

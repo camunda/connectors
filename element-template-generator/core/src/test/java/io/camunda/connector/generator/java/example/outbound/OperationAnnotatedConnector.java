@@ -24,8 +24,8 @@ import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 
 @OutboundConnector(name = OperationAnnotatedConnector.NAME, type = OperationAnnotatedConnector.TYPE)

@@ -18,6 +18,7 @@ import io.camunda.connector.aws.AwsUtils;
 import io.camunda.connector.aws.CredentialsProviderSupport;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.common.suppliers.DefaultAmazonSQSClientSupplier;
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
@@ -57,26 +58,23 @@ import org.slf4j.LoggerFactory;
     },
     elementTypes = {
       @ConnectorElementType(
-          appliesTo = ElementTemplate.BpmnType.START_EVENT,
-          elementType = ElementTemplate.BpmnType.MESSAGE_START_EVENT,
+          appliesTo = BpmnType.START_EVENT,
+          elementType = BpmnType.MESSAGE_START_EVENT,
           templateIdOverride = "io.camunda.connectors.AWSSQS.startmessage.v1",
           templateNameOverride = "Amazon SQS Message Start Event Connector"),
       @ConnectorElementType(
-          appliesTo = {
-            ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT,
-            ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT
-          },
-          elementType = ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT,
+          appliesTo = {BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT},
+          elementType = BpmnType.INTERMEDIATE_CATCH_EVENT,
           templateIdOverride = "io.camunda.connectors.AWSSQS.intermediate.v1",
           templateNameOverride = "Amazon SQS Intermediate Message Catch Event connector"),
       @ConnectorElementType(
-          appliesTo = ElementTemplate.BpmnType.BOUNDARY_EVENT,
-          elementType = ElementTemplate.BpmnType.BOUNDARY_EVENT,
+          appliesTo = BpmnType.BOUNDARY_EVENT,
+          elementType = BpmnType.BOUNDARY_EVENT,
           templateIdOverride = "io.camunda.connectors.AWSSQS.boundary.v1",
           templateNameOverride = "Amazon SQS Boundary Event Connector"),
       @ConnectorElementType(
-          appliesTo = ElementTemplate.BpmnType.RECEIVE_TASK,
-          elementType = ElementTemplate.BpmnType.RECEIVE_TASK,
+          appliesTo = BpmnType.RECEIVE_TASK,
+          elementType = BpmnType.RECEIVE_TASK,
           templateIdOverride = "io.camunda.connectors.AWSSQS.receive.v1",
           templateNameOverride = "Amazon SQS Receive Task Connector")
     })

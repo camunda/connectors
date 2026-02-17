@@ -18,6 +18,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
@@ -48,26 +49,23 @@ import org.slf4j.LoggerFactory;
     propertyGroups = {@PropertyGroup(id = "endpoint", label = "Webhook configuration")},
     elementTypes = {
       @ConnectorElementType(
-          appliesTo = ElementTemplate.BpmnType.START_EVENT,
-          elementType = ElementTemplate.BpmnType.MESSAGE_START_EVENT,
+          appliesTo = BpmnType.START_EVENT,
+          elementType = BpmnType.MESSAGE_START_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.Slack.MessageStartEvent.v1",
           templateNameOverride = "Slack Webhook Message Start Event Connector"),
       @ConnectorElementType(
-          appliesTo = {
-            ElementTemplate.BpmnType.INTERMEDIATE_THROW_EVENT,
-            ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT
-          },
-          elementType = ElementTemplate.BpmnType.INTERMEDIATE_CATCH_EVENT,
+          appliesTo = {BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT},
+          elementType = BpmnType.INTERMEDIATE_CATCH_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.Slack.IntermediateCatchEvent.v1",
           templateNameOverride = "Slack Webhook Intermediate Catch Event Connector"),
       @ConnectorElementType(
-          appliesTo = ElementTemplate.BpmnType.BOUNDARY_EVENT,
-          elementType = ElementTemplate.BpmnType.BOUNDARY_EVENT,
+          appliesTo = BpmnType.BOUNDARY_EVENT,
+          elementType = BpmnType.BOUNDARY_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.Slack.BoundaryEvent.v1",
           templateNameOverride = "Slack Webhook Boundary Event Connector"),
       @ConnectorElementType(
-          appliesTo = ElementTemplate.BpmnType.RECEIVE_TASK,
-          elementType = ElementTemplate.BpmnType.RECEIVE_TASK,
+          appliesTo = BpmnType.RECEIVE_TASK,
+          elementType = BpmnType.RECEIVE_TASK,
           templateIdOverride = "io.camunda.connectors.inbound.Slack.ReceiveTask.v1",
           templateNameOverride = "Slack Webhook Receive Task Connector")
     })

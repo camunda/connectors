@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.generator.dsl.http;
 
-import static io.camunda.connector.generator.java.annotation.TemplateProperty.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
@@ -32,6 +31,8 @@ import io.camunda.connector.generator.dsl.http.HttpAuthentication.BearerAuth;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.NoAuth;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.OAuth2;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
+import io.camunda.connector.generator.java.annotation.BpmnType;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.http.base.model.HttpMethod;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -397,13 +398,7 @@ public class HttpOutboundElementTemplateBuilderTest {
         .authentication(authentications)
         .operations(operations)
         .elementType(
-            new ConnectorElementType(
-                Set.of(
-                    io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType.TASK),
-                io.camunda.connector.generator.java.annotation.ElementTemplate.BpmnType
-                    .SERVICE_TASK,
-                null,
-                null))
+            new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null))
         .build();
   }
 

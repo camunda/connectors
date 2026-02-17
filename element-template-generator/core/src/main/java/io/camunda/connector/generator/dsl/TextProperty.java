@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.generator.dsl;
 
-import io.camunda.connector.generator.java.annotation.TemplateProperty.FeelMode;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 
 public final class TextProperty extends Property {
 

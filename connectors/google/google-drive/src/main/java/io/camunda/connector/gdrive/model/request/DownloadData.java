@@ -6,13 +6,14 @@
  */
 package io.camunda.connector.gdrive.model.request;
 
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
 public record DownloadData(
     @TemplateProperty(
             group = "operationDetails",
             label = "File ID",
-            feel = TemplateProperty.FeelMode.optional,
+            feel = FeelMode.optional,
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "resource.type",

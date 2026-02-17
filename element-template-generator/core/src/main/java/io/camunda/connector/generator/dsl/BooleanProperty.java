@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.generator.dsl;
 
-import static io.camunda.connector.generator.java.annotation.TemplateProperty.*;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 
 public final class BooleanProperty extends Property {
 

@@ -10,6 +10,7 @@ package io.camunda.connector.kafka.model.schema;
 import static io.camunda.connector.kafka.model.schema.AvroInlineSchemaStrategy.TYPE;
 
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
@@ -19,7 +20,7 @@ public record AvroInlineSchemaStrategy(
         @TemplateProperty(
             id = "avro.schema",
             group = "schema",
-            feel = TemplateProperty.FeelMode.required,
+            feel = FeelMode.required,
             type = TemplateProperty.PropertyType.Text,
             label = "Schema",
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),

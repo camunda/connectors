@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.idp.extraction.request.classification;
 
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.idp.extraction.model.ConverseData;
 import io.camunda.connector.idp.extraction.request.common.DocumentRequestData;
@@ -20,7 +21,7 @@ public class ClassificationRequestData extends DocumentRequestData {
       description = "Specify the parameters for AWS Bedrock",
       defaultValue = "={\n  modelId: \"\",\n  temperature: 0.5,\n  topP: 0.9\n}",
       binding = @TemplateProperty.PropertyBinding(name = "converseData"),
-      feel = TemplateProperty.FeelMode.optional)
+      feel = FeelMode.optional)
   ConverseData converseData;
 
   @TemplateProperty(
@@ -31,7 +32,7 @@ public class ClassificationRequestData extends DocumentRequestData {
       description = "The possible classification types considered by the model",
       defaultValue = "=[\n  \"\"\n]",
       binding = @TemplateProperty.PropertyBinding(name = "documentTypes"),
-      feel = TemplateProperty.FeelMode.optional)
+      feel = FeelMode.optional)
   List<String> documentTypes;
 
   @TemplateProperty(
@@ -47,7 +48,7 @@ public class ClassificationRequestData extends DocumentRequestData {
         @TemplateProperty.DropdownPropertyChoice(label = "No", value = "false"),
         @TemplateProperty.DropdownPropertyChoice(label = "Yes", value = "true")
       },
-      feel = TemplateProperty.FeelMode.disabled)
+      feel = FeelMode.disabled)
   boolean autoClassify;
 
   public ConverseData getConverseData() {

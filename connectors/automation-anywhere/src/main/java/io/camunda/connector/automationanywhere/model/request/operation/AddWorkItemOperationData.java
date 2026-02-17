@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.automationanywhere.model.request.operation;
 
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotNull;
@@ -21,7 +22,7 @@ public record AddWorkItemOperationData(
     @TemplateProperty(
             label = "Work item json data",
             group = "input",
-            feel = TemplateProperty.FeelMode.required,
+            feel = FeelMode.required,
             type = TemplateProperty.PropertyType.Text,
             description =
                 "Work item json input data. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>")
