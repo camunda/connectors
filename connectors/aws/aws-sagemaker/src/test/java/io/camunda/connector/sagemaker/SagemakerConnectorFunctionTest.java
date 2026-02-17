@@ -8,9 +8,6 @@ package io.camunda.connector.sagemaker;
 
 import static org.mockito.ArgumentMatchers.any;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntime;
-import com.amazonaws.services.sagemakerruntime.AmazonSageMakerRuntimeAsync;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.sagemaker.suppliers.SageMakeClientSupplier;
 import io.camunda.connector.sagemaker.testutils.SageMakerTestUtils;

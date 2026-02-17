@@ -6,9 +6,6 @@
  */
 package io.camunda.connector.textract.caller;
 
-import com.amazonaws.AmazonWebServiceResult;
-import com.amazonaws.ResponseMetadata;
-import com.amazonaws.services.textract.AmazonTextract;
 import com.amazonaws.services.textract.model.DocumentLocation;
 import com.amazonaws.services.textract.model.FeatureType;
 import com.amazonaws.services.textract.model.S3Object;

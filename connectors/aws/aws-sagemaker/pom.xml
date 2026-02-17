@@ -54,9 +54,9 @@
     </dependency>
 
     <dependency>
-      <groupId>com.amazonaws</groupId>
-      <artifactId>aws-java-sdk-sagemaker</artifactId>
-      <version>${version.aws-java-sdk}</version>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sagemaker</artifactId>
+      <version>${version.aws-sdk2}</version>
     </dependency>
 
   </dependencies>  
@@ -89,4 +89,3 @@
   </build>
 
 </project>
-
