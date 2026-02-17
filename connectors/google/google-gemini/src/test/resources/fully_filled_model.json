@@ -5,7 +5,7 @@
   },
   "input": {
     "projectId": "projectId",
-    "model": "GEMINI_1_5_FLASH_001",
+    "model": "GEMINI_2_5_FLASH",
     "region": "region",
     "grounding": "true",
     "prompts": [
