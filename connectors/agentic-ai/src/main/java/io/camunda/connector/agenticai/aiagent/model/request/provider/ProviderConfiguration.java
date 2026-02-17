@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.model.request.provider;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.ANTHROPIC_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AZURE_OPENAI_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BEDROCK_ID;
+import static io.camunda.connector.agenticai.aiagent.model.request.provider.CustomProviderConfiguration.CUSTOM_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GOOGLE_VERTEX_AI_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OPENAI_COMPATIBLE_ID;
 import static io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OPENAI_ID;
@@ -26,7 +27,8 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
   @JsonSubTypes.Type(value = OpenAiProviderConfiguration.class, name = OPENAI_ID),
   @JsonSubTypes.Type(
       value = OpenAiCompatibleProviderConfiguration.class,
-      name = OPENAI_COMPATIBLE_ID)
+      name = OPENAI_COMPATIBLE_ID),
+  @JsonSubTypes.Type(value = CustomProviderConfiguration.class, name = CUSTOM_ID)
 })
 @TemplateDiscriminatorProperty(
     label = "Provider",
@@ -40,4 +42,5 @@ public sealed interface ProviderConfiguration
         AzureOpenAiProviderConfiguration,
         GoogleVertexAiProviderConfiguration,
         OpenAiProviderConfiguration,
-        OpenAiCompatibleProviderConfiguration {}
+        OpenAiCompatibleProviderConfiguration,
+        CustomProviderConfiguration {}

@@ -141,7 +141,7 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
                       new Map.Map2<>(
                           ERROR_TYPE_PROPERTY,
                           IGNORE_ERROR_TYPE_VALUE,
-                          IGNORE_ERROR_ARGUMENTS.getFirst(),
+                          IGNORE_ERROR_ARGUMENTS.get(0),
                           toContext(args, 0)),
                       Map$.MODULE$.empty())));
 

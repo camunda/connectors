@@ -81,7 +81,7 @@ public class ProxyRoutePlannerTest {
 
     // then
     assertThat(javaDefaultProxies.size()).isEqualTo(1);
-    var javaProxy = javaDefaultProxies.getFirst();
+    var javaProxy = javaDefaultProxies.get(0);
 
     if (skipProxy) {
       assertThat(route).isNull();

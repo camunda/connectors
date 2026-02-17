@@ -71,15 +71,15 @@ public class DocumentAwareMultipartEntityBuilder {
    */
   private HttpEntity createMultiPartEntity(Map<?, ?> body) {
     for (Map.Entry<?, ?> entry : body.entrySet()) {
-      switch (entry.getValue()) {
-        case Document document -> handleDocumentContent(entry, document);
-        case List<?> list -> handleListContent(entry, list);
-        case null -> {}
-        default ->
-            builder.addTextBody(
-                String.valueOf(entry.getKey()),
-                String.valueOf(entry.getValue()),
-                MULTIPART_FORM_DATA);
+      if (entry.getValue() instanceof Document document) {
+        handleDocumentContent(entry, document);
+      } else if (entry.getValue() instanceof List<?> list) {
+        handleListContent(entry, list);
+      } else if (entry.getValue() == null) {
+        // Do nothing
+      } else {
+        builder.addTextBody(
+            String.valueOf(entry.getKey()), String.valueOf(entry.getValue()), MULTIPART_FORM_DATA);
       }
     }
     return builder.build();
