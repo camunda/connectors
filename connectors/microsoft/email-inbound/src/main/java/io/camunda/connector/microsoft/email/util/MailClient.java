@@ -15,7 +15,10 @@ import java.util.function.Consumer;
 
 public interface MailClient {
   interface OpaqueMessageFetcher {
-    void poll();
+    /**
+     * @param handler a function to which each received message will be passed
+     */
+    void poll(Consumer<EmailMessage> handler);
   }
 
   /**
@@ -24,11 +27,9 @@ public interface MailClient {
    * it
    *
    * @param filterString an OData filter string that restricts the Messages returned
-   * @param handler a function to which each received message will be passed
    * @return the consuming client
    */
-  OpaqueMessageFetcher constructMessageFetcher(
-      Folder folder, String filterString, Consumer<EmailMessage> handler);
+  OpaqueMessageFetcher constructMessageFetcher(Folder folder, String filterString);
 
   void deleteMessage(EmailMessage msg, boolean force);
 

@@ -33,17 +33,15 @@ public class TestMailClient implements MailClient {
 
   public class TestMessageFetcher implements OpaqueMessageFetcher {
     private final Folder folder;
-    private final Consumer<EmailMessage> handler;
     private final String filter;
 
-    private TestMessageFetcher(Folder folder, String filter, Consumer<EmailMessage> handler) {
+    private TestMessageFetcher(Folder folder, String filter) {
       this.folder = folder;
-      this.handler = handler;
       this.filter = filter;
     }
 
     @Override
-    public void poll() {
+    public void poll(Consumer<EmailMessage> handler) {
       mailboxState.get(getFolderId(folder)).forEach(m -> handler.accept(m.msg()));
     }
   }
@@ -60,9 +58,8 @@ public class TestMailClient implements MailClient {
   }
 
   @Override
-  public OpaqueMessageFetcher constructMessageFetcher(
-      Folder folder, String filterString, Consumer<EmailMessage> handler) {
-    return new TestMessageFetcher(folder, filterString, handler);
+  public OpaqueMessageFetcher constructMessageFetcher(Folder folder, String filterString) {
+    return new TestMessageFetcher(folder, filterString);
   }
 
   @Override

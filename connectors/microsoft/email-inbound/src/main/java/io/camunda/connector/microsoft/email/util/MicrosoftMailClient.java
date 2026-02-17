@@ -6,6 +6,14 @@
  */
 package io.camunda.connector.microsoft.email.util;
 
+import static io.camunda.connector.microsoft.email.MsEmailInboundConstants.GRAPH_API_SCOPES;
+import static io.camunda.connector.microsoft.email.MsEmailInboundConstants.ODATA_FILTER_PARAM;
+import static io.camunda.connector.microsoft.email.MsEmailInboundConstants.ODATA_SELECT_PARAM;
+import static io.camunda.connector.microsoft.email.MsEmailInboundConstants.ODATA_TOP_PARAM;
+import static io.camunda.connector.microsoft.email.MsEmailInboundConstants.PAGE_SIZE;
+import static io.camunda.connector.microsoft.email.MsEmailInboundConstants.PREFER_HEADER;
+import static io.camunda.connector.microsoft.email.MsEmailInboundConstants.PREFER_TEXT_BODY;
+
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.microsoft.graph.core.tasks.PageIterator;
@@ -29,6 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import org.apache.commons.lang3.StringUtils;
 
 public class MicrosoftMailClient implements MailClient {
 
@@ -41,15 +50,13 @@ public class MicrosoftMailClient implements MailClient {
     // /.default scope, and pre-configure your permissions on the
     // app registration in Azure. An administrator must grant consent
     // to those permissions beforehand.
-    final String[] scopes = new String[] {"https://graph.microsoft.com/.default"};
-
     final ClientSecretCredential credential =
         new ClientSecretCredentialBuilder()
             .clientId(authentication.clientId())
             .tenantId(authentication.tenantId())
             .clientSecret(authentication.clientSecret())
             .build();
-    client = new GraphServiceClient(credential, scopes);
+    client = new GraphServiceClient(credential, GRAPH_API_SCOPES);
     graphClient = client.users().byUserId(userId);
     this.userId = userId;
   }
@@ -62,10 +69,15 @@ public class MicrosoftMailClient implements MailClient {
   }
 
   private String getFolderIdByFolderName(String folderName) {
+    // Escape single quotes per OData standard: single quotes in string literals must be doubled
+    // to prevent injection attacks (e.g., "O'Reilly" becomes "O''Reilly")
     var resp =
         graphClient
             .mailFolders()
-            .get(c -> c.queryParameters.filter = "displayName eq '" + folderName + "'");
+            .get(
+                c ->
+                    c.queryParameters.filter =
+                        String.format("displayName eq '%s'", folderName.replace("'", "''")));
     if (resp == null || resp.getValue() == null || resp.getValue().isEmpty()) {
       throw new ConnectorException(
           "No folder with name " + folderName + " could be found in mailbox " + userId);
@@ -84,16 +96,14 @@ public class MicrosoftMailClient implements MailClient {
   class PageIteratorMessageFetcher implements OpaqueMessageFetcher {
     private final Folder folder;
     private final String filterString;
-    private final Consumer<EmailMessage> handler;
 
-    PageIteratorMessageFetcher(Folder folder, String filterString, Consumer<EmailMessage> handler) {
+    PageIteratorMessageFetcher(Folder folder, String filterString) {
       this.folder = folder;
       this.filterString = filterString;
-      this.handler = handler;
     }
 
     @Override
-    public void poll() {
+    public void poll(Consumer<EmailMessage> handler) {
       try {
         MessageCollectionResponse messageResponse = fetchMessages(folder, filterString);
         PageIterator<Message, MessageCollectionResponse> iterator =
@@ -106,9 +116,8 @@ public class MicrosoftMailClient implements MailClient {
   }
 
   @Override
-  public OpaqueMessageFetcher constructMessageFetcher(
-      Folder folder, String filterString, Consumer<EmailMessage> handler) {
-    return new PageIteratorMessageFetcher(folder, filterString, handler);
+  public OpaqueMessageFetcher constructMessageFetcher(Folder folder, String filterString) {
+    return new PageIteratorMessageFetcher(folder, filterString);
   }
 
   private PageIterator<Message, MessageCollectionResponse> getPageIterator(
@@ -123,13 +132,13 @@ public class MicrosoftMailClient implements MailClient {
         .requestConfigurator(
             requestInfo -> {
               // Re-add the header and query parameters to subsequent requests
-              requestInfo.headers.add("Prefer", "outlook.body-content-type=\"text\"");
-              if (filterString != null && !filterString.isEmpty()) {
-                requestInfo.addQueryParameter("%24filter", filterString);
+              requestInfo.headers.add(PREFER_HEADER, PREFER_TEXT_BODY);
+              if (StringUtils.isNotBlank(filterString)) {
+                requestInfo.addQueryParameter(ODATA_FILTER_PARAM, filterString);
               }
               requestInfo.addQueryParameter(
-                  "%24select", String.join(",", EmailMessage.getSelect()));
-              requestInfo.addQueryParameter("%24top", 10);
+                  ODATA_SELECT_PARAM, String.join(",", EmailMessage.getSelect()));
+              requestInfo.addQueryParameter(ODATA_TOP_PARAM, PAGE_SIZE);
               return requestInfo;
             })
         .processPageItemCallback(msg -> processMessageItem(msg, handler))
@@ -166,12 +175,12 @@ public class MicrosoftMailClient implements MailClient {
 
   @Override
   public List<Document> fetchAttachments(InboundConnectorContext context, EmailMessage msg) {
-    if (constructCommonMessage(msg).attachments().count().get() == 0) {
+    var messageBuilder = constructCommonMessage(msg);
+    if (messageBuilder.attachments().count().get() == 0) {
       return List.of();
     }
     var docs = new ArrayList<Document>();
-    for (var attachment :
-        Objects.requireNonNull(constructCommonMessage(msg).attachments().get().getValue())) {
+    for (var attachment : Objects.requireNonNull(messageBuilder.attachments().get().getValue())) {
       if (attachment instanceof FileAttachment file) {
         docs.add(
             context.create(
@@ -192,12 +201,12 @@ public class MicrosoftMailClient implements MailClient {
         .messages()
         .get(
             requestConfiguration -> {
-              requestConfiguration.headers.add("Prefer", "outlook.body-content-type=\"text\"");
-              if (filterString != null && !filterString.isEmpty()) {
+              requestConfiguration.headers.add(PREFER_HEADER, PREFER_TEXT_BODY);
+              if (StringUtils.isNotBlank(filterString)) {
                 requestConfiguration.queryParameters.filter = filterString;
               }
               requestConfiguration.queryParameters.select = EmailMessage.getSelect();
-              requestConfiguration.queryParameters.top = 10;
+              requestConfiguration.queryParameters.top = PAGE_SIZE;
             });
   }
 

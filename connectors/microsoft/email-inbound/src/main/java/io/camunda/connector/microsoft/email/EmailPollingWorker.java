@@ -7,6 +7,8 @@
 
 package io.camunda.connector.microsoft.email;
 
+import static io.camunda.connector.microsoft.email.MsEmailInboundConstants.SHUTDOWN_TIMEOUT;
+
 import io.camunda.connector.api.inbound.*;
 import io.camunda.connector.microsoft.email.model.config.MsInboundEmailProperties;
 import io.camunda.connector.microsoft.email.util.MailClient;
@@ -21,59 +23,52 @@ public class EmailPollingWorker implements Runnable {
   private final InboundConnectorContext context;
   private final ScheduledExecutorService scheduler;
   private final MailClient.OpaqueMessageFetcher fetcher;
+  private final MessageProcessor messageProcessor;
   private static final Logger LOGGER = LoggerFactory.getLogger(EmailPollingWorker.class);
 
-  public EmailPollingWorker(InboundConnectorContext context, MailClient mailClient) {
+  public EmailPollingWorker(InboundConnectorContext context) {
     this.context = context;
     MsInboundEmailProperties properties = context.bindProperties(MsInboundEmailProperties.class);
-    var messageProcessor = new MessageProcessor(properties.operation(), mailClient, context);
+    var mailClient =
+        new MicrosoftMailClient(properties.authentication(), properties.pollingConfig().userId());
+    messageProcessor = new MessageProcessor(properties.operation(), mailClient, context);
     // Doing this here to establish connection/access rights
     this.fetcher =
         mailClient.constructMessageFetcher(
-            properties.pollingConfig().folder(),
-            properties.pollingConfig().getFilter(),
-            messageProcessor::handleMessage);
+            properties.pollingConfig().folder(), properties.pollingConfig().getFilter());
     this.scheduler = Executors.newSingleThreadScheduledExecutor();
-    scheduler.scheduleWithFixedDelay(
-        this, 0, properties.pollingConfig().pollingInterval().toMillis(), TimeUnit.MILLISECONDS);
-  }
-
-  public EmailPollingWorker(InboundConnectorContext context) {
-    this(context, createDefaultMailClient(context));
-  }
-
-  private static MailClient createDefaultMailClient(InboundConnectorContext context) {
-    MsInboundEmailProperties properties = context.bindProperties(MsInboundEmailProperties.class);
-    return new MicrosoftMailClient(
-        properties.authentication(), properties.pollingConfig().userId());
+    var pollingInterval = properties.pollingConfig().pollingInterval();
+    scheduler.scheduleWithFixedDelay(this, 0, pollingInterval.toMillis(), TimeUnit.MILLISECONDS);
   }
 
   @Override
   public void run() {
     try {
-      fetcher.poll();
+      fetcher.poll(messageProcessor::handleMessage);
       context.reportHealth(Health.up());
-    } catch (RuntimeException e) {
+    } catch (Exception e) {
       LOGGER.error("Uncaught exception in Microsoft Inbound Mail connector", e);
       context.log(
           activity ->
               activity
                   .withSeverity(Severity.ERROR)
                   .withTag("polling-error")
-                  .withMessage("Error polling emails: " + e.getMessage()));
+                  .withMessage("Error polling emails", e));
       context.reportHealth(Health.down(e));
     }
   }
 
-  public void forceShutdown() {
-    scheduler.shutdownNow();
-  }
-
-  public void shutdown() {
+  public void close() {
     scheduler.shutdown();
-  }
-
-  public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-    return scheduler.awaitTermination(timeout, unit);
+    try {
+      if (!scheduler.awaitTermination(SHUTDOWN_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
+        LOGGER.debug("Worker did not terminate gracefully, forcing shutdown");
+        scheduler.shutdownNow();
+      }
+    } catch (InterruptedException e) {
+      LOGGER.debug("Interrupted while waiting for worker to terminate, forcing shutdown");
+      Thread.currentThread().interrupt();
+      scheduler.shutdownNow();
+    }
   }
 }
