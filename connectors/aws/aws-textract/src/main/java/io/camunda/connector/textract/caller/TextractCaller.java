@@ -6,10 +6,6 @@
  */
 package io.camunda.connector.textract.caller;
 
-import com.amazonaws.services.textract.model.DocumentLocation;
-import com.amazonaws.services.textract.model.FeatureType;
-import com.amazonaws.services.textract.model.S3Object;
-import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.textract.model.TextractRequestData;
 import java.util.HashSet;
 import java.util.Set;
@@ -46,9 +42,6 @@ public interface TextractCaller<T> {
     if (request.analyzeTables()) {
       types.add(FeatureType.TABLES);
     }
-    if (request.analyzeQueries()) {
-      types.add(FeatureType.QUERIES);
-    }
     if (types.isEmpty()) {
       throw new IllegalArgumentException(WRONG_ANALYZE_TYPE_MSG);
     }
@@ -56,14 +49,6 @@ public interface TextractCaller<T> {
   }
 
   default QueriesConfig prepareQueryConfig(final TextractRequestData requestData) {
-    if (requestData.query() != null) {
-      return QueriesConfig.builder()
-          .queries(Query.builder().text(requestData.query()).build())
-          .build();
-    } else if (requestData.analyzeQueries()) {
-      throw new ConnectorInputException(
-          "The 'query' field must be provided when 'analyzeQueries' is set to true.");
-    }
     return null;
   }
 

@@ -6,15 +6,13 @@
  */
 package io.camunda.connector.textract.caller;
 
-import static io.camunda.connector.textract.caller.PollingTextractCalller.MAX_RESULT;
+import static io.camunda.connector.textract.caller.PollingTextractCaller.MAX_RESULT;
 import static io.camunda.connector.textract.util.TextractTestUtils.FULL_FILLED_ASYNC_TEXTRACT_DATA;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.textract.model.Block;
-import com.amazonaws.services.textract.model.GetDocumentAnalysisRequest;
 import java.util.List;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -55,7 +53,7 @@ class PollingTextractCalllerTest {
             firstRequestResp.getRight().blocks(), secondRequestResp.getRight().blocks());
 
     GetDocumentAnalysisResponse result =
-        new PollingTextractCalller().call(FULL_FILLED_ASYNC_TEXTRACT_DATA, asyncClient);
+        new PollingTextractCaller().call(FULL_FILLED_ASYNC_TEXTRACT_DATA, asyncClient);
 
     verify(asyncClient).getDocumentAnalysis(firstRequestResp.getLeft());
     verify(asyncClient).getDocumentAnalysis(secondRequestResp.getLeft());
@@ -87,7 +85,7 @@ class PollingTextractCalllerTest {
 
     GetDocumentAnalysisResponse firstDocResult =
         GetDocumentAnalysisResponse.builder()
-            .jobStatus("SUCCESS")
+            .jobStatus(JobStatus.SUCCEEDED)
             .nextToken(nextToken)
             .blocks(
                 List.of(Block.builder().text("AAA").build(), Block.builder().text("BBB").build()))
@@ -95,7 +93,7 @@ class PollingTextractCalllerTest {
 
     GetDocumentAnalysisResponse secondDocResult =
         GetDocumentAnalysisResponse.builder()
-            .jobStatus("SUCCESS")
+            .jobStatus(JobStatus.SUCCEEDED)
             .nextToken(null)
             .blocks(
                 List.of(Block.builder().text("CCC").build(), Block.builder().text("DDD").build()))

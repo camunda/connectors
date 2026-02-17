@@ -11,7 +11,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.textract.caller.AsyncTextractCaller;
-import io.camunda.connector.textract.caller.PollingTextractCalller;
+import io.camunda.connector.textract.caller.PollingTextractCaller;
 import io.camunda.connector.textract.caller.SyncTextractCaller;
 import io.camunda.connector.textract.model.TextractRequest;
 import io.camunda.connector.textract.suppliers.AmazonTextractClientSupplier;
@@ -49,21 +49,21 @@ public class TextractConnectorFunction implements OutboundConnectorFunction {
 
   private final SyncTextractCaller syncTextractCaller;
 
-  private final PollingTextractCalller pollingTextractCaller;
+  private final PollingTextractCaller pollingTextractCaller;
 
   private final AsyncTextractCaller asyncTextractCaller;
 
   public TextractConnectorFunction() {
     this.clientSupplier = new AmazonTextractClientSupplier();
     this.syncTextractCaller = new SyncTextractCaller();
-    this.pollingTextractCaller = new PollingTextractCalller();
+    this.pollingTextractCaller = new PollingTextractCaller();
     this.asyncTextractCaller = new AsyncTextractCaller();
   }
 
   public TextractConnectorFunction(
       AmazonTextractClientSupplier clientSupplier,
       SyncTextractCaller syncTextractCaller,
-      PollingTextractCalller pollingTextractCaller,
+      PollingTextractCaller pollingTextractCaller,
       AsyncTextractCaller asyncTextractCaller) {
     this.clientSupplier = clientSupplier;
     this.syncTextractCaller = syncTextractCaller;

@@ -44,6 +44,10 @@ except in compliance with the proprietary license.</license.inlineheader>
       <version>${version.aws-sdk2}</version>
     </dependency>
     <dependency>
+      <groupId>dev.failsafe</groupId>
+      <artifactId>failsafe</artifactId>
+    </dependency>
+    <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>regions</artifactId>
     </dependency>
@@ -87,4 +91,3 @@ except in compliance with the proprietary license.</license.inlineheader>
   </build>
 
 </project>
-

@@ -11,8 +11,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static software.amazon.awssdk.services.textract.model.FeatureType.*;
 
-import com.amazonaws.services.textract.model.AnalyzeDocumentRequest;
-import io.camunda.connector.api.document.Document;
 import io.camunda.connector.textract.model.DocumentLocationType;
 import io.camunda.connector.textract.model.TextractExecutionType;
 import io.camunda.connector.textract.model.TextractRequestData;

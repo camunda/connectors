@@ -17,7 +17,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.textract.caller.AsyncTextractCaller;
-import io.camunda.connector.textract.caller.PollingTextractCalller;
+import io.camunda.connector.textract.caller.PollingTextractCaller;
 import io.camunda.connector.textract.caller.SyncTextractCaller;
 import io.camunda.connector.textract.suppliers.AmazonTextractClientSupplier;
 import io.camunda.connector.textract.util.TextractTestUtils;
@@ -36,7 +36,7 @@ import software.amazon.awssdk.services.textract.model.StartDocumentAnalysisRespo
 class TextractConnectorFunctionTest {
 
   @Mock private SyncTextractCaller syncCaller;
-  @Mock private PollingTextractCalller pollingCaller;
+  @Mock private PollingTextractCaller pollingCaller;
   @Mock private AsyncTextractCaller asyncCaller;
 
   @Mock private AmazonTextractClientSupplier clientSupplier;

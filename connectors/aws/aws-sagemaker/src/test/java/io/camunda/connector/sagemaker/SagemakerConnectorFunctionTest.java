@@ -8,7 +8,6 @@ package io.camunda.connector.sagemaker;
 
 import static org.mockito.ArgumentMatchers.any;
 
-import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.sagemaker.suppliers.SageMakeClientSupplier;
 import io.camunda.connector.sagemaker.testutils.SageMakerTestUtils;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
