@@ -22,16 +22,16 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 /**
- * Matches hostnames against non-proxy host patterns. Supports the same wildcard syntax used by the
- * Java system property {@code http.nonProxyHosts} and the {@code CONNECTOR_HTTP_NON_PROXY_HOSTS}
- * environment variable.
+ * Utility for matching hostnames against non-proxy host patterns and retrieving configured
+ * patterns. Supports the same wildcard syntax used by the Java system property {@code
+ * http.nonProxyHosts} and the {@code CONNECTOR_HTTP_NON_PROXY_HOSTS} environment variable.
  *
  * <p>Patterns are pipe-separated (e.g. {@code localhost|*.internal.com}) and support {@code *} as a
  * wildcard.
  */
-public class NonProxyHostsMatcher {
+public class NonProxyHosts {
 
-  private NonProxyHostsMatcher() {}
+  private NonProxyHosts() {}
 
   /**
    * Returns {@code true} if the given hostname matches any configured non-proxy host pattern from
@@ -40,8 +40,20 @@ public class NonProxyHostsMatcher {
    */
   public static boolean isNonProxyHost(String hostname) {
     return getNonProxyHostsPatterns()
-        .filter(Objects::nonNull)
         .anyMatch(nonProxyHostsPattern -> hostname.matches(toRegex(nonProxyHostsPattern)));
+  }
+
+  /**
+   * Returns configured non-proxy host patterns from the system property {@code http.nonProxyHosts}
+   * and the environment variable {@code CONNECTOR_HTTP_NON_PROXY_HOSTS}.
+   *
+   * @return a stream of non-proxy host patterns; null values are filtered out
+   */
+  public static Stream<String> getNonProxyHostsPatterns() {
+    return Stream.of(
+            System.getProperty("http.nonProxyHosts"),
+            System.getenv(CONNECTOR_HTTP_NON_PROXY_HOSTS_ENV_VAR))
+        .filter(Objects::nonNull);
   }
 
   /**
@@ -50,11 +62,5 @@ public class NonProxyHostsMatcher {
    */
   static String toRegex(String nonProxyHosts) {
     return nonProxyHosts.replace("*", ".*");
-  }
-
-  private static Stream<String> getNonProxyHostsPatterns() {
-    return Stream.of(
-        System.getProperty("http.nonProxyHosts"),
-        System.getenv(CONNECTOR_HTTP_NON_PROXY_HOSTS_ENV_VAR));
   }
 }

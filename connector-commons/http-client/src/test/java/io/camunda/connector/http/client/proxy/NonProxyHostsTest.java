@@ -20,11 +20,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-public class NonProxyHostsMatcherTest {
+public class NonProxyHostsTest {
 
   @AfterEach
   public void clearSystemProperties() {
@@ -58,7 +59,7 @@ public class NonProxyHostsMatcherTest {
   void shouldMatchNonProxyHosts_fromSystemProperty(
       String nonProxyHosts, String hostname, boolean expectedMatch) {
     System.setProperty("http.nonProxyHosts", nonProxyHosts);
-    assertThat(NonProxyHostsMatcher.isNonProxyHost(hostname)).isEqualTo(expectedMatch);
+    assertThat(NonProxyHosts.isNonProxyHost(hostname)).isEqualTo(expectedMatch);
   }
 
   @ParameterizedTest
@@ -67,8 +68,38 @@ public class NonProxyHostsMatcherTest {
       String nonProxyHosts, String hostname, boolean expectedMatch) throws Exception {
     uk.org.webcompere.systemstubs.SystemStubs.withEnvironmentVariables(
             "CONNECTOR_HTTP_NON_PROXY_HOSTS", nonProxyHosts)
+        .execute(() -> assertThat(NonProxyHosts.isNonProxyHost(hostname)).isEqualTo(expectedMatch));
+  }
+
+  @Test
+  void shouldReturnPatternsFromSystemProperty() {
+    System.setProperty("http.nonProxyHosts", "localhost|*.example.com");
+    assertThat(NonProxyHosts.getNonProxyHostsPatterns()).containsExactly("localhost|*.example.com");
+  }
+
+  @Test
+  void shouldReturnPatternsFromEnvVar() throws Exception {
+    uk.org.webcompere.systemstubs.SystemStubs.withEnvironmentVariables(
+            "CONNECTOR_HTTP_NON_PROXY_HOSTS", "*.internal.com|127.0.0.1")
         .execute(
             () ->
-                assertThat(NonProxyHostsMatcher.isNonProxyHost(hostname)).isEqualTo(expectedMatch));
+                assertThat(NonProxyHosts.getNonProxyHostsPatterns())
+                    .containsExactly("*.internal.com|127.0.0.1"));
+  }
+
+  @Test
+  void shouldReturnPatternsFromBothSources() throws Exception {
+    System.setProperty("http.nonProxyHosts", "localhost");
+    uk.org.webcompere.systemstubs.SystemStubs.withEnvironmentVariables(
+            "CONNECTOR_HTTP_NON_PROXY_HOSTS", "*.example.com")
+        .execute(
+            () ->
+                assertThat(NonProxyHosts.getNonProxyHostsPatterns())
+                    .containsExactlyInAnyOrder("localhost", "*.example.com"));
+  }
+
+  @Test
+  void shouldReturnEmptyStreamWhenNoPatternsConfigured() {
+    assertThat(NonProxyHosts.getNonProxyHostsPatterns()).isEmpty();
   }
 }

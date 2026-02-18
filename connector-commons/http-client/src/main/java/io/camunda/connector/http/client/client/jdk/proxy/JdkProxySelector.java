@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.http.client.client.jdk.proxy;
 
-import io.camunda.connector.http.client.proxy.NonProxyHostsMatcher;
+import io.camunda.connector.http.client.proxy.NonProxyHosts;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
  * {@code CONNECTOR_HTTP_NON_PROXY_HOSTS} environment variable.
  *
  * @see ProxyConfiguration for the list of supported environment variables
- * @see NonProxyHostsMatcher for non-proxy host matching logic
+ * @see NonProxyHosts for non-proxy host matching logic
  */
 public class JdkProxySelector extends ProxySelector {
   private static final Logger LOG = LoggerFactory.getLogger(JdkProxySelector.class);
@@ -56,7 +56,7 @@ public class JdkProxySelector extends ProxySelector {
     }
 
     String host = uri.getHost();
-    if (host != null && NonProxyHostsMatcher.isNonProxyHost(host)) {
+    if (host != null && NonProxyHosts.isNonProxyHost(host)) {
       LOG.debug(
           "Not using proxy for target host [{}] as it matched either system properties (http.nonProxyHosts) or environment variables ({})",
           host,
