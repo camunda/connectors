@@ -192,3 +192,5 @@ jobs:
             registry: ${{ needs.prepare-inputs.outputs.connectors-registry }}
             repository: ${{ needs.prepare-inputs.outputs.connectors-repository }}
             tag: ${{ needs.prepare-inputs.outputs.connectors-version }}
+      vault-secret-mapping: |
+        secret/data/products/distribution/ci DISTRO_QA_E2E_TESTS_KEYCLOAK_CLIENTS_SECRET;
