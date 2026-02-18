@@ -21,7 +21,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest(
     classes = {SaaSConnectorRuntimeApplication.class, MockSaaSConfiguration.class},
@@ -37,7 +36,9 @@ import org.springframework.test.context.ActiveProfiles;
       "camunda.connector.secretprovider.discovery.enabled=false",
       "operate.client.profile=oidc",
     })
-@ActiveProfiles("test")
+// @ActiveProfiles("test")
+// uncomment if you want readable logs
+// we keep it disabled to test the setup e2e with stackdriver logging configuration as in prod
 public class TestSpringContextStartup {
 
   @Autowired private SaaSOperateClientFactory operateClientFactory;
