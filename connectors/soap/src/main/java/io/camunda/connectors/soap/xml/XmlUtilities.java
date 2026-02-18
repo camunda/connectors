@@ -21,6 +21,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
@@ -112,9 +113,10 @@ public final class XmlUtilities {
 
     try {
       // These settings are required to prevent XXE attacks (CWE-611)
+      transformerFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
       transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
       transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
-    } catch (Exception e) {
+    } catch (TransformerConfigurationException | IllegalArgumentException e) {
       throw new RuntimeException("Failed to configure transformer security settings", e);
     }
 
