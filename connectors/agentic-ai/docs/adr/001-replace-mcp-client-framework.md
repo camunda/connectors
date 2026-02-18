@@ -49,7 +49,7 @@ substitute default options, like JSON serdes library, HTTP transport implementat
 ### Negative Consequences
 
 * Migration effort required for existing codebase
-* Potential requirement to temporary parallel support for both implementations during migration period
+* Potential requirement to temporarily support both implementations in parallel during the migration period
 
 ## Pros and Cons of the Options
 
