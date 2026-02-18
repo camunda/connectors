@@ -17,7 +17,7 @@ import static io.camunda.connector.agenticai.mcp.client.model.McpStandaloneOpera
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -93,7 +93,7 @@ public sealed interface McpStandaloneOperationConfiguration
               label = "Tool name",
               description = "The name of the tool to call.",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           @NotBlank
           String toolName,
@@ -102,7 +102,7 @@ public sealed interface McpStandaloneOperationConfiguration
               group = "operation",
               label = "Tool arguments",
               description = "The arguments to pass to the tool.",
-              feel = Property.FeelMode.required,
+              feel = FeelMode.required,
               optional = true)
           Map<String, Object> toolArguments)
       implements McpStandaloneOperationConfiguration {
@@ -167,7 +167,7 @@ public sealed interface McpStandaloneOperationConfiguration
               label = "Resource URI",
               description = "The URI of the resource to read.",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           @NotBlank
           String resourceUri)
@@ -212,7 +212,7 @@ public sealed interface McpStandaloneOperationConfiguration
               label = "Prompt name",
               description = "The name of the prompt to get.",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           @NotBlank
           String promptName,
@@ -221,7 +221,7 @@ public sealed interface McpStandaloneOperationConfiguration
               group = "operation",
               label = "Prompt arguments",
               description = "The arguments to pass to the prompt generation.",
-              feel = Property.FeelMode.required,
+              feel = FeelMode.required,
               optional = true)
           Map<String, Object> promptArguments)
       implements McpStandaloneOperationConfiguration {

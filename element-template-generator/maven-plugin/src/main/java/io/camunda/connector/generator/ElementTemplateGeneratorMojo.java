@@ -33,6 +33,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.GenerationFeatu
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.java.ClassBasedDocsGenerator;
 import io.camunda.connector.generator.java.ClassBasedTemplateGenerator;
+import io.camunda.connector.generator.java.json.ElementTemplateModule;
 import io.camunda.connector.generator.java.util.VersionedElementTemplate;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -68,6 +69,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
       new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
   private static final ObjectWriter objectWriter =
       new ObjectMapper()
+          .registerModule(new ElementTemplateModule())
           .writer(
               new DefaultPrettyPrinter()
                   .withObjectIndenter(new DefaultIndenter().withLinefeed("\n")));

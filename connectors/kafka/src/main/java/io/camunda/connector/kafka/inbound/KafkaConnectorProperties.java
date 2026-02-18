@@ -8,7 +8,7 @@ package io.camunda.connector.kafka.inbound;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaTopic;
@@ -48,14 +48,14 @@ public record KafkaConnectorProperties(
             group = "kafka",
             label = "Additional properties",
             optional = true,
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             description = "Provide additional Kafka consumer properties in JSON")
         Map<String, Object> additionalProperties,
     @FEEL
         @TemplateProperty(
             group = "kafka",
             label = "Offsets",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             optional = true,
             description =
                 "List of offsets, e.g. '10' or '=[10, 23]'. If specified, it has to have the same number of values as the number of partitions")

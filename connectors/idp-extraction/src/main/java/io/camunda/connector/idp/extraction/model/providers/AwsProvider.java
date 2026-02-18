@@ -9,7 +9,7 @@ package io.camunda.connector.idp.extraction.model.providers;
 import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Dropdown;
 
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.idp.extraction.model.providers.aws.TextExtractionEngineType;
@@ -27,7 +27,7 @@ public final class AwsProvider extends AwsBaseRequest implements ProviderConfig,
           "Specify the name of the AWS S3 bucket where document will be stored temporarily during Textract analysis",
       defaultValue = "idp-extraction-connector",
       binding = @TemplateProperty.PropertyBinding(name = "s3BucketName"),
-      feel = Property.FeelMode.disabled,
+      feel = FeelMode.disabled,
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
   @NotNull
   String s3BucketName;
@@ -40,7 +40,7 @@ public final class AwsProvider extends AwsBaseRequest implements ProviderConfig,
       description = "Specify extraction engine to be used",
       binding = @TemplateProperty.PropertyBinding(name = "extractionEngineType"),
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-      feel = Property.FeelMode.disabled,
+      feel = FeelMode.disabled,
       defaultValue = "AWS_TEXTRACT",
       choices = {
         @TemplateProperty.DropdownPropertyChoice(label = "Aws Textract", value = "AWS_TEXTRACT"),

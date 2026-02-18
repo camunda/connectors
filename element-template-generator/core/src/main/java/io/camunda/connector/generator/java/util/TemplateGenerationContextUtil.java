@@ -21,7 +21,7 @@ import static io.camunda.connector.util.reflection.ReflectionUtil.getRequiredAnn
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
-import io.camunda.connector.generator.dsl.BpmnType;
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext.Inbound;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext.Outbound;

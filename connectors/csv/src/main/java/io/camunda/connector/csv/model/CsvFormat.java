@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.csv.model;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import java.util.List;
 
@@ -22,5 +22,5 @@ public record CsvFormat(
     @TemplateProperty(
             label = "Headers",
             tooltip = "Mapping of the columns if not included in the CSV itself in the first row.",
-            feel = Property.FeelMode.required)
+            feel = FeelMode.required)
         List<String> headers) {}

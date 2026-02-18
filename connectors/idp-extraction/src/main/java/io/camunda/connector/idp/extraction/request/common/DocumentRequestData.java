@@ -7,7 +7,7 @@
 package io.camunda.connector.idp.extraction.request.common;
 
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotNull;
 
@@ -20,7 +20,7 @@ public class DocumentRequestData {
       description = "Specify the document",
       defaultValue = "=document",
       binding = @TemplateProperty.PropertyBinding(name = "document"),
-      feel = Property.FeelMode.optional,
+      feel = FeelMode.optional,
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
   @NotNull
   Document document;

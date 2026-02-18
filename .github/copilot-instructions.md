@@ -126,7 +126,7 @@ public class CsvConnector implements OutboundConnectorProvider {
             @TemplateProperty(
                     label = "Record mapping",
                     tooltip = "FEEL function that allows to map each record",
-                    feel = Property.FeelMode.required)
+                    feel = TemplateProperty.FeelMode.required)
             Function<Map<String, Object>, Object> mapper) {
         // Read CSV implementation
         return readCsvRequest(/* ... */);
@@ -255,7 +255,7 @@ public record UploadRequest(
                 @TemplateProperty(
                         label = "Document",
                         type = TemplateProperty.PropertyType.String,
-                        feel = Property.FeelMode.required)
+                        feel = TemplateProperty.FeelMode.required)
                 Document document
         ) {
 }

@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.a2a.client.common.model;
 
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
 
@@ -19,7 +19,7 @@ public record A2aConnectionConfiguration(
             label = "A2A server URL",
             description = "The base URL of the A2A server.",
             type = TemplateProperty.PropertyType.String,
-            feel = Property.FeelMode.optional)
+            feel = FeelMode.optional)
         String url,
     @FEEL
         @TemplateProperty(
@@ -28,6 +28,6 @@ public record A2aConnectionConfiguration(
             description =
                 "Optional path to the agent card endpoint relative to the base server URL, defaults to <code>.well-known/agent-card.json</code>.",
             type = TemplateProperty.PropertyType.String,
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             optional = true)
         String agentCardLocation) {}

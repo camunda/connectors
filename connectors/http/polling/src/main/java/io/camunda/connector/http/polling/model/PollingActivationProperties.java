@@ -9,7 +9,7 @@ package io.camunda.connector.http.polling.model;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import java.time.Duration;
 
@@ -23,7 +23,7 @@ public class PollingActivationProperties {
       binding = @TemplateProperty.PropertyBinding(name = "httpRequestInterval"),
       description =
           "The delay between HTTP requests, defined as ISO 8601 durations format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
-      feel = Property.FeelMode.optional)
+      feel = FeelMode.optional)
   @FEEL
   private Duration httpRequestInterval = Duration.parse("PT50S");
 

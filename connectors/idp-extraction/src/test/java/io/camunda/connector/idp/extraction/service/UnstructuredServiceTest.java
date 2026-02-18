@@ -317,6 +317,37 @@ class UnstructuredServiceTest {
     verify(aiClient).chat(anyString(), anyString(), any(Document.class));
     // Verify cleanup call without document
     verify(aiClient).chat(anyString(), anyString());
+
+    // Verify metadata includes aggregated token usage from both initial and cleanup calls
+    // Each ChatResponse has TokenUsage(100, 50) = 150 total tokens
+    assertThat(extractionResult.metadata().tokenUsage()).isEqualTo(300);
+  }
+
+  @Test
+  void extract_shouldNotAggregateCleanupMetadata_whenInitialParsingSucceeds() throws Exception {
+    // given
+    String jsonResponse =
+        """
+        {
+          "invoiceNumber": "INV-12345"
+        }
+        """;
+
+    List<TaxonomyItem> taxonomyItems =
+        List.of(new TaxonomyItem("invoiceNumber", "Extract the invoice number"));
+
+    ChatResponse chatResponse = createChatResponse(jsonResponse);
+
+    when(aiClient.chat(anyString(), anyString(), any(Document.class))).thenReturn(chatResponse);
+
+    // when
+    Object result = unstructuredService.extract(null, aiClient, taxonomyItems, document);
+
+    // then
+    ExtractionResult extractionResult = (ExtractionResult) result;
+
+    // Only the initial call's token usage should be included (100 + 50 = 150)
+    assertThat(extractionResult.metadata().tokenUsage()).isEqualTo(150);
   }
 
   @Test

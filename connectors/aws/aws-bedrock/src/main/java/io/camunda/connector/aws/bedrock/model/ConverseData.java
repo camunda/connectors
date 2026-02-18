@@ -13,7 +13,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.aws.bedrock.mapper.BedrockContentMapper;
 import io.camunda.connector.aws.bedrock.mapper.DocumentMapper;
 import io.camunda.connector.aws.bedrock.mapper.MessageMapper;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -33,7 +33,7 @@ public final class ConverseData implements RequestData {
       group = "converse",
       id = "data.messagesHistory",
       description = "Specify the message history, when previous context is needed",
-      feel = Property.FeelMode.required,
+      feel = FeelMode.required,
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "data.messagesHistory"))
   @Valid
@@ -46,7 +46,7 @@ public final class ConverseData implements RequestData {
       description =
           "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>",
       id = "data.modelId1",
-      feel = Property.FeelMode.optional,
+      feel = FeelMode.optional,
       binding = @TemplateProperty.PropertyBinding(name = "data.modelId"))
   @Valid
   @NotNull
@@ -57,7 +57,7 @@ public final class ConverseData implements RequestData {
       group = "converse",
       id = "data.newMessage",
       description = "Specify the next message",
-      feel = Property.FeelMode.optional,
+      feel = FeelMode.optional,
       binding = @TemplateProperty.PropertyBinding(name = "data.newMessage"))
   @Valid
   @NotBlank
@@ -67,7 +67,7 @@ public final class ConverseData implements RequestData {
       label = "Max token returned",
       group = "converse",
       id = "data.maxTokens",
-      feel = Property.FeelMode.optional,
+      feel = FeelMode.optional,
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "data.maxTokens"))
   private Integer maxTokens = 512;
@@ -76,7 +76,7 @@ public final class ConverseData implements RequestData {
       label = "Temperature",
       group = "converse",
       id = "data.temperature",
-      feel = Property.FeelMode.optional,
+      feel = FeelMode.optional,
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "data.temperature"))
   private Float temperature;
@@ -85,7 +85,7 @@ public final class ConverseData implements RequestData {
       label = "top P",
       group = "converse",
       id = "data.topP",
-      feel = Property.FeelMode.optional,
+      feel = FeelMode.optional,
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "data.topP"))
   private Float topP;
@@ -94,7 +94,7 @@ public final class ConverseData implements RequestData {
       label = "documents",
       group = "converse",
       id = "data.newDocuments",
-      feel = Property.FeelMode.required,
+      feel = FeelMode.required,
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "data.newDocuments"))
   private List<Document> newDocuments;

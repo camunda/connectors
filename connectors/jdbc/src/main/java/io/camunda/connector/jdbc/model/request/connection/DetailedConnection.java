@@ -7,7 +7,7 @@
 package io.camunda.connector.jdbc.model.request.connection;
 
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.jdbc.model.request.SupportedDatabase;
@@ -29,7 +29,7 @@ public record DetailedConnection(
             group = "connection",
             label = "Properties",
             optional = true,
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             description =
                 "Additional properties for the connection. For more information, see the <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">documentation</a>.")
         @FEEL

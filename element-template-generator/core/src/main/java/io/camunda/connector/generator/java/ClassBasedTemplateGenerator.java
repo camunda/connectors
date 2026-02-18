@@ -29,6 +29,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElemen
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.api.GeneratorConfiguration.GenerationFeature;
 import io.camunda.connector.generator.dsl.*;
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.processor.TemplatePropertyAnnotationProcessor;
 import io.camunda.connector.generator.java.util.*;

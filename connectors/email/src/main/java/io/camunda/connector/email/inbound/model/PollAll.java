@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.email.inbound.model;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotNull;
@@ -18,7 +18,7 @@ public record PollAll(
             tooltip = "Chose the desired handling strategy",
             group = "allPollingConfig",
             id = "data.pollingConfig.allHandlingStrategy",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             type = TemplateProperty.PropertyType.Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             defaultValue = "DELETE",

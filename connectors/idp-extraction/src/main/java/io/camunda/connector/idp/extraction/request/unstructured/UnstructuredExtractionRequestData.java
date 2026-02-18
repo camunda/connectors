@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.idp.extraction.request.unstructured;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.idp.extraction.model.ConverseData;
 import io.camunda.connector.idp.extraction.model.TaxonomyItem;
@@ -22,7 +22,7 @@ public class UnstructuredExtractionRequestData extends DocumentRequestData {
       description = "Array of taxonomy items",
       defaultValue = "=[\n  {name: \"\", prompt: \"\"},\n  {name: \"\", prompt: \"\"}\n]",
       binding = @TemplateProperty.PropertyBinding(name = "taxonomyItems"),
-      feel = Property.FeelMode.optional)
+      feel = FeelMode.optional)
   List<TaxonomyItem> taxonomyItems;
 
   @TemplateProperty(
@@ -33,7 +33,7 @@ public class UnstructuredExtractionRequestData extends DocumentRequestData {
       description = "Specify the parameters for the ai conversation",
       defaultValue = "={\n  modelId: \"\",\n  temperature: 0.5,\n  topP: 0.9\n}",
       binding = @TemplateProperty.PropertyBinding(name = "converseData"),
-      feel = Property.FeelMode.optional)
+      feel = FeelMode.optional)
   ConverseData converseData;
 
   public List<TaxonomyItem> getTaxonomyItems() {

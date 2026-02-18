@@ -23,8 +23,8 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorProvider;
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 
@@ -71,7 +71,7 @@ public class OperationAnnotatedConnector implements OutboundConnectorProvider {
               id = "myHeader",
               label = "My Header",
               defaultValue = "my-default-value",
-              feel = Property.FeelMode.optional)
+              feel = FeelMode.optional)
           String myHeader) {
     return "Operation 3 executed: " + request;
   }

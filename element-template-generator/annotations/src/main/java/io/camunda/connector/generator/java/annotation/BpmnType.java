@@ -14,10 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.dsl;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonValue;
+package io.camunda.connector.generator.java.annotation;
 
 public enum BpmnType {
   TASK("bpmn:Task", false, "Task"),
@@ -43,13 +40,11 @@ public enum BpmnType {
     this.id = id;
   }
 
-  @JsonValue
   public String getName() {
     return name;
   }
 
   /** Whether the BPMN type is a message event */
-  @JsonIgnore
   public boolean isMessage() {
     return isMessage;
   }
@@ -59,7 +54,6 @@ public enum BpmnType {
    * the conventional name of the BPMN type and can be non-unique, e.g. in the case of Start Events
    * vs Message Start Events.
    */
-  @JsonIgnore
   public String getId() {
     return id;
   }

@@ -74,7 +74,12 @@ class ClassificationConnectorFunctionTest {
                     "converseData": {
                       "modelId": "test-model"
                     },
-                    "categories": ["invoice", "receipt", "contract"]
+                    "documentTypes": [
+                      {"name": "invoice", "classificationInstructions": "An invoice document", "description": "Invoice", "outputValue": "invoice"},
+                      {"name": "receipt", "classificationInstructions": "A receipt document", "description": "Receipt", "outputValue": "receipt"},
+                      {"name": "contract", "classificationInstructions": "A contract document", "description": "Contract", "outputValue": "contract"}
+                    ],
+                    "fallbackOutputValue": "unknown"
                   }
                 }
                 """)
@@ -128,7 +133,14 @@ class ClassificationConnectorFunctionTest {
                     "converseData": {
                       "modelId": "test-model"
                     },
-                    "categories": ["invoice", "purchase_order", "receipt", "contract", "other"]
+                    "documentTypes": [
+                      {"name": "invoice", "classificationInstructions": "An invoice document", "description": "Invoice", "outputValue": "invoice"},
+                      {"name": "purchase_order", "classificationInstructions": "A purchase order document", "description": "Purchase Order", "outputValue": "purchase_order"},
+                      {"name": "receipt", "classificationInstructions": "A receipt document", "description": "Receipt", "outputValue": "receipt"},
+                      {"name": "contract", "classificationInstructions": "A contract document", "description": "Contract", "outputValue": "contract"},
+                      {"name": "other", "classificationInstructions": "Any other document", "description": "Other", "outputValue": "other"}
+                    ],
+                    "fallbackOutputValue": "unknown"
                   }
                 }
                 """)
@@ -181,7 +193,11 @@ class ClassificationConnectorFunctionTest {
                     "converseData": {
                       "modelId": "test-model"
                     },
-                    "categories": ["invoice", "receipt"]
+                    "documentTypes": [
+                      {"name": "invoice", "classificationInstructions": "An invoice document", "description": "Invoice", "outputValue": "invoice"},
+                      {"name": "receipt", "classificationInstructions": "A receipt document", "description": "Receipt", "outputValue": "receipt"}
+                    ],
+                    "fallbackOutputValue": "unknown"
                   }
                 }
                 """)

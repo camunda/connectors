@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.email.outbound.protocols.actions;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
@@ -21,7 +21,7 @@ public record ImapSearchEmails(
             description =
                 "Refer to our detailed documentation for full search syntax and examples: [Email Documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email/).",
             type = TemplateProperty.PropertyType.Text,
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             optional = true,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.criteria"))
         Object criteria,
@@ -32,7 +32,7 @@ public record ImapSearchEmails(
             tooltip =
                 "Specify the folder in which to conduct the email search. If left blank, the search will default to the 'INBOX' folder. You may also specify subfolders using a dot-separated path (e.g., 'INBOX.Archives').",
             optional = true,
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.searchEmailFolder"))
         String searchEmailFolder)
     implements ImapAction {}

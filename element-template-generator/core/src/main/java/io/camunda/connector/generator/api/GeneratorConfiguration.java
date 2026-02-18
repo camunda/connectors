@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.generator.api;
 
-import io.camunda.connector.generator.dsl.BpmnType;
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;

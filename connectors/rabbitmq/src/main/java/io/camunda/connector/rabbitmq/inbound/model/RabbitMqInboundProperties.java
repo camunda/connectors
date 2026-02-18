@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.rabbitmq.inbound.model;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.rabbitmq.common.model.FactoryRoutingData;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
@@ -39,7 +39,7 @@ public class RabbitMqInboundProperties {
       description = "Arguments to use for the subscription",
       group = "subscription",
       optional = true,
-      feel = Property.FeelMode.required)
+      feel = FeelMode.required)
   private Map<String, Object> arguments;
 
   @TemplateProperty(

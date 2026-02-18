@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.email.config.ImapConfig;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
@@ -26,7 +26,7 @@ public record EmailListenerConfig(
             tooltip =
                 "Enter the names of the folder you wish to monitor. If left blank, the listener will default to monitoring the 'INBOX' folder.",
             optional = true,
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.folderToListen"))
         String folderToListen,
     @TemplateProperty(
@@ -37,7 +37,7 @@ public record EmailListenerConfig(
             tooltip =
                 "The duration for which the task will wait for a message to arrive in the mailbox before correlating",
             binding = @TemplateProperty.PropertyBinding(name = "data.pollingWaitTime"),
-            feel = Property.FeelMode.disabled)
+            feel = FeelMode.disabled)
         @FEEL
         Duration pollingWaitTime,
     @JsonTypeInfo(

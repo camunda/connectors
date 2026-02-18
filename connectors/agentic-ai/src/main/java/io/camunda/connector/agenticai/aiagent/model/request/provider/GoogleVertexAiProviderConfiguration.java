@@ -11,7 +11,7 @@ import static io.camunda.connector.agenticai.aiagent.model.request.provider.Goog
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.util.ConnectorUtils;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -35,7 +35,7 @@ public record GoogleVertexAiProviderConfiguration(
               label = "Project ID",
               description = "Specify Google Cloud project ID",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String projectId,
       @NotBlank
@@ -44,7 +44,7 @@ public record GoogleVertexAiProviderConfiguration(
               label = "Region",
               description = "Specify the region where AI inference should take place",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String region,
       @Valid @NotNull GoogleVertexAiAuthentication authentication,
@@ -81,7 +81,7 @@ public record GoogleVertexAiProviderConfiguration(
                 group = "provider",
                 label = "JSON key of the service account",
                 description = "This is the key of the service account in JSON format.",
-                feel = Property.FeelMode.optional,
+                feel = FeelMode.optional,
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             String jsonKey)
         implements GoogleVertexAiAuthentication {
@@ -105,7 +105,7 @@ public record GoogleVertexAiProviderConfiguration(
               description =
                   "Specify the model ID. Details in the <a href=\"https://cloud.google.com/vertex-ai/docs/generative-ai/models\" target=\"_blank\">documentation</a>.",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String model,
       @Valid GoogleVertexAiModelParameters parameters) {
@@ -118,7 +118,7 @@ public record GoogleVertexAiProviderConfiguration(
                 tooltip =
                     "Maximum number of tokens that can be generated in the response. <br><br>Details in the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = Property.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Integer maxOutputTokens,
         @Min(0)
@@ -128,7 +128,7 @@ public record GoogleVertexAiProviderConfiguration(
                 tooltip =
                     "Controls the degree of randomness in token selection. <br><br>Details in the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = Property.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Float temperature,
         @Min(0)
@@ -138,7 +138,7 @@ public record GoogleVertexAiProviderConfiguration(
                 tooltip =
                     "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = Property.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Float topP,
         @Min(0)
@@ -148,7 +148,7 @@ public record GoogleVertexAiProviderConfiguration(
                 tooltip =
                     "Integer greater than 0. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = Property.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Integer topK) {}
   }

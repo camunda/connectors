@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.generator.java.annotation;
 
-import io.camunda.connector.generator.dsl.BpmnType;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -159,9 +158,9 @@ public @interface ElementTemplate {
      * the element is transformed to this type.
      *
      * <p>Multiple element types are supported. If not specified, the default value is chosen by the
-     * underlying generator implementation. If another value is specified in {@link
-     * io.camunda.connector.generator.api.GeneratorConfiguration#elementTypes()}, the value from the
-     * configuration will be used.
+     * underlying generator implementation. If another value is specified in
+     * {io.camunda.connector.generator.api.GeneratorConfiguration#elementTypes()}, the value from
+     * the configuration will be used.
      *
      * @see #appliesTo() allows to configure the types the template can be applied to.
      */

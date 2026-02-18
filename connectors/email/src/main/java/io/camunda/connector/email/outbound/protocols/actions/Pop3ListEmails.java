@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.email.outbound.protocols.actions;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -32,7 +32,7 @@ public record Pop3ListEmails(
                 "Choose the criterion by which the listed emails should be sorted. The default sorting is by 'Sent Date'.",
             group = "listEmailsPop3",
             id = "pop3SortField",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             type = TemplateProperty.PropertyType.Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             defaultValue = "SENT_DATE",
@@ -45,7 +45,7 @@ public record Pop3ListEmails(
                 "Select the sort order for the emails. Choose 'ASC' for ascending order or 'DESC' for descending order. Ascending order will list older emails first, while descending order will list newer emails first. The default sort order is 'ASC'.",
             id = "pop3SortOrder",
             group = "listEmailsPop3",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             type = TemplateProperty.PropertyType.Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             defaultValue = "ASC",

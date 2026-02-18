@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model.request;
 
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import java.util.List;
 
@@ -35,6 +35,6 @@ public record ToolsConfiguration(
                     + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> "
                     + "for details.",
             type = TemplateProperty.PropertyType.Text,
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             optional = true)
         List<ToolCallResult> toolCallResults) {}

@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.email.config;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -18,7 +18,7 @@ public record Pop3Config(
             id = "data.pop3Host",
             tooltip =
                 "Enter the address of the POP3 server if you want to download your emails to a single device. This server is typically used for retrieving emails without syncing. (e.g., pop.example.com)",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.pop3Config.pop3Host"))
         @Valid
         @NotNull
@@ -31,7 +31,7 @@ public record Pop3Config(
             tooltip =
                 "Enter the port number for connecting to the POP3 server. The standard port is 995 for secure connections with SSL/TLS, or 110 for non-secure connections.",
             defaultValue = "995",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.pop3Config.pop3Port"))
         @Valid
         @NotNull
@@ -40,7 +40,7 @@ public record Pop3Config(
             label = "Cryptographic protocol",
             tooltip = "Select the encryption protocol for email security.",
             group = "protocol",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             type = TemplateProperty.PropertyType.Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             defaultValue = "TLS",
