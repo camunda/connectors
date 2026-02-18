@@ -504,7 +504,7 @@ class SpringConnectorJobHandlerTest {
       var result = JobBuilder.create().executeAndCaptureResult(jobHandler, false);
 
       // then
-      assertThat(result.getErrorMessage()).isEqualTo("expected");
+      assertThat(result.getErrorMessage()).startsWith("expected");
     }
 
     @Test
@@ -562,7 +562,7 @@ class SpringConnectorJobHandlerTest {
       var result = JobBuilder.create().withRetries(3).executeAndCaptureResult(jobHandler, false);
 
       // then
-      assertThat(result.getErrorMessage()).isEqualTo("expected Connector Input Exception");
+      assertThat(result.getErrorMessage()).startsWith("expected Connector Input Exception");
       assertThat(result.getRetries()).isEqualTo(0);
     }
   }
@@ -700,7 +700,7 @@ class SpringConnectorJobHandlerTest {
       var result = JobBuilder.create().withRetries(3).executeAndCaptureResult(jobHandler, false);
 
       // then
-      assertThat(result.getErrorMessage()).isEqualTo("Test retry exception");
+      assertThat(result.getErrorMessage()).startsWith("Test retry exception");
       assertThat(result.getRetries()).isEqualTo(2);
     }
 
@@ -728,7 +728,7 @@ class SpringConnectorJobHandlerTest {
           JobBuilder.create().withRetries(jobRetries).executeAndCaptureResult(jobHandler, false);
 
       // then
-      assertThat(result.getErrorMessage()).isEqualTo(errorMessage);
+      assertThat(result.getErrorMessage()).startsWith(errorMessage);
       assertThat(result.getRetries()).isEqualTo(policyRetries);
 
       // Second occurrence of this Exception
@@ -740,7 +740,7 @@ class SpringConnectorJobHandlerTest {
                       .writer()
                       .writeValueAsString(result.getVariables()))
               .executeAndCaptureResult(jobHandler, false);
-      assertThat(result.getErrorMessage()).isEqualTo(errorMessage);
+      assertThat(result.getErrorMessage()).startsWith(errorMessage);
       // this is still the same value as this is the developer's responsibility to handle the
       // retries state
       // and decrement the retries value
@@ -779,7 +779,7 @@ class SpringConnectorJobHandlerTest {
           JobBuilder.create().withRetries(jobRetries).executeAndCaptureResult(jobHandler, false);
 
       // then
-      assertThat(result.getErrorMessage()).isEqualTo(retryErrorMessage);
+      assertThat(result.getErrorMessage()).startsWith(retryErrorMessage);
       assertThat(result.getRetries()).isEqualTo(policyRetries);
 
       // Second occurrence, will throw the ConnectorException
@@ -791,7 +791,7 @@ class SpringConnectorJobHandlerTest {
                       .writer()
                       .writeValueAsString(result.getVariables()))
               .executeAndCaptureResult(jobHandler, false);
-      assertThat(result.getErrorMessage()).isEqualTo(basicErrorMessage);
+      assertThat(result.getErrorMessage()).startsWith(basicErrorMessage);
       assertThat(result.getRetries()).isEqualTo(policyRetries - 1);
     }
   }
@@ -825,7 +825,7 @@ class SpringConnectorJobHandlerTest {
               .executeAndCaptureResult(jobHandler, false);
 
       // then
-      assertThat(result.getErrorMessage()).isEqualTo("exception message");
+      assertThat(result.getErrorMessage()).startsWith("exception message");
     }
 
     @Test
@@ -915,7 +915,7 @@ class SpringConnectorJobHandlerTest {
 
       // then
       assertThat(result.getErrorMessage())
-          .isEqualTo("Something went wrong: *** is not the correct password");
+          .startsWith("Something went wrong: *** is not the correct password");
     }
 
     @Test
@@ -936,7 +936,7 @@ class SpringConnectorJobHandlerTest {
 
       // then
       assertThat(result.getErrorMessage())
-          .isEqualTo("JSON_PROCESSING_ERROR, *** could not be parsed as JSON String");
+          .startsWith("JSON_PROCESSING_ERROR, *** could not be parsed as JSON String");
     }
 
     @Test
@@ -957,7 +957,7 @@ class SpringConnectorJobHandlerTest {
 
       // then
       assertThat(result.getErrorMessage())
-          .isEqualTo("Something went wrong: *** is not the correct password");
+          .startsWith("Something went wrong: *** is not the correct password");
     }
 
     @Test
@@ -988,7 +988,7 @@ class SpringConnectorJobHandlerTest {
                       "exception message",
                       "type",
                       "io.camunda.connector.api.error.ConnectorException")));
-      assertThat(result.getErrorMessage()).isEqualTo("exception message");
+      assertThat(result.getErrorMessage()).startsWith("exception message");
     }
 
     @Test
@@ -1082,7 +1082,7 @@ class SpringConnectorJobHandlerTest {
               .withErrorExpressionHeader(errorExpression)
               .executeAndCaptureResult(jobHandler, false, false);
       // then
-      assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
+      assertThat(result.getErrorMessage()).startsWith("Message: exception message");
     }
 
     @Test
@@ -1103,7 +1103,7 @@ class SpringConnectorJobHandlerTest {
               .withErrorExpressionHeader(errorExpression)
               .executeAndCaptureResult(jobHandler, false, false);
       // then
-      assertThat(result.getErrorMessage()).isEqualTo("Message for foo value on test property");
+      assertThat(result.getErrorMessage()).startsWith("Message for foo value on test property");
     }
 
     @Test
@@ -1125,7 +1125,7 @@ class SpringConnectorJobHandlerTest {
               .withRetries(5)
               .executeAndCaptureResult(jobHandler, false, false);
       // then
-      assertThat(result.getErrorMessage()).isEqualTo("Message for foo value on test property");
+      assertThat(result.getErrorMessage()).startsWith("Message for foo value on test property");
       assertThat(result.getRetries()).isEqualTo(4);
     }
 
@@ -1150,7 +1150,7 @@ class SpringConnectorJobHandlerTest {
               .executeAndCaptureResult(jobHandler, false, true);
       // then
       assertThat(result.getErrorCode()).isEqualTo("1013");
-      assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
+      assertThat(result.getErrorMessage()).startsWith("Message: exception message");
     }
 
     @Test
@@ -1280,7 +1280,7 @@ class SpringConnectorJobHandlerTest {
 
     // then
     assertThat(result.getErrorMessage())
-        .isEqualTo(
+        .startsWith(
             "jakarta.validation.ValidationException: Found constraints violated while validating input: \n"
                 + " - Property: test: Validation failed. Original message: numeric value out of bounds (<2 digits>.<0 digits> expected)");
   }
@@ -1297,7 +1297,7 @@ class SpringConnectorJobHandlerTest {
             .executeAndCaptureResult(jobHandler, false);
 
     // then
-    assertThat(result.getErrorMessage()).isEqualTo("Secret with name 'FOO2' is not available");
+    assertThat(result.getErrorMessage()).startsWith("Secret with name 'FOO2' is not available");
   }
 
   @Test
@@ -1336,10 +1336,10 @@ class SpringConnectorJobHandlerTest {
 
     // then
     assertThat(resultForMissingSecret.getErrorMessage())
-        .isEqualTo(
+        .startsWith(
             "Fetching secrets failed, original error can't be displayed as the error message might contain secrets: Network error while fetching secrets");
     assertThat(resultForRaisingException.getErrorMessage())
-        .isEqualTo(
+        .startsWith(
             "Fetching secrets failed, original error can't be displayed as the error message might contain secrets: Network error while fetching secrets");
   }
 
@@ -1377,7 +1377,7 @@ class SpringConnectorJobHandlerTest {
             .executeAndCaptureResult(jobHandler, false);
 
     // then
-    assertThat(result.getErrorMessage()).isEqualTo("test: ***");
+    assertThat(result.getErrorMessage()).startsWith("test: ***");
   }
 
   @Test
@@ -1396,6 +1396,32 @@ class SpringConnectorJobHandlerTest {
             .executeAndCaptureResult(jobHandler, false);
 
     // then
-    assertThat(result.getErrorMessage()).isEqualTo("test: ***");
+    assertThat(result.getErrorMessage()).startsWith("test: ***");
+  }
+
+  @Test
+  void shouldIncludeErrorVariablesInFailJobErrorMessage() throws Exception {
+    // given
+    var errorMessage = "HTTP request failed";
+    Map<String, Object> errorVariables = Map.of("status", 400);
+
+    var jobHandler =
+        newConnectorJobHandler(
+            context -> {
+              throw new ConnectorExceptionBuilder()
+                  .message(errorMessage)
+                  .errorVariables(errorVariables)
+                  .build();
+            });
+
+    // when
+    var result = JobBuilder.create().executeAndCaptureResult(jobHandler, false);
+
+    // then
+    assertThat(result.getErrorMessage())
+        .startsWith("HTTP request failed | Error variables: ")
+        .contains("status=400")
+        .contains("type=io.camunda.connector.api.error.ConnectorException")
+        .contains("message=HTTP request failed");
   }
 }
