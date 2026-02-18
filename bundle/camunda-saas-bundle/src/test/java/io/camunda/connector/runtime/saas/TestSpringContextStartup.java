@@ -35,7 +35,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
       "camunda.client.auth.audience=connectors.dev.ultrawombat.com",
       "spring.cloud.gcp.parametermanager.enabled=false"
     })
-@ActiveProfiles("test")
+// @ActiveProfiles("test")
+// uncomment if you want readable logs
+// we keep it disabled to test the setup e2e with stackdriver logging configuration as in prod
 @ExtendWith(MockitoExtension.class)
 public class TestSpringContextStartup {
 
