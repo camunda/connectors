@@ -9,14 +9,13 @@ package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.McpClientErrorCodes;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpBlobContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResourceContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpObjectContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpResourceLinkContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
-import io.camunda.connector.agenticai.model.message.content.BlobContent;
-import io.camunda.connector.agenticai.model.message.content.Content;
-import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent;
-import io.camunda.connector.agenticai.model.message.content.ObjectContent;
-import io.camunda.connector.agenticai.model.message.content.ResourceLinkContent;
-import io.camunda.connector.agenticai.model.message.content.TextContent;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import io.camunda.connector.api.error.ConnectorException;
 import io.modelcontextprotocol.client.McpSyncClient;
@@ -32,6 +31,9 @@ import org.springframework.util.CollectionUtils;
 
 final class ToolCallRequest {
   private static final Logger LOGGER = LoggerFactory.getLogger(ToolCallRequest.class);
+
+  private static final String CONTENT_NO_RESULT =
+      "Tool execution succeeded, but returned no result.";
 
   private final String clientId;
   private final ObjectMapper objectMapper;
@@ -55,7 +57,7 @@ final class ToolCallRequest {
       return new McpClientCallToolResult(
           toolExecutionRequest.name(),
           List.of(
-              TextContent.textContent(
+              McpTextContent.textContent(
                   "Executing tool '%s' is not allowed by filter configuration: %s"
                       .formatted(toolExecutionRequest.name(), toolNameFilter))),
           true);
@@ -78,14 +80,14 @@ final class ToolCallRequest {
             "MCP({}): Tool '{}' returned no content", clientId, toolExecutionRequest.name());
         return new McpClientCallToolResult(
             toolExecutionRequest.name(),
-            List.of(TextContent.textContent(ToolCallResult.CONTENT_NO_RESULT)),
+            List.of(McpTextContent.textContent(CONTENT_NO_RESULT)),
             false);
       }
 
       if (result.structuredContent() != null) {
         return new McpClientCallToolResult(
             toolExecutionRequest.name(),
-            List.of(ObjectContent.objectContent(fromObjectContent(result.structuredContent()))),
+            List.of(McpObjectContent.objectContent(fromObjectContent(result.structuredContent()))),
             false);
       }
 
@@ -98,14 +100,14 @@ final class ToolCallRequest {
       return new McpClientCallToolResult(
           toolExecutionRequest.name(),
           List.of(
-              TextContent.textContent(
+              McpTextContent.textContent(
                   "Error executing tool '%s': %s"
                       .formatted(toolExecutionRequest.name(), e.getMessage()))),
           true);
     }
   }
 
-  private Content mapContent(McpSchema.Content responseContent) {
+  private McpContent mapContent(McpSchema.Content responseContent) {
     return switch (responseContent) {
       case McpSchema.AudioContent audioContent ->
           fromBlob(audioContent.data(), audioContent.mimeType(), audioContent.meta());
@@ -113,27 +115,28 @@ final class ToolCallRequest {
       case McpSchema.ImageContent imageContent ->
           fromBlob(imageContent.data(), imageContent.mimeType(), imageContent.meta());
       case McpSchema.ResourceLink resourceLink -> mapResourceLink(resourceLink);
-      case McpSchema.TextContent textContent -> TextContent.textContent(textContent.text());
+      case McpSchema.TextContent textContent -> McpTextContent.textContent(textContent.text());
     };
   }
 
-  private EmbeddedResourceContent mapEmbeddedResource(McpSchema.EmbeddedResource embeddedResource) {
+  private McpEmbeddedResourceContent mapEmbeddedResource(
+      McpSchema.EmbeddedResource embeddedResource) {
     var resource =
         switch (embeddedResource.resource()) {
           case McpSchema.TextResourceContents textResource ->
-              new EmbeddedResourceContent.TextResource(
+              new McpEmbeddedResourceContent.TextResource(
                   textResource.uri(), textResource.mimeType(), textResource.text());
           case McpSchema.BlobResourceContents blobResource ->
-              new EmbeddedResourceContent.BlobResource(
+              new McpEmbeddedResourceContent.BlobResource(
                   blobResource.uri(),
                   blobResource.mimeType(),
                   Base64.getDecoder().decode(blobResource.blob()));
         };
-    return new EmbeddedResourceContent(resource, embeddedResource.meta());
+    return new McpEmbeddedResourceContent(resource, embeddedResource.meta());
   }
 
-  private ResourceLinkContent mapResourceLink(McpSchema.ResourceLink resourceLink) {
-    return new ResourceLinkContent(
+  private McpResourceLinkContent mapResourceLink(McpSchema.ResourceLink resourceLink) {
+    return new McpResourceLinkContent(
         resourceLink.uri(),
         resourceLink.name(),
         resourceLink.description(),
@@ -141,8 +144,8 @@ final class ToolCallRequest {
         resourceLink.meta());
   }
 
-  private BlobContent fromBlob(String blob, String mimeType, Map<String, Object> metadata) {
-    return new BlobContent(Base64.getDecoder().decode(blob), mimeType, metadata);
+  private McpBlobContent fromBlob(String blob, String mimeType, Map<String, Object> metadata) {
+    return new McpBlobContent(Base64.getDecoder().decode(blob), mimeType, metadata);
   }
 
   private Map<String, Object> fromObjectContent(Object responseContent) {

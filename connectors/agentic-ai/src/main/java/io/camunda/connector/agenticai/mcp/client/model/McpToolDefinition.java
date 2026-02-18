@@ -4,9 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.model.message.content;
+package io.camunda.connector.agenticai.mcp.client.model;
 
+import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import java.util.Map;
+import org.springframework.lang.Nullable;
 
-public record BlobContent(byte[] blob, String mimeType, Map<String, Object> metadata)
-    implements Content {}
+@AgenticAiRecord
+public record McpToolDefinition(
+    String name, @Nullable String description, Map<String, Object> inputSchema) {}

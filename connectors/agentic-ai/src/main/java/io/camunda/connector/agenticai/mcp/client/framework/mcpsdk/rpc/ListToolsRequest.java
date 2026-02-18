@@ -8,8 +8,9 @@ package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
+import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
+import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinitionBuilder;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.util.ObjectMapperConstants;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
@@ -47,7 +48,7 @@ final class ListToolsRequest {
         filteredToolSpecifications.stream()
             .map(
                 tool ->
-                    ToolDefinition.builder()
+                    McpToolDefinitionBuilder.builder()
                         .name(tool.name())
                         .description(tool.description())
                         .inputSchema(parseToolParameters(tool.inputSchema()))
@@ -63,7 +64,7 @@ final class ListToolsRequest {
     LOGGER.debug(
         "MCP({}): Resolved list of tools: {}",
         clientId,
-        filteredToolDefinitions.stream().map(ToolDefinition::name).toList());
+        filteredToolDefinitions.stream().map(McpToolDefinition::name).toList());
 
     return new McpClientListToolsResult(filteredToolDefinitions);
   }

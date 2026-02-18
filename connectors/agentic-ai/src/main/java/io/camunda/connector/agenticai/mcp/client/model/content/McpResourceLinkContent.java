@@ -4,8 +4,9 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.agenticai.model.message.content;
+package io.camunda.connector.agenticai.mcp.client.model.content;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Map;
 
@@ -15,16 +16,16 @@ import java.util.Map;
  * <p>A resource link is a reference to an external resource identified by a URI. This matches the
  * MCP specification's ResourceLink structure.
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public record ResourceLinkContent(
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record McpResourceLinkContent(
     String uri,
     String name,
     String description,
     String mimeType,
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
-    implements Content {
+    implements McpContent {
 
-  public ResourceLinkContent {
+  public McpResourceLinkContent {
     if (uri == null) {
       throw new IllegalArgumentException("URI cannot be null");
     }

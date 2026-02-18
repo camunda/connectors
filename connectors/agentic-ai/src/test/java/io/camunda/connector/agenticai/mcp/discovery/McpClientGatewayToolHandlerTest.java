@@ -12,13 +12,14 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
+import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinitionBuilder;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
-import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -217,8 +218,8 @@ class McpClientGatewayToolHandlerTest {
       var mcpListToolsResult =
           new McpClientListToolsResult(
               List.of(
-                  createToolDefinition("tool1", "Tool 1 description"),
-                  createToolDefinition("tool2", "Tool 2 description")));
+                  createMcpToolDefinition("tool1", "Tool 1 description"),
+                  createMcpToolDefinition("tool2", "Tool 2 description")));
       var toolDiscoveryResults =
           List.of(
               createToolCallResultWithContent("MCP_toolsList_mcp1", "mcp1", mcpListToolsResult));
@@ -242,9 +243,9 @@ class McpClientGatewayToolHandlerTest {
     void handlesMultipleDiscoveryResults() {
       var agentContext = AgentContext.empty();
       var mcpListToolsResult1 =
-          new McpClientListToolsResult(List.of(createToolDefinition("tool1", "Tool 1")));
+          new McpClientListToolsResult(List.of(createMcpToolDefinition("tool1", "Tool 1")));
       var mcpListToolsResult2 =
-          new McpClientListToolsResult(List.of(createToolDefinition("tool2", "Tool 2")));
+          new McpClientListToolsResult(List.of(createMcpToolDefinition("tool2", "Tool 2")));
       var toolDiscoveryResults =
           List.of(
               createToolCallResultWithContent("MCP_toolsList_mcp1", "mcp1", mcpListToolsResult1),
@@ -323,7 +324,7 @@ class McpClientGatewayToolHandlerTest {
           AgentContext.empty().withProperty(PROPERTY_MCP_CLIENTS, List.of("mcp1", "mcp2"));
       var mcpCallToolResult =
           new McpClientCallToolResult(
-              "tool1", List.of(TextContent.textContent("Tool result")), false);
+              "tool1", List.of(McpTextContent.textContent("Tool result")), false);
       var toolCallResults =
           List.of(
               createToolCallResultWithContent("call1", "mcp1", mcpCallToolResult),
@@ -352,8 +353,8 @@ class McpClientGatewayToolHandlerTest {
           new McpClientCallToolResult(
               "tool1",
               List.of(
-                  TextContent.textContent("First content"),
-                  TextContent.textContent("Second content")),
+                  McpTextContent.textContent("First content"),
+                  McpTextContent.textContent("Second content")),
               false);
       var toolCallResults =
           List.of(createToolCallResultWithContent("call1", "mcp1", mcpCallToolResult));
@@ -364,8 +365,8 @@ class McpClientGatewayToolHandlerTest {
       assertThat(result.get(0).content())
           .isEqualTo(
               List.of(
-                  TextContent.textContent("First content"),
-                  TextContent.textContent("Second content")));
+                  McpTextContent.textContent("First content"),
+                  McpTextContent.textContent("Second content")));
     }
 
     @Test
@@ -406,8 +407,8 @@ class McpClientGatewayToolHandlerTest {
     return ToolCallResult.builder().id(id).name(name).content(content).build();
   }
 
-  private ToolDefinition createToolDefinition(String name, String description) {
-    return ToolDefinition.builder()
+  private McpToolDefinition createMcpToolDefinition(String name, String description) {
+    return McpToolDefinitionBuilder.builder()
         .name(name)
         .description(description)
         .inputSchema(Map.of("type", "object"))

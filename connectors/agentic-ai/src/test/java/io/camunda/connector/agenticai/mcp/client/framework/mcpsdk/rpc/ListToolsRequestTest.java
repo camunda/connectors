@@ -12,8 +12,8 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
+import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.util.Collections;
@@ -61,10 +61,10 @@ class ListToolsRequestTest {
             res -> {
               assertThat(res.toolDefinitions()).hasSize(2);
               assertThat(res.toolDefinitions())
-                  .extracting(ToolDefinition::name)
+                  .extracting(McpToolDefinition::name)
                   .containsExactly("tool1", "tool2");
               assertThat(res.toolDefinitions())
-                  .extracting(ToolDefinition::description)
+                  .extracting(McpToolDefinition::description)
                   .containsExactly("Tool 1 description", "Tool 2 description");
             });
   }

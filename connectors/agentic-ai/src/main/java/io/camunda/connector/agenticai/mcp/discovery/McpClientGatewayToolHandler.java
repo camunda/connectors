@@ -15,9 +15,10 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiatio
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperation;
 import io.camunda.connector.agenticai.mcp.client.model.McpClientOperationDefinitions;
+import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
-import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
@@ -161,7 +162,7 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
   }
 
   private String fullyQualifiedToolName(
-      ToolCallResult toolCallResult, ToolDefinition toolDefinition) {
+      ToolCallResult toolCallResult, McpToolDefinition toolDefinition) {
     final var identifier = new McpToolCallIdentifier(toolCallResult.name(), toolDefinition.name());
     return identifier.fullyQualifiedName();
   }
@@ -231,7 +232,7 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
 
     // directly use the string content if the returned content is a single text content
     if (callToolResult.content().size() == 1
-        && callToolResult.content().getFirst() instanceof TextContent textContent) {
+        && callToolResult.content().getFirst() instanceof McpTextContent textContent) {
       toolCallResultBuilder.content(textContent.text());
     } else {
       toolCallResultBuilder.content(callToolResult.content());

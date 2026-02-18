@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.mcp.client.handler;
 
 import static io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpMethod.*;
-import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
+import static io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
