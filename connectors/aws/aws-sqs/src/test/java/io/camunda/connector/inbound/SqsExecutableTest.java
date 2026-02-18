@@ -17,12 +17,6 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
-import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
-import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.*;
@@ -49,6 +43,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.GetQueueAttributesRequest;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
 @ExtendWith(MockitoExtension.class)
 class SqsExecutableTest {
@@ -68,7 +69,7 @@ class SqsExecutableTest {
   private static final String SUCCESS_CASES_RESOURCE_PATH =
       "src/test/resources/requests/inbound/success-test-cases.json";
 
-  @Mock private AmazonSQS sqsClient;
+  @Mock private SqsClient sqsClient;
   @Mock private AmazonSQSClientSupplier supplier;
   private ExecutorService executorService;
   private SqsQueueConsumer consumer;
@@ -93,12 +94,12 @@ class SqsExecutableTest {
     var definition = createDefinition();
     InboundConnectorContext context = createConnectorContext(properties, definition);
     InboundConnectorContext spyContext = spy(context);
-    Message message = createMessage().withReceiptHandle("receiptHandle");
+    Message message = createMessage().toBuilder().receiptHandle("receiptHandle").build();
     Message message1 = spy(message);
-    when(supplier.sqsClient(any(AWSCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
+    when(supplier.sqsClient(any(AwsCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
         .thenReturn(sqsClient);
     when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
-        .thenReturn(new ReceiveMessageResult().withMessages(message1));
+        .thenReturn(ReceiveMessageResponse.builder().messages(message1).build());
     consumer =
         new SqsQueueConsumer(
             sqsClient,
@@ -116,15 +117,15 @@ class SqsExecutableTest {
         .correlate(
             CorrelationRequest.builder()
                 .variables(MessageMapper.toSqsInboundMessage(message))
-                .messageId(message.getMessageId())
+                .messageId(message.messageId())
                 .build());
   }
 
   @Test
   public void deactivateTest() {
     // Given
-    when(sqsClient.getQueueAttributes(any(), any())).thenReturn(null);
-    when(supplier.sqsClient(any(AWSCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
+    when(sqsClient.getQueueAttributes(any(GetQueueAttributesRequest.class))).thenReturn(null);
+    when(supplier.sqsClient(any(AwsCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
         .thenReturn(sqsClient);
     Map<String, Object> properties =
         Map.of(
@@ -152,8 +153,9 @@ class SqsExecutableTest {
   @Test
   public void nonExistingQueueTest() {
     // Given
-    when(sqsClient.getQueueAttributes(any(), any())).thenThrow(new QueueDoesNotExistException(""));
-    when(supplier.sqsClient(any(AWSCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
+    when(sqsClient.getQueueAttributes(any(GetQueueAttributesRequest.class)))
+        .thenThrow(QueueDoesNotExistException.builder().message("").build());
+    when(supplier.sqsClient(any(AwsCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
         .thenReturn(sqsClient);
     Map<String, Object> properties =
         Map.of(
@@ -194,6 +196,6 @@ class SqsExecutableTest {
   }
 
   private Message createMessage() {
-    return new Message().withMessageId("1").withBody("{\"a\":\"c\"}");
+    return Message.builder().messageId("1").body("{\"a\":\"c\"}").build();
   }
 }

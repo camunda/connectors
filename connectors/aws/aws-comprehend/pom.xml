@@ -39,9 +39,19 @@
     </dependency>
 
     <dependency>
-      <groupId>com.amazonaws</groupId>
-      <artifactId>aws-java-sdk-comprehend</artifactId>
-      <version>${version.aws-java-sdk}</version>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>comprehend</artifactId>
+      <version>${version.aws-sdk2}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>regions</artifactId>
+      <version>${version.aws-sdk2}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sdk-core</artifactId>
+      <version>${version.aws-sdk2}</version>
     </dependency>
 
   </dependencies>  
@@ -75,5 +85,4 @@
   </build>
 
 </project>
-
 

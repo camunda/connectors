@@ -18,11 +18,6 @@ package io.camunda.connector.e2e;
 
 import static io.camunda.process.test.api.CamundaAssert.assertThat;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
@@ -31,6 +26,10 @@ import java.io.IOException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.lambda.LambdaClient;
 
 @SlowTest
 public class AwsLambdaTest extends BaseAwsTest {
@@ -40,20 +39,20 @@ public class AwsLambdaTest extends BaseAwsTest {
   private static final String FUNCTION_NAME = "myLambdaFunction";
   private static final String LAMBDA_FUNCTION_ZIP_FILE_PATH = "src/test/resources/function.zip";
 
-  private static AWSLambda lambdaClient;
+  private static LambdaClient lambdaClient;
 
   /** Initializes the AWS Lambda client and sets up the Lambda function for testing. */
   @BeforeAll
   public static void initLambdaClient() throws IOException, InterruptedException {
 
     lambdaClient =
-        AWSLambdaClientBuilder.standard()
-            .withCredentials(
-                new AWSStaticCredentialsProvider(
-                    new BasicAWSCredentials(localstack.getAccessKey(), localstack.getSecretKey())))
-            .withEndpointConfiguration(
-                new AwsClientBuilder.EndpointConfiguration(
-                    localstack.getEndpoint().toString(), localstack.getRegion()))
+        LambdaClient.builder()
+            .credentialsProvider(
+                StaticCredentialsProvider.create(
+                    AwsBasicCredentials.create(
+                        localstack.getAccessKey(), localstack.getSecretKey())))
+            .region(Region.of(localstack.getRegion()))
+            .endpointOverride(localstack.getEndpointOverride(AwsService.LAMBDA))
             .build();
 
     AwsTestHelper.waitForLambdaClientInitialization(lambdaClient);
@@ -65,7 +64,7 @@ public class AwsLambdaTest extends BaseAwsTest {
   @AfterAll
   public static void cleanUpLambdaClient() {
     if (lambdaClient != null) {
-      lambdaClient.shutdown();
+      lambdaClient.close();
     }
   }
 

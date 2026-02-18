@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.sns.outbound.model;
 
-import com.amazonaws.services.sns.model.MessageAttributeValue;
-import com.amazonaws.util.StringUtils;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -19,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
 
 public class TopicRequestData {
 
@@ -92,9 +91,9 @@ public class TopicRequestData {
   @AssertTrue
   public boolean hasValidTopicProperties() {
     if (TopicType.standard == type) {
-      return StringUtils.isNullOrEmpty(messageGroupId);
+      return messageGroupId == null || messageGroupId.isEmpty();
     } else if (TopicType.fifo == type) {
-      return StringUtils.hasValue(messageGroupId);
+      return messageGroupId != null && !messageGroupId.isEmpty();
     } else throw new IllegalArgumentException("No valid type value " + type);
   }
 
@@ -179,10 +178,10 @@ public class TopicRequestData {
 
   private Function<SnsMessageAttribute, MessageAttributeValue> messageAttributeTransformer() {
     return snsMessageAttribute -> {
-      MessageAttributeValue msgAttr = new MessageAttributeValue();
-      msgAttr.setDataType(snsMessageAttribute.getDataType());
-      msgAttr.setStringValue(snsMessageAttribute.getStringValue());
-      return msgAttr;
+      return MessageAttributeValue.builder()
+          .dataType(snsMessageAttribute.getDataType())
+          .stringValue(snsMessageAttribute.getStringValue())
+          .build();
     };
   }
 
