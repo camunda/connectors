@@ -91,7 +91,7 @@ The migration follows a side-by-side implementation strategy:
 2. **Configuration-based selection**: Use configuration properties to select active implementation
 3. **Domain model mapping**: Create dedicated RPC request classes that map MCP SDK types to internal domain models
 4. **Gradual migration**: Introduce MCP-SDK implementation in coexistence with existing Lanchain4J implementation. Then
-   assure quality of implementation by exploration and comparison. Finally, deprecate langchain4j implementation and
+   assure quality of implementation by exploration and comparison. Finally, remove langchain4j based implementation and
    switch to `mcpsdk` as runtime default.
 
 ## References
