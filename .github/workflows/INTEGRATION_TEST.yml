@@ -15,6 +15,10 @@ on:
         description: 'Connectors release branch containing code to test. Used to determine the Helm chart directory via helm-git-refs.json'
         required: true
         type: string
+      helm-dir:
+        description: 'The camunda-platform-helm/charts directory of the Helm chart to test against. If not provided, the directory is determined based on the ref this workflow was triggered on (see helm-git-refs.json)'
+        required: false
+        type: string
   workflow_dispatch:
     inputs:
       image-source:
@@ -174,8 +178,8 @@ jobs:
       e2e-enabled: true
       # This scenario installs a full Camunda 8 cluster with Keycloak and Elasticsearch being external. 
       # This keycloak realm and elasticsearch prefixes are all randomly generated at installation time.
-      scenario: keycloak-original
-      shortname: keyco
+      scenario: elasticsearch
+      shortname: qaes
       # Github does not guarantee that the cleanup job will run. So we need to use flags. Within the helm CI the max ttl for a namespace is set.
       # That max ttl can be overridden by setting the deployment-ttl to a non-empty value.
       # When always-delete-namespace is true, and ttl is empty, the namespace is deleted after the test run.
@@ -188,3 +192,5 @@ jobs:
             registry: ${{ needs.prepare-inputs.outputs.connectors-registry }}
             repository: ${{ needs.prepare-inputs.outputs.connectors-repository }}
             tag: ${{ needs.prepare-inputs.outputs.connectors-version }}
+      vault-secret-mapping: |
+        secret/data/products/distribution/ci DISTRO_QA_E2E_TESTS_KEYCLOAK_CLIENTS_SECRET;
