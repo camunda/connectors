@@ -155,6 +155,7 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
             toolDefinition ->
                 ToolDefinition.builder()
                     .name(fullyQualifiedToolName(toolCallResult, toolDefinition))
+                    .title(toolDefinition.title())
                     .description(toolDefinition.description())
                     .inputSchema(toolDefinition.inputSchema())
                     .build())
