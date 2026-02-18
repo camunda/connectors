@@ -7,7 +7,7 @@
 
 **Implemented**.
 
-`langchain4j-mcp` was replaced by prominent [`MCP Java SDK`](https://github.com/modelcontextprotocol/java-sdk)
+`langchain4j-mcp` was replaced by prominent [`MCP Java SDK`](https://github.com/modelcontextprotocol/java-sdk) in PRs [#6226](https://github.com/camunda/connectors/pull/6226) and [#6279](https://github.com/camunda/connectors/pull/6279)
 
 ## Context and Problem Statement
 
@@ -82,17 +82,19 @@ Use the MCP Java SDK referenced by modelcontextprotocol.io
     * Broad community adoption ensures proper maintenance and exploration of issues / limitations
 * Bad, because requires migration effort
 * Bad, because newer project with potentially evolving APIs
+* Bad, because the internal code architecture wrapping async code in sync (blocking adapters) is far more complex
 
 ## Implementation Approach
 
 The migration follows a side-by-side implementation strategy:
 
-1. **Framework abstraction layer**: Introduce `McpClientFactory` interface with implementations for both SDKs
-2. **Configuration-based selection**: Use configuration properties to select active implementation
-3. **Domain model mapping**: Create dedicated RPC request classes that map MCP SDK types to internal domain models
+1. **Framework abstraction layer**: Introduce `McpClientFactory` interface with implementations for both SDKs (part of PR [#6226](https://github.com/camunda/connectors/pull/6226))
+2. **Configuration-based selection**: Use configuration properties to select active implementation (part of PR [#6226](https://github.com/camunda/connectors/pull/6226))
+3. **Domain model mapping**: Create dedicated RPC request classes that map MCP SDK types to internal domain models (part of PR [#6226](https://github.com/camunda/connectors/pull/6226))
 4. **Gradual migration**: Introduce MCP-SDK implementation in coexistence with existing Lanchain4J implementation. Then
    assure quality of implementation by exploration and comparison. Finally, remove langchain4j based implementation and
-   switch to `mcpsdk` as runtime default.
+   switch to `mcpsdk` as runtime default. (PR [#6279](https://github.com/camunda/connectors/pull/6279))
+
 
 ## References
 
