@@ -90,6 +90,15 @@ except in compliance with the proprietary license.</license.inlineheader>
           </execution>
         </executions>
         <configuration>
+          <!-- AWS SDK dependencies defined in our aws-base module -->
+          <ignoredUsedUndeclaredDependencies combine.children="append">
+            <dependency>software.amazon.awssdk:aws-core</dependency>
+            <dependency>software.amazon.awssdk:auth</dependency>
+          </ignoredUsedUndeclaredDependencies>
+          <ignoredUnusedDeclaredDependencies>
+            <dependency>software.amazon.awssdk:aws-core</dependency>
+            <dependency>software.amazon.awssdk:auth</dependency>
+          </ignoredUnusedDeclaredDependencies>
           <skip>true</skip>
         </configuration>
       </plugin>

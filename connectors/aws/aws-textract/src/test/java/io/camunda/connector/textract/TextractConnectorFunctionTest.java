@@ -14,13 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.textract.model.AnalyzeDocumentResult;
-import com.amazonaws.services.textract.model.GetDocumentAnalysisResult;
-import com.amazonaws.services.textract.model.StartDocumentAnalysisResult;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.textract.caller.AsyncTextractCaller;
-import io.camunda.connector.textract.caller.PollingTextractCalller;
+import io.camunda.connector.textract.caller.PollingTextractCaller;
 import io.camunda.connector.textract.caller.SyncTextractCaller;
 import io.camunda.connector.textract.suppliers.AmazonTextractClientSupplier;
 import io.camunda.connector.textract.util.TextractTestUtils;
@@ -31,12 +28,15 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.textract.model.AnalyzeDocumentResponse;
+import software.amazon.awssdk.services.textract.model.GetDocumentAnalysisResponse;
+import software.amazon.awssdk.services.textract.model.StartDocumentAnalysisResponse;
 
 @ExtendWith(MockitoExtension.class)
 class TextractConnectorFunctionTest {
 
   @Mock private SyncTextractCaller syncCaller;
-  @Mock private PollingTextractCalller pollingCaller;
+  @Mock private PollingTextractCaller pollingCaller;
   @Mock private AsyncTextractCaller asyncCaller;
 
   @Mock private AmazonTextractClientSupplier clientSupplier;
@@ -48,10 +48,10 @@ class TextractConnectorFunctionTest {
     var outBounderContext = prepareConnectorContext(TextractTestUtils.SYNC_EXECUTION_JSON);
 
     when(clientSupplier.getSyncTextractClient(any())).thenCallRealMethod();
-    when(syncCaller.call(any(), any())).thenReturn(new AnalyzeDocumentResult());
+    when(syncCaller.call(any(), any())).thenReturn(AnalyzeDocumentResponse.builder().build());
 
     var result = textractConnectorFunction.execute(outBounderContext);
-    assertThat(result).isInstanceOf(AnalyzeDocumentResult.class);
+    assertThat(result).isInstanceOf(AnalyzeDocumentResponse.class);
   }
 
   @Test
@@ -59,10 +59,11 @@ class TextractConnectorFunctionTest {
     var outBounderContext = prepareConnectorContext(TextractTestUtils.ASYNC_EXECUTION_JSON);
 
     when(clientSupplier.getAsyncTextractClient(any())).thenCallRealMethod();
-    when(asyncCaller.call(any(), any())).thenReturn(new StartDocumentAnalysisResult());
+    when(asyncCaller.call(any(), any()))
+        .thenReturn(StartDocumentAnalysisResponse.builder().build());
 
     var result = textractConnectorFunction.execute(outBounderContext);
-    assertThat(result).isInstanceOf(StartDocumentAnalysisResult.class);
+    assertThat(result).isInstanceOf(StartDocumentAnalysisResponse.class);
   }
 
   @Test
@@ -70,10 +71,11 @@ class TextractConnectorFunctionTest {
     var outBounderContext = prepareConnectorContext(TextractTestUtils.POLLING_EXECUTION_JSON);
 
     when(clientSupplier.getAsyncTextractClient(any())).thenCallRealMethod();
-    when(pollingCaller.call(any(), any())).thenReturn(new GetDocumentAnalysisResult());
+    when(pollingCaller.call(any(), any()))
+        .thenReturn(GetDocumentAnalysisResponse.builder().build());
 
     var result = textractConnectorFunction.execute(outBounderContext);
-    assertThat(result).isInstanceOf(GetDocumentAnalysisResult.class);
+    assertThat(result).isInstanceOf(GetDocumentAnalysisResponse.class);
   }
 
   @Test

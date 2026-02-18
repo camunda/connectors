@@ -7,41 +7,49 @@
 package io.camunda.connector.aws.dynamodb.operation.item;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.dynamodbv2.document.Item;
-import com.amazonaws.services.dynamodbv2.document.PutItemOutcome;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
 import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.AddItem;
 import io.camunda.connector.aws.dynamodb.model.AwsInput;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.PutItemResponse;
 
 class AddItemOperationTest extends BaseDynamoDbOperationTest {
-  @Mock private AddItem addItemModel;
-  @Mock private Item item;
-  @Mock private PutItemOutcome putItemOutcome;
+  private AddItem addItemModel;
+  @Captor private ArgumentCaptor<PutItemRequest> requestCaptor;
 
   @BeforeEach
   public void setUp() {
-    when(addItemModel.tableName()).thenReturn(TestDynamoDBData.ActualValue.TABLE_NAME);
-    when(addItemModel.item()).thenReturn(item);
-    when(dynamoDB.getTable(addItemModel.tableName())).thenReturn(table);
-    when(table.putItem(any(Item.class))).thenReturn(putItemOutcome);
+    addItemModel =
+        new AddItem(
+            TestDynamoDBData.ActualValue.TABLE_NAME,
+            Map.of("id", TestDynamoDBData.ActualValue.KEY_ATTRIBUTE_VALUE));
   }
 
   @Test
   public void testInvoke() throws JsonProcessingException {
     AddItemOperation addItemOperation = new AddItemOperation(addItemModel);
-    PutItemOutcome result = addItemOperation.invoke(dynamoDB);
-    verify(table).putItem(any(Item.class));
-    assertThat(result).isEqualTo(putItemOutcome);
+    PutItemResponse response = PutItemResponse.builder().build();
+    org.mockito.Mockito.when(dynamoDB.putItem(requestCaptor.capture())).thenReturn(response);
+
+    PutItemResponse result = addItemOperation.invoke(dynamoDB);
+    verify(dynamoDB).putItem(requestCaptor.getValue());
+    assertThat(result).isEqualTo(response);
+
+    PutItemRequest request = requestCaptor.getValue();
+    assertThat(request.tableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
+    AttributeValue id = request.item().get("id");
+    assertThat(id.s()).isEqualTo(TestDynamoDBData.ActualValue.KEY_ATTRIBUTE_VALUE);
   }
 
   @Test

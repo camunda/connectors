@@ -10,12 +10,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.comprehend.AmazonComprehendAsyncClient;
-import com.amazonaws.services.comprehend.AmazonComprehendClient;
-import com.amazonaws.services.comprehend.model.ClassifyDocumentRequest;
-import com.amazonaws.services.comprehend.model.ClassifyDocumentResult;
-import com.amazonaws.services.comprehend.model.StartDocumentClassificationJobRequest;
-import com.amazonaws.services.comprehend.model.StartDocumentClassificationJobResult;
 import io.camunda.connector.comprehend.caller.AsyncComprehendCaller;
 import io.camunda.connector.comprehend.caller.SyncComprehendCaller;
 import io.camunda.connector.comprehend.model.ComprehendRequest;
@@ -27,6 +21,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.comprehend.ComprehendAsyncClient;
+import software.amazon.awssdk.services.comprehend.ComprehendClient;
+import software.amazon.awssdk.services.comprehend.model.ClassifyDocumentRequest;
+import software.amazon.awssdk.services.comprehend.model.ClassifyDocumentResponse;
+import software.amazon.awssdk.services.comprehend.model.StartDocumentClassificationJobRequest;
+import software.amazon.awssdk.services.comprehend.model.StartDocumentClassificationJobResponse;
 
 @ExtendWith(MockitoExtension.class)
 class ComprehendConnectorFunctionTest {
@@ -45,29 +45,31 @@ class ComprehendConnectorFunctionTest {
   void executeSyncRequest() {
     var outBounderContext = prepareConnectorContext(ComprehendTestUtils.SYNC_EXECUTION_JSON);
 
-    AmazonComprehendClient syncClient = Mockito.mock(AmazonComprehendClient.class);
+    ComprehendClient syncClient = Mockito.mock(ComprehendClient.class);
     when(syncClient.classifyDocument(any(ClassifyDocumentRequest.class)))
-        .thenReturn(new ClassifyDocumentResult());
+        .thenReturn(ClassifyDocumentResponse.builder().build());
 
     when(clientSupplier.getSyncClient(any(ComprehendRequest.class))).thenReturn(syncClient);
 
     var result = comprehendConnectorFunction.execute(outBounderContext);
-    assertThat(result).isInstanceOf(ClassifyDocumentResult.class);
+    assertThat(result).isInstanceOf(ClassifyDocumentResponse.class);
   }
 
   @Test
   void executeAsyncRequest() {
     var outBounderContext = prepareConnectorContext(ComprehendTestUtils.ASYNC_EXECUTION_JSON);
 
-    AmazonComprehendAsyncClient asyncClient = Mockito.mock(AmazonComprehendAsyncClient.class);
+    ComprehendAsyncClient asyncClient = Mockito.mock(ComprehendAsyncClient.class);
     when(asyncClient.startDocumentClassificationJob(
             any(StartDocumentClassificationJobRequest.class)))
-        .thenReturn(new StartDocumentClassificationJobResult());
+        .thenReturn(
+            java.util.concurrent.CompletableFuture.completedFuture(
+                StartDocumentClassificationJobResponse.builder().build()));
 
     when(clientSupplier.getAsyncClient(any(ComprehendRequest.class))).thenReturn(asyncClient);
 
     var result = comprehendConnectorFunction.execute(outBounderContext);
-    assertThat(result).isInstanceOf(StartDocumentClassificationJobResult.class);
+    assertThat(result).isInstanceOf(StartDocumentClassificationJobResponse.class);
   }
 
   private OutboundConnectorContextBuilder.TestConnectorContext prepareConnectorContext(

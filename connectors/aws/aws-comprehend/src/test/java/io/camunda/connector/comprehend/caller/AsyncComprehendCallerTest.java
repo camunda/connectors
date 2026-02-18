@@ -12,16 +12,23 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.comprehend.AmazonComprehendClient;
-import com.amazonaws.services.comprehend.model.*;
 import io.camunda.connector.comprehend.model.ComprehendAsyncRequestData;
 import io.camunda.connector.comprehend.model.ComprehendDocumentReadAction;
 import io.camunda.connector.comprehend.model.ComprehendDocumentReadMode;
 import io.camunda.connector.comprehend.model.ComprehendInputFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import software.amazon.awssdk.services.comprehend.ComprehendAsyncClient;
+import software.amazon.awssdk.services.comprehend.model.DocumentReadFeatureTypes;
+import software.amazon.awssdk.services.comprehend.model.DocumentReaderConfig;
+import software.amazon.awssdk.services.comprehend.model.InputDataConfig;
+import software.amazon.awssdk.services.comprehend.model.OutputDataConfig;
+import software.amazon.awssdk.services.comprehend.model.StartDocumentClassificationJobRequest;
+import software.amazon.awssdk.services.comprehend.model.Tag;
+import software.amazon.awssdk.services.comprehend.model.VpcConfig;
 
 class AsyncComprehendCallerTest {
 
@@ -37,41 +44,48 @@ class AsyncComprehendCallerTest {
             true);
 
     var docClassificationRequest =
-        new StartDocumentClassificationJobRequest()
-            .withClientRequestToken(asyncRequest.clientRequestToken())
-            .withDataAccessRoleArn(asyncRequest.dataAccessRoleArn())
-            .withDocumentClassifierArn(asyncRequest.documentClassifierArn())
-            .withFlywheelArn(asyncRequest.flywheelArn())
-            .withInputDataConfig(
-                new InputDataConfig()
-                    .withS3Uri(asyncRequest.inputS3Uri())
-                    .withDocumentReaderConfig(
-                        new DocumentReaderConfig()
-                            .withDocumentReadAction(asyncRequest.documentReadAction().name())
-                            .withDocumentReadMode(asyncRequest.documentReadMode().name())
-                            .withFeatureTypes(
+        StartDocumentClassificationJobRequest.builder()
+            .clientRequestToken(asyncRequest.clientRequestToken())
+            .dataAccessRoleArn(asyncRequest.dataAccessRoleArn())
+            .documentClassifierArn(asyncRequest.documentClassifierArn())
+            .flywheelArn(asyncRequest.flywheelArn())
+            .inputDataConfig(
+                InputDataConfig.builder()
+                    .s3Uri(asyncRequest.inputS3Uri())
+                    .documentReaderConfig(
+                        DocumentReaderConfig.builder()
+                            .documentReadAction(asyncRequest.documentReadAction().name())
+                            .documentReadMode(asyncRequest.documentReadMode().name())
+                            .featureTypes(
                                 List.of(
-                                    DocumentReadFeatureTypes.FORMS.name(),
-                                    DocumentReadFeatureTypes.TABLES.name())))
-                    .withInputFormat(asyncRequest.comprehendInputFormat().name()))
-            .withJobName(asyncRequest.jobName())
-            .withOutputDataConfig(
-                new OutputDataConfig()
-                    .withS3Uri(asyncRequest.outputS3Uri())
-                    .withKmsKeyId(asyncRequest.outputKmsKeyId()))
-            .withTags(
+                                    DocumentReadFeatureTypes.FORMS,
+                                    DocumentReadFeatureTypes.TABLES))
+                            .build())
+                    .inputFormat(asyncRequest.comprehendInputFormat().name())
+                    .build())
+            .jobName(asyncRequest.jobName())
+            .outputDataConfig(
+                OutputDataConfig.builder()
+                    .s3Uri(asyncRequest.outputS3Uri())
+                    .kmsKeyId(asyncRequest.outputKmsKeyId())
+                    .build())
+            .tags(
                 List.of(
-                    new Tag()
-                        .withKey(asyncRequest.tags().keySet().stream().findFirst().get())
-                        .withValue(asyncRequest.tags().values().stream().findFirst().get())))
-            .withVolumeKmsKeyId(asyncRequest.volumeKmsKeyId())
-            .withVpcConfig(
-                new VpcConfig()
-                    .withSecurityGroupIds(asyncRequest.securityGroupIds())
-                    .withSubnets(asyncRequest.subnets()));
-    var client = Mockito.mock(AmazonComprehendClient.class);
+                    Tag.builder()
+                        .key(asyncRequest.tags().keySet().stream().findFirst().get())
+                        .value(asyncRequest.tags().values().stream().findFirst().get())
+                        .build()))
+            .volumeKmsKeyId(asyncRequest.volumeKmsKeyId())
+            .vpcConfig(
+                VpcConfig.builder()
+                    .securityGroupIds(asyncRequest.securityGroupIds())
+                    .subnets(asyncRequest.subnets())
+                    .build())
+            .build();
+    var client = Mockito.mock(ComprehendAsyncClient.class);
 
-    when(client.startDocumentClassificationJob(docClassificationRequest)).thenReturn(null);
+    when(client.startDocumentClassificationJob(docClassificationRequest))
+        .thenReturn(CompletableFuture.completedFuture(null));
     asyncCaller.call(client, asyncRequest);
 
     verify(client).startDocumentClassificationJob(docClassificationRequest);
@@ -84,33 +98,39 @@ class AsyncComprehendCallerTest {
             ComprehendDocumentReadMode.NO_DATA, ComprehendDocumentReadAction.NO_DATA, false, false);
 
     var docClassificationRequest =
-        new StartDocumentClassificationJobRequest()
-            .withClientRequestToken(asyncRequest.clientRequestToken())
-            .withDataAccessRoleArn(asyncRequest.dataAccessRoleArn())
-            .withDocumentClassifierArn(asyncRequest.documentClassifierArn())
-            .withFlywheelArn(asyncRequest.flywheelArn())
-            .withInputDataConfig(
-                new InputDataConfig()
-                    .withS3Uri(asyncRequest.inputS3Uri())
-                    .withInputFormat(asyncRequest.comprehendInputFormat().name()))
-            .withJobName(asyncRequest.jobName())
-            .withOutputDataConfig(
-                new OutputDataConfig()
-                    .withS3Uri(asyncRequest.outputS3Uri())
-                    .withKmsKeyId(asyncRequest.outputKmsKeyId()))
-            .withTags(
+        StartDocumentClassificationJobRequest.builder()
+            .clientRequestToken(asyncRequest.clientRequestToken())
+            .dataAccessRoleArn(asyncRequest.dataAccessRoleArn())
+            .documentClassifierArn(asyncRequest.documentClassifierArn())
+            .flywheelArn(asyncRequest.flywheelArn())
+            .inputDataConfig(
+                InputDataConfig.builder()
+                    .s3Uri(asyncRequest.inputS3Uri())
+                    .inputFormat(asyncRequest.comprehendInputFormat().name())
+                    .build())
+            .jobName(asyncRequest.jobName())
+            .outputDataConfig(
+                OutputDataConfig.builder()
+                    .s3Uri(asyncRequest.outputS3Uri())
+                    .kmsKeyId(asyncRequest.outputKmsKeyId())
+                    .build())
+            .tags(
                 List.of(
-                    new Tag()
-                        .withKey(asyncRequest.tags().keySet().stream().findFirst().get())
-                        .withValue(asyncRequest.tags().values().stream().findFirst().get())))
-            .withVolumeKmsKeyId(asyncRequest.volumeKmsKeyId())
-            .withVpcConfig(
-                new VpcConfig()
-                    .withSecurityGroupIds(asyncRequest.securityGroupIds())
-                    .withSubnets(asyncRequest.subnets()));
-    var client = Mockito.mock(AmazonComprehendClient.class);
+                    Tag.builder()
+                        .key(asyncRequest.tags().keySet().stream().findFirst().get())
+                        .value(asyncRequest.tags().values().stream().findFirst().get())
+                        .build()))
+            .volumeKmsKeyId(asyncRequest.volumeKmsKeyId())
+            .vpcConfig(
+                VpcConfig.builder()
+                    .securityGroupIds(asyncRequest.securityGroupIds())
+                    .subnets(asyncRequest.subnets())
+                    .build())
+            .build();
+    var client = Mockito.mock(ComprehendAsyncClient.class);
 
-    when(client.startDocumentClassificationJob(docClassificationRequest)).thenReturn(null);
+    when(client.startDocumentClassificationJob(docClassificationRequest))
+        .thenReturn(CompletableFuture.completedFuture(null));
     asyncCaller.call(client, asyncRequest);
 
     verify(client).startDocumentClassificationJob(docClassificationRequest);
@@ -139,14 +159,16 @@ class AsyncComprehendCallerTest {
             List.of());
 
     var docClassificationRequest =
-        new StartDocumentClassificationJobRequest()
-            .withDataAccessRoleArn(asyncRequest.dataAccessRoleArn())
-            .withDocumentClassifierArn(asyncRequest.documentClassifierArn())
-            .withInputDataConfig(new InputDataConfig().withS3Uri(asyncRequest.inputS3Uri()))
-            .withOutputDataConfig(new OutputDataConfig().withS3Uri(asyncRequest.outputS3Uri()));
+        StartDocumentClassificationJobRequest.builder()
+            .dataAccessRoleArn(asyncRequest.dataAccessRoleArn())
+            .documentClassifierArn(asyncRequest.documentClassifierArn())
+            .inputDataConfig(InputDataConfig.builder().s3Uri(asyncRequest.inputS3Uri()).build())
+            .outputDataConfig(OutputDataConfig.builder().s3Uri(asyncRequest.outputS3Uri()).build())
+            .build();
 
-    var client = Mockito.mock(AmazonComprehendClient.class);
-    when(client.startDocumentClassificationJob(docClassificationRequest)).thenReturn(null);
+    var client = Mockito.mock(ComprehendAsyncClient.class);
+    when(client.startDocumentClassificationJob(docClassificationRequest))
+        .thenReturn(CompletableFuture.completedFuture(null));
     asyncCaller.call(client, asyncRequest);
 
     verify(client).startDocumentClassificationJob(docClassificationRequest);
@@ -160,7 +182,7 @@ class AsyncComprehendCallerTest {
             ComprehendDocumentReadAction.TEXTRACT_ANALYZE_DOCUMENT,
             false,
             false);
-    var client = Mockito.mock(AmazonComprehendClient.class);
+    var client = Mockito.mock(ComprehendAsyncClient.class);
 
     Exception ex =
         assertThrows(IllegalArgumentException.class, () -> asyncCaller.call(client, asyncRequest));
@@ -189,7 +211,7 @@ class AsyncComprehendCallerTest {
             List.of("seg-1"),
             List.of());
 
-    AmazonComprehendClient asyncClient = Mockito.mock(AmazonComprehendClient.class);
+    ComprehendAsyncClient asyncClient = Mockito.mock(ComprehendAsyncClient.class);
 
     Exception ex =
         assertThrows(

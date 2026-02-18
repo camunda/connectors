@@ -30,27 +30,22 @@
     <dependencies>
 
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-core</artifactId>
-            <version>${version.aws-java-sdk}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-sts</artifactId>
-            <version>${version.aws-java-sdk-sts}</version>
-        </dependency>
-
-        <dependency>
             <groupId>software.amazon.awssdk</groupId>
-            <artifactId>auth</artifactId>
-            <version>${version.software-aws-java-sdk}</version>
+            <artifactId>aws-core</artifactId>
+            <version>${version.aws-sdk2}</version>
+
         </dependency>
+
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>auth</artifactId>
+      <version>${version.aws-sdk2}</version>
+    </dependency>
 
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>sts</artifactId>
-            <version>${version.software-aws-java-sdk-sts}</version>
+            <version>${version.aws-sdk2}</version>
         </dependency>
 
         <dependency>
@@ -63,5 +58,4 @@
     </dependencies>
 
 </project>
-
 
