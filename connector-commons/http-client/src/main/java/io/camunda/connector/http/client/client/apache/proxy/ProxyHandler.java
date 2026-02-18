@@ -17,6 +17,7 @@
 package io.camunda.connector.http.client.client.apache.proxy;
 
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration.ProxyDetails;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,13 +36,6 @@ import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
  */
 public class ProxyHandler {
 
-  public record ProxyDetails(String scheme, String host, int port, String user, String password) {
-    static ProxyDetails fromConfiguration(ProxyConfiguration.ProxyDetails details) {
-      return new ProxyDetails(
-          details.scheme(), details.host(), details.port(), details.user(), details.password());
-    }
-  }
-
   public static final String HTTP = ProxyConfiguration.HTTP;
   public static final String HTTPS = ProxyConfiguration.HTTPS;
 
@@ -54,7 +48,7 @@ public class ProxyHandler {
   }
 
   public Optional<ProxyDetails> getProxyDetails(String protocol) {
-    return proxyConfiguration.getProxyDetails(protocol).map(ProxyDetails::fromConfiguration);
+    return proxyConfiguration.getProxyDetails(protocol);
   }
 
   private Map<String, CredentialsProvider> initializeCredentialsProviders() {
@@ -62,7 +56,7 @@ public class ProxyHandler {
     for (String protocol : List.of(HTTP, HTTPS)) {
       proxyConfiguration
           .getProxyDetails(protocol)
-          .filter(ProxyConfiguration.ProxyDetails::hasCredentials)
+          .filter(ProxyDetails::hasCredentials)
           .ifPresent(
               p -> {
                 BasicCredentialsProvider provider = new BasicCredentialsProvider();
