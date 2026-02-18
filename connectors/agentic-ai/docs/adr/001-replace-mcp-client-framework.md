@@ -75,8 +75,8 @@ Use the MCP Java SDK referenced by modelcontextprotocol.io
   leaving room for richer integration (e.g. into Spring ecosystem)
 
 * Good, because extensible transport configuration via standard Java HTTP clients with various customization options
-    * Allows to customize HTTP client
-    * Without explicit requirements, relies on standard JDK
+    * Supports custom HTTP client configuration
+    * Requires no additional dependencies; uses the standard JDK HTTP client by default
 * Good, because full specification compliance expected soon after release
 * Good, because used by Spring AI project
     * Broad community adoption ensures proper maintenance and exploration of issues / limitations
