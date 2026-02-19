@@ -498,7 +498,7 @@
   }, {
     "id" : "unpinMessage.channel",
     "label" : "Channel",
-    "description" : "Channel ID of the message to pin",
+    "description" : "Channel ID of the message to unpin",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true

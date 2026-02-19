@@ -10,7 +10,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -390,7 +389,11 @@ public class SlackFunctionTest extends BaseTest {
 
     // Then
     assertThat(result).isInstanceOf(PinsAddSlackResponse.class);
-    verify(methodsClient, times(1)).pinsAdd(any(PinsAddRequest.class));
+    ArgumentCaptor<PinsAddRequest> captor = ArgumentCaptor.forClass(PinsAddRequest.class);
+    verify(methodsClient).pinsAdd(captor.capture());
+    PinsAddRequest request = captor.getValue();
+    assertThat(request.getChannel()).isEqualTo("C123ABC456");
+    assertThat(request.getTimestamp()).isEqualTo("1503435956.000247");
   }
 
   @ParameterizedTest
@@ -422,7 +425,11 @@ public class SlackFunctionTest extends BaseTest {
 
     // Then
     assertThat(result).isInstanceOf(PinsRemoveSlackResponse.class);
-    verify(methodsClient, times(1)).pinsRemove(any(PinsRemoveRequest.class));
+    ArgumentCaptor<PinsRemoveRequest> captor = ArgumentCaptor.forClass(PinsRemoveRequest.class);
+    verify(methodsClient).pinsRemove(captor.capture());
+    PinsRemoveRequest request = captor.getValue();
+    assertThat(request.getChannel()).isEqualTo("C123ABC456");
+    assertThat(request.getTimestamp()).isEqualTo("1503435956.000247");
   }
 
   @ParameterizedTest
