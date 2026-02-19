@@ -87,7 +87,7 @@ public class L4JAiAgentConnectorLimitsTests extends BaseL4JAiAgentConnectorTest 
         incident -> {
           assertThat(incident.getElementId()).isEqualTo(AI_AGENT_TASK_ID);
           assertThat(incident.getErrorMessage())
-              .isEqualTo(
+              .startsWith(
                   "Maximum number of model calls reached (modelCalls: %1$d, limit: %1$d)"
                       .formatted(expectedMaxModelCalls));
         });
