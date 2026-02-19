@@ -41,6 +41,9 @@ camunda.client.mode=selfmanaged
 camunda.client.worker.override.[io.camunda:http-json:1].type=io.camunda.eaat:http-json:1
 ```
 
-This configuration allows you to override the job type that a connector listens to. In the example above, the HTTP JSON connector (which normally listens to `io.camunda:http-json:1`) will instead listen to jobs with type `io.camunda.eaat:http-json:1`.
+This configuration intercepts jobs with the original type and remaps them to be handled by a worker with a different type. In the example above:
+- Jobs with type `io.camunda:http-json:1` are intercepted
+- They are remapped to be handled by the worker configured for `io.camunda.eaat:http-json:1`
+- This enables gradual connector migration without changing BPMN models
 
 For alternative configuration methods using environment variables, refer to the [Manual Discovery section](../README.md#manual-discovery) in the top-level documentation.
