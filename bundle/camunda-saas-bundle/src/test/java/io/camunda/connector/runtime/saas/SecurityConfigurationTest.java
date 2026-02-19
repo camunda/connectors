@@ -62,10 +62,10 @@ import org.springframework.test.web.servlet.MockMvc;
       "camunda.operate.client.baseUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_BASEURL,
       "camunda.connector.secretprovider.discovery.enabled=false",
       "operate.client.profile=oidc",
-      "management.endpoints.web.exposure.include=*"
+      "management.endpoints.web.exposure.include=*",
     })
 @DirtiesContext
-@ActiveProfiles("test")
+@ActiveProfiles("test-saas")
 @AutoConfigureMockMvc
 @CamundaSpringProcessTest
 @SlowTest
