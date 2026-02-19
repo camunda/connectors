@@ -107,7 +107,10 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
 
               assertThat(incidents.items())
                   .extracting(Incident::getErrorMessage)
-                  .allSatisfy(e -> e.startsWith("Client failed to initialize listing tools"));
+                  .allSatisfy(
+                      errorMessage ->
+                          assertThat(errorMessage)
+                              .startsWith("Client failed to initialize listing tools"));
             });
   }
 
