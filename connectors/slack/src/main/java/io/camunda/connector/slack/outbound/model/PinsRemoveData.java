@@ -23,7 +23,7 @@ import java.io.IOException;
 public record PinsRemoveData(
     @TemplateProperty(
             label = "Channel",
-            description = "Channel ID of the message to pin",
+            description = "Channel ID of the message to unpin",
             id = "unpinMessage.channel",
             group = "unpinMessage",
             binding = @PropertyBinding(name = "data.channel"),
