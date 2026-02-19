@@ -1,0 +1,22 @@
+{
+  "properties": [
+    {
+      "name": "camunda.connector.agenticai.framework",
+      "type": "java.lang.String",
+      "description": "The AI framework implementation to use with the Agentic AI integration.",
+      "defaultValue": "langchain4j"
+    },
+    {
+      "name": "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable/register the AI Agent outbound connector.",
+      "defaultValue": "true"
+    },
+    {
+      "name": "camunda.connector.agenticai.aiagent.job-worker.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable/register the AI Agent Ad-Hoc Sub-Process job worker.",
+      "defaultValue": "true"
+    }
+  ]
+}

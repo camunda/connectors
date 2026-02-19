@@ -25,13 +25,13 @@ import org.assertj.core.api.ThrowingConsumer;
 
 public interface AiAgentTestFixtures {
   String AI_AGENT_CONNECTOR_ELEMENT_TEMPLATE_PATH =
-      "../../connectors/agentic-ai/element-templates/agenticai-aiagent-outbound-connector.json";
+      "../../connectors/agentic-ai/agent/element-templates/agenticai-aiagent-outbound-connector.json";
 
   String AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PATH =
-      "../../connectors/agentic-ai/element-templates/agenticai-aiagent-job-worker.json";
+      "../../connectors/agentic-ai/agent/element-templates/agenticai-aiagent-job-worker.json";
 
   String AD_HOC_TOOLS_SCHEMA_ELEMENT_TEMPLATE_PATH =
-      "../../connectors/agentic-ai/element-templates/agenticai-adhoctoolsschema-outbound-connector.json";
+      "../../connectors/agentic-ai/schema/element-templates/agenticai-adhoctoolsschema-outbound-connector.json";
 
   String AGENT_RESPONSE_VARIABLE = "agent";
   String AI_AGENT_TASK_ID = "AI_Agent";
