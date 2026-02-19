@@ -1,4 +1,4 @@
-# AI Agent Chat With Tools And Resources
+# AI Agent Chat With Tools And MCP Resources
 
 This example demonstrates an AI Agent process that leverages both **tools** and **MCP resources** to provide
 intelligent, context-aware responses in a chat-like interaction.
@@ -30,8 +30,8 @@ For more information about the MCP test server, including configuration options 
 Pull and run the MCP test server from the Docker registry:
 
 ```bash
-docker pull gcr.io/camunda-registry/mcp-test-server:latest
-docker run -p 12001:12001 gcr.io/camunda-registry/mcp-test-server:latest
+docker pull registry.camunda.cloud/mcp/mcp-test-server:latest
+docker run -p 12001:12001 registry.camunda.cloud/mcp/mcp-test-server:latest
 ```
 
 The server will be available at `http://localhost:12001/mcp`.
@@ -78,11 +78,12 @@ The AI Agent has access to the following tools within the ad-hoc sub-process:
 
 ## Files
 
-| File                                          | Description                                             |
-|-----------------------------------------------|---------------------------------------------------------|
-| `ai-agent-chat-with-tools-and-resources.bpmn` | The main BPMN process definition                        |
-| `ai-agent-chat-initial-request.form`          | Form for the initial user input                         |
-| `ai-agent-chat-user-feedback.form`            | Form for reviewing AI responses and providing follow-up |
+| File                                               | Description                                             |
+|----------------------------------------------------|---------------------------------------------------------|
+| `ai-agent-chat-with-mcp-resources.bpmn`            | The main BPMN process definition                        |
+| `ai-agent-chat-mcp-resources-initial-request.form` | Form for the initial user input                        |
+| `ai-agent-chat-mcp-resources-user-feedback.form`   | Form for reviewing AI responses and providing follow-up |
+| `ai-agent-chat-human-send-email-request.form`      | Form for the human-in-the-loop email sending task       |
 
 ## Usage
 
