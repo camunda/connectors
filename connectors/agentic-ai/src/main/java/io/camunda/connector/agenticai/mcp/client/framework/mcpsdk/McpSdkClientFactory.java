@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfigur
 import io.camunda.connector.agenticai.mcp.client.execution.McpClientDelegate;
 import io.camunda.connector.agenticai.mcp.client.framework.bootstrap.McpClientHeadersSupplierFactory;
 import io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc.McpSdkMcpClientDelegate;
+import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
 import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
@@ -28,12 +29,17 @@ import java.util.Optional;
 public class McpSdkClientFactory implements McpClientFactory {
 
   public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
+
   private final ObjectMapper objectMapper;
+  private final JdkHttpClientProxyConfigurator proxyConfigurator;
   private final McpClientHeadersSupplierFactory headersSupplierFactory;
 
   public McpSdkClientFactory(
-      ObjectMapper objectMapper, McpClientHeadersSupplierFactory headersSupplierFactory) {
+      ObjectMapper objectMapper,
+      JdkHttpClientProxyConfigurator proxyConfigurator,
+      McpClientHeadersSupplierFactory headersSupplierFactory) {
     this.objectMapper = objectMapper;
+    this.proxyConfigurator = proxyConfigurator;
     this.headersSupplierFactory = headersSupplierFactory;
   }
 
@@ -82,6 +88,7 @@ public class McpSdkClientFactory implements McpClientFactory {
     return HttpClientStreamableHttpTransport.builder(streamableHttpConfig.url())
         .endpoint(
             streamableHttpConfig.url()) // see https://github.com/camunda/connectors/issues/6393
+        .customizeClient(proxyConfigurator::configure)
         .connectTimeout(timeout(streamableHttpConfig.timeout()))
         .supportedProtocolVersions(
             List.of(
@@ -103,13 +110,13 @@ public class McpSdkClientFactory implements McpClientFactory {
 
     return HttpClientSseClientTransport.builder(sseConfig.url())
         .sseEndpoint(sseConfig.url()) // see https://github.com/camunda/connectors/issues/6393
+        .customizeClient(proxyConfigurator::configure)
         .connectTimeout(timeout(sseConfig.timeout()))
         .customizeRequest(
             request -> {
               var headers = headerSuppliers.get();
               headers.forEach(request::header);
             })
-        // todo proxy configuration
         .build();
   }
 

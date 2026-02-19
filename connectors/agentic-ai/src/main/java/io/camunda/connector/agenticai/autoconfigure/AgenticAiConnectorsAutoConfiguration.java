@@ -58,11 +58,14 @@ import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptContribut
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandler;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistryImpl;
+import io.camunda.connector.agenticai.common.AgenticAiHttpSupport;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpClientConfiguration;
 import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientConfiguration;
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
@@ -94,6 +97,12 @@ import org.springframework.core.env.Environment;
   A2aClientWebhookConfiguration.class
 })
 public class AgenticAiConnectorsAutoConfiguration {
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AgenticAiHttpSupport agenticAiHttpSupport() {
+    return new AgenticAiHttpSupport(new JdkHttpClientProxyConfigurator(new ProxyConfiguration()));
+  }
 
   @Bean
   @ConditionalOnMissingBean
