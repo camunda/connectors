@@ -18,20 +18,29 @@ The Connector runtime used with this starter can be configured via the following
 | `camunda.connector.polling.interval` | The interval in which Operate polls for new process deployments.                    | `5000`  |
 | `camunda.connector.webhook.enabled`  | Whether webhook connector support is enabled.                                       | `true`  |
 
-### Environment Variables
+### Overriding Connector Configuration
 
-All configuration properties can also be set via environment variables, following Spring Boot's [relaxed binding rules](https://docs.spring.io/spring-boot/reference/features/external-config.html#features.external-config.typesafe-configuration-properties.relaxed-binding.environment-variables).
-Property names are converted by replacing dots (`.`) and dashes (`-`) with underscores (`_`) and converting to uppercase.
+You can override connector configuration using the Camunda Spring Boot client's native configuration. This is useful when you need to customize connector types for specific use cases.
 
-**Examples:**
-- `camunda.connector.polling.enabled` → `CAMUNDA_CONNECTOR_POLLING_ENABLED`
-- `camunda.connector.polling.interval` → `CAMUNDA_CONNECTOR_POLLING_INTERVAL`
-- `camunda.connector.webhook.enabled` → `CAMUNDA_CONNECTOR_WEBHOOK_ENABLED`
+**YAML configuration example:**
 
-This is especially useful when running the connector runtime in containerized environments like Docker or Kubernetes:
-
-```bash
-docker run -e CAMUNDA_CONNECTOR_POLLING_ENABLED=true \
-           -e CAMUNDA_CONNECTOR_POLLING_INTERVAL=10000 \
-           my-connector-app:latest
+```yaml
+camunda:
+  client:
+    mode: selfmanaged
+    worker:
+      override:
+        "[io.camunda:http-json:1]":
+          type: "io.camunda.eaat:http-json:1"
 ```
+
+**Properties file example:**
+
+```properties
+camunda.client.mode=selfmanaged
+camunda.client.worker.override.[io.camunda:http-json:1].type=io.camunda.eaat:http-json:1
+```
+
+This configuration allows you to override the job type that a connector listens to. In the example above, the HTTP JSON connector (which normally listens to `io.camunda:http-json:1`) will instead listen to jobs with type `io.camunda.eaat:http-json:1`.
+
+For alternative configuration methods using environment variables, refer to the [Manual Discovery section](../README.md#manual-discovery) in the top-level documentation.
