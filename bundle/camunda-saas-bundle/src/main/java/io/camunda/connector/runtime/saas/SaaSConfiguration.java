@@ -28,7 +28,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 @Configuration
-@Profile("!test")
+@Profile("!test-saas")
 public class SaaSConfiguration {
 
   @Value("${camunda.saas.secrets.projectId:#{null}}")

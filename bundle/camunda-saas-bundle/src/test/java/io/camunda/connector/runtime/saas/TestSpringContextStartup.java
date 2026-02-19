@@ -36,8 +36,12 @@ import org.springframework.test.context.ActiveProfiles;
       "camunda.operate.client.baseUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_BASEURL,
       "camunda.connector.secretprovider.discovery.enabled=false",
       "operate.client.profile=oidc",
+      "connectors.log.appender=stackdriver"
     })
-@ActiveProfiles("test")
+@ActiveProfiles("test-saas")
+// @ActiveProfiles("test")
+// uncomment if you want readable logs
+// we keep it disabled to test the setup e2e with stackdriver logging configuration as in prod
 public class TestSpringContextStartup {
 
   @Autowired private SaaSOperateClientFactory operateClientFactory;
