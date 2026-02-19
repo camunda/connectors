@@ -71,7 +71,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- Camunda internal libraries -->
     <version.camunda>8.8.13</version.camunda>
-    <version.feel-engine>1.20.0</version.feel-engine>
+    <version.feel-engine>1.20.2</version.feel-engine>
 
     <!-- Third party dependencies -->
 
@@ -89,7 +89,7 @@ limitations under the License.</license.inlineheader>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
 
-    <version.spring-boot>3.5.10</version.spring-boot>
+    <version.spring-boot>3.5.11</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>7.4.4</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.32</version.logback>
 
@@ -546,7 +546,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.nimbusds</groupId>
         <artifactId>nimbus-jose-jwt</artifactId>
-        <version>10.7</version>
+        <version>10.8</version>
       </dependency>
 
       <!-- Fixes CWE-835 -->
