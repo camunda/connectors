@@ -17,6 +17,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,6 +29,7 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import dev.langchain4j.model.vertexai.VertexAiEmbeddingModel;
 import io.camunda.connector.fixture.EmbeddingModelProviderFixture;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.model.embedding.models.AzureOpenAiEmbeddingModelProvider;
 import io.camunda.connector.model.embedding.models.AzureOpenAiEmbeddingModelProvider.AzureAuthentication;
 import io.camunda.connector.model.embedding.models.AzureOpenAiEmbeddingModelProvider.AzureAuthentication.AzureApiKeyAuthentication;
@@ -35,7 +37,9 @@ import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingModelP
 import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingModelProvider.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
 import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingModelProvider.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.model.embedding.models.OpenAiEmbeddingModelProvider;
+import java.net.URI;
 import java.util.Map;
+import java.util.Optional;
 import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -43,6 +47,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
+import software.amazon.awssdk.http.SdkHttpClient;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
+import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
+import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClientBuilder;
 
 class DefaultEmbeddingModelFactoryTest {
 
@@ -52,12 +60,126 @@ class DefaultEmbeddingModelFactoryTest {
   class BedrockEmbeddingModelTests {
 
     @Test
-    void createBedrockEmbeddingModel() {
-      final var model =
-          factory.createEmbeddingModel(
-              EmbeddingModelProviderFixture.createDefaultBedrockEmbeddingModel());
+    void createBedrockEmbeddingModelWithoutProxyConfigured() {
+      var proxyConfig = mock(ProxyConfiguration.class);
+      when(proxyConfig.getProxyDetails(ProxyConfiguration.SCHEME_HTTPS))
+          .thenReturn(Optional.empty());
 
-      assertThat(model).isInstanceOf(BedrockTitanEmbeddingModel.class);
+      var factoryWithMockedProxy = new DefaultEmbeddingModelFactory(proxyConfig);
+      var bedrockBuilder = spy(BedrockTitanEmbeddingModel.builder());
+
+      try (var modelMock =
+          mockStatic(BedrockTitanEmbeddingModel.class, Answers.CALLS_REAL_METHODS)) {
+        modelMock.when(BedrockTitanEmbeddingModel::builder).thenReturn(bedrockBuilder);
+
+        var model =
+            factoryWithMockedProxy.createEmbeddingModel(
+                EmbeddingModelProviderFixture.createDefaultBedrockEmbeddingModel());
+
+        assertThat(model).isInstanceOf(BedrockTitanEmbeddingModel.class);
+        verify(proxyConfig).getProxyDetails(ProxyConfiguration.SCHEME_HTTPS);
+        verify(bedrockBuilder, never()).client(any());
+      }
+    }
+
+    @Test
+    void configureBedrockProxyWithoutCredentials() {
+      var proxyDetails =
+          new ProxyConfiguration.ProxyDetails("https", "proxy.example.com", 8080, null, null);
+
+      testBedrockProxyConfiguration(
+          proxyDetails,
+          awsProxyConfigBuilder -> {
+            verify(awsProxyConfigBuilder).scheme("https");
+            verify(awsProxyConfigBuilder).endpoint(URI.create("https://proxy.example.com:8080"));
+            verify(awsProxyConfigBuilder).nonProxyHosts(any());
+            verify(awsProxyConfigBuilder).build();
+          });
+    }
+
+    @Test
+    void configureBedrockProxyWithCredentials() {
+      var proxyDetails =
+          new ProxyConfiguration.ProxyDetails(
+              "https", "proxy.example.com", 8080, "proxyuser", "proxypass");
+
+      testBedrockProxyConfiguration(
+          proxyDetails,
+          awsProxyConfigBuilder -> {
+            verify(awsProxyConfigBuilder).scheme("https");
+            verify(awsProxyConfigBuilder).endpoint(URI.create("https://proxy.example.com:8080"));
+            verify(awsProxyConfigBuilder).nonProxyHosts(any());
+            verify(awsProxyConfigBuilder).username("proxyuser");
+            verify(awsProxyConfigBuilder).password("proxypass");
+            verify(awsProxyConfigBuilder).build();
+          });
+    }
+
+    @SuppressWarnings("resource")
+    private void testBedrockProxyConfiguration(
+        ProxyConfiguration.ProxyDetails proxyDetails,
+        ThrowingConsumer<software.amazon.awssdk.http.apache.ProxyConfiguration.Builder>
+            awsProxyConfigVerifications) {
+
+      var proxyConfig = mock(ProxyConfiguration.class);
+      when(proxyConfig.getProxyDetails(ProxyConfiguration.SCHEME_HTTPS))
+          .thenReturn(Optional.of(proxyDetails));
+      when(proxyConfig.getProxyDetails(ProxyConfiguration.SCHEME_HTTP))
+          .thenReturn(Optional.empty());
+
+      var factoryWithMockedProxy = new DefaultEmbeddingModelFactory(proxyConfig);
+
+      var awsProxyConfigBuilder =
+          spy(software.amazon.awssdk.http.apache.ProxyConfiguration.builder());
+      var mockAwsProxyConfig = mock(software.amazon.awssdk.http.apache.ProxyConfiguration.class);
+      when(awsProxyConfigBuilder.build()).thenReturn(mockAwsProxyConfig);
+
+      var apacheHttpClientBuilder = mock(ApacheHttpClient.Builder.class);
+      var mockSdkHttpClient = mock(SdkHttpClient.class);
+      when(apacheHttpClientBuilder.proxyConfiguration(any())).thenReturn(apacheHttpClientBuilder);
+      when(apacheHttpClientBuilder.build()).thenReturn(mockSdkHttpClient);
+
+      var bedrockRuntimeClientBuilder = mock(BedrockRuntimeClientBuilder.class);
+      var mockBedrockClient = mock(BedrockRuntimeClient.class);
+      when(bedrockRuntimeClientBuilder.httpClient(any())).thenReturn(bedrockRuntimeClientBuilder);
+      when(bedrockRuntimeClientBuilder.build()).thenReturn(mockBedrockClient);
+
+      var bedrockTitanBuilder = spy(BedrockTitanEmbeddingModel.builder());
+
+      try (var awsProxyConfigMock =
+              mockStatic(
+                  software.amazon.awssdk.http.apache.ProxyConfiguration.class,
+                  Answers.CALLS_REAL_METHODS);
+          var apacheHttpClientMock = mockStatic(ApacheHttpClient.class);
+          var bedrockRuntimeClientMock = mockStatic(BedrockRuntimeClient.class);
+          var bedrockTitanMock =
+              mockStatic(BedrockTitanEmbeddingModel.class, Answers.CALLS_REAL_METHODS)) {
+
+        awsProxyConfigMock
+            .when(software.amazon.awssdk.http.apache.ProxyConfiguration::builder)
+            .thenReturn(awsProxyConfigBuilder);
+        apacheHttpClientMock.when(ApacheHttpClient::builder).thenReturn(apacheHttpClientBuilder);
+        bedrockRuntimeClientMock
+            .when(BedrockRuntimeClient::builder)
+            .thenReturn(bedrockRuntimeClientBuilder);
+        bedrockTitanMock.when(BedrockTitanEmbeddingModel::builder).thenReturn(bedrockTitanBuilder);
+
+        var model =
+            factoryWithMockedProxy.createEmbeddingModel(
+                EmbeddingModelProviderFixture.createDefaultBedrockEmbeddingModel());
+
+        assertThat(model).isInstanceOf(BedrockTitanEmbeddingModel.class);
+        verify(proxyConfig, times(1)).getProxyDetails(ProxyConfiguration.SCHEME_HTTPS);
+        verify(proxyConfig, never()).getProxyDetails(ProxyConfiguration.SCHEME_HTTP);
+
+        awsProxyConfigVerifications.accept(awsProxyConfigBuilder);
+
+        verify(apacheHttpClientBuilder).proxyConfiguration(mockAwsProxyConfig);
+        verify(apacheHttpClientBuilder).build();
+        verify(bedrockRuntimeClientBuilder).httpClient(mockSdkHttpClient);
+        verify(bedrockRuntimeClientBuilder).build();
+        verify(bedrockTitanBuilder).client(mockBedrockClient);
+      }
     }
   }
 
@@ -112,6 +234,36 @@ class DefaultEmbeddingModelFactoryTest {
           });
     }
 
+    @Test
+    void configureOpenAiProxy() {
+      var proxyDetails =
+          new ProxyConfiguration.ProxyDetails(
+              "http", "proxy.example.com", 8080, "proxyuser", "proxypass");
+
+      var proxyConfig = mock(ProxyConfiguration.class);
+      when(proxyConfig.getProxyDetails(ProxyConfiguration.SCHEME_HTTP))
+          .thenReturn(Optional.of(proxyDetails));
+
+      var factoryWithMockedProxy = new DefaultEmbeddingModelFactory(proxyConfig);
+
+      var provider =
+          new OpenAiEmbeddingModelProvider(
+              new OpenAiEmbeddingModelProvider.Configuration(
+                  OPEN_AI_API_KEY, OPEN_AI_MODEL_NAME, null, null, null, null, null, null));
+
+      var builder = spy(OpenAiEmbeddingModel.builder());
+
+      try (var modelMock = mockStatic(OpenAiEmbeddingModel.class, Answers.CALLS_REAL_METHODS)) {
+        modelMock.when(OpenAiEmbeddingModel::builder).thenReturn(builder);
+
+        var model = factoryWithMockedProxy.createEmbeddingModel(provider);
+
+        assertThat(model).isInstanceOf(OpenAiEmbeddingModel.class);
+        verify(proxyConfig).getProxyDetails(ProxyConfiguration.SCHEME_HTTP);
+        verify(builder).httpClientBuilder(any());
+      }
+    }
+
     private void testOpenAiEmbeddingModelBuilder(
         OpenAiEmbeddingModelProvider provider,
         ThrowingConsumer<OpenAiEmbeddingModel.OpenAiEmbeddingModelBuilder> builderAssertions) {
@@ -133,7 +285,7 @@ class DefaultEmbeddingModelFactoryTest {
   class AzureOpenAiEmbeddingModelTests {
 
     private static final String AZURE_OPENAI_API_KEY = "azureOpenAiApiKey";
-    private static final String AZURE_OPENAI_ENDPOINT = "azure-openai-endpoint.local";
+    private static final String AZURE_OPENAI_ENDPOINT = "https://azure-openai-endpoint.local";
     private static final String AZURE_OPENAI_DEPLOYMENT_NAME = "text-embedding-3-small";
 
     @Test
@@ -202,6 +354,45 @@ class DefaultEmbeddingModelFactoryTest {
           });
     }
 
+    @Test
+    void configureAzureOpenAiProxy() {
+      var proxyDetails =
+          new ProxyConfiguration.ProxyDetails(
+              "https", "proxy.example.com", 8080, "proxyuser", "proxypass");
+
+      var proxyConfig = mock(ProxyConfiguration.class);
+      when(proxyConfig.getProxyDetails(ProxyConfiguration.SCHEME_HTTPS))
+          .thenReturn(Optional.of(proxyDetails));
+      when(proxyConfig.getProxyDetails(ProxyConfiguration.SCHEME_HTTP))
+          .thenReturn(Optional.empty());
+
+      var factoryWithMockedProxy = new DefaultEmbeddingModelFactory(proxyConfig);
+
+      var provider =
+          new AzureOpenAiEmbeddingModelProvider(
+              new AzureOpenAiEmbeddingModelProvider.Configuration(
+                  AZURE_OPENAI_ENDPOINT,
+                  new AzureApiKeyAuthentication(AZURE_OPENAI_API_KEY),
+                  AZURE_OPENAI_DEPLOYMENT_NAME,
+                  null,
+                  null,
+                  null));
+
+      var builder = spy(AzureOpenAiEmbeddingModel.builder());
+
+      try (var modelMock =
+          mockStatic(AzureOpenAiEmbeddingModel.class, Answers.CALLS_REAL_METHODS)) {
+        modelMock.when(AzureOpenAiEmbeddingModel::builder).thenReturn(builder);
+
+        var model = factoryWithMockedProxy.createEmbeddingModel(provider);
+
+        assertThat(model).isInstanceOf(AzureOpenAiEmbeddingModel.class);
+        verify(proxyConfig).getProxyDetails(ProxyConfiguration.SCHEME_HTTPS);
+        verify(proxyConfig, never()).getProxyDetails(ProxyConfiguration.SCHEME_HTTP);
+        verify(builder).proxyOptions(any());
+      }
+    }
+
     private void testAzureOpenAiEmbeddingModelBuilder(
         AzureOpenAiEmbeddingModelProvider provider,
         ThrowingConsumer<AzureOpenAiEmbeddingModel.Builder> builderAssertions) {
@@ -215,6 +406,7 @@ class DefaultEmbeddingModelFactoryTest {
 
         verify(builder).endpoint(AZURE_OPENAI_ENDPOINT);
         verify(builder).deploymentName(AZURE_OPENAI_DEPLOYMENT_NAME);
+        verify(builder, never()).proxyOptions(any());
 
         switch (provider.azureOpenAi().authentication()) {
           case AzureAuthentication.AzureApiKeyAuthentication(String apiKey) -> {
