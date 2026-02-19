@@ -71,7 +71,7 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
   @Value("classpath:agentic-ai-ahsp-connectors-a2a.bpmn")
   protected Resource testProcessWithA2a;
 
-  @Value("file:../../connectors/agentic-ai/src/main/resources/a2a/a2a-system-prompt.md")
+  @Value("file:../../connectors/agentic-ai/a2a/src/main/resources/a2a/a2a-system-prompt.md")
   private Resource a2aSystemPromptResource;
 
   @LocalServerPort private int port;

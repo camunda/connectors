@@ -1,0 +1,10 @@
+{
+  "properties": [
+    {
+      "name": "camunda.connector.agenticai.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable the Agentic AI integration.",
+      "defaultValue": "true"
+    }
+  ]
+}
