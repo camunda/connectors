@@ -34,14 +34,6 @@ camunda:
                   - '--rm'
                   - 'mcp/time'
 
-            # Remote HTTP/SSE MCP server
-            # start the OpenMemory MCP server first as documented on https://mem0.ai/openmemory-mcp
-            openmemory:
-              type: sse
-              sse:
-                # replace with the URL returned by the OpenMemory MCP link UI
-                url: http://localhost:8765/mcp/openmemory/sse/<your-client-id>
-
             # Remote Streamable HTTP MCP server example
             # fetch:
             #   enabled: true
@@ -73,7 +65,5 @@ Example inputs which can be entered in the initial form:
 
 - `Get the current time in NYC, compare it to the Berlin time zone and write the results to a markdown file`
 - `What is today's wikipedia article of the day?`
-- `When was the last time we spoke?`: should start to interact with the OpenMemory instance. You can prompt it to
-  remember things and then ask it later about it in a different process.
 
 _Made with ❤️ by Camunda_
