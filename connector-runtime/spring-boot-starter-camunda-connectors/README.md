@@ -46,4 +46,4 @@ This configuration intercepts jobs with the original type and remaps them to be 
 - They are remapped to be handled by the worker configured for `io.camunda.eaat:http-json:1`
 - This enables gradual connector migration without changing BPMN models
 
-For alternative configuration methods using environment variables, refer to the [Manual Discovery section](../README.md#manual-discovery) in the top-level documentation.
+For alternative configuration methods using environment variables, refer to the [Manual Discovery section](https://docs.camunda.io/docs/next/self-managed/components/connectors/connectors-configuration/#manual-discovery-of-connectors) in the documentation.
