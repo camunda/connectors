@@ -47,8 +47,8 @@ class ListToolsRequestTest {
 
   @Test
   void returnsToolDefinitions_whenToolsAvailable() {
-    final var toolSpec1 = createTool("tool1", "Tool 1 description");
-    final var toolSpec2 = createTool("tool2", "Tool 2 description");
+    final var toolSpec1 = createTool("tool1", "First Tool", "Tool 1 description");
+    final var toolSpec2 = createTool("tool2", "Second Tool", "Tool 2 description");
 
     when(mcpClient.listTools())
         .thenReturn(new McpSchema.ListToolsResult(List.of(toolSpec1, toolSpec2), null));

@@ -218,7 +218,7 @@ class McpClientGatewayToolHandlerTest {
       var mcpListToolsResult =
           new McpClientListToolsResult(
               List.of(
-                  createMcpToolDefinition("tool1", "Tool 1 Title", "Tool 1 description"),
+                  createMcpToolDefinition("tool1", "Tool 1 description"),
                   createMcpToolDefinition("tool2", "Tool 2 description")));
       var toolDiscoveryResults =
           List.of(
@@ -231,12 +231,10 @@ class McpClientGatewayToolHandlerTest {
           .satisfiesExactly(
               toolDefinition -> {
                 assertThat(toolDefinition.name()).isEqualTo("MCP_mcp1___tool1");
-                assertThat(toolDefinition.title()).isEqualTo("Tool 1 Title");
                 assertThat(toolDefinition.description()).isEqualTo("Tool 1 description");
               },
               toolDefinition -> {
                 assertThat(toolDefinition.name()).isEqualTo("MCP_mcp1___tool2");
-                assertThat(toolDefinition.title()).isNull();
                 assertThat(toolDefinition.description()).isEqualTo("Tool 2 description");
               });
     }
@@ -409,14 +407,9 @@ class McpClientGatewayToolHandlerTest {
     return ToolCallResult.builder().id(id).name(name).content(content).build();
   }
 
-  private McpToolDefinition createToolDefinition(String name, String description) {
-    return createToolDefinition(name, null, description);
-  }
-
-  private McpToolDefinition createToolDefinition(String name, String title, String description) {
+  private McpToolDefinition createMcpToolDefinition(String name, String description) {
     return McpToolDefinitionBuilder.builder()
         .name(name)
-        .title(title)
         .description(description)
         .inputSchema(Map.of("type", "object"))
         .build();

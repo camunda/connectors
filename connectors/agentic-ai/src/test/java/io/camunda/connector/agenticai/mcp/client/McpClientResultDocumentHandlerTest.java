@@ -83,11 +83,13 @@ class McpClientResultDocumentHandlerTest {
                     new McpToolDefinition(
                         "get-commits",
                         "Get Commits",
+                        "Get Commits",
                         Map.of("owner", "string", "repo", "string")))),
             new McpClientListToolsResult(
                 List.of(
                     new McpToolDefinition(
                         "get-commits",
+                        "Get Commits",
                         "Get Commits",
                         Map.of("owner", "string", "repo", "string"))))),
         argumentSet(
