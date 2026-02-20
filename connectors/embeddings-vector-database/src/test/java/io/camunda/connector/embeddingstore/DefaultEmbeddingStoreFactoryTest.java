@@ -32,6 +32,7 @@ import dev.langchain4j.store.embedding.azure.search.AzureAiSearchEmbeddingStore;
 import dev.langchain4j.store.embedding.elasticsearch.ElasticsearchEmbeddingStore;
 import dev.langchain4j.store.embedding.opensearch.OpenSearchEmbeddingStore;
 import io.camunda.connector.fixture.EmbeddingsVectorStoreFixture;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.model.embedding.vector.store.AzureAiSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.AzureAuthentication;
 import io.camunda.connector.model.embedding.vector.store.AzureCosmosDbNoSqlVectorStore;
@@ -49,7 +50,7 @@ import org.mockito.Mockito;
 
 class DefaultEmbeddingStoreFactoryTest {
 
-  DefaultEmbeddingStoreFactory factory = new DefaultEmbeddingStoreFactory();
+  DefaultEmbeddingStoreFactory factory = new DefaultEmbeddingStoreFactory(ProxyConfiguration.NONE);
 
   @Test
   void createsElasticsearchVectorStore() {

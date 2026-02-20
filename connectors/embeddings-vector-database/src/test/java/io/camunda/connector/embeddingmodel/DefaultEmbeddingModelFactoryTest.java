@@ -54,7 +54,8 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClientBuilde
 
 class DefaultEmbeddingModelFactoryTest {
 
-  private final DefaultEmbeddingModelFactory factory = new DefaultEmbeddingModelFactory();
+  private final DefaultEmbeddingModelFactory factory =
+      new DefaultEmbeddingModelFactory(ProxyConfiguration.NONE);
 
   @Nested
   class BedrockEmbeddingModelTests {
