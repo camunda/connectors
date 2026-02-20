@@ -82,7 +82,7 @@ jobs:
           registry: registry.camunda.cloud
           username: ${{ steps.secrets.outputs.CI_LDAP_USER }}
           password: ${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}
-      
+
       - name: Set connectors version
         id: connectors-version
         run: |
@@ -116,7 +116,7 @@ jobs:
           provenance: false
           push: true
           tags: registry.camunda.cloud/team-connectors/connectors-bundle:${{ env.TAG }}
-      
+
       - name: Build and Push Docker Image tag ${{ env.TAG }} - bundle-saas
         env:
           TAG: ${{ steps.connectors-version.outputs.connectors-version }}
@@ -128,6 +128,7 @@ jobs:
           tags: registry.camunda.cloud/team-connectors/connectors-bundle-saas:${{ env.TAG }}
 
   trigger-sm-e2e:
+    name: Trigger SM E2E tests
     needs: [ build-image ]
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
@@ -139,7 +140,7 @@ jobs:
   trigger-saas-e2e:
     name: Trigger SaaS E2E tests
     runs-on: ubuntu-latest
-    needs: [build-image]
+    needs: [ build-image ]
     timeout-minutes: 25
     permissions: { }
     steps:
