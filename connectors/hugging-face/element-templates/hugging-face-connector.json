@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Hugging Face Outbound Connector",
   "id": "io.camunda.connectors.HuggingFace.v1",
-  "version": 2,
+  "version": 3,
   "engines": {
     "camunda": "^8.5"
   },
@@ -58,7 +58,7 @@
       "label": "Hugging Face API key",
       "group": "authentication",
       "feel": "optional",
-      "description": "Your Hugging Face API key",
+      "description": "Your Hugging Face API key. Get one at <a href=\"https://huggingface.co/settings/tokens\" target=\"_blank\">huggingface.co/settings/tokens</a>",
       "type": "String",
       "binding": {
         "type": "zeebe:input",
@@ -69,31 +69,40 @@
       }
     },
     {
-      "label": "Model",
+      "label": "Model ID",
       "group": "input",
       "feel": "optional",
-      "description": "Desired model name",
+      "description": "Full model repository ID (e.g., meta-llama/Llama-3.2-3B-Instruct, mistralai/Mistral-7B-Instruct-v0.3). Browse models at <a href=\"https://huggingface.co/models\" target=\"_blank\">huggingface.co/models</a>",
       "type": "String",
       "binding": {
         "type": "zeebe:input",
-        "name": "modelName"
+        "name": "modelId"
       },
       "constraints": {
         "notEmpty": true
       }
     },
     {
-      "label": "Input",
+      "label": "Messages",
       "group": "input",
       "feel": "required",
-      "description": "Desired input for your model. <a href=\"https://huggingface.co/docs/api-inference/detailed_parameters\" target=\"_blank\">See official documentation</a>",
+      "description": "Chat messages array in format: [{\"role\": \"user\", \"content\": \"Your message\"}]. Use 'system' role for instructions and 'user' role for queries. <a href=\"https://huggingface.co/docs/inference-providers/index#http--curl\" target=\"_blank\">See documentation</a>",
       "type": "Text",
       "binding": {
         "type": "zeebe:input",
-        "name": "body"
+        "name": "messages"
       },
       "constraints": {
         "notEmpty": true
+      }
+    },
+    {
+      "id": "bodyExpression",
+      "type": "Hidden",
+      "value": "={\"model\": modelId, \"messages\": messages, \"stream\": false}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
       }
     },
     {
@@ -109,7 +118,7 @@
     {
       "group": "endpoint",
       "type": "Hidden",
-      "value": "=\"https://api-inference.huggingface.co/models/\"+modelName",
+      "value": "=\"https://router.huggingface.co/v1/chat/completions\"",
       "binding": {
         "type": "zeebe:input",
         "name": "url"
@@ -127,7 +136,7 @@
     },
     {
       "label": "Result expression",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "description": "Expression to map the response into process variables. For chat completion, use: =response.body.choices[1].message.content to get the AI response. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "Text",
       "feel": "required",
@@ -171,7 +180,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "2",
+      "value": "3",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
