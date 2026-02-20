@@ -102,8 +102,7 @@ public class DefaultEmbeddingModelFactory {
       AzureOpenAiEmbeddingModel.Builder builder, String endpoint) {
     final var uri = URI.create(endpoint);
     if (uri.getScheme() == null) {
-      LOGGER.warn("Invalid endpoint URI: {}. Skipping proxy configuration.", endpoint);
-      return;
+      throw new IllegalArgumentException("Invalid endpoint URI {}" + endpoint);
     }
     // If connector proxy env vars are not present, the Azure OpenAI client will use the system
     // properties for proxy configuration.
