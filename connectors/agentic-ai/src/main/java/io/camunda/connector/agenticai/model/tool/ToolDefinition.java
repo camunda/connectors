@@ -16,10 +16,7 @@ import java.util.Map;
 @AgenticAiRecord
 @JsonDeserialize(builder = ToolDefinition.ToolDefinitionJacksonProxyBuilder.class)
 public record ToolDefinition(
-    String name,
-    @Nullable String title,
-    @Nullable String description,
-    Map<String, Object> inputSchema)
+    String name, @Nullable String description, Map<String, Object> inputSchema)
     implements ToolDefinitionBuilder.With {
 
   public static ToolDefinitionBuilder builder() {

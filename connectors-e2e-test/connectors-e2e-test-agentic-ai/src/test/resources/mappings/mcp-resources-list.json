@@ -27,18 +27,21 @@
           {
             "uri": "resourceA",
             "name": "Resource A",
+            "title": "A resource",
             "description": "The first resource",
             "mimeType": "text/plain"
           },
           {
             "uri": "resourceB",
             "name": "Resource B",
+            "title": "B resource",
             "description": "The second resource",
             "mimeType": "text/plain"
           },
           {
             "uri": "resourceC",
             "name": "Resource C",
+            "title": "C resource",
             "description": "The third resource",
             "mimeType": "text/markdown"
           }
