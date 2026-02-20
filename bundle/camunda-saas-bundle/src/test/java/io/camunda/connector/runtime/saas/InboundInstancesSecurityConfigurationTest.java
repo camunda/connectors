@@ -49,7 +49,7 @@ import org.springframework.test.web.servlet.MockMvc;
       "management.endpoints.web.exposure.include=*"
     })
 @DirtiesContext
-@ActiveProfiles("test")
+@ActiveProfiles("test-saas")
 @AutoConfigureMockMvc
 @CamundaSpringProcessTest
 @SlowTest
