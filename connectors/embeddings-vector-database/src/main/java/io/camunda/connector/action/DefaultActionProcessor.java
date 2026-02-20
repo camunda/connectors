@@ -11,6 +11,8 @@ import io.camunda.connector.action.embed.EmbeddingActionProcessor;
 import io.camunda.connector.action.retrieve.DefaultRetrievingActionProcessor;
 import io.camunda.connector.action.retrieve.RetrievingActionProcessor;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.model.EmbeddingsVectorDBRequest;
 import io.camunda.connector.model.operation.EmbedDocumentOperation;
 import io.camunda.connector.model.operation.RetrieveDocumentOperation;
@@ -21,7 +23,13 @@ public class DefaultActionProcessor {
   private final RetrievingActionProcessor retrievingActionProcessor;
 
   public DefaultActionProcessor() {
-    this(new DefaultEmbeddingActionProcessor(), new DefaultRetrievingActionProcessor());
+    this(new EnvironmentProxyConfiguration(true));
+  }
+
+  public DefaultActionProcessor(ProxyConfiguration proxyConfiguration) {
+    this(
+        new DefaultEmbeddingActionProcessor(proxyConfiguration),
+        new DefaultRetrievingActionProcessor(proxyConfiguration));
   }
 
   public DefaultActionProcessor(

@@ -17,7 +17,6 @@ import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import dev.langchain4j.model.vertexai.VertexAiEmbeddingModel;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
-import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import io.camunda.connector.http.client.proxy.NonProxyHosts;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.model.embedding.models.AzureOpenAiEmbeddingModelProvider;
@@ -28,6 +27,7 @@ import io.camunda.connector.model.embedding.models.EmbeddingModelProvider;
 import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingModelProvider;
 import io.camunda.connector.model.embedding.models.GoogleVertexAiEmbeddingModelProvider.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.model.embedding.models.OpenAiEmbeddingModelProvider;
+import io.camunda.connector.util.ProxyUtil;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -52,11 +52,7 @@ public class DefaultEmbeddingModelFactory {
   private final ProxyConfiguration proxyConfig;
   private final JdkHttpClientProxyConfigurator proxyConfigurator;
 
-  public DefaultEmbeddingModelFactory() {
-    this(new EnvironmentProxyConfiguration(true));
-  }
-
-  DefaultEmbeddingModelFactory(ProxyConfiguration proxyConfig) {
+  public DefaultEmbeddingModelFactory(ProxyConfiguration proxyConfig) {
     this.proxyConfig = proxyConfig;
     this.proxyConfigurator = new JdkHttpClientProxyConfigurator(proxyConfig);
   }
@@ -109,8 +105,10 @@ public class DefaultEmbeddingModelFactory {
       LOGGER.warn("Invalid endpoint URI: {}. Skipping proxy configuration.", endpoint);
       return;
     }
+    // If connector proxy env vars are not present, the Azure OpenAI client will use the system
+    // properties for proxy configuration.
     proxyConfig
-        .getProxyDetails(normalize(uri.getScheme()))
+        .getProxyDetails(uri.getScheme())
         .ifPresent(
             proxyDetails -> {
               ProxyOptions proxyOptions =
@@ -155,22 +153,25 @@ public class DefaultEmbeddingModelFactory {
 
   private void configureBedrockProxy(
       BedrockTitanEmbeddingModel.BedrockTitanEmbeddingModelBuilder<?, ?> builder) {
+
+    // Will use the system properties for proxy configuration if connector proxy env vars are not
+    // present.
+    var awsProxyConfigBuilder =
+        software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
+            .useSystemPropertyValues(true);
+
     // assuming the Bedrock client uses the HTTPS proxy settings, as the service endpoints are
     // HTTPS.
     proxyConfig
         .getProxyDetails(ProxyConfiguration.SCHEME_HTTPS)
         .ifPresent(
             proxy -> {
-              var awsProxyConfigBuilder =
-                  software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
-                      .scheme(proxy.scheme())
-                      .endpoint(
-                          URI.create(proxy.scheme() + "://" + proxy.host() + ":" + proxy.port()))
-                      .nonProxyHosts(
-                          NonProxyHosts.getNonProxyHostsPatterns()
-                              // the SDK does not sanitize the patterns
-                              .map(pattern -> pattern.replace("*", ".*"))
-                              .collect(Collectors.toSet()));
+              awsProxyConfigBuilder
+                  .scheme(proxy.scheme())
+                  .endpoint(ProxyUtil.toUri(proxy))
+                  .nonProxyHosts(
+                      // the SDK does not sanitize the patterns
+                      NonProxyHosts.getNonProxyHostRegexPatterns().collect(Collectors.toSet()));
 
               if (proxy.hasCredentials()) {
                 awsProxyConfigBuilder.username(proxy.user());
@@ -245,14 +246,5 @@ public class DefaultEmbeddingModelFactory {
       throw new ConnectorInputException(
           "Authentication failed for provided service account credentials", e);
     }
-  }
-
-  // TODO: make ProtocolNormalizer public in the http-client module and use it here
-  static String normalize(String protocol) {
-    if (protocol == null) {
-      return null;
-    }
-    int slash = protocol.indexOf('/');
-    return (slash > 0 ? protocol.substring(0, slash) : protocol).toLowerCase();
   }
 }

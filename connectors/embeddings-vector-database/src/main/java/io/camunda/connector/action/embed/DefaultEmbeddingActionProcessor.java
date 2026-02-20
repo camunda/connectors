@@ -12,6 +12,7 @@ import io.camunda.connector.doc.parsing.DefaultTextSegmentExtractor;
 import io.camunda.connector.embeddingmodel.DefaultEmbeddingModelFactory;
 import io.camunda.connector.embeddingstore.ClosableEmbeddingStore;
 import io.camunda.connector.embeddingstore.DefaultEmbeddingStoreFactory;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.model.EmbeddingsVectorDBRequest;
 import java.util.List;
 
@@ -21,10 +22,10 @@ public class DefaultEmbeddingActionProcessor implements EmbeddingActionProcessor
   private final DefaultEmbeddingStoreFactory embeddingStoreProvider;
   private final DefaultTextSegmentExtractor textSegmentExtractor;
 
-  public DefaultEmbeddingActionProcessor() {
+  public DefaultEmbeddingActionProcessor(ProxyConfiguration proxyConfiguration) {
     this(
-        new DefaultEmbeddingModelFactory(),
-        new DefaultEmbeddingStoreFactory(),
+        new DefaultEmbeddingModelFactory(proxyConfiguration),
+        new DefaultEmbeddingStoreFactory(proxyConfiguration),
         new DefaultTextSegmentExtractor());
   }
 
