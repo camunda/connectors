@@ -86,7 +86,7 @@ public class ElasticsearchVectorStoreFactory {
         });
   }
 
-  private static class ElasticsearchHttpClientConfigCallback
+  static class ElasticsearchHttpClientConfigCallback
       implements RestClientBuilder.HttpClientConfigCallback {
 
     private final CredentialsProvider provider = new BasicCredentialsProvider();
@@ -115,7 +115,7 @@ public class ElasticsearchVectorStoreFactory {
     }
   }
 
-  private static class ProxyRoutePlanner extends DefaultProxyRoutePlanner {
+  static class ProxyRoutePlanner extends DefaultProxyRoutePlanner {
     private static final Logger LOG = LoggerFactory.getLogger(ProxyRoutePlanner.class.getName());
 
     public ProxyRoutePlanner(HttpHost proxy) {
