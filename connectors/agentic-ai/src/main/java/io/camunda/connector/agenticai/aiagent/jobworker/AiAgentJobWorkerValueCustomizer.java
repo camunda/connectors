@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.jobworker;
 
 import io.camunda.client.annotation.customizer.JobWorkerValueCustomizer;
 import io.camunda.client.annotation.value.JobWorkerValue;
-import io.camunda.client.annotation.value.JobWorkerValue.SourceAware.FromOverrideProperty;
+import io.camunda.client.annotation.value.SourceAware.FromOverrideProperty;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.runtime.core.config.ConnectorConfigurationOverrides;
 import java.time.Duration;
