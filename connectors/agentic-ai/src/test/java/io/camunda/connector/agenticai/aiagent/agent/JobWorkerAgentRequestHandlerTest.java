@@ -22,7 +22,6 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -32,7 +31,6 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -98,8 +96,6 @@ class JobWorkerAgentRequestHandlerTest {
   @Mock private AiFrameworkAdapter<?> framework;
   @Mock private AgentResponseHandler responseHandler;
 
-  private ConversationStore conversationStore;
-
   @Mock private ActivatedJob job;
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
@@ -114,8 +110,7 @@ class JobWorkerAgentRequestHandlerTest {
     lenient().when(job.getKey()).thenReturn(123456L);
     when(agentExecutionContext.job()).thenReturn(job);
 
-    conversationStore = spy(new InProcessConversationStore());
-    doReturn(conversationStore)
+    doReturn(new InProcessConversationStore())
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
   }
@@ -411,7 +406,7 @@ class JobWorkerAgentRequestHandlerTest {
   }
 
   @Test
-  void completionErrorHandlerCompensatesStorageOnCompletionError() {
+  void completionErrorHandlerClosesSessionWithoutException() {
     mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
     mockUserPrompt(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS, List.of());
 
@@ -439,12 +434,12 @@ class JobWorkerAgentRequestHandlerTest {
 
     final var completion = requestHandler.handleRequest(agentExecutionContext);
 
-    final var exception = new RuntimeException("This is a test");
-    completion.onCompletionError(exception);
+    assertThat(completion.onCompletionError()).isNotNull();
+    assertThat(completion.onCompletionSuccess()).isNotNull();
 
-    verify(conversationStore)
-        .compensateFailedJobCompletion(
-            agentExecutionContext, completion.agentResponse().context(), exception);
+    // notifyCompletionError should execute without throwing
+    final var exception = new RuntimeException("This is a test");
+    completion.notifyCompletionError(exception);
   }
 
   private RuntimeMemory setupRuntimeMemorySizeTest(MemoryConfiguration memoryConfiguration) {
