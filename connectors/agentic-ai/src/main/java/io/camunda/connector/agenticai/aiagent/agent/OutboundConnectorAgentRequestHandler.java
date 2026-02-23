@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT;
 
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -59,7 +59,16 @@ public class OutboundConnectorAgentRequestHandler
   public AgentResponse completeJob(
       OutboundConnectorAgentExecutionContext executionContext,
       AgentResponse agentResponse,
-      ConversationStore conversationStore) {
+      ConversationSession session) {
+    if (session != null) {
+      try {
+        if (agentResponse != null) {
+          session.onJobCompleted(agentResponse.context());
+        }
+      } finally {
+        session.close();
+      }
+    }
     return agentResponse;
   }
 }
