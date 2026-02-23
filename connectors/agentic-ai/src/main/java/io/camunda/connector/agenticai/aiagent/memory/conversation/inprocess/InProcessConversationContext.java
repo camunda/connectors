@@ -18,8 +18,13 @@ import java.util.List;
 @JsonDeserialize(
     builder = InProcessConversationContext.InProcessConversationContextJacksonProxyBuilder.class)
 public record InProcessConversationContext(
-    String conversationId, @RecordBuilder.Initializer("0L") long version, List<Message> messages)
+    String conversationId,
+    @RecordBuilder.Initializer("DEFAULT_VERSION") long version,
+    List<Message> messages)
     implements ConversationContext, InProcessConversationContextBuilder.With {
+
+  public static final long DEFAULT_VERSION = 0L;
+
   public static InProcessConversationContextBuilder builder() {
     return InProcessConversationContextBuilder.builder();
   }

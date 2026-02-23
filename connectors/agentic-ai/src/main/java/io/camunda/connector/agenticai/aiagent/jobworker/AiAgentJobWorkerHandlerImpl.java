@@ -177,7 +177,7 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
             completeCommand,
             job,
             (command, throwable) -> {
-              completion.onCompletionError(throwable);
+              completion.notifyCompletionError(throwable);
               exceptionHandlingStrategy.handleCommandError(command, throwable);
             },
             metricsRecorder,
@@ -186,7 +186,7 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
     commandWrapper.executeAsyncWithMetrics(
         (recorder, ctx) -> {
           recorder.increaseCompleted(ctx);
-          completion.onCompletionSuccess();
+          completion.notifyCompletionSuccess();
         });
   }
 

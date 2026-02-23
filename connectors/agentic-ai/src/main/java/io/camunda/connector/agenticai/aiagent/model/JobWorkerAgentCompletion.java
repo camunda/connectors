@@ -25,13 +25,13 @@ public record JobWorkerAgentCompletion(
     return JobWorkerAgentCompletionBuilder.builder();
   }
 
-  public void onCompletionSuccess() {
+  public void notifyCompletionSuccess() {
     if (onCompletionSuccess != null) {
       onCompletionSuccess.run();
     }
   }
 
-  public void onCompletionError(Throwable throwable) {
+  public void notifyCompletionError(Throwable throwable) {
     if (onCompletionError != null) {
       onCompletionError.accept(throwable);
     }

@@ -21,8 +21,12 @@ import java.util.List;
         CamundaDocumentConversationContext.CamundaDocumentConversationContextJacksonProxyBuilder
             .class)
 public record CamundaDocumentConversationContext(
-    String conversationId, @RecordBuilder.Initializer("0L") long version, Document document)
+    String conversationId,
+    @RecordBuilder.Initializer("DEFAULT_VERSION") long version,
+    Document document)
     implements ConversationContext, CamundaDocumentConversationContextBuilder.With {
+
+  public static final long DEFAULT_VERSION = 0L;
 
   public static CamundaDocumentConversationContextBuilder builder() {
     return CamundaDocumentConversationContextBuilder.builder();
