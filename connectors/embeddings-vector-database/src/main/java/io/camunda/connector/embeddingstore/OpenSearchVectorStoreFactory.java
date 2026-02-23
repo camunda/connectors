@@ -11,13 +11,11 @@ import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.opensearch.OpenSearchEmbeddingStore;
 import io.camunda.connector.http.client.client.apache.proxy.ProxyRoutePlanner;
-import io.camunda.connector.http.client.proxy.NonProxyHosts;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.OpenSearchVectorStore;
 import io.camunda.connector.util.ProxyUtil;
 import java.net.URISyntaxException;
-import java.util.stream.Collectors;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClientBuilder;
@@ -33,11 +31,11 @@ import org.opensearch.client.transport.httpclient5.ApacheHttpClient5TransportBui
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.http.SdkHttpClient;
-import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
 
 public class OpenSearchVectorStoreFactory {
 
+  public static final String AMAZON_SIGNING_SERVICE_NAME = "es";
   private final ProxyConfiguration proxyConfig;
 
   public OpenSearchVectorStoreFactory(ProxyConfiguration proxyConfig) {
@@ -127,33 +125,15 @@ public class OpenSearchVectorStoreFactory {
       throw new IllegalArgumentException("Invalid server URL", e);
     }
 
-    software.amazon.awssdk.http.apache.ProxyConfiguration.Builder awsProxyConfigBuilder =
-        software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
-            .useSystemPropertyValues(true);
-
-    proxyConfig
-        .getProxyDetails(openSearchHost.getSchemeName())
-        .ifPresent(
-            proxyDetails -> {
-              awsProxyConfigBuilder.scheme(proxyDetails.scheme());
-              awsProxyConfigBuilder.endpoint(ProxyUtil.toUri(proxyDetails));
-              if (proxyDetails.hasCredentials()) {
-                awsProxyConfigBuilder.username(proxyDetails.user());
-                awsProxyConfigBuilder.password(proxyDetails.password());
-              }
-              // the SDK does not sanitize the patterns
-              awsProxyConfigBuilder.nonProxyHosts(
-                  NonProxyHosts.getNonProxyHostRegexPatterns().collect(Collectors.toSet()));
-            });
-
     SdkHttpClient httpClient =
-        ApacheHttpClient.builder().proxyConfiguration(awsProxyConfigBuilder.build()).build();
+        ProxyUtil.createAwsProxyAwareHttpClient(proxyConfig, openSearchHost.getSchemeName());
+
     Region selectedRegion = Region.of(amazonManagedOpenSearch.region());
     OpenSearchTransport transport =
         new AwsSdk2Transport(
             httpClient,
             amazonManagedOpenSearch.serverUrl(),
-            "es",
+            AMAZON_SIGNING_SERVICE_NAME,
             selectedRegion,
             AwsSdk2TransportOptions.builder()
                 .setCredentials(
