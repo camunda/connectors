@@ -174,11 +174,11 @@ Migration detection: `AgentMetadata.processDefinitionKey` vs current job's key.
 
 ## Memory Storage Backends
 
-| Backend | Type | Storage | Limitations |
+| Backend | Type | Storage | Notes |
 |---|---|---|---|
-| In-process | `in-process` | Messages in `agentContext` variable | Variable size limits (~4MB) |
-| Camunda Document | `camunda-document` | JSON document in document storage | Document TTL, eventual consistency |
-| Custom | `custom` | User-provided implementation | Must implement `ConversationStore` |
+| In-process | `in-process` | Messages inside `agentContext` process variable | Durable (engine-persisted). Variable size limits for large conversations |
+| Camunda Document | `camunda-document` | JSON document in document storage | Conversation stored externally; only a reference in `agentContext` |
+| Custom | `custom` | User-provided implementation | Implement `ConversationStore`, `ConversationSession`, `ConversationContext` (via `@JsonTypeName`) |
 
 `MessageWindowRuntimeMemory` limits messages sent to LLM (default: 20). Full history is always persisted.
 System messages are never evicted. Evicting an assistant message also evicts its follow-up tool results.

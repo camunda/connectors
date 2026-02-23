@@ -340,7 +340,8 @@ ConversationStore (registered backend)
 **InProcessConversationStore** (`type = "in-process"`):
 - Stores entire message history inside `AgentContext.conversation` as `InProcessConversationContext`
 - Messages are serialized as part of the `agentContext` process variable
-- Simple, but subject to Zeebe variable size limits (default: ~4MB)
+- **Durable**: Once job completion succeeds, all data is persisted by the Zeebe engine and survives runtime restarts
+- Simple, but subject to Zeebe variable size limits — conversation growth inflates the process variable
 - No transactional behavior, no compensation needed
 
 **CamundaDocumentConversationStore** (`type = "camunda-document"`):
@@ -352,7 +353,13 @@ ConversationStore (registered backend)
 - Supports configurable TTL and custom properties
 - **Compensation on failure**: The `compensateFailedJobCompletion` hook exists but current implementation does not actively compensate — the document is already written before job completion is attempted
 
-**Custom implementations**: Pluggable via `ConversationStoreRegistry` — Self-Managed users can register custom stores.
+**Custom implementations**: Fully pluggable via `ConversationStoreRegistry`. Users can register custom stores by:
+1. Implementing `ConversationStore`, `ConversationSession`, and `ConversationContext`
+2. Annotating the custom `ConversationContext` with `@JsonTypeName("my-type")` — `ConversationContext` is an open interface (not sealed), and Jackson discovers custom named subtypes automatically
+3. Selecting "Custom Implementation" as memory storage type in the element template and specifying the implementation type string
+4. Registering the store as a Spring component
+
+See the [`CustomMemoryStorageConfiguration`](../src/main/java/io/camunda/connector/agenticai/aiagent/model/request/MemoryStorageConfiguration.java) type for configuration, and [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations) for a working example with a JPA-backed store.
 
 ### ConversationSession Lifecycle
 
