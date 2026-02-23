@@ -11,14 +11,13 @@ import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpBlobContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpDocumentContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResourceContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpResourceLinkContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent;
 import io.camunda.connector.agenticai.mcp.client.model.result.*;
-import io.camunda.connector.agenticai.model.message.content.BlobContent;
-import io.camunda.connector.agenticai.model.message.content.DocumentContent;
-import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceBlobDocumentContent;
-import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent;
-import io.camunda.connector.agenticai.model.message.content.ResourceLinkContent;
-import io.camunda.connector.agenticai.model.message.content.TextContent;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.runtime.test.document.TestDocument;
@@ -81,14 +80,16 @@ class McpClientResultDocumentHandlerTest {
             "List tools",
             new McpClientListToolsResult(
                 List.of(
-                    new ToolDefinition(
+                    new McpToolDefinition(
                         "get-commits",
+                        "Get Commits",
                         "Get Commits",
                         Map.of("owner", "string", "repo", "string")))),
             new McpClientListToolsResult(
                 List.of(
-                    new ToolDefinition(
+                    new McpToolDefinition(
                         "get-commits",
+                        "Get Commits",
                         "Get Commits",
                         Map.of("owner", "string", "repo", "string"))))),
         argumentSet(
@@ -98,6 +99,7 @@ class McpClientResultDocumentHandlerTest {
                     new ResourceTemplate(
                         "uri-{name}",
                         "Resource Template",
+                        "Resource template",
                         "A resource template",
                         "application/json"))),
             new McpClientListResourceTemplatesResult(
@@ -105,6 +107,7 @@ class McpClientResultDocumentHandlerTest {
                     new ResourceTemplate(
                         "uri-{name}",
                         "Resource Template",
+                        "Resource template",
                         "A resource template",
                         "application/json")))),
         argumentSet(
@@ -112,11 +115,11 @@ class McpClientResultDocumentHandlerTest {
             new McpClientListResourcesResult(
                 List.of(
                     new ResourceDescription(
-                        "uri", "resource-1", "A resource", "application/json"))),
+                        "uri", "resource-1", "Resource 1", "A resource", "application/json"))),
             new McpClientListResourcesResult(
                 List.of(
                     new ResourceDescription(
-                        "uri", "resource-1", "A resource", "application/json")))),
+                        "uri", "resource-1", "Resource 1", "A resource", "application/json")))),
         argumentSet(
             "Read resource - with text content",
             new McpClientReadResourceResult(
@@ -130,6 +133,7 @@ class McpClientResultDocumentHandlerTest {
                     new PromptDescription(
                         "code_review",
                         "Code review",
+                        "Doing the code review",
                         List.of(
                             new PromptDescription.PromptArgument(
                                 "file", "File to review", true))))),
@@ -138,6 +142,7 @@ class McpClientResultDocumentHandlerTest {
                     new PromptDescription(
                         "code_review",
                         "Code review",
+                        "Doing the code review",
                         List.of(
                             new PromptDescription.PromptArgument(
                                 "file", "File to review", true)))))),
@@ -166,16 +171,16 @@ class McpClientResultDocumentHandlerTest {
             new McpClientCallToolResult(
                 "get-resource",
                 List.of(
-                    new EmbeddedResourceContent(
-                        new EmbeddedResourceContent.TextResource(
+                    new McpEmbeddedResourceContent(
+                        new McpEmbeddedResourceContent.TextResource(
                             "uri://resource", "text/plain", "text content"),
                         null)),
                 false),
             new McpClientCallToolResult(
                 "get-resource",
                 List.of(
-                    new EmbeddedResourceContent(
-                        new EmbeddedResourceContent.TextResource(
+                    new McpEmbeddedResourceContent(
+                        new McpEmbeddedResourceContent.TextResource(
                             "uri://resource", "text/plain", "text content"),
                         null)),
                 false)),
@@ -184,7 +189,7 @@ class McpClientResultDocumentHandlerTest {
             new McpClientCallToolResult(
                 "get-link",
                 List.of(
-                    new ResourceLinkContent(
+                    new McpResourceLinkContent(
                         "uri://external-resource",
                         "a link",
                         "A link!",
@@ -194,7 +199,7 @@ class McpClientResultDocumentHandlerTest {
             new McpClientCallToolResult(
                 "get-link",
                 List.of(
-                    new ResourceLinkContent(
+                    new McpResourceLinkContent(
                         "uri://external-resource",
                         "a link",
                         "A link!",
@@ -217,14 +222,14 @@ class McpClientResultDocumentHandlerTest {
         new McpClientCallToolResult(
             "get-commits",
             List.of(
-                new TextContent("text", Map.of()),
-                new BlobContent("blob".getBytes(StandardCharsets.UTF_8), "image/png", Map.of())),
+                new McpTextContent("text", Map.of()),
+                new McpBlobContent("blob".getBytes(StandardCharsets.UTF_8), "image/png", Map.of())),
             false),
         new McpClientCallToolResult(
             "get-commits",
             List.of(
-                new TextContent("text", Map.of()),
-                new DocumentContent(
+                new McpTextContent("text", Map.of()),
+                new McpDocumentContent(
                     new TestDocument(
                         "blob".getBytes(StandardCharsets.UTF_8),
                         new TestDocumentMetadata("image/png", null, null, null, null, null, null),
@@ -240,8 +245,8 @@ class McpClientResultDocumentHandlerTest {
         new McpClientCallToolResult(
             "get-resource",
             List.of(
-                new EmbeddedResourceContent(
-                    new EmbeddedResourceContent.BlobResource(
+                new McpEmbeddedResourceContent(
+                    new McpEmbeddedResourceContent.BlobResource(
                         "uri://resource",
                         "application/pdf",
                         "document data".getBytes(StandardCharsets.UTF_8)),
@@ -250,8 +255,8 @@ class McpClientResultDocumentHandlerTest {
         new McpClientCallToolResult(
             "get-resource",
             List.of(
-                new EmbeddedResourceContent(
-                    new EmbeddedResourceBlobDocumentContent(
+                new McpEmbeddedResourceContent(
+                    new McpEmbeddedResourceContent.BlobDocumentResource(
                         "uri://resource",
                         "application/pdf",
                         new TestDocument(

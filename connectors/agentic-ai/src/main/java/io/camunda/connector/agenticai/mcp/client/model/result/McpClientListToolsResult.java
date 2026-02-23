@@ -6,10 +6,10 @@
  */
 package io.camunda.connector.agenticai.mcp.client.model.result;
 
+import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import java.util.List;
 
 @AgenticAiRecord
-public record McpClientListToolsResult(List<ToolDefinition> toolDefinitions)
+public record McpClientListToolsResult(List<McpToolDefinition> toolDefinitions)
     implements McpClientResult, McpClientListToolsResultBuilder.With {}

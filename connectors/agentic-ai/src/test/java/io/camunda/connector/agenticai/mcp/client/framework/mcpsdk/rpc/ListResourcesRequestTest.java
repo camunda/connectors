@@ -46,16 +46,34 @@ class ListResourcesRequestTest {
   @Test
   void returnsResourceDescriptions_whenResourcesAvailable() {
     final var mcpResource1 =
-        createMcpResource("file://resource1.txt", "resource1", "A first resource", "text/plain");
+        createMcpResource(
+            "file://resource1.txt",
+            "resource1",
+            "First Resource",
+            "A first resource",
+            "text/plain");
     final var mcpResource2 =
-        createMcpResource("file://resource2.md", "resource2", "A second resource", "text/markdown");
+        createMcpResource(
+            "file://resource2.md",
+            "resource2",
+            "Second Resource",
+            "A second resource",
+            "text/markdown");
 
     final var resourceDescription1 =
         createResourceDescription(
-            "file://resource1.txt", "resource1", "A first resource", "text/plain");
+            "file://resource1.txt",
+            "resource1",
+            "First Resource",
+            "A first resource",
+            "text/plain");
     final var resourceDescription2 =
         createResourceDescription(
-            "file://resource2.md", "resource2", "A second resource", "text/markdown");
+            "file://resource2.md",
+            "resource2",
+            "Second Resource",
+            "A second resource",
+            "text/markdown");
 
     when(mcpClient.listResources())
         .thenReturn(new McpSchema.ListResourcesResult(List.of(mcpResource1, mcpResource2), null));
@@ -65,22 +83,38 @@ class ListResourcesRequestTest {
     assertThat(result)
         .isInstanceOfSatisfying(
             McpClientListResourcesResult.class,
-            res ->
-                assertThat(res.resources())
-                    .containsExactly(resourceDescription1, resourceDescription2));
+            res -> {
+              assertThat(res.resources())
+                  .containsExactly(resourceDescription1, resourceDescription2);
+              assertThat(res.resources())
+                  .extracting(ResourceDescription::title)
+                  .containsExactly("First Resource", "Second Resource");
+            });
   }
 
   @Test
   void filtersResources_whenFilterConfigured() {
     final var mcpResource1 =
         createMcpResource(
-            "file://allowed-resource.txt", "allowed-resource", "Allowed resource", "text/plain");
+            "file://allowed-resource.txt",
+            "allowed-resource",
+            "Allowed Resource",
+            "Allowed resource",
+            "text/plain");
     final var mcpResource2 =
         createMcpResource(
-            "file://blocked-resource.txt", "blocked-resource", "Blocked resource", "text/plain");
+            "file://blocked-resource.txt",
+            "blocked-resource",
+            "Blocked Resource",
+            "Blocked resource",
+            "text/plain");
     final var resourceDescription1 =
         createResourceDescription(
-            "file://allowed-resource.txt", "allowed-resource", "Allowed resource", "text/plain");
+            "file://allowed-resource.txt",
+            "allowed-resource",
+            "Allowed Resource",
+            "Allowed resource",
+            "text/plain");
     final var filter =
         AllowDenyListBuilder.builder()
             .allowed(List.of("file://allowed-resource.txt"))
@@ -104,12 +138,14 @@ class ListResourcesRequestTest {
         createMcpResource(
             "file://blocked-resource1.txt",
             "blocked-resource1",
+            "Blocked Resource 1",
             "Blocked resource 1",
             "text/plain");
     final var mcpResource2 =
         createMcpResource(
             "file://blocked-resource2.txt",
             "blocked-resource2",
+            "Blocked Resource 2",
             "Blocked resource 2",
             "text/plain");
     final var filter =
@@ -134,6 +170,7 @@ class ListResourcesRequestTest {
         createMcpResource(
             "file://blocked-resource1.txt",
             "blocked-resource1",
+            "Blocked Resource 1",
             "Blocked resource 1",
             "text/plain");
     final var filter =
@@ -153,12 +190,12 @@ class ListResourcesRequestTest {
   }
 
   private McpSchema.Resource createMcpResource(
-      String uri, String name, String description, String mimeType) {
-    return new McpSchema.Resource(uri, name, null, description, mimeType, null, null, null);
+      String uri, String name, String title, String description, String mimeType) {
+    return new McpSchema.Resource(uri, name, title, description, mimeType, null, null, null);
   }
 
   private ResourceDescription createResourceDescription(
-      String uri, String name, String description, String mimeType) {
-    return new ResourceDescription(uri, name, description, mimeType);
+      String uri, String name, String title, String description, String mimeType) {
+    return new ResourceDescription(uri, name, title, description, mimeType);
   }
 }

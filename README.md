@@ -178,6 +178,12 @@ the [connector-runtime](connector-runtime) module.
 mvn clean package
 ```
 
+For faster incremental builds, you can use the Maven build cache:
+
+```bash
+mvn clean install -DskipTests -DskipChecks -Dquickly -Dmaven.build.cache.enabled=true -T 1C
+```
+
 ## Integration Tests
 
 To run the integration tests, you need to have Docker installed and running. We
@@ -217,4 +223,5 @@ You can also trigger this for already merged PRs by posting a comment on the PR 
 
 ## CI Secrets
 
-Secrets used by the CI jobs in this repository are stored in [Vault](https://vault.int.camunda.com/ui/vault/secrets/secret/kv/products%252Fconnectors%252Fci%252Fcommon/details).
+Secrets used by the CI jobs in this repository are stored
+in [Vault](https://vault.int.camunda.com/ui/vault/secrets/secret/kv/products%252Fconnectors%252Fci%252Fcommon/details).

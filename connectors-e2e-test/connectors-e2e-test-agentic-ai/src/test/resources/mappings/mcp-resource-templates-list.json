@@ -27,18 +27,21 @@
           {
             "uriTemplate": "resource-a-{number}",
             "name": "Resource A {number}",
+            "title": "A resource",
             "description": "The first resource",
             "mimeType": "text/plain"
           },
           {
             "uriTemplate": "resource-b-{number}",
             "name": "Resource B {number}",
+            "title": "B resource",
             "description": "The second resource",
             "mimeType": "text/plain"
           },
           {
             "uriTemplate": "resource-c-{number}",
             "name": "Resource C {number}",
+            "title": "C resource",
             "description": "The third resource",
             "mimeType": "text/markdown"
           }

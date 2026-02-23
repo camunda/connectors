@@ -10,9 +10,3 @@ camunda:
               tool-execution-timeout: PT5S
               http:
                 url: http://localhost:19080/mcp
-          langchain4j:
-            logging:
-              http:
-                log-requests: true
-                log-responses: true
-

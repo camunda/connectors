@@ -24,6 +24,9 @@ import io.camunda.connector.api.annotation.Header;
 import io.camunda.connector.api.annotation.Operation;
 import io.camunda.connector.api.annotation.Variable;
 import io.camunda.connector.generator.dsl.*;
+import io.camunda.connector.generator.dsl.PropertyBinding;
+import io.camunda.connector.generator.dsl.PropertyCondition;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.util.reflection.ReflectionUtil.MethodWithAnnotation;
 import java.lang.reflect.Parameter;
@@ -67,7 +70,7 @@ public class OperationBasedConnectorUtil {
         .binding(new PropertyBinding.ZeebeTaskHeader(OPERATION_TASK_HEADER_KEY))
         .label("Operation")
         .description("The operation to execute")
-        .feel(Property.FeelMode.disabled)
+        .feel(FeelMode.disabled)
         .value(getOperationId(methods.getFirst().annotation()))
         .group("operation");
   }

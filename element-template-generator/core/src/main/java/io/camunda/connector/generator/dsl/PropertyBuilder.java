@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.generator.dsl;
 
-import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 
 public abstract class PropertyBuilder {
 

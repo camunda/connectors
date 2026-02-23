@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.agenticai.mcp.client.framework.mcpsdk.rpc;
 
-import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
+import static io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.argumentSet;
@@ -18,12 +18,12 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyList;
 import io.camunda.connector.agenticai.mcp.client.filters.AllowDenyListBuilder;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpBlobContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpEmbeddedResourceContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpObjectContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpResourceLinkContent;
+import io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
-import io.camunda.connector.agenticai.model.message.content.BlobContent;
-import io.camunda.connector.agenticai.model.message.content.EmbeddedResourceContent;
-import io.camunda.connector.agenticai.model.message.content.ObjectContent;
-import io.camunda.connector.agenticai.model.message.content.ResourceLinkContent;
-import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.api.error.ConnectorException;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
@@ -266,7 +266,7 @@ class ToolCallRequestTest {
             new ToolCallExpectation(
                 callToolResult("This is a text"),
                 new McpClientCallToolResult(
-                    "a-name", List.of(new TextContent("This is a text", null)), false))),
+                    "a-name", List.of(new McpTextContent("This is a text", null)), false))),
         argumentSet(
             "image content",
             new ToolCallExpectation(
@@ -274,7 +274,7 @@ class ToolCallRequestTest {
                 new McpClientCallToolResult(
                     "a-name",
                     List.of(
-                        new BlobContent(
+                        new McpBlobContent(
                             "image".getBytes(StandardCharsets.UTF_8), "image/png", null)),
                     false))),
         argumentSet(
@@ -284,7 +284,8 @@ class ToolCallRequestTest {
                 new McpClientCallToolResult(
                     "a-name",
                     List.of(
-                        new ObjectContent(Map.of("key", "value", "key2", List.of(1, 2, 3)), null)),
+                        new McpObjectContent(
+                            Map.of("key", "value", "key2", List.of(1, 2, 3)), null)),
                     false))),
         argumentSet(
             "embedded resource - text",
@@ -294,8 +295,8 @@ class ToolCallRequestTest {
                 new McpClientCallToolResult(
                     "a-name",
                     List.of(
-                        new EmbeddedResourceContent(
-                            new EmbeddedResourceContent.TextResource(
+                        new McpEmbeddedResourceContent(
+                            new McpEmbeddedResourceContent.TextResource(
                                 "uri://resource", "text/plain", "resource text"),
                             null)),
                     false))),
@@ -309,8 +310,8 @@ class ToolCallRequestTest {
                 new McpClientCallToolResult(
                     "a-name",
                     List.of(
-                        new EmbeddedResourceContent(
-                            new EmbeddedResourceContent.BlobResource(
+                        new McpEmbeddedResourceContent(
+                            new McpEmbeddedResourceContent.BlobResource(
                                 "uri://resource",
                                 "application/octet-stream",
                                 "blob data".getBytes(StandardCharsets.UTF_8)),
@@ -324,7 +325,7 @@ class ToolCallRequestTest {
                 new McpClientCallToolResult(
                     "a-name",
                     List.of(
-                        new ResourceLinkContent(
+                        new McpResourceLinkContent(
                             "uri://external-resource", "a-link", "A link", "text/plain", null)),
                     false))));
   }

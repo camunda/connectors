@@ -114,7 +114,7 @@ jobs:
           echo "::notice::Docker version will be: ${MINOR_VERSION}-SNAPSHOT"
 
       - name: Build Artifacts
-        run: mvn -B compile generate-sources source:jar javadoc:jar deploy -DskipTests
+        run: mvn -B -U compile generate-sources source:jar javadoc:jar deploy -DskipTests
         env:
           MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}

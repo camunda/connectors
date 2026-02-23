@@ -8,7 +8,7 @@ package io.camunda.connector.idp.extraction.request.common.extraction;
 
 import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Dropdown;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotNull;
@@ -37,7 +37,7 @@ public record TextractExtractorRequest(
             description =
                 "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
             group = "extractor",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -50,7 +50,7 @@ public record TextractExtractorRequest(
             description =
                 "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
             group = "extractor",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             condition =
                 @TemplateProperty.PropertyCondition(
@@ -62,7 +62,7 @@ public record TextractExtractorRequest(
             group = "extractor",
             description = "Specify the AWS region",
             type = TemplateProperty.PropertyType.Text,
-            feel = Property.FeelMode.disabled,
+            feel = FeelMode.disabled,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotNull
         String region,
@@ -75,7 +75,7 @@ public record TextractExtractorRequest(
                 "Specify the name of the AWS S3 bucket where document will be stored temporarily during Textract analysis",
             defaultValue = "idp-extraction-connector",
             binding = @TemplateProperty.PropertyBinding(name = "bucketName"),
-            feel = Property.FeelMode.disabled,
+            feel = FeelMode.disabled,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotNull
         String bucketName)

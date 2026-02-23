@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import io.camunda.connector.generator.java.annotation.FeelMode;
+
 public final class BooleanProperty extends Property {
 
   public static final String TYPE = "Boolean";

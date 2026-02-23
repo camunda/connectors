@@ -102,6 +102,8 @@ public class McpRemoteClientRegistry implements AutoCloseable {
       case StreamableHttpMcpRemoteClientTransportConfiguration httpConfig -> {
         final var httpConnectionConfig = httpConfig.http();
         builder.type(McpClientType.HTTP);
+        builder.initializationTimeout(httpConnectionConfig.timeout());
+        builder.toolExecutionTimeout(httpConnectionConfig.timeout());
         builder.http(
             new StreamableHttpMcpClientTransportConfiguration(
                 httpConnectionConfig.url(),
@@ -113,6 +115,8 @@ public class McpRemoteClientRegistry implements AutoCloseable {
       case SseHttpMcpRemoteClientTransportConfiguration sseConfig -> {
         final var sseConnectionConfig = sseConfig.sse();
         builder.type(McpClientType.SSE);
+        builder.initializationTimeout(sseConnectionConfig.timeout());
+        builder.toolExecutionTimeout(sseConnectionConfig.timeout());
         builder.sse(
             new SseHttpMcpClientTransportConfiguration(
                 sseConnectionConfig.url(),

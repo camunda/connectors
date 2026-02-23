@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.a2a.client.outbound.model;
 
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -24,7 +24,7 @@ public record A2aToolOperationConfiguration(
                 "The action to perform. Possible values are <code>fetchAgentCard</code> and <code>sendMessage</code>.",
             defaultValue = "=toolCall.operation",
             type = TemplateProperty.PropertyType.String,
-            feel = Property.FeelMode.required)
+            feel = FeelMode.required)
         String operation,
     @FEEL
         @TemplateProperty(
@@ -34,7 +34,7 @@ public record A2aToolOperationConfiguration(
                 "The parameters used to build the message that will be sent to the remote agent.",
             defaultValue = "=toolCall.params",
             type = TemplateProperty.PropertyType.Text,
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             optional = true)
         Map<String, Object> params,
     @Valid @NotNull A2aCommonSendMessageConfiguration sendMessageSettings) {}

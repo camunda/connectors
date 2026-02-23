@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import io.camunda.connector.generator.java.annotation.FeelMode;
+
 public final class NumberProperty extends Property {
 
   public static final String TYPE = "Number";

@@ -71,7 +71,10 @@
     "label" : "Document types",
     "description" : "The possible classification types considered by the model",
     "optional" : false,
-    "value" : "=[\n  \"\"\n]",
+    "value" : "=[\n  {\n    name: \"\",\n    classificationInstructions: \"\",\n    description: \"\",\n    outputValue: \"\"\n  }\n]",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "input",
     "binding" : {
@@ -80,27 +83,20 @@
     },
     "type" : "Text"
   }, {
-    "id" : "input.autoClassify",
-    "label" : "Auto classify",
-    "description" : "The model can classify as a type not in the list if confidence is high.",
+    "id" : "input.fallbackOutputValue",
+    "label" : "Fallback output value",
+    "description" : "The value to return if the model has low confidence on all document types.",
     "optional" : false,
-    "value" : "false",
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "input",
     "binding" : {
-      "name" : "input.autoClassify",
+      "name" : "input.fallbackOutputValue",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "No",
-      "value" : "false"
-    }, {
-      "name" : "Yes",
-      "value" : "true"
-    } ]
+    "type" : "Text"
   }, {
     "id" : "input.document",
     "label" : "Document",

@@ -9,7 +9,7 @@ package io.camunda.connector.agenticai.mcp.client.handler;
 import static io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpMethod.*;
 import static io.camunda.connector.agenticai.mcp.client.model.McpClientOperation.McpMethod.LIST_RESOURCE_TEMPLATES;
 import static io.camunda.connector.agenticai.mcp.client.model.McpRemoteClientTransportConfiguration.StreamableHttpMcpRemoteClientTransportConfiguration.*;
-import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
+import static io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent.textContent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;

@@ -12,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -63,7 +63,7 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
                 group = "provider",
                 label = "API key",
                 type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.optional,
+                feel = FeelMode.optional,
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             String apiKey)
         implements AzureAuthentication {
@@ -82,7 +82,7 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
                 label = "Client ID",
                 description = "ID of a Microsoft Entra application",
                 type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.optional,
+                feel = FeelMode.optional,
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             String clientId,
         @NotBlank
@@ -91,7 +91,7 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
                 label = "Client secret",
                 description = "Secret of a Microsoft Entra application",
                 type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.optional,
+                feel = FeelMode.optional,
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             String clientSecret,
         @NotBlank
@@ -101,7 +101,7 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
                 description =
                     "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.optional)
+                feel = FeelMode.optional)
             String tenantId,
         @TemplateProperty(
                 group = "provider",
@@ -109,7 +109,7 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
                 description =
                     "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
                 type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.optional,
+                feel = FeelMode.optional,
                 optional = true)
             String authorityHost)
         implements AzureAuthentication {
@@ -130,7 +130,7 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
               description =
                   "Specify the model deployment name. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference\" target=\"_blank\">documentation</a>.",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String deploymentName,
       @Valid AzureOpenAiModel.AzureOpenAiModelParameters parameters) {
@@ -143,7 +143,7 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
                 tooltip =
                     "The maximum number of tokens per request to generate before stopping. <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = Property.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Integer maxTokens,
         @Min(0)
@@ -153,7 +153,7 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
                 tooltip =
                     "Floating point number between 0 and 2. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = Property.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Double temperature,
         @Min(0)
@@ -163,7 +163,7 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
                 tooltip =
                     "Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference#request-body\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = Property.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Double topP) {}
   }

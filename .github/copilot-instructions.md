@@ -126,7 +126,7 @@ public class CsvConnector implements OutboundConnectorProvider {
             @TemplateProperty(
                     label = "Record mapping",
                     tooltip = "FEEL function that allows to map each record",
-                    feel = Property.FeelMode.required)
+                    feel = TemplateProperty.FeelMode.required)
             Function<Map<String, Object>, Object> mapper) {
         // Read CSV implementation
         return readCsvRequest(/* ... */);
@@ -255,7 +255,7 @@ public record UploadRequest(
                 @TemplateProperty(
                         label = "Document",
                         type = TemplateProperty.PropertyType.String,
-                        feel = Property.FeelMode.required)
+                        feel = TemplateProperty.FeelMode.required)
                 Document document
         ) {
 }
@@ -269,6 +269,17 @@ Document document = context.create(
 ```
 
 ## Build & Development Workflows
+
+### Pull Request Guidelines
+
+When creating pull requests:
+
+- **Always use the PR template**: Located at `.github/PULL_REQUEST_TEMPLATE.md`
+- Fill out all sections:
+  - **Description**: Explain the changes and provide context
+  - **Related issues**: Link to related issues (use `closes #` for issues this PR resolves)
+  - **Checklist**: Verify milestone and backport labels are appropriate
+- Update the PR description after creation if you initially missed the template
 
 ### Maven Structure
 
@@ -287,6 +298,9 @@ mvn clean package
 
 # Quick build, skip long-running tests (faster development)
 mvn clean package -Dquickly
+
+# Quick build with Maven cache (fastest for incremental builds)
+mvn clean install -DskipTests -DskipChecks -Dquickly -Dmaven.build.cache.enabled=true -T 1C
 
 # Generate element templates for connectors
 ./connectors/create-element-templates-symlinks.sh

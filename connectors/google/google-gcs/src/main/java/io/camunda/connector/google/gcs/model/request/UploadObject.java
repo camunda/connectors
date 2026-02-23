@@ -7,7 +7,7 @@
 package io.camunda.connector.google.gcs.model.request;
 
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
@@ -20,7 +20,7 @@ public record UploadObject(
             id = "uploadOperationProject",
             group = "operation",
             tooltip = "The project where the bucket is located.",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "operation.project"))
         @NotBlank
         String project,
@@ -29,7 +29,7 @@ public record UploadObject(
             id = "uploadOperationBucket",
             group = "operation",
             tooltip = "A bucket acts as a directory that organizes a set of objects.",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "operation.bucket"))
         @NotBlank
         String bucket,
@@ -39,7 +39,7 @@ public record UploadObject(
             id = "uploadOperationDocument",
             tooltip = "Document to be uploaded to Google Cloud Storage.",
             type = TemplateProperty.PropertyType.String,
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             binding = @TemplateProperty.PropertyBinding(name = "operation.document"))
         @NotNull
         Document document,
@@ -50,7 +50,7 @@ public record UploadObject(
             tooltip =
                 "By default, the file's metadata name is used unless a custom name is specified.",
             optional = true,
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "operation.fileName"))
         String fileName)
     implements ObjectStorageOperation {}

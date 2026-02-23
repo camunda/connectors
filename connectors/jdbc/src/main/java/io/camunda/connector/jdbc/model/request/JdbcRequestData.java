@@ -7,7 +7,7 @@
 package io.camunda.connector.jdbc.model.request;
 
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
 
@@ -36,7 +36,7 @@ public record JdbcRequestData(
             label = "SQL Query variables",
             group = "query",
             optional = true,
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             description =
                 "The <a href=\"https://docs.camunda.io/docs/8.6/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">variables</a> to use in the SQL query.")
         @FEEL

@@ -17,12 +17,12 @@
 package io.camunda.connector.generator.dsl;
 
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
-import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeSubscriptionProperty;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyCondition.IsActive;
 import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 

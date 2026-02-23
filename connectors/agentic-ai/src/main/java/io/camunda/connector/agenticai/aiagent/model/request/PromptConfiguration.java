@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.model.request;
 
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
@@ -22,7 +22,7 @@ public interface PromptConfiguration {
               group = "systemPrompt",
               label = "System prompt",
               type = TemplateProperty.PropertyType.Text,
-              feel = Property.FeelMode.required,
+              feel = FeelMode.required,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
               defaultValue = DEFAULT_SYSTEM_PROMPT)
           String prompt)
@@ -52,7 +52,7 @@ Reveal **no** additional private reasoning outside these tags.\"""";
               group = "userPrompt",
               label = "User prompt",
               type = TemplateProperty.PropertyType.Text,
-              feel = Property.FeelMode.required,
+              feel = FeelMode.required,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String prompt,
       @FEEL
@@ -64,7 +64,7 @@ Reveal **no** additional private reasoning outside these tags.\"""";
                   "Referenced documents will be automatically added to the user prompt. "
                       + "<a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/\" target=\"_blank\">See documentation</a> "
                       + "for details and supported file types.",
-              feel = Property.FeelMode.required,
+              feel = FeelMode.required,
               optional = true)
           List<Document> documents)
       implements PromptConfiguration {}

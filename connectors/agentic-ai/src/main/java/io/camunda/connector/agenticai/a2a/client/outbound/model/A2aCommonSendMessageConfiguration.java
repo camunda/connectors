@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.a2a.client.outbound.model;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -28,7 +28,7 @@ public record A2aCommonSendMessageConfiguration(
             label = "History length",
             description =
                 "The number of most recent messages from the task's history to retrieve in the response.",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             defaultValueType = TemplateProperty.DefaultValueType.Number,
             defaultValue = "3")
         Integer historyLength,
@@ -78,27 +78,27 @@ public record A2aCommonSendMessageConfiguration(
                 group = "operation",
                 label = "Webhook URL",
                 description = "The webhook URL where the remote agent will send the response.",
-                feel = Property.FeelMode.optional)
+                feel = FeelMode.optional)
             String webhookUrl,
         @TemplateProperty(
                 group = "operation",
                 label = "Token",
                 description =
                     "A unique token for the task or session to validate incoming push notifications",
-                feel = Property.FeelMode.optional,
+                feel = FeelMode.optional,
                 optional = true)
             String token,
         @TemplateProperty(
                 group = "operation",
                 label = "Authentication schemes",
                 description = "A list of authentication schemes required by the webhook.",
-                feel = Property.FeelMode.required)
+                feel = FeelMode.required)
             List<String> authenticationSchemes,
         @TemplateProperty(
                 group = "operation",
                 label = "Authentication credentials",
                 description = "Credentials to authenticate the webhook request.",
-                feel = Property.FeelMode.optional)
+                feel = FeelMode.optional)
             String credentials)
         implements A2aResponseRetrievalMode {
       @TemplateProperty(ignore = true)

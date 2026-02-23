@@ -8,7 +8,7 @@ package io.camunda.connector.slack.inbound.model;
 
 import com.slack.api.app_backend.SlackSignature;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import jakarta.validation.constraints.NotBlank;
@@ -21,7 +21,7 @@ public record SlackWebhookProperties(
             label = "Webhook ID",
             group = "endpoint",
             description = "The webhook ID is a part of the URL endpoint",
-            feel = Property.FeelMode.disabled)
+            feel = FeelMode.disabled)
         @NotBlank
         String context,
     @TemplateProperty(
@@ -30,14 +30,14 @@ public record SlackWebhookProperties(
             group = "endpoint",
             description =
                 "Slack signing secret. <a href='https://api.slack.com/authentication/verifying-requests-from-slack' target='_blank'>See documentation</a> regarding the Slack signing secret",
-            feel = Property.FeelMode.disabled)
+            feel = FeelMode.disabled)
         @NotBlank
         String slackSigningSecret,
     @TemplateProperty(
             id = "verificationExpression",
             group = "endpoint",
             type = PropertyType.Hidden,
-            feel = Property.FeelMode.disabled,
+            feel = FeelMode.disabled,
             optional = true,
             defaultValue =
                 "=if (body.type != null and body.type = \"url_verification\") then {body:{\"challenge\":body.challenge}, statusCode: 200} else null")

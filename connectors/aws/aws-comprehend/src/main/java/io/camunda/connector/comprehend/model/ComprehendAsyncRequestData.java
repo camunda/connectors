@@ -8,7 +8,7 @@ package io.camunda.connector.comprehend.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotNull;
@@ -24,7 +24,7 @@ public record ComprehendAsyncRequestData(
             group = "input",
             type = TemplateProperty.PropertyType.Dropdown,
             defaultValue = "SERVICE_DEFAULT",
-            feel = Property.FeelMode.disabled,
+            feel = FeelMode.disabled,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             choices = {
               @TemplateProperty.DropdownPropertyChoice(
@@ -45,7 +45,7 @@ public record ComprehendAsyncRequestData(
             group = "input",
             type = TemplateProperty.PropertyType.Dropdown,
             defaultValue = "TEXTRACT_DETECT_DOCUMENT_TEXT",
-            feel = Property.FeelMode.disabled,
+            feel = FeelMode.disabled,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             choices = {
               @TemplateProperty.DropdownPropertyChoice(
@@ -97,7 +97,7 @@ public record ComprehendAsyncRequestData(
             label = "Input file processing mode",
             group = "input",
             type = TemplateProperty.PropertyType.Dropdown,
-            feel = Property.FeelMode.disabled,
+            feel = FeelMode.disabled,
             defaultValue = "ONE_DOC_PER_FILE",
             choices = {
               @TemplateProperty.DropdownPropertyChoice(
@@ -168,7 +168,7 @@ public record ComprehendAsyncRequestData(
             description =
                 "Tags to <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_StartDocumentClassificationJob.html#comprehend-StartDocumentClassificationJob-request-Tags\">associate progressing with a document classification</a>.",
             optional = true,
-            feel = Property.FeelMode.required)
+            feel = FeelMode.required)
         Map<String, String> tags,
     @TemplateProperty(
             group = "input",
@@ -184,7 +184,7 @@ public record ComprehendAsyncRequestData(
             description =
                 "<a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_VpcConfig.html#comprehend-Type-VpcConfig-SecurityGroupIds\">ID for security group</a> on instance of private VPC.",
             optional = true,
-            feel = Property.FeelMode.required)
+            feel = FeelMode.required)
         List<String> securityGroupIds,
     @FEEL
         @TemplateProperty(
@@ -193,6 +193,6 @@ public record ComprehendAsyncRequestData(
             description =
                 "ID for each <a href=\"https://docs.aws.amazon.com/comprehend/latest/APIReference/API_VpcConfig.html#comprehend-Type-VpcConfig-Subnets\">subnet used in VPC</a>.",
             optional = true,
-            feel = Property.FeelMode.required)
+            feel = FeelMode.required)
         List<String> subnets)
     implements ComprehendRequestData {}

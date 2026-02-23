@@ -6,14 +6,14 @@
  */
 package io.camunda.connector.rabbitmq.outbound.model;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotNull;
 
 public record RabbitMqMessage(
     @TemplateProperty(
             group = "message",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             optional = true,
             defaultValue = "={}",
             type = TemplateProperty.PropertyType.Text,

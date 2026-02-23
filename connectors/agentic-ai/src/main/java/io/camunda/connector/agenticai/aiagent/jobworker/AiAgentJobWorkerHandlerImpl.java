@@ -140,7 +140,7 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
               jobClient,
               job,
               new ErrorResult(
-                  Map.of("error", jobError.errorMessage()),
+                  jobError.variablesWithErrorMessage(),
                   new RuntimeException(jobError.errorMessage()),
                   jobError.retries(),
                   jobError.retryBackoff()),

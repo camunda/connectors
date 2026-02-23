@@ -16,7 +16,6 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.TextContent;
 import io.camunda.connector.api.document.Document;
-import java.util.Base64;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -86,7 +85,7 @@ class DocumentToContentConverterTest {
   @Test
   void convertsToPdfFileContent() {
     when(document.metadata().getContentType()).thenReturn("application/pdf");
-    when(document.asByteArray()).thenReturn(Base64.getDecoder().decode(DUMMY_B64_VALUE));
+    when(document.asBase64()).thenReturn(DUMMY_B64_VALUE);
 
     var content = converter.convert(document);
 
@@ -96,7 +95,7 @@ class DocumentToContentConverterTest {
             pdfFileContent ->
                 assertThat(pdfFileContent.pdfFile().base64Data()).isEqualTo(DUMMY_B64_VALUE));
 
-    verify(document, never()).asBase64();
+    verify(document, never()).asByteArray();
     verify(document, never()).asInputStream();
   }
 
@@ -104,7 +103,7 @@ class DocumentToContentConverterTest {
   @ValueSource(strings = {"image/jpeg", "image/png", "image/gif", "image/webp"})
   void convertsToImageFileContent(String mediaType) {
     when(document.metadata().getContentType()).thenReturn(mediaType);
-    when(document.asByteArray()).thenReturn(Base64.getDecoder().decode(DUMMY_B64_VALUE));
+    when(document.asBase64()).thenReturn(DUMMY_B64_VALUE);
 
     var content = converter.convert(document);
 
@@ -117,7 +116,7 @@ class DocumentToContentConverterTest {
               assertThat(imageContent.image().base64Data()).isEqualTo(DUMMY_B64_VALUE);
             });
 
-    verify(document, never()).asBase64();
+    verify(document, never()).asByteArray();
     verify(document, never()).asInputStream();
   }
 

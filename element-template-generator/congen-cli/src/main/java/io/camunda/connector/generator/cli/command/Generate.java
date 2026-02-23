@@ -27,6 +27,7 @@ import com.networknt.schema.resource.SchemaLoader.Builder;
 import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import io.camunda.connector.generator.cli.GeneratorServiceLoader;
 import io.camunda.connector.generator.dsl.ElementTemplate;
+import io.camunda.connector.generator.java.json.ElementTemplateModule;
 import java.util.List;
 import java.util.concurrent.Callable;
 import picocli.CommandLine.Command;
@@ -44,7 +45,9 @@ public class Generate implements Callable<Integer> {
               SchemaLocation.of(
                   "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json"));
 
-  private static final ObjectMapper mapper = new ObjectMapper();
+  private static final ObjectMapper mapper =
+      new ObjectMapper().registerModule(new ElementTemplateModule());
+
   @ParentCommand ConGen connectorGen;
 
   @Parameters(index = "0", description = "name of the generator to invoke")

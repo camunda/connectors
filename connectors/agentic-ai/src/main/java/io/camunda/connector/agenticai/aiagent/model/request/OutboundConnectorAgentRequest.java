@@ -11,7 +11,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import jakarta.validation.Valid;
@@ -37,7 +37,7 @@ public record OutboundConnectorAgentRequest(
                       + "for details.",
               constraints = @PropertyConstraints(notEmpty = true),
               type = TemplateProperty.PropertyType.Text,
-              feel = Property.FeelMode.required,
+              feel = FeelMode.required,
               defaultValue = "=agent.context")
           @Valid
           AgentContext context,

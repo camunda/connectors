@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.aws.dynamodb.model;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
@@ -24,7 +24,7 @@ public record AddItem(
     @TemplateProperty(
             label = "Item",
             group = "input",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             description = "DynamoDB item (group of attributes)")
         @NotNull
         Object item)

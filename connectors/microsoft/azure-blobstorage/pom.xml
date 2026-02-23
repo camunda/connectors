@@ -32,11 +32,11 @@
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-storage-blob</artifactId>
-      <version>12.33.1</version>
+      <version>12.33.2</version>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>element-template-generator-core</artifactId>
+      <artifactId>element-template-generator-annotations</artifactId>
     </dependency>
     <dependency>
       <groupId>com.azure</groupId>

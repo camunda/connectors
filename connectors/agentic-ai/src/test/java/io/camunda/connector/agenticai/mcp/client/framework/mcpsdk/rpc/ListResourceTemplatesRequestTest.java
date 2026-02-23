@@ -49,17 +49,33 @@ class ListResourceTemplatesRequestTest {
   void returnsResourceDescriptions_whenResourceTemplatesAvailable() {
     final var mcpResourceTemplate1 =
         createMcpResourceTemplate(
-            "file://resource1.txt", "resource1", "A first resource", "text/plain");
+            "file://resource1.txt",
+            "resource1",
+            "First Resource Template",
+            "A first resource",
+            "text/plain");
     final var mcpResourceTemplate2 =
         createMcpResourceTemplate(
-            "file://resource2.md", "resource2", "A second resource", "text/markdown");
+            "file://resource2.md",
+            "resource2",
+            "Second Resource Template",
+            "A second resource",
+            "text/markdown");
 
     final var resourceTemplate1 =
         createResourceTemplate(
-            "file://resource1.txt", "resource1", "A first resource", "text/plain");
+            "file://resource1.txt",
+            "resource1",
+            "First Resource Template",
+            "A first resource",
+            "text/plain");
     final var resourceTemplate2 =
         createResourceTemplate(
-            "file://resource2.md", "resource2", "A second resource", "text/markdown");
+            "file://resource2.md",
+            "resource2",
+            "Second Resource Template",
+            "A second resource",
+            "text/markdown");
 
     when(mcpClient.listResourceTemplates())
         .thenReturn(
@@ -71,22 +87,38 @@ class ListResourceTemplatesRequestTest {
     assertThat(result)
         .isInstanceOfSatisfying(
             McpClientListResourceTemplatesResult.class,
-            res ->
-                assertThat(res.resourceTemplates())
-                    .containsExactly(resourceTemplate1, resourceTemplate2));
+            res -> {
+              assertThat(res.resourceTemplates())
+                  .containsExactly(resourceTemplate1, resourceTemplate2);
+              assertThat(res.resourceTemplates())
+                  .extracting(ResourceTemplate::title)
+                  .containsExactly("First Resource Template", "Second Resource Template");
+            });
   }
 
   @Test
   void filtersResourceTemplates_whenFilterConfigured() {
     final var mcpResourceTemplate1 =
         createMcpResourceTemplate(
-            "file://allowed-template.txt", "allowed-template", "Allowed template", "text/plain");
+            "file://allowed-template.txt",
+            "allowed-template",
+            "Allowed Template",
+            "Allowed template",
+            "text/plain");
     final var mcpResourceTemplate2 =
         createMcpResourceTemplate(
-            "file://blocked-template.txt", "blocked-template", "Blocked template", "text/plain");
+            "file://blocked-template.txt",
+            "blocked-template",
+            "Blocked Template",
+            "Blocked template",
+            "text/plain");
     final var resourceTemplate1 =
         createResourceTemplate(
-            "file://allowed-template.txt", "allowed-template", "Allowed template", "text/plain");
+            "file://allowed-template.txt",
+            "allowed-template",
+            "Allowed Template",
+            "Allowed template",
+            "text/plain");
     final var filter =
         AllowDenyListBuilder.builder()
             .allowed(List.of("file://allowed-template.txt"))
@@ -112,12 +144,14 @@ class ListResourceTemplatesRequestTest {
         createMcpResourceTemplate(
             "file://blocked-template1.txt",
             "blocked-template1",
+            "Blocked Template 1",
             "Blocked template 1",
             "text/plain");
     final var mcpResourceTemplate2 =
         createMcpResourceTemplate(
             "file://blocked-template2.txt",
             "blocked-template2",
+            "Blocked Template 2",
             "Blocked template 2",
             "text/plain");
     final var filter =
@@ -145,6 +179,7 @@ class ListResourceTemplatesRequestTest {
         createMcpResourceTemplate(
             "file://blocked-template1.txt",
             "blocked-template1",
+            "Blocked Template 1",
             "Blocked template 1",
             "text/plain");
     final var filter =
@@ -165,12 +200,18 @@ class ListResourceTemplatesRequestTest {
   }
 
   private McpSchema.ResourceTemplate createMcpResourceTemplate(
-      String uriTemplate, String name, String description, String mimeType) {
-    return new McpSchema.ResourceTemplate(uriTemplate, name, description, mimeType, null);
+      String uriTemplate, String name, String title, String description, String mimeType) {
+    return McpSchema.ResourceTemplate.builder()
+        .uriTemplate(uriTemplate)
+        .name(name)
+        .title(title)
+        .description(description)
+        .mimeType(mimeType)
+        .build();
   }
 
   private ResourceTemplate createResourceTemplate(
-      String uriTemplate, String name, String description, String mimeType) {
-    return new ResourceTemplate(uriTemplate, name, description, mimeType);
+      String uriTemplate, String name, String title, String description, String mimeType) {
+    return new ResourceTemplate(uriTemplate, name, title, description, mimeType);
   }
 }

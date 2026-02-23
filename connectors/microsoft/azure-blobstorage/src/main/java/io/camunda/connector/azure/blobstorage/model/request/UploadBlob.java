@@ -7,7 +7,7 @@
 package io.camunda.connector.azure.blobstorage.model.request;
 
 import io.camunda.connector.api.document.Document;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.Min;
@@ -21,7 +21,7 @@ public record UploadBlob(
             id = "container",
             group = "operation",
             tooltip = "A container acts as a directory that organizes a set of blobs.",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "operation.container"))
         @NotBlank
         String container,
@@ -31,7 +31,7 @@ public record UploadBlob(
             id = "uploadOperationDocument",
             tooltip = "Document to be uploaded to Azure Blob Storage.",
             type = TemplateProperty.PropertyType.String,
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             binding = @TemplateProperty.PropertyBinding(name = "operation.document"))
         @NotNull
         Document document,
@@ -42,7 +42,7 @@ public record UploadBlob(
             tooltip =
                 "By default, the file's metadata name is used unless a custom name is specified.",
             optional = true,
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "operation.fileName"))
         String fileName,
     @TemplateProperty(

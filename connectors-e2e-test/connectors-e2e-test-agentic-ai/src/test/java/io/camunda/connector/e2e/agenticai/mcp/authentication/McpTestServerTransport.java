@@ -23,6 +23,10 @@ public enum McpTestServerTransport {
   HTTP(null, "http", "/mcp"),
   SSE("transport-sse", "sse", "/sse");
 
+  private static final String SPRING_CONFIG_CLIENTS_PREFIX =
+      "camunda.connector.agenticai.mcp.client.clients";
+  private static final String MCP_CLIENT_TIMEOUT = "PT3S";
+
   private final String testServerProfile;
   private final String type;
   private final String urlPath;
@@ -38,7 +42,11 @@ public enum McpTestServerTransport {
   }
 
   public String springConfigPrefix(String clientName) {
-    return "camunda.connector.agenticai.mcp.client.clients.%s.%s".formatted(clientName, type);
+    return springConfigClientPrefix(clientName) + "." + type;
+  }
+
+  private String springConfigClientPrefix(String clientName) {
+    return SPRING_CONFIG_CLIENTS_PREFIX + "." + clientName;
   }
 
   public String remoteConnectorInputMappingPrefix() {
@@ -47,9 +55,15 @@ public enum McpTestServerTransport {
 
   public void applySpringConfigProperties(
       Map<String, String> properties, String clientName, String mcpServerBaseUrl) {
+    properties.put("%s.type".formatted(springConfigClientPrefix(clientName)), type);
     properties.put(
-        "camunda.connector.agenticai.mcp.client.clients.%s.type".formatted(clientName), type);
+        ("%s.initialization-timeout").formatted(springConfigClientPrefix(clientName)),
+        MCP_CLIENT_TIMEOUT);
+    properties.put(
+        ("%s.tool-execution-timeout").formatted(springConfigClientPrefix(clientName)),
+        MCP_CLIENT_TIMEOUT);
     properties.put("%s.url".formatted(springConfigPrefix(clientName)), mcpServerBaseUrl + urlPath);
+    properties.put("%s.timeout".formatted(springConfigPrefix(clientName)), MCP_CLIENT_TIMEOUT);
   }
 
   public void applyRemoteConnectorInputMappings(
@@ -57,5 +71,7 @@ public enum McpTestServerTransport {
     inputMappings.put("data.transport.type", type);
     inputMappings.put(
         "%s.url".formatted(remoteConnectorInputMappingPrefix()), mcpServerBaseUrl + urlPath);
+    inputMappings.put(
+        "%s.timeout".formatted(remoteConnectorInputMappingPrefix()), MCP_CLIENT_TIMEOUT);
   }
 }

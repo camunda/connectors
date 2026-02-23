@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
@@ -902,7 +903,7 @@ class ChatModelFactoryTest {
             verify(builder).modelName(MODEL);
             verify(builder).baseUrl(ENDPOINT);
             verify(builder, never()).apiKey(any());
-            verify(builder, never()).customHeaders(any());
+            verify(builder, never()).customHeaders(anyMap());
           });
     }
 

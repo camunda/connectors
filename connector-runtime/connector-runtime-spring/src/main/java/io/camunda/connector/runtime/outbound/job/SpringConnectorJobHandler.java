@@ -42,7 +42,6 @@ import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
-import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,7 +94,13 @@ public class SpringConnectorJobHandler implements JobHandler {
   protected static FinalCommandStep<FailJobResponse> prepareFailJobCommand(
       JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
     var retries = result.retries();
-    var errorMessage = truncateErrorMessage(result.exception().getMessage());
+    var baseMessage = result.exception().getMessage();
+    var errorMessage =
+        truncateErrorMessage(
+            baseMessage
+                + (result.responseValue() != null
+                    ? " | Error variables: " + result.responseValue()
+                    : ""));
     Duration backoff = result.retryBackoff();
     var command =
         client.newFailCommand(job).retries(Math.max(retries, 0)).errorMessage(errorMessage);
@@ -249,7 +254,7 @@ public class SpringConnectorJobHandler implements JobHandler {
             client,
             job,
             new ConnectorResult.ErrorResult(
-                Map.of("error", jobError.errorMessage()),
+                jobError.variablesWithErrorMessage(),
                 new RuntimeException(jobError.errorMessage()),
                 jobError.retries(),
                 jobError.retryBackoff()),

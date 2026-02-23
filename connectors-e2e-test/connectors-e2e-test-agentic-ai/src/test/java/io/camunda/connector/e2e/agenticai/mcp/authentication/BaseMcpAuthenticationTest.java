@@ -16,15 +16,15 @@
  */
 package io.camunda.connector.e2e.agenticai.mcp.authentication;
 
-import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
+import static io.camunda.connector.agenticai.mcp.client.model.content.McpTextContent.textContent;
 import static io.camunda.connector.e2e.agenticai.BpmnUtil.serviceTasksByType;
 import static io.camunda.connector.e2e.agenticai.BpmnUtil.updateInputMappings;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.client.api.search.response.Incident;
+import io.camunda.connector.agenticai.mcp.client.model.McpToolDefinition;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientCallToolResult;
 import io.camunda.connector.agenticai.mcp.client.model.result.McpClientListToolsResult;
-import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
 import io.camunda.connector.e2e.agenticai.mcp.authentication.McpAuthenticationTestConfiguration.McpRemoteClientInputMappingsProvider;
@@ -102,9 +102,15 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
 
               assertThat(incidents.items())
                   .hasSize(2)
-                  .allSatisfy(i -> i.getErrorMessage().contains("Unexpected status code: 403"))
                   .extracting(Incident::getElementId)
                   .containsExactlyInAnyOrder("Client_List_Tools", "Remote_Client_List_Tools");
+
+              assertThat(incidents.items())
+                  .extracting(Incident::getErrorMessage)
+                  .allSatisfy(
+                      errorMessage ->
+                          assertThat(errorMessage)
+                              .startsWith("Client failed to initialize listing tools"));
             });
   }
 
@@ -159,7 +165,7 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
             listToolsResult ->
                 assertThat(listToolsResult.toolDefinitions())
                     .isNotEmpty()
-                    .extracting(ToolDefinition::name)
+                    .extracting(McpToolDefinition::name)
                     .containsExactlyInAnyOrder("uppercase", "lowercase", "echo", "greet"))
         .hasVariableSatisfies(
             "clientCallToolResult",
@@ -175,7 +181,7 @@ abstract class BaseMcpAuthenticationTest extends BaseAgenticAiTest {
             listToolsResult ->
                 assertThat(listToolsResult.toolDefinitions())
                     .isNotEmpty()
-                    .extracting(ToolDefinition::name)
+                    .extracting(McpToolDefinition::name)
                     .containsExactlyInAnyOrder(
                         "add", "echo", "base64Encode", "base64Decode", "greet"))
         .hasVariableSatisfies(

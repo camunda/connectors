@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;

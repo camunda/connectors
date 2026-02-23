@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.email.outbound.protocols.actions;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -19,7 +19,7 @@ public record ImapReadEmail(
             group = "readEmailImap",
             id = "imapMessageIdRead",
             tooltip = "The ID of the message, typically returned by a previous email task.",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.messageId"))
         @Valid
         @NotNull
@@ -31,7 +31,7 @@ public record ImapReadEmail(
             tooltip =
                 "Enter the name of the folder from which you wish to read emails. If left blank, emails will be read from the default 'INBOX' folder.",
             optional = true,
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.readEmailFolder"))
         String readEmailFolder)
     implements ImapAction {}

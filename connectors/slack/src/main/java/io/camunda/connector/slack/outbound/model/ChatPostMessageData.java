@@ -13,8 +13,7 @@ import com.slack.api.methods.request.chat.ChatPostMessageRequest;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.generator.dsl.Property;
-import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
@@ -100,7 +99,7 @@ public record ChatPostMessageData(
             id = "data.documents",
             group = "message",
             label = "attachments",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             binding = @PropertyBinding(name = "data.documents"),
             type = TemplateProperty.PropertyType.String,
             optional = true,

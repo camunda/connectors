@@ -27,6 +27,7 @@
           {
             "name": "toolA",
             "description": "The first tool",
+            "title": "Tool A",
             "inputSchema": {
               "type": "object",
               "properties": {
@@ -44,6 +45,7 @@
           {
             "name": "toolB",
             "description": "The second tool",
+            "title": "Tool B",
             "inputSchema": {
               "type": "object",
               "properties": {
@@ -65,6 +67,7 @@
           {
             "name": "toolC",
             "description": "The third tool",
+            "title": "Tool C",
             "inputSchema": {
               "type": "object",
               "properties": {

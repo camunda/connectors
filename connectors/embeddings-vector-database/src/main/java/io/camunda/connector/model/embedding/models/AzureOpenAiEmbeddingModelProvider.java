@@ -9,7 +9,7 @@ package io.camunda.connector.model.embedding.models;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DefaultValueType;
@@ -45,7 +45,7 @@ public record AzureOpenAiEmbeddingModelProvider(@Valid @NotNull Configuration az
               description =
                   "Specify the model deployment name. Details in the <a href=\"https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference\" target=\"_blank\">documentation</a>.",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String deploymentName,
       @TemplateProperty(
@@ -53,7 +53,7 @@ public record AzureOpenAiEmbeddingModelProvider(@Valid @NotNull Configuration az
               label = "Embedding dimensions",
               description =
                   "The size of the vector used to represent data. If not specified, the default model dimensions are used. Details in the <a href=\"https://platform.openai.com/docs/guides/embeddings\" target=\"_blank\">documentation</a>.",
-              feel = Property.FeelMode.required,
+              feel = FeelMode.required,
               type = TemplateProperty.PropertyType.Number,
               optional = true)
           Integer dimensions,
@@ -70,7 +70,7 @@ public record AzureOpenAiEmbeddingModelProvider(@Valid @NotNull Configuration az
               group = "embeddingModel",
               label = "Custom headers",
               description = "Map of custom HTTP headers to add to the request.",
-              feel = Property.FeelMode.required,
+              feel = FeelMode.required,
               optional = true)
           Map<String, String> customHeaders) {}
 
@@ -97,7 +97,7 @@ public record AzureOpenAiEmbeddingModelProvider(@Valid @NotNull Configuration az
                 group = "embeddingModel",
                 label = "API key",
                 type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.optional,
+                feel = FeelMode.optional,
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             String apiKey)
         implements AzureAuthentication {
@@ -116,7 +116,7 @@ public record AzureOpenAiEmbeddingModelProvider(@Valid @NotNull Configuration az
                 label = "Client ID",
                 description = "ID of a Microsoft Entra application",
                 type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.optional,
+                feel = FeelMode.optional,
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             String clientId,
         @NotBlank
@@ -125,7 +125,7 @@ public record AzureOpenAiEmbeddingModelProvider(@Valid @NotNull Configuration az
                 label = "Client secret",
                 description = "Secret of a Microsoft Entra application",
                 type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.optional,
+                feel = FeelMode.optional,
                 constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
             String clientSecret,
         @NotBlank
@@ -135,7 +135,7 @@ public record AzureOpenAiEmbeddingModelProvider(@Valid @NotNull Configuration az
                 description =
                     "ID of a Microsoft Entra tenant. Details in the <a href=\"https://learn.microsoft.com/en-us/entra/fundamentals/how-to-find-tenant\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.optional)
+                feel = FeelMode.optional)
             String tenantId,
         @TemplateProperty(
                 group = "embeddingModel",
@@ -143,7 +143,7 @@ public record AzureOpenAiEmbeddingModelProvider(@Valid @NotNull Configuration az
                 description =
                     "Authority host URL for the Microsoft Entra application. Defaults to <code>https://login.microsoftonline.com</code>. This can also contain an OAuth 2.0 token endpoint.",
                 type = TemplateProperty.PropertyType.String,
-                feel = Property.FeelMode.optional,
+                feel = FeelMode.optional,
                 optional = true)
             String authorityHost)
         implements AzureAuthentication {

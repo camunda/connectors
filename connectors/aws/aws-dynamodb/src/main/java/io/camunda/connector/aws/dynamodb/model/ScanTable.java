@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.aws.dynamodb.model;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
@@ -38,7 +38,7 @@ public record ScanTable(
     @TemplateProperty(
             label = "Expression attribute names",
             group = "input",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             optional = true,
             description =
                 "Is a placeholder that you use as an alternative to an actual attribute name. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>")
@@ -46,7 +46,7 @@ public record ScanTable(
     @TemplateProperty(
             label = "Expression attribute values",
             group = "input",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             optional = true,
             description =
                 "Expression attribute values. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-dynamodb/\" target=\"_blank\">documentation</a>")

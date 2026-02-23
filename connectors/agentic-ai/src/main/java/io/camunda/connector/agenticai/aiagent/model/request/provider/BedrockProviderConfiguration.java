@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.util.ConnectorUtils;
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -42,7 +42,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
               group = "provider",
               description = "Optional custom API endpoint",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               optional = true)
           String endpoint,
       @Valid @NotNull AwsAuthentication authentication,
@@ -131,7 +131,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
               description =
                   "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>.",
               type = TemplateProperty.PropertyType.String,
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               defaultValue = "anthropic.claude-3-5-sonnet-20240620-v1:0",
               defaultValueType = TemplateProperty.DefaultValueType.String,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
@@ -146,7 +146,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
                 tooltip =
                     "The maximum number of tokens per request to allow in the generated response. <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = Property.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Integer maxTokens,
         @Min(0)
@@ -156,7 +156,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
                 tooltip =
                     "Floating point number between 0 and 1. The higher the number, the more randomness will be injected into the response. <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = Property.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Double temperature,
         @Min(0)
@@ -166,7 +166,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
                 tooltip =
                     "Floating point number between 0 and 1. Recommended for advanced use cases only (you usually only need to use temperature). <br><br>Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InferenceConfiguration.html\" target=\"_blank\">documentation</a>.",
                 type = TemplateProperty.PropertyType.Number,
-                feel = Property.FeelMode.required,
+                feel = FeelMode.required,
                 optional = true)
             Double topP) {}
   }

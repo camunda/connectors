@@ -7,7 +7,7 @@
 package io.camunda.connector.email.config;
 
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -19,7 +19,7 @@ public record ImapConfig(
             id = "data.imapHost",
             tooltip =
                 "Enter the address of the IMAP server used to retrieve your emails. This server allows you to sync your messages across multiple devices. (e.g., imap.example.com)",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapConfig.imapHost"))
         @Valid
         @NotNull
@@ -32,7 +32,7 @@ public record ImapConfig(
             tooltip =
                 "Enter the port number for connecting to the IMAP server. Common ports are 993 for secure connections using SSL/TLS, or 143 for non-secure connections.",
             defaultValue = "993",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapConfig.imapPort"))
         @Valid
         @NotNull
@@ -42,7 +42,7 @@ public record ImapConfig(
             label = "Encryption protocol",
             tooltip = "Select the encryption protocol for email security.",
             group = "protocol",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             type = TemplateProperty.PropertyType.Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             defaultValue = "TLS",

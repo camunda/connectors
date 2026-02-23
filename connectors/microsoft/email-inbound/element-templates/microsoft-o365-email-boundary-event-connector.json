@@ -1,0 +1,491 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Microsoft O365 Email Boundary Event Connector",
+  "id" : "io.camunda.connectors.inbound.MSFT.O365.EmailBoundary.v1",
+  "description" : "Poll M365 Outlook emails",
+  "metadata" : {
+    "keywords" : [ "email", "Office365", "Outlook" ]
+  },
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/",
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:BoundaryEvent" ],
+  "elementType" : {
+    "value" : "bpmn:BoundaryEvent",
+    "eventDefinition" : "bpmn:MessageEventDefinition"
+  },
+  "engines" : {
+    "camunda" : "^8.9"
+  },
+  "groups" : [ {
+    "id" : "authentication",
+    "label" : "Authentication"
+  }, {
+    "id" : "pollingConfig",
+    "label" : "Listener Information"
+  }, {
+    "id" : "postprocessing",
+    "label" : "Postprocessing"
+  }, {
+    "id" : "activation",
+    "label" : "Activation"
+  }, {
+    "id" : "correlation",
+    "label" : "Correlation",
+    "tooltip" : "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>."
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  } ],
+  "properties" : [ {
+    "value" : "io.camunda:connector-o365-email-inbound:1",
+    "binding" : {
+      "name" : "inbound.type",
+      "type" : "zeebe:property"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "authentication.tenantId",
+    "label" : "Tenant ID",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.tenantId",
+      "type" : "zeebe:property"
+    },
+    "tooltip" : "Your Microsoft Entra (Azure AD) tenant ID. Find this in Azure Portal → Microsoft Entra ID → Overview. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#authentication\" target=\"_blank\">Learn more</a>",
+    "type" : "String"
+  }, {
+    "id" : "authentication.clientId",
+    "label" : "Client ID",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.clientId",
+      "type" : "zeebe:property"
+    },
+    "tooltip" : "The application (client) ID from your app registration. Find this in Azure Portal → App registrations → Your app → Overview. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#authentication\" target=\"_blank\">Learn more</a>",
+    "type" : "String"
+  }, {
+    "id" : "authentication.clientSecret",
+    "label" : "Client Secret",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.clientSecret",
+      "type" : "zeebe:property"
+    },
+    "tooltip" : "The client secret value from your app registration. Create this in Azure Portal → App registrations → Your app → Certificates & secrets. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#authentication\" target=\"_blank\">Learn more</a>",
+    "type" : "String"
+  }, {
+    "id" : "pollingConfig.userId",
+    "label" : "Mailbox Owner",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "pollingConfig.userId",
+      "type" : "zeebe:property"
+    },
+    "tooltip" : "The email address or user ID of the mailbox to monitor (e.g., user@example.com). <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#configuration\" target=\"_blank\">Learn more</a>",
+    "type" : "String"
+  }, {
+    "id" : "pollingConfig.folder.folderSpecification",
+    "label" : "Folder Identifier Type",
+    "description" : "Prefer using a folder ID if you are using a well known folder otherwise use the folder name",
+    "value" : "byId",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "pollingConfig.folder.folderSpecification",
+      "type" : "zeebe:property"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Folder ID",
+      "value" : "byId"
+    }, {
+      "name" : "Folder Name",
+      "value" : "byName"
+    } ]
+  }, {
+    "id" : "pollingConfig.folder.folderId",
+    "label" : "Folder ID",
+    "optional" : false,
+    "value" : "inbox",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "pollingConfig.folder.folderId",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "pollingConfig.folder.folderSpecification",
+      "equals" : "byId",
+      "type" : "simple"
+    },
+    "tooltip" : "The well-known folder ID or custom folder ID. <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties' target='_blank'>See folder properties in the API</a>",
+    "type" : "String"
+  }, {
+    "id" : "pollingConfig.folder.folderName",
+    "label" : "Folder Name",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "pollingConfig.folder.folderName",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "pollingConfig.folder.folderSpecification",
+      "equals" : "byName",
+      "type" : "simple"
+    },
+    "tooltip" : "The display name of the folder. Must be unique within the mailbox.",
+    "type" : "String"
+  }, {
+    "id" : "pollingConfig.pollingInterval",
+    "label" : "Polling interval",
+    "optional" : false,
+    "value" : "PT30S",
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "pollingConfig.pollingInterval",
+      "type" : "zeebe:property"
+    },
+    "tooltip" : "The interval between email polling requests, defined as ISO 8601 duration format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
+    "type" : "String"
+  }, {
+    "id" : "pollingConfig.filterCriteria.filterSpecification",
+    "label" : "Filter Specification",
+    "description" : "Use predefined filter conditions or provide your own OData filter string",
+    "value" : "simple",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "pollingConfig.filterCriteria.filterSpecification",
+      "type" : "zeebe:property"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Simple",
+      "value" : "simple"
+    }, {
+      "name" : "Advanced",
+      "value" : "advanced"
+    } ]
+  }, {
+    "id" : "pollingConfig.filterCriteria.onlyUnread",
+    "label" : "Only Unread",
+    "optional" : false,
+    "value" : true,
+    "feel" : "static",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "pollingConfig.filterCriteria.onlyUnread",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "pollingConfig.filterCriteria.filterSpecification",
+      "equals" : "simple",
+      "type" : "simple"
+    },
+    "tooltip" : "Only fetch unread emails",
+    "type" : "Boolean"
+  }, {
+    "id" : "pollingConfig.filterCriteria.subjectContains",
+    "label" : "Subject Contains",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "pollingConfig.filterCriteria.subjectContains",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "pollingConfig.filterCriteria.filterSpecification",
+      "equals" : "simple",
+      "type" : "simple"
+    },
+    "tooltip" : "Only fetch emails where subject contains this text (case-sensitive)",
+    "type" : "String"
+  }, {
+    "id" : "pollingConfig.filterCriteria.fromAddress",
+    "label" : "From Email Address",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "pollingConfig.filterCriteria.fromAddress",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "pollingConfig.filterCriteria.filterSpecification",
+      "equals" : "simple",
+      "type" : "simple"
+    },
+    "tooltip" : "Only fetch emails from this sender address (exact match, e.g. 'invoice@vendor.com')",
+    "type" : "String"
+  }, {
+    "id" : "pollingConfig.filterCriteria.filterString",
+    "label" : "OData Filter String",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "pollingConfig",
+    "binding" : {
+      "name" : "pollingConfig.filterCriteria.filterString",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "pollingConfig.filterCriteria.filterSpecification",
+      "equals" : "advanced",
+      "type" : "simple"
+    },
+    "tooltip" : "A custom OData filter expression. <a href='https://learn.microsoft.com/en-us/graph/filter-query-parameter' target='_blank'>See OData filter documentation</a>",
+    "type" : "String"
+  }, {
+    "id" : "operation.processingOperationDiscriminator",
+    "label" : "Postprocessing configuration",
+    "value" : "mark-read",
+    "group" : "postprocessing",
+    "binding" : {
+      "name" : "operation.processingOperationDiscriminator",
+      "type" : "zeebe:property"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Delete",
+      "value" : "delete"
+    }, {
+      "name" : "Mark as Read",
+      "value" : "mark-read"
+    }, {
+      "name" : "Move to other folder",
+      "value" : "move"
+    } ]
+  }, {
+    "id" : "operation.force",
+    "label" : "Force delete (email is permanently deleted)",
+    "optional" : false,
+    "value" : false,
+    "feel" : "static",
+    "group" : "postprocessing",
+    "binding" : {
+      "name" : "operation.force",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "operation.processingOperationDiscriminator",
+      "equals" : "delete",
+      "type" : "simple"
+    },
+    "type" : "Boolean"
+  }, {
+    "id" : "operation.targetFolder.folderSpecification",
+    "label" : "Folder Identifier Type",
+    "description" : "Prefer using a folder ID if you are using a well known folder otherwise use the folder name",
+    "value" : "byId",
+    "group" : "postprocessing",
+    "binding" : {
+      "name" : "operation.targetFolder.folderSpecification",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "operation.processingOperationDiscriminator",
+      "equals" : "move",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Folder ID",
+      "value" : "byId"
+    }, {
+      "name" : "Folder Name",
+      "value" : "byName"
+    } ]
+  }, {
+    "id" : "operation.targetFolder.folderId",
+    "label" : "Folder ID",
+    "optional" : false,
+    "value" : "inbox",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "postprocessing",
+    "binding" : {
+      "name" : "operation.targetFolder.folderId",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation.targetFolder.folderSpecification",
+        "equals" : "byId",
+        "type" : "simple"
+      }, {
+        "property" : "operation.processingOperationDiscriminator",
+        "equals" : "move",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The well-known folder ID or custom folder ID. <a href='https://learn.microsoft.com/en-us/graph/api/resources/mailfolder?view=graph-rest-1.0#properties' target='_blank'>See folder properties in the API</a>",
+    "type" : "String"
+  }, {
+    "id" : "operation.targetFolder.folderName",
+    "label" : "Folder Name",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "postprocessing",
+    "binding" : {
+      "name" : "operation.targetFolder.folderName",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation.targetFolder.folderSpecification",
+        "equals" : "byName",
+        "type" : "simple"
+      }, {
+        "property" : "operation.processingOperationDiscriminator",
+        "equals" : "move",
+        "type" : "simple"
+      } ]
+    },
+    "tooltip" : "The display name of the folder. Must be unique within the mailbox.",
+    "type" : "String"
+  }, {
+    "id" : "activationCondition",
+    "label" : "Activation condition",
+    "description" : "Condition under which the Connector triggers. Leave empty to catch all events",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "activation",
+    "binding" : {
+      "name" : "activationCondition",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "correlationKeyProcess",
+    "label" : "Correlation key (process)",
+    "description" : "Sets up the correlation key from process variables",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "correlationKey",
+      "type" : "bpmn:Message#zeebe:subscription#property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "correlationKeyPayload",
+    "label" : "Correlation key (payload)",
+    "description" : "Extracts the correlation key from the incoming message payload",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "correlationKeyExpression",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "messageIdExpression",
+    "label" : "Message ID expression",
+    "description" : "Expression to extract unique identifier of a message",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "messageIdExpression",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "messageTtl",
+    "label" : "Message TTL",
+    "description" : "Time-to-live for the message in the broker (ISO-8601 duration)",
+    "optional" : true,
+    "constraints" : {
+      "notEmpty" : false,
+      "pattern" : {
+        "value" : "^(PT.*|)$",
+        "message" : "must be an ISO-8601 duration"
+      }
+    },
+    "feel" : "optional",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "messageTtl",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "messageNameUuid",
+    "generatedValue" : {
+      "type" : "uuid"
+    },
+    "group" : "correlation",
+    "binding" : {
+      "name" : "name",
+      "type" : "bpmn:Message#property"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "name" : "resultVariable",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "name" : "resultExpression",
+      "type" : "zeebe:property"
+    },
+    "type" : "Text"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIGhlaWdodD0nMTYnIHdpZHRoPScxNicgdmlld0JveD0nLTI3NC42NjI3NSAtNDI1LjgzNCAyMzgwLjQxMDUgMjU1NS4wMDQnPgogICAgPHBhdGggZD0nTTE4MzEuMDgzIDg5NC4yNWE0MC44NzkgNDAuODc5IDAgMDAtMTkuNTAzLTM1LjEzMWgtLjIxM2wtLjc2Ny0uNDI2LTYzNC40OTItMzc1LjU4NWE4Ni4xNzUgODYuMTc1IDAgMDAtOC41MTctNS4wNjcgODUuMTcgODUuMTcgMCAwMC03OC4wOTggMCA4Ni4zNyA4Ni4zNyAwIDAwLTguNTE3IDUuMDY3bC02MzQuNDkgMzc1LjU4NS0uNzY2LjQyNmMtMTkuMzkyIDEyLjA1OS0yNS4zMzcgMzcuNTU2LTEzLjI3OCA1Ni45NDhhNDEuMzQ2IDQxLjM0NiAwIDAwMTQuMjU3IDEzLjg2OGw2MzQuNDkyIDM3NS41ODVhOTUuNjE3IDk1LjYxNyAwIDAwOC41MTcgNS4wNjggODUuMTcgODUuMTcgMCAwMDc4LjA5OCAwIDk1LjUyIDk1LjUyIDAgMDA4LjUxNy01LjA2OGw2MzQuNDkyLTM3NS41ODVhNDAuODQgNDAuODQgMCAwMDIwLjI2OC0zNS42ODV6JyBmaWxsPScjMEEyNzY3Jy8+CiAgICA8cGF0aCBkPSdNNTIwLjQ1MyA2NDMuNDc3aDQxNi4zOHYzODEuNjc0aC00MTYuMzh6TTE3NDUuOTE3IDI1NS41VjgwLjkwOGMxLTQzLjY1Mi0zMy41NTItNzkuODYyLTc3LjIwMy04MC45MDhINTg4LjIwNEM1NDQuNTUyIDEuMDQ2IDUxMCAzNy4yNTYgNTExIDgwLjkwOFYyNTUuNWw2MzguNzUgMTcwLjMzM3onIGZpbGw9JyMwMzY0QjgnLz4KICAgIDxwYXRoIGQ9J001MTEgMjU1LjVoNDI1LjgzM3YzODMuMjVINTExeicgZmlsbD0nIzAwNzhENCcvPgogICAgPHBhdGggZD0nTTEzNjIuNjY3IDI1NS41SDkzNi44MzN2MzgzLjI1TDEzNjIuNjY3IDEwMjJoMzgzLjI1VjYzOC43NXonIGZpbGw9JyMyOEE4RUEnLz4KICAgIDxwYXRoIGQ9J005MzYuODMzIDYzOC43NWg0MjUuODMzVjEwMjJIOTM2LjgzM3onIGZpbGw9JyMwMDc4RDQnLz4KICAgIDxwYXRoIGQ9J005MzYuODMzIDEwMjJoNDI1LjgzM3YzODMuMjVIOTM2LjgzM3onIGZpbGw9JyMwMzY0QjgnLz4KICAgIDxwYXRoIGQ9J001MjAuNDUzIDEwMjUuMTUxaDQxNi4zOHYzNDYuOTY5aC00MTYuMzh6JyBmaWxsPScjMTQ0NDdEJy8+CiAgICA8cGF0aCBkPSdNMTM2Mi42NjcgMTAyMmgzODMuMjV2MzgzLjI1aC0zODMuMjV6JyBmaWxsPScjMDA3OEQ0Jy8+CiAgICA8bGluZWFyR3JhZGllbnQgZ3JhZGllbnRUcmFuc2Zvcm09J21hdHJpeCgxIDAgMCAtMSAwIDE3MDUuMzMzKScgeTI9JzEuOTk4JyB4Mj0nMTEyOC40NTgnIHkxPSc4MTEuMDgzJyB4MT0nMTEyOC40NTgnIGdyYWRpZW50VW5pdHM9J3VzZXJTcGFjZU9uVXNlJyBpZD0nYSc+CiAgICAgICAgPHN0b3Agb2Zmc2V0PScwJyBzdG9wLWNvbG9yPScjMzViOGYxJy8+CiAgICAgICAgPHN0b3Agb2Zmc2V0PScxJyBzdG9wLWNvbG9yPScjMjhhOGVhJy8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHBhdGggZD0nTTE4MTEuNTggOTI3LjU5M2wtLjgwOS40MjYtNjM0LjQ5MiAzNTYuODQ4Yy0yLjc2OCAxLjcwMy01LjU3OCAzLjMyMS04LjUxNyA0Ljc2OWE4OC40MzcgODguNDM3IDAgMDEtMzQuNDA3IDguNTE3bC0zNC42NjMtMjAuMjdhODYuNzA2IDg2LjcwNiAwIDAxLTguNTE3LTQuODk3TDQ0Ny4xNjcgOTA2LjAwM2gtLjI5OGwtMjEuMDM2LTExLjc1M3Y3MjIuMzg0Yy4zMjggNDguMTk2IDM5LjY1MyA4Ny4wMDYgODcuODQ5IDg2LjdoMTIzMC45MTRjLjcyNCAwIDEuMzYzLS4zNDEgMi4xMjktLjM0MWExMDcuNzkgMTA3Ljc5IDAgMDAyOS44MDgtNi4yMTcgODYuMDY2IDg2LjA2NiAwIDAwMTEuOTY2LTYuMjE3YzIuODUzLTEuNjE4IDcuNzUtNS4xNTIgNy43NS01LjE1MmE4NS45NzQgODUuOTc0IDAgMDAzNC44MzMtNjguNzcyVjg5NC4yNWEzOC4zMjMgMzguMzIzIDAgMDEtMTkuNTAyIDMzLjM0M3onIGZpbGw9J3VybCgjYSknLz4KICAgIDxwYXRoIGQ9J00xNzk3LjAxNyA4OTEuMzk3djQ0LjI4N2wtNjYzLjQ0OCA0NTYuNzkxLTY4Ni44Ny00ODYuMTc0YS40MjYuNDI2IDAgMDAtLjQyNi0uNDI2bC02My4wMjMtMzcuODk5di0zMS45MzhsMjUuOTc2LS40MjYgNTQuOTMyIDMxLjUxMiAxLjI3Ny40MjYgNC42ODQgMi45ODFzNjQ1LjU2MyAzNjguMzQ2IDY0Ny4yNjcgMzY5LjE5N2wyNC42OTggMTQuNDc4YzIuMTI5LS44NTIgNC4yNTgtMS43MDMgNi44MTMtMi41NTUgMS4yNzgtLjg1MiA2NDAuODc5LTM2MC42ODEgNjQwLjg3OS0zNjAuNjgxeicgZmlsbD0nIzBBMjc2Nycgb3BhY2l0eT0nLjUnLz4KICAgIDxwYXRoIGQ9J00xODExLjU4IDkyNy41OTNsLS44MDkuNDY4LTYzNC40OTIgMzU2Ljg0OGMtMi43NjggMS43MDMtNS41NzggMy4zMjEtOC41MTcgNC43NjlhODguOTYgODguOTYgMCAwMS03OC4wOTggMCA5Ni41NzggOTYuNTc4IDAgMDEtOC41MTctNC43NjlsLTYzNC40OS0zNTYuODQ4LS43NjYtLjQ2OGEzOC4zMjYgMzguMzI2IDAgMDEtMjAuMDU3LTMzLjM0M3Y3MjIuMzg0Yy4zMDUgNDguMTg4IDM5LjYxNiA4Ny4wMDQgODcuODAzIDg2LjdoMTIyOS42NGM0OC4xODguMzA3IDg3LjUtMzguNTA5IDg3LjgwNy04Ni42OTYgMC0uMDAxIDAgMCAwIDBWODk0LjI1YTM4LjMzIDM4LjMzIDAgMDEtMTkuNTA0IDMzLjM0M3onIGZpbGw9JyMxNDkwREYnLz4KICAgIDxwYXRoIGQ9J00xMTg1LjUyIDEyNzkuNjI5bC05LjQ5NiA1LjMyM2E5Mi44MDYgOTIuODA2IDAgMDEtOC41MTcgNC44MTIgODguMTczIDg4LjE3MyAwIDAxLTMzLjQ3IDguODU3bDI0MS40MDUgMjg1LjQ3OSA0MjEuMTA3IDEwMS40NzZhODYuNzg1IDg2Ljc4NSAwIDAwMjYuNy0zMy4zNDN6JyBvcGFjaXR5PScuMScvPgogICAgPHBhdGggZD0nTTEyMjguNTI5IDEyNTUuNDQybC01Mi41MDUgMjkuNTFhOTIuODA2IDkyLjgwNiAwIDAxLTguNTE3IDQuODEyIDg4LjE3MyA4OC4xNzMgMCAwMS0zMy40NyA4Ljg1N2wxMTMuMTAxIDMxMS44MzggNTQ5LjUzOCA3NC45ODlhODYuMTA0IDg2LjEwNCAwIDAwMzQuNDA3LTY4LjgxNXYtOS4zMjZ6JyBvcGFjaXR5PScuMDUnLz4KICAgIDxwYXRoIGQ9J001MTQuODMzIDE3MDMuMzMzaDEyMjguMzE2YTg4LjMxNiA4OC4zMTYgMCAwMDUyLjU5LTE3LjAzM2wtNjk3LjA4OS00MDguMzMxYTg2LjcwNiA4Ni43MDYgMCAwMS04LjUxNy00Ljg5N0w0NDcuMTI1IDkwNi4wODhoLS4yOThsLTIwLjk5My0xMS44Mzh2NzE5LjkxNGMtLjA0OCA0OS4yIDM5Ljc5OCA4OS4xMjIgODguOTk5IDg5LjE2OS0uMDAxIDAtLjAwMSAwIDAgMHonIGZpbGw9JyMyOEE4RUEnLz4KICAgIDxwYXRoIGQ9J00xMDIyIDQxOC43MjJ2OTA4LjMwM2MtLjA3NiAzMS44NDYtMTkuNDQgNjAuNDcxLTQ4Ljk3MSA3Mi4zOTJhNzMuMzgyIDczLjM4MiAwIDAxLTI4Ljk1NyA1Ljk2Mkg0MjUuODMzVjM4My4yNUg1MTF2LTQyLjU4M2g0MzMuMDczYzQzLjAxOS4xNjMgNzcuODM0IDM1LjAzNSA3Ny45MjcgNzguMDU1eicgb3BhY2l0eT0nLjEnLz4KICAgIDxwYXRoIGQ9J005NzkuNDE3IDQ2MS4zMDV2OTA4LjMwMmE2OS4zNiA2OS4zNiAwIDAxLTYuMzg4IDI5LjgwOGMtMTEuODI2IDI5LjE0OS00MC4wODMgNDguMjczLTcxLjU0IDQ4LjQxN0g0MjUuODMzVjM4My4yNWg0NzUuNjU2YTcxLjQ5MyA3MS40OTMgMCAwMTM1LjM0NCA4Ljk0M2MyNi4xMDQgMTMuMTUxIDQyLjU3NCAzOS44ODMgNDIuNTg0IDY5LjExMnonIG9wYWNpdHk9Jy4yJy8+CiAgICA8cGF0aCBkPSdNOTc5LjQxNyA0NjEuMzA1djgyMy4xMzZjLS4yMDggNDMtMzQuOTI4IDc3Ljg1My03Ny45MjcgNzguMjI1SDQyNS44MzNWMzgzLjI1aDQ3NS42NTZhNzEuNDkzIDcxLjQ5MyAwIDAxMzUuMzQ0IDguOTQzYzI2LjEwNCAxMy4xNTEgNDIuNTc0IDM5Ljg4MyA0Mi41ODQgNjkuMTEyeicgb3BhY2l0eT0nLjInLz4KICAgIDxwYXRoIGQ9J005MzYuODMzIDQ2MS4zMDV2ODIzLjEzNmMtLjA0NiA0My4wNjctMzQuODYxIDc4LjAxNS03Ny45MjcgNzguMjI1SDQyNS44MzNWMzgzLjI1aDQzMy4wNzJjNDMuMDYyLjAyMyA3Ny45NTEgMzQuOTUxIDc3LjkyNyA3OC4wMTNhLjU4OS41ODkgMCAwMS4wMDEuMDQyeicgb3BhY2l0eT0nLjInLz4KICAgIDxsaW5lYXJHcmFkaWVudCBncmFkaWVudFRyYW5zZm9ybT0nbWF0cml4KDEgMCAwIC0xIDAgMTcwNS4zMzMpJyB5Mj0nMzI0LjI1OScgeDI9Jzc3NC4wODYnIHkxPScxMzgzLjA3NCcgeDE9JzE2Mi43NDcnIGdyYWRpZW50VW5pdHM9J3VzZXJTcGFjZU9uVXNlJyBpZD0nYic+CiAgICAgICAgPHN0b3Agb2Zmc2V0PScwJyBzdG9wLWNvbG9yPScjMTc4NGQ5Jy8+CiAgICAgICAgPHN0b3Agb2Zmc2V0PScuNScgc3RvcC1jb2xvcj0nIzEwN2FkNScvPgogICAgICAgIDxzdG9wIG9mZnNldD0nMScgc3RvcC1jb2xvcj0nIzBhNjNjOScvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxwYXRoIGQ9J003OC4wNTUgMzgzLjI1aDc4MC43MjNjNDMuMTA5IDAgNzguMDU1IDM0Ljk0NyA3OC4wNTUgNzguMDU1djc4MC43MjNjMCA0My4xMDktMzQuOTQ2IDc4LjA1NS03OC4wNTUgNzguMDU1SDc4LjA1NWMtNDMuMTA5IDAtNzguMDU1LTM0Ljk0Ny03OC4wNTUtNzguMDU1VjQ2MS4zMDVjMC00My4xMDggMzQuOTQ3LTc4LjA1NSA3OC4wNTUtNzguMDU1eicgZmlsbD0ndXJsKCNiKScvPgogICAgPHBhdGggZD0nTTI0My45NiA3MTAuNjMxYTIyNy4wNSAyMjcuMDUgMCAwMTg5LjE3LTk4LjQ5NSAyNjkuNTYgMjY5LjU2IDAgMDExNDEuNjc1LTM1LjUxNSAyNTAuOTEgMjUwLjkxIDAgMDExMzEuMTE0IDMzLjY4MyAyMjUuMDE0IDIyNS4wMTQgMCAwMTg2Ljc0MiA5NC4xMDkgMzAzLjc1MSAzMDMuNzUxIDAgMDEzMC40MDUgMTM4LjM5NiAzMjAuNTY3IDMyMC41NjcgMCAwMS0zMS4yOTkgMTQ0Ljc4MyAyMzAuMzcgMjMwLjM3IDAgMDEtODkuNDI1IDk3LjM4OCAyNjAuODY0IDI2MC44NjQgMCAwMS0xMzYuMDExIDM0LjU3OCAyNTYuMzU1IDI1Ni4zNTUgMCAwMS0xMzQuMDEtMzQuMDY3IDIyOC40OTcgMjI4LjQ5NyAwIDAxLTg3Ljg5Mi05NC4yOCAyOTYuNTA3IDI5Ni41MDcgMCAwMS0zMC43NDUtMTM2LjczNSAzMjkuMjkgMzI5LjI5IDAgMDEzMC4yNzYtMTQzLjg0NXptOTUuMDQ2IDIzMS4yMjdhMTQ3LjM4NiAxNDcuMzg2IDAgMDA1MC4xNjMgNjQuODEyIDEzMS4wMjggMTMxLjAyOCAwIDAwNzguMzUzIDIzLjU5MSAxMzcuMjQ0IDEzNy4yNDQgMCAwMDgzLjYzNC0yNC4zNTggMTQxLjE1NiAxNDEuMTU2IDAgMDA0OC43MTUtNjQuODEyIDI1MS41OTQgMjUxLjU5NCAwIDAwMTUuNTQzLTkwLjQwNCAyNzUuMTk4IDI3NS4xOTggMCAwMC0xNC42NDktOTEuNTU0IDE0NC43NzUgMTQ0Ljc3NSAwIDAwLTQ3LjE4Mi02Ny41MzcgMTI5LjU4IDEyOS41OCAwIDAwLTgyLjkxLTI1LjU1IDEzNS4yMDIgMTM1LjIwMiAwIDAwLTgwLjE4NCAyMy44MDQgMTQ4LjYyNiAxNDguNjI2IDAgMDAtNTEuMSA2NS4zNjUgMjU5Ljc1OSAyNTkuNzU5IDAgMDAtLjM0MSAxODYuNzI4eicgZmlsbD0nI0ZGRicvPgogICAgPHBhdGggZD0nTTEzNjIuNjY3IDI1NS41aDM4My4yNXYzODMuMjVoLTM4My4yNXonIGZpbGw9JyM1MEQ5RkYnLz4KPC9zdmc+Cg=="
+  }
+}

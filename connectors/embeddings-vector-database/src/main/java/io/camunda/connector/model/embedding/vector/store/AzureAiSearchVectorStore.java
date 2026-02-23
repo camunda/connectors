@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.model.embedding.vector.store;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -36,7 +36,7 @@ public record AzureAiSearchVectorStore(@Valid @NotNull Configuration aiSearch)
               label = "Index name",
               description =
                   "The name of the search index. When storing embeddings this index is created or updated automatically.",
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String indexName) {}
 }

@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.email.outbound.protocols.actions;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
@@ -19,7 +19,7 @@ public record ImapMoveEmail(
             group = "moveEmailImap",
             id = "imapMessageIdMove",
             tooltip = "The ID of the message, typically returned by a previous email task.",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.messageId"))
         @Valid
         @NotNull
@@ -30,7 +30,7 @@ public record ImapMoveEmail(
             id = "data.fromFolder",
             tooltip =
                 "Enter the name of the folder from which the emails will be moved. This field is required. For example, enter 'INBOX' to move emails from your Inbox.",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.fromFolder"))
         @Valid
         @NotNull
@@ -41,7 +41,7 @@ public record ImapMoveEmail(
             id = "data.toFolder",
             tooltip =
                 "Specify the destination folder to which the emails will be moved. To create a new folder or a hierarchy of folders, use a dot-separated path (e.g., 'Archive' or 'Projects.2023.January'). If any part of the path does not exist, it will be created automatically.",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             binding = @TemplateProperty.PropertyBinding(name = "data.imapAction.toFolder"))
         @Valid
         @NotNull

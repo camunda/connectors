@@ -8,7 +8,7 @@ package io.camunda.connector.idp.extraction.request.common.ai;
 
 import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Dropdown;
 
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.idp.extraction.model.providers.gcp.GcpAuthenticationType;
@@ -35,7 +35,7 @@ public record VertexAiRequest(
             label = "Bearer token",
             description = "Enter a valid Google API Bearer token",
             group = "ai",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             condition =
                 @TemplateProperty.PropertyCondition(property = "ai.authType", equals = "bearer"))
@@ -45,7 +45,7 @@ public record VertexAiRequest(
             label = "Client ID",
             description = "Enter Google API Client ID",
             group = "ai",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             condition =
                 @TemplateProperty.PropertyCondition(property = "ai.authType", equals = "refresh"))
@@ -55,7 +55,7 @@ public record VertexAiRequest(
             label = "Client secret",
             description = "Enter Google API client Secret",
             group = "ai",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             condition =
                 @TemplateProperty.PropertyCondition(property = "ai.authType", equals = "refresh"))
@@ -65,7 +65,7 @@ public record VertexAiRequest(
             label = "Refresh token",
             description = "Enter a valid Google API refresh token",
             group = "ai",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             condition =
                 @TemplateProperty.PropertyCondition(property = "ai.authType", equals = "refresh"))
@@ -75,7 +75,7 @@ public record VertexAiRequest(
             label = "Service account json",
             description = "Enter a the contents of your service account json file",
             group = "ai",
-            feel = Property.FeelMode.optional,
+            feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             condition =
                 @TemplateProperty.PropertyCondition(
