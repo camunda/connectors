@@ -121,7 +121,8 @@ public class DefaultAgentExecutor implements AgentExecutor {
     // call framework with memory
     LOGGER.debug("Executing chat request with AI framework");
     final var frameworkChatResponse =
-        framework.executeChatRequest(executionContext, agentContext, runtimeMemory);
+        framework.executeChatRequest(
+            executionContext, agentContext, runtimeMemory.filteredMessages());
     agentContext = frameworkChatResponse.agentContext();
 
     final var assistantMessage = frameworkChatResponse.assistantMessage();

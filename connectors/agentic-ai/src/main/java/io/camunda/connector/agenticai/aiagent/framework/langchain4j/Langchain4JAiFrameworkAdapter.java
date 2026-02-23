@@ -18,14 +18,15 @@ import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
-import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseFormatConfiguration.JsonResponseFormatConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.api.error.ConnectorException;
+import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 
@@ -50,15 +51,13 @@ public class Langchain4JAiFrameworkAdapter
 
   @Override
   public Langchain4JAiFrameworkChatResponse executeChatRequest(
-      AgentExecutionContext executionContext,
-      AgentContext agentContext,
-      RuntimeMemory runtimeMemory) {
-    final var messages = chatMessageConverter.map(runtimeMemory.filteredMessages());
+      AgentExecutionContext executionContext, AgentContext agentContext, List<Message> messages) {
+    final var l4jMessages = chatMessageConverter.map(messages);
     final var toolSpecifications =
         toolSpecificationConverter.asToolSpecifications(agentContext.toolDefinitions());
 
     final var chatRequestBuilder =
-        ChatRequest.builder().messages(messages).toolSpecifications(toolSpecifications);
+        ChatRequest.builder().messages(l4jMessages).toolSpecifications(toolSpecifications);
     configureResponseFormat(chatRequestBuilder, executionContext.response());
 
     final ChatModel chatModel = chatModelFactory.createChatModel(executionContext.provider());
