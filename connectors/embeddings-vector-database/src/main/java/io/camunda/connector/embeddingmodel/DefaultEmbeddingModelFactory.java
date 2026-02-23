@@ -42,7 +42,6 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.http.SdkHttpClient;
-import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
@@ -102,7 +101,7 @@ public class DefaultEmbeddingModelFactory {
       AzureOpenAiEmbeddingModel.Builder builder, String endpoint) {
     final var uri = URI.create(endpoint);
     if (uri.getScheme() == null) {
-      throw new IllegalArgumentException("Invalid endpoint URI {}" + endpoint);
+      throw new IllegalArgumentException("Invalid endpoint URI: " + endpoint);
     }
     // If connector proxy env vars are not present, the Azure OpenAI client will use the system
     // properties for proxy configuration.
@@ -114,6 +113,7 @@ public class DefaultEmbeddingModelFactory {
                   new ProxyOptions(
                       ProxyOptions.Type.HTTP,
                       new InetSocketAddress(proxyDetails.host(), proxyDetails.port()));
+              // Non-proxy hosts patterns are sanitized indide ProxyOptions
               proxyOptions.setNonProxyHosts(
                   NonProxyHosts.getNonProxyHostsPatterns()
                       .distinct()
@@ -139,53 +139,22 @@ public class DefaultEmbeddingModelFactory {
                     : null)
             .normalize(
                 bedrock.modelName() == BedrockModels.TitanEmbedTextV2 ? bedrock.normalize() : null)
+            .maxRetries(bedrock.maxRetries());
+
+    var bedrockClientBuilder =
+        BedrockRuntimeClient.builder()
             .region(Region.of(bedrock.region()))
-            .maxRetries(bedrock.maxRetries())
             .credentialsProvider(
                 StaticCredentialsProvider.create(
                     AwsBasicCredentials.create(bedrock.accessKey(), bedrock.secretKey())));
 
-    configureBedrockProxy(builder);
-
-    return builder.build();
-  }
-
-  private void configureBedrockProxy(
-      BedrockTitanEmbeddingModel.BedrockTitanEmbeddingModelBuilder<?, ?> builder) {
-
-    // Will use the system properties for proxy configuration if connector proxy env vars are not
-    // present.
-    var awsProxyConfigBuilder =
-        software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
-            .useSystemPropertyValues(true);
-
     // assuming the Bedrock client uses the HTTPS proxy settings, as the service endpoints are
     // HTTPS.
-    proxyConfig
-        .getProxyDetails(ProxyConfiguration.HTTPS)
-        .ifPresent(
-            proxy -> {
-              awsProxyConfigBuilder
-                  .scheme(proxy.scheme())
-                  .endpoint(ProxyUtil.toUri(proxy))
-                  .nonProxyHosts(
-                      // the SDK does not sanitize the patterns
-                      NonProxyHosts.getNonProxyHostRegexPatterns().collect(Collectors.toSet()));
+    SdkHttpClient httpClient =
+        ProxyUtil.createAwsProxyAwareHttpClient(proxyConfig, ProxyConfiguration.HTTPS);
+    bedrockClientBuilder.httpClient(httpClient);
 
-              if (proxy.hasCredentials()) {
-                awsProxyConfigBuilder.username(proxy.user());
-                awsProxyConfigBuilder.password(proxy.password());
-              }
-
-              SdkHttpClient httpClient =
-                  ApacheHttpClient.builder()
-                      .proxyConfiguration(awsProxyConfigBuilder.build())
-                      .build();
-
-              var bedrockClient = BedrockRuntimeClient.builder().httpClient(httpClient).build();
-
-              builder.client(bedrockClient);
-            });
+    return builder.client(bedrockClientBuilder.build()).build();
   }
 
   private EmbeddingModel createOpenAiEmbeddingModel(
