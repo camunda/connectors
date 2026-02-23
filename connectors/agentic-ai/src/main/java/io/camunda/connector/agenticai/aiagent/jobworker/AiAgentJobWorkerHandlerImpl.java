@@ -177,7 +177,12 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
             completeCommand,
             job,
             (command, throwable) -> {
-              completion.notifyCompletionError(throwable);
+              final var cause =
+                  throwable instanceof java.util.concurrent.CompletionException
+                          && throwable.getCause() != null
+                      ? throwable.getCause()
+                      : throwable;
+              completion.notifyCompletionError(cause);
               exceptionHandlingStrategy.handleCommandError(command, throwable);
             },
             metricsRecorder,
