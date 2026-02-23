@@ -67,7 +67,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -101,18 +100,30 @@ class JobWorkerAgentRequestHandlerTest {
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private JobWorkerAgentExecutionContext agentExecutionContext;
 
-  @Captor private ArgumentCaptor<RuntimeMemory> runtimeMemoryCaptor;
+  @Captor private ArgumentCaptor<List<Message>> messagesCaptor;
 
-  @InjectMocks private JobWorkerAgentRequestHandler requestHandler;
+  private AgentExecutor agentExecutor;
+  private JobWorkerAgentRequestHandler requestHandler;
 
   @BeforeEach
   void setUp() {
     lenient().when(job.getKey()).thenReturn(123456L);
     when(agentExecutionContext.job()).thenReturn(job);
+    lenient().when(agentExecutionContext.memory()).thenReturn(null);
 
     doReturn(new InProcessConversationStore())
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
+
+    agentExecutor =
+        new DefaultAgentExecutor(
+            conversationStoreRegistry,
+            limitsValidator,
+            messagesHandler,
+            gatewayToolHandlers,
+            framework,
+            responseHandler);
+    requestHandler = new JobWorkerAgentRequestHandler(agentInitializer, agentExecutor);
   }
 
   @Test
@@ -194,9 +205,6 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.responseText()).isEqualTo(assistantMessageText);
     assertThat(agentResponse.toolCalls()).isEmpty();
 
-    assertThat(runtimeMemoryCaptor.getValue().allMessages())
-        .containsExactlyElementsOf(expectedMessages);
-
     verify(limitsValidator).validateConfiguredLimits(agentExecutionContext, INITIAL_AGENT_CONTEXT);
     verify(agentExecutionContext, never()).setCancelRemainingInstances(anyBoolean());
   }
@@ -264,9 +272,6 @@ class JobWorkerAgentRequestHandlerTest {
             new ToolCallProcessVariable(
                 new ToolCallProcessVariable.ToolCallMetadata("fedcba_transformed", "getDateTime"),
                 Map.of()));
-
-    assertThat(runtimeMemoryCaptor.getValue().allMessages())
-        .containsExactlyElementsOf(expectedMessages);
 
     verify(limitsValidator).validateConfiguredLimits(agentExecutionContext, INITIAL_AGENT_CONTEXT);
     verify(agentExecutionContext, never()).setCancelRemainingInstances(anyBoolean());
@@ -336,58 +341,44 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.responseText()).isNull();
     assertThat(agentResponse.toolCalls()).isEmpty();
 
-    assertThat(runtimeMemoryCaptor.getValue().allMessages())
-        .containsExactlyElementsOf(expectedMessages);
-
     verify(limitsValidator).validateConfiguredLimits(agentExecutionContext, INITIAL_AGENT_CONTEXT);
     verify(agentExecutionContext).setCancelRemainingInstances(true);
   }
 
   @Test
   void usesConfiguredMaxMessagesWhenMessagesExceedContextWindow() {
-    final var runtimeMemory =
-        setupRuntimeMemorySizeTest(
+    final var result =
+        setupContextWindowTest(
             new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), 11));
 
-    assertThat(runtimeMemory.allMessages()).hasSize(31);
-    assertThat(runtimeMemory.filteredMessages()).hasSize(11);
-
-    assertThat(runtimeMemory.filteredMessages().getFirst())
-        .isEqualTo(userMessage("User message 20"));
-    assertThat(runtimeMemory.filteredMessages().getLast())
-        .isEqualTo(assistantMessage("This is the assistant message"));
+    assertThat(result.storedMessages()).hasSize(31);
+    assertThat(result.frameworkMessages()).hasSize(11);
+    assertThat(result.frameworkMessages().getFirst()).isEqualTo(userMessage("User message 19"));
+    assertThat(result.frameworkMessages().getLast()).isEqualTo(userMessage("User message 30"));
   }
 
   @ParameterizedTest
   @MethodSource("memoryConfigurationsWithoutMaxMessages")
   void fallsBackToDefaultContextWindowSizeWhenMemoryConfigurationIsMissing(
       MemoryConfiguration memoryConfiguration) {
-    final var runtimeMemory = setupRuntimeMemorySizeTest(memoryConfiguration);
+    final var result = setupContextWindowTest(memoryConfiguration);
 
-    assertThat(runtimeMemory.allMessages()).hasSize(31);
-    assertThat(runtimeMemory.filteredMessages()).hasSize(20);
-
-    assertThat(runtimeMemory.filteredMessages().getFirst())
-        .isEqualTo(userMessage("User message 11"));
-    assertThat(runtimeMemory.filteredMessages().getLast())
-        .isEqualTo(assistantMessage("This is the assistant message"));
+    assertThat(result.storedMessages()).hasSize(31);
+    assertThat(result.frameworkMessages()).hasSize(20);
+    assertThat(result.frameworkMessages().getFirst()).isEqualTo(userMessage("User message 10"));
+    assertThat(result.frameworkMessages().getLast()).isEqualTo(userMessage("User message 30"));
   }
 
   @Test
   void usesAllMessagesWhenMessagesWithinContextWindow() {
-    final var runtimeMemory =
-        setupRuntimeMemorySizeTest(
+    final var result =
+        setupContextWindowTest(
             new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), 35));
 
-    assertThat(runtimeMemory.allMessages()).hasSize(31);
-    assertThat(runtimeMemory.filteredMessages()).hasSize(31);
-    assertThat(runtimeMemory.filteredMessages())
-        .containsExactlyElementsOf(runtimeMemory.allMessages());
-
-    assertThat(runtimeMemory.filteredMessages().getFirst())
-        .isEqualTo(userMessage("User message 0"));
-    assertThat(runtimeMemory.filteredMessages().getLast())
-        .isEqualTo(assistantMessage("This is the assistant message"));
+    assertThat(result.storedMessages()).hasSize(31);
+    assertThat(result.frameworkMessages()).hasSize(30);
+    assertThat(result.frameworkMessages().getFirst()).isEqualTo(userMessage("User message 0"));
+    assertThat(result.frameworkMessages().getLast()).isEqualTo(userMessage("User message 30"));
   }
 
   @Test
@@ -442,7 +433,10 @@ class JobWorkerAgentRequestHandlerTest {
     completion.notifyCompletionError(exception);
   }
 
-  private RuntimeMemory setupRuntimeMemorySizeTest(MemoryConfiguration memoryConfiguration) {
+  private record ContextWindowTestResult(
+      List<Message> frameworkMessages, List<Message> storedMessages) {}
+
+  private ContextWindowTestResult setupContextWindowTest(MemoryConfiguration memoryConfiguration) {
     mockUserPrompt(new UserPromptConfiguration("User message 30", List.of()), List.of());
 
     when(agentExecutionContext.memory()).thenReturn(memoryConfiguration);
@@ -466,9 +460,22 @@ class JobWorkerAgentRequestHandlerTest {
     when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
         .thenAnswer(i -> i.getArgument(1));
 
-    requestHandler.handleRequest(agentExecutionContext);
+    when(responseHandler.createResponse(
+            eq(agentExecutionContext), any(AgentContext.class), eq(assistantMessage), anyList()))
+        .thenAnswer(
+            i ->
+                AgentResponse.builder()
+                    .context(i.getArgument(1, AgentContext.class))
+                    .responseMessage(i.getArgument(2, AssistantMessage.class))
+                    .responseText(assistantMessageText)
+                    .build());
 
-    return runtimeMemoryCaptor.getValue();
+    final var completion = requestHandler.handleRequest(agentExecutionContext);
+    final var storedMessages =
+        ((InProcessConversationContext) completion.agentResponse().context().conversation())
+            .messages();
+
+    return new ContextWindowTestResult(messagesCaptor.getValue(), storedMessages);
   }
 
   static Stream<MemoryConfiguration> memoryConfigurationsWithoutMaxMessages() {
@@ -534,7 +541,7 @@ class JobWorkerAgentRequestHandlerTest {
 
   private void mockFrameworkExecution(AssistantMessage assistantMessage) {
     when(framework.executeChatRequest(
-            eq(agentExecutionContext), any(AgentContext.class), runtimeMemoryCaptor.capture()))
+            eq(agentExecutionContext), any(AgentContext.class), messagesCaptor.capture()))
         .thenAnswer(
             i -> {
               final var agentContext = i.getArgument(1, AgentContext.class);
