@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.TestMessagesFixture;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.TestConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext.DocumentContent;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
@@ -285,6 +286,44 @@ class CamundaDocumentConversationStoreTest {
     session.onJobCompleted(updatedAgentContext);
 
     verify(documentStore).deleteDocument(previousDocumentReference);
+  }
+
+  @Test
+  void migratesFromInProcessConversationContext() throws Exception {
+    mockJobContext();
+
+    final var previousConversationContext =
+        InProcessConversationContext.builder("migrated-conversation")
+            .version(3)
+            .messages(TEST_MESSAGES)
+            .build();
+
+    final var newDocument = mock(Document.class);
+    when(documentFactory.create(documentCreationRequestCaptor.capture())).thenReturn(newDocument);
+
+    final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
+    final var session = store.createSession(executionContext, agentContext);
+    final var loadResult = session.loadMessages(agentContext);
+
+    assertThat(loadResult.messages()).containsExactlyElementsOf(TEST_MESSAGES);
+    assertThat(loadResult.reconciledFromStore()).isFalse();
+
+    final var updatedAgentContext = session.storeMessages(agentContext, TEST_MESSAGES);
+
+    assertThat(updatedAgentContext.conversation())
+        .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
+        .satisfies(
+            conversation -> {
+              assertThat(conversation.conversationId()).isEqualTo("migrated-conversation");
+              assertThat(conversation.version()).isEqualTo(4);
+              assertThat(conversation.document()).isEqualTo(newDocument);
+            });
+
+    final var creationRequest = documentCreationRequestCaptor.getValue();
+    JSONAssert.assertEquals(
+        new String(creationRequest.content().readAllBytes()),
+        documentContentAsString(EXPECTED_DOCUMENT_CONTENT),
+        true);
   }
 
   private void assertDocumentCreationRequest(
