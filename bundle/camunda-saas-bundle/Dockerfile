@@ -8,7 +8,6 @@ WORKDIR /
 USER root
 
 # The /opt/app is used for the Connectors runtime, and out-of-the-box connectors
-# Use the /opt/custom to mount your own connectors, secret providers, or include other jars into the classpath
 RUN mkdir /opt/app
 
 COPY target/*-with-dependencies.jar /opt/app/
