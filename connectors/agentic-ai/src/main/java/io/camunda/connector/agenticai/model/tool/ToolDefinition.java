@@ -9,8 +9,8 @@ package io.camunda.connector.agenticai.model.tool;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import jakarta.annotation.Nullable;
 import java.util.Map;
-import org.springframework.lang.Nullable;
 
 /** A tool definition, being a single tool available within the ad-hoc sub-process. */
 @AgenticAiRecord

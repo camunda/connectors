@@ -362,7 +362,7 @@ class McpClientGatewayToolHandlerTest {
       var result = handler.transformToolCallResults(agentContext, toolCallResults);
 
       assertThat(result).hasSize(1);
-      assertThat(result.get(0).content())
+      assertThat(result.getFirst().content())
           .isEqualTo(
               List.of(
                   McpTextContent.textContent("First content"),

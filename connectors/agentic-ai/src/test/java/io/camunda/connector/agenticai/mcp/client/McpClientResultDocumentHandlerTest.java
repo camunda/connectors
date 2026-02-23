@@ -83,11 +83,13 @@ class McpClientResultDocumentHandlerTest {
                     new McpToolDefinition(
                         "get-commits",
                         "Get Commits",
+                        "Get Commits",
                         Map.of("owner", "string", "repo", "string")))),
             new McpClientListToolsResult(
                 List.of(
                     new McpToolDefinition(
                         "get-commits",
+                        "Get Commits",
                         "Get Commits",
                         Map.of("owner", "string", "repo", "string"))))),
         argumentSet(
@@ -97,6 +99,7 @@ class McpClientResultDocumentHandlerTest {
                     new ResourceTemplate(
                         "uri-{name}",
                         "Resource Template",
+                        "Resource template",
                         "A resource template",
                         "application/json"))),
             new McpClientListResourceTemplatesResult(
@@ -104,6 +107,7 @@ class McpClientResultDocumentHandlerTest {
                     new ResourceTemplate(
                         "uri-{name}",
                         "Resource Template",
+                        "Resource template",
                         "A resource template",
                         "application/json")))),
         argumentSet(
@@ -111,11 +115,11 @@ class McpClientResultDocumentHandlerTest {
             new McpClientListResourcesResult(
                 List.of(
                     new ResourceDescription(
-                        "uri", "resource-1", "A resource", "application/json"))),
+                        "uri", "resource-1", "Resource 1", "A resource", "application/json"))),
             new McpClientListResourcesResult(
                 List.of(
                     new ResourceDescription(
-                        "uri", "resource-1", "A resource", "application/json")))),
+                        "uri", "resource-1", "Resource 1", "A resource", "application/json")))),
         argumentSet(
             "Read resource - with text content",
             new McpClientReadResourceResult(
@@ -129,6 +133,7 @@ class McpClientResultDocumentHandlerTest {
                     new PromptDescription(
                         "code_review",
                         "Code review",
+                        "Doing the code review",
                         List.of(
                             new PromptDescription.PromptArgument(
                                 "file", "File to review", true))))),
@@ -137,6 +142,7 @@ class McpClientResultDocumentHandlerTest {
                     new PromptDescription(
                         "code_review",
                         "Code review",
+                        "Doing the code review",
                         List.of(
                             new PromptDescription.PromptArgument(
                                 "file", "File to review", true)))))),

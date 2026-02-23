@@ -7,9 +7,12 @@
 package io.camunda.connector.agenticai.mcp.client.model;
 
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
+import jakarta.annotation.Nullable;
 import java.util.Map;
-import org.springframework.lang.Nullable;
 
 @AgenticAiRecord
 public record McpToolDefinition(
-    String name, @Nullable String description, Map<String, Object> inputSchema) {}
+    String name,
+    @Nullable String title,
+    @Nullable String description,
+    Map<String, Object> inputSchema) {}

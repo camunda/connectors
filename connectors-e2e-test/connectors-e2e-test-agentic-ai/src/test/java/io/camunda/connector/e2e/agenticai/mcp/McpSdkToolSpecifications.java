@@ -30,6 +30,7 @@ public class McpSdkToolSpecifications {
               McpSchema.Tool.builder()
                   .name("toolA")
                   .description("The first tool")
+                  .title("Tool A")
                   .inputSchema(
                       new McpSchema.JsonSchema(
                           "object",
@@ -46,6 +47,7 @@ public class McpSdkToolSpecifications {
               McpSchema.Tool.builder()
                   .name("toolB")
                   .description("The second tool")
+                  .title("Tool B")
                   .inputSchema(
                       new McpSchema.JsonSchema(
                           "object",
@@ -62,6 +64,7 @@ public class McpSdkToolSpecifications {
               McpSchema.Tool.builder()
                   .name("toolC")
                   .description("The third tool")
+                  .title("Tool C")
                   .inputSchema(
                       new McpSchema.JsonSchema(
                           "object",

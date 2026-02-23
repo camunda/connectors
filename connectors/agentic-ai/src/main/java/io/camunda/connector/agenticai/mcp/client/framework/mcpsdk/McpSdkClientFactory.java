@@ -94,8 +94,7 @@ public class McpSdkClientFactory implements McpClientFactory {
             List.of(
                 ProtocolVersions.MCP_2024_11_05,
                 ProtocolVersions.MCP_2025_03_26,
-                ProtocolVersions.MCP_2025_06_18,
-                ProtocolVersions.MCP_2025_11_25))
+                ProtocolVersions.MCP_2025_06_18))
         .customizeRequest(
             request -> {
               var headers = headerSupplier.get();
