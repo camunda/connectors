@@ -10,8 +10,8 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentDiscoveryInProgressInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationLoadResult;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
@@ -98,17 +99,15 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
       final List<ToolCallResult> toolCallResults) {
     final var conversationStore =
         conversationStoreRegistry.getConversationStore(executionContext, agentContext);
+    final var session = conversationStore.createSession(executionContext, agentContext);
     final var agentResponse =
-        conversationStore.executeInSession(
-            executionContext,
-            agentContext,
-            session -> handleRequest(executionContext, agentContext, toolCallResults, session));
+        handleRequest(executionContext, agentContext, toolCallResults, session);
 
     LOGGER.debug(
         "Request processing completed {} agent response, completing job",
         agentResponse == null ? "without" : "with");
 
-    return completeJob(executionContext, agentResponse, conversationStore);
+    return completeJob(executionContext, agentResponse, session);
   }
 
   private AgentResponse handleRequest(
@@ -116,15 +115,24 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
       AgentContext agentContext,
       List<ToolCallResult> toolCallResults,
       ConversationSession session) {
-    // set up memory and load from context if available
+    // load messages from conversation store
+    LOGGER.trace("Loading previous conversation (if any) from session");
+    final var loadResult = session.loadMessages(agentContext);
+
+    // if the store reconciled from a newer version, derive response directly
+    if (loadResult.reconciledFromStore()) {
+      LOGGER.debug("Store reconciled from newer version, deriving response from conversation");
+      return deriveReconciledResponse(executionContext, agentContext, loadResult, session);
+    }
+
+    // set up memory and populate with loaded messages
     final var runtimeMemory =
         new MessageWindowRuntimeMemory(
             Optional.ofNullable(executionContext.memory())
                 .map(MemoryConfiguration::contextWindowSize)
                 .orElse(DEFAULT_CONTEXT_WINDOW_SIZE));
 
-    LOGGER.trace("Loading previous conversation (if any) into runtime memory");
-    session.loadIntoRuntimeMemory(agentContext, runtimeMemory);
+    runtimeMemory.addMessages(loadResult.messages());
 
     // validate configured limits
     LOGGER.trace("Validating configured limits for agent execution");
@@ -178,12 +186,40 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
     final var processVariableToolCalls =
         toolCalls.stream().map(ToolCallProcessVariable::from).toList();
 
-    // store memory reference to context
-    LOGGER.debug("Storing runtime memory to conversation session");
-    agentContext = session.storeFromRuntimeMemory(agentContext, runtimeMemory);
+    // store messages to conversation session
+    LOGGER.debug("Storing messages to conversation session");
+    agentContext = session.storeMessages(agentContext, runtimeMemory.allMessages());
 
     return responseHandler.createResponse(
         executionContext, agentContext, assistantMessage, processVariableToolCalls);
+  }
+
+  private AgentResponse deriveReconciledResponse(
+      C executionContext,
+      AgentContext agentContext,
+      ConversationLoadResult loadResult,
+      ConversationSession session) {
+    final var messages = loadResult.messages();
+    // find last assistant message
+    final var lastAssistantMessage =
+        messages.reversed().stream()
+            .filter(AssistantMessage.class::isInstance)
+            .map(AssistantMessage.class::cast)
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new IllegalStateException("Reconciled conversation has no assistant message"));
+
+    final var toolCalls =
+        gatewayToolHandlers.transformToolCalls(agentContext, lastAssistantMessage.toolCalls());
+    final var processVariableToolCalls =
+        toolCalls.stream().map(ToolCallProcessVariable::from).toList();
+
+    // store to sync agentContext version with store
+    agentContext = session.storeMessages(agentContext, messages);
+
+    return responseHandler.createResponse(
+        executionContext, agentContext, lastAssistantMessage, processVariableToolCalls);
   }
 
   protected abstract boolean modelCallPrerequisitesFulfilled(
@@ -194,9 +230,9 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
     // no-op by default
   }
 
-  /** Handles job completion if needed. Agent response and conversation store may be null. */
+  /** Handles job completion if needed. Agent response and conversation session may be null. */
   protected abstract R completeJob(
       final C executionContext,
       @Nullable final AgentResponse agentResponse,
-      @Nullable final ConversationStore conversationStore);
+      @Nullable final ConversationSession session);
 }
