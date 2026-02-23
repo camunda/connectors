@@ -45,4 +45,9 @@ public class ProcessInstanceEventDummy implements ProcessInstanceEvent {
   public Set<String> getTags() {
     return Set.of();
   }
+
+  @Override
+  public String getBusinessId() {
+    return null;
+  }
 }
