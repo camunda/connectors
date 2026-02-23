@@ -59,7 +59,9 @@ If not all expected results are present, the worker completes as a no-op and wai
 ```
 agent/
 ├── AgentInitializerImpl        # State machine: INITIALIZING → TOOL_DISCOVERY → READY
-├── BaseAgentRequestHandler     # Main orchestration (shared by both flavors)
+├── AgentExecutor               # SPI: pluggable agent processing pipeline
+├── DefaultAgentExecutor        # Default pipeline: memory → messages → LLM → response
+├── BaseAgentRequestHandler     # Thin coordinator: init → execute → complete
 ├── JobWorkerAgentRequestHandler    # Job worker completion logic
 ├── OutboundConnectorAgentRequestHandler  # Connector completion logic
 ├── AgentMessagesHandlerImpl    # Message assembly (prompts, tool results, events)
@@ -68,7 +70,7 @@ agent/
 └── AgentLimitsValidatorImpl    # Safety limits (max model calls)
 
 framework/
-├── AiFrameworkAdapter          # Abstract LLM interface
+├── AiFrameworkAdapter          # Abstract LLM interface (messages in → response out)
 └── langchain4j/                # LangChain4J implementation
 
 memory/
@@ -142,7 +144,7 @@ When the LLM requests multiple tools (e.g., A and B), each tool completes indepe
 new job. `AgentMessagesHandlerImpl.createToolCallResultMessage()` checks if all expected tool results are present:
 
 - **All present**: Creates a `ToolCallResultMessage` with results ordered to match the original tool calls
-- **Missing (no events)**: Returns `null` → no messages added → `modelCallPrerequisitesFulfilled` returns `false` → **no-op completion** (just wait for the next job with more results)
+- **Missing (no events)**: Returns `null` → no messages added → executor returns null response → **no-op completion** (just wait for the next job with more results)
 - **Missing (with events + INTERRUPT_TOOL_CALLS)**: Creates cancelled results for missing tools, sets `cancelRemainingInstances = true`
 
 ### Job Supersession
@@ -351,7 +353,9 @@ The job worker template is auto-generated from the outbound template via
 | `AiAgentFunction.java` | Connector entry point |
 | `AiAgentJobWorker.java` | Job worker entry point |
 | `AiAgentJobWorkerHandlerImpl.java` | Job lifecycle management (complete/fail/error) |
-| `BaseAgentRequestHandler.java` | Core orchestration shared by both flavors |
+| `BaseAgentRequestHandler.java` | Thin coordinator: init → execute → complete (shared by both flavors) |
+| `AgentExecutor.java` | SPI for pluggable agent processing pipeline |
+| `DefaultAgentExecutor.java` | Default pipeline: memory → messages → LLM → response |
 | `AgentInitializerImpl.java` | Agent state machine (INITIALIZING → READY) |
 | `AgentMessagesHandlerImpl.java` | Message assembly, tool result matching, event handling |
 | `AgentResponseHandlerImpl.java` | Response formatting |

@@ -5,8 +5,8 @@
 
 ## Status
 
-**Proposed** — awaiting team buy-in before implementation. Depends on the
-[Conversation Storage Refactoring](conversation-storage-refactoring-plan.md) being completed first.
+**Implemented** — completed on Feb 23, 2026. The
+[Conversation Storage Refactoring](conversation-storage-refactoring-plan.md) was completed first as a prerequisite.
 
 ## Context and Problem Statement
 

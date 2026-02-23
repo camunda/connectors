@@ -165,11 +165,12 @@ The loop operates as a distributed state machine between the connector runtime a
    - If no gateway tools → state transitions to `READY`
    - If gateway tools (MCP) → state = `TOOL_DISCOVERY`, returns discovery tool calls
 
-4. **LLM interaction** (when state = `READY`):
+4. **LLM interaction** (when state = `READY`, delegated to `AgentExecutor`):
    - Load conversation from memory store into runtime memory
+   - Check for store-as-truth reconciliation (skip LLM if store is ahead)
    - Validate limits (max model calls)
    - Add system prompt, user prompt / tool call results to memory
-   - Call LLM via `AiFrameworkAdapter`
+   - Call LLM via `AiFrameworkAdapter` with filtered messages
    - Store updated conversation back to memory store
    - Transform tool calls and create response
 
@@ -287,7 +288,8 @@ record JobWorkerAgentCompletion(
     boolean completionConditionFulfilled,   // true = AHSP done
     boolean cancelRemainingInstances,        // true = cancel active tools
     Map<String, Object> variables,           // variables to set
-    Consumer<Throwable> onCompletionError   // error compensation callback
+    Runnable onCompletionSuccess,           // session.onJobCompleted() + close()
+    Consumer<Throwable> onCompletionError   // session close only
 )
 ```
 
@@ -528,13 +530,13 @@ t1      Tool A completes
                                         → Missing B result!
 
 t2      Tool B completes                Job #1 still processing...
-        → toolCallResults = [{A}, {B}]  
+        → toolCallResults = [{A}, {B}]
         → Creates Job #2                (Job #1 is now STALE)
-        
+
 t3                                      Job #1: Determines B is missing
-                                        → "modelCallPrerequisitesFulfilled" returns false
+                                        → No user messages added
+                                        → Executor returns null agentResponse (no-op)
                                         → No LLM call made
-                                        → completeJob with null agentResponse (no-op)
                                         → Job #1 completion may get NOT_FOUND
                                         → (or succeeds as no-op if Job #2 not created yet)
 
@@ -566,19 +568,21 @@ if (lastChatMessage instanceof AssistantMessage assistantMessage
 
 The method checks each tool call from the last assistant message against the available results:
 - If all present: creates a `ToolCallResultMessage` with results ordered to match the original tool call order
-- If missing and NOT interrupting: returns `null` → no messages → `modelCallPrerequisitesFulfilled` returns `false` → no-op
+- If missing and NOT interrupting: returns `null` → no messages added → executor returns null response → no-op
 - If missing and interrupting (due to event): creates cancelled results for missing tools
 
-### Job Worker `modelCallPrerequisitesFulfilled`
+### No-Op Detection in AgentExecutor
+
+The `DefaultAgentExecutor` checks whether any user messages were added after the message assembly step:
 
 ```java
-// JobWorkerAgentRequestHandler
-protected boolean modelCallPrerequisitesFulfilled(...) {
-    return !CollectionUtils.isEmpty(addedUserMessages);
+// DefaultAgentExecutor.execute()
+if (CollectionUtils.isEmpty(userMessages)) {
+    return new AgentExecutionResult(null, session);
 }
 ```
 
-This is the key gate: if no user messages were added (because tool results were incomplete), the agent simply does nothing — completes the job as a no-op, and waits for the next job (which will have more results).
+This is the key gate: if no user messages were added (because tool results were incomplete), the executor returns a null response. The job worker handler completes the job as a no-op and waits for the next job (which will have more results). The outbound connector handler throws a `ConnectorException` since it cannot proceed without user content.
 
 ---
 
@@ -590,8 +594,8 @@ This is the key gate: if no user messages were added (because tool results were 
 
 **Mitigation**:
 - The `CommandWrapper` retries up to 3 times via `CommandExceptionHandlingStrategy`
-- The `onCompletionError` callback on `JobWorkerAgentCompletion` closes the session without cleanup
-- The `onCompletionSuccess` callback runs `onJobCompleted()` (cleanup) then `close()`
+- The `onCompletionSuccess` callback on `JobWorkerAgentCompletion` runs `session.onJobCompleted()` (cleanup) then `session.close()`
+- The `onCompletionError` callback closes the session without cleanup
 - The no-op completion pattern means most superseded jobs were doing nothing anyway
 
 ### Challenge 2: Conversation Store Ahead of Zeebe
@@ -674,7 +678,7 @@ Events produce `ToolCallResult` entries with `id = null`, which are separated fr
   - The `cancelRemainingInstances` flag is set to `true` on the completion command
   - Active tool instances are terminated by Zeebe
 - Example message sequence: `[Tool A cancelled, Tool B result, Event message]`
-- The `PROPERTY_INTERRUPTED` flag on cancelled results triggers `cancelRemainingInstances` in `handleAddedUserMessages()`
+- The `PROPERTY_INTERRUPTED` flag on cancelled results triggers `cancelRemainingInstances` in the `DefaultAgentExecutor`
 
 ### Event Payload
 
@@ -695,9 +699,11 @@ public interface AiFrameworkAdapter<R extends AiFrameworkChatResponse<?>> {
     R executeChatRequest(
         AgentExecutionContext executionContext,
         AgentContext agentContext,
-        RuntimeMemory runtimeMemory);
+        List<Message> messages);
 }
 ```
+
+The adapter receives **pre-filtered messages** (the context window) from the `AgentExecutor` and returns a response. It does not know about `RuntimeMemory`, full history, or windowing — those are the executor's concerns.
 
 The agent core is framework-agnostic. `AiFrameworkAdapter` abstracts:
 - Converting internal message models to framework-specific formats
@@ -710,7 +716,7 @@ The agent core is framework-agnostic. `AiFrameworkAdapter` abstracts:
 The current (and only) implementation uses LangChain4J:
 - Configured via `AgenticAiLangchain4JFrameworkConfiguration`
 - Supports multiple providers: Anthropic, OpenAI, AWS Bedrock, Google Vertex AI, Azure OpenAI, OpenAI Compatible
-- Converts `RuntimeMemory.filteredMessages()` to LangChain4J chat messages
+- Converts the provided `List<Message>` to LangChain4J chat messages
 - Converts tool definitions to LangChain4J tool specifications
 - **Does NOT use LangChain4J's built-in tool execution** — tool calls are returned as data, execution happens via BPMN
 
@@ -786,7 +792,8 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `AiAgentJobWorkerHandlerImpl.handle()` → Job worker processing logic
 
 ### Core Agent Logic
-- `BaseAgentRequestHandler.handleRequest()` → Main orchestration method
+- `BaseAgentRequestHandler.handleRequest()` → Thin coordinator: init → execute → complete
+- `DefaultAgentExecutor.execute()` → Main orchestration: memory → messages → LLM → response
 - `AgentInitializerImpl.initializeAgent()` → State machine / initialization
 - `AgentMessagesHandlerImpl.addUserMessages()` → Message assembly (tool results, events, user prompt)
 - `AgentMessagesHandlerImpl.createToolCallResultMessage()` → Tool result matching & missing detection
@@ -795,13 +802,14 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 ### Job Completion
 - `AiAgentJobWorkerHandlerImpl.prepareCompleteCommand()` → AHSP completion command with tool activations
 - `JobWorkerAgentRequestHandler.completeJob()` → Job worker completion logic (no-op vs response)
-- `JobWorkerAgentCompletion.onCompletionError()` → Failure compensation
+- `JobWorkerAgentCompletion.onCompletionSuccess()` → Post-success session cleanup
+- `JobWorkerAgentCompletion.onCompletionError()` → Failure session close
 
 ### Memory
 - `ConversationStoreRegistryImpl.getConversationStore()` → Store resolution
-- `InProcessConversationSession.loadIntoRuntimeMemory()` / `storeFromRuntimeMemory()` → In-process persistence
-- `CamundaDocumentConversationSession.loadIntoRuntimeMemory()` / `storeFromRuntimeMemory()` → Document persistence
-- `MessageWindowRuntimeMemory.filteredMessages()` → Context window sliding
+- `InProcessConversationSession.loadMessages()` / `storeMessages()` → In-process persistence
+- `CamundaDocumentConversationSession.loadMessages()` / `storeMessages()` → Document persistence
+- `MessageWindowRuntimeMemory.filteredMessages()` → Context window sliding (internal to DefaultAgentExecutor)
 
 ### Tool Resolution
 - `AgentToolsResolverImpl.loadAdHocToolsSchema()` → Tool schema loading
