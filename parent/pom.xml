@@ -94,12 +94,12 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.32</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.41.34</version.software-aws-java-sdk>
+    <version.software-aws-java-sdk>2.42.0</version.software-aws-java-sdk>
     <version.aws-java-sdk-sts>1.12.797</version.aws-java-sdk-sts>
-    <version.software-aws-java-sdk-sts>2.41.34</version.software-aws-java-sdk-sts>
+    <version.software-aws-java-sdk-sts>2.42.0</version.software-aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
-    <version.aws-sdk-secretsmanager>2.41.34</version.aws-sdk-secretsmanager>
+    <version.aws-sdk-secretsmanager>2.42.0</version.aws-sdk-secretsmanager>
 
     <version.localstack>1.21.4</version.localstack>
 
@@ -107,7 +107,7 @@ limitations under the License.</license.inlineheader>
 
     <version.google-http-client>2.1.0</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20251210-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20260128-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.43.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20260114-2.0.0</version.google-api-services-docs>
