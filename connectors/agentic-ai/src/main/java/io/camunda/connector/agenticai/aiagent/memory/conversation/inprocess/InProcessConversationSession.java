@@ -8,9 +8,11 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 
 import static io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationUtil.loadConversationContext;
 
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationLoadResult;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
-import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
+import io.camunda.connector.agenticai.model.message.Message;
+import java.util.List;
 import java.util.UUID;
 
 public class InProcessConversationSession implements ConversationSession {
@@ -18,25 +20,28 @@ public class InProcessConversationSession implements ConversationSession {
   private InProcessConversationContext previousConversationContext;
 
   @Override
-  public void loadIntoRuntimeMemory(AgentContext agentContext, RuntimeMemory memory) {
+  public ConversationLoadResult loadMessages(AgentContext agentContext) {
     previousConversationContext =
         loadConversationContext(agentContext, InProcessConversationContext.class);
     if (previousConversationContext == null) {
-      return;
+      return ConversationLoadResult.of(List.of());
     }
 
-    memory.addMessages(previousConversationContext.messages());
+    return ConversationLoadResult.of(previousConversationContext.messages());
   }
 
   @Override
-  public AgentContext storeFromRuntimeMemory(AgentContext agentContext, RuntimeMemory memory) {
+  public AgentContext storeMessages(AgentContext agentContext, List<Message> messages) {
+    final long nextVersion =
+        previousConversationContext != null ? previousConversationContext.version() + 1 : 1;
+
     final var conversationContextBuilder =
         previousConversationContext != null
             ? previousConversationContext.with()
             : InProcessConversationContext.builder().conversationId(UUID.randomUUID().toString());
 
     final var conversationContext =
-        conversationContextBuilder.messages(memory.allMessages()).build();
+        conversationContextBuilder.version(nextVersion).messages(messages).build();
 
     return agentContext.withConversation(conversationContext);
   }
