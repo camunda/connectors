@@ -68,10 +68,19 @@ class DefaultEmbeddingModelFactoryTest {
 
       var factoryWithMockedProxy = new DefaultEmbeddingModelFactory(proxyConfig);
       var bedrockBuilder = spy(BedrockTitanEmbeddingModel.builder());
+      var bedrockRuntimeClientBuilder =
+          mock(BedrockRuntimeClientBuilder.class, Answers.RETURNS_SELF);
+      var mockBedrockClient = mock(BedrockRuntimeClient.class);
+
+      when(bedrockRuntimeClientBuilder.build()).thenReturn(mockBedrockClient);
 
       try (var modelMock =
-          mockStatic(BedrockTitanEmbeddingModel.class, Answers.CALLS_REAL_METHODS)) {
+              mockStatic(BedrockTitanEmbeddingModel.class, Answers.CALLS_REAL_METHODS);
+          var bedrockRuntimeClientMock = mockStatic(BedrockRuntimeClient.class)) {
         modelMock.when(BedrockTitanEmbeddingModel::builder).thenReturn(bedrockBuilder);
+        bedrockRuntimeClientMock
+            .when(BedrockRuntimeClient::builder)
+            .thenReturn(bedrockRuntimeClientBuilder);
 
         var model =
             factoryWithMockedProxy.createEmbeddingModel(
@@ -79,7 +88,8 @@ class DefaultEmbeddingModelFactoryTest {
 
         assertThat(model).isInstanceOf(BedrockTitanEmbeddingModel.class);
         verify(proxyConfig).getProxyDetails(ProxyConfiguration.SCHEME_HTTPS);
-        verify(bedrockBuilder, never()).client(any());
+        verify(bedrockBuilder).client(any());
+        verify(bedrockRuntimeClientBuilder).httpClient(any());
       }
     }
 
@@ -140,9 +150,9 @@ class DefaultEmbeddingModelFactoryTest {
       when(apacheHttpClientBuilder.proxyConfiguration(any())).thenReturn(apacheHttpClientBuilder);
       when(apacheHttpClientBuilder.build()).thenReturn(mockSdkHttpClient);
 
-      var bedrockRuntimeClientBuilder = mock(BedrockRuntimeClientBuilder.class);
+      var bedrockRuntimeClientBuilder =
+          mock(BedrockRuntimeClientBuilder.class, Answers.RETURNS_SELF);
       var mockBedrockClient = mock(BedrockRuntimeClient.class);
-      when(bedrockRuntimeClientBuilder.httpClient(any())).thenReturn(bedrockRuntimeClientBuilder);
       when(bedrockRuntimeClientBuilder.build()).thenReturn(mockBedrockClient);
 
       var bedrockTitanBuilder = spy(BedrockTitanEmbeddingModel.builder());
