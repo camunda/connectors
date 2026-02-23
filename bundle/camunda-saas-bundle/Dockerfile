@@ -12,10 +12,6 @@ RUN mkdir /opt/app
 
 COPY target/*-with-dependencies.jar /opt/app/
 
-# Using the start script from the base connector runtime image
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
-
 # Create an unprivileged user / group and switch to that user
 RUN addgroup --gid 1001 camunda && adduser -S -G camunda -u 1001 --no-create-home camunda
 USER 1001:1001
