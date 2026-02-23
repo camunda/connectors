@@ -7,23 +7,15 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentCompletion;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.model.message.Message;
-import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
-import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.util.LinkedHashMap;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 
 public class JobWorkerAgentRequestHandler
     extends BaseAgentRequestHandler<JobWorkerAgentExecutionContext, JobWorkerAgentCompletion> {
@@ -31,52 +23,8 @@ public class JobWorkerAgentRequestHandler
   private static final Logger LOGGER = LoggerFactory.getLogger(JobWorkerAgentRequestHandler.class);
 
   public JobWorkerAgentRequestHandler(
-      AgentInitializer agentInitializer,
-      ConversationStoreRegistry conversationStoreRegistry,
-      AgentLimitsValidator limitsValidator,
-      AgentMessagesHandler messagesHandler,
-      GatewayToolHandlerRegistry gatewayToolHandlers,
-      AiFrameworkAdapter<?> framework,
-      AgentResponseHandler responseHandler) {
-    super(
-        agentInitializer,
-        conversationStoreRegistry,
-        limitsValidator,
-        messagesHandler,
-        gatewayToolHandlers,
-        framework,
-        responseHandler);
-  }
-
-  @Override
-  protected boolean modelCallPrerequisitesFulfilled(
-      JobWorkerAgentExecutionContext executionContext,
-      AgentContext agentContext,
-      List<Message> addedUserMessages) {
-    return !CollectionUtils.isEmpty(addedUserMessages);
-  }
-
-  @Override
-  protected void handleAddedUserMessages(
-      JobWorkerAgentExecutionContext executionContext,
-      AgentContext agentContext,
-      List<Message> addedUserMessages) {
-    final boolean hasInterruptedToolCalls =
-        addedUserMessages.stream()
-            .filter(ToolCallResultMessage.class::isInstance)
-            .map(ToolCallResultMessage.class::cast)
-            .flatMap(msg -> msg.results().stream())
-            .anyMatch(
-                result ->
-                    Boolean.TRUE.equals(
-                        result
-                            .properties()
-                            .getOrDefault(ToolCallResult.PROPERTY_INTERRUPTED, false)));
-
-    // cancel remaining instances if any tool call was interrupted
-    if (hasInterruptedToolCalls) {
-      executionContext.setCancelRemainingInstances(true);
-    }
+      AgentInitializer agentInitializer, AgentExecutor agentExecutor) {
+    super(agentInitializer, agentExecutor);
   }
 
   @Override

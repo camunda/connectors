@@ -8,51 +8,17 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT;
 
-import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
-import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.api.error.ConnectorException;
-import java.util.List;
-import org.springframework.util.CollectionUtils;
 
 public class OutboundConnectorAgentRequestHandler
     extends BaseAgentRequestHandler<OutboundConnectorAgentExecutionContext, AgentResponse> {
 
   public OutboundConnectorAgentRequestHandler(
-      AgentInitializer agentInitializer,
-      ConversationStoreRegistry conversationStoreRegistry,
-      AgentLimitsValidator limitsValidator,
-      AgentMessagesHandler messagesHandler,
-      GatewayToolHandlerRegistry gatewayToolHandlers,
-      AiFrameworkAdapter<?> framework,
-      AgentResponseHandler responseHandler) {
-    super(
-        agentInitializer,
-        conversationStoreRegistry,
-        limitsValidator,
-        messagesHandler,
-        gatewayToolHandlers,
-        framework,
-        responseHandler);
-  }
-
-  @Override
-  protected boolean modelCallPrerequisitesFulfilled(
-      OutboundConnectorAgentExecutionContext executionContext,
-      AgentContext agentContext,
-      List<Message> addedUserMessages) {
-    if (CollectionUtils.isEmpty(addedUserMessages)) {
-      throw new ConnectorException(
-          ERROR_CODE_NO_USER_MESSAGE_CONTENT,
-          "Agent cannot proceed as no user message content (user message, tool call results) is left to add.");
-    }
-
-    return true;
+      AgentInitializer agentInitializer, AgentExecutor agentExecutor) {
+    super(agentInitializer, agentExecutor);
   }
 
   @Override
@@ -60,11 +26,18 @@ public class OutboundConnectorAgentRequestHandler
       OutboundConnectorAgentExecutionContext executionContext,
       AgentResponse agentResponse,
       ConversationSession session) {
+    if (agentResponse == null) {
+      if (session != null) {
+        session.close();
+      }
+      throw new ConnectorException(
+          ERROR_CODE_NO_USER_MESSAGE_CONTENT,
+          "Agent cannot proceed as no user message content (user message, tool call results) is left to add.");
+    }
+
     if (session != null) {
       try {
-        if (agentResponse != null) {
-          session.onJobCompleted(agentResponse.context());
-        }
+        session.onJobCompleted(agentResponse.context());
       } finally {
         session.close();
       }
