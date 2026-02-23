@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -83,11 +83,16 @@ public class JobWorkerAgentRequestHandler
   public JobWorkerAgentCompletion completeJob(
       JobWorkerAgentExecutionContext executionContext,
       AgentResponse agentResponse,
-      ConversationStore conversationStore) {
+      ConversationSession session) {
     if (agentResponse == null) {
       LOGGER.debug(
           "No agent response provided, completing job {} without response",
           executionContext.job().getKey());
+
+      // close session early — no response to process
+      if (session != null) {
+        session.close();
+      }
 
       // no-op (do not activate elements, do not complete agent process) -> wait for next job to
       // proceed (e.g. by adding user messages or to complete tool call results)
@@ -103,14 +108,14 @@ public class JobWorkerAgentRequestHandler
             agentResponse.toolCalls().stream().map(tc -> tc.metadata().name()).toList());
       }
 
-      return completeWithResponse(executionContext, agentResponse, conversationStore);
+      return completeWithResponse(executionContext, agentResponse, session);
     }
   }
 
   private JobWorkerAgentCompletion completeWithResponse(
       JobWorkerAgentExecutionContext executionContext,
       AgentResponse agentResponse,
-      ConversationStore conversationStore) {
+      ConversationSession session) {
     boolean completionConditionFulfilled = agentResponse.toolCalls().isEmpty();
     boolean cancelRemainingInstances = executionContext.cancelRemainingInstances();
 
@@ -138,14 +143,20 @@ public class JobWorkerAgentRequestHandler
         .completionConditionFulfilled(completionConditionFulfilled)
         .cancelRemainingInstances(cancelRemainingInstances)
         .variables(variables)
+        .onCompletionSuccess(
+            () -> {
+              if (session != null) {
+                try {
+                  session.onJobCompleted(agentResponse.context());
+                } finally {
+                  session.close();
+                }
+              }
+            })
         .onCompletionError(
             throwable -> {
-              if (conversationStore != null) {
-                LOGGER.debug("Allowing conversation store to compensate job failure");
-
-                // allow storage to compensate for failed job completion
-                conversationStore.compensateFailedJobCompletion(
-                    executionContext, agentResponse.context(), throwable);
+              if (session != null) {
+                session.close();
               }
             })
         .build();
