@@ -22,4 +22,6 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InPr
 })
 public interface ConversationContext {
   String conversationId();
+
+  long version();
 }
