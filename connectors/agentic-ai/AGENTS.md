@@ -73,8 +73,10 @@ framework/
 
 memory/
 ├── conversation/
-│   ├── ConversationStore       # Pluggable storage backend interface
-│   ├── ConversationSession     # Per-invocation load/store lifecycle
+│   ├── ConversationStore       # Pluggable storage: createSession() factory
+│   ├── ConversationSession     # Per-invocation lifecycle: loadMessages/storeMessages/onJobCompleted/close
+│   ├── ConversationLoadResult  # Load result: messages + reconciledFromStore flag
+│   ├── ConversationContext     # Persistent reference with version tracking
 │   ├── inprocess/              # In-process store (messages in agentContext variable)
 │   └── document/               # Camunda Document Storage backend
 └── runtime/
@@ -114,7 +116,8 @@ tool/
 - `completionConditionFulfilled`: `true` = AHSP done, `false` = continue
 - `cancelRemainingInstances`: `true` = cancel running tools (events)
 - `variables`: `{agentContext, toolCallResults/agent}`
-- `onCompletionError`: compensation callback for failed completions
+- `onCompletionSuccess`: callback for successful completion (session.onJobCompleted + close)
+- `onCompletionError`: callback for failed completion (session close only)
 
 ### Variable Flow (Sub-process)
 
@@ -149,13 +152,28 @@ A job may be superseded by a new job created when a tool completes. The worker m
 - No-op completions are safe even if superseded
 - The `onCompletionError` callback enables conversation store compensation
 
-### Conversation Persistence Timing
+### Conversation Session Lifecycle
 
-The conversation is stored **before** job completion is sent. For the document store, this means:
+`ConversationStore.createSession()` returns a `ConversationSession` (extends `AutoCloseable`) with this lifecycle:
+
+```
+createSession() → loadMessages() → [process] → storeMessages() → completeJob →
+  success: onJobCompleted() → close()
+  error: close()
+```
+
+Key behaviors:
+- `loadMessages()` returns a `ConversationLoadResult` with messages and a `reconciledFromStore` flag
+- `storeMessages()` takes `List<Message>` (decoupled from `RuntimeMemory`) and increments the version
+- `onJobCompleted()` performs post-success cleanup (e.g., deletes previous document in document store)
+- `close()` releases session resources
+- `ConversationContext` tracks a `long version` for future reconciliation support
+
+For the document store:
 - A new document is created each time (immutable)
 - If job completion fails, the document is "ahead" of Zeebe state
 - On retry, the agent uses the old `agentContext` (with old document reference) — safe, just re-does the work
-- Previous documents (last 2) are retained as safety net
+- `onJobCompleted()` deletes the previous document (replaces the old `previousDocuments` retention list)
 
 ### Event Handling (Sub-process Only)
 
@@ -178,7 +196,7 @@ Migration detection: `AgentMetadata.processDefinitionKey` vs current job's key.
 |---|---|---|---|
 | In-process | `in-process` | Messages inside `agentContext` process variable | Durable (engine-persisted). Variable size limits for large conversations |
 | Camunda Document | `camunda-document` | JSON document in document storage | Conversation stored externally; only a reference in `agentContext` |
-| Custom | `custom` | User-provided implementation | Implement `ConversationStore`, `ConversationSession`, `ConversationContext` (via `@JsonTypeName`) |
+| Custom | `custom` | User-provided implementation | Implement `ConversationStore`, `ConversationSession`, `ConversationContext` (registered via `@JsonSubTypes`) |
 
 `MessageWindowRuntimeMemory` limits messages sent to LLM (default: 20). Full history is always persisted.
 System messages are never evicted. Evicting an assistant message also evicts its follow-up tool results.

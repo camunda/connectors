@@ -348,10 +348,10 @@ ConversationStore (registered backend)
 - Stores messages as a JSON document in Camunda Document Storage
 - `AgentContext.conversation` only contains a `CamundaDocumentConversationContext` with a document reference
 - On load: fetches document content, deserializes messages
-- On store: creates a **new document** each time (immutable documents), keeps references to previous documents
-- **Previous document retention**: Keeps the last 2 previous documents as a safety net for recovery, purges older ones
+- On store: creates a **new document** each time (immutable documents)
+- `onJobCompleted()` deletes the previous document after successful job completion
 - Supports configurable TTL and custom properties
-- **Compensation on failure**: The `compensateFailedJobCompletion` hook exists but current implementation does not actively compensate — the document is already written before job completion is attempted
+- Supports transparent migration from `InProcessConversationContext`: if `loadMessages()` finds an in-process context, it reads messages directly (no document to load)
 
 **Custom implementations**: Fully pluggable via `ConversationStoreRegistry`. Users can register custom stores by:
 1. Implementing `ConversationStore`, `ConversationSession`, and `ConversationContext`
@@ -363,13 +363,19 @@ See the [`CustomMemoryStorageConfiguration`](../src/main/java/io/camunda/connect
 
 ### ConversationSession Lifecycle
 
-1. `ConversationStore.executeInSession()` creates a session
-2. `session.loadIntoRuntimeMemory()`: Loads previous conversation into RuntimeMemory
-3. Agent logic adds messages, calls LLM, gets response
-4. `session.storeFromRuntimeMemory()`: Persists updated conversation
-5. Job completion sends the updated `AgentContext` (with new conversation reference) back to Zeebe
+`ConversationSession` extends `AutoCloseable` and follows this lifecycle:
 
-**Critical insight**: The conversation is stored **before** job completion. If job completion fails (e.g., job was superseded), the stored conversation state may be ahead of what Zeebe knows. This is the `onCompletionError` callback's purpose — to allow stores to compensate (though current implementations don't actively roll back).
+1. `ConversationStore.createSession()` returns a new session
+2. `session.loadMessages(agentContext)` → returns `ConversationLoadResult(messages, reconciledFromStore)`
+3. Agent logic adds messages to `RuntimeMemory`, calls LLM, gets response
+4. `session.storeMessages(agentContext, messages)` → returns updated `AgentContext` (version incremented)
+5. Job completion sends the updated `AgentContext` back to Zeebe
+6. On success: `session.onJobCompleted(agentContext)` → cleanup (e.g., delete previous document)
+7. `session.close()` → release resources
+
+**Version tracking**: `ConversationContext.version()` is a monotonically increasing counter incremented on each `storeMessages()` call. This enables future reconciliation: if a retry finds a newer version in the store, it can skip the LLM call and derive the response from the stored conversation (`reconciledFromStore = true`).
+
+**Critical insight**: The conversation is stored **before** job completion. If job completion fails (e.g., job was superseded), the stored conversation state may be ahead of what Zeebe knows. On retry, the agent uses the old `agentContext` (with old version) — safe, just re-does the work. The `onJobCompleted()` hook only runs after successful completion, ensuring cleanup (like document deletion) is not premature.
 
 ---
 
@@ -582,9 +588,10 @@ This is the key gate: if no user messages were added (because tool results were 
 
 **Problem**: When a tool completes, Zeebe creates a new job. The previous job may still be processing. Completing the old job results in `NOT_FOUND`.
 
-**Mitigation**: 
+**Mitigation**:
 - The `CommandWrapper` retries up to 3 times via `CommandExceptionHandlingStrategy`
-- The `onCompletionError` callback on `JobWorkerAgentCompletion` allows conversation stores to compensate
+- The `onCompletionError` callback on `JobWorkerAgentCompletion` closes the session without cleanup
+- The `onCompletionSuccess` callback runs `onJobCompleted()` (cleanup) then `close()`
 - The no-op completion pattern means most superseded jobs were doing nothing anyway
 
 ### Challenge 2: Conversation Store Ahead of Zeebe
@@ -594,8 +601,8 @@ This is the key gate: if no user messages were added (because tool results were 
 - Document store: The document was already written. The `agentContext` variable in the completion command references this new document. If completion fails, the next job will use the OLD `agentContext` which references the OLD document. The new document becomes an orphan, but the agent state is consistent because it re-uses the old context.
 
 **Mitigation**:
-- The `compensateFailedJobCompletion` hook exists on `ConversationStore`
-- Previous document retention (last 2 documents kept) provides a recovery path
+- The `onJobCompleted()` hook only runs after successful job completion, ensuring cleanup (e.g., document deletion) doesn't happen prematurely
+- Version tracking on `ConversationContext` enables future reconciliation: the store can detect when it has a newer version than the agent context expects
 - The "document ahead of Zeebe" scenario is benign for correctness: the old conversation is a valid subset, the agent simply re-does the LLM call
 
 ### Challenge 3: Duplicate LLM Calls on Rapid Tool Completion
