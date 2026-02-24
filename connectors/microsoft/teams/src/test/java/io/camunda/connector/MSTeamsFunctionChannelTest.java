@@ -26,8 +26,8 @@ import com.microsoft.graph.teams.item.channels.item.messages.MessagesRequestBuil
 import com.microsoft.graph.teams.item.channels.item.messages.item.ChatMessageItemRequestBuilder;
 import com.microsoft.graph.teams.item.channels.item.messages.item.replies.RepliesRequestBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.model.authentication.MSTeamsAuthentication;
-import io.camunda.connector.suppliers.GraphServiceClientSupplier;
+import io.camunda.connector.microsoft.common.auth.GraphServiceClientSupplier;
+import io.camunda.connector.microsoft.common.auth.MicrosoftAuthentication;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -59,7 +59,8 @@ class MSTeamsFunctionChannelTest extends BaseTest {
   public void init() {
     function = new MSTeamsFunction(graphServiceClientSupplier);
 
-    when(graphServiceClientSupplier.buildAndGetGraphServiceClient(any(MSTeamsAuthentication.class)))
+    when(graphServiceClientSupplier.buildAndGetGraphServiceClient(
+            any(MicrosoftAuthentication.class)))
         .thenReturn(graphServiceClient);
 
     when(graphServiceClient.teams()).thenReturn(teamsRequestBuilder);
