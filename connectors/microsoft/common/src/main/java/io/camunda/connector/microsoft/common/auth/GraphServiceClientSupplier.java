@@ -39,6 +39,7 @@ public class GraphServiceClientSupplier {
   private static final String CLIENT_SECRET = "client_secret";
   private static final String CONTENT_TYPE = "Content-Type";
   private static final String X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
+  private static final String SCOPE = "scope";
   private static final String ACCESS_TOKEN = "access_token";
   private static final String DEFAULT_SCOPE = "https://graph.microsoft.com/.default";
 
@@ -81,7 +82,8 @@ public class GraphServiceClientSupplier {
         new FormBody.Builder()
             .add(CLIENT_ID, authentication.clientId())
             .add(GRANT_TYPE, REFRESH_TOKEN)
-            .add(REFRESH_TOKEN, authentication.token());
+            .add(REFRESH_TOKEN, authentication.token())
+            .add(SCOPE, DEFAULT_SCOPE);
     if (StringUtils.isNoneBlank(authentication.clientSecret())) {
       formBodyBuilder.add(CLIENT_SECRET, authentication.clientSecret());
     }

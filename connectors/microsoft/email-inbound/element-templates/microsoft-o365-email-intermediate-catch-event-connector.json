@@ -48,23 +48,48 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "authentication.tenantId",
-    "label" : "Tenant ID",
+    "id" : "authentication.type",
+    "label" : "Type",
+    "description" : "Authentication type depends on your Microsoft Entra (Azure AD) configuration. See <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/'>connector documentation</a>",
+    "value" : "clientCredentials",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.type",
+      "type" : "zeebe:property"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Bearer token",
+      "value" : "token"
+    }, {
+      "name" : "Client credentials",
+      "value" : "clientCredentials"
+    }, {
+      "name" : "Refresh token",
+      "value" : "refresh"
+    } ]
+  }, {
+    "id" : "authentication.bearer.token",
+    "label" : "Bearer token",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
-      "name" : "authentication.tenantId",
+      "name" : "authentication.token",
       "type" : "zeebe:property"
     },
-    "tooltip" : "Your Microsoft Entra (Azure AD) tenant ID. Find this in Azure Portal → Microsoft Entra ID → Overview. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#authentication\" target=\"_blank\">Learn more</a>",
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "token",
+      "type" : "simple"
+    },
     "type" : "String"
   }, {
-    "id" : "authentication.clientId",
+    "id" : "authentication.credentials.clientId",
     "label" : "Client ID",
+    "description" : "The client ID of the application",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -75,11 +100,36 @@
       "name" : "authentication.clientId",
       "type" : "zeebe:property"
     },
-    "tooltip" : "The application (client) ID from your app registration. Find this in Azure Portal → App registrations → Your app → Overview. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#authentication\" target=\"_blank\">Learn more</a>",
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "clientCredentials",
+      "type" : "simple"
+    },
     "type" : "String"
   }, {
-    "id" : "authentication.clientSecret",
-    "label" : "Client Secret",
+    "id" : "authentication.credentials.tenantId",
+    "label" : "Tenant ID",
+    "description" : "The tenant ID of the application",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.tenantId",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "clientCredentials",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.credentials.clientSecret",
+    "label" : "Client secret",
+    "description" : "The secret value of the Azure AD application",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -90,7 +140,87 @@
       "name" : "authentication.clientSecret",
       "type" : "zeebe:property"
     },
-    "tooltip" : "The client secret value from your app registration. Create this in Azure Portal → App registrations → Your app → Certificates & secrets. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/#authentication\" target=\"_blank\">Learn more</a>",
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "clientCredentials",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.refresh.token",
+    "label" : "Refresh token",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.token",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "refresh",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.refresh.clientId",
+    "label" : "Client ID",
+    "description" : "The client ID of the application",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.clientId",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "refresh",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.refresh.tenantId",
+    "label" : "Tenant ID",
+    "description" : "The tenant ID of the application",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.tenantId",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "refresh",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.refresh.clientSecret",
+    "label" : "Client secret",
+    "description" : "The secret value of the Azure AD application; optional, depends on whether the client is public or private",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.clientSecret",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "refresh",
+      "type" : "simple"
+    },
     "type" : "String"
   }, {
     "id" : "pollingConfig.userId",
