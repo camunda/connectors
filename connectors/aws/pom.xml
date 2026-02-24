@@ -28,6 +28,7 @@
     <module>aws-comprehend</module>
     <module>aws-textract</module>
     <module>aws-s3</module>
+    <module>aws-agentcore-memory</module>
   </modules>
 
   <properties>
@@ -58,6 +59,7 @@ except in compliance with the proprietary license.</license.inlineheader>
           <ignoredUsedUndeclaredDependencies combine.children="append">
             <dependency>com.amazonaws:aws-java-sdk-core</dependency>
             <dependency>software.amazon.awssdk:auth</dependency>
+            <dependency>software.amazon.awssdk:bedrockagentcore</dependency>
           </ignoredUsedUndeclaredDependencies>
         </configuration>
       </plugin>

@@ -22,6 +22,8 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.runtime.test.document.TestDocumentFactory;
 import java.nio.charset.StandardCharsets;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -610,5 +612,40 @@ class AwsAgentCoreConversationMapperTest {
     assertThat(messages).hasSize(1);
     UserMessage reconstructed = (UserMessage) messages.get(0);
     assertThat(reconstructed.metadata()).isEmpty();
+  }
+
+  @Test
+  void shouldSanitizeZonedDateTimeInMetadata() {
+    // given - ZonedDateTime serialized via Jackson may produce values with characters
+    // that violate AWS AgentCore regex: [a-zA-Z0-9\s._:/=+@-]*
+    // (e.g. JSON quotes from writeValueAsString, or brackets from ZonedDateTime.toString())
+    ZonedDateTime timestamp =
+        ZonedDateTime.of(2025, 4, 14, 15, 56, 50, 0, ZoneId.of("Europe/Berlin"));
+    Map<String, Object> metadata = Map.of("timestamp", timestamp);
+
+    // when
+    var awsMetadata = mapper.toAwsMetadata(metadata);
+
+    // then - the value should contain the date and be compliant with the AWS regex
+    String sanitizedValue = awsMetadata.get("timestamp").stringValue();
+    assertThat(sanitizedValue).doesNotContain("[").doesNotContain("]");
+    assertThat(sanitizedValue).contains("2025-04-14");
+    // Verify no invalid characters remain
+    assertThat(sanitizedValue).matches("[a-zA-Z0-9\\s._:/=+@-]*");
+  }
+
+  @Test
+  void shouldSanitizeInvalidCharactersInMetadata() {
+    // given - metadata with characters that violate AWS AgentCore regex
+    Map<String, Object> metadata = Map.of("key", "value{with}invalid<chars>");
+
+    // when
+    var awsMetadata = mapper.toAwsMetadata(metadata);
+
+    // then
+    String sanitizedValue = awsMetadata.get("key").stringValue();
+    assertThat(sanitizedValue).doesNotContain("{").doesNotContain("}");
+    assertThat(sanitizedValue).doesNotContain("<").doesNotContain(">");
+    assertThat(sanitizedValue).matches("[a-zA-Z0-9\\s._:/=+@-]*");
   }
 }

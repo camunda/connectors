@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +55,14 @@ public class AwsAgentCoreConversationMapper {
   private static final TypeReference<List<ToolCall>> TOOL_CALLS_TYPE = new TypeReference<>() {};
   private static final TypeReference<List<ToolCallResult>> TOOL_CALL_RESULTS_TYPE =
       new TypeReference<>() {};
+
+  /**
+   * AWS AgentCore metadata string values must match the pattern: [a-zA-Z0-9\s._:/=+@-]* Characters
+   * not matching this pattern (e.g. brackets from ZonedDateTime timezone like [Europe/Berlin]) will
+   * be removed.
+   */
+  private static final Pattern AWS_METADATA_INVALID_CHARS =
+      Pattern.compile("[^a-zA-Z0-9\\s._:/=+@-]");
 
   private final ObjectMapper objectMapper;
 
@@ -427,7 +436,7 @@ public class AwsAgentCoreConversationMapper {
     Map<String, MetadataValue> awsMetadata = new HashMap<>();
     for (Map.Entry<String, Object> entry : metadata.entrySet()) {
       if (entry.getValue() != null) {
-        String stringValue = convertToString(entry.getValue());
+        String stringValue = sanitizeMetadataValue(convertToString(entry.getValue()));
         awsMetadata.put(entry.getKey(), MetadataValue.fromStringValue(stringValue));
       }
     }
@@ -464,6 +473,21 @@ public class AwsAgentCoreConversationMapper {
       // Fallback to toString for non-serializable objects
       return value.toString();
     }
+  }
+
+  /**
+   * Sanitize a metadata string value to comply with the AWS AgentCore constraint:
+   * [a-zA-Z0-9\s._:/=+@-]*
+   *
+   * <p>Removes any characters that do not match the allowed pattern. For example, a ZonedDateTime
+   * serialized as "2025-04-14T15:56:50+02:00[Europe/Berlin]" will become
+   * "2025-04-14T15:56:50+02:00Europe/Berlin".
+   */
+  private String sanitizeMetadataValue(String value) {
+    if (value == null) {
+      return null;
+    }
+    return AWS_METADATA_INVALID_CHARS.matcher(value).replaceAll("");
   }
 
   /**
