@@ -6,11 +6,8 @@
   <packaging>pom</packaging>
 
   <name>Connectors Bundle</name>
-   <properties>
-     <elasticsearch-java.version>8.19.11</elasticsearch-java.version>
-   </properties>
 
-   <parent>
+  <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
     <relativePath>../parent/pom.xml</relativePath>
@@ -213,12 +210,6 @@
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-embeddings-vector-database</artifactId>
         <version>${project.version}</version>
-      </dependency>
-      <!-- Override Spring Boot BOM elasticsearch version to match langchain4j requirements -->
-      <dependency>
-        <groupId>co.elastic.clients</groupId>
-        <artifactId>elasticsearch-java</artifactId>
-        <version>${elasticsearch-java.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
