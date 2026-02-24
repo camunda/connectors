@@ -171,6 +171,7 @@ limitations under the License.</license.inlineheader>
 
     <version.langchain4j>1.11.0</version.langchain4j>
     <version.mcp-sdk>0.17.2</version.mcp-sdk>
+    <version.elasticsearch-rest-client>8.19.11</version.elasticsearch-rest-client>
 
     <version.scala>3.8.1</version.scala>
 
@@ -643,6 +644,12 @@ limitations under the License.</license.inlineheader>
             <artifactId>netty-resolver-dns-native-macos</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>org.elasticsearch.client</groupId>
+        <artifactId>elasticsearch-rest-client</artifactId>
+        <version>${version.elasticsearch-rest-client}</version>
       </dependency>
 
       <dependency>
