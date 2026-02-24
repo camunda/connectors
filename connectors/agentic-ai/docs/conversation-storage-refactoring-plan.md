@@ -1,11 +1,65 @@
 # Conversation Storage Refactoring: Implementation Plan
 
-* Deciders: Agentic AI Team
-* Date: Feb 20, 2026
+## TL;DR
 
-## Status
+This refactoring redesigns how the AI Agent stores and retrieves conversation history. The goals are
+a clean storage SPI that external teams and customers can implement against (RDBMS, Redis, AWS
+AgentCore, etc.), and laying the groundwork for **store-as-truth reconciliation** — the ability
+for external stores to prevent wasted LLM calls after transient job completion failures.
 
-**Proposed** — awaiting team buy-in before implementation.
+**The core problem — split state and wasted LLM calls:**
+
+The agent's state is split between the Zeebe engine (process variables) and the conversation store.
+The conversation is written to the store *before* the job completion command is sent to Zeebe.
+If job completion fails (e.g., the job was superseded by another tool completing), the store already
+has the latest conversation including the LLM response, but the engine doesn't know about it. On
+the next retry, the agent loads the old state from the engine and repeats the entire LLM call —
+correct, but wasteful.
+
+With **store-as-truth reconciliation**, an external store that can query by conversation key detects
+that it already has a newer version than what the engine references. It signals this via a
+`reconciledFromStore` flag, and the agent derives its response from the stored conversation instead
+of calling the LLM again. This eliminates the wasted call entirely.
+
+**Which stores can reconcile:**
+
+- **In-process** (default): Cannot reconcile — conversation data is embedded in the process variable
+  itself, so there's no external artifact to recover from. Accepts the rare re-processing cost.
+- **Camunda Document**: Cannot reconcile today — documents are stored externally (write-ahead), but
+  the Document API only supports get-by-ID, not query-by-conversation-key. The foundation exists
+  (we store a conversation ID as document metadata), but a document search API would be needed.
+- **Custom external stores** (RDBMS, Redis, AWS AgentCore): Can reconcile — these stores support
+  querying by conversation key and can detect when they're ahead of the engine.
+
+The reconciliation capability is opt-in per store. The SPI is designed so that stores can adopt it
+incrementally — built-in stores work correctly without it, custom stores benefit from it.
+
+**Other key changes:**
+
+- **Storage decoupled from agent internals**: The storage interface works with plain message lists
+  instead of depending on the agent's internal runtime memory abstraction. Storage implementations
+  only deal with persistence.
+- **No more spanning transactions**: The old callback-based session pattern encouraged wrapping the
+  entire load → LLM call → store flow in a single database transaction — holding DB connections for
+  seconds during LLM calls, risking connection pool exhaustion. The new design uses a session
+  factory, and custom RDBMS stores should use short per-operation transactions with optimistic
+  concurrency (version checks) instead.
+- **Proper lifecycle hooks**: Sessions have `onJobCompleted()` (fires after successful job
+  completion — safe place for cleanup like deleting old documents) and `close()` (resource release).
+  This replaces a compensation hook that was never implemented by any store.
+- **Version tracking**: Every conversation context carries a version counter, incremented on each
+  store. This is what enables reconciliation — the store's version may be ahead of what the engine
+  references.
+- **Simpler document storage**: The document store no longer maintains a list of previous document
+  references in the persisted context. Old documents are cleaned up via `onJobCompleted()`. A
+  rolling TTL (default 30 days) ensures bounded storage.
+- **Transparent migration**: Switching an existing process from in-process to document storage
+  requires no redeployment — the document store detects the old format and migrates automatically.
+
+**For custom store implementors**: Implement `ConversationStore` and `ConversationSession`, register
+as a Spring bean. See
+[camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations) for a
+working example with a JPA-backed store.
 
 ## Context and Problem Statement
 

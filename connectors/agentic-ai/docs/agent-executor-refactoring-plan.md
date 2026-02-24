@@ -1,12 +1,47 @@
 # Agent Executor Refactoring: Implementation Plan
 
-* Deciders: Agentic AI Team
-* Date: Feb 20, 2026
+Depends on the [Conversation Storage Refactoring](conversation-storage-refactoring-plan.md) being
+completed first.
 
-## Status
+## TL;DR
 
-**Implemented** — completed on Feb 23, 2026. The
-[Conversation Storage Refactoring](conversation-storage-refactoring-plan.md) was completed first as a prerequisite.
+This refactoring makes the agent's core processing pipeline — the part that loads conversation
+history, constructs messages, calls the LLM, and produces a response — replaceable. Users who want
+fundamentally different agent behavior (a different LLM framework, multi-step reasoning, custom
+tool execution strategies) can swap in their own implementation while keeping the full Camunda
+integration (ad-hoc sub-process completion, tool activation, conversation storage, job lifecycle).
+
+**Why this is needed:**
+
+The agent's orchestration logic lives in `BaseAgentRequestHandler`, an abstract class that
+hard-codes the processing pipeline. Individual steps are already behind clean interfaces (message
+handling, LLM invocation, response formatting, etc.), but the way they're composed is not
+pluggable. Users who need different orchestration have to replace the entire handler chain,
+including the Camunda-specific parts they want to keep.
+
+The LLM framework adapter also receives the agent's internal context-window abstraction as a
+parameter, coupling it to orchestration details it doesn't need. It only needs the messages to
+send to the LLM.
+
+**Key changes:**
+
+- **New `AgentExecutor` SPI**: A single-method interface that encapsulates the full agent processing
+  pipeline between "agent initialized" and "response ready." The default implementation composes
+  all existing interfaces and contains the standard pipeline: load conversation, check for
+  reconciliation, manage context window, construct messages, call LLM, transform tool calls, store
+  conversation, format response. Behavior is unchanged — the logic moves, it doesn't change.
+- **Handler becomes a thin coordinator**: The request handler no longer contains orchestration
+  logic. It initializes the agent, delegates to the executor, and completes the job. This makes it
+  easy to understand and unlikely to need changes.
+- **LLM adapter receives plain messages**: The framework adapter receives a pre-filtered message
+  list instead of the runtime memory object. A clean "messages in, response out" contract with
+  no knowledge of memory management internals.
+- **Runtime memory becomes an internal detail**: The context window management is no longer part of
+  any public interface. Custom executors can manage messages however they want — they aren't forced
+  to use the sliding window approach.
+- **Spring-based extensibility**: The default executor is registered as a conditional bean. Users
+  provide their own executor as a Spring bean to replace the entire pipeline. The handler handles
+  initialization, job completion, and session lifecycle — the executor focuses purely on agent logic.
 
 ## Context and Problem Statement
 
