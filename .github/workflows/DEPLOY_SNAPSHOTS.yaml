@@ -113,7 +113,7 @@ jobs:
           # Use custom docker tag if provided, otherwise default
           CUSTOM_TAG="${{ github.event.inputs.docker_tag }}"
           if [ -n "${CUSTOM_TAG}" ]; then
-            DOCKER_VERSION="${CUSTOM_TAG}"
+            DOCKER_VERSION="${MINOR_VERSION}-SNAPSHOT-${CUSTOM_TAG}"
             echo "::notice::Using custom Docker tag: ${DOCKER_VERSION}"
           else
             DOCKER_VERSION="${MINOR_VERSION}-SNAPSHOT"
