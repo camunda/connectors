@@ -25,7 +25,7 @@
 
   <properties>
     <version.apache-tika>3.2.3</version.apache-tika>
-    <elasticsearch-rest-client.version>9.3.0</elasticsearch-rest-client.version>
+    <version.elasticsearch-rest-client>8.19.11</version.elasticsearch-rest-client>
   </properties>
 
   <dependencies>
@@ -108,6 +108,11 @@
 
     <!-- Direct dependencies from transitive dependencies -->
     <dependency>
+      <groupId>org.elasticsearch.client</groupId>
+      <artifactId>elasticsearch-rest-client</artifactId>
+      <version>${version.elasticsearch-rest-client}</version>
+    </dependency>
+    <dependency>
       <groupId>org.opensearch.client</groupId>
       <artifactId>opensearch-java</artifactId>
       <version>${version.opensearch-client}</version>
@@ -116,11 +121,6 @@
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.elasticsearch.client</groupId>
-      <artifactId>elasticsearch-rest-client</artifactId>
-      <version>${elasticsearch-rest-client.version}</version>
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
