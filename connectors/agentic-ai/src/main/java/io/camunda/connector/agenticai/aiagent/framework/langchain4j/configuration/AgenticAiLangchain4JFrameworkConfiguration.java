@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageC
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverterImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactoryImpl;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverterImpl;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JAiFrameworkAdapter;
@@ -22,6 +23,7 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCal
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverterImpl;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
+import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -37,9 +39,20 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public ChatModelHttpProxySupport langchain4JChatModelHttpProxySupport(
+      AgenticAiHttpProxySupport httpProxySupport) {
+    return new ChatModelHttpProxySupport(
+        httpProxySupport.getProxyConfiguration(),
+        httpProxySupport.getJdkHttpClientProxyConfigurator());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public ChatModelFactory langchain4JChatModelFactory(
-      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties) {
-    return new ChatModelFactoryImpl(agenticAiConnectorsConfigurationProperties);
+      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties,
+      ChatModelHttpProxySupport chatModelHttpProxySupport) {
+    return new ChatModelFactoryImpl(
+        agenticAiConnectorsConfigurationProperties, chatModelHttpProxySupport);
   }
 
   @Bean
