@@ -10,7 +10,7 @@ import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.pins.PinsRemoveRequest;
 import com.slack.api.methods.response.pins.PinsRemoveResponse;
-import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
@@ -35,7 +35,7 @@ public record PinsRemoveData(
             description = "Timestamp of the Slack message to unpin",
             id = "unpinMessage.timestamp",
             group = "unpinMessage",
-            feel = Property.FeelMode.required,
+            feel = FeelMode.required,
             binding = @PropertyBinding(name = "data.timestamp"),
             constraints = @PropertyConstraints(notEmpty = true))
         @NotBlank
