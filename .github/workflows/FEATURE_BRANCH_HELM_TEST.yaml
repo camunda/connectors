@@ -177,11 +177,11 @@ jobs:
                       "source_repo": "${{ github.repository }}",
                       "source_sha": "${{ github.sha }}",
                       "c8Version": "8.9",
-                      "zeebeVersion": "SNAPSHOT",
-                      "operateVersion": "SNAPSHOT",
-                      "tasklistVersion": "SNAPSHOT",
+                      "zeebeVersion": "8.9-SNAPSHOT",
+                      "operateVersion": "8.9-SNAPSHOT",
+                      "tasklistVersion": "8.9-SNAPSHOT",
                       "connectorsVersion": "${{ needs.build-image.outputs.connectors-version }}",
-                      "optimizeVersion": "8-SNAPSHOT"
+                      "optimizeVersion": "8.9-SNAPSHOT"
                   }
                 }'
       - name: Observe build status
