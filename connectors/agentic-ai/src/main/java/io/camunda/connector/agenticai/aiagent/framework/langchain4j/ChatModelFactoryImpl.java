@@ -31,6 +31,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderCon
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -41,6 +42,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
@@ -49,10 +51,13 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(ChatModelFactoryImpl.class);
 
   private final AgenticAiConnectorsConfigurationProperties.ChatModelProperties chatModelProperties;
+  private final ChatModelHttpProxySupport proxySupport;
 
   public ChatModelFactoryImpl(
-      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties) {
+      AgenticAiConnectorsConfigurationProperties agenticAiConnectorsConfigurationProperties,
+      ChatModelHttpProxySupport proxySupport) {
     this.chatModelProperties = agenticAiConnectorsConfigurationProperties.aiagent().chatModel();
+    this.proxySupport = proxySupport;
   }
 
   @Override
@@ -79,7 +84,8 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
         AnthropicChatModel.builder()
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model())
-            .timeout(deriveTimeoutSetting(connection.timeouts()));
+            .timeout(deriveTimeoutSetting(connection.timeouts()))
+            .httpClientBuilder(proxySupport.createJdkHttpClientBuilder());
 
     Optional.ofNullable(connection.endpoint()).ifPresent(builder::baseUrl);
 
@@ -102,6 +108,8 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
             .endpoint(connection.endpoint())
             .deploymentName(configuration.azureOpenAi().model().deploymentName())
             .timeout(deriveTimeoutSetting(connection.timeouts()));
+
+    proxySupport.createAzureProxyOptions(connection.endpoint()).ifPresent(builder::proxyOptions);
 
     switch (connection.authentication()) {
       case AzureApiKeyAuthentication azureApiKeyAuthentication ->
@@ -157,6 +165,9 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     }
 
     overrideClientConfigurationBuilder.apiCallTimeout(deriveTimeoutSetting(connection.timeouts()));
+
+    SdkHttpClient httpClient = proxySupport.createAwsHttpClient(ProxyConfiguration.SCHEME_HTTPS);
+    bedrockClientBuilder.httpClient(httpClient);
 
     bedrockClientBuilder.overrideConfiguration(overrideClientConfigurationBuilder.build());
 
@@ -226,7 +237,8 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
         OpenAiChatModel.builder()
             .apiKey(connection.authentication().apiKey())
             .modelName(connection.model().model())
-            .timeout(deriveTimeoutSetting(connection.timeouts()));
+            .timeout(deriveTimeoutSetting(connection.timeouts()))
+            .httpClientBuilder(proxySupport.createJdkHttpClientBuilder());
 
     Optional.ofNullable(connection.authentication().organizationId())
         .ifPresent(builder::organizationId);
@@ -255,7 +267,8 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
         OpenAiChatModel.builder()
             .modelName(connection.model().model())
             .baseUrl(connection.endpoint())
-            .timeout(deriveTimeoutSetting(connection.timeouts()));
+            .timeout(deriveTimeoutSetting(connection.timeouts()))
+            .httpClientBuilder(proxySupport.createJdkHttpClientBuilder());
 
     Optional.ofNullable(connection.authentication())
         .map(OpenAiCompatibleAuthentication::apiKey)

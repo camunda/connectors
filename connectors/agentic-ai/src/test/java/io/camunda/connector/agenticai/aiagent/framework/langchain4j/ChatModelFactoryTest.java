@@ -66,6 +66,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProvi
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
+import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Collections;
@@ -100,8 +102,13 @@ class ChatModelFactoryTest {
   private static final TimeoutConfiguration MODEL_TIMEOUT =
       new TimeoutConfiguration(Duration.ofSeconds(30));
 
+  private final ChatModelHttpProxySupport proxySupport =
+      spy(
+          new ChatModelHttpProxySupport(
+              new JdkHttpClientProxyConfigurator(ProxyConfiguration.NONE)));
+
   private final ChatModelFactory chatModelFactory =
-      new ChatModelFactoryImpl(createDefaultConfigurationProperties());
+      new ChatModelFactoryImpl(createDefaultConfigurationProperties(), proxySupport);
 
   static Stream<TimeoutConfiguration> defaultTimeoutYieldingConfigs() {
     return Stream.of(
@@ -215,6 +222,7 @@ class ChatModelFactoryTest {
         assertThat(chatModel).isNotNull().isInstanceOf(AnthropicChatModel.class);
         assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
+        verify(proxySupport).createJdkHttpClientBuilder();
         builderAssertions.accept(chatModelBuilder);
       }
     }
@@ -228,7 +236,7 @@ class ChatModelFactoryTest {
   class AzureOpenAiChatModelFactoryTest {
 
     private static final String AZURE_OPENAI_API_KEY = "azureOpenAiApiKey";
-    private static final String AZURE_OPENAI_ENDPOINT = "azure-openai-endpoint.local";
+    private static final String AZURE_OPENAI_ENDPOINT = "https://azure-openai-endpoint.local";
     private static final String AZURE_OPENAI_DEPLOYMENT_NAME = "gpt-4o";
     private static final String CLIENT_ID = "clientId";
     private static final String CLIENT_SECRET = "clientSecret";
@@ -347,6 +355,7 @@ class ChatModelFactoryTest {
         assertThat(chatModel).isNotNull().isInstanceOf(AzureOpenAiChatModel.class);
         assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
+        verify(proxySupport).createAzureProxyOptions(AZURE_OPENAI_ENDPOINT);
         verify(chatModelBuilder).endpoint(AZURE_OPENAI_ENDPOINT);
         verify(chatModelBuilder).deploymentName(AZURE_OPENAI_DEPLOYMENT_NAME);
         builderAssertions.accept(chatModelBuilder);
@@ -571,6 +580,7 @@ class ChatModelFactoryTest {
         assertThat(chatModel).isNotNull().isInstanceOf(BedrockChatModel.class);
         assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
+        verify(proxySupport).createAwsHttpClient(ProxyConfiguration.SCHEME_HTTPS);
         builderAssertions.accept(builders);
       }
     }
@@ -820,6 +830,7 @@ class ChatModelFactoryTest {
         assertThat(chatModel).isNotNull().isInstanceOf(OpenAiChatModel.class);
         assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
+        verify(proxySupport).createJdkHttpClientBuilder();
         builderAssertions.accept(chatModelBuilder);
       }
     }
@@ -1037,6 +1048,7 @@ class ChatModelFactoryTest {
         assertThat(chatModel).isNotNull().isInstanceOf(OpenAiChatModel.class);
         assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
+        verify(proxySupport).createJdkHttpClientBuilder();
         builderAssertions.accept(chatModelBuilder);
       }
     }
