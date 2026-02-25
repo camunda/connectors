@@ -4,8 +4,13 @@
     <bpmn:startEvent id="plainStartEvent">
       <bpmn:outgoing>Flow_start_to_catch1</bpmn:outgoing>
     </bpmn:startEvent>
+    <bpmn:startEvent id="messageStartEvent">
+      <bpmn:outgoing>Flow_msgstart_to_catch1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_1" messageRef="Message_1" />
+    </bpmn:startEvent>
     <bpmn:intermediateThrowEvent id="catchEvent1">
       <bpmn:incoming>Flow_start_to_catch1</bpmn:incoming>
+      <bpmn:incoming>Flow_msgstart_to_catch1</bpmn:incoming>
       <bpmn:outgoing>Flow_catch1_to_catch2</bpmn:outgoing>
     </bpmn:intermediateThrowEvent>
     <bpmn:intermediateThrowEvent id="catchEvent2">
@@ -16,13 +21,18 @@
       <bpmn:incoming>Flow_catch2_to_end</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:sequenceFlow id="Flow_start_to_catch1" sourceRef="plainStartEvent" targetRef="catchEvent1" />
+    <bpmn:sequenceFlow id="Flow_msgstart_to_catch1" sourceRef="messageStartEvent" targetRef="catchEvent1" />
     <bpmn:sequenceFlow id="Flow_catch1_to_catch2" sourceRef="catchEvent1" targetRef="catchEvent2" />
     <bpmn:sequenceFlow id="Flow_catch2_to_end" sourceRef="catchEvent2" targetRef="endEvent" />
   </bpmn:process>
+  <bpmn:message id="Message_1" name="testMessage" />
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="inboundTestProcess">
       <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="plainStartEvent">
         <dc:Bounds x="182" y="82" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="MessageStartEvent_di" bpmnElement="messageStartEvent">
+        <dc:Bounds x="182" y="162" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_catch1_di" bpmnElement="catchEvent1">
         <dc:Bounds x="272" y="82" width="36" height="36" />
@@ -35,6 +45,12 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_start_to_catch1_di" bpmnElement="Flow_start_to_catch1">
         <di:waypoint x="218" y="100" />
+        <di:waypoint x="272" y="100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_msgstart_to_catch1_di" bpmnElement="Flow_msgstart_to_catch1">
+        <di:waypoint x="218" y="180" />
+        <di:waypoint x="245" y="180" />
+        <di:waypoint x="245" y="100" />
         <di:waypoint x="272" y="100" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_catch1_to_catch2_di" bpmnElement="Flow_catch1_to_catch2">
