@@ -613,20 +613,3 @@ jobs:
       needs.bundle-and-build-changelog.result == 'success'
     with:
       version: ${{ inputs.version }}
-
-  notify-failure:
-    name: Notify on failure
-    runs-on: ubuntu-latest
-    needs: [ create-release, setup, maven-release, docker-release, bundle-and-build-changelog, helm-deploy, fossa_release ]
-    if: failure()
-    steps:
-      - name: Send Slack notification on failure
-        uses: slackapi/slack-github-action@v2.1.1
-        with:
-          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
-          method: chat.postMessage
-          payload: |
-            {
-              "channel": "${{ secrets.CONNECTORS_QA_SLACK_CHANNEL_ID }}",
-              "text": ":alarm: ${{ secrets.CONNECTORS_RELEASE_MANAGER_SLACK_GROUP_ID }} Release workflow failed for version `${{ inputs.version }}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-            }
