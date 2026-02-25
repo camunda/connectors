@@ -17,6 +17,8 @@
 package io.camunda.connector.runtime.inbound.state;
 
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
+import io.camunda.connector.runtime.core.inbound.correlation.MessageStartEventCorrelationPoint;
+import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.state.model.ImportResult;
@@ -68,8 +70,19 @@ public class ProcessStateManagerImpl implements ProcessStateManager {
     try {
       Map<Long, List<InboundConnectorElement>> elementsByVersion = new HashMap<>();
 
+      // Determine the latest version key (highest value)
+      Long latestVersionKey = activeVersionKeys.stream().max(Long::compareTo).orElse(null);
+
       for (Long versionKey : activeVersionKeys) {
         var elements = getConnectors(processRef, versionKey);
+
+        // For non-latest versions, filter out start events.
+        // Start events should always use the latest version - there's no reason to keep
+        // older versions' start events active since new instances always start on the latest.
+        if (!versionKey.equals(latestVersionKey)) {
+          elements = filterStartEvents(elements, versionKey);
+        }
+
         // Include version even if it has no connectors - registry needs to know about it
         elementsByVersion.put(versionKey, elements);
       }
@@ -93,6 +106,40 @@ public class ProcessStateManagerImpl implements ProcessStateManager {
           processRef.tenantId(),
           e);
     }
+  }
+
+  /**
+   * Filters out start event elements from non-latest versions. Start events (both plain and
+   * message-based) should always use the latest version since new process instances are always
+   * created on the latest version. Keeping older versions' start events would cause
+   * "TooManyMatchingElements" errors when both have blank activation conditions.
+   *
+   * <p>Intermediate catch events and boundary events are NOT filtered here - they may have active
+   * subscriptions from running process instances that need to be correlated.
+   */
+  private List<InboundConnectorElement> filterStartEvents(
+      List<InboundConnectorElement> elements, Long versionKey) {
+
+    var filtered =
+        elements.stream()
+            .filter(
+                element -> {
+                  var correlationPoint = element.correlationPoint();
+                  // Filter out start events (both plain and message-based)
+                  return !(correlationPoint instanceof StartEventCorrelationPoint)
+                      && !(correlationPoint instanceof MessageStartEventCorrelationPoint);
+                  // Keep intermediate catch events and boundary events
+                })
+            .toList();
+
+    if (filtered.size() < elements.size()) {
+      LOG.debug(
+          "Filtered out {} start event element(s) from non-latest version {}",
+          elements.size() - filtered.size(),
+          versionKey);
+    }
+
+    return filtered;
   }
 
   private List<InboundConnectorElement> getConnectors(
