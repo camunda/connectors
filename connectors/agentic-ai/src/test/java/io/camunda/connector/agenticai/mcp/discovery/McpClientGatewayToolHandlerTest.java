@@ -8,6 +8,7 @@ package io.camunda.connector.agenticai.mcp.discovery;
 
 import static io.camunda.connector.agenticai.mcp.discovery.McpClientGatewayToolHandler.PROPERTY_MCP_CLIENTS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,15 +20,18 @@ import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class McpClientGatewayToolHandlerTest {
 
@@ -89,6 +93,46 @@ class McpClientGatewayToolHandlerTest {
                 assertThat(toolCall.id()).isEqualTo("MCP_toolsList_mcp2");
                 assertThat(toolCall.name()).isEqualTo("mcp2");
                 assertThat(toolCall.arguments()).containsExactly(Map.entry("method", "tools/list"));
+              });
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"mcp___client", "mcp_____client", "name___", "___name"})
+    void throwsException_whenMcpGatewayToolDefinitionNameContainsSeparator(String invalidName) {
+      var agentContext = AgentContext.empty();
+      var gatewayToolDefinitions = List.of(createGatewayToolDefinition("mcpClient", invalidName));
+
+      assertThatThrownBy(() -> handler.initiateToolDiscovery(agentContext, gatewayToolDefinitions))
+          .isInstanceOf(ConnectorException.class)
+          .asInstanceOf(InstanceOfAssertFactories.type(ConnectorException.class))
+          .satisfies(
+              e -> {
+                assertThat(e.getErrorCode()).isEqualTo("MCP_GATEWAY_INVALID_TOOL_DEFINITIONS");
+                assertThat(e.getMessage())
+                    .isEqualTo(
+                        "Invalid MCP client activity ID(s) detected: ['%s']. Activity IDs must not contain the reserved separator '___'. Please rename the affected activities in the BPMN model."
+                            .formatted(invalidName));
+              });
+    }
+
+    @Test
+    void throwsException_listingAllInvalidNames() {
+      var agentContext = AgentContext.empty();
+      var gatewayToolDefinitions =
+          List.of(
+              createGatewayToolDefinition("mcpClient", "mcp___1"),
+              createGatewayToolDefinition("mcpClient", "valid"),
+              createGatewayToolDefinition("mcpClient", "mcp___2"));
+
+      assertThatThrownBy(() -> handler.initiateToolDiscovery(agentContext, gatewayToolDefinitions))
+          .isInstanceOf(ConnectorException.class)
+          .asInstanceOf(InstanceOfAssertFactories.type(ConnectorException.class))
+          .satisfies(
+              e -> {
+                assertThat(e.getErrorCode()).isEqualTo("MCP_GATEWAY_INVALID_TOOL_DEFINITIONS");
+                assertThat(e.getMessage())
+                    .isEqualTo(
+                        "Invalid MCP client activity ID(s) detected: ['mcp___1', 'mcp___2']. Activity IDs must not contain the reserved separator '___'. Please rename the affected activities in the BPMN model.");
               });
     }
 
