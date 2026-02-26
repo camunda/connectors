@@ -227,6 +227,20 @@ public class InboundConnectorMultiVersionTests {
         .done();
   }
 
+  /**
+   * Creates a BPMN model with a message start event connector for testing start event scenarios.
+   * Uses the existing BPMN file which has a message start event element.
+   *
+   * @param configValue a generic configuration value (affects AUTO deduplication hash)
+   * @param deduplicationId optional custom deduplication ID (null for AUTO mode)
+   * @return the BPMN model instance
+   */
+  private BpmnModelInstance createMessageStartEventProcess(
+      String configValue, String deduplicationId) {
+    // Use the existing BPMN file which now contains a message start event
+    return createInboundConnectorProcess(configValue, deduplicationId, "messageStartEvent");
+  }
+
   private String getResourcePath(String resourceName) {
     var resource = getClass().getClassLoader().getResource(resourceName);
     if (resource == null) {
@@ -805,6 +819,96 @@ public class InboundConnectorMultiVersionTests {
           .isEqualTo(keyV1);
       assertThat(executables2.getFirst().elements().getFirst().element().processDefinitionKey())
           .isEqualTo(keyV2);
+    }
+  }
+
+  @Nested
+  class StartEventFilteringForNonLatestVersions {
+
+    @Test
+    void deployV1WithMessageStartEvent_deployV2SameConfig_v1StartEventShouldBeFiltered() {
+      // This test verifies that start events from non-latest versions are filtered out.
+      // Start events should always use the latest version since new process instances
+      // are always created on the latest version.
+
+      // Given: v1 deployed with message start event connector
+      var model1 = createMessageStartEventProcess("config-a", "shared-start-dedup");
+      long keyV1 = deploy(model1);
+      waitForProcessDefinitionIndexed(keyV1);
+      awaitHealthyExecutable(testProcessId);
+
+      // Verify v1 has one executable with one element
+      var executablesV1 = queryExecutables(testProcessId);
+      assertThat(executablesV1).hasSize(1);
+      assertThat(executablesV1.getFirst().elements()).hasSize(1);
+      assertThat(executablesV1.getFirst().elements().getFirst().element().processDefinitionKey())
+          .isEqualTo(keyV1);
+
+      // When: Deploy v2 with SAME connector config (deduplicated by deduplication ID)
+      var model2 = createMessageStartEventProcess("config-a", "shared-start-dedup");
+      long keyV2 = deploy(model2);
+      waitForProcessDefinitionIndexed(keyV2);
+
+      // Then: Only v2's start event element should be present
+      // v1's start event is filtered out because start events from non-latest versions
+      // are not needed - new process instances always start on the latest version
+      Awaitility.await("should have single executable with only v2 start event element")
+          .atMost(AWAIT_TIMEOUT)
+          .untilAsserted(
+              () -> {
+                var executables = queryExecutables(testProcessId);
+                assertThat(executables).hasSize(1);
+                assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
+
+                // Only v2 should be represented (v1's start event filtered out)
+                var elements = executables.getFirst().elements();
+                assertThat(elements).hasSize(1);
+                assertThat(elements.getFirst().element().processDefinitionKey()).isEqualTo(keyV2);
+              });
+    }
+
+    @Test
+    void deployV1WithIntermediateCatchEvent_deployV2SameConfig_bothElementsShouldBePresent() {
+      // This test verifies that intermediate catch events are NOT filtered out
+      // (only start events are filtered). Intermediate catch events from older versions
+      // may have active subscriptions from running process instances.
+
+      // Given: v1 deployed with intermediate catch event connector
+      var model1 = createInboundConnectorProcess("config-a", "shared-catch-dedup");
+      long keyV1 = deploy(model1);
+      waitForProcessDefinitionIndexed(keyV1);
+      awaitHealthyExecutable(testProcessId);
+
+      // Start an instance on v1 to create a message subscription
+      camundaClient
+          .newCreateInstanceCommand()
+          .processDefinitionKey(keyV1)
+          .variable("correlationKey", "test-correlation-key")
+          .send()
+          .join();
+
+      // When: Deploy v2 with SAME connector config (deduplicated)
+      var model2 = createInboundConnectorProcess("config-a", "shared-catch-dedup");
+      long keyV2 = deploy(model2);
+      waitForProcessDefinitionIndexed(keyV2);
+
+      // Then: Both v1 and v2 elements should be present
+      // Intermediate catch events are not filtered - v1 has an active subscription
+      Awaitility.await("should have single executable with both version elements")
+          .atMost(AWAIT_TIMEOUT)
+          .untilAsserted(
+              () -> {
+                var executables = queryExecutables(testProcessId);
+                assertThat(executables).hasSize(1);
+                assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
+
+                // Both v1 and v2 should be represented
+                var processDefKeys =
+                    executables.getFirst().elements().stream()
+                        .map(e -> e.element().processDefinitionKey())
+                        .collect(Collectors.toSet());
+                assertThat(processDefKeys).containsExactlyInAnyOrder(keyV1, keyV2);
+              });
     }
   }
 

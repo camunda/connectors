@@ -93,7 +93,7 @@ public sealed interface MemoryStorageConfiguration
           @TemplateProperty(
               label = "Memory ID",
               description = "The ID of the pre-provisioned AgentCore Memory resource.",
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           @NotBlank
           String memoryId,
@@ -102,7 +102,7 @@ public sealed interface MemoryStorageConfiguration
               label = "Actor ID",
               description =
                   "Identifier of the actor associated with events (e.g., end-user or agent/user combination).",
-              feel = Property.FeelMode.optional,
+              feel = FeelMode.optional,
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           @NotBlank
           String actorId,

@@ -571,16 +571,16 @@ jobs:
             secret/data/products/connectors/ci/common FOSSA_API_KEY;
       - name: Get FOSSA context
         id: fossa-context
-        uses: camunda/infra-global-github-actions/fossa/info@107907faec93e088dbe7b0acf864177b46342111
+        uses: camunda/infra-global-github-actions/fossa/info@ac9d5d62b916d9a78e83b040d4d7695e8e3915ef
       - name: Wait for FOSSA scan completion
-        uses: camunda/infra-global-github-actions/fossa/wait-for-scan@107907faec93e088dbe7b0acf864177b46342111
+        uses: camunda/infra-global-github-actions/fossa/wait-for-scan@ac9d5d62b916d9a78e83b040d4d7695e8e3915ef
         with:
           api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           branch: ${{ steps.fossa-context.outputs.head-ref }}
           project-id: "custom+50756/camunda/connectors"
           revision-id: ${{ steps.fossa-context.outputs.head-revision }}
       - name: Create FOSSA releases and generate reports
-        uses: camunda/infra-global-github-actions/fossa/release@107907faec93e088dbe7b0acf864177b46342111
+        uses: camunda/infra-global-github-actions/fossa/release@ac9d5d62b916d9a78e83b040d4d7695e8e3915ef
         with:
           api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           branch: ${{ steps.fossa-context.outputs.head-ref }}
@@ -614,20 +614,3 @@ jobs:
       needs.bundle-and-build-changelog.result == 'success'
     with:
       version: ${{ inputs.version }}
-
-  notify-failure:
-    name: Notify on failure
-    runs-on: ubuntu-latest
-    needs: [ create-release, setup, maven-release, docker-release, bundle-and-build-changelog, helm-deploy, fossa_release ]
-    if: failure()
-    steps:
-      - name: Send Slack notification on failure
-        uses: slackapi/slack-github-action@v2.1.1
-        with:
-          token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
-          method: chat.postMessage
-          payload: |
-            {
-              "channel": "${{ secrets.CONNECTORS_QA_SLACK_CHANNEL_ID }}",
-              "text": ":alarm: ${{ secrets.CONNECTORS_RELEASE_MANAGER_SLACK_GROUP_ID }} Release workflow failed for version `${{ inputs.version }}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-            }

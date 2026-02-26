@@ -123,4 +123,9 @@ public class CreateCommandDummy
   public CreateProcessInstanceCommandStep1 useGrpc() {
     return this;
   }
+
+  @Override
+  public CreateProcessInstanceCommandStep3 businessId(String businessId) {
+    return this;
+  }
 }
