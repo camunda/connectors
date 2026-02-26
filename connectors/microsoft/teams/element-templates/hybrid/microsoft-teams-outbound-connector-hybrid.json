@@ -606,6 +606,29 @@
       "value" : "HTML"
     } ]
   }, {
+    "id" : "data.sendMessageInChat.attachmentsJson",
+    "label" : "Card attachments (JSON)",
+    "description" : "Optional JSON array (or single object) of Microsoft Graph ChatMessageAttachment objects to send cards. Each object must have an 'id' and 'contentType' (e.g. 'application/vnd.microsoft.card.thumbnail'). Attachment IDs must match <attachment id=\"...\"></attachment> tags in the message body (auto-appended if missing).",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "data",
+    "binding" : {
+      "name" : "data.attachmentsJson",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.chatMethod",
+        "equals" : "sendMessageToChat",
+        "type" : "simple"
+      }, {
+        "property" : "data.type",
+        "equals" : "chat",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Text"
+  }, {
     "id" : "data.listMessagesInChat.chatId",
     "label" : "Chat ID",
     "description" : "The chat ID",
@@ -1139,6 +1162,29 @@
       } ]
     },
     "type" : "String"
+  }, {
+    "id" : "data.sendMessageToChannel.attachmentsJson",
+    "label" : "Card attachments (JSON)",
+    "description" : "Optional JSON array (or single object) of Microsoft Graph ChatMessageAttachment objects to send cards. Each object must have an 'id' and 'contentType' (e.g. 'application/vnd.microsoft.card.thumbnail'). Attachment IDs must match <attachment id=\"...\"></attachment> tags in the message body (auto-appended if missing).",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "data",
+    "binding" : {
+      "name" : "data.attachmentsJson",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.channelMethod",
+        "equals" : "sendMessageToChannel",
+        "type" : "simple"
+      }, {
+        "property" : "data.type",
+        "equals" : "channel",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Text"
   }, {
     "id" : "data.getChannelMessage.groupId",
     "label" : "Group ID",

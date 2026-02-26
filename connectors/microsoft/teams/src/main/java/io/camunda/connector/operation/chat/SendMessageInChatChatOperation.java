@@ -6,25 +6,19 @@
  */
 package io.camunda.connector.operation.chat;
 
-import com.microsoft.graph.models.BodyType;
 import com.microsoft.graph.models.ChatMessage;
-import com.microsoft.graph.models.ItemBody;
 import com.microsoft.graph.serviceclient.GraphServiceClient;
 import io.camunda.connector.model.request.data.SendMessageInChat;
-import java.util.Locale;
-import java.util.Optional;
+import io.camunda.connector.operation.CardAttachmentHelper;
 
 public record SendMessageInChatChatOperation(SendMessageInChat model) implements ChatOperation {
   @Override
   public Object invoke(final GraphServiceClient graphClient) {
     ChatMessage chatMessage = new ChatMessage();
-    ItemBody body = new ItemBody();
-    body.setContentType(
-        Optional.ofNullable(model.bodyType())
-            .map(type -> BodyType.forValue(type.toLowerCase(Locale.ROOT)))
-            .orElse(BodyType.Text));
-    body.setContent(model.content());
-    chatMessage.setBody(body);
+
+    CardAttachmentHelper.configureMessageBody(
+        chatMessage, model.content(), model.bodyType(), model.attachmentsJson());
+
     return graphClient.chats().byChatId(model.chatId()).messages().post(chatMessage);
   }
 }
