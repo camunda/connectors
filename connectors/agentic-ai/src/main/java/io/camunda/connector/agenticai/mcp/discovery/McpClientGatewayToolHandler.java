@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.mcp.discovery;
 
+import static io.camunda.connector.agenticai.mcp.discovery.McpToolCallIdentifier.MCP_NAMESPACE_SEPARATOR;
 import static io.camunda.connector.agenticai.mcp.discovery.McpToolCallIdentifier.MCP_PREFIX;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,6 +26,7 @@ import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
 import io.camunda.connector.agenticai.util.CollectionUtils;
 import io.camunda.connector.agenticai.util.ObjectMapperConstants;
+import io.camunda.connector.api.error.ConnectorException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -39,6 +41,9 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
   public static final String GATEWAY_TYPE = "mcpClient";
   public static final String PROPERTY_MCP_CLIENTS = "mcpClients";
   public static final String MCP_TOOLS_DISCOVERY_PREFIX = MCP_PREFIX + "toolsList_";
+
+  private static final String ERROR_CODE_MCP_GATEWAY_INVALID_TOOL_DEFINITIONS =
+      "MCP_GATEWAY_INVALID_TOOL_DEFINITIONS";
 
   private final ObjectMapper objectMapper;
 
@@ -66,6 +71,8 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
       return new GatewayToolDiscoveryInitiationResult(agentContext, List.of());
     }
 
+    validateMcpToolDefinitions(mcpGatewayToolDefinitions);
+
     final var updatedAgentContext =
         agentContext.withProperty(
             PROPERTY_MCP_CLIENTS,
@@ -84,6 +91,23 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
             .toList();
 
     return new GatewayToolDiscoveryInitiationResult(updatedAgentContext, discoveryToolCalls);
+  }
+
+  private void validateMcpToolDefinitions(List<GatewayToolDefinition> mcpGatewayToolDefinitions) {
+    final var invalidMcpTools =
+        mcpGatewayToolDefinitions.stream()
+            .map(GatewayToolDefinition::name)
+            .filter(name -> name.contains(MCP_NAMESPACE_SEPARATOR))
+            .toList();
+
+    if (!invalidMcpTools.isEmpty()) {
+      throw new ConnectorException(
+          ERROR_CODE_MCP_GATEWAY_INVALID_TOOL_DEFINITIONS,
+          "Invalid MCP client activity ID(s) detected: [%s]. Activity IDs must not contain the reserved separator '%s'. Please rename the affected activities in the BPMN model."
+              .formatted(
+                  invalidMcpTools.stream().map("'%s'"::formatted).collect(Collectors.joining(", ")),
+                  MCP_NAMESPACE_SEPARATOR));
+    }
   }
 
   @Override
