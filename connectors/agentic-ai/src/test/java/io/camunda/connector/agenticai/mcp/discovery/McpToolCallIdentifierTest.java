@@ -82,7 +82,9 @@ class McpToolCallIdentifierTest {
           arguments("MCP_element123___tool_action"),
           arguments("MCP_element_name___tool_name"),
           arguments("MCP_a___b"),
-          arguments("MCP_very-long-element-name___very-long-tool-name"));
+          arguments("MCP_very-long-element-name___very-long-tool-name"),
+          arguments("MCP_element___tool___with___separators"),
+          arguments("MCP_Activity_1mlgkr7___loan-affordability___loan-affordability"));
     }
 
     static Stream<Arguments> invalidMcpToolCallNames() {
@@ -127,6 +129,16 @@ class McpToolCallIdentifierTest {
       assertThat(result.mcpToolName()).isEqualTo("b");
     }
 
+    @Test
+    void parsesCorrectly_whenToolNameHasSeparator() {
+      var result =
+          McpToolCallIdentifier.fromToolCallName(
+              "MCP_Activity_1mlgkr7___loan-affordability___loan-affordability");
+
+      assertThat(result.elementName()).isEqualTo("Activity_1mlgkr7");
+      assertThat(result.mcpToolName()).isEqualTo("loan-affordability___loan-affordability");
+    }
+
     @ParameterizedTest
     @ValueSource(
         strings = {
@@ -134,8 +146,7 @@ class McpToolCallIdentifierTest {
           "MCP____tool", // missing element name
           "MCP___", // missing both
           "element___tool", // missing prefix
-          "MCP_element_tool", // missing separator
-          "MCP_element___tool___extra" // too many parts
+          "MCP_element_tool" // missing separator
         })
     void throwsException_whenInvalidToolCallName(String invalidToolCallName) {
       assertThatThrownBy(() -> McpToolCallIdentifier.fromToolCallName(invalidToolCallName))
@@ -189,7 +200,9 @@ class McpToolCallIdentifierTest {
           arguments("a", "b"),
           arguments("element-with-dashes", "tool-with-dashes"),
           arguments("element_with_underscores", "tool_with_underscores"),
-          arguments("CamelCaseElement", "CamelCaseTool"));
+          arguments("CamelCaseElement", "CamelCaseTool"),
+          arguments("Activity_1mlgkr7", "loan-affordability___loan-affordability"),
+          arguments("element", "tool___with___separators"));
     }
   }
 }
