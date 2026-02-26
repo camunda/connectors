@@ -27,7 +27,6 @@ public class A2aClientAgenticToolConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public A2aGatewayToolDefinitionResolver a2aGatewayToolDefinitionResolver() {
-    throw new RuntimeException("Error mapping message to json.");
     return new A2aGatewayToolDefinitionResolver();
   }
 
