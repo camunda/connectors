@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.model.request.data;
 
+import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.model.MSTeamsMethodTypes;
@@ -40,5 +41,19 @@ public record SendMessageInChat(
             },
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             description = "The type of the content. Possible values are text and html")
-        String bodyType)
+        String bodyType,
+    @TemplateProperty(
+            label = "Card attachments (JSON)",
+            group = "data",
+            id = "sendMessageInChat.attachmentsJson",
+            type = TemplateProperty.PropertyType.Text,
+            feel = FeelMode.optional,
+            optional = true,
+            description =
+                "Optional JSON array (or single object) of Microsoft Graph ChatMessageAttachment"
+                    + " objects to send cards. Each object must have an 'id' and 'contentType'"
+                    + " (e.g. 'application/vnd.microsoft.card.thumbnail'). Attachment IDs must"
+                    + " match <attachment id=\"...\"></attachment> tags in the message body (auto-"
+                    + "appended if missing).")
+        String attachmentsJson)
     implements ChatData {}

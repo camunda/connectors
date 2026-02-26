@@ -836,5 +836,22 @@
       "channelId": "{{secrets.CHANNEL_ID_KEY}}",
       "content": "{{secrets.CHANNEL_MESSAGE_CONTENT_KEY}}"
     }
+  },
+  {
+    "description": "sendMessageToChannel with card attachments / clientSecrets auth type",
+    "authentication": {
+      "type": "clientCredentials",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "sendMessageToChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": "abc01234-0c7f-012c-9876-testClientId",
+      "content": "Here is a card",
+      "bodyType": "html",
+      "attachmentsJson": "[{\"id\":\"74d20c7f34aa4a7fb74e2b30004247c5\",\"contentType\":\"application/vnd.microsoft.card.thumbnail\",\"content\":\"{\\\"title\\\":\\\"Example\\\",\\\"text\\\":\\\"Body\\\"}\"}]"
+    }
   }
 ]

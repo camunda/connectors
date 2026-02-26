@@ -6,33 +6,33 @@
  */
 package io.camunda.connector.operation.channel;
 
-import com.microsoft.graph.models.BodyType;
 import com.microsoft.graph.models.ChatMessage;
 import com.microsoft.graph.models.ChatMessageAttachment;
-import com.microsoft.graph.models.ItemBody;
 import com.microsoft.graph.serviceclient.GraphServiceClient;
 import io.camunda.connector.model.request.data.SendMessageToChannel;
+import io.camunda.connector.operation.CardAttachmentHelper;
 import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
 
 public record SendMessageToChannelOperation(SendMessageToChannel model)
     implements ChannelOperation {
   @Override
   public Object invoke(final GraphServiceClient graphClient) {
     ChatMessage chatMessage = new ChatMessage();
-    ItemBody body = new ItemBody();
-    body.setContentType(
-        Optional.ofNullable(model.bodyType())
-            .map(type -> BodyType.forValue(type.toLowerCase(Locale.ROOT)))
-            .orElse(BodyType.Text));
-    body.setContent(model.content());
+
+    CardAttachmentHelper.configureMessageBody(
+        chatMessage, model.content(), model.bodyType(), model.attachmentsJson());
+
     if (model.documents() != null) {
       DocumentHandler documentHandler = new DocumentHandler(graphClient, model);
-      List<ChatMessageAttachment> attachments = documentHandler.handleDocuments();
-      chatMessage.setAttachments(attachments);
+      List<ChatMessageAttachment> documentAttachments = documentHandler.handleDocuments();
+      List<ChatMessageAttachment> existing = chatMessage.getAttachments();
+      if (existing != null) {
+        existing.addAll(documentAttachments);
+      } else {
+        chatMessage.setAttachments(documentAttachments);
+      }
     }
-    chatMessage.setBody(body);
+
     return graphClient
         .teams()
         .byTeamId(model.groupId())

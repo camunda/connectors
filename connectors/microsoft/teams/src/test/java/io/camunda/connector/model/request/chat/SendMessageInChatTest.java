@@ -44,7 +44,7 @@ class SendMessageInChatTest extends BaseTest {
 
   @BeforeEach
   public void init() {
-    sendMessageInChat = new SendMessageInChat(ActualValue.Chat.CHAT_ID, "content", null);
+    sendMessageInChat = new SendMessageInChat(ActualValue.Chat.CHAT_ID, "content", null, null);
     when(graphServiceClient.chats()).thenReturn(chatsRequestBuilder);
     when(chatsRequestBuilder.byChatId(ActualValue.Chat.CHAT_ID)).thenReturn(chatItemRequestBuilder);
     when(chatItemRequestBuilder.messages()).thenReturn(messagesRequestBuilder);
@@ -72,7 +72,8 @@ class SendMessageInChatTest extends BaseTest {
   public void invoke_shouldSetTextBodyTypeContentIsNotEscaped() {
     // Given SendMessageInChat without bodyType
     // When
-    sendMessageInChat = new SendMessageInChat(ActualValue.Chat.CHAT_ID, "\"normal\" content", null);
+    sendMessageInChat =
+        new SendMessageInChat(ActualValue.Chat.CHAT_ID, "\"normal\" content", null, null);
     operationFactory.getService(sendMessageInChat).invoke(graphServiceClient);
     // Then
     ChatMessage chatMessage = chatMessageCaptor.getValue();
@@ -84,7 +85,7 @@ class SendMessageInChatTest extends BaseTest {
   @ValueSource(strings = {"html", "HTML", "text", "TexT"})
   public void invoke_shouldSetTextBodyType(String input) {
     // Given
-    sendMessageInChat = new SendMessageInChat(ActualValue.Chat.CHAT_ID, "content", input);
+    sendMessageInChat = new SendMessageInChat(ActualValue.Chat.CHAT_ID, "content", input, null);
     // When
     operationFactory.getService(sendMessageInChat).invoke(graphServiceClient);
     // Then
