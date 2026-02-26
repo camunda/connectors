@@ -86,6 +86,10 @@ public class OpenSearchVectorStoreFactory {
     // Note that some other system properties, such as http.keepAlive, are used too.
     httpClientBuilder.useSystemProperties();
 
+    // We need to explicitly disable content compression for opensearch-client 2.x and httpclient5
+    // >= 5.6
+    httpClientBuilder.disableContentCompression();
+
     if (!isNullOrBlank(openSearch.userName()) && !isNullOrBlank(openSearch.password())) {
       credentialsProvider.setCredentials(
           new AuthScope(openSearchHost),
