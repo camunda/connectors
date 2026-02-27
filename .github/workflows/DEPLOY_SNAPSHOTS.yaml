@@ -6,7 +6,12 @@ on:
       - main
       - 'stable/**'
       - 'alpha/**'
-  workflow_dispatch: { }
+  workflow_dispatch:
+    inputs:
+      docker_tag:
+        description: 'Custom Docker tag (e.g. "agentcore-memory-preview"). Leave empty for default SNAPSHOT tag.'
+        required: false
+        default: ''
 
 defaults:
   run:
@@ -105,13 +110,23 @@ jobs:
           # Set the version locally (no need to commit)
           mvn -B versions:set -DnewVersion="${FINAL_VERSION}" -DgenerateBackupPoms=false -f parent
           
+          # Use custom docker tag if provided, otherwise default
+          CUSTOM_TAG="${{ github.event.inputs.docker_tag }}"
+          if [ -n "${CUSTOM_TAG}" ]; then
+            DOCKER_VERSION="${CUSTOM_TAG}-SNAPSHOT"
+            echo "::notice::Using custom Docker tag: ${DOCKER_VERSION}"
+          else
+            DOCKER_VERSION="${MINOR_VERSION}-SNAPSHOT"
+            echo "::notice::Using default Docker tag: ${DOCKER_VERSION}"
+          fi
+          
           # Output versions for use in later steps
           echo "maven_version=${FINAL_VERSION}" >> "$GITHUB_OUTPUT"
           echo "minor_version=${MINOR_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "docker_version=${MINOR_VERSION}-SNAPSHOT" >> "$GITHUB_OUTPUT"
+          echo "docker_version=${DOCKER_VERSION}" >> "$GITHUB_OUTPUT"
           
           echo "::notice::Maven version set to: ${FINAL_VERSION}"
-          echo "::notice::Docker version will be: ${MINOR_VERSION}-SNAPSHOT"
+          echo "::notice::Docker version will be: ${DOCKER_VERSION}"
 
       - name: Build Artifacts
         run: mvn -B -U compile generate-sources source:jar javadoc:jar deploy -DskipTests
