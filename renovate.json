@@ -105,6 +105,16 @@
         "digest"
       ],
       "changelogUrl": "https://github.com/camunda/infra-global-github-actions/compare/{{currentDigest}}..{{newDigest}}"
+    },
+    {
+      "description": "Disable major version updates to prevent breaking transitive dependency compatibility with langchain4j.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "matchPackageNames": [
+        "org.opensearch.client:opensearch-java"
+      ],
+      "enabled": false
     }
   ],
   "baseBranchPatterns": [
