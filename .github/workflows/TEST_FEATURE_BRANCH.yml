@@ -115,7 +115,7 @@ jobs:
 
       - name: Upload detailed surefire reports
         if: always() && steps.internal.outputs.internal == 'true'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: surefire-reports
           path: '**/target/surefire-reports/*.xml'

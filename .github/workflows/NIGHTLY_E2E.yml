@@ -114,7 +114,7 @@ jobs:
 
       - name: Upload detailed surefire reports
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: surefire-reports-${{ steps.sanitize.outputs.branch }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: '**/target/surefire-reports/*.xml'
