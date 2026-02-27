@@ -171,6 +171,7 @@ limitations under the License.</license.inlineheader>
 
     <version.langchain4j>1.11.0</version.langchain4j>
     <version.mcp-sdk>0.17.2</version.mcp-sdk>
+    <version.elasticsearch-java-client>8.19.11</version.elasticsearch-java-client>
 
     <version.scala>3.8.1</version.scala>
 
@@ -643,6 +644,18 @@ limitations under the License.</license.inlineheader>
             <artifactId>netty-resolver-dns-native-macos</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+
+      <!-- Override Spring Boot BOM elasticsearch version to match langchain4j requirements -->
+      <dependency>
+        <groupId>co.elastic.clients</groupId>
+        <artifactId>elasticsearch-java</artifactId>
+        <version>${version.elasticsearch-java-client}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.elasticsearch.client</groupId>
+        <artifactId>elasticsearch-rest-client</artifactId>
+        <version>${version.elasticsearch-java-client}</version>
       </dependency>
 
       <dependency>
