@@ -160,7 +160,7 @@ public class DefaultEmbeddingModelFactory {
   private EmbeddingModel createOpenAiEmbeddingModel(
       OpenAiEmbeddingModelProvider openAiEmbeddingModelProvider) {
     final var openAi = openAiEmbeddingModelProvider.openAi();
-    final var httpClientBuilder = HttpClient.newBuilder();
+    final var httpClientBuilder = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1);
     proxyConfigurator.configure(httpClientBuilder);
 
     OpenAiEmbeddingModel.OpenAiEmbeddingModelBuilder builder =
