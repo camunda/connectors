@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.model.authentication;
+package io.camunda.connector.microsoft.common.auth;
 
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -15,7 +15,7 @@ public record BearerAuthentication(
     @NotBlank
         @TemplateProperty(id = "bearer.token", group = "authentication", label = "Bearer token")
         String token)
-    implements MSTeamsAuthentication {
+    implements MicrosoftAuthentication {
 
   @Override
   public String toString() {

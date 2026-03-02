@@ -8,12 +8,13 @@ package io.camunda.connector.microsoft.email.model.config;
 
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.microsoft.common.auth.MicrosoftAuthentication;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 public record MsInboundEmailProperties(
-    @TemplateProperty(group = "authentication", id = "type") @Valid @NotNull
-        InboundAuthentication authentication,
+    @TemplateProperty(group = "authentication") @Valid @NotNull
+        MicrosoftAuthentication authentication,
     @NestedProperties(group = "pollingConfig") @Valid EmailPollingConfig pollingConfig,
     @NestedProperties(group = "postprocessing") @Valid @NotNull
         EmailProcessingOperation operation) {}

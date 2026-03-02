@@ -19,10 +19,6 @@ public final class MsEmailInboundConstants {
   // Shutdown configuration
   public static final Duration SHUTDOWN_TIMEOUT = Duration.ofMillis(800);
 
-  // Microsoft Graph API
-  public static final String GRAPH_API_DEFAULT_SCOPE = "https://graph.microsoft.com/.default";
-  public static final String[] GRAPH_API_SCOPES = new String[] {GRAPH_API_DEFAULT_SCOPE};
-
   // HTTP headers
   public static final String PREFER_HEADER = "Prefer";
   public static final String PREFER_TEXT_BODY = "outlook.body-content-type=\"text\"";
