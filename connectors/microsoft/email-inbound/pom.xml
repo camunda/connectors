@@ -14,16 +14,13 @@
 
   <dependencies>
     <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-microsoft-common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.microsoft.graph</groupId>
       <artifactId>microsoft-graph</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.azure</groupId>
-      <artifactId>azure-identity</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.azure</groupId>
-      <artifactId>azure-core</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -60,6 +57,7 @@
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
           </connectors>
+          <includeDependencies>io.camunda.connector:connector-microsoft-common</includeDependencies>
         </configuration>
       </plugin>
       <plugin>

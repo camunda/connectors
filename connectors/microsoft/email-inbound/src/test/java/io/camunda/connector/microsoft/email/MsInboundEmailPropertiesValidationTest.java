@@ -11,11 +11,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.microsoft.common.auth.ClientCredentialsAuthentication;
+import io.camunda.connector.microsoft.common.auth.MicrosoftAuthentication;
+import io.camunda.connector.microsoft.common.auth.RefreshTokenAuthentication;
 import io.camunda.connector.microsoft.email.model.config.EmailPollingConfig;
 import io.camunda.connector.microsoft.email.model.config.EmailProcessingOperation;
 import io.camunda.connector.microsoft.email.model.config.FilterCriteria;
 import io.camunda.connector.microsoft.email.model.config.Folder;
-import io.camunda.connector.microsoft.email.model.config.InboundAuthentication;
 import io.camunda.connector.microsoft.email.model.config.MsInboundEmailProperties;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -27,8 +29,13 @@ class MsInboundEmailPropertiesValidationTest {
 
   private InboundConnectorContext context;
 
-  private static InboundAuthentication validAuthentication() {
-    return new InboundAuthentication("tenant-id", "client-id", "client-secret");
+  private static MicrosoftAuthentication validAuthentication() {
+    return new ClientCredentialsAuthentication("client-id", "tenant-id", "client-secret");
+  }
+
+  private static MicrosoftAuthentication validRefreshTokenAuthentication() {
+    return new RefreshTokenAuthentication(
+        "refresh-token", "client-id", "tenant-id", "client-secret");
   }
 
   private static EmailPollingConfig validPollingConfig() {
@@ -68,7 +75,7 @@ class MsInboundEmailPropertiesValidationTest {
     @Test
     void validate_shouldFail_whenTenantIdIsBlank() {
       // Given
-      var auth = new InboundAuthentication("", "client-id", "client-secret");
+      var auth = new ClientCredentialsAuthentication("client-id", "", "client-secret");
       var properties = new MsInboundEmailProperties(auth, validPollingConfig(), validOperation());
 
       context =
@@ -88,7 +95,7 @@ class MsInboundEmailPropertiesValidationTest {
     @Test
     void validate_shouldFail_whenClientIdIsBlank() {
       // Given
-      var auth = new InboundAuthentication("tenant-id", "", "client-secret");
+      var auth = new ClientCredentialsAuthentication("", "tenant-id", "client-secret");
       var properties = new MsInboundEmailProperties(auth, validPollingConfig(), validOperation());
 
       context =
@@ -108,7 +115,7 @@ class MsInboundEmailPropertiesValidationTest {
     @Test
     void validate_shouldFail_whenClientSecretIsBlank() {
       // Given
-      var auth = new InboundAuthentication("tenant-id", "client-id", "");
+      var auth = new ClientCredentialsAuthentication("client-id", "tenant-id", "");
       var properties = new MsInboundEmailProperties(auth, validPollingConfig(), validOperation());
 
       context =
@@ -123,6 +130,66 @@ class MsInboundEmailPropertiesValidationTest {
               ConnectorInputException.class,
               () -> context.bindProperties(MsInboundEmailProperties.class));
       assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
+    }
+
+    @Test
+    void validate_shouldFail_whenRefreshTokenIsBlank() {
+      // Given
+      var auth = new RefreshTokenAuthentication("", "client-id", "tenant-id", "client-secret");
+      var properties = new MsInboundEmailProperties(auth, validPollingConfig(), validOperation());
+
+      context =
+          InboundConnectorContextBuilder.create()
+              .validation(new DefaultValidationProvider())
+              .properties(properties)
+              .build();
+
+      // When/Then
+      ConnectorInputException thrown =
+          assertThrows(
+              ConnectorInputException.class,
+              () -> context.bindProperties(MsInboundEmailProperties.class));
+      assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
+    }
+
+    @Test
+    void validate_shouldFail_whenRefreshTokenTenantIdIsBlank() {
+      // Given
+      var auth = new RefreshTokenAuthentication("refresh-token", "client-id", "", "client-secret");
+      var properties = new MsInboundEmailProperties(auth, validPollingConfig(), validOperation());
+
+      context =
+          InboundConnectorContextBuilder.create()
+              .validation(new DefaultValidationProvider())
+              .properties(properties)
+              .build();
+
+      // When/Then
+      ConnectorInputException thrown =
+          assertThrows(
+              ConnectorInputException.class,
+              () -> context.bindProperties(MsInboundEmailProperties.class));
+      assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
+    }
+
+    @Test
+    void validate_shouldSucceed_withRefreshTokenAndNoClientSecret() {
+      // Given - refresh token auth allows optional client secret
+      var auth = new RefreshTokenAuthentication("refresh-token", "client-id", "tenant-id", null);
+      var properties = new MsInboundEmailProperties(auth, validPollingConfig(), validOperation());
+
+      context =
+          InboundConnectorContextBuilder.create()
+              .validation(new DefaultValidationProvider())
+              .properties(properties)
+              .build();
+
+      // When
+      var boundProperties = context.bindProperties(MsInboundEmailProperties.class);
+
+      // Then
+      assertThat(boundProperties).isNotNull();
+      assertThat(boundProperties.authentication()).isInstanceOf(RefreshTokenAuthentication.class);
     }
   }
 
@@ -308,7 +375,7 @@ class MsInboundEmailPropertiesValidationTest {
   class ValidPropertiesValidation {
 
     @Test
-    void validate_shouldSucceed_withValidProperties() {
+    void validate_shouldSucceed_withValidClientCredentialsProperties() {
       // Given
       var properties =
           new MsInboundEmailProperties(
@@ -325,9 +392,38 @@ class MsInboundEmailPropertiesValidationTest {
 
       // Then
       assertThat(boundProperties).isNotNull();
-      assertThat(boundProperties.authentication().tenantId()).isEqualTo("tenant-id");
-      assertThat(boundProperties.authentication().clientId()).isEqualTo("client-id");
-      assertThat(boundProperties.authentication().clientSecret()).isEqualTo("client-secret");
+      assertThat(boundProperties.authentication())
+          .isInstanceOf(ClientCredentialsAuthentication.class);
+      var auth = (ClientCredentialsAuthentication) boundProperties.authentication();
+      assertThat(auth.tenantId()).isEqualTo("tenant-id");
+      assertThat(auth.clientId()).isEqualTo("client-id");
+      assertThat(auth.clientSecret()).isEqualTo("client-secret");
+    }
+
+    @Test
+    void validate_shouldSucceed_withValidRefreshTokenProperties() {
+      // Given
+      var properties =
+          new MsInboundEmailProperties(
+              validRefreshTokenAuthentication(), validPollingConfig(), validOperation());
+
+      context =
+          InboundConnectorContextBuilder.create()
+              .validation(new DefaultValidationProvider())
+              .properties(properties)
+              .build();
+
+      // When
+      var boundProperties = context.bindProperties(MsInboundEmailProperties.class);
+
+      // Then
+      assertThat(boundProperties).isNotNull();
+      assertThat(boundProperties.authentication()).isInstanceOf(RefreshTokenAuthentication.class);
+      var auth = (RefreshTokenAuthentication) boundProperties.authentication();
+      assertThat(auth.tenantId()).isEqualTo("tenant-id");
+      assertThat(auth.clientId()).isEqualTo("client-id");
+      assertThat(auth.clientSecret()).isEqualTo("client-secret");
+      assertThat(auth.token()).isEqualTo("refresh-token");
     }
 
     @Test

@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.model.authentication;
+package io.camunda.connector.microsoft.common.auth;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -15,15 +15,15 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
   @JsonSubTypes.Type(value = BearerAuthentication.class, name = "token"),
-  @JsonSubTypes.Type(value = ClientSecretAuthentication.class, name = "clientCredentials"),
+  @JsonSubTypes.Type(value = ClientCredentialsAuthentication.class, name = "clientCredentials"),
   @JsonSubTypes.Type(value = RefreshTokenAuthentication.class, name = "refresh")
 })
 @TemplateDiscriminatorProperty(
     label = "Type",
     group = "authentication",
     name = "type",
-    defaultValue = "refresh",
+    defaultValue = "clientCredentials",
     description =
-        "Authentication type depends on your MS Teams account permission and operation with connector. See <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/'>connector documentation</a>")
-public sealed interface MSTeamsAuthentication
-    permits BearerAuthentication, ClientSecretAuthentication, RefreshTokenAuthentication {}
+        "Authentication type depends on your Microsoft Entra (Azure AD) configuration. See <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/'>connector documentation</a>")
+public sealed interface MicrosoftAuthentication
+    permits BearerAuthentication, ClientCredentialsAuthentication, RefreshTokenAuthentication {}

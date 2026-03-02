@@ -10,10 +10,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.BaseTest;
-import io.camunda.connector.model.authentication.BearerAuthentication;
-import io.camunda.connector.model.authentication.ClientSecretAuthentication;
-import io.camunda.connector.model.authentication.MSTeamsAuthentication;
-import io.camunda.connector.model.authentication.RefreshTokenAuthentication;
+import io.camunda.connector.microsoft.common.auth.BearerAuthentication;
+import io.camunda.connector.microsoft.common.auth.ClientCredentialsAuthentication;
+import io.camunda.connector.microsoft.common.auth.MicrosoftAuthentication;
+import io.camunda.connector.microsoft.common.auth.RefreshTokenAuthentication;
 import io.camunda.connector.model.request.data.CreateChannel;
 import io.camunda.connector.model.request.data.CreateChat;
 import io.camunda.connector.model.request.data.GetChannel;
@@ -39,13 +39,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 class MSTeamsRequestTest extends BaseTest {
 
   private Map<String, Class<? extends MSTeamsRequestData>> methodsMap;
-  private Map<String, Class<? extends MSTeamsAuthentication>> authMap;
+  private Map<String, Class<? extends MicrosoftAuthentication>> authMap;
 
   @BeforeEach
   public void init() {
     authMap = new HashMap<>();
     authMap.put("token", BearerAuthentication.class);
-    authMap.put("clientCredentials", ClientSecretAuthentication.class);
+    authMap.put("clientCredentials", ClientCredentialsAuthentication.class);
     authMap.put("refresh", RefreshTokenAuthentication.class);
 
     methodsMap = new HashMap<>();

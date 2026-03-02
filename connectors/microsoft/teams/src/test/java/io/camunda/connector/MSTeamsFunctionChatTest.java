@@ -22,8 +22,8 @@ import com.microsoft.graph.models.ChatMessageCollectionResponse;
 import com.microsoft.graph.models.ConversationMemberCollectionResponse;
 import com.microsoft.graph.serviceclient.GraphServiceClient;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.model.authentication.MSTeamsAuthentication;
-import io.camunda.connector.suppliers.GraphServiceClientSupplier;
+import io.camunda.connector.microsoft.common.auth.GraphServiceClientSupplier;
+import io.camunda.connector.microsoft.common.auth.MicrosoftAuthentication;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -50,7 +50,8 @@ class MSTeamsFunctionChatTest extends BaseTest {
   public void init() {
     function = new MSTeamsFunction(graphServiceClientSupplier);
 
-    when(graphServiceClientSupplier.buildAndGetGraphServiceClient(any(MSTeamsAuthentication.class)))
+    when(graphServiceClientSupplier.buildAndGetGraphServiceClient(
+            any(MicrosoftAuthentication.class)))
         .thenReturn(graphServiceClient);
 
     // create chat
