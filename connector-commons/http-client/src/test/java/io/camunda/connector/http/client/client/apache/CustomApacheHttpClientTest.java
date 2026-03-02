@@ -1124,4 +1124,124 @@ public class CustomApacheHttpClientTest {
       stubFor(request.willReturn(unauthorized().withBody("Unauthorized")));
     }
   }
+
+  @Nested
+  class RedirectTests {
+
+    @Test
+    public void shouldReturn302_whenFollowRedirectsDisabledAndServerRedirects(
+        WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(
+          get("/redirect")
+              .willReturn(temporaryRedirect(wmRuntimeInfo.getHttpBaseUrl() + "/target")));
+      stubFor(get("/target").willReturn(ok().withBody("Redirected response")));
+
+      HttpClientRequest request = new HttpClientRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/redirect");
+      request.setFollowRedirects(false);
+
+      var result = httpClient.execute(request, ResponseMappers.asString());
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(302);
+      assertThat(result.headers()).containsKey("Location");
+    }
+
+    @Test
+    public void shouldReturn302ByDefault_whenServerRedirectsAndFollowRedirectsNotSet(
+        WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(
+          get("/redirect")
+              .willReturn(temporaryRedirect(wmRuntimeInfo.getHttpBaseUrl() + "/target")));
+      stubFor(get("/target").willReturn(ok().withBody("Redirected response")));
+
+      HttpClientRequest request = new HttpClientRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/redirect");
+
+      var result = httpClient.execute(request, ResponseMappers.asString());
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(302);
+      assertThat(result.headers()).containsKey("Location");
+    }
+
+    @Test
+    public void shouldReturn200_whenFollowRedirectsEnabledAndServerRedirects(
+        WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(
+          get("/redirect")
+              .willReturn(temporaryRedirect(wmRuntimeInfo.getHttpBaseUrl() + "/target")));
+      stubFor(get("/target").willReturn(ok().withBody("Redirected response")));
+
+      HttpClientRequest request = new HttpClientRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/redirect");
+      request.setFollowRedirects(true);
+
+      var result = httpClient.execute(request, ResponseMappers.asString());
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(200);
+      assertThat(result.entity()).isEqualTo("Redirected response");
+    }
+
+    @Test
+    public void shouldReturn200_whenFollowRedirectsEnabledAndServerRedirectsMultipleTimes(
+        WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(
+          get("/redirect1")
+              .willReturn(temporaryRedirect(wmRuntimeInfo.getHttpBaseUrl() + "/redirect2")));
+      stubFor(
+          get("/redirect2")
+              .willReturn(temporaryRedirect(wmRuntimeInfo.getHttpBaseUrl() + "/target")));
+      stubFor(get("/target").willReturn(ok().withBody("Final response")));
+
+      HttpClientRequest request = new HttpClientRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/redirect1");
+      request.setFollowRedirects(true);
+
+      var result = httpClient.execute(request, ResponseMappers.asString());
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(200);
+      assertThat(result.entity()).isEqualTo("Final response");
+    }
+
+    @Test
+    public void shouldReturn301_whenFollowRedirectsDisabledAndServerRedirectsPermanently(
+        WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(
+          get("/old-path")
+              .willReturn(permanentRedirect(wmRuntimeInfo.getHttpBaseUrl() + "/new-path")));
+      stubFor(get("/new-path").willReturn(ok().withBody("New location")));
+
+      HttpClientRequest request = new HttpClientRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/old-path");
+      request.setFollowRedirects(false);
+
+      var result = httpClient.execute(request, ResponseMappers.asString());
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(301);
+      assertThat(result.headers()).containsKey("Location");
+    }
+
+    @Test
+    public void shouldReturn200_whenFollowRedirectsEnabledAndServerRedirectsPermanently(
+        WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(
+          get("/old-path")
+              .willReturn(permanentRedirect(wmRuntimeInfo.getHttpBaseUrl() + "/new-path")));
+      stubFor(get("/new-path").willReturn(ok().withBody("New location")));
+
+      HttpClientRequest request = new HttpClientRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/old-path");
+      request.setFollowRedirects(true);
+
+      var result = httpClient.execute(request, ResponseMappers.asString());
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(200);
+      assertThat(result.entity()).isEqualTo("New location");
+    }
+  }
 }
