@@ -11,9 +11,9 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.microsoft.common.auth.GraphServiceClientSupplier;
 import io.camunda.connector.model.MSTeamsRequest;
 import io.camunda.connector.operation.OperationFactory;
-import io.camunda.connector.suppliers.GraphServiceClientSupplier;
 
 @OutboundConnector(
     name = "MS Teams",
