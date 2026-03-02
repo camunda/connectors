@@ -40,7 +40,8 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
       "body",
       "storeResponse",
       "groupSetCookieHeaders",
-      "ignoreNullValues"
+      "ignoreNullValues",
+      "followRedirects"
     },
     type = HttpJsonFunction.TYPE)
 @ElementTemplate(

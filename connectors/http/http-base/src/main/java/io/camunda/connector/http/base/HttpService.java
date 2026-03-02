@@ -46,6 +46,7 @@ public class HttpService {
     httpClientRequest.setReadTimeoutInSeconds(request.getReadTimeoutInSeconds());
     httpClientRequest.setSkipEncoding(request.getSkipEncoding());
     httpClientRequest.setIgnoreNullValues(request.isIgnoreNullValues());
+    httpClientRequest.setFollowRedirects(request.isFollowRedirects());
     return httpClientRequest;
   }
 }
