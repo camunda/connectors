@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.microsoft.email.util;
 
-import static io.camunda.connector.microsoft.email.MsEmailInboundConstants.GRAPH_API_SCOPES;
 import static io.camunda.connector.microsoft.email.MsEmailInboundConstants.ODATA_FILTER_PARAM;
 import static io.camunda.connector.microsoft.email.MsEmailInboundConstants.ODATA_SELECT_PARAM;
 import static io.camunda.connector.microsoft.email.MsEmailInboundConstants.ODATA_TOP_PARAM;
@@ -14,8 +13,6 @@ import static io.camunda.connector.microsoft.email.MsEmailInboundConstants.PAGE_
 import static io.camunda.connector.microsoft.email.MsEmailInboundConstants.PREFER_HEADER;
 import static io.camunda.connector.microsoft.email.MsEmailInboundConstants.PREFER_TEXT_BODY;
 
-import com.azure.identity.ClientSecretCredential;
-import com.azure.identity.ClientSecretCredentialBuilder;
 import com.microsoft.graph.core.tasks.PageIterator;
 import com.microsoft.graph.models.FileAttachment;
 import com.microsoft.graph.models.Message;
@@ -28,8 +25,12 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.microsoft.common.auth.BearerAuthentication;
+import io.camunda.connector.microsoft.common.auth.ClientCredentialsAuthentication;
+import io.camunda.connector.microsoft.common.auth.GraphServiceClientSupplier;
+import io.camunda.connector.microsoft.common.auth.MicrosoftAuthentication;
+import io.camunda.connector.microsoft.common.auth.RefreshTokenAuthentication;
 import io.camunda.connector.microsoft.email.model.config.Folder;
-import io.camunda.connector.microsoft.email.model.config.InboundAuthentication;
 import io.camunda.connector.microsoft.email.model.output.EmailMessage;
 import io.camunda.connector.microsoft.email.model.output.GraphApiMapper;
 import java.lang.reflect.InvocationTargetException;
@@ -37,28 +38,51 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 
 public class MicrosoftMailClient implements MailClient {
 
-  private final GraphServiceClient client;
-  private final UserItemRequestBuilder graphClient;
+  private final Supplier<GraphServiceClient> clientSupplier;
   private final String userId;
 
-  public MicrosoftMailClient(InboundAuthentication authentication, String userId) {
-    // The client credentials flow requires that you request the
-    // /.default scope, and pre-configure your permissions on the
-    // app registration in Azure. An administrator must grant consent
-    // to those permissions beforehand.
-    final ClientSecretCredential credential =
-        new ClientSecretCredentialBuilder()
-            .clientId(authentication.clientId())
-            .tenantId(authentication.tenantId())
-            .clientSecret(authentication.clientSecret())
-            .build();
-    client = new GraphServiceClient(credential, GRAPH_API_SCOPES);
-    graphClient = client.users().byUserId(userId);
+  public MicrosoftMailClient(MicrosoftAuthentication authentication, String userId) {
     this.userId = userId;
+    this.clientSupplier = createClientSupplier(authentication);
+  }
+
+  private static Supplier<GraphServiceClient> createClientSupplier(
+      MicrosoftAuthentication authentication) {
+    return switch (authentication) {
+      case ClientCredentialsAuthentication clientCreds -> {
+        // Client credentials flow: Azure SDK handles token renewal internally via
+        // ClientSecretCredential, so we create the client once and reuse it.
+        var supplier = new GraphServiceClientSupplier();
+        final GraphServiceClient client = supplier.buildAndGetGraphServiceClient(clientCreds);
+        yield () -> client;
+      }
+      case RefreshTokenAuthentication refreshToken -> {
+        // Refresh token flow: rebuild the client on each poll cycle to get a fresh access token,
+        // since refresh tokens may be rotated by the identity provider.
+        var supplier = new GraphServiceClientSupplier();
+        yield () -> supplier.buildAndGetGraphServiceClient(refreshToken);
+      }
+      case BearerAuthentication bearer -> {
+        // Bearer token: create the client once with the provided token.
+        // Note: bearer tokens are short-lived and not recommended for polling connectors.
+        var supplier = new GraphServiceClientSupplier();
+        final GraphServiceClient client = supplier.buildAndGetGraphServiceClient(bearer);
+        yield () -> client;
+      }
+    };
+  }
+
+  private GraphServiceClient getClient() {
+    return clientSupplier.get();
+  }
+
+  private UserItemRequestBuilder getGraphClient() {
+    return getClient().users().byUserId(userId);
   }
 
   private String getFolderId(Folder folder) {
@@ -72,7 +96,7 @@ public class MicrosoftMailClient implements MailClient {
     // Escape single quotes per OData standard: single quotes in string literals must be doubled
     // to prevent injection attacks (e.g., "O'Reilly" becomes "O''Reilly")
     var resp =
-        graphClient
+        getGraphClient()
             .mailFolders()
             .get(
                 c ->
@@ -126,7 +150,7 @@ public class MicrosoftMailClient implements MailClient {
       MessageCollectionResponse messageResponse)
       throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
     return new PageIterator.Builder<Message, MessageCollectionResponse>()
-        .client(client)
+        .client(getClient())
         .collectionPage(Objects.requireNonNull(messageResponse))
         .collectionPageFactory(MessageCollectionResponse::createFromDiscriminatorValue)
         .requestConfigurator(
@@ -146,7 +170,7 @@ public class MicrosoftMailClient implements MailClient {
   }
 
   private MessageItemRequestBuilder constructCommonMessage(EmailMessage msg) {
-    return graphClient.messages().byMessageId(msg.id());
+    return getGraphClient().messages().byMessageId(msg.id());
   }
 
   @Override
@@ -195,7 +219,7 @@ public class MicrosoftMailClient implements MailClient {
   }
 
   private MessageCollectionResponse fetchMessages(Folder folder, String filterString) {
-    return graphClient
+    return getGraphClient()
         .mailFolders()
         .byMailFolderId(getFolderId(folder))
         .messages()

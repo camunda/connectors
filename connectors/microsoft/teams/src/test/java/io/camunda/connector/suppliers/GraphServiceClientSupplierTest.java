@@ -12,7 +12,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.BaseTest;
-import io.camunda.connector.model.authentication.RefreshTokenAuthentication;
+import io.camunda.connector.microsoft.common.auth.GraphServiceClientSupplier;
+import io.camunda.connector.microsoft.common.auth.RefreshTokenAuthentication;
 import java.io.IOException;
 import okhttp3.Call;
 import okhttp3.MediaType;
@@ -77,7 +78,7 @@ class GraphServiceClientSupplierTest extends BaseTest {
             RuntimeException.class,
             () -> supplier.buildAndGetGraphServiceClient(authentication),
             "RuntimeException was expected");
-    assertThat(thrown.getMessage()).contains("bad request");
+    assertThat(thrown.getMessage()).contains("Status code: 401").contains("response:");
   }
 
   @Test
