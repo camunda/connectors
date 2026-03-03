@@ -92,6 +92,7 @@ jobs:
   add-quality-board:
     name: Add issue to quality board project if its a bug
     runs-on: ubuntu-latest
+    if: github.event_name == 'issues'
     steps:
       - name: Import Secrets
         id: vault-secrets
