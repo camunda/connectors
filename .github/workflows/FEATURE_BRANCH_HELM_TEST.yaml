@@ -83,25 +83,35 @@ jobs:
           username: ${{ steps.secrets.outputs.CI_LDAP_USER }}
           password: ${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}
 
-      - name: Set connectors version
+      - name: Set connectors version (PR tag only)
         id: connectors-version
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
           MAVEN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           BASE_VERSION="${MAVEN_VERSION%-SNAPSHOT}"
 
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            # For PRs: <base-version>-pr<PR_NUMBER>-run<run_id>-a<run_attempt>
-            TAG="${BASE_VERSION}-pr${{ github.event.pull_request.number }}-run${{ github.run_id }}-a${{ github.run_attempt }}"
-          else
-            # For non-PR runs (push): keep it unique + immutable
-            TAG="${BASE_VERSION}-sha${{ github.sha }}-run${{ github.run_id }}-a${{ github.run_attempt }}"
+          PR_NUMBER="$(
+            curl -fsSL \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
+            | jq -r '.[0].number // empty'
+          )" || PR_NUMBER=""
+
+          if [[ -z "$PR_NUMBER" ]]; then
+            echo "::notice::No PR found for ${GITHUB_SHA}. Will not push PR-tagged images."
+            echo "should-push=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
-          echo "::notice::Maven version: ${MAVEN_VERSION}"
-          echo "::notice::Tag: ${TAG}"
+          TAG="${BASE_VERSION}-pr${PR_NUMBER}-run${GITHUB_RUN_ID}-a${GITHUB_RUN_ATTEMPT}"
+          echo "::notice::PR tag: ${TAG}"
+
           echo "connectors-version=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "should-push=true" >> "$GITHUB_OUTPUT"
 
       - name: Login to Minimus
         uses: docker/login-action@v3
@@ -122,6 +132,7 @@ jobs:
           tags: registry.camunda.cloud/team-connectors/connectors-bundle:${{ env.TAG }}
 
       - name: Build and Push Docker Image tag ${{ env.TAG }} - bundle-saas
+        if: ${{ steps.connectors-version.outputs.should-push == 'true' }}
         env:
           TAG: ${{ steps.connectors-version.outputs.connectors-version }}
         uses: docker/build-push-action@v6
