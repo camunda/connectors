@@ -3,8 +3,10 @@ name: Check Licenses
 on:
   push:
     branches:
-    - main
-    - release/*
+      - main
+      - release-*
+      - stable/*
+      - alpha/*
     tags:
     - '*'
 
