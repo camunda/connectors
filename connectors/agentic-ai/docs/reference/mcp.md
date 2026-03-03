@@ -29,7 +29,9 @@ For the Gateway Tool Pattern that MCP implements, see [ai-agent.md §19](ai-agen
 
 ---
 
-## 1. Overview {#1-overview}
+<a id="1-overview"></a>
+
+## 1. Overview
 
 MCP integration is bidirectional:
 
@@ -81,7 +83,9 @@ sequenceDiagram
 
 ---
 
-## 2. Connector Types {#2-connector-types}
+<a id="2-connector-types"></a>
+
+## 2. Connector Types
 
 **MCP Client** (`McpClientFunction`):
 - Type: `io.camunda.agenticai:mcpclient:1`
@@ -99,7 +103,9 @@ sequenceDiagram
 
 ---
 
-## 3. Package Structure {#3-package-structure}
+<a id="3-package-structure"></a>
+
+## 3. Package Structure
 
 ```
 io.camunda.connector.agenticai.mcp/
@@ -190,7 +196,9 @@ io.camunda.connector.agenticai.mcp/
 
 ---
 
-## 4. MCP Client Architecture {#4-mcp-client-architecture}
+<a id="4-mcp-client-architecture"></a>
+
+## 4. MCP Client Architecture
 
 ```
 McpClientFunction / McpRemoteClientFunction
@@ -228,14 +236,18 @@ McpClientFunction / McpRemoteClientFunction
 
 Each operation is implemented by a package-private request class in the `rpc` subpackage:
 - `ListToolsRequest`: Calls `McpSyncClient.listTools()`, applies `AllowDenyList`, maps `McpSchema.Tool` → `McpToolDefinition`
-- `ToolCallRequest`: Validates tool name, calls `McpSyncClient.callTool()`. Maps response content:
-  `TextContent` → `McpTextContent`, `ImageContent`/`AudioContent` → `McpBlobContent` (Base64 decoded),
+- `ToolCallRequest`: Validates tool name, parses parameters, and calls `McpSyncClient.callTool()`. Maps response
+  content: `TextContent` → `McpTextContent`, `ImageContent`/`AudioContent` → `McpBlobContent` (Base64 decoded),
   `EmbeddedResource` → `McpEmbeddedResourceContent`, `ResourceLink` → `McpResourceLinkContent`,
-  `structuredContent` → `McpObjectContent`. Catches exceptions and returns error result (never throws).
+  `structuredContent` → `McpObjectContent`. Failures during the MCP call or response mapping are caught and returned as
+  `McpClientCallToolResult` with `isError = true`; earlier validation/argument parsing failures (e.g.,
+  `ConnectorException(MCP_CLIENT_INVALID_PARAMS)` or null tool name) propagate as exceptions to the caller.
 
 ---
 
-## 5. Tool Name Convention {#5-tool-name-convention}
+<a id="5-tool-name-convention"></a>
+
+## 5. Tool Name Convention
 
 `McpToolCallIdentifier` manages the naming scheme:
 
@@ -257,7 +269,9 @@ Discovery tool call IDs use a different format: `MCP_toolsList_<elementId>` — 
 
 ---
 
-## 6. Discovery Flow {#6-discovery-flow}
+<a id="6-discovery-flow"></a>
+
+## 6. Discovery Flow
 
 ```
 1. Agent enters INITIALIZING state
@@ -282,14 +296,16 @@ Discovery tool call IDs use a different format: `MCP_toolsList_<elementId>` — 
 
 ---
 
-## 7. Tool Call Execution Flow {#7-tool-call-execution-flow}
+<a id="7-tool-call-execution-flow"></a>
+
+## 7. Tool Call Execution Flow
 
 ```
 1. LLM requests tool call: "MCP_MyFilesystem___readFile" with args {path: "/foo"}
 2. McpClientGatewayToolHandler.transformToolCalls():
    - Parses McpToolCallIdentifier: elementName="MyFilesystem", mcpToolName="readFile"
    - Transforms to: ToolCall(id=<original>, name="MyFilesystem",
-     args={method: "callTool", params: {name: "readFile", arguments: {path: "/foo"}}})
+     args={method: "tools/call", params: {name: "readFile", arguments: {path: "/foo"}}})
 3. Agent completes job with activateElement("MyFilesystem")
 4. MCP Client connector executes callTool("readFile", {path: "/foo"})
 5. Result flows back as toolCallResult (McpClientCallToolResult)
@@ -302,7 +318,9 @@ Discovery tool call IDs use a different format: `MCP_toolsList_<elementId>` — 
 
 ---
 
-## 8. Request Data Model {#8-request-data-model}
+<a id="8-request-data-model"></a>
+
+## 8. Request Data Model
 
 ### McpClientRequest (runtime-configured)
 
@@ -354,7 +372,9 @@ Map<String, Object> params();   // method-specific parameters
 
 ---
 
-## 9. Result Data Model {#9-result-data-model}
+<a id="9-result-data-model"></a>
+
+## 9. Result Data Model
 
 ### Result Type Hierarchy
 
@@ -394,7 +414,9 @@ record McpToolDefinition(String name, @Nullable String title, @Nullable String d
 
 ---
 
-## 10. Client Lifecycle {#10-client-lifecycle}
+<a id="10-client-lifecycle"></a>
+
+## 10. Client Lifecycle
 
 ### McpClientFactory (interface)
 
@@ -424,7 +446,9 @@ McpClientDelegate createClient(String clientId, McpClientConfiguration config);
 
 ---
 
-## 11. Transport & Authentication {#11-transport--authentication}
+<a id="11-transport--authentication"></a>
+
+## 11. Transport & Authentication
 
 ### Transport Types
 
@@ -450,7 +474,7 @@ Discriminated by `type` property:
 ### Authentication (sealed interface)
 
 Jackson polymorphic on `type` property:
-- `NoAuthentication` (`type = "none"`)
+- `NoAuthentication` (`type = "noAuth"`)
 - `BasicAuthentication` (`type = "basic"`) — username + password
 - `BearerAuthentication` (`type = "bearer"`) — token
 - `OAuthAuthentication` (`type = "oauth"`) — full OAuth2 config
@@ -460,7 +484,9 @@ headers (uses `OAuthService` + `CustomApacheHttpClient` for OAuth).
 
 ---
 
-## 12. Filtering {#12-filtering}
+<a id="12-filtering"></a>
+
+## 12. Filtering
 
 ### AllowDenyList
 
@@ -481,7 +507,9 @@ filtering for tools, resources, and prompts.
 
 ---
 
-## 13. Binary Content & Document Handling {#13-binary-content--document-handling}
+<a id="13-binary-content--document-handling"></a>
+
+## 13. Binary Content & Document Handling
 
 `McpClientResultDocumentHandler` checks if `McpClientResult instanceof McpClientResultWithStorableData` and calls
 `convertStorableMcpResultData(documentFactory)`. This converts:
@@ -493,7 +521,9 @@ This handles MCP resources that return binary data (images, files) by storing th
 
 ---
 
-## 14. Spring Configuration {#14-spring-configuration}
+<a id="14-spring-configuration"></a>
+
+## 14. Spring Configuration
 
 ### McpDiscoveryConfiguration
 
@@ -569,7 +599,9 @@ These Spring `@Qualifier` meta-annotations disambiguate the two factory beans.
 
 ---
 
-## 15. Error Codes {#15-error-codes}
+<a id="15-error-codes"></a>
+
+## 15. Error Codes
 
 From `McpClientErrorCodes`:
 
@@ -585,7 +617,9 @@ From `McpClientGatewayToolHandler`:
 
 ---
 
-## 16. Key Source Files {#16-key-source-files}
+<a id="16-key-source-files"></a>
+
+## 16. Key Source Files
 
 | File                                           | Purpose                                                       |
 |------------------------------------------------|---------------------------------------------------------------|

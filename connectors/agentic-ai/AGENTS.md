@@ -8,6 +8,7 @@ infrastructure for tool calling, conversation memory, and event handling.
 
 **This document is a concise orientation and reference guide.** For detailed code-level analysis, see the reference docs:
 
+- [`docs/adr/`](docs/adr/) — architecture decision records
 - [`docs/reference/ai-agent.md`](docs/reference/ai-agent.md) — core AI Agent architecture
 - [`docs/reference/mcp.md`](docs/reference/mcp.md) — MCP integration
 - [`docs/reference/a2a.md`](docs/reference/a2a.md) — A2A integration
@@ -167,7 +168,7 @@ Migration detection: `AgentMetadata.processDefinitionKey` vs current job's key.
 |------------------|--------------------|--------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
 | In-process       | `in-process`       | Messages inside `agentContext` process variable  | Durable (engine-persisted). Variable size limits for large conversations                                      |
 | Camunda Document | `camunda-document` | JSON document in document storage                | Conversation stored externally; only a reference in `agentContext`                                             |
-| Custom           | `custom`           | User-provided implementation                     | Implement `ConversationStore`, `ConversationSession`, `ConversationContext` (registered via `@JsonSubTypes`)   |
+| Custom           | `custom`           | User-provided implementation                     | Implement `ConversationStore`, `ConversationSession`, `ConversationContext`; register custom `ConversationContext` subtypes with the runtime `ObjectMapper` |
 
 `MessageWindowRuntimeMemory` limits messages sent to LLM (default: 20). Full history is always persisted.
 For eviction rules and architecture details, see [ai-agent.md §6](docs/reference/ai-agent.md#6-conversation-memory).
@@ -208,6 +209,9 @@ rather than running the full suite. Running all e2e tests takes a long time.
 The Gateway Tool Pattern is the extensibility mechanism for integrating external tool providers (MCP, A2A) that expose
 **multiple tools behind a single BPMN element**.
 
+- MCP: one element = **many tools** (discrete operations from an MCP server)
+- A2A: one element = **one tool** (an entire remote agent)
+
 ### How it works
 
 1. Gateway elements are identified via `io.camunda.agenticai.gateway.type` extension property (set by element template)
@@ -244,22 +248,24 @@ Two connector types:
 - **MCP Client** (`McpClientFunction`, type `io.camunda.agenticai:mcpclient:1`): Pre-configured MCP connections on runtime
 - **MCP Remote Client** (`McpRemoteClientFunction`, type `io.camunda.agenticai:mcpremoteclient:1`): On-demand remote connections
 
+For the complete MCP reference, see [`docs/reference/mcp.md`](docs/reference/mcp.md).
+
+### Gateway tool naming
+
 Tool naming: `MCP_<elementName>___<mcpToolName>` — one MCP server = many tools, triple-underscore separates gateway
 element from tool name.
-
-For the complete MCP reference, see [`docs/reference/mcp.md`](docs/reference/mcp.md).
 
 ## A2A Integration
 
 A2A (Agent-to-Agent) integration enables the AI Agent to interact with remote autonomous agents.
-
-- MCP: one element = **many tools** (discrete operations)
-- A2A: one element = **one tool** (an entire remote agent)
-
-Tool naming: `A2A_<elementName>`. `A2aSystemPromptContributor` injects protocol instructions (from
-`a2a/a2a-system-prompt.md`) when A2A tools are detected.
+`A2aSystemPromptContributor` injects protocol instructions (from `a2a/a2a-system-prompt.md`) when A2A tools are
+detected.
 
 For the complete A2A reference, see [`docs/reference/a2a.md`](docs/reference/a2a.md).
+
+### Gateway tool naming
+
+Tool naming: `A2A_<elementName>` — one A2A element = one tool (an entire remote agent).
 
 ## Element Templates
 

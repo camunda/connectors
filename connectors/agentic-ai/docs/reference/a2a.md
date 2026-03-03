@@ -29,7 +29,9 @@ For the Gateway Tool Pattern that A2A implements, see [ai-agent.md §19](ai-agen
 
 ---
 
-## 1. Overview {#1-overview}
+<a id="1-overview"></a>
+
+## 1. Overview
 
 Unlike MCP (which exposes discrete tools), A2A exposes **entire agents** as tools. Each A2A Client element in the AHSP
 becomes a single tool the LLM can send messages to. A2A supports multi-turn conversations with remote agents via
@@ -37,7 +39,9 @@ becomes a single tool the LLM can send messages to. A2A supports multi-turn conv
 
 ---
 
-## 2. Key Differences from MCP {#2-key-differences-from-mcp}
+<a id="2-key-differences-from-mcp"></a>
+
+## 2. Key Differences from MCP
 
 | Aspect             | MCP                                  | A2A                                                                |
 |--------------------|--------------------------------------|--------------------------------------------------------------------|
@@ -52,7 +56,9 @@ becomes a single tool the LLM can send messages to. A2A supports multi-turn conv
 
 ---
 
-## 3. Connector Types {#3-connector-types}
+<a id="3-connector-types"></a>
+
+## 3. Connector Types
 
 **A2A Client Outbound** (`A2aClientOutboundConnectorFunction`):
 - Type: `io.camunda.agenticai:a2aclient:0`
@@ -72,7 +78,9 @@ becomes a single tool the LLM can send messages to. A2A supports multi-turn conv
 
 ---
 
-## 4. Package Structure {#4-package-structure}
+<a id="4-package-structure"></a>
+
+## 4. Package Structure
 
 ```
 io.camunda.connector.agenticai.a2a/
@@ -145,7 +153,9 @@ io.camunda.connector.agenticai.a2a/
 
 ---
 
-## 5. Tool Name Convention {#5-tool-name-convention}
+<a id="5-tool-name-convention"></a>
+
+## 5. Tool Name Convention
 
 `A2aToolCallIdentifier` manages the naming scheme:
 
@@ -166,7 +176,9 @@ Simpler than MCP because there's only one "tool" per A2A element (the agent itse
 
 ---
 
-## 6. Discovery Flow {#6-discovery-flow}
+<a id="6-discovery-flow"></a>
+
+## 6. Discovery Flow
 
 ```
 1. Agent enters INITIALIZING state
@@ -190,7 +202,9 @@ Simpler than MCP because there's only one "tool" per A2A element (the agent itse
 
 ---
 
-## 7. Tool Call Execution Flow {#7-tool-call-execution-flow}
+<a id="7-tool-call-execution-flow"></a>
+
+## 7. Tool Call Execution Flow
 
 ```
 1. LLM requests: "A2A_WeatherAgent" with args {text: "What's the weather?"}
@@ -209,7 +223,9 @@ Simpler than MCP because there's only one "tool" per A2A element (the agent itse
 
 ---
 
-## 8. Data Model {#8-data-model}
+<a id="8-data-model"></a>
+
+## 8. Data Model
 
 ### Result Type Hierarchy
 
@@ -258,7 +274,9 @@ All A2A tools share `a2a/tool-input-schema.json`:
 
 ---
 
-## 9. Connector Modes & Operations {#9-connector-modes--operations}
+<a id="9-connector-modes--operations"></a>
+
+## 9. Connector Modes & Operations
 
 ### A2aConnectorModeConfiguration (sealed)
 
@@ -285,7 +303,9 @@ Discriminated by `type`:
 
 ---
 
-## 10. SDK Client Layer {#10-sdk-client-layer}
+<a id="10-sdk-client-layer"></a>
+
+## 10. SDK Client Layer
 
 ### A2aSdkClientFactory / A2aSdkClientFactoryImpl
 
@@ -316,7 +336,9 @@ forced shutdown.
 
 ---
 
-## 11. Converter Chain {#11-converter-chain}
+<a id="11-converter-chain"></a>
+
+## 11. Converter Chain
 
 ### SDK → Domain
 
@@ -345,7 +367,9 @@ forced shutdown.
 
 ---
 
-## 12. System Prompt Contribution {#12-system-prompt-contribution}
+<a id="12-system-prompt-contribution"></a>
+
+## 12. System Prompt Contribution
 
 `A2aSystemPromptContributor` implements `SystemPromptContributor` (order = 100) and automatically injects A2A protocol
 instructions when A2A tools are detected.
@@ -363,7 +387,9 @@ For the `SystemPromptContributor` SPI, see [ai-agent.md §13](ai-agent.md#13-sys
 
 ---
 
-## 13. Async Patterns {#13-async-patterns}
+<a id="13-async-patterns"></a>
+
+## 13. Async Patterns
 
 ### Blocking (synchronous)
 
@@ -403,7 +429,9 @@ Result correlation
 
 ---
 
-## 14. Spring Configuration {#14-spring-configuration}
+<a id="14-spring-configuration"></a>
+
+## 14. Spring Configuration
 
 ### A2aClientCommonConfiguration
 
@@ -444,7 +472,9 @@ Registers: `A2aClientWebhookExecutable` (prototype scope)
 
 ---
 
-## 15. Error Codes {#15-error-codes}
+<a id="15-error-codes"></a>
+
+## 15. Error Codes
 
 From `A2aErrorCodes`:
 
@@ -457,7 +487,9 @@ From `A2aErrorCodes`:
 
 ---
 
-## 16. Key Source Files {#16-key-source-files}
+<a id="16-key-source-files"></a>
+
+## 16. Key Source Files
 
 | File                                         | Purpose                                                       |
 |----------------------------------------------|---------------------------------------------------------------|
