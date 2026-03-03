@@ -86,18 +86,22 @@ jobs:
       - name: Set connectors version
         id: connectors-version
         run: |
-          # Extract version from Maven project (e.g., "8.9.0-SNAPSHOT")
+          set -euo pipefail
+
           MAVEN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          # Remove -SNAPSHOT suffix if present
           BASE_VERSION="${MAVEN_VERSION%-SNAPSHOT}"
-          # Create semver-compatible tag with commit SHA as prerelease identifier
-          CONNECTORS_VERSION="${BASE_VERSION}-${{ github.sha }}"
-          
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # For PRs: <base-version>-pr<PR_NUMBER>-run<run_id>-a<run_attempt>
+            TAG="${BASE_VERSION}-pr${{ github.event.pull_request.number }}-run${{ github.run_id }}-a${{ github.run_attempt }}"
+          else
+            # For non-PR runs (push): keep it unique + immutable
+            TAG="${BASE_VERSION}-sha${{ github.sha }}-run${{ github.run_id }}-a${{ github.run_attempt }}"
+          fi
+
           echo "::notice::Maven version: ${MAVEN_VERSION}"
-          echo "::notice::Base version: ${BASE_VERSION}"
-          echo "::notice::Connectors version tag: ${CONNECTORS_VERSION}"
-          
-          echo "connectors-version=${CONNECTORS_VERSION}" >> $GITHUB_OUTPUT
+          echo "::notice::Tag: ${TAG}"
+          echo "connectors-version=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Login to Minimus
         uses: docker/login-action@v3
