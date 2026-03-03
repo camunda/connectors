@@ -286,6 +286,29 @@ The job worker template is auto-generated from the outbound template via
 
 For the full code path reference, see [ai-agent.md §18](docs/reference/ai-agent.md#18-code-paths).
 
+## Architecture Decision Records
+
+Architecture Decision Records (ADRs) capture significant technical decisions with their context, alternatives considered,
+and rationale. They live in [`docs/adr/`](docs/adr/) and serve as a historical log of why the architecture looks the
+way it does.
+
+**When to write an ADR:** When a change involves choosing between meaningful alternatives — e.g., replacing a framework,
+restructuring a core subsystem, or changing a storage strategy. Routine bug fixes, refactors, and feature additions that
+follow established patterns do not need ADRs.
+
+**Format:** Follow the structure used in existing ADRs (see
+[ADR 001](docs/adr/001-replace-mcp-client-framework.md) as an example):
+
+- **Title** — short description of the decision
+- **Deciders / Date** — who decided and when
+- **Status** — Proposed, Accepted, Implemented, Superseded
+- **Context and Problem Statement** — what problem triggered the decision
+- **Decision Drivers** — key factors that influenced the choice
+- **Considered Options** — alternatives evaluated
+- **Decision Outcome** — chosen option with justification
+
+Additional sections (e.g., trade-offs, migration notes, backward compatibility) can be added as needed.
+
 ## Keeping Documentation Up to Date
 
 When making code changes to this module, update the relevant documentation to reflect those changes:
