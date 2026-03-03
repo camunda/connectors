@@ -17,7 +17,7 @@ import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
 import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
 import io.modelcontextprotocol.client.transport.ServerParameters;
 import io.modelcontextprotocol.client.transport.StdioClientTransport;
-import io.modelcontextprotocol.json.McpJsonMapper;
+import io.modelcontextprotocol.json.McpJsonDefaults;
 import io.modelcontextprotocol.spec.McpClientTransport;
 import io.modelcontextprotocol.spec.McpSchema;
 import io.modelcontextprotocol.spec.ProtocolVersions;
@@ -71,7 +71,7 @@ public class McpSdkClientFactory implements McpClientFactory {
 
     return new StdioClientTransport(
         ServerParameters.builder(stdioConfig.command()).args(stdioConfig.args()).build(),
-        McpJsonMapper.createDefault());
+        McpJsonDefaults.getMapper());
   }
 
   private HttpClientStreamableHttpTransport createStreamableHttpTransport(
