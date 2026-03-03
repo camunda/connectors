@@ -92,7 +92,6 @@ jobs:
   add-quality-board:
     name: Add issue to quality board project if its a bug
     runs-on: ubuntu-latest
-    if: (contains(github.event.label.name, 'bug') || contains(github.event.issue.labels.*.name, 'bug') || contains(github.event.issue.type.*.name, 'bug')) &&  github.event_name != 'pull_request'
     steps:
       - name: Import Secrets
         id: vault-secrets
@@ -111,7 +110,17 @@ jobs:
         with:
           app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
           private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
-      - uses: actions/add-to-project@v1.0.2
+      - uses: camunda/infra-global-github-actions/add-bug-to-quality-board@main
         with:
-          project-url: https://github.com/orgs/camunda/projects/187/views/1
           github-token: ${{ steps.app-token.outputs.token }}
+          labels: "component/connectors"
+        if: >
+          # Only run this job for issues labeled as 'kind/bug' and
+          # for the relevant GitHub issue events that indicate a new or updated issue.
+          contains(github.event.issue.labels.*.name, 'kind/bug') &&
+          (
+              github.event.action == 'opened' ||
+              github.event.action == 'reopened' ||
+              github.event.action == 'transferred' ||
+              (github.event.action == 'labeled' && github.event.label.name == 'kind/bug')
+          )
