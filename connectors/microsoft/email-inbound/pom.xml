@@ -12,6 +12,8 @@
 
   <artifactId>connector-microsoft-email</artifactId>
   <name>connector-microsoft-email</name>
+  <description>Camunda Microsoft Email Connector</description>
+  <packaging>jar</packaging>
 
   <dependencies>
     <dependency>
