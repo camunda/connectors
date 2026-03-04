@@ -11,6 +11,7 @@
   </parent>
 
   <artifactId>connector-microsoft-email</artifactId>
+  <name>connector-microsoft-email</name>
 
   <dependencies>
     <dependency>
