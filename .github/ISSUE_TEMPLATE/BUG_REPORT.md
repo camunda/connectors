@@ -1,7 +1,7 @@
 ---
 name: Bug report
 about: Report a problem and help us fix it.
-labels: "kind:bug"
+labels: "kind/bug"
 ---
 
 
@@ -25,4 +25,4 @@ __Environment__
 
 - OS: [e.g. Windows 7]
 - Library version: [e.g. 2.0.0]
-- Camunda version: [e.g. 8.0.4 (self-managed)]
+- Camunda version: [e.g. 8.0.4 (self-managed)] --> please also use affects/8.X label
