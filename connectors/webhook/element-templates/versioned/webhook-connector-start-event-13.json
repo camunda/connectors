@@ -1,13 +1,13 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Webhook Start Event Connector",
-  "id" : "io.camunda.connectors.webhook.WebhookConnector.v1-hybrid",
+  "name" : "Webhook Start Event Connector",
+  "id" : "io.camunda.connectors.webhook.WebhookConnector.v1",
   "description" : "Configure webhook to receive callbacks",
   "metadata" : {
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
-  "version" : 14,
+  "version" : 13,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -20,9 +20,6 @@
     "camunda" : "^8.3"
   },
   "groups" : [ {
-    "id" : "connectorType",
-    "label" : "Connector type"
-  }, {
     "id" : "endpoint",
     "label" : "Webhook configuration"
   }, {
@@ -46,14 +43,12 @@
     "label" : "Output mapping"
   } ],
   "properties" : [ {
-    "id" : "connectorType",
     "value" : "io.camunda:webhook:1",
-    "group" : "connectorType",
     "binding" : {
       "name" : "inbound.type",
       "type" : "zeebe:property"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "inbound.method",
     "label" : "Webhook method",
@@ -368,25 +363,6 @@
       "type" : "zeebe:property"
     },
     "type" : "Text"
-  }, {
-    "id" : "inbound.syncMode",
-    "label" : "Mode for process execution and response",
-    "optional" : true,
-    "value" : "Async",
-    "group" : "webhookResponse",
-    "binding" : {
-      "name" : "inbound.mode",
-      "type" : "zeebe:property"
-    },
-    "tooltip" : "Whether to wait for the process execution synchronously to complete before sending the response",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Asynchronous",
-      "value" : "Async"
-    }, {
-      "name" : "Synchronous",
-      "value" : "Sync"
-    } ]
   }, {
     "id" : "activationCondition",
     "label" : "Activation condition",

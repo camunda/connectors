@@ -170,7 +170,8 @@ public abstract sealed class Property
         && feel == property.feel
         && Objects.equals(group, property.group)
         && Objects.equals(binding, property.binding)
-        && Objects.equals(type, property.type);
+        && Objects.equals(type, property.type)
+        && Objects.equals(elementTypes, property.elementTypes);
   }
 
   @Override

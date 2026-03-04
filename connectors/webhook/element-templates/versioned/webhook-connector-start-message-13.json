@@ -1,28 +1,26 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Webhook Start Event Connector",
-  "id" : "io.camunda.connectors.webhook.WebhookConnector.v1-hybrid",
+  "name" : "Webhook Message Start Event Connector",
+  "id" : "io.camunda.connectors.webhook.WebhookConnectorStartMessage.v1",
   "description" : "Configure webhook to receive callbacks",
   "metadata" : {
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
-  "version" : 14,
+  "version" : 13,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
   },
   "appliesTo" : [ "bpmn:StartEvent" ],
   "elementType" : {
-    "value" : "bpmn:StartEvent"
+    "value" : "bpmn:StartEvent",
+    "eventDefinition" : "bpmn:MessageEventDefinition"
   },
   "engines" : {
     "camunda" : "^8.3"
   },
   "groups" : [ {
-    "id" : "connectorType",
-    "label" : "Connector type"
-  }, {
     "id" : "endpoint",
     "label" : "Webhook configuration"
   }, {
@@ -38,6 +36,10 @@
     "id" : "activation",
     "label" : "Activation"
   }, {
+    "id" : "correlation",
+    "label" : "Correlation",
+    "tooltip" : "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>."
+  }, {
     "id" : "deduplication",
     "label" : "Deduplication",
     "tooltip" : "Deduplication allows you to configure multiple inbound connector elements to reuse the same backend (consumer/thread/endpoint) by sharing the same deduplication ID."
@@ -46,14 +48,12 @@
     "label" : "Output mapping"
   } ],
   "properties" : [ {
-    "id" : "connectorType",
     "value" : "io.camunda:webhook:1",
-    "group" : "connectorType",
     "binding" : {
       "name" : "inbound.type",
       "type" : "zeebe:property"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "inbound.method",
     "label" : "Webhook method",
@@ -369,25 +369,6 @@
     },
     "type" : "Text"
   }, {
-    "id" : "inbound.syncMode",
-    "label" : "Mode for process execution and response",
-    "optional" : true,
-    "value" : "Async",
-    "group" : "webhookResponse",
-    "binding" : {
-      "name" : "inbound.mode",
-      "type" : "zeebe:property"
-    },
-    "tooltip" : "Whether to wait for the process execution synchronously to complete before sending the response",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Asynchronous",
-      "value" : "Async"
-    }, {
-      "name" : "Synchronous",
-      "value" : "Sync"
-    } ]
-  }, {
     "id" : "activationCondition",
     "label" : "Activation condition",
     "description" : "Condition under which the Connector triggers. Leave empty to catch all events",
@@ -410,6 +391,104 @@
     },
     "tooltip" : "Unmatched events are rejected by default, allowing the upstream service to handle the error. Check this box to consume unmatched events and return a success response",
     "type" : "Boolean"
+  }, {
+    "id" : "correlationRequired",
+    "label" : "Subprocess correlation required",
+    "description" : "Indicates whether correlation is required. This is needed for event-based subprocess message start events",
+    "value" : "notRequired",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "correlationRequired",
+      "type" : "zeebe:property"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Correlation not required",
+      "value" : "notRequired"
+    }, {
+      "name" : "Correlation required",
+      "value" : "required"
+    } ]
+  }, {
+    "id" : "correlationKeyProcess",
+    "label" : "Correlation key (process)",
+    "description" : "Sets up the correlation key from process variables",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "correlationKey",
+      "type" : "bpmn:Message#zeebe:subscription#property"
+    },
+    "condition" : {
+      "property" : "correlationRequired",
+      "equals" : "required",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "correlationKeyPayload",
+    "label" : "Correlation key (payload)",
+    "description" : "Extracts the correlation key from the incoming message payload",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "correlationKeyExpression",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "correlationRequired",
+      "equals" : "required",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "messageTtl",
+    "label" : "Message TTL",
+    "description" : "Time-to-live for the message in the broker (ISO-8601 duration)",
+    "optional" : true,
+    "constraints" : {
+      "notEmpty" : false,
+      "pattern" : {
+        "value" : "^(PT.*|)$",
+        "message" : "must be an ISO-8601 duration"
+      }
+    },
+    "feel" : "optional",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "messageTtl",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "messageIdExpression",
+    "label" : "Message ID expression",
+    "description" : "Expression to extract unique identifier of a message",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "messageIdExpression",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "messageNameUuid",
+    "generatedValue" : {
+      "type" : "uuid"
+    },
+    "group" : "correlation",
+    "binding" : {
+      "name" : "name",
+      "type" : "bpmn:Message#property"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "deduplicationModeManualFlag",
     "label" : "Manual mode",

@@ -212,7 +212,8 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                       template.documentationRef().isEmpty() ? null : template.documentationRef())
                   .description(template.description().isEmpty() ? null : template.description())
                   .properties(
-                      filterPropertiesForElementType(nonGroupedProperties, elementType).stream()
+                      filterPropertyBuilderForElementType(nonGroupedProperties, elementType)
+                          .stream()
                           .map(PropertyBuilder::build)
                           .toList())
                   .propertyGroups(
@@ -223,7 +224,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
         .toList();
   }
 
-  private List<PropertyBuilder> filterPropertiesForElementType(
+  private List<PropertyBuilder> filterPropertyBuilderForElementType(
       List<PropertyBuilder> properties, ConnectorElementType elementType) {
     return properties.stream()
         .filter(
@@ -233,7 +234,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
         .toList();
   }
 
-  private void removePropertiesForElementType(
+  private void filterPropertiesForElementType(
       List<Property> properties, ConnectorElementType elementType) {
     List<Property> toBeRemovedProperties = new ArrayList<>();
     for (Property property : properties) {
@@ -255,7 +256,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
       ElementTemplate template) {
 
     for (PropertyGroup group : groups) {
-      removePropertiesForElementType(group.properties(), elementType);
+      filterPropertiesForElementType(group.properties(), elementType);
     }
 
     var newGroups = new ArrayList<>(groups);
