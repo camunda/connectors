@@ -1010,12 +1010,134 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `AgenticAiConnectorsAutoConfiguration` → Spring Boot bean definitions
 - `AiAgentJobWorkerValueCustomizer` → Job worker type/timeout overrides
 
+### Class Diagram
+
+```mermaid
+classDiagram
+    direction TB
+
+    %% --- Entry points ---
+    class AiAgentFunction {
+        <<OutboundConnectorFunction>>
+    }
+    class AiAgentJobWorker {
+        <<JobWorker>>
+    }
+
+    %% --- Request handling ---
+    class AgentRequestHandler~C, R~ {
+        <<interface>>
+        +handleRequest(C) R
+    }
+    class BaseAgentRequestHandler~C, R~ {
+        <<abstract>>
+    }
+    class OutboundConnectorAgentRequestHandler
+    class JobWorkerAgentRequestHandler
+
+    BaseAgentRequestHandler ..|> AgentRequestHandler
+    OutboundConnectorAgentRequestHandler --|> BaseAgentRequestHandler
+    JobWorkerAgentRequestHandler --|> BaseAgentRequestHandler
+
+    AiAgentFunction --> OutboundConnectorAgentRequestHandler
+    AiAgentJobWorker --> JobWorkerAgentRequestHandler
+
+    %% --- Core orchestration dependencies ---
+    class AgentInitializer {
+        <<interface>>
+    }
+    class AgentMessagesHandler {
+        <<interface>>
+    }
+    class AgentResponseHandler {
+        <<interface>>
+    }
+
+    BaseAgentRequestHandler --> AgentInitializer
+    BaseAgentRequestHandler --> AgentMessagesHandler
+    BaseAgentRequestHandler --> AiFrameworkAdapter
+    BaseAgentRequestHandler --> AgentResponseHandler
+    BaseAgentRequestHandler --> ConversationStoreRegistry
+    BaseAgentRequestHandler --> GatewayToolHandlerRegistry
+
+    %% --- Gateway tool SPI ---
+    class GatewayToolCallTransformer {
+        <<interface>>
+    }
+    class GatewayToolHandler {
+        <<interface>>
+    }
+    class GatewayToolHandlerRegistry {
+        <<interface>>
+    }
+
+    GatewayToolHandler --|> GatewayToolCallTransformer
+    GatewayToolHandlerRegistry --|> GatewayToolCallTransformer
+    GatewayToolHandlerRegistry o-- GatewayToolHandler : manages *
+
+    %% --- Tool resolution ---
+    class AgentToolsResolver {
+        <<interface>>
+    }
+    class AdHocToolsSchemaResolver {
+        <<interface>>
+    }
+
+    AgentInitializer --> AgentToolsResolver
+    AgentInitializer --> GatewayToolHandlerRegistry
+    AgentToolsResolver --> AdHocToolsSchemaResolver
+
+    %% --- Memory architecture ---
+    class ConversationStoreRegistry {
+        <<interface>>
+    }
+    class ConversationStore {
+        <<interface>>
+    }
+    class ConversationSession {
+        <<interface>>
+    }
+    class RuntimeMemory {
+        <<interface>>
+    }
+    class MessageWindowRuntimeMemory
+    class InProcessConversationStore
+    class CamundaDocumentConversationStore
+
+    ConversationStoreRegistry o-- ConversationStore : manages *
+    InProcessConversationStore ..|> ConversationStore
+    CamundaDocumentConversationStore ..|> ConversationStore
+    ConversationStore ..> ConversationSession : creates
+    ConversationSession --> RuntimeMemory
+    MessageWindowRuntimeMemory ..|> RuntimeMemory
+    MessageWindowRuntimeMemory --> RuntimeMemory : wraps
+
+    %% --- System prompt composition ---
+    class SystemPromptComposer {
+        <<interface>>
+    }
+    class SystemPromptContributor {
+        <<interface>>
+    }
+
+    AgentMessagesHandler --> SystemPromptComposer
+    SystemPromptComposer o-- SystemPromptContributor : aggregates *
+
+    %% --- Framework abstraction ---
+    class AiFrameworkAdapter~R~ {
+        <<interface>>
+    }
+    class Langchain4JAiFrameworkAdapter
+
+    Langchain4JAiFrameworkAdapter ..|> AiFrameworkAdapter
+```
+
 ### E2E Tests
-- `connectors-e2e-test/connectors-e2e-test-agentic-ai/` → Full integration tests
-- `BaseAiAgentJobWorkerTest` → Job worker test base
-- `BaseAiAgentConnectorTest` → Connector test base
-- `L4JAiAgentJobWorkerFeedbackLoopTests` → Feedback loop tests
-- `L4JAiAgentJobWorkerToolCallingTests` → Tool calling tests
+- `connectors-e2e-test/connectors-e2e-test-agentic-ai/` — Full integration tests
+- `BaseAiAgentJobWorkerTest` — Job worker test base
+- `BaseAiAgentConnectorTest` — Connector test base
+- `L4JAiAgentJobWorkerFeedbackLoopTests` — Feedback loop tests
+- `L4JAiAgentJobWorkerToolCallingTests` — Tool calling tests
 
 ---
 
