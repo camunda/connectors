@@ -17,6 +17,7 @@ public record JobWorkerAgentCompletion(
     boolean completionConditionFulfilled,
     boolean cancelRemainingInstances,
     Map<String, Object> variables,
+    @Nullable Runnable onCompletionSuccess,
     @Nullable Consumer<Throwable> onCompletionError)
     implements JobWorkerAgentCompletionBuilder.With {
 
@@ -24,7 +25,13 @@ public record JobWorkerAgentCompletion(
     return JobWorkerAgentCompletionBuilder.builder();
   }
 
-  public void onCompletionError(Throwable throwable) {
+  public void notifyCompletionSuccess() {
+    if (onCompletionSuccess != null) {
+      onCompletionSuccess.run();
+    }
+  }
+
+  public void notifyCompletionError(Throwable throwable) {
     if (onCompletionError != null) {
       onCompletionError.accept(throwable);
     }

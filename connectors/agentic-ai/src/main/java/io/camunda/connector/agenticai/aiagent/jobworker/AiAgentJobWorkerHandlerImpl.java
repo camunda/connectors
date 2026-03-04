@@ -172,14 +172,27 @@ public class AiAgentJobWorkerHandlerImpl implements AiAgentJobWorkerHandler {
         MAX_ZEEBE_COMMAND_RETRIES);
 
     final var completeCommand = prepareCompleteCommand(jobClient, job, completion);
-    executeCommandAsync(
-        completeCommand,
-        job,
-        (command, throwable) -> {
-          completion.onCompletionError(throwable);
-          exceptionHandlingStrategy.handleCommandError(command, throwable);
-        },
-        counterMetricsContext);
+    final var commandWrapper =
+        new CommandWrapper(
+            completeCommand,
+            job,
+            (command, throwable) -> {
+              final var cause =
+                  throwable instanceof java.util.concurrent.CompletionException
+                          && throwable.getCause() != null
+                      ? throwable.getCause()
+                      : throwable;
+              completion.notifyCompletionError(cause);
+              exceptionHandlingStrategy.handleCommandError(command, throwable);
+            },
+            metricsRecorder,
+            counterMetricsContext,
+            MAX_ZEEBE_COMMAND_RETRIES);
+    commandWrapper.executeAsyncWithMetrics(
+        (recorder, ctx) -> {
+          recorder.increaseCompleted(ctx);
+          completion.notifyCompletionSuccess();
+        });
   }
 
   private CompleteJobCommandStep1 prepareCompleteCommand(

@@ -28,6 +28,7 @@ import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaRe
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.GatewayToolDefinitionResolver;
 import io.camunda.connector.agenticai.aiagent.AiAgentFunction;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
+import io.camunda.connector.agenticai.aiagent.agent.AgentExecutor;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializer;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentLimitsValidator;
@@ -38,6 +39,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandler;
 import io.camunda.connector.agenticai.aiagent.agent.AgentResponseHandlerImpl;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
+import io.camunda.connector.agenticai.aiagent.agent.DefaultAgentExecutor;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
@@ -223,25 +225,30 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  @ConditionalOnBooleanProperty(
-      value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
-      matchIfMissing = true)
-  public OutboundConnectorAgentRequestHandler aiAgentOutboundConnectorAgentRequestHandler(
-      AgentInitializer agentInitializer,
+  public AgentExecutor aiAgentExecutor(
       ConversationStoreRegistry conversationStoreRegistry,
       AgentLimitsValidator limitsValidator,
       AgentMessagesHandler messagesHandler,
       GatewayToolHandlerRegistry gatewayToolHandlers,
       AiFrameworkAdapter<?> aiFrameworkAdapter,
       AgentResponseHandler responseHandler) {
-    return new OutboundConnectorAgentRequestHandler(
-        agentInitializer,
+    return new DefaultAgentExecutor(
         conversationStoreRegistry,
         limitsValidator,
         messagesHandler,
         gatewayToolHandlers,
         aiFrameworkAdapter,
         responseHandler);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnBooleanProperty(
+      value = "camunda.connector.agenticai.aiagent.outbound-connector.enabled",
+      matchIfMissing = true)
+  public OutboundConnectorAgentRequestHandler aiAgentOutboundConnectorAgentRequestHandler(
+      AgentInitializer agentInitializer, AgentExecutor agentExecutor) {
+    return new OutboundConnectorAgentRequestHandler(agentInitializer, agentExecutor);
   }
 
   @Bean
@@ -270,21 +277,8 @@ public class AgenticAiConnectorsAutoConfiguration {
       value = "camunda.connector.agenticai.aiagent.job-worker.enabled",
       matchIfMissing = true)
   public JobWorkerAgentRequestHandler aiAgentJobWorkerAgentRequestHandler(
-      AgentInitializer agentInitializer,
-      ConversationStoreRegistry conversationStoreRegistry,
-      AgentLimitsValidator limitsValidator,
-      AgentMessagesHandler messagesHandler,
-      GatewayToolHandlerRegistry gatewayToolHandlers,
-      AiFrameworkAdapter<?> aiFrameworkAdapter,
-      AgentResponseHandler responseHandler) {
-    return new JobWorkerAgentRequestHandler(
-        agentInitializer,
-        conversationStoreRegistry,
-        limitsValidator,
-        messagesHandler,
-        gatewayToolHandlers,
-        aiFrameworkAdapter,
-        responseHandler);
+      AgentInitializer agentInitializer, AgentExecutor agentExecutor) {
+    return new JobWorkerAgentRequestHandler(agentInitializer, agentExecutor);
   }
 
   @Bean

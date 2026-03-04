@@ -61,7 +61,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -87,15 +86,26 @@ class OutboundConnectorAgentRequestHandlerTest {
   @Mock private AgentResponseHandler responseHandler;
   @Mock private OutboundConnectorAgentExecutionContext agentExecutionContext;
 
-  @Captor private ArgumentCaptor<RuntimeMemory> runtimeMemoryCaptor;
+  @Captor private ArgumentCaptor<List<Message>> messagesCaptor;
 
-  @InjectMocks private OutboundConnectorAgentRequestHandler requestHandler;
+  private AgentExecutor agentExecutor;
+  private OutboundConnectorAgentRequestHandler requestHandler;
 
   @BeforeEach
   void setUp() {
     doReturn(new InProcessConversationStore())
         .when(conversationStoreRegistry)
         .getConversationStore(eq(agentExecutionContext), any(AgentContext.class));
+
+    agentExecutor =
+        new DefaultAgentExecutor(
+            conversationStoreRegistry,
+            limitsValidator,
+            messagesHandler,
+            gatewayToolHandlers,
+            framework,
+            responseHandler);
+    requestHandler = new OutboundConnectorAgentRequestHandler(agentInitializer, agentExecutor);
   }
 
   @Test
@@ -156,9 +166,6 @@ class OutboundConnectorAgentRequestHandlerTest {
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    assertThat(runtimeMemoryCaptor.getValue().allMessages())
-        .containsExactlyElementsOf(expectedMessages);
-
     assertThat(response.context().state()).isEqualTo(AgentState.READY);
     assertThat(response.context().metrics()).isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
     assertThat(response.context().conversation())
@@ -214,9 +221,6 @@ class OutboundConnectorAgentRequestHandlerTest {
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
 
-    assertThat(runtimeMemoryCaptor.getValue().allMessages())
-        .containsExactlyElementsOf(expectedMessages);
-
     assertThat(response.context().state()).isEqualTo(AgentState.READY);
     assertThat(response.context().metrics()).isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
     assertThat(response.context().conversation())
@@ -241,49 +245,38 @@ class OutboundConnectorAgentRequestHandlerTest {
 
   @Test
   void usesConfiguredMaxMessagesWhenMessagesExceedContextWindow() {
-    final var runtimeMemory =
-        setupRuntimeMemorySizeTest(
+    final var result =
+        setupContextWindowTest(
             new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), 11));
 
-    assertThat(runtimeMemory.allMessages()).hasSize(31);
-    assertThat(runtimeMemory.filteredMessages()).hasSize(11);
-
-    assertThat(runtimeMemory.filteredMessages().getFirst())
-        .isEqualTo(userMessage("User message 20"));
-    assertThat(runtimeMemory.filteredMessages().getLast())
-        .isEqualTo(assistantMessage("This is the assistant message"));
+    assertThat(result.storedMessages()).hasSize(31);
+    assertThat(result.frameworkMessages()).hasSize(11);
+    assertThat(result.frameworkMessages().getFirst()).isEqualTo(userMessage("User message 19"));
+    assertThat(result.frameworkMessages().getLast()).isEqualTo(userMessage("User message 30"));
   }
 
   @ParameterizedTest
   @MethodSource("memoryConfigurationsWithoutMaxMessages")
   void fallsBackToDefaultContextWindowSizeWhenMemoryConfigurationIsMissing(
       MemoryConfiguration memoryConfiguration) {
-    final var runtimeMemory = setupRuntimeMemorySizeTest(memoryConfiguration);
+    final var result = setupContextWindowTest(memoryConfiguration);
 
-    assertThat(runtimeMemory.allMessages()).hasSize(31);
-    assertThat(runtimeMemory.filteredMessages()).hasSize(20);
-
-    assertThat(runtimeMemory.filteredMessages().getFirst())
-        .isEqualTo(userMessage("User message 11"));
-    assertThat(runtimeMemory.filteredMessages().getLast())
-        .isEqualTo(assistantMessage("This is the assistant message"));
+    assertThat(result.storedMessages()).hasSize(31);
+    assertThat(result.frameworkMessages()).hasSize(20);
+    assertThat(result.frameworkMessages().getFirst()).isEqualTo(userMessage("User message 10"));
+    assertThat(result.frameworkMessages().getLast()).isEqualTo(userMessage("User message 30"));
   }
 
   @Test
   void usesAllMessagesWhenMessagesWithinContextWindow() {
-    final var runtimeMemory =
-        setupRuntimeMemorySizeTest(
+    final var result =
+        setupContextWindowTest(
             new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), 35));
 
-    assertThat(runtimeMemory.allMessages()).hasSize(31);
-    assertThat(runtimeMemory.filteredMessages()).hasSize(31);
-    assertThat(runtimeMemory.filteredMessages())
-        .containsExactlyElementsOf(runtimeMemory.allMessages());
-
-    assertThat(runtimeMemory.filteredMessages().getFirst())
-        .isEqualTo(userMessage("User message 0"));
-    assertThat(runtimeMemory.filteredMessages().getLast())
-        .isEqualTo(assistantMessage("This is the assistant message"));
+    assertThat(result.storedMessages()).hasSize(31);
+    assertThat(result.frameworkMessages()).hasSize(30);
+    assertThat(result.frameworkMessages().getFirst()).isEqualTo(userMessage("User message 0"));
+    assertThat(result.frameworkMessages().getLast()).isEqualTo(userMessage("User message 30"));
   }
 
   @Test
@@ -304,7 +297,10 @@ class OutboundConnectorAgentRequestHandlerTest {
             });
   }
 
-  private RuntimeMemory setupRuntimeMemorySizeTest(MemoryConfiguration memoryConfiguration) {
+  private record ContextWindowTestResult(
+      List<Message> frameworkMessages, List<Message> storedMessages) {}
+
+  private ContextWindowTestResult setupContextWindowTest(MemoryConfiguration memoryConfiguration) {
     mockUserPrompt(new UserPromptConfiguration("User message 30", List.of()), List.of());
 
     when(agentExecutionContext.memory()).thenReturn(memoryConfiguration);
@@ -328,9 +324,21 @@ class OutboundConnectorAgentRequestHandlerTest {
     when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
         .thenAnswer(i -> i.getArgument(1));
 
-    requestHandler.handleRequest(agentExecutionContext);
+    when(responseHandler.createResponse(
+            eq(agentExecutionContext), any(AgentContext.class), eq(assistantMessage), anyList()))
+        .thenAnswer(
+            i ->
+                AgentResponse.builder()
+                    .context(i.getArgument(1, AgentContext.class))
+                    .responseMessage(i.getArgument(2, AssistantMessage.class))
+                    .responseText(assistantMessageText)
+                    .build());
 
-    return runtimeMemoryCaptor.getValue();
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    final var storedMessages =
+        ((InProcessConversationContext) response.context().conversation()).messages();
+
+    return new ContextWindowTestResult(messagesCaptor.getValue(), storedMessages);
   }
 
   static Stream<MemoryConfiguration> memoryConfigurationsWithoutMaxMessages() {
@@ -375,7 +383,7 @@ class OutboundConnectorAgentRequestHandlerTest {
 
   private void mockFrameworkExecution(AssistantMessage assistantMessage) {
     when(framework.executeChatRequest(
-            eq(agentExecutionContext), any(AgentContext.class), runtimeMemoryCaptor.capture()))
+            eq(agentExecutionContext), any(AgentContext.class), messagesCaptor.capture()))
         .thenAnswer(
             i -> {
               final var agentContext = i.getArgument(1, AgentContext.class);

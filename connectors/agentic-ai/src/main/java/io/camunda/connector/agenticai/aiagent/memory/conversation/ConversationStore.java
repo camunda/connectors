@@ -9,28 +9,11 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 
-/**
- * Responsible for storing and loading conversation records to external systems and loading them
- * into runtime memory.
- */
+/** Responsible for storing and loading conversation records to external systems. */
 public interface ConversationStore {
   String type();
 
-  /**
-   * Execute agent logic within a session handler which can take care of optional transactional
-   * behavior.
-   */
-  <T> T executeInSession(
-      AgentExecutionContext executionContext,
-      AgentContext agentContext,
-      ConversationSessionHandler<T> sessionHandler);
-
-  /**
-   * Entry point to compensate for failed job completion.
-   *
-   * <p>Note: this is not used in combination with an outbound connector, only when the agent is
-   * handled by a job worker directly.
-   */
-  default void compensateFailedJobCompletion(
-      AgentExecutionContext executionContext, AgentContext agentContext, Throwable failureReason) {}
+  /** Create a new conversation session for the given execution and agent context. */
+  ConversationSession createSession(
+      AgentExecutionContext executionContext, AgentContext agentContext);
 }

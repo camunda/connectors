@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationCo
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.api.document.Document;
+import io.soabase.recordbuilder.core.RecordBuilder;
 import java.util.List;
 
 @AgenticAiRecord
@@ -20,8 +21,12 @@ import java.util.List;
         CamundaDocumentConversationContext.CamundaDocumentConversationContextJacksonProxyBuilder
             .class)
 public record CamundaDocumentConversationContext(
-    String conversationId, Document document, List<Document> previousDocuments)
+    String conversationId,
+    @RecordBuilder.Initializer("DEFAULT_VERSION") long version,
+    Document document)
     implements ConversationContext, CamundaDocumentConversationContextBuilder.With {
+
+  public static final long DEFAULT_VERSION = 0L;
 
   public static CamundaDocumentConversationContextBuilder builder() {
     return CamundaDocumentConversationContextBuilder.builder();

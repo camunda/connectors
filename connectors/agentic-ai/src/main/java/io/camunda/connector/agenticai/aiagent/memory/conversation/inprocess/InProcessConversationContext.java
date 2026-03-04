@@ -11,13 +11,20 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
 import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.message.Message;
+import io.soabase.recordbuilder.core.RecordBuilder;
 import java.util.List;
 
 @AgenticAiRecord
 @JsonDeserialize(
     builder = InProcessConversationContext.InProcessConversationContextJacksonProxyBuilder.class)
-public record InProcessConversationContext(String conversationId, List<Message> messages)
+public record InProcessConversationContext(
+    String conversationId,
+    @RecordBuilder.Initializer("DEFAULT_VERSION") long version,
+    List<Message> messages)
     implements ConversationContext, InProcessConversationContextBuilder.With {
+
+  public static final long DEFAULT_VERSION = 0L;
+
   public static InProcessConversationContextBuilder builder() {
     return InProcessConversationContextBuilder.builder();
   }

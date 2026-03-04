@@ -77,7 +77,7 @@ public class L4JAiAgentConnectorMemoryStorageTests extends BaseL4JAiAgentConnect
                   CamundaDocumentConversationContext.class,
                   conversation -> {
                     assertThat(conversation.conversationId()).isNotNull();
-                    assertThat(conversation.previousDocuments()).hasSize(2);
+                    assertThat(conversation.version()).isGreaterThan(0);
 
                     assertThat(conversation.document().reference())
                         .isInstanceOfSatisfying(

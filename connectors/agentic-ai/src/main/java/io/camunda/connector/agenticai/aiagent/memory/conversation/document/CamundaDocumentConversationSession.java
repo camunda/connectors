@@ -9,11 +9,14 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 import static io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationUtil.loadConversationContext;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationLoadResult;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
-import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.CamundaDocumentMemoryStorageConfiguration;
+import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -22,29 +25,28 @@ import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.lang.Nullable;
 
 public class CamundaDocumentConversationSession implements ConversationSession {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(CamundaDocumentConversationSession.class);
 
-  private static final int DEFAULT_PREVIOUS_DOCUMENTS_RETENTION_SIZE = 2;
-
   private final CamundaDocumentMemoryStorageConfiguration config;
   private final DocumentFactory documentFactory;
   private final CamundaDocumentStore documentStore;
   private final CamundaDocumentConversationSerializer conversationSerializer;
   private final AgentExecutionContext executionContext;
-  private final int previousDocumentsRetentionSize;
 
-  private CamundaDocumentConversationContext previousConversationContext;
+  private long loadedVersion;
+  private @Nullable String loadedConversationId;
+  private @Nullable Document previousDocument;
 
   public CamundaDocumentConversationSession(
       CamundaDocumentMemoryStorageConfiguration config,
@@ -52,75 +54,82 @@ public class CamundaDocumentConversationSession implements ConversationSession {
       CamundaDocumentStore documentStore,
       CamundaDocumentConversationSerializer conversationSerializer,
       AgentExecutionContext executionContext) {
-    this(
-        config,
-        documentFactory,
-        documentStore,
-        conversationSerializer,
-        executionContext,
-        DEFAULT_PREVIOUS_DOCUMENTS_RETENTION_SIZE);
-  }
-
-  public CamundaDocumentConversationSession(
-      CamundaDocumentMemoryStorageConfiguration config,
-      DocumentFactory documentFactory,
-      CamundaDocumentStore documentStore,
-      CamundaDocumentConversationSerializer conversationSerializer,
-      AgentExecutionContext executionContext,
-      int previousDocumentsRetentionSize) {
     this.config = config;
     this.documentFactory = documentFactory;
     this.documentStore = documentStore;
     this.conversationSerializer = conversationSerializer;
     this.executionContext = executionContext;
-    this.previousDocumentsRetentionSize = previousDocumentsRetentionSize;
   }
 
   @Override
-  public void loadIntoRuntimeMemory(AgentContext agentContext, RuntimeMemory memory) {
-    previousConversationContext =
-        loadConversationContext(agentContext, CamundaDocumentConversationContext.class);
-    if (previousConversationContext == null) {
+  public ConversationLoadResult loadMessages(AgentContext agentContext) {
+    final var conversationContext =
+        loadConversationContext(agentContext, ConversationContext.class);
+    if (conversationContext == null) {
+      return ConversationLoadResult.of(List.of());
+    }
+
+    loadedVersion = conversationContext.version();
+    loadedConversationId = conversationContext.conversationId();
+
+    if (conversationContext instanceof CamundaDocumentConversationContext documentContext) {
+      previousDocument = documentContext.document();
+      try {
+        final var content = conversationSerializer.readDocumentContent(documentContext.document());
+        return ConversationLoadResult.of(content.messages());
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to load conversation from documentReference", e);
+      }
+    } else if (conversationContext instanceof InProcessConversationContext inProcessContext) {
+      // Migration path: transparent in-process -> document migration
+      return ConversationLoadResult.of(inProcessContext.messages());
+    } else {
+      throw new IllegalStateException(
+          "Unsupported conversation context: %s"
+              .formatted(conversationContext.getClass().getSimpleName()));
+    }
+  }
+
+  @Override
+  public AgentContext storeMessages(AgentContext agentContext, List<Message> messages) {
+    final var conversationId =
+        loadedConversationId != null ? loadedConversationId : UUID.randomUUID().toString();
+    final long nextVersion = loadedVersion + 1;
+
+    final var updatedDocument = createUpdatedDocument(messages, conversationId);
+
+    final var conversationContext =
+        CamundaDocumentConversationContext.builder()
+            .conversationId(conversationId)
+            .version(nextVersion)
+            .document(updatedDocument)
+            .build();
+
+    return agentContext.withConversation(conversationContext);
+  }
+
+  @Override
+  public void onJobCompleted(AgentContext agentContext) {
+    if (previousDocument == null) {
       return;
     }
 
-    try {
-      final var content =
-          conversationSerializer.readDocumentContent(previousConversationContext.document());
-      memory.addMessages(content.messages());
-    } catch (IOException e) {
-      throw new RuntimeException("Failed to load conversation from documentReference", e);
+    if (previousDocument.reference()
+        instanceof DocumentReference.CamundaDocumentReference camundaDocumentReference) {
+      try {
+        documentStore.deleteDocument(camundaDocumentReference);
+      } catch (Exception e) {
+        LOGGER.warn("Failed to delete previous document: {}", camundaDocumentReference, e);
+      }
+    } else {
+      LOGGER.warn(
+          "Unsupported document reference type: {}. Expected CamundaDocumentReference.",
+          previousDocument.reference().getClass().getName());
     }
   }
 
-  @Override
-  public AgentContext storeFromRuntimeMemory(AgentContext agentContext, RuntimeMemory memory) {
-    final var conversationContextBuilder =
-        previousConversationContext != null
-            ? previousConversationContext.with()
-            : CamundaDocumentConversationContext.builder()
-                .conversationId(UUID.randomUUID().toString());
-
-    final var updatedDocument =
-        createUpdatedDocument(memory, conversationContextBuilder.conversationId());
-    conversationContextBuilder.document(updatedDocument);
-
-    // after write succeeded, try to purge previous documents, but keep at least the last
-    // two documents in case of errors in order to allow recovering the agent state
-    if (previousConversationContext != null) {
-      List<Document> previousDocuments =
-          new ArrayList<>(previousConversationContext.previousDocuments());
-      previousDocuments.add(previousConversationContext.document());
-
-      conversationContextBuilder.previousDocuments(purgePreviousDocuments(previousDocuments));
-    }
-
-    return agentContext.withConversation(conversationContextBuilder.build());
-  }
-
-  private Document createUpdatedDocument(RuntimeMemory memory, String conversationId) {
-    final var content =
-        new CamundaDocumentConversationContext.DocumentContent(memory.allMessages());
+  private Document createUpdatedDocument(List<Message> messages, String conversationId) {
+    final var content = new CamundaDocumentConversationContext.DocumentContent(messages);
 
     String serialized;
     try {
@@ -146,35 +155,5 @@ public class CamundaDocumentConversationSession implements ConversationSession {
     Optional.ofNullable(config.timeToLive()).ifPresent(documentCreationRequestBuilder::timeToLive);
 
     return documentFactory.create(documentCreationRequestBuilder.build());
-  }
-
-  private List<Document> purgePreviousDocuments(List<Document> previousDocuments) {
-    if (previousDocuments.size() <= previousDocumentsRetentionSize) {
-      return previousDocuments;
-    }
-
-    final var updatedPreviousDocuments = new ArrayList<>(previousDocuments);
-    final var removalCandidates =
-        new ArrayList<>(
-            updatedPreviousDocuments.subList(
-                0, updatedPreviousDocuments.size() - previousDocumentsRetentionSize));
-
-    for (Document removalCandidate : removalCandidates) {
-      if (removalCandidate.reference()
-          instanceof DocumentReference.CamundaDocumentReference camundaDocumentReference) {
-        try {
-          documentStore.deleteDocument(camundaDocumentReference);
-          updatedPreviousDocuments.remove(removalCandidate);
-        } catch (Exception e) {
-          LOGGER.warn("Failed to delete previous document: {}", camundaDocumentReference, e);
-        }
-      } else {
-        LOGGER.warn(
-            "Unsupported document reference type: {}. Expected CamundaDocumentReference.",
-            removalCandidate.reference().getClass().getName());
-      }
-    }
-
-    return updatedPreviousDocuments;
   }
 }

@@ -6,4 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
-public record TestConversationContext(String conversationId) implements ConversationContext {}
+public record TestConversationContext(String conversationId) implements ConversationContext {
+  @Override
+  public long version() {
+    return 0;
+  }
+}
