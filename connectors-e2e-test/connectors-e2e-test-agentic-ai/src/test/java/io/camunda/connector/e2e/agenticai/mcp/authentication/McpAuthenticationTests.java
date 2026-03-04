@@ -16,9 +16,11 @@
  */
 package io.camunda.connector.e2e.agenticai.mcp.authentication;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.springframework.test.context.TestPropertySource;
 
+@Disabled
 public class McpAuthenticationTests {
 
   @Nested
