@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.api.inbound.webhook;
 
+import io.camunda.connector.api.inbound.CorrelationRequest;
+import io.camunda.connector.api.inbound.Mode;
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
@@ -38,10 +40,18 @@ public interface WebhookResult {
   }
 
   /**
+   * @return whether the response should be sent synchronously during the webhook call execution, or
+   *     asynchronously after the correlation. By default, the response is sent asynchronously.
+   */
+  default Mode mode() {
+    return Mode.Async;
+  }
+
+  /**
    * @return additional connector data that can be computed during webhook {@link
    *     WebhookConnectorExecutable#triggerWebhook(WebhookProcessingPayload)} execution, and the
    *     implementer wants to preserve that data and use it during the {@link
-   *     io.camunda.connector.api.inbound.InboundConnectorContext#correlateWithResult(Object)}
+   *     io.camunda.connector.api.inbound.InboundConnectorContext#correlate(CorrelationRequest)}
    *     phase.
    */
   default Map<String, Object> connectorData() {

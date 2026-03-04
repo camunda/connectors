@@ -242,12 +242,18 @@ public class TemplatePropertiesUtil {
       label = transformIdIntoLabel(name);
     }
 
+    Set<BpmnType> appliesTo = Set.of();
+    if (templatePropertyAnnotation != null) {
+      appliesTo = Set.of(templatePropertyAnnotation.elementTypes());
+    }
+
     PropertyBuilder propertyBuilder =
         createPropertyBuilder(type, templatePropertyAnnotation, context)
             .id(name)
             .label(label)
             .tooltip(tooltip)
             .exampleValue(exampleValue)
+            .elementTypes(appliesTo)
             .binding(createBinding(bindingName, context));
 
     for (AnnotationProcessor processor : fieldProcessors) {

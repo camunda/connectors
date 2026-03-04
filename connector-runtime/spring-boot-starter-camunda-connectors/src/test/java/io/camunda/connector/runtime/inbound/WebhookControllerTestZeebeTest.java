@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.inbound.CorrelationResult;
+import io.camunda.connector.api.inbound.Mode;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
@@ -68,6 +69,7 @@ import org.springframework.mock.web.MockMultipartHttpServletRequest;
     classes = TestConnectorRuntimeApplication.class,
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
+      "camunda.connector.polling.enabled=false",
       "camunda.connector.webhook.enabled=true",
     })
 @CamundaSpringProcessTest
@@ -580,6 +582,56 @@ class WebhookControllerTestZeebeTest {
 
     assertEquals(200, responseEntity.getStatusCode().value());
     assertNull(responseEntity.getBody());
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testSuccessfulProcessCreationWithResultWithResponseBodyExpression() throws Exception {
+    var webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
+    var correlationHandlerMock = mock(InboundCorrelationHandler.class);
+    Map<String, Object> processResult = Map.of("resultKey", "resultValue");
+
+    when(correlationHandlerMock.correlate(any(), any()))
+        .thenReturn(
+            new CorrelationResult.Success.ProcessInstanceCreatedWithResult(
+                mock(ProcessElement.class), 1L, "test", processResult));
+
+    WebhookResult webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    when(webhookResult.response()).thenReturn((c) -> WebhookHttpResponse.ok(c.correlation()));
+    when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
+        .thenReturn(webhookResult);
+    when(webhookResult.mode()).thenReturn(Mode.Sync);
+
+    var webhookDef = webhookDefinition("processA", 1, "myPath");
+    var webhookContext =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            v -> {},
+            webhookDef,
+            correlationHandlerMock,
+            (e) -> {},
+            mapper,
+            activityLogRegistry);
+
+    // Register webhook function 'implementation'
+    webhookConnectorRegistry.register(
+        new RegisteredExecutable.Activated(
+            webhookConnectorExecutable,
+            webhookContext,
+            ExecutableId.fromDeduplicationId("random")));
+
+    deployProcess("processA");
+
+    ResponseEntity<CorrelationResult.Success.ProcessInstanceCreatedWithResult> responseEntity =
+        (ResponseEntity<CorrelationResult.Success.ProcessInstanceCreatedWithResult>)
+            controller.inbound(
+                "myPath", new HashMap<>(), new HashMap<>(), new MockHttpServletRequest());
+
+    assertEquals(200, responseEntity.getStatusCode().value());
+    assertEquals(1L, responseEntity.getBody().processInstanceKey());
+    assertEquals(processResult, responseEntity.getBody().result());
+    assertEquals("test", responseEntity.getBody().tenantId());
   }
 
   @Test

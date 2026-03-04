@@ -107,6 +107,14 @@ public @interface TemplateProperty {
   boolean ignore() default false;
 
   /**
+   * Optional filter that only includes the property if the element template is applied to specific
+   * BPMN element types. If not specified, the property will be included for all element types.
+   *
+   * @return the BPMN element types for which the property should be included
+   */
+  BpmnType[] elementTypes() default {};
+
+  /**
    * Constraints for the property that are used by the Modeler to validate the input. Constraints
    * can also be set using the Java Bean Validation API annotations, which takes precedence over the
    * constraints defined in this annotation.

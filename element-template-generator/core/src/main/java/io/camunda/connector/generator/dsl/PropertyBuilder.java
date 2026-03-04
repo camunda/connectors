@@ -16,7 +16,9 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import java.util.Set;
 
 public abstract class PropertyBuilder {
 
@@ -34,6 +36,7 @@ public abstract class PropertyBuilder {
   protected PropertyCondition condition;
   protected String tooltip;
   protected Object exampleValue;
+  protected Set<BpmnType> elementTypes = Set.of();
 
   protected PropertyBuilder() {}
 
@@ -122,6 +125,15 @@ public abstract class PropertyBuilder {
   public PropertyBuilder exampleValue(Object exampleValue) {
     this.exampleValue = exampleValue;
     return this;
+  }
+
+  public PropertyBuilder elementTypes(Set<BpmnType> elementTypes) {
+    this.elementTypes = elementTypes;
+    return this;
+  }
+
+  public Set<BpmnType> getElementTypes() {
+    return elementTypes;
   }
 
   public abstract Property build();

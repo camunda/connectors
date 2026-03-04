@@ -18,8 +18,10 @@ package io.camunda.connector.generator.dsl;
 
 import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import java.util.Objects;
+import java.util.Set;
 
 @JsonInclude(Include.NON_NULL)
 public abstract sealed class Property
@@ -44,6 +46,7 @@ public abstract sealed class Property
   protected final String tooltip;
   protected final Object exampleValue;
   protected final String type;
+  private final Set<BpmnType> elementTypes;
 
   public record GeneratedValue(String type) {}
 
@@ -61,7 +64,8 @@ public abstract sealed class Property
       PropertyCondition condition,
       String tooltip,
       Object exampleValue,
-      String type) {
+      String type,
+      Set<BpmnType> elementTypes) {
     this.id = id;
     this.label = label;
     this.description = description;
@@ -76,6 +80,7 @@ public abstract sealed class Property
     this.tooltip = tooltip;
     this.type = type;
     this.exampleValue = exampleValue;
+    this.elementTypes = elementTypes;
   }
 
   public String getId() {
@@ -139,6 +144,11 @@ public abstract sealed class Property
 
   public Object getExampleValue() {
     return exampleValue;
+  }
+
+  @JsonIgnore
+  public Set<BpmnType> elementTypes() {
+    return elementTypes;
   }
 
   @Override

@@ -211,7 +211,10 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                   .documentationRef(
                       template.documentationRef().isEmpty() ? null : template.documentationRef())
                   .description(template.description().isEmpty() ? null : template.description())
-                  .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
+                  .properties(
+                      filterPropertiesForElementType(nonGroupedProperties, elementType).stream()
+                          .map(PropertyBuilder::build)
+                          .toList())
                   .propertyGroups(
                       addServiceProperties(
                           mergedGroups, context, elementType, configuration, template))
@@ -220,12 +223,41 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
         .toList();
   }
 
+  private List<PropertyBuilder> filterPropertiesForElementType(
+      List<PropertyBuilder> properties, ConnectorElementType elementType) {
+    return properties.stream()
+        .filter(
+            property ->
+                property.getElementTypes().isEmpty()
+                    || property.getElementTypes().contains(elementType.elementType()))
+        .toList();
+  }
+
+  private void removePropertiesForElementType(
+      List<Property> properties, ConnectorElementType elementType) {
+    List<Property> toBeRemovedProperties = new ArrayList<>();
+    for (Property property : properties) {
+      if (!property.elementTypes().isEmpty()
+          && !property.elementTypes().contains(elementType.elementType())) {
+        toBeRemovedProperties.add(property);
+      }
+    }
+    if (!toBeRemovedProperties.isEmpty()) {
+      properties.removeAll(toBeRemovedProperties);
+    }
+  }
+
   private List<PropertyGroup> addServiceProperties(
       List<PropertyGroup> groups,
       TemplateGenerationContext context,
       ConnectorElementType elementType,
       GeneratorConfiguration configuration,
       ElementTemplate template) {
+
+    for (PropertyGroup group : groups) {
+      removePropertiesForElementType(group.properties(), elementType);
+    }
+
     var newGroups = new ArrayList<>(groups);
     if (context instanceof Outbound) {
       newGroups.add(

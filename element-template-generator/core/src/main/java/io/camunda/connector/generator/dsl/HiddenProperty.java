@@ -16,7 +16,9 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import java.util.Set;
 
 public final class HiddenProperty extends Property {
 
@@ -33,7 +35,8 @@ public final class HiddenProperty extends Property {
       FeelMode feel,
       String group,
       PropertyBinding binding,
-      PropertyCondition condition) {
+      PropertyCondition condition,
+      Set<BpmnType> appliesTo) {
     super(
         name,
         label,
@@ -48,7 +51,8 @@ public final class HiddenProperty extends Property {
         condition,
         null,
         null,
-        TYPE);
+        TYPE,
+        appliesTo);
   }
 
   public static HiddenPropertyBuilder builder() {
@@ -75,7 +79,8 @@ public final class HiddenProperty extends Property {
           feel,
           group,
           binding,
-          condition);
+          condition,
+          elementTypes);
     }
   }
 }

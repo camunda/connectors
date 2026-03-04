@@ -369,6 +369,25 @@
     },
     "type" : "Text"
   }, {
+    "id" : "inbound.syncMode",
+    "label" : "Mode for process execution and response",
+    "optional" : true,
+    "value" : "Async",
+    "group" : "webhookResponse",
+    "binding" : {
+      "name" : "inbound.mode",
+      "type" : "zeebe:property"
+    },
+    "tooltip" : "Whether to wait for the process execution synchronously to complete before sending the response",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Asynchronous",
+      "value" : "Async"
+    }, {
+      "name" : "Synchronous",
+      "value" : "Sync"
+    } ]
+  }, {
     "id" : "activationCondition",
     "label" : "Activation condition",
     "description" : "Condition under which the Connector triggers. Leave empty to catch all events",

@@ -18,6 +18,7 @@ package io.camunda.connector.api.inbound;
 
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
+import java.util.Map;
 
 public sealed interface CorrelationResult {
 
@@ -27,6 +28,13 @@ public sealed interface CorrelationResult {
 
     record ProcessInstanceCreated(
         ProcessElement activatedElement, Long processInstanceKey, String tenantId)
+        implements Success {}
+
+    record ProcessInstanceCreatedWithResult(
+        ProcessElement activatedElement,
+        Long processInstanceKey,
+        String tenantId,
+        Map<String, Object> result)
         implements Success {}
 
     record MessagePublished(ProcessElement activatedElement, Long messageKey, String tenantId)
