@@ -92,7 +92,7 @@ public class SearchQueryClientTest {
   }
 
   @Test
-  public void shouldFetchMessageSubscriptions() {
+  public void shouldFetchMessageSubscriptionStatistics() {
     // Given
     BpmnModelInstance modelInstance =
         Bpmn.createExecutableProcess("messageProcess")
@@ -120,57 +120,78 @@ public class SearchQueryClientTest {
 
     // When
     SearchQueryClientImpl searchClient = new SearchQueryClientImpl(camundaClient, 200);
-    var result = searchClient.queryMessageSubscriptions(null);
+    var result = searchClient.queryMessageSubscriptionStatistics(null);
 
     // Then
     assertThat(result.items()).isNotEmpty();
-    var subscription =
-        result.items().stream().filter(s -> s.getMessageName().equals("testMessage")).findFirst();
-    assertThat(subscription).isPresent();
-    assertThat(subscription.get().getMessageName()).isEqualTo("testMessage");
+    var stats =
+        result.items().stream()
+            .filter(s -> "messageProcess".equals(s.getProcessDefinitionId()))
+            .findFirst();
+    assertThat(stats).isPresent();
+    assertThat(stats.get().getActiveSubscriptions()).isGreaterThan(0);
   }
 
   @Test
-  public void shouldFetchMessageSubscriptions_whenPaginated() {
-    // Given - create multiple message subscriptions
-    BpmnModelInstance modelInstance =
-        Bpmn.createExecutableProcess("multiMessageProcess")
+  public void shouldFetchMessageSubscriptionStatistics_whenPaginated() {
+    // Given - create multiple processes with message subscriptions
+    BpmnModelInstance modelInstance1 =
+        Bpmn.createExecutableProcess("paginatedProcess1")
             .startEvent()
             .intermediateCatchEvent("message1")
-            .message(m -> m.name("message1").zeebeCorrelationKeyExpression("key"))
-            .intermediateCatchEvent("message2")
-            .message(m -> m.name("message2").zeebeCorrelationKeyExpression("key"))
+            .message(m -> m.name("msg1").zeebeCorrelationKeyExpression("key"))
             .endEvent()
             .done();
+    BpmnModelInstance modelInstance2 =
+        Bpmn.createExecutableProcess("paginatedProcess2")
+            .startEvent()
+            .intermediateCatchEvent("message2")
+            .message(m -> m.name("msg2").zeebeCorrelationKeyExpression("key"))
+            .endEvent()
+            .done();
+
     camundaClient
         .newDeployResourceCommand()
-        .addProcessModel(modelInstance, "multiMessageProcess.bpmn")
+        .addProcessModel(modelInstance1, "paginatedProcess1.bpmn")
+        .send()
+        .join();
+    camundaClient
+        .newDeployResourceCommand()
+        .addProcessModel(modelInstance2, "paginatedProcess2.bpmn")
         .send()
         .join();
 
     camundaClient
         .newCreateInstanceCommand()
-        .bpmnProcessId("multiMessageProcess")
+        .bpmnProcessId("paginatedProcess1")
         .latestVersion()
-        .variables("{\"key\": \"test\"}")
+        .variables("{\"key\": \"test1\"}")
+        .send()
+        .join();
+    camundaClient
+        .newCreateInstanceCommand()
+        .bpmnProcessId("paginatedProcess2")
+        .latestVersion()
+        .variables("{\"key\": \"test2\"}")
         .send()
         .join();
 
     waitForMessageSubscription();
 
-    // When - fetch with pagination
+    // When - fetch with pagination (page size 1)
     SearchQueryClientImpl searchClient = new SearchQueryClientImpl(camundaClient, 1);
-    var resultPage1 = searchClient.queryMessageSubscriptions(null);
+    var resultPage1 = searchClient.queryMessageSubscriptionStatistics(null);
     assertThat(resultPage1.items()).isNotEmpty();
 
     var allItems = new ArrayList<>(resultPage1.items());
 
     if (resultPage1.page().endCursor() != null) {
-      var resultPage2 = searchClient.queryMessageSubscriptions(resultPage1.page().endCursor());
+      var resultPage2 =
+          searchClient.queryMessageSubscriptionStatistics(resultPage1.page().endCursor());
       allItems.addAll(resultPage2.items());
     }
 
-    // Then - verify we fetched at least one subscription
+    // Then - verify we fetched statistics
     assertThat(allItems).isNotEmpty();
   }
 

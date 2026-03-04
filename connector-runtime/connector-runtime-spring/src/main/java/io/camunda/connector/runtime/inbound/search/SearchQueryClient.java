@@ -17,10 +17,10 @@
 package io.camunda.connector.runtime.inbound.search;
 
 import io.camunda.client.api.search.response.ElementInstance;
-import io.camunda.client.api.search.response.MessageSubscription;
 import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.client.api.search.response.SearchResponse;
 import io.camunda.client.api.search.response.Variable;
+import io.camunda.client.api.statistics.response.ProcessDefinitionMessageSubscriptionStatistics;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 
 /** Wrapper over Zeebe client for search query methods. Enables easier mocking and testing. */
@@ -28,7 +28,8 @@ public interface SearchQueryClient {
 
   SearchResponse<ProcessDefinition> queryProcessDefinitions(String paginationIndex);
 
-  SearchResponse<MessageSubscription> queryMessageSubscriptions(String paginationIndex);
+  ProcessDefinitionMessageSubscriptionStatistics queryMessageSubscriptionStatistics(
+      String paginationIndex);
 
   SearchResponse<ElementInstance> queryActiveFlowNodes(
       long processDefinitionKey, String elementId, String paginationIndex);
