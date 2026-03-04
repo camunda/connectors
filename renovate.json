@@ -112,7 +112,9 @@
         "major"
       ],
       "matchPackageNames": [
-        "org.opensearch.client:opensearch-java"
+        "org.opensearch.client:opensearch-java",
+        "co.elastic.clients:elasticsearch-java",
+        "org.elasticsearch.client:elasticsearch-rest-client"
       ],
       "enabled": false
     }
