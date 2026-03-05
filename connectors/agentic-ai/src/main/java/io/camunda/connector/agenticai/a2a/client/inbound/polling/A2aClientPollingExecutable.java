@@ -19,13 +19,14 @@ import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
-// TODO: add documentation link when available
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.a2a.client.polling.v0",
     version = 0,
     name = "A2A Client Polling Connector (early access)",
     description =
         "Agent-to-Agent (A2A) polling inbound connector. Supports polling asynchronous tasks, but can also directly correlate messages and synchronously completed tasks.",
+    documentationRef =
+        "https://docs.camunda.io/docs/8.9/components/early-access/alpha/a2a-client/a2a-client-polling-connector/",
     icon = "a2a-client.svg",
     engineVersion = "^8.9",
     inputDataClass = A2aPollingRequest.class,

@@ -9,7 +9,7 @@ static def replaceDocumentationLinks(String text) {
     if (text == null) return null
     return text.replace(
         "out-of-the-box-connectors/agentic-ai-aiagent-task/",
-        "out-of-the-box-connectors/agentic-ai-aiagent-process/"
+        "out-of-the-box-connectors/agentic-ai-aiagent-subprocess/"
     )
 }
 
