@@ -29,6 +29,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     icon = "a2a-client.svg",
     engineVersion = "^8.9",
     inputDataClass = A2aPollingRequest.class,
+    defaultResultExpression = "={response: result}",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "connection", label = "Connection"),
       @ElementTemplate.PropertyGroup(id = "clientResponse", label = "Client Response"),

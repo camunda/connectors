@@ -83,9 +83,6 @@ def updatedProperties = []
         property.remove("feel")
         property.remove("constraints")
         updatedProperties.add(property)
-    } else if (property.id == "resultExpression"){
-        property.value = "={response: request.body}"
-        updatedProperties.add(property)
     } else {
         updatedProperties.add(property)
     }
