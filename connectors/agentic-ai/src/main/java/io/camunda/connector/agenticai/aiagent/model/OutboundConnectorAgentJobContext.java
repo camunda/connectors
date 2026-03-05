@@ -18,6 +18,11 @@ public class OutboundConnectorAgentJobContext implements AgentJobContext {
   }
 
   @Override
+  public long jobKey() {
+    return jobContext().getKey();
+  }
+
+  @Override
   public String bpmnProcessId() {
     return jobContext().getBpmnProcessId();
   }

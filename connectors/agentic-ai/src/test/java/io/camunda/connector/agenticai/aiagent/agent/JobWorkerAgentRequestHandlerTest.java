@@ -20,18 +20,17 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
+import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentJobCompletion;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -42,7 +41,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentCompletion;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
@@ -100,8 +98,6 @@ class JobWorkerAgentRequestHandlerTest {
 
   private ConversationStore conversationStore;
 
-  @Mock private ActivatedJob job;
-
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private JobWorkerAgentExecutionContext agentExecutionContext;
 
@@ -111,9 +107,6 @@ class JobWorkerAgentRequestHandlerTest {
 
   @BeforeEach
   void setUp() {
-    lenient().when(job.getKey()).thenReturn(123456L);
-    when(agentExecutionContext.job()).thenReturn(job);
-
     conversationStore = spy(new InProcessConversationStore());
     doReturn(conversationStore)
         .when(conversationStoreRegistry)
@@ -402,7 +395,7 @@ class JobWorkerAgentRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
 
-    JobWorkerAgentCompletion completion = requestHandler.handleRequest(agentExecutionContext);
+    AiAgentJobCompletion completion = requestHandler.handleRequest(agentExecutionContext);
     assertThat(completion.variables()).isEmpty();
     assertThat(completion.completionConditionFulfilled()).isFalse();
     assertThat(completion.cancelRemainingInstances()).isFalse();

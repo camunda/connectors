@@ -84,9 +84,7 @@ memory/
     └── MessageWindowRuntimeMemory  # Sliding window filter (keeps last N messages)
 
 jobworker/
-├── AiAgentJobWorkerHandlerImpl # Job lifecycle: execute → complete/fail/throwBpmnError
-├── JobWorkerAgentExecutionContextFactoryImpl  # Binds job variables to request
-└── AiAgentJobWorkerValueCustomizer  # Environment variable overrides for type/timeout
+└── AiAgentJobCompletion  # ConnectorJobCompletion for AHSP directives (element activation, completion condition)
 
 tool/
 ├── GatewayToolHandler          # Interface for gateway tools (MCP, A2A)
@@ -107,7 +105,7 @@ tool/
 
 **`ToolCallProcessVariable`** — flattened tool call for process variables: `{_meta: {id, name}, ...args}`.
 
-**`JobWorkerAgentCompletion`** — job completion directives: AHSP done/continue, cancel flags, variables, error callback.
+**`AiAgentJobCompletion`** — job completion directives: AHSP done/continue, cancel flags, variables, error callback.
 
 For full record definitions, see [ai-agent.md §5](docs/reference/ai-agent.md#5-data-model).
 

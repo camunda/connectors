@@ -8,11 +8,11 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentJobCompletion;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
-import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentCompletion;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 public class JobWorkerAgentRequestHandler
-    extends BaseAgentRequestHandler<JobWorkerAgentExecutionContext, JobWorkerAgentCompletion> {
+    extends BaseAgentRequestHandler<JobWorkerAgentExecutionContext, AiAgentJobCompletion> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JobWorkerAgentRequestHandler.class);
 
@@ -80,18 +80,18 @@ public class JobWorkerAgentRequestHandler
   }
 
   @Override
-  public JobWorkerAgentCompletion completeJob(
+  public AiAgentJobCompletion completeJob(
       JobWorkerAgentExecutionContext executionContext,
       AgentResponse agentResponse,
       ConversationStore conversationStore) {
     if (agentResponse == null) {
       LOGGER.debug(
           "No agent response provided, completing job {} without response",
-          executionContext.job().getKey());
+          executionContext.jobContext().jobKey());
 
       // no-op (do not activate elements, do not complete agent process) -> wait for next job to
       // proceed (e.g. by adding user messages or to complete tool call results)
-      return JobWorkerAgentCompletion.builder()
+      return AiAgentJobCompletion.builder()
           .completionConditionFulfilled(false)
           .cancelRemainingInstances(false)
           .build();
@@ -99,7 +99,7 @@ public class JobWorkerAgentRequestHandler
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug(
             "Agent response provided, completing job {} with response and tool calls: {}",
-            executionContext.job().getKey(),
+            executionContext.jobContext().jobKey(),
             agentResponse.toolCalls().stream().map(tc -> tc.metadata().name()).toList());
       }
 
@@ -107,7 +107,7 @@ public class JobWorkerAgentRequestHandler
     }
   }
 
-  private JobWorkerAgentCompletion completeWithResponse(
+  private AiAgentJobCompletion completeWithResponse(
       JobWorkerAgentExecutionContext executionContext,
       AgentResponse agentResponse,
       ConversationStore conversationStore) {
@@ -133,12 +133,12 @@ public class JobWorkerAgentRequestHandler
       variables.put(AiAgentJobWorker.TOOL_CALL_RESULTS_VARIABLE, List.of());
     }
 
-    return JobWorkerAgentCompletion.builder()
+    return AiAgentJobCompletion.builder()
         .agentResponse(agentResponse)
         .completionConditionFulfilled(completionConditionFulfilled)
         .cancelRemainingInstances(cancelRemainingInstances)
         .variables(variables)
-        .onCompletionError(
+        .completionErrorHandler(
             throwable -> {
               if (conversationStore != null) {
                 LOGGER.debug("Allowing conversation store to compensate job failure");
