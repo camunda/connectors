@@ -87,7 +87,7 @@ public class JobWorkerAgentRequestHandler
     if (agentResponse == null) {
       LOGGER.debug(
           "No agent response provided, completing job {} without response",
-          executionContext.job().getKey());
+          executionContext.jobContext().jobKey());
 
       // no-op (do not activate elements, do not complete agent process) -> wait for next job to
       // proceed (e.g. by adding user messages or to complete tool call results)
@@ -99,7 +99,7 @@ public class JobWorkerAgentRequestHandler
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug(
             "Agent response provided, completing job {} with response and tool calls: {}",
-            executionContext.job().getKey(),
+            executionContext.jobContext().jobKey(),
             agentResponse.toolCalls().stream().map(tc -> tc.metadata().name()).toList());
       }
 
