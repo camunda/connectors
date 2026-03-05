@@ -6,25 +6,25 @@
  */
 package io.camunda.connector.textract.model;
 
-import com.amazonaws.services.textract.AmazonTextractAsync;
-import com.amazonaws.services.textract.model.GetDocumentAnalysisRequest;
-import com.amazonaws.services.textract.model.GetDocumentAnalysisResult;
 import java.util.concurrent.Callable;
+import software.amazon.awssdk.services.textract.TextractClient;
+import software.amazon.awssdk.services.textract.model.GetDocumentAnalysisRequest;
+import software.amazon.awssdk.services.textract.model.GetDocumentAnalysisResponse;
 
-public class TextractTask implements Callable<GetDocumentAnalysisResult> {
+public class TextractTask implements Callable<GetDocumentAnalysisResponse> {
 
   private final GetDocumentAnalysisRequest docAnalysisReq;
 
-  private final AmazonTextractAsync amazonTextract;
+  private final TextractClient textractClient;
 
   public TextractTask(
-      GetDocumentAnalysisRequest documentAnalysisRequest, AmazonTextractAsync amazonTextract) {
+      GetDocumentAnalysisRequest documentAnalysisRequest, TextractClient textractClient) {
     this.docAnalysisReq = documentAnalysisRequest;
-    this.amazonTextract = amazonTextract;
+    this.textractClient = textractClient;
   }
 
   @Override
-  public GetDocumentAnalysisResult call() throws Exception {
-    return amazonTextract.getDocumentAnalysis(docAnalysisReq);
+  public GetDocumentAnalysisResponse call() throws Exception {
+    return textractClient.getDocumentAnalysis(docAnalysisReq);
   }
 }

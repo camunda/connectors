@@ -91,8 +91,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>5.13.10</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.32</version.logback>
 
-    <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.software-aws-java-sdk>2.41.32</version.software-aws-java-sdk>
+    <version.aws-sdk2>2.41.26</version.aws-sdk2>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
 
@@ -148,7 +147,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.1</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.4</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>2.46.1</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>3.2.1</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.0</plugin.version.maven-jar-plugin>
   </properties>
 
@@ -175,6 +174,14 @@ limitations under the License.</license.inlineheader>
         <version>${version.spring-boot}</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${version.aws-sdk2}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
 
       <dependency>
@@ -340,29 +347,29 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <dependency>
-        <groupId>com.amazonaws</groupId>
-        <artifactId>aws-java-sdk-lambda</artifactId>
-        <version>${version.aws-java-sdk}</version>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>lambda</artifactId>
+        <version>${version.aws-sdk2}</version>
       </dependency>
       <dependency>
-        <groupId>com.amazonaws</groupId>
-        <artifactId>aws-java-sdk-sns</artifactId>
-        <version>${version.aws-java-sdk}</version>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sns</artifactId>
+        <version>${version.aws-sdk2}</version>
       </dependency>
       <dependency>
-        <groupId>com.amazonaws</groupId>
-        <artifactId>aws-java-sdk-sqs</artifactId>
-        <version>${version.aws-java-sdk}</version>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sqs</artifactId>
+        <version>${version.aws-sdk2}</version>
       </dependency>
       <dependency>
-        <groupId>com.amazonaws</groupId>
-        <artifactId>aws-java-sdk-sagemakerruntime</artifactId>
-        <version>${version.aws-java-sdk}</version>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sagemakerruntime</artifactId>
+        <version>${version.aws-sdk2}</version>
       </dependency>
       <dependency>
-        <groupId>com.amazonaws</groupId>
-        <artifactId>aws-java-sdk-sagemaker</artifactId>
-        <version>${version.aws-java-sdk}</version>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sagemaker</artifactId>
+        <version>${version.aws-sdk2}</version>
       </dependency>
 
       <dependency>
