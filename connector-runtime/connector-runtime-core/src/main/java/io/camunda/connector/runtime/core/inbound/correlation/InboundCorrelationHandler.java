@@ -31,7 +31,6 @@ import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessageAlreadyCorrelated;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.feel.FeelEngineWrapper;
-import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.grpc.Status;
@@ -49,6 +48,7 @@ public class InboundCorrelationHandler {
 
   private final CamundaClient camundaClient;
   private final FeelEngineWrapper feelEngine;
+  private final ActivationConditionEvaluator activationConditionEvaluator;
 
   private final Duration defaultMessageTtl;
 
@@ -61,6 +61,7 @@ public class InboundCorrelationHandler {
       Duration defaultMessageTtl) {
     this.camundaClient = camundaClient;
     this.feelEngine = feelEngine;
+    this.activationConditionEvaluator = new ActivationConditionEvaluator(feelEngine);
     this.defaultMessageTtl = defaultMessageTtl;
     this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
   }
@@ -231,11 +232,6 @@ public class InboundCorrelationHandler {
     return result;
   }
 
-  private List<InboundConnectorElement> getMatchingElements(
-      List<InboundConnectorElement> elements, Object variables) {
-    return elements.stream().filter(e -> isActivationConditionMet(e, variables)).toList();
-  }
-
   private InboundConnectorElement findMatchingElement(
       List<InboundConnectorElement> elements, ProcessElement contentElement) {
     return elements.stream()
@@ -245,35 +241,11 @@ public class InboundCorrelationHandler {
   }
 
   public ActivationCheckResult canActivate(List<InboundConnectorElement> elements, Object context) {
-    var matchingElements = getMatchingElements(elements, context);
-    if (matchingElements.isEmpty()) {
-      var discardUnmatchedEvents =
-          elements.stream()
-              .map(InboundConnectorElement::consumeUnmatchedEvents)
-              .anyMatch(e -> e.equals(Boolean.TRUE));
-      return new ActivationCheckResult.Failure.NoMatchingElement(discardUnmatchedEvents);
-    }
-    if (matchingElements.size() > 1) {
-      return new ActivationCheckResult.Failure.TooManyMatchingElements();
-    }
-    return new ActivationCheckResult.Success.CanActivate(matchingElements.getFirst().element());
+    return activationConditionEvaluator.checkActivation(elements, context);
   }
 
   protected boolean isActivationConditionMet(InboundConnectorElement definition, Object context) {
-
-    var maybeCondition = definition.activationCondition();
-    if (maybeCondition == null || maybeCondition.isBlank()) {
-      LOG.debug("No activation condition specified for connector");
-      return true;
-    }
-    LOG.debug("Evaluating activation condition: {}", maybeCondition);
-    try {
-      Object shouldActivate = feelEngine.evaluate(maybeCondition, context);
-      LOG.debug("Activation condition evaluated to: {}", shouldActivate);
-      return Boolean.TRUE.equals(shouldActivate);
-    } catch (FeelEngineWrapperException e) {
-      throw new ConnectorInputException(e);
-    }
+    return activationConditionEvaluator.isActivationConditionMet(definition, context);
   }
 
   protected Optional<String> extractCorrelationKey(
