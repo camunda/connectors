@@ -132,7 +132,11 @@ public class ImapServerProxy implements AutoCloseable {
     activePairs.forEach(
         pair -> {
           try {
-            pair.backend.shutdownOutput();
+            pair.backend.close();
+          } catch (IOException ignored) {
+          }
+          try {
+            pair.client.close();
           } catch (IOException ignored) {
           }
         });
@@ -144,8 +148,22 @@ public class ImapServerProxy implements AutoCloseable {
 
   @Override
   public void close() throws Exception {
+    // Close all active proxy connections cleanly first, so GreenMail's IMAP handlers
+    // can detect the socket close gracefully instead of getting a broken pipe.
+    activePairs.forEach(
+        pair -> {
+          try {
+            pair.client.close();
+          } catch (IOException ignored) {
+          }
+          try {
+            pair.backend.close();
+          } catch (IOException ignored) {
+          }
+        });
     listen.close();
     pool.shutdownNow();
+    pool.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS);
   }
 
   private static class SocketPair {

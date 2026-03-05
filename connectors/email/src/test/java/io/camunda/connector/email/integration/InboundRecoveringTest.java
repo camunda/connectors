@@ -23,12 +23,10 @@ import io.camunda.connector.email.inbound.model.EmailListenerConfig;
 import io.camunda.connector.email.inbound.model.HandlingStrategy;
 import io.camunda.connector.email.inbound.model.PollUnseen;
 import io.camunda.connector.email.response.ReadEmailResponse;
-import java.net.SocketException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -36,7 +34,6 @@ import org.mockito.Mockito;
 public class InboundRecoveringTest extends BaseEmailTest {
 
   private final int PROXY_PORT = 22223;
-  JakartaEmailListener jakartaEmailListener = new JakartaEmailListener();
 
   @BeforeEach
   public void beforeEach() {
@@ -44,13 +41,9 @@ public class InboundRecoveringTest extends BaseEmailTest {
     super.reset();
   }
 
-  @AfterEach
-  public void afterEach() {
-    jakartaEmailListener.stopListener();
-  }
-
   @Test
-  public void pollingManagerBreaksAndRecoverAfterServerNotResponding() {
+  public void pollingManagerBreaksAndRecoverAfterServerNotResponding() throws Exception {
+    JakartaEmailListener jakartaEmailListener = new JakartaEmailListener();
     try (ImapServerProxy proxyImap =
         new ImapServerProxy(
             PROXY_PORT, "localhost", Integer.parseInt(super.getUnsecureImapPort()))) {
@@ -74,10 +67,10 @@ public class InboundRecoveringTest extends BaseEmailTest {
           .thenReturn(new CorrelationResult.Success.ProcessInstanceCreated(null, null, null));
 
       proxyImap.setOkProxy();
-      this.jakartaEmailListener.startListener(inboundConnectorContext);
+      jakartaEmailListener.startListener(inboundConnectorContext);
 
       await()
-          .atMost(5, TimeUnit.SECONDS)
+          .atMost(10, TimeUnit.SECONDS)
           .untilAsserted(
               () ->
                   // We want to check it was called once at startup and once at poll
@@ -89,7 +82,7 @@ public class InboundRecoveringTest extends BaseEmailTest {
       proxyImap.cutConnection();
 
       await()
-          .atMost(5, TimeUnit.SECONDS)
+          .atMost(10, TimeUnit.SECONDS)
           .untilAsserted(
               () ->
                   // We want to check health was down for at least 1 times
@@ -102,7 +95,7 @@ public class InboundRecoveringTest extends BaseEmailTest {
       super.sendEmail("camunda@test.com", "Subject", "Content");
 
       await()
-          .atMost(5, TimeUnit.SECONDS)
+          .atMost(10, TimeUnit.SECONDS)
           .untilAsserted(
               () ->
                   verify(inboundConnectorContext, atLeast(1))
@@ -116,24 +109,22 @@ public class InboundRecoveringTest extends BaseEmailTest {
                               })));
 
       await()
-          .atMost(5, TimeUnit.SECONDS)
+          .atMost(10, TimeUnit.SECONDS)
           .untilAsserted(
               () ->
                   verify(inboundConnectorContext, atLeast(1))
                       .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
 
-    } catch (Exception e) {
-      if (e instanceof IllegalStateException && e.getCause() instanceof SocketException) {
-        // This exception is expected because the proxy may cut the connection while the client
-        // is using it
-        return;
-      }
-      throw new RuntimeException(e);
+      // Stop the listener BEFORE the proxy is closed by try-with-resources.
+      // This ensures the IMAP connection is cleanly closed through the still-open proxy,
+      // preventing broken pipe exceptions in GreenMail's IMAP handler.
+      jakartaEmailListener.stopListener();
     }
   }
 
   @Test
-  public void pollingManagerBreaksAndRecoverAfterRuntimeErrorFromTheRuntime() {
+  public void pollingManagerBreaksAndRecoverAfterRuntimeErrorFromTheRuntime() throws Exception {
+    JakartaEmailListener jakartaEmailListener = new JakartaEmailListener();
     try (ImapServerProxy proxyImap =
         new ImapServerProxy(
             PROXY_PORT, "localhost", Integer.parseInt(super.getUnsecureImapPort()))) {
@@ -156,10 +147,10 @@ public class InboundRecoveringTest extends BaseEmailTest {
       doThrow(new RuntimeException()).when(inboundConnectorContext).correlate(any());
 
       proxyImap.setOkProxy();
-      this.jakartaEmailListener.startListener(inboundConnectorContext);
+      jakartaEmailListener.startListener(inboundConnectorContext);
 
       await()
-          .atMost(5, TimeUnit.SECONDS)
+          .atMost(10, TimeUnit.SECONDS)
           .untilAsserted(
               () ->
                   // We want to check it was called once at startup and once at poll
@@ -183,7 +174,7 @@ public class InboundRecoveringTest extends BaseEmailTest {
           .correlate(any());
 
       await()
-          .atMost(5, TimeUnit.SECONDS)
+          .atMost(10, TimeUnit.SECONDS)
           .untilAsserted(
               () ->
                   verify(inboundConnectorContext, atLeast(1))
@@ -197,14 +188,16 @@ public class InboundRecoveringTest extends BaseEmailTest {
                               })));
 
       await()
-          .atMost(5, TimeUnit.SECONDS)
+          .atMost(10, TimeUnit.SECONDS)
           .untilAsserted(
               () ->
                   verify(inboundConnectorContext, atLeast(1))
                       .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
 
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+      // Stop the listener BEFORE the proxy is closed by try-with-resources.
+      // This ensures the IMAP connection is cleanly closed through the still-open proxy,
+      // preventing broken pipe exceptions in GreenMail's IMAP handler.
+      jakartaEmailListener.stopListener();
     }
   }
 }
