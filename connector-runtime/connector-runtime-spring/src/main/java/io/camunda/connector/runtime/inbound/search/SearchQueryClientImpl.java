@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.inbound.search;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.enums.ElementInstanceState;
 import io.camunda.client.api.search.response.*;
+import io.camunda.client.api.statistics.response.ProcessDefinitionMessageSubscriptionStatistics;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.ByteArrayInputStream;
@@ -49,8 +50,9 @@ public class SearchQueryClientImpl implements SearchQueryClient {
   }
 
   @Override
-  public SearchResponse<MessageSubscription> queryMessageSubscriptions(String paginationIndex) {
-    final var query = camundaClient.newMessageSubscriptionSearchRequest();
+  public ProcessDefinitionMessageSubscriptionStatistics queryMessageSubscriptionStatistics(
+      String paginationIndex) {
+    final var query = camundaClient.newProcessDefinitionMessageSubscriptionStatisticsRequest();
     if (paginationIndex != null) {
       query.page(p -> p.limit(limit).after(paginationIndex));
     } else {
