@@ -59,6 +59,7 @@ if (outputFilePath.exists() && !isHybrid) {
 json.id = "io.camunda.connectors.agenticai.aiagent.jobworker.v1"
 json.name = "AI Agent Sub-process"
 json.description = "Run a multi-step AI reasoning loop with dynamic tool selection"
+json.documentationRef = replaceDocumentationLinks(json.documentationRef)
 
 if (isHybrid) {
     json.id += "-hybrid"

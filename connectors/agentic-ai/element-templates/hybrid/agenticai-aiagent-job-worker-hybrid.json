@@ -6,7 +6,7 @@
   "metadata" : {
     "keywords" : [ "AI", "AI Agent", "agentic orchestration" ]
   },
-  "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/",
+  "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-subprocess/",
   "version" : 6,
   "category" : {
     "id" : "connectors",
