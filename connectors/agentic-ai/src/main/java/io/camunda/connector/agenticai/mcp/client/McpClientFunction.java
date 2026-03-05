@@ -28,6 +28,8 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
     name = "MCP Client (early access)",
     description =
         "MCP (Model Context Protocol) client using MCP connections configured on the connector runtime.",
+    documentationRef =
+        "https://docs.camunda.io/docs/8.9/components/early-access/alpha/mcp-client/mcp-client-connector/",
     engineVersion = "^8.9",
     version = 2,
     inputDataClass = McpClientRequest.class,

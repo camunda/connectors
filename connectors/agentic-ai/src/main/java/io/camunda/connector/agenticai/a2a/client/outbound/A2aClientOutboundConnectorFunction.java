@@ -25,6 +25,8 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
     name = "A2A Client (early access)",
     description =
         "Agent-to-Agent (A2A) client, enabling discovering remote agents' Agent Cards as well as sending messages to remote agents.",
+    documentationRef =
+        "https://docs.camunda.io/docs/8.9/components/early-access/alpha/a2a-client/a2a-client-connector/",
     engineVersion = "^8.9",
     version = 0,
     inputDataClass = A2aClientRequest.class,
