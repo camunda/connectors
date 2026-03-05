@@ -124,7 +124,7 @@ jobs:
       - name: Build and Push Docker Image tag ${{ env.TAG }} - bundle-default
         env:
           TAG: ${{ steps.connectors-version.outputs.connectors-version }}
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: bundle/default-bundle/
           provenance: false
@@ -135,7 +135,7 @@ jobs:
         if: ${{ steps.connectors-version.outputs.should-push == 'true' }}
         env:
           TAG: ${{ steps.connectors-version.outputs.connectors-version }}
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: bundle/camunda-saas-bundle/
           provenance: false

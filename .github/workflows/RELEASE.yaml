@@ -385,7 +385,7 @@ jobs:
       # Build & push bundle docker images (with version tag)
 
       - name: Build and Push Docker Image tag ${{ inputs.version }} - connector-runtime
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: connector-runtime/connector-runtime-application/
           push: true
@@ -394,7 +394,7 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag ${{ inputs.version }} - bundle-default
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: bundle/default-bundle/
           push: true
@@ -403,7 +403,7 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag ${{ inputs.version }} - bundle-saas
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: bundle/camunda-saas-bundle/
           push: true
@@ -425,7 +425,7 @@ jobs:
 
       - name: Build and Push Docker Image tag latest - connector-runtime
         if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: connector-runtime/connector-runtime-application/
           push: true
@@ -435,7 +435,7 @@ jobs:
 
       - name: Build and Push Docker Image tag latest - bundle-default
         if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: bundle/default-bundle/
           push: true
@@ -445,7 +445,7 @@ jobs:
 
       - name: Build and Push Docker Image tag latest - bundle-saas
         if: ${{ inputs.latest && needs.setup.outputs.tagType == 'NORMAL' }}
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: bundle/camunda-saas-bundle/
           push: true
