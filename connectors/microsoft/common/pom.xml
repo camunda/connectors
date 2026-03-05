@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connectors-parent</artifactId>
+    <version>8.9.0-alpha5</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <name>connector-microsoft-common</name>
+  <description>Shared utilities for Camunda Microsoft connectors</description>
+  <artifactId>connector-microsoft-common</artifactId>
+  <packaging>jar</packaging>
+
+  <licenses>
+    <license>
+      <name>Camunda Self-Managed Free Edition license</name>
+      <url>https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/</url>
+    </license>
+    <license>
+      <name>Camunda Self-Managed Enterprise Edition license</name>
+    </license>
+  </licenses>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-object-mapper</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.microsoft.graph</groupId>
+      <artifactId>microsoft-graph</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-identity</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp</artifactId>
+      <version>${version.okhttp}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.projectreactor</groupId>
+      <artifactId>reactor-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator-annotations</artifactId>
+    </dependency>
+  </dependencies>
+
+</project>

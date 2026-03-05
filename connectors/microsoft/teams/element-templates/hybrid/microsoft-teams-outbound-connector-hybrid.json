@@ -76,8 +76,8 @@
   }, {
     "id" : "authentication.type",
     "label" : "Type",
-    "description" : "Authentication type depends on your MS Teams account permission and operation with connector. See <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/'>connector documentation</a>",
-    "value" : "refresh",
+    "description" : "Authentication type depends on your Microsoft Entra (Azure AD) configuration. See <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/'>connector documentation</a>",
+    "value" : "clientCredentials",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.type",

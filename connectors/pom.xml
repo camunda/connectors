@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-bundle-parent</artifactId>
-    <version>8.9.0-SNAPSHOT</version>
+    <version>8.9.0-alpha5</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -29,6 +29,7 @@
     <module>jdbc</module>
     <module>kafka</module>
     <module>microsoft/azure-blobstorage</module>
+    <module>microsoft/common</module>
     <module>microsoft/email-inbound</module>
     <module>microsoft/teams</module>
     <module>camunda-message</module>

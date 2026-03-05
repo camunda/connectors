@@ -6,11 +6,11 @@
  */
 package io.camunda.connector.model;
 
-import io.camunda.connector.model.authentication.MSTeamsAuthentication;
+import io.camunda.connector.microsoft.common.auth.MicrosoftAuthentication;
 import io.camunda.connector.model.request.data.MSTeamsRequestData;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 public record MSTeamsRequest(
-    @Valid @NotNull MSTeamsAuthentication authentication,
+    @Valid @NotNull MicrosoftAuthentication authentication,
     @Valid @NotNull MSTeamsRequestData data) {}

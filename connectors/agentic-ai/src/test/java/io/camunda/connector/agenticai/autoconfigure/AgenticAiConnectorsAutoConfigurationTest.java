@@ -41,7 +41,6 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSt
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
-import io.camunda.connector.agenticai.common.AgenticAiHttpSupport;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -55,7 +54,6 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
   private static final List<Class<?>> AGENTIC_AI_BEANS =
       List.of(
-          AgenticAiHttpSupport.class,
           AdHocToolElementParameterExtractor.class,
           AdHocToolSchemaGenerator.class,
           AdHocToolsSchemaResolver.class,
