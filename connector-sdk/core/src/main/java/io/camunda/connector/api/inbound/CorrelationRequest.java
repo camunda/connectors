@@ -103,7 +103,7 @@ public class CorrelationRequest {
   public static class Builder {
     private Object variables;
     private String messageId;
-    private Mode mode = Mode.Sync; // Default mode is Sync
+    private Mode mode = Mode.Async; // Default mode is Async
 
     /**
      * Sets the variables for the {@code CorrelationRequest} being built.
