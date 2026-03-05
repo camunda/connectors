@@ -153,7 +153,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.license>4.6</plugin.version.license>
     <plugin.version.license.codehaus>2.7.1</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
-    <plugin.version.maven-shade-plugin>3.6.1</plugin.version.maven-shade-plugin>
+    <plugin.version.maven-shade-plugin>3.6.2</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.5</plugin.version.maven-surefire-plugin>
     <plugin.version.spotless-maven-plugin>2.46.1</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.0</plugin.version.maven-jar-plugin>
