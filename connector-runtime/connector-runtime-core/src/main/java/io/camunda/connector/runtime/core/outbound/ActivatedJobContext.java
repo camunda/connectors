@@ -80,4 +80,9 @@ public class ActivatedJobContext implements JobContext {
   public String getTenantId() {
     return activatedJob.getTenantId();
   }
+
+  @Override
+  public long getJobKey() {
+    return activatedJob.getKey();
+  }
 }

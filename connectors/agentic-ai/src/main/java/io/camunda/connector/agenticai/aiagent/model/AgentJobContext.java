@@ -7,6 +7,8 @@
 package io.camunda.connector.agenticai.aiagent.model;
 
 public interface AgentJobContext {
+  long jobKey();
+
   String bpmnProcessId();
 
   long processDefinitionKey();
