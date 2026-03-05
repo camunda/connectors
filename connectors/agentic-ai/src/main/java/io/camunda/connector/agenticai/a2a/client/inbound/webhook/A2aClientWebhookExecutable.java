@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
     icon = "a2a-client.svg",
     engineVersion = "^8.9",
     inputDataClass = A2aWebhookPropertiesWrapper.class,
+    defaultResultExpression = "={response: request.body}",
     propertyGroups = {
       @PropertyGroup(id = "endpoint", label = "Webhook configuration"),
       @PropertyGroup(id = "clientResponse", label = "Client Response"),
