@@ -49,6 +49,16 @@ When in doubt, refer to the `LICENSE` file in the respective module.
 
 ## Setup
 
+Clone the repository using HTTPS or SSH:
+
+```bash
+# HTTPS
+git clone https://github.com/camunda/connectors.git
+
+# SSH
+git clone git@github.com:camunda/connectors.git
+```
+
 Download [`asdf`](https://asdf-vm.com/), install the required plugins with `asdf plugin add <tool>` where `<tool>`
 is java, maven and pre-commit and run `asdf install` to install our tools.
 Afterwards, run `pre-commit install` to set up the pre-commit hooks.
