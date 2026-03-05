@@ -457,4 +457,25 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
                   .isEqualTo(new PropertyCondition.Equals("prop1", "value1"));
             });
   }
+
+  @Test
+  void testElementTypeBasedFiltering() {
+    var templates = generator.generate(MyConnectorExecutable.ElementTypeSpecificProperties.class);
+    assertThat(templates).hasSize(3);
+    var startEventTemplate = templates.get(0);
+    var messageEventTemplate = templates.get(1);
+    var boundaryEventTemplate = templates.get(2);
+
+    assertThat(getPropertyById("shared", startEventTemplate)).isNotNull();
+    assertThat(getPropertyById("onlyStartEvent", startEventTemplate)).isNotNull();
+    assertThat(findPropertyById("onlyMessageEvent", startEventTemplate)).isNull();
+
+    assertThat(getPropertyById("shared", messageEventTemplate)).isNotNull();
+    assertThat(getPropertyById("onlyMessageEvent", messageEventTemplate)).isNotNull();
+    assertThat(findPropertyById("onlyStartEvent", messageEventTemplate)).isNull();
+
+    assertThat(getPropertyById("shared", boundaryEventTemplate)).isNotNull();
+    assertThat(findPropertyById("onlyStartEvent", boundaryEventTemplate)).isNull();
+    assertThat(findPropertyById("onlyMessageEvent", boundaryEventTemplate)).isNull();
+  }
 }

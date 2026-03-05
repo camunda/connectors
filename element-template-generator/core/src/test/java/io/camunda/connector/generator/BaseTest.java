@@ -33,6 +33,13 @@ public abstract class BaseTest {
         .orElseThrow(() -> new RuntimeException("Property with id " + id + " not found"));
   }
 
+  protected Property findPropertyById(String id, ElementTemplate template) {
+    return template.properties().stream()
+        .filter(p -> id.equals(p.getId()))
+        .findFirst()
+        .orElse(null);
+  }
+
   protected Property getPropertyByLabel(String label, ElementTemplate template) {
     return template.properties().stream()
         .filter(p -> label.equals(p.getLabel()))

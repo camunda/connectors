@@ -45,6 +45,20 @@ public class CorrelationRequest {
    * @param messageId the unique identifier of the message. It will only be used as a fallback value
    *     if a custom message ID expression is not configured in the connector's element template.
    */
+  public CorrelationRequest(Object variables, String messageId) {
+    this.variables = variables;
+    this.messageId = messageId;
+    this.mode = Mode.Async;
+  }
+
+  /**
+   * Constructs a new {@code CorrelationRequest} with the specified variables and message ID.
+   *
+   * @param variables the inbound connector variables required for correlation
+   * @param messageId the unique identifier of the message. It will only be used as a fallback value
+   *     * if a custom message ID expression is not configured in the connector's element template.
+   * @param mode the mode of correlation (e.g., Sync or Async)
+   */
   public CorrelationRequest(Object variables, String messageId, Mode mode) {
     this.variables = variables;
     this.messageId = messageId;

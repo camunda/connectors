@@ -234,30 +234,39 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
         .toList();
   }
 
-  private void filterPropertiesForElementType(
+  private List<Property> filterPropertiesForElementType(
       List<Property> properties, ConnectorElementType elementType) {
-    List<Property> toBeRemovedProperties = new ArrayList<>();
-    for (Property property : properties) {
-      if (!property.elementTypes().isEmpty()
-          && !property.elementTypes().contains(elementType.elementType())) {
-        toBeRemovedProperties.add(property);
-      }
-    }
-    if (!toBeRemovedProperties.isEmpty()) {
-      properties.removeAll(toBeRemovedProperties);
-    }
+    return properties.stream()
+        .filter(
+            property ->
+                property.elementTypes().isEmpty()
+                    || property.elementTypes().contains(elementType.elementType()))
+        .toList();
   }
 
   private List<PropertyGroup> addServiceProperties(
-      List<PropertyGroup> groups,
+      List<PropertyGroup> propertyGroups,
       TemplateGenerationContext context,
       ConnectorElementType elementType,
       GeneratorConfiguration configuration,
       ElementTemplate template) {
 
-    for (PropertyGroup group : groups) {
-      filterPropertiesForElementType(group.properties(), elementType);
-    }
+    // Recreating the property group with element type specific properties
+    var groups =
+        propertyGroups.stream()
+            .map(
+                group -> {
+                  List<Property> properties =
+                      filterPropertiesForElementType(group.properties(), elementType);
+                  return PropertyGroup.builder()
+                      .id(group.id())
+                      .properties(properties.toArray(new Property[0]))
+                      .label(group.label())
+                      .openByDefault(group.openByDefault())
+                      .tooltip(group.tooltip())
+                      .build();
+                })
+            .toList();
 
     var newGroups = new ArrayList<>(groups);
     if (context instanceof Outbound) {
