@@ -93,6 +93,11 @@ public class CreateCommandDummy
     return this;
   }
 
+  @Override
+  public CreateProcessInstanceCommandStep3 businessId(String businessId) {
+    return this;
+  }
+
   public FinalCommandStep<ProcessInstanceEvent> requestTimeout(Duration requestTimeout) {
     return this;
   }
