@@ -24,7 +24,7 @@ public class CredentialsProviderSupport {
   public static AWSCredentialsProvider credentialsProvider(AwsBaseRequest request) {
     AwsAuthentication authentication = request.getAuthentication();
     if (authentication instanceof AwsStaticCredentialsAuthentication sca) {
-      LOGGER.debug("Using AwsStaticCredentialsAuthentication for AWS authentication");
+      LOGGER.debug("Using AwsStaticCredentialsAuthentication for AWS authentication test");
       return new AWSStaticCredentialsProvider(
           new BasicAWSCredentials(sca.accessKey(), sca.secretKey()));
     }
