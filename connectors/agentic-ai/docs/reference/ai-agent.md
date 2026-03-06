@@ -108,7 +108,7 @@ Variables inside an ad-hoc sub-process have their own scope:
 ### AI Agent Sub-process (Job Worker)
 
 - **BPMN element**: Ad-hoc sub-process with job worker element template applied
-- **Class**: `AiAgentJobWorker` with `@JobWorker(autoComplete = false)`
+- **Class**: `AiAgentJobWorker` with `@OutboundConnector`
 - **Type**: `io.camunda.agenticai:aiagent-job-worker:1`
 - **Execution context**: `JobWorkerAgentExecutionContext`
 - **Request handler**: `JobWorkerAgentRequestHandler`
@@ -185,7 +185,7 @@ The loop operates as a distributed state machine between the connector runtime a
    - Store updated conversation back to memory store (via `ConversationSession`)
    - Transform tool calls and create response
 
-5. **Job completion** (`AiAgentJobWorkerHandlerImpl.prepareCompleteCommand`):
+5. **Job completion** (`AiAgentJobCompletion.prepareCompleteCommand`):
    - Sets `agentContext` variable with updated state
    - If tool calls present:
      - `completionConditionFulfilled = false`
@@ -459,21 +459,23 @@ The `ProcessDefinitionAdHocToolElementsResolver` fetches the BPMN XML from Camun
 
 ### Job Worker Completion Flow
 
-`AiAgentJobWorkerHandlerImpl` handles the complete flow:
+`AiAgentJobWorker` is an `OutboundConnectorFunction` wrapped by `SpringConnectorJobHandler` at runtime. The flow:
 
 ```
-handle(jobClient, job)
+SpringConnectorJobHandler.handle(jobClient, job)
   │
-  ├─ executionContextFactory.createExecutionContext(jobClient, job)
-  │    └─ Binds job variables to JobWorkerAgentRequest
+  ├─ Creates OutboundConnectorContext from job variables
   │
-  ├─ agentRequestHandler.handleRequest(executionContext)
-  │    └─ Returns JobWorkerAgentCompletion
+  ├─ AiAgentJobWorker.execute(context)
+  │    ├─ Binds variables to JobWorkerAgentRequest
+  │    ├─ agentRequestHandler.handleRequest(executionContext)
+  │    │    └─ Returns JobWorkerAgentCompletion
+  │    └─ Returns AiAgentJobCompletion (ConnectorJobCompletion)
   │
-  ├─ connectorResultHandler.examineErrorExpression(...)
+  ├─ SpringConnectorJobHandler examines error expression
   │    └─ Checks for error expressions (BPMN error handling)
   │
-  └─ completeJob / failJob / throwBpmnError
+  └─ AiAgentJobCompletion.prepareCompleteCommand() / failJob / throwBpmnError
        └─ Asynchronous command execution via CommandWrapper
 ```
 
@@ -969,7 +971,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 ### Entry Points
 - `AiAgentFunction.execute()` → Connector (Task) entry point
 - `AiAgentJobWorker.execute()` → Job worker (Sub-process) entry point
-- `AiAgentJobWorkerHandlerImpl.handle()` → Job worker processing logic
+- `AiAgentJobWorker.execute()` wraps into `AiAgentJobCompletion` → handled by `SpringConnectorJobHandler`
 
 ### Core Agent Logic
 - `BaseAgentRequestHandler.handleRequest()` → Core orchestrator: init → memory → messages → LLM → response → complete
@@ -979,7 +981,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `AgentResponseHandlerImpl.createResponse()` → Response formatting
 
 ### Job Completion
-- `AiAgentJobWorkerHandlerImpl.prepareCompleteCommand()` → AHSP completion command with tool activations
+- `AiAgentJobCompletion.prepareCompleteCommand()` → AHSP completion command with tool activations
 - `JobWorkerAgentRequestHandler.completeJob()` → Job worker completion logic (no-op vs response)
 - `JobWorkerAgentCompletion.onCompletionError()` → Failure compensation via store
 
@@ -1008,7 +1010,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 
 ### Configuration
 - `AgenticAiConnectorsAutoConfiguration` → Spring Boot bean definitions
-- `AiAgentJobWorkerValueCustomizer` → Job worker type/timeout overrides
+- `ConnectorConfigurationOverrides` (connector-runtime-core) → Type/timeout overrides via env vars
 
 ### Class Diagram
 
@@ -1021,7 +1023,7 @@ classDiagram
         <<OutboundConnectorFunction>>
     }
     class AiAgentJobWorker {
-        <<JobWorker>>
+        <<OutboundConnectorFunction>>
     }
 
     %% --- Request handling ---

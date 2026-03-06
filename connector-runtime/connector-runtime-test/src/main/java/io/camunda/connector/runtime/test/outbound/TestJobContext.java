@@ -35,6 +35,7 @@ public class TestJobContext implements JobContext {
   private long elementInstanceKey;
 
   private String tenantId;
+  private long jobKey;
 
   public TestJobContext(Supplier<Map<String, String>> headers, Supplier<String> variables) {
     this.headers = headers;
@@ -121,5 +122,14 @@ public class TestJobContext implements JobContext {
 
   public void setTenantId(String tenantId) {
     this.tenantId = tenantId;
+  }
+
+  @Override
+  public long getJobKey() {
+    return jobKey;
+  }
+
+  public void setJobKey(long jobKey) {
+    this.jobKey = jobKey;
   }
 }
