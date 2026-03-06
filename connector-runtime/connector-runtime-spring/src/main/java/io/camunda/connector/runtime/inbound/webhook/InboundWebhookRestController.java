@@ -389,7 +389,9 @@ public class InboundWebhookRestController {
     if (processedResult != null) {
       CorrelationResult.Success correlation = null;
       if (correlationResult instanceof ProcessInstanceCreated
-          || correlationResult instanceof MessagePublished) {
+          || correlationResult instanceof MessagePublished
+          || correlationResult
+              instanceof CorrelationResult.Success.ProcessInstanceCreatedWithResult) {
         correlation = correlationResult;
       }
       ctx =

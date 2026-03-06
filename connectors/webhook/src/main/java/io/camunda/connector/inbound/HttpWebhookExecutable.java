@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.webhook",
     name = "Webhook Connector",
     icon = "icon.svg",
-    version = 13,
+    version = 14,
     inputDataClass = WebhookConnectorPropertiesWrapper.class,
     description = "Configure webhook to receive callbacks",
     documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
@@ -53,6 +53,11 @@ import org.slf4j.LoggerFactory;
       @PropertyGroup(id = "webhookResponse", label = "Webhook response")
     },
     elementTypes = {
+      @ConnectorElementType(
+          appliesTo = BpmnType.START_EVENT,
+          elementType = BpmnType.START_EVENT,
+          templateIdOverride = "io.camunda.connectors.webhook.WebhookConnector.v1",
+          templateNameOverride = "Webhook Start Event Connector"),
       @ConnectorElementType(
           appliesTo = BpmnType.START_EVENT,
           elementType = BpmnType.MESSAGE_START_EVENT,
@@ -110,7 +115,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     }
 
     var mappedRequest = mapRequest(payload);
-    return new WebhookProcessingResultImpl(mappedRequest, responseExpression, null);
+    return new WebhookProcessingResultImpl(mappedRequest, responseExpression, null, props.mode());
   }
 
   private void validateHttpMethod(WebhookProcessingPayload payload) {

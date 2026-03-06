@@ -178,6 +178,18 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
                     .withData(
                         Map.of("processInstanceKey", processInstanceCreated.processInstanceKey())));
         break;
+      case Success.ProcessInstanceCreatedWithResult processInstanceCreatedWithResult:
+        logRuntime(
+            activity ->
+                activity
+                    .withSeverity(Severity.INFO)
+                    .withTag(ActivityLogTag.CORRELATION)
+                    .withMessage("Process instance created")
+                    .withData(
+                        Map.of(
+                            "processInstanceKey",
+                            processInstanceCreatedWithResult.processInstanceKey())));
+        break;
       case MessagePublished messagePublished:
         logRuntime(
             activity ->

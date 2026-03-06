@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.inbound.model;
 
+import io.camunda.connector.api.inbound.Mode;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
@@ -18,7 +19,8 @@ import java.util.function.Function;
 public record WebhookProcessingResultImpl(
     MappedHttpRequest request,
     Function<WebhookResultContext, WebhookHttpResponse> responseExpression,
-    Map<String, Object> connectorData)
+    Map<String, Object> connectorData,
+    Mode mode)
     implements WebhookResult {
 
   public WebhookProcessingResultImpl {}
@@ -36,5 +38,10 @@ public record WebhookProcessingResultImpl(
   @Override
   public Function<WebhookResultContext, WebhookHttpResponse> response() {
     return responseExpression;
+  }
+
+  @Override
+  public Mode mode() {
+    return mode;
   }
 }

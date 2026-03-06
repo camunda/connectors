@@ -36,6 +36,7 @@ import java.util.Objects;
 public class CorrelationRequest {
   private final Object variables;
   private final String messageId;
+  private final Mode mode;
 
   /**
    * Constructs a new {@code CorrelationRequest} with the specified variables and message ID.
@@ -47,6 +48,21 @@ public class CorrelationRequest {
   public CorrelationRequest(Object variables, String messageId) {
     this.variables = variables;
     this.messageId = messageId;
+    this.mode = Mode.Async;
+  }
+
+  /**
+   * Constructs a new {@code CorrelationRequest} with the specified variables and message ID.
+   *
+   * @param variables the inbound connector variables required for correlation
+   * @param messageId the unique identifier of the message. It will only be used as a fallback value
+   *     * if a custom message ID expression is not configured in the connector's element template.
+   * @param mode the mode of correlation (e.g., Sync or Async)
+   */
+  public CorrelationRequest(Object variables, String messageId, Mode mode) {
+    this.variables = variables;
+    this.messageId = messageId;
+    this.mode = mode;
   }
 
   /**
@@ -76,6 +92,15 @@ public class CorrelationRequest {
     return variables;
   }
 
+  /**
+   * Returns the mode of this correlation request.
+   *
+   * @return the mode
+   */
+  public Mode getMode() {
+    return mode;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (o == null || getClass() != o.getClass()) return false;
@@ -92,6 +117,7 @@ public class CorrelationRequest {
   public static class Builder {
     private Object variables;
     private String messageId;
+    private Mode mode = Mode.Async; // Default mode is Async
 
     /**
      * Sets the variables for the {@code CorrelationRequest} being built.
@@ -116,12 +142,26 @@ public class CorrelationRequest {
     }
 
     /**
+     * Sets the mode for the {@code CorrelationRequest} being built.
+     *
+     * @param mode the mode of correlation (e.g., Sync or Async)
+     * @return this {@code Builder} instance
+     */
+    public Builder mode(Mode mode) {
+      if (mode == null) {
+        throw new IllegalArgumentException("Mode cannot be null");
+      }
+      this.mode = mode;
+      return this;
+    }
+
+    /**
      * Builds and returns a {@code CorrelationRequest} instance with the specified values.
      *
      * @return a new {@code CorrelationRequest} instance
      */
     public CorrelationRequest build() {
-      return new CorrelationRequest(variables, messageId);
+      return new CorrelationRequest(variables, messageId, mode);
     }
   }
 }

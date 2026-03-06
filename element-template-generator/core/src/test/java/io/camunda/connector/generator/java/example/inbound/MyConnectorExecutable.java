@@ -19,6 +19,7 @@ package io.camunda.connector.generator.java.example.inbound;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ExtensionProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -78,4 +79,41 @@ public class MyConnectorExecutable implements InboundConnectorExecutable<Inbound
       icon = "my-connector-icon.png",
       defaultResultExpression = "={ myResponse: request }")
   public static class MinimallyAnnotatedWithResultExpression extends MyConnectorExecutable {}
+
+  @InboundConnector(name = "my-inbound-connector", type = "my-inbound-connector-type")
+  @ElementTemplate(
+      engineVersion = "^8.7",
+      id = MyConnectorExecutable.ID,
+      name = MyConnectorExecutable.NAME,
+      inputDataClass = ElementTypeSpecificProperties.MyInput.class,
+      icon = "my-connector-icon.png",
+      elementTypes = {
+        @ElementTemplate.ConnectorElementType(
+            elementType = BpmnType.START_EVENT,
+            appliesTo = BpmnType.START_EVENT),
+        @ElementTemplate.ConnectorElementType(
+            elementType = BpmnType.MESSAGE_START_EVENT,
+            appliesTo = BpmnType.MESSAGE_START_EVENT),
+        @ElementTemplate.ConnectorElementType(
+            elementType = BpmnType.BOUNDARY_EVENT,
+            appliesTo = BpmnType.BOUNDARY_EVENT),
+      })
+  public static class ElementTypeSpecificProperties implements InboundConnectorExecutable {
+    @Override
+    public void activate(InboundConnectorContext context) throws Exception {}
+
+    @Override
+    public void deactivate() throws Exception {}
+
+    static final class MyInput {
+      @TemplateProperty(id = "shared")
+      String shared;
+
+      @TemplateProperty(id = "onlyStartEvent", elementTypes = BpmnType.START_EVENT)
+      String onlyStartEvent;
+
+      @TemplateProperty(id = "onlyMessageEvent", elementTypes = BpmnType.MESSAGE_START_EVENT)
+      String onlyMessageEvent;
+    }
+  }
 }

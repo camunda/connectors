@@ -7,8 +7,10 @@
 package io.camunda.connector.inbound.model;
 
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.api.inbound.Mode;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
@@ -123,7 +125,23 @@ public record WebhookConnectorProperties(
             group = "webhookResponse",
             feel = FeelMode.required,
             optional = true)
-        Function<Map<String, Object>, WebhookHttpResponse> verificationExpression) {
+        Function<Map<String, Object>, WebhookHttpResponse> verificationExpression,
+    @TemplateProperty(
+            id = "syncMode",
+            label = "Mode for process execution and response",
+            tooltip =
+                "Whether to wait for the process execution synchronously to complete before sending the response",
+            type = PropertyType.Dropdown,
+            group = "webhookResponse",
+            feel = FeelMode.optional,
+            optional = true,
+            defaultValue = "Async",
+            choices = {
+              @DropdownPropertyChoice(label = "Asynchronous", value = "Async"),
+              @DropdownPropertyChoice(label = "Synchronous", value = "Sync")
+            },
+            elementTypes = BpmnType.START_EVENT)
+        Mode mode) {
 
   public WebhookConnectorProperties(WebhookConnectorPropertiesWrapper wrapper) {
     this(
@@ -138,7 +156,8 @@ public record WebhookConnectorProperties(
         getOrDefault(wrapper.inbound.auth, new WebhookAuthorization.None()),
         wrapper.inbound.responseExpression,
         wrapper.inbound.responseBodyExpression,
-        wrapper.inbound.verificationExpression);
+        wrapper.inbound.verificationExpression,
+        wrapper.inbound.mode);
   }
 
   public record WebhookConnectorPropertiesWrapper(WebhookConnectorProperties inbound) {}

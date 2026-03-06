@@ -7,13 +7,10 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
-  "version" : 13,
+  "version" : 14,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
-  },
-  "deprecated": {
-    "message": "Migrate to Webhook Message Start Event Connector"
   },
   "appliesTo" : [ "bpmn:StartEvent" ],
   "elementType" : {
@@ -366,6 +363,25 @@
       "type" : "zeebe:property"
     },
     "type" : "Text"
+  }, {
+    "id" : "inbound.syncMode",
+    "label" : "Mode for process execution and response",
+    "optional" : true,
+    "value" : "Async",
+    "group" : "webhookResponse",
+    "binding" : {
+      "name" : "inbound.mode",
+      "type" : "zeebe:property"
+    },
+    "tooltip" : "Whether to wait for the process execution synchronously to complete before sending the response",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Asynchronous",
+      "value" : "Async"
+    }, {
+      "name" : "Synchronous",
+      "value" : "Sync"
+    } ]
   }, {
     "id" : "activationCondition",
     "label" : "Activation condition",

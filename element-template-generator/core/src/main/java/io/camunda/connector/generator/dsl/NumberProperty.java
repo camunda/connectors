@@ -16,7 +16,9 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.FeelMode;
+import java.util.Set;
 
 public final class NumberProperty extends Property {
 
@@ -35,7 +37,8 @@ public final class NumberProperty extends Property {
       PropertyBinding binding,
       PropertyCondition condition,
       String tooltip,
-      Object exampleValue) {
+      Object exampleValue,
+      Set<BpmnType> elementTypes) {
     super(
         name,
         label,
@@ -50,7 +53,8 @@ public final class NumberProperty extends Property {
         condition,
         tooltip,
         exampleValue,
-        TYPE);
+        TYPE,
+        elementTypes);
   }
 
   public static NumberPropertyBuilder builder() {
@@ -79,7 +83,8 @@ public final class NumberProperty extends Property {
           binding,
           condition,
           tooltip,
-          exampleValue);
+          exampleValue,
+          elementTypes);
     }
   }
 }

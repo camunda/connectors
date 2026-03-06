@@ -16,8 +16,10 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import io.camunda.connector.generator.java.annotation.BpmnType;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import java.util.List;
+import java.util.Set;
 
 public final class DropdownProperty extends Property {
 
@@ -39,7 +41,8 @@ public final class DropdownProperty extends Property {
       PropertyCondition condition,
       String tooltip,
       List<DropdownChoice> choices,
-      Object exampleValue) {
+      Object exampleValue,
+      Set<BpmnType> elementTypes) {
     super(
         name,
         label,
@@ -54,7 +57,8 @@ public final class DropdownProperty extends Property {
         condition,
         tooltip,
         exampleValue,
-        TYPE);
+        TYPE,
+        elementTypes);
     this.choices = choices;
   }
 
@@ -97,7 +101,8 @@ public final class DropdownProperty extends Property {
           condition,
           tooltip,
           choices,
-          exampleValue);
+          exampleValue,
+          elementTypes);
     }
   }
 }
