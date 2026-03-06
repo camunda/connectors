@@ -102,4 +102,14 @@ public class NonProxyHostsTest {
   void shouldReturnEmptyStreamWhenNoPatternsConfigured() {
     assertThat(NonProxyHosts.getNonProxyHostsPatterns()).isEmpty();
   }
+
+  @Test
+  void shouldReturnRegexPatternsFromEnvVar() throws Exception {
+    uk.org.webcompere.systemstubs.SystemStubs.withEnvironmentVariables(
+            "CONNECTOR_HTTP_NON_PROXY_HOSTS", "*.internal.com|127.0.0.1|example.*")
+        .execute(
+            () ->
+                assertThat(NonProxyHosts.getNonProxyHostRegexPatterns())
+                    .containsExactly(".*.internal.com|127.0.0.1|example..*"));
+  }
 }

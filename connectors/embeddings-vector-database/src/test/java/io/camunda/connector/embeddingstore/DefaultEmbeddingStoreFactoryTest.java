@@ -8,51 +8,30 @@ package io.camunda.connector.embeddingstore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doReturn;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.azure.core.credential.TokenCredential;
-import com.azure.cosmos.models.CosmosVectorDataType;
-import com.azure.cosmos.models.CosmosVectorDistanceFunction;
-import com.azure.cosmos.models.CosmosVectorEmbeddingPolicy;
-import com.azure.cosmos.models.CosmosVectorIndexType;
-import com.azure.cosmos.models.IncludedPath;
-import com.azure.cosmos.models.IndexingMode;
-import com.azure.cosmos.models.IndexingPolicy;
-import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.azure.cosmos.nosql.AzureCosmosDbNoSqlEmbeddingStore;
 import dev.langchain4j.store.embedding.azure.search.AzureAiSearchEmbeddingStore;
 import dev.langchain4j.store.embedding.elasticsearch.ElasticsearchEmbeddingStore;
 import dev.langchain4j.store.embedding.opensearch.OpenSearchEmbeddingStore;
 import io.camunda.connector.fixture.EmbeddingsVectorStoreFixture;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.model.embedding.vector.store.AzureAiSearchVectorStore;
-import io.camunda.connector.model.embedding.vector.store.AzureAuthentication;
 import io.camunda.connector.model.embedding.vector.store.AzureCosmosDbNoSqlVectorStore;
-import io.camunda.connector.model.operation.EmbedDocumentOperation;
-import io.camunda.connector.model.operation.VectorDatabaseConnectorOperation;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.Answers;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 class DefaultEmbeddingStoreFactoryTest {
 
-  DefaultEmbeddingStoreFactory factory = new DefaultEmbeddingStoreFactory();
-
   @Test
   void createsElasticsearchVectorStore() {
+    DefaultEmbeddingStoreFactory factory =
+        new DefaultEmbeddingStoreFactory(new ProxyConfiguration());
     final var mockModel = Mockito.mock(EmbeddingModel.class);
 
     final var store =
@@ -63,6 +42,8 @@ class DefaultEmbeddingStoreFactoryTest {
 
   @Test
   void createsOpenSearchVectorStore() {
+    DefaultEmbeddingStoreFactory factory =
+        new DefaultEmbeddingStoreFactory(new ProxyConfiguration());
     final var mockModel = Mockito.mock(EmbeddingModel.class);
 
     final var store =
@@ -73,6 +54,8 @@ class DefaultEmbeddingStoreFactoryTest {
 
   @Test
   void createsAmazonManagedOpenSearchVectorStore() {
+    DefaultEmbeddingStoreFactory factory =
+        new DefaultEmbeddingStoreFactory(new ProxyConfiguration());
     final var mockModel = Mockito.mock(EmbeddingModel.class);
 
     final var store =
@@ -81,192 +64,64 @@ class DefaultEmbeddingStoreFactoryTest {
     assertThat(store.getEmbeddingStore()).isInstanceOf(OpenSearchEmbeddingStore.class);
   }
 
-  @Nested
-  class AzureCosmosDbNoSqlVectorStoreTests {
+  @Test
+  void createsAzureCosmosDbNoSqlVectorStore() {
+    final var mockModel = Mockito.mock(EmbeddingModel.class);
+    Mockito.when(mockModel.dimension()).thenReturn(512);
 
-    @Test
-    void createsAzureCosmosDbNoSqlVectorStore() {
-      final var mockModel = Mockito.mock(EmbeddingModel.class);
-      when(mockModel.dimension()).thenReturn(512);
-      final var azureCosmosDbNoSqlVectorStore =
-          new AzureCosmosDbNoSqlVectorStore(
-              new AzureCosmosDbNoSqlVectorStore.Configuration(
-                  "https://example.documents.azure.com:443/",
-                  new AzureAuthentication.AzureApiKeyAuthentication("api-key"),
-                  "database-name",
-                  "container-name",
-                  AzureCosmosDbNoSqlVectorStore.ConsistencyLevel.STRONG,
-                  AzureCosmosDbNoSqlVectorStore.DistanceFunction.COSINE,
-                  AzureCosmosDbNoSqlVectorStore.IndexType.FLAT));
+    AzureCosmosDbNoSqlEmbeddingStore mockEmbeddingStore =
+        mock(AzureCosmosDbNoSqlEmbeddingStore.class);
 
-      testAzureCosmosDbNoSqlEmbeddingStoreCreation(azureCosmosDbNoSqlVectorStore, mockModel);
-    }
+    try (var mockedConstruction =
+        mockConstruction(
+            AzureVectorStoreFactory.class,
+            (mock, context) -> {
+              when(mock.createCosmosDbNoSqlVectorStore(
+                      any(AzureCosmosDbNoSqlVectorStore.class), any(EmbeddingModel.class)))
+                  .thenReturn(ClosableEmbeddingStore.wrap(mockEmbeddingStore));
+            })) {
 
-    @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = {"https://login.microsoft.com/"})
-    void createsAzureCosmosDbNoSqlVectorStoreWithClientCredentials(String authorityHost) {
-      final var mockModel = Mockito.mock(EmbeddingModel.class);
-      when(mockModel.dimension()).thenReturn(512);
-      final var azureCosmosDbNoSqlVectorStore =
-          new AzureCosmosDbNoSqlVectorStore(
-              new AzureCosmosDbNoSqlVectorStore.Configuration(
-                  "https://example.documents.azure.com:443/",
-                  new AzureAuthentication.AzureClientCredentialsAuthentication(
-                      "client-id", "client-secret", "tenant-id", authorityHost),
-                  "database-name",
-                  "container-name",
-                  AzureCosmosDbNoSqlVectorStore.ConsistencyLevel.STRONG,
-                  AzureCosmosDbNoSqlVectorStore.DistanceFunction.COSINE,
-                  AzureCosmosDbNoSqlVectorStore.IndexType.FLAT));
+      DefaultEmbeddingStoreFactory factory =
+          new DefaultEmbeddingStoreFactory(new ProxyConfiguration());
 
-      testAzureCosmosDbNoSqlEmbeddingStoreCreation(azureCosmosDbNoSqlVectorStore, mockModel);
-    }
+      final var store =
+          factory.initializeVectorStore(
+              EmbeddingsVectorStoreFixture.createAzureCosmosDbNoSqlVectorStore(), mockModel, null);
 
-    private void testAzureCosmosDbNoSqlEmbeddingStoreCreation(
-        AzureCosmosDbNoSqlVectorStore vectorStore, EmbeddingModel mockModel) {
-      var builder = spy(AzureCosmosDbNoSqlEmbeddingStore.builder());
-      try (var mockStore =
-          mockStatic(AzureCosmosDbNoSqlEmbeddingStore.class, Answers.CALLS_REAL_METHODS)) {
-        mockStore.when(AzureCosmosDbNoSqlEmbeddingStore::builder).thenReturn(builder);
-
-        AzureCosmosDbNoSqlEmbeddingStore builtMockStore =
-            mock(AzureCosmosDbNoSqlEmbeddingStore.class);
-        doReturn(builtMockStore).when(builder).build();
-        ArgumentCaptor<CosmosVectorEmbeddingPolicy> embeddingPolicyCaptor =
-            ArgumentCaptor.forClass(CosmosVectorEmbeddingPolicy.class);
-
-        ClosableEmbeddingStore<TextSegment> embeddingStore =
-            factory.initializeVectorStore(vectorStore, mockModel, null);
-        verify(builder).build();
-
-        verify(builder).endpoint(vectorStore.azureCosmosDbNoSql().endpoint());
-        verify(builder).databaseName(vectorStore.azureCosmosDbNoSql().databaseName());
-        verify(builder).containerName(vectorStore.azureCosmosDbNoSql().containerName());
-
-        verify(builder).cosmosVectorEmbeddingPolicy(embeddingPolicyCaptor.capture());
-        assertThat(embeddingPolicyCaptor.getValue().getVectorEmbeddings().size()).isEqualTo(1);
-        var embedding = embeddingPolicyCaptor.getValue().getVectorEmbeddings().getFirst();
-        assertThat(embedding.getPath())
-            .isEqualTo(AzureVectorStoreFactory.COSMOS_DB_VECTOR_EMBEDDING_PATH);
-        assertThat(embedding.getDataType()).isEqualTo(CosmosVectorDataType.FLOAT32);
-        assertThat(embedding.getEmbeddingDimensions()).isEqualTo(mockModel.dimension());
-        assertThat(embedding.getDistanceFunction()).isEqualTo(CosmosVectorDistanceFunction.COSINE);
-
-        ArgumentCaptor<IndexingPolicy> indexingPolicyCaptor =
-            ArgumentCaptor.forClass(IndexingPolicy.class);
-        verify(builder).indexingPolicy(indexingPolicyCaptor.capture());
-        var indexingPolicy = indexingPolicyCaptor.getValue();
-        assertThat(indexingPolicy.getIndexingMode()).isEqualTo(IndexingMode.CONSISTENT);
-        assertThat(indexingPolicy.getIncludedPaths())
-            .extracting(IncludedPath::getPath)
-            .containsExactly("/*");
-        // Verify vector index spec is set up
-        assertThat(indexingPolicy.getVectorIndexes()).hasSize(1);
-        var vectorIndex = indexingPolicy.getVectorIndexes().getFirst();
-        assertThat(vectorIndex.getPath())
-            .isEqualTo(AzureVectorStoreFactory.COSMOS_DB_VECTOR_EMBEDDING_PATH);
-        assertThat(vectorIndex.getType()).isEqualTo(CosmosVectorIndexType.FLAT.toString());
-
-        verify(builder).partitionKeyPath(AzureVectorStoreFactory.COSMOS_DB_PARTITION_KEY_PATH);
-        verify(builder)
-            .searchQueryType(
-                dev.langchain4j.store.embedding.azure.cosmos.nosql.AzureCosmosDBSearchQueryType
-                    .VECTOR);
-
-        // Verify authentication set on the builder
-        switch (vectorStore.azureCosmosDbNoSql().authentication()) {
-          case AzureAuthentication.AzureApiKeyAuthentication(String apiKey) -> {
-            verify(builder).apiKey(apiKey);
-            verify(builder, never()).tokenCredential(any(TokenCredential.class));
-          }
-          case AzureAuthentication.AzureClientCredentialsAuthentication ignored -> {
-            verify(builder).tokenCredential(any(TokenCredential.class));
-            verify(builder, never()).apiKey(anyString());
-          }
-        }
-
-        // Verify closeable store closes the underlying store
-        embeddingStore.close();
-        verify(builtMockStore).close();
-      }
+      assertThat(store.getEmbeddingStore()).isInstanceOf(AzureCosmosDbNoSqlEmbeddingStore.class);
+      assertThat(mockedConstruction.constructed()).hasSize(1);
+      verify(mockedConstruction.constructed().getFirst())
+          .createCosmosDbNoSqlVectorStore(any(AzureCosmosDbNoSqlVectorStore.class), eq(mockModel));
     }
   }
 
-  @Nested
-  class AzureAiSearchVectorStoreTests {
-    private final AzureAiSearchVectorStore azureAiSearchVectorStore =
-        new AzureAiSearchVectorStore(
-            new AzureAiSearchVectorStore.Configuration(
-                "https://your-search-service.search.windows.net",
-                new AzureAuthentication.AzureApiKeyAuthentication("api-key"),
-                "searchindex"));
+  @Test
+  void createsAzureAiSearchVectorStore() {
+    final var mockModel = Mockito.mock(EmbeddingModel.class);
+    Mockito.when(mockModel.dimension()).thenReturn(512);
 
-    private final EmbeddingModel model = mock(EmbeddingModel.class);
+    AzureAiSearchEmbeddingStore mockEmbeddingStore = mock(AzureAiSearchEmbeddingStore.class);
 
-    @BeforeEach
-    void setUp() {
-      when(model.dimension()).thenReturn(512);
-    }
+    try (var mockedConstruction =
+        mockConstruction(
+            AzureVectorStoreFactory.class,
+            (mock, context) -> {
+              when(mock.createAiSearchVectorStore(
+                      any(AzureAiSearchVectorStore.class), any(EmbeddingModel.class), any()))
+                  .thenReturn(ClosableEmbeddingStore.wrap(mockEmbeddingStore));
+            })) {
 
-    @Test
-    void createsAzureAiSearchVectorStoreForEmbedDocument() {
-      testAzureAiSearchEmbeddingStoreCreation(
-          azureAiSearchVectorStore, model, mock(EmbedDocumentOperation.class));
-    }
+      DefaultEmbeddingStoreFactory factory =
+          new DefaultEmbeddingStoreFactory(new ProxyConfiguration());
 
-    @Test
-    void createsAzureAiSearchVectorStoreForRetrieveDocument() {
-      testAzureAiSearchEmbeddingStoreCreation(
-          azureAiSearchVectorStore, model, mock(EmbedDocumentOperation.class));
-    }
+      final var store =
+          factory.initializeVectorStore(
+              EmbeddingsVectorStoreFixture.createAzureAiSearchVectorStore(), mockModel, null);
 
-    @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = {"https://login.microsoft.com/"})
-    void createsAzureAiSearchVectorStoreWithClientCredentials(String authorityHost) {
-      AzureAiSearchVectorStore azureAiSearchVectorStore =
-          new AzureAiSearchVectorStore(
-              new AzureAiSearchVectorStore.Configuration(
-                  "https://your-search-service.search.windows.net",
-                  new AzureAuthentication.AzureClientCredentialsAuthentication(
-                      "client-id", "client-secret", "tenant-id", authorityHost),
-                  "searchindex"));
-      testAzureAiSearchEmbeddingStoreCreation(
-          azureAiSearchVectorStore, model, mock(EmbedDocumentOperation.class));
-    }
-
-    private void testAzureAiSearchEmbeddingStoreCreation(
-        AzureAiSearchVectorStore azureAiSearchVectorStore,
-        EmbeddingModel mockModel,
-        VectorDatabaseConnectorOperation operation) {
-      var builder = spy(AzureAiSearchEmbeddingStore.builder());
-      try (var mockStore =
-          mockStatic(AzureAiSearchEmbeddingStore.class, Answers.CALLS_REAL_METHODS)) {
-        mockStore.when(AzureAiSearchEmbeddingStore::builder).thenReturn(builder);
-
-        doReturn(mock(AzureAiSearchEmbeddingStore.class)).when(builder).build();
-
-        factory.initializeVectorStore(
-            azureAiSearchVectorStore, mockModel, mock(EmbedDocumentOperation.class));
-        verify(builder).build();
-
-        verify(builder).endpoint(azureAiSearchVectorStore.aiSearch().endpoint());
-        verify(builder).indexName(azureAiSearchVectorStore.aiSearch().indexName());
-        verify(builder).dimensions(mockModel.dimension());
-        verify(builder).createOrUpdateIndex(operation instanceof EmbedDocumentOperation);
-
-        switch (azureAiSearchVectorStore.aiSearch().authentication()) {
-          case AzureAuthentication.AzureApiKeyAuthentication(String apiKey) -> {
-            verify(builder).apiKey(apiKey);
-            verify(builder, never()).tokenCredential(any(TokenCredential.class));
-          }
-          case AzureAuthentication.AzureClientCredentialsAuthentication ignored -> {
-            verify(builder).tokenCredential(any(TokenCredential.class));
-            verify(builder, never()).apiKey(anyString());
-          }
-        }
-      }
+      assertThat(store.getEmbeddingStore()).isInstanceOf(AzureAiSearchEmbeddingStore.class);
+      assertThat(mockedConstruction.constructed()).hasSize(1);
+      verify(mockedConstruction.constructed().getFirst())
+          .createAiSearchVectorStore(any(AzureAiSearchVectorStore.class), eq(mockModel), any());
     }
   }
 }
