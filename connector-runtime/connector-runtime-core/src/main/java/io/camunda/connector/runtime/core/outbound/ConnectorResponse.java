@@ -26,9 +26,9 @@ public interface ConnectorResponse {
   /** The raw response value used for result expression evaluation. */
   Object responseValue();
 
-  /** Called when the Zeebe command succeeds. */
-  default void onSuccess() {}
+  /** Called when the Zeebe complete command succeeds. */
+  default void onCompletionSuccess(Object response) {}
 
-  /** Called when the Zeebe command fails. */
-  default void onError(Throwable throwable) {}
+  /** Called when the Zeebe complete command fails. */
+  default void onCompletionError(Throwable throwable) {}
 }

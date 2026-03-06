@@ -35,7 +35,7 @@ public sealed interface ConnectorResult {
   }
 
   record SuccessResult(
-      Object rawResponse, Map<String, Object> variables, ConnectorResponse callbacks)
+      Object rawResponse, Map<String, Object> variables, ConnectorResponse connectorResponse)
       implements ConnectorResult {
 
     public SuccessResult(Object rawResponse, Map<String, Object> variables) {

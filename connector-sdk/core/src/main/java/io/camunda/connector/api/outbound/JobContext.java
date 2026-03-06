@@ -20,6 +20,8 @@ import java.util.Map;
 
 public interface JobContext {
 
+  long getJobKey();
+
   /**
    * Custom headers found under zeebe:taskHeaders.
    *
@@ -59,6 +61,4 @@ public interface JobContext {
   long getElementInstanceKey();
 
   String getTenantId();
-
-  long getJobKey();
 }

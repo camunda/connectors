@@ -39,7 +39,7 @@ public class AiAgentJobCompletion implements ConnectorJobCompletion {
   }
 
   @Override
-  public void onError(Throwable throwable) {
+  public void onCompletionError(Throwable throwable) {
     completion.onCompletionError(throwable);
   }
 

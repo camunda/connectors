@@ -250,7 +250,7 @@ class ConnectorJobCompletionTest {
         TestConnectorJobCompletion.builder()
             .completionConditionFulfilled(true)
             .cancelRemainingInstances(false)
-            .onError(handledExceptions::add)
+            .onCompletionError(handledExceptions::add)
             .build());
 
     handler.handle(camundaClient, job);
@@ -261,6 +261,24 @@ class ConnectorJobCompletionTest {
         .first()
         .isInstanceOfSatisfying(
             ProblemException.class, e -> assertThat(e.details().getStatus()).isEqualTo(404));
+  }
+
+  @Test
+  void invokesOnSuccessCallbackWhenCompletionSucceeds() throws Exception {
+    stubFor(
+        post(urlPathEqualTo("/v2/jobs/123456/completion")).willReturn(aResponse().withStatus(204)));
+
+    final List<String> successCallbacks = new ArrayList<>();
+    mockFunctionReturnsCompletion(
+        TestConnectorJobCompletion.builder()
+            .completionConditionFulfilled(false)
+            .cancelRemainingInstances(false)
+            .onCompletionSuccess(response -> successCallbacks.add("called"))
+            .build());
+
+    handler.handle(camundaClient, job);
+
+    await().untilAsserted(() -> assertThat(successCallbacks).hasSize(1));
   }
 
   @Test
@@ -417,7 +435,8 @@ class ConnectorJobCompletionTest {
     private final List<ElementActivation> elementsToActivate;
     private final Object responseValue;
     private final boolean rejectIgnoreError;
-    private final Consumer<Throwable> onError;
+    private final Consumer<Throwable> onCompletionError;
+    private final Consumer<Object> onCompletionSuccess;
 
     private TestConnectorJobCompletion(Builder builder) {
       this.completionConditionFulfilled = builder.completionConditionFulfilled;
@@ -426,7 +445,8 @@ class ConnectorJobCompletionTest {
       this.elementsToActivate = builder.elementsToActivate;
       this.responseValue = builder.responseValue;
       this.rejectIgnoreError = builder.rejectIgnoreError;
-      this.onError = builder.onError;
+      this.onCompletionError = builder.onCompletionError;
+      this.onCompletionSuccess = builder.onCompletionSuccess;
     }
 
     static Builder builder() {
@@ -444,9 +464,16 @@ class ConnectorJobCompletionTest {
     }
 
     @Override
-    public void onError(Throwable throwable) {
-      if (onError != null) {
-        onError.accept(throwable);
+    public void onCompletionSuccess(Object response) {
+      if (onCompletionSuccess != null) {
+        onCompletionSuccess.accept(response);
+      }
+    }
+
+    @Override
+    public void onCompletionError(Throwable throwable) {
+      if (onCompletionError != null) {
+        onCompletionError.accept(throwable);
       }
     }
 
@@ -478,7 +505,8 @@ class ConnectorJobCompletionTest {
       private List<ElementActivation> elementsToActivate = List.of();
       private Object responseValue;
       private boolean rejectIgnoreError;
-      private Consumer<Throwable> onError;
+      private Consumer<Throwable> onCompletionError;
+      private Consumer<Object> onCompletionSuccess;
 
       Builder completionConditionFulfilled(boolean value) {
         this.completionConditionFulfilled = value;
@@ -510,8 +538,13 @@ class ConnectorJobCompletionTest {
         return this;
       }
 
-      Builder onError(Consumer<Throwable> value) {
-        this.onError = value;
+      Builder onCompletionError(Consumer<Throwable> value) {
+        this.onCompletionError = value;
+        return this;
+      }
+
+      Builder onCompletionSuccess(Consumer<Object> value) {
+        this.onCompletionSuccess = value;
         return this;
       }
 
