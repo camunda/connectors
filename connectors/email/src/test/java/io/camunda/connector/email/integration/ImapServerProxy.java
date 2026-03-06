@@ -6,7 +6,9 @@
  */
 package io.camunda.connector.email.integration;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -163,7 +165,11 @@ public class ImapServerProxy implements AutoCloseable {
         });
     listen.close();
     pool.shutdownNow();
-    pool.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS);
+    try {
+      pool.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS);
+    } catch (InterruptedException ignored) {
+      Thread.currentThread().interrupt();
+    }
   }
 
   private static class SocketPair {
