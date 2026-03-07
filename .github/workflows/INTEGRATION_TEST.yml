@@ -172,7 +172,7 @@ jobs:
       test-enabled: true
       # e2e-enabled is our way to disable E2E tests if needed.
       e2e-enabled: true
-      # This scenario installs a full Camunda 8 cluster with Keycloak and Elasticsearch being external. 
+      # This scenario installs a full Camunda 8 cluster with Keycloak and Elasticsearch being external.
       # This keycloak realm and elasticsearch prefixes are all randomly generated at installation time.
       scenario: keycloak-original
       shortname: keyco
@@ -182,6 +182,7 @@ jobs:
       # If ttl is non-empty, the namespace is not deleted after the test run.
       deployment-ttl: ""
       always-delete-namespace: true
+      values-digest: true
       extra-values: |
         connectors:
           image:
