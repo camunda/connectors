@@ -40,7 +40,7 @@ public class CustomResponseHandlerTest {
     // given
     CustomResponseHandler<JsonNode> handler =
         new CustomResponseHandler<>(
-            ResponseMappers.asJsonNode(HttpClientObjectMapperSupplier::getCopy));
+            ResponseMappers.asJsonNode(HttpClientObjectMapperSupplier::getCopy), false);
 
     ClassicHttpResponse response = new BasicClassicHttpResponse(200);
     Header[] headers = new Header[] {new BasicHeader("Content-Type", "application/json")};
@@ -62,7 +62,8 @@ public class CustomResponseHandlerTest {
   @Test
   public void shouldHandleTextResponse() {
     // given
-    CustomResponseHandler<String> handler = new CustomResponseHandler<>(ResponseMappers.asString());
+    CustomResponseHandler<String> handler =
+        new CustomResponseHandler<>(ResponseMappers.asString(), false);
     ClassicHttpResponse response = new BasicClassicHttpResponse(200);
     Header[] headers = new Header[] {new BasicHeader("Content-Type", "text/plain")};
     response.setHeaders(headers);
@@ -82,7 +83,7 @@ public class CustomResponseHandlerTest {
   @Test
   public void shouldHandleErrorResponse() {
     // given
-    CustomResponseHandler<Void> handler = new CustomResponseHandler<>((response) -> null);
+    CustomResponseHandler<Void> handler = new CustomResponseHandler<>((response) -> null, false);
     ClassicHttpResponse response = new BasicClassicHttpResponse(500);
     StringEntity entity = new StringEntity("Internal Server Error: something went wrong");
     response.setEntity(entity);
