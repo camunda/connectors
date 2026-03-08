@@ -23,12 +23,10 @@ import io.camunda.connector.email.inbound.model.EmailListenerConfig;
 import io.camunda.connector.email.inbound.model.HandlingStrategy;
 import io.camunda.connector.email.inbound.model.PollUnseen;
 import io.camunda.connector.email.response.ReadEmailResponse;
-import java.net.SocketException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -36,7 +34,6 @@ import org.mockito.Mockito;
 public class InboundRecoveringTest extends BaseEmailTest {
 
   private final int PROXY_PORT = 22223;
-  JakartaEmailListener jakartaEmailListener = new JakartaEmailListener();
 
   @BeforeEach
   public void beforeEach() {
@@ -44,13 +41,9 @@ public class InboundRecoveringTest extends BaseEmailTest {
     super.reset();
   }
 
-  @AfterEach
-  public void afterEach() {
-    jakartaEmailListener.stopListener();
-  }
-
   @Test
-  public void pollingManagerBreaksAndRecoverAfterServerNotResponding() {
+  public void pollingManagerBreaksAndRecoverAfterServerNotResponding() throws Exception {
+    JakartaEmailListener jakartaEmailListener = new JakartaEmailListener();
     try (ImapServerProxy proxyImap =
         new ImapServerProxy(
             PROXY_PORT, "localhost", Integer.parseInt(super.getUnsecureImapPort()))) {
@@ -74,66 +67,62 @@ public class InboundRecoveringTest extends BaseEmailTest {
           .thenReturn(new CorrelationResult.Success.ProcessInstanceCreated(null, null, null));
 
       proxyImap.setOkProxy();
-      this.jakartaEmailListener.startListener(inboundConnectorContext);
+      jakartaEmailListener.startListener(inboundConnectorContext);
+      try {
+        await()
+            .atMost(10, TimeUnit.SECONDS)
+            .untilAsserted(
+                () ->
+                    // We want to check it was called once at startup and once at poll
+                    verify(inboundConnectorContext, atLeast(2))
+                        .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
 
-      await()
-          .atMost(5, TimeUnit.SECONDS)
-          .untilAsserted(
-              () ->
-                  // We want to check it was called once at startup and once at poll
-                  verify(inboundConnectorContext, atLeast(2))
-                      .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
+        // It will make the proxy switch to a kill mode, will send BYE all the time to the server,
+        // closing the connection
+        proxyImap.cutConnection();
 
-      // It will make the proxy switch to a kill mode, will send BYE all the time to the server,
-      // closing the connection
-      proxyImap.cutConnection();
+        await()
+            .atMost(10, TimeUnit.SECONDS)
+            .untilAsserted(
+                () ->
+                    // We want to check health was down for at least 1 times
+                    verify(inboundConnectorContext, atLeast(1))
+                        .reportHealth(argThat(health -> health.getStatus() == Health.Status.DOWN)));
 
-      await()
-          .atMost(5, TimeUnit.SECONDS)
-          .untilAsserted(
-              () ->
-                  // We want to check health was down for at least 1 times
-                  verify(inboundConnectorContext, atLeast(1))
-                      .reportHealth(argThat(health -> health.getStatus() == Health.Status.DOWN)));
+        Mockito.clearInvocations(inboundConnectorContext);
+        proxyImap.setOkProxy();
 
-      Mockito.clearInvocations(inboundConnectorContext);
-      proxyImap.setOkProxy();
+        super.sendEmail("camunda@test.com", "Subject", "Content");
 
-      super.sendEmail("camunda@test.com", "Subject", "Content");
+        await()
+            .atMost(10, TimeUnit.SECONDS)
+            .untilAsserted(
+                () ->
+                    verify(inboundConnectorContext, atLeast(1))
+                        .correlate(
+                            argThat(
+                                correlationRequest -> {
+                                  ReadEmailResponse response =
+                                      ((ReadEmailResponse) correlationRequest.getVariables());
+                                  return response.plainTextBody().equals("Content")
+                                      && response.subject().equals("Subject");
+                                })));
 
-      await()
-          .atMost(5, TimeUnit.SECONDS)
-          .untilAsserted(
-              () ->
-                  verify(inboundConnectorContext, atLeast(1))
-                      .correlate(
-                          argThat(
-                              correlationRequest -> {
-                                ReadEmailResponse response =
-                                    ((ReadEmailResponse) correlationRequest.getVariables());
-                                return response.plainTextBody().equals("Content")
-                                    && response.subject().equals("Subject");
-                              })));
-
-      await()
-          .atMost(5, TimeUnit.SECONDS)
-          .untilAsserted(
-              () ->
-                  verify(inboundConnectorContext, atLeast(1))
-                      .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
-
-    } catch (Exception e) {
-      if (e instanceof IllegalStateException && e.getCause() instanceof SocketException) {
-        // This exception is expected because the proxy may cut the connection while the client
-        // is using it
-        return;
+        await()
+            .atMost(10, TimeUnit.SECONDS)
+            .untilAsserted(
+                () ->
+                    verify(inboundConnectorContext, atLeast(1))
+                        .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
+      } finally {
+        jakartaEmailListener.stopListener();
       }
-      throw new RuntimeException(e);
     }
   }
 
   @Test
-  public void pollingManagerBreaksAndRecoverAfterRuntimeErrorFromTheRuntime() {
+  public void pollingManagerBreaksAndRecoverAfterRuntimeErrorFromTheRuntime() throws Exception {
+    JakartaEmailListener jakartaEmailListener = new JakartaEmailListener();
     try (ImapServerProxy proxyImap =
         new ImapServerProxy(
             PROXY_PORT, "localhost", Integer.parseInt(super.getUnsecureImapPort()))) {
@@ -156,55 +145,55 @@ public class InboundRecoveringTest extends BaseEmailTest {
       doThrow(new RuntimeException()).when(inboundConnectorContext).correlate(any());
 
       proxyImap.setOkProxy();
-      this.jakartaEmailListener.startListener(inboundConnectorContext);
+      jakartaEmailListener.startListener(inboundConnectorContext);
+      try {
+        await()
+            .atMost(10, TimeUnit.SECONDS)
+            .untilAsserted(
+                () ->
+                    // We want to check it was called once at startup and once at poll
+                    verify(inboundConnectorContext, atLeast(2))
+                        .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
 
-      await()
-          .atMost(5, TimeUnit.SECONDS)
-          .untilAsserted(
-              () ->
-                  // We want to check it was called once at startup and once at poll
-                  verify(inboundConnectorContext, atLeast(2))
-                      .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
+        super.sendEmail("camunda@test.com", "Subject", "Content");
 
-      super.sendEmail("camunda@test.com", "Subject", "Content");
+        await()
+            .atMost(10, TimeUnit.SECONDS)
+            .untilAsserted(
+                () ->
+                    // We want to check health was down for at least 1 times
+                    verify(inboundConnectorContext, atLeast(1))
+                        .reportHealth(argThat(health -> health.getStatus() == Health.Status.DOWN)));
 
-      await()
-          .atMost(10, TimeUnit.SECONDS)
-          .untilAsserted(
-              () ->
-                  // We want to check health was down for at least 1 times
-                  verify(inboundConnectorContext, atLeast(1))
-                      .reportHealth(argThat(health -> health.getStatus() == Health.Status.DOWN)));
+        Mockito.clearInvocations(inboundConnectorContext);
 
-      Mockito.clearInvocations(inboundConnectorContext);
+        doReturn(new CorrelationResult.Success.ProcessInstanceCreated(null, null, null))
+            .when(inboundConnectorContext)
+            .correlate(any());
 
-      doReturn(new CorrelationResult.Success.ProcessInstanceCreated(null, null, null))
-          .when(inboundConnectorContext)
-          .correlate(any());
+        await()
+            .atMost(10, TimeUnit.SECONDS)
+            .untilAsserted(
+                () ->
+                    verify(inboundConnectorContext, atLeast(1))
+                        .correlate(
+                            argThat(
+                                correlationRequest -> {
+                                  ReadEmailResponse response =
+                                      ((ReadEmailResponse) correlationRequest.getVariables());
+                                  return response.plainTextBody().equals("Content")
+                                      && response.subject().equals("Subject");
+                                })));
 
-      await()
-          .atMost(5, TimeUnit.SECONDS)
-          .untilAsserted(
-              () ->
-                  verify(inboundConnectorContext, atLeast(1))
-                      .correlate(
-                          argThat(
-                              correlationRequest -> {
-                                ReadEmailResponse response =
-                                    ((ReadEmailResponse) correlationRequest.getVariables());
-                                return response.plainTextBody().equals("Content")
-                                    && response.subject().equals("Subject");
-                              })));
-
-      await()
-          .atMost(5, TimeUnit.SECONDS)
-          .untilAsserted(
-              () ->
-                  verify(inboundConnectorContext, atLeast(1))
-                      .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
-
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+        await()
+            .atMost(10, TimeUnit.SECONDS)
+            .untilAsserted(
+                () ->
+                    verify(inboundConnectorContext, atLeast(1))
+                        .reportHealth(argThat(health -> health.getStatus() == Health.Status.UP)));
+      } finally {
+        jakartaEmailListener.stopListener();
+      }
     }
   }
 }
