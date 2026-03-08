@@ -56,6 +56,7 @@ class SendMessageToChannelTest extends BaseTest {
             ActualValue.Channel.CHANNEL_ID,
             "channel content",
             null,
+            null,
             null);
 
     when(graphServiceClient.teams()).thenReturn(teamsRequestBuilder);
@@ -96,6 +97,7 @@ class SendMessageToChannelTest extends BaseTest {
             ActualValue.Channel.CHANNEL_ID,
             "channel content",
             input,
+            null,
             null);
     // When
     operationFactory.getService(sendMessageToChannel).invoke(graphServiceClient);

@@ -57,5 +57,19 @@ public record SendMessageToChannel(
             id = "sendMessageToChannel.documents",
             feel = FeelMode.required,
             optional = true)
-        List<Document> documents)
+        List<Document> documents,
+    @TemplateProperty(
+            label = "Card attachments (JSON)",
+            group = "data",
+            id = "sendMessageToChannel.attachmentsJson",
+            type = TemplateProperty.PropertyType.Text,
+            feel = FeelMode.optional,
+            optional = true,
+            description =
+                "Optional JSON array (or single object) of Microsoft Graph ChatMessageAttachment"
+                    + " objects to send cards. Each object must have an 'id' and 'contentType'"
+                    + " (e.g. 'application/vnd.microsoft.card.thumbnail'). Attachment IDs must"
+                    + " match <attachment id=\"...\"></attachment> tags in the message body (auto-"
+                    + "appended if missing).")
+        String attachmentsJson)
     implements ChannelData {}
