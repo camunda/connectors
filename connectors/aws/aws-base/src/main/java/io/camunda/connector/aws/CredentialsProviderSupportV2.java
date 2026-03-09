@@ -24,6 +24,6 @@ public class CredentialsProviderSupportV2 {
           AwsBasicCredentials.create(sca.accessKey(), sca.secretKey()));
     }
     LOGGER.debug("Falling to DefaultCredentialsProvider for AWS authentication (using aws sdk v2)");
-    return DefaultCredentialsProvider.create();
+    return DefaultCredentialsProvider.builder().build();
   }
 }
