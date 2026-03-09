@@ -20,8 +20,10 @@ import io.camunda.client.api.CamundaFuture;
 import io.camunda.client.api.command.CreateProcessInstanceCommandStep1;
 import io.camunda.client.api.command.FinalCommandStep;
 import io.camunda.client.api.response.ProcessInstanceEvent;
+import io.camunda.client.api.response.ProcessInstanceResult;
 import io.camunda.client.impl.CamundaClientFutureImpl;
 import io.camunda.connector.runtime.core.testutil.response.ProcessInstanceEventDummy;
+import io.camunda.connector.runtime.core.testutil.response.ProcessInstanceResultDummy;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.Map;
@@ -74,8 +76,50 @@ public class CreateCommandDummy
   }
 
   public CreateProcessInstanceWithResultCommandStep1 withResult() {
-    throw new UnsupportedOperationException(
-        "This method is not supported in the dummy implementation.");
+    return new WithResultCommandDummy();
+  }
+
+  public static class WithResultCommandDummy
+      implements CreateProcessInstanceWithResultCommandStep1 {
+
+    @Override
+    public CreateProcessInstanceWithResultCommandStep1 tenantId(String tenantId) {
+      return this;
+    }
+
+    @Override
+    public CreateProcessInstanceWithResultCommandStep1 fetchVariables(String... fetchVariables) {
+      return this;
+    }
+
+    @Override
+    public CreateProcessInstanceWithResultCommandStep1 fetchVariables(
+        java.util.List<String> fetchVariables) {
+      return this;
+    }
+
+    @Override
+    public FinalCommandStep<ProcessInstanceResult> requestTimeout(Duration requestTimeout) {
+      return this;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    @Override
+    public CamundaFuture<ProcessInstanceResult> send() {
+      CamundaClientFutureImpl future = new CamundaClientFutureImpl<>();
+      future.complete(new ProcessInstanceResultDummy());
+      return future;
+    }
+
+    @Override
+    public CreateProcessInstanceWithResultCommandStep1 useRest() {
+      return this;
+    }
+
+    @Override
+    public CreateProcessInstanceWithResultCommandStep1 useGrpc() {
+      return this;
+    }
   }
 
   @Override

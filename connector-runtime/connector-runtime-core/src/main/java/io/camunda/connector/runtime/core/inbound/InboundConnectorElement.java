@@ -68,6 +68,17 @@ public record InboundConnectorElement(
         .orElse(false);
   }
 
+  /**
+   * Returns {@code true} if the inbound connector should respond synchronously – i.e. wait for the
+   * correlated process instance to complete (start event) or for the message to be correlated
+   * (message correlation) and return the result – instead of a fire-and-forget correlation.
+   */
+  public boolean synchronousResponse() {
+    return Optional.ofNullable(rawProperties.get(Keywords.SYNCHRONOUS_RESPONSE))
+        .map(Boolean::parseBoolean)
+        .orElse(false);
+  }
+
   public String deduplicationId(List<String> deduplicationProperties) {
     LOG.debug("Computing deduplicationId for element {}", element.elementId());
     var deduplicationMode = rawProperties.get(Keywords.DEDUPLICATION_MODE_KEYWORD);

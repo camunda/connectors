@@ -122,6 +122,7 @@
               <features>
                 <ACKNOWLEDGEMENT_STRATEGY_SELECTION>true</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
                 <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>
+                <SYNCHRONOUS_RESPONSE>true</SYNCHRONOUS_RESPONSE>
               </features>
             </connector>
           </connectors>

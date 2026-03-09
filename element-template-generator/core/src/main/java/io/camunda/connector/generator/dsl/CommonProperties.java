@@ -255,4 +255,26 @@ public class CommonProperties {
         .condition(new IsActive("deduplicationId", false))
         .binding(new ZeebeProperty("deduplicationMode"));
   }
+
+  /**
+   * Dropdown that lets the user choose between asynchronous (fire-and-forget) and synchronous
+   * (wait-for-result) correlation. Belongs to its own group {@code "synchronousResponse"} so it is
+   * independent of the activation condition group.
+   */
+  public static PropertyBuilder synchronousResponse() {
+    return DropdownProperty.builder()
+        .choices(
+            List.of(
+                new DropdownChoice("Asynchronous", "false"),
+                new DropdownChoice("Synchronous", "true")))
+        .id("synchronousResponse")
+        .label("Response type")
+        .tooltip(
+            "Select synchronous to wait for the correlated process to complete or the message"
+                + " to be correlated and return the result. Select asynchronous to trigger the"
+                + " process and return immediately.")
+        .group("synchronousResponse")
+        .value("false")
+        .binding(new ZeebeProperty("synchronousResponse"));
+  }
 }

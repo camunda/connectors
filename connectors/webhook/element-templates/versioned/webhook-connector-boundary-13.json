@@ -1,28 +1,26 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Webhook Receive Task Connector",
-  "id" : "io.camunda.connectors.webhook.WebhookConnectorReceive.v1-hybrid",
+  "name" : "Webhook Boundary Event Connector",
+  "id" : "io.camunda.connectors.webhook.WebhookConnectorBoundary.v1",
   "description" : "Configure webhook to receive callbacks",
   "metadata" : {
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
-  "version" : 14,
+  "version" : 13,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:ReceiveTask" ],
+  "appliesTo" : [ "bpmn:BoundaryEvent" ],
   "elementType" : {
-    "value" : "bpmn:ReceiveTask"
+    "value" : "bpmn:BoundaryEvent",
+    "eventDefinition" : "bpmn:MessageEventDefinition"
   },
   "engines" : {
     "camunda" : "^8.3"
   },
   "groups" : [ {
-    "id" : "connectorType",
-    "label" : "Connector type"
-  }, {
     "id" : "endpoint",
     "label" : "Webhook configuration"
   }, {
@@ -38,9 +36,6 @@
     "id" : "activation",
     "label" : "Activation"
   }, {
-    "id" : "synchronousResponse",
-    "label" : "Response type"
-  }, {
     "id" : "correlation",
     "label" : "Correlation",
     "tooltip" : "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>."
@@ -53,14 +48,12 @@
     "label" : "Output mapping"
   } ],
   "properties" : [ {
-    "id" : "connectorType",
     "value" : "io.camunda:webhook:1",
-    "group" : "connectorType",
     "binding" : {
       "name" : "inbound.type",
       "type" : "zeebe:property"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "inbound.method",
     "label" : "Webhook method",
@@ -399,24 +392,6 @@
     "tooltip" : "Unmatched events are rejected by default, allowing the upstream service to handle the error. Check this box to consume unmatched events and return a success response",
     "type" : "Boolean"
   }, {
-    "id" : "synchronousResponse",
-    "label" : "Response type",
-    "value" : "false",
-    "group" : "synchronousResponse",
-    "binding" : {
-      "name" : "synchronousResponse",
-      "type" : "zeebe:property"
-    },
-    "tooltip" : "Select synchronous to wait for the correlated process to complete or the message to be correlated and return the result. Select asynchronous to trigger the process and return immediately.",
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Asynchronous",
-      "value" : "false"
-    }, {
-      "name" : "Synchronous",
-      "value" : "true"
-    } ]
-  }, {
     "id" : "correlationKeyProcess",
     "label" : "Correlation key (process)",
     "description" : "Sets up the correlation key from process variables",
@@ -455,11 +430,6 @@
       "name" : "messageIdExpression",
       "type" : "zeebe:property"
     },
-    "condition" : {
-      "property" : "synchronousResponse",
-      "equals" : "false",
-      "type" : "simple"
-    },
     "type" : "String"
   }, {
     "id" : "messageTtl",
@@ -478,11 +448,6 @@
     "binding" : {
       "name" : "messageTtl",
       "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "synchronousResponse",
-      "equals" : "false",
-      "type" : "simple"
     },
     "type" : "String"
   }, {

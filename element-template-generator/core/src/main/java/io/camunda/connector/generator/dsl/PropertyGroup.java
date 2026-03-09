@@ -120,40 +120,74 @@ public record PropertyGroup(
                   .build())
           .build();
 
-  public static PropertyGroup CORRELATION_GROUP_MESSAGE_START_EVENT =
+  /**
+   * A standalone group containing only the {@code synchronousResponse} toggle. It is added
+   * independently of the activation group so that the two features compose freely.
+   */
+  public static PropertyGroup SYNCHRONOUS_RESPONSE_GROUP =
       PropertyGroup.builder()
-          .id("correlation")
-          .label("Correlation")
-          .tooltip(
-              "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>.")
+          .id("synchronousResponse")
+          .label("Response type")
           .properties(
-              CommonProperties.correlationRequiredDropdown().build(),
-              CommonProperties.correlationKeyProcess()
-                  .condition(
-                      new Equals(CommonProperties.correlationRequiredDropdown().id, "required"))
-                  .build(),
-              CommonProperties.correlationKeyPayload()
-                  .condition(
-                      new Equals(CommonProperties.correlationRequiredDropdown().id, "required"))
-                  .build(),
-              CommonProperties.messageTtl().build(),
-              CommonProperties.messageIdExpression().build(),
-              CommonProperties.messageNameUuidHidden().build())
+              CommonProperties.synchronousResponse()
+                  .binding(new ZeebeProperty("synchronousResponse"))
+                  .build())
           .build();
 
-  public static PropertyGroup CORRELATION_GROUP_INTERMEDIATE_CATCH_EVENT_OR_BOUNDARY_OR_RECEIVE =
-      PropertyGroup.builder()
-          .id("correlation")
-          .label("Correlation")
-          .tooltip(
-              "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>.")
-          .properties(
-              CommonProperties.correlationKeyProcess().build(),
-              CommonProperties.correlationKeyPayload().build(),
-              CommonProperties.messageIdExpression().build(),
-              CommonProperties.messageTtl().build(),
-              CommonProperties.messageNameUuidHidden().build())
-          .build();
+  public static PropertyGroup correlationGroupMessageStartEvent(boolean withSyncResponseEnabled) {
+    var messageIdExpression = CommonProperties.messageIdExpression();
+    var messageTtl = CommonProperties.messageTtl();
+    if (withSyncResponseEnabled) {
+      messageIdExpression =
+          messageIdExpression.condition(new Equals("synchronousResponse", "false"));
+      messageTtl = messageTtl.condition(new Equals("synchronousResponse", "false"));
+    }
+
+    return PropertyGroup.builder()
+        .id("correlation")
+        .label("Correlation")
+        .tooltip(
+            "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>.")
+        .properties(
+            CommonProperties.correlationRequiredDropdown().build(),
+            CommonProperties.correlationKeyProcess()
+                .condition(
+                    new Equals(CommonProperties.correlationRequiredDropdown().id, "required"))
+                .build(),
+            CommonProperties.correlationKeyPayload()
+                .condition(
+                    new Equals(CommonProperties.correlationRequiredDropdown().id, "required"))
+                .build(),
+            messageIdExpression.build(),
+            messageTtl.build(),
+            CommonProperties.messageNameUuidHidden().build())
+        .build();
+  }
+
+  public static PropertyGroup correlationGroupIntermediateCatchEventOrBoundaryOrReceive(
+      boolean withSyncResponseEnabled) {
+
+    var messageIdExpression = CommonProperties.messageIdExpression();
+    var messageTtl = CommonProperties.messageTtl();
+    if (withSyncResponseEnabled) {
+      messageIdExpression =
+          messageIdExpression.condition(new Equals("synchronousResponse", "false"));
+      messageTtl = messageTtl.condition(new Equals("synchronousResponse", "false"));
+    }
+
+    return PropertyGroup.builder()
+        .id("correlation")
+        .label("Correlation")
+        .tooltip(
+            "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>.")
+        .properties(
+            CommonProperties.correlationKeyProcess().build(),
+            CommonProperties.correlationKeyPayload().build(),
+            messageIdExpression.build(),
+            messageTtl.build(),
+            CommonProperties.messageNameUuidHidden().build())
+        .build();
+  }
 
   public static PropertyGroup DEDUPLICATION_GROUP =
       PropertyGroup.builder()

@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
-  "version" : 13,
+  "version" : 14,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -35,6 +35,9 @@
   }, {
     "id" : "activation",
     "label" : "Activation"
+  }, {
+    "id" : "synchronousResponse",
+    "label" : "Response type"
   }, {
     "id" : "correlation",
     "label" : "Correlation",
@@ -392,6 +395,24 @@
     "tooltip" : "Unmatched events are rejected by default, allowing the upstream service to handle the error. Check this box to consume unmatched events and return a success response",
     "type" : "Boolean"
   }, {
+    "id" : "synchronousResponse",
+    "label" : "Response type",
+    "value" : "false",
+    "group" : "synchronousResponse",
+    "binding" : {
+      "name" : "synchronousResponse",
+      "type" : "zeebe:property"
+    },
+    "tooltip" : "Select synchronous to wait for the correlated process to complete or the message to be correlated and return the result. Select asynchronous to trigger the process and return immediately.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Asynchronous",
+      "value" : "false"
+    }, {
+      "name" : "Synchronous",
+      "value" : "true"
+    } ]
+  }, {
     "id" : "correlationKeyProcess",
     "label" : "Correlation key (process)",
     "description" : "Sets up the correlation key from process variables",
@@ -430,6 +451,11 @@
       "name" : "messageIdExpression",
       "type" : "zeebe:property"
     },
+    "condition" : {
+      "property" : "synchronousResponse",
+      "equals" : "false",
+      "type" : "simple"
+    },
     "type" : "String"
   }, {
     "id" : "messageTtl",
@@ -448,6 +474,11 @@
     "binding" : {
       "name" : "messageTtl",
       "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "synchronousResponse",
+      "equals" : "false",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
