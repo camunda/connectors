@@ -11,6 +11,9 @@ on:
   pull_request:
     paths:
       - .github/workflows/copilot-setup-steps.yml
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
 
 jobs:
   copilot-setup-steps:
