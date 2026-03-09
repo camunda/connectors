@@ -351,7 +351,7 @@ public class InboundWebhookRestController {
       LOG.error("Failed to get parts from request", e);
       throw new RuntimeException("Failed to get parts from request", e);
     } catch (ServletException e) {
-      LOG.debug("The request is not multipart/form-data, silently ignoring", e);
+      LOG.debug("The request is not multipart/form-data, silently ignoring");
       return List.of();
     } catch (IllegalStateException e) {
       LOG.error("Size limits are exceeded or no multipart configuration is provided", e);
