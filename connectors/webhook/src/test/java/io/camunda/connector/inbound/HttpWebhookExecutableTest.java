@@ -8,6 +8,8 @@ package io.camunda.connector.inbound;
 
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.disabled;
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
+import static io.camunda.connector.inbound.utils.HttpWebhookUtil.FORM_DATA_CONTENT_TYPE;
+import static io.camunda.connector.inbound.utils.HttpWebhookUtil.HEADER_CONTENT_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -15,14 +17,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.google.common.net.HttpHeaders;
-import com.google.common.net.MediaType;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.*;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -54,8 +53,7 @@ class HttpWebhookExecutableTest {
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
     Mockito.when(payload.rawBody())
         .thenReturn("{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
 
@@ -86,8 +84,7 @@ class HttpWebhookExecutableTest {
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
     Mockito.when(payload.rawBody())
         .thenReturn("{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
 
@@ -123,8 +120,7 @@ class HttpWebhookExecutableTest {
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
     Mockito.when(payload.rawBody())
         .thenReturn(("[ \"test1\", \"test2\" ]").getBytes(StandardCharsets.UTF_8));
 
@@ -160,8 +156,7 @@ class HttpWebhookExecutableTest {
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
     Mockito.when(payload.rawBody())
         .thenReturn(
             ("[{\"key\": \"value\"}, {\"key\": \"value\"}]").getBytes(StandardCharsets.UTF_8));
@@ -193,8 +188,7 @@ class HttpWebhookExecutableTest {
             .build();
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.FORM_DATA.toString()));
+    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, FORM_DATA_CONTENT_TYPE));
     Mockito.when(payload.rawBody())
         .thenReturn("key1=value1&key2=value2".getBytes(StandardCharsets.UTF_8));
 
@@ -219,8 +213,7 @@ class HttpWebhookExecutableTest {
             .build();
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.GEO_JSON.toString()));
+    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/geo+json"));
     Mockito.when(payload.rawBody())
         .thenReturn("{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
 
@@ -245,7 +238,7 @@ class HttpWebhookExecutableTest {
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
     Mockito.when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_BINARY.toString()));
+        .thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/octet-stream"));
     Mockito.when(payload.rawBody())
         .thenReturn("Zm9sbG93IHRoZSB3aGl0ZSByYWJiaXQ=".getBytes(StandardCharsets.UTF_8));
 
@@ -268,8 +261,7 @@ class HttpWebhookExecutableTest {
             .build();
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.post.name());
-    Mockito.when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
     Mockito.when(payload.rawBody())
         .thenReturn("{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
 
@@ -277,8 +269,7 @@ class HttpWebhookExecutableTest {
 
     var exception = catchException(() -> testObject.triggerWebhook(payload));
     assertThat(exception).isInstanceOf(WebhookConnectorException.class);
-    assertThat(((WebhookConnectorException) exception).getStatusCode())
-        .isEqualTo(HttpResponseStatus.METHOD_NOT_ALLOWED.code());
+    assertThat(((WebhookConnectorException) exception).getStatusCode()).isEqualTo(405);
   }
 
   @Test
@@ -302,8 +293,8 @@ class HttpWebhookExecutableTest {
     Mockito.when(payload.headers())
         .thenReturn(
             Map.of(
-                HttpHeaders.CONTENT_TYPE,
-                MediaType.JSON_UTF_8.toString(),
+                HEADER_CONTENT_TYPE,
+                "application/json",
                 "X-HMAC-Sig",
                 "fa431d91a69beb76186b3b082c5bb87bab0702769d65761af2361cbf3a17cc09"));
     Mockito.when(payload.rawBody())
@@ -336,8 +327,8 @@ class HttpWebhookExecutableTest {
     Mockito.when(payload.headers())
         .thenReturn(
             Map.of(
-                HttpHeaders.CONTENT_TYPE,
-                MediaType.JSON_UTF_8.toString(),
+                HEADER_CONTENT_TYPE,
+                "application/json",
                 "X-HMAC-Sig",
                 "123132313214533154234132534123452")); // not correct HMAC
     Mockito.when(payload.rawBody())
@@ -347,8 +338,7 @@ class HttpWebhookExecutableTest {
 
     var exception = catchException(() -> testObject.triggerWebhook(payload));
     assertThat(exception).isInstanceOf(WebhookConnectorException.class);
-    assertThat(((WebhookConnectorException) exception).getStatusCode())
-        .isEqualTo(HttpResponseStatus.UNAUTHORIZED.code());
+    assertThat(((WebhookConnectorException) exception).getStatusCode()).isEqualTo(401);
   }
 
   @Test
@@ -377,8 +367,8 @@ class HttpWebhookExecutableTest {
     Mockito.when(payload.headers())
         .thenReturn(
             Map.of(
-                HttpHeaders.CONTENT_TYPE,
-                MediaType.JSON_UTF_8.toString(),
+                HEADER_CONTENT_TYPE,
+                "application/json",
                 "Authorization",
                 "notMyApiKey")); // not correct API key
     Mockito.when(payload.rawBody())
@@ -388,8 +378,7 @@ class HttpWebhookExecutableTest {
 
     var exception = catchException(() -> testObject.triggerWebhook(payload));
     assertThat(exception).isInstanceOf(WebhookConnectorException.class);
-    assertThat(((WebhookConnectorException) exception).getStatusCode())
-        .isEqualTo(HttpResponseStatus.UNAUTHORIZED.code());
+    assertThat(((WebhookConnectorException) exception).getStatusCode()).isEqualTo(401);
   }
 
   @Test
@@ -415,8 +404,7 @@ class HttpWebhookExecutableTest {
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
     Mockito.when(payload.rawBody())
         .thenReturn("{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
 
@@ -424,8 +412,7 @@ class HttpWebhookExecutableTest {
 
     var exception = catchException(() -> testObject.triggerWebhook(payload));
     assertThat(exception).isInstanceOf(WebhookConnectorException.class);
-    assertThat(((WebhookConnectorException) exception).getStatusCode())
-        .isEqualTo(HttpResponseStatus.UNAUTHORIZED.code());
+    assertThat(((WebhookConnectorException) exception).getStatusCode()).isEqualTo(401);
   }
 
   @Test
@@ -450,8 +437,7 @@ class HttpWebhookExecutableTest {
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
     Mockito.when(payload.rawBody())
         .thenReturn("{\"challenge\": \"12345\"}".getBytes(StandardCharsets.UTF_8));
 
@@ -484,8 +470,7 @@ class HttpWebhookExecutableTest {
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
     Mockito.when(payload.rawBody())
         .thenReturn("{\"challenge\": \"12345\"}".getBytes(StandardCharsets.UTF_8));
 
@@ -518,8 +503,7 @@ class HttpWebhookExecutableTest {
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
     Mockito.when(payload.rawBody())
         .thenReturn(
             "{\"event_type\": \"verification\", \"event\": {\"challenge\": \"12345\"}}"
@@ -554,8 +538,7 @@ class HttpWebhookExecutableTest {
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
     Mockito.when(payload.rawBody())
         .thenReturn("{\"challenge\": \"12345\"}".getBytes(StandardCharsets.UTF_8));
 
@@ -589,8 +572,7 @@ class HttpWebhookExecutableTest {
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/json"));
     Mockito.when(payload.rawBody())
         .thenReturn("{\"challenge\": \"12345\"}".getBytes(StandardCharsets.UTF_8));
 
@@ -618,7 +600,7 @@ class HttpWebhookExecutableTest {
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers()).thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, "application/xml"));
+    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "application/xml"));
     Mockito.when(payload.rawBody())
         .thenReturn(
             "<request><id>123</id><status>active</status></request>"
@@ -648,7 +630,7 @@ class HttpWebhookExecutableTest {
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers()).thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, "text/xml"));
+    Mockito.when(payload.headers()).thenReturn(Map.of(HEADER_CONTENT_TYPE, "text/xml"));
     Mockito.when(payload.rawBody())
         .thenReturn("<?xml version=\"1.0\"?><data>test</data>".getBytes(StandardCharsets.UTF_8));
 

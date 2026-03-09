@@ -10,7 +10,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.google.common.net.HttpHeaders;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
@@ -59,7 +58,7 @@ public class ApiKeyAuthHandlerTest {
   void apiKey_malformedHeader() {
     // given
     var payload = mock(WebhookProcessingPayload.class);
-    when(payload.headers()).thenReturn(Map.of(HttpHeaders.AUTHORIZATION, "NotBearer"));
+    when(payload.headers()).thenReturn(Map.of("Authorization", "NotBearer"));
     var checker = new ApiKeyAuthHandler(expectedAuth);
 
     // when
