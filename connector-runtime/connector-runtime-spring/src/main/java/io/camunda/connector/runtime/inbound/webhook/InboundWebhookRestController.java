@@ -350,7 +350,7 @@ public class InboundWebhookRestController {
     } catch (IOException e) {
       LOG.error("Failed to get parts from request", e);
       throw new RuntimeException("Failed to get parts from request", e);
-    } catch (ServletException e) {
+    } catch (ServletException ignored) {
       LOG.debug("The request is not multipart/form-data, silently ignoring");
       return List.of();
     } catch (IllegalStateException e) {
