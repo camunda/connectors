@@ -28,7 +28,9 @@ public class ImapServerProxy implements AutoCloseable {
   public ImapServerProxy(int listenPort, String backendHost, int backendPort) throws IOException {
     this.backendHost = backendHost;
     this.backendPort = backendPort;
-    this.listen = new ServerSocket(listenPort);
+    this.listen = new ServerSocket();
+    this.listen.setReuseAddress(true);
+    this.listen.bind(new InetSocketAddress(listenPort));
     pool.submit(
         () -> {
           while (!listen.isClosed()) {
@@ -131,10 +133,10 @@ public class ImapServerProxy implements AutoCloseable {
     successMode.set(false);
     activePairs.forEach(
         pair -> {
-          try {
-            pair.backend.close();
-          } catch (IOException ignored) {
-          }
+          // Only close the client socket. The pipe threads will detect the closed client,
+          // exit, and their try-with-resources will close the output streams to the backend.
+          // This sends a FIN to GreenMail, allowing it to gracefully detect EOF on its read
+          // instead of getting a "Broken pipe" when it tries to write/flush/close.
           try {
             pair.client.close();
           } catch (IOException ignored) {
@@ -148,8 +150,22 @@ public class ImapServerProxy implements AutoCloseable {
 
   @Override
   public void close() throws Exception {
-    // Close all active proxy connections cleanly first, so GreenMail's IMAP handlers
-    // can detect the socket close gracefully instead of getting a broken pipe.
+    // Gracefully shut down the backend (GreenMail-side) sockets:
+    // 1. Shutdown output → sends FIN to GreenMail → GreenMail reads EOF → handler exits cleanly
+    // 2. Then close the sockets
+    activePairs.forEach(
+        pair -> {
+          try {
+            if (!pair.backend.isOutputShutdown() && !pair.backend.isClosed()) {
+              pair.backend.shutdownOutput();
+            }
+          } catch (IOException ignored) {
+          }
+        });
+
+    // Give GreenMail handlers a moment to detect the EOF and close gracefully
+    Thread.sleep(200);
+
     activePairs.forEach(
         pair -> {
           try {
