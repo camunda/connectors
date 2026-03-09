@@ -75,10 +75,16 @@ public class JakartaEmailListener implements EmailListener {
 
   @Override
   public void stopListener() {
-    if (this.scheduledPollingManagerFuture.isDone()) {
+    scheduledExecutorService.shutdownNow();
+    try {
+      scheduledExecutorService.awaitTermination(5, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+    if (this.scheduledPollingManagerFuture.isDone()
+        && !this.scheduledPollingManagerFuture.isCompletedExceptionally()) {
       this.scheduledPollingManagerFuture.join().cancel(true);
     }
-    this.scheduledPollingManagerFuture.join().cancel(true);
     if (this.pollingManagerFuture.isDone() && !pollingManagerFuture.isCompletedExceptionally()) {
       this.pollingManagerFuture.join().stop();
     } else {
