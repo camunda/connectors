@@ -213,7 +213,10 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
                     .withSeverity(Severity.INFO)
                     .withTag(ActivityLogTag.CORRELATION)
                     .withMessage("Process instance created with result")
-                    .withData(Map.of("result", processInstanceCreatedWithResult.variables())));
+                    .withData(
+                        Map.of(
+                            "processInstanceKey",
+                            processInstanceCreatedWithResult.processInstanceKey())));
 
         break;
     }

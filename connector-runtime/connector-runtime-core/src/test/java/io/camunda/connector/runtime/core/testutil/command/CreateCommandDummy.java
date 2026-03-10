@@ -34,6 +34,16 @@ public class CreateCommandDummy
         CreateProcessInstanceCommandStep1.CreateProcessInstanceCommandStep2,
         CreateProcessInstanceCommandStep1.CreateProcessInstanceCommandStep3 {
 
+  private final Map<String, Object> variables;
+
+  public CreateCommandDummy() {
+    this.variables = Map.of();
+  }
+
+  public CreateCommandDummy(Map<String, Object> variables) {
+    this.variables = variables;
+  }
+
   public CreateProcessInstanceCommandStep2 bpmnProcessId(String bpmnProcessId) {
     return this;
   }
@@ -76,11 +86,21 @@ public class CreateCommandDummy
   }
 
   public CreateProcessInstanceWithResultCommandStep1 withResult() {
-    return new WithResultCommandDummy();
+    return new WithResultCommandDummy(variables);
   }
 
   public static class WithResultCommandDummy
       implements CreateProcessInstanceWithResultCommandStep1 {
+
+    private final Map<String, Object> variables;
+
+    public WithResultCommandDummy(Map<String, Object> variables) {
+      this.variables = variables;
+    }
+
+    public WithResultCommandDummy() {
+      this.variables = Map.of();
+    }
 
     @Override
     public CreateProcessInstanceWithResultCommandStep1 tenantId(String tenantId) {
@@ -107,7 +127,7 @@ public class CreateCommandDummy
     @Override
     public CamundaFuture<ProcessInstanceResult> send() {
       CamundaClientFutureImpl future = new CamundaClientFutureImpl<>();
-      future.complete(new ProcessInstanceResultDummy());
+      future.complete(new ProcessInstanceResultDummy(variables));
       return future;
     }
 

@@ -128,10 +128,7 @@ public record PropertyGroup(
       PropertyGroup.builder()
           .id("synchronousResponse")
           .label("Response type")
-          .properties(
-              CommonProperties.synchronousResponse()
-                  .binding(new ZeebeProperty("synchronousResponse"))
-                  .build())
+          .properties(CommonProperties.synchronousResponse().build())
           .build();
 
   public static PropertyGroup correlationGroupMessageStartEvent(boolean withSyncResponseEnabled) {

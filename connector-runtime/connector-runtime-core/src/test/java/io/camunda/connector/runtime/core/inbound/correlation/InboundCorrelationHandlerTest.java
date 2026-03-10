@@ -18,11 +18,7 @@ package io.camunda.connector.runtime.core.inbound.correlation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientStatusException;
@@ -786,7 +782,9 @@ public class InboundCorrelationHandlerTest {
       when(element.element())
           .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
 
-      var dummyCommand = Mockito.spy(new CreateCommandDummy());
+      Map<String, Object> processVariables = Map.of("test", "value");
+
+      var dummyCommand = Mockito.spy(new CreateCommandDummy(processVariables));
       when(camundaClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       // when
@@ -803,6 +801,7 @@ public class InboundCorrelationHandlerTest {
       var success = (Success.ProcessInstanceCreatedWithResult) result;
       assertThat(success.activatedElement()).isEqualTo(element.element());
       assertThat(success.processInstanceKey()).isEqualTo(42L);
+      assertThat(success.variables()).isEqualTo(processVariables);
     }
 
     @Test
