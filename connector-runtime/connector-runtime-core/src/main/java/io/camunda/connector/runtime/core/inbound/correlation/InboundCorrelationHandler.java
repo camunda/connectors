@@ -275,7 +275,7 @@ public class InboundCorrelationHandler {
         LOG.debug("Message already correlated: {}", ex.getMessage());
         return new MessageAlreadyCorrelated(activatedElement.element());
       }
-      LOG.info("Failed to correlate message synchronously: ", ex);
+      LOG.info("Failed to correlate message synchronously: {}", ex.getMessage());
       return new CorrelationResult.Failure.ZeebeClientStatus(
           ex.getStatus().getCode().name(), ex.getMessage());
     } catch (Exception ex) {
@@ -317,7 +317,7 @@ public class InboundCorrelationHandler {
         result = new MessageAlreadyCorrelated(activatedElement.element());
         LOG.debug("Message already correlated: {}", ex.getMessage());
       } else {
-        LOG.info("Failed to publish message: ", ex);
+        LOG.info("Failed to publish message: {}", ex.getMessage());
         result =
             new CorrelationResult.Failure.ZeebeClientStatus(
                 ex.getStatus().getCode().name(), ex.getMessage());
