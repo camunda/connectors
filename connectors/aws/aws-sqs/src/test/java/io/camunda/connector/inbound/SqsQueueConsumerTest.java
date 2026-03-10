@@ -13,10 +13,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
-import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessagePublished;
@@ -34,15 +30,21 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
 @ExtendWith(MockitoExtension.class)
 public class SqsQueueConsumerTest {
 
-  @Mock private AmazonSQS sqsClient;
+  @Mock private SqsClient sqsClient;
   private SqsInboundProperties properties;
   private SqsInboundQueueProperties queue;
   @Mock private InboundConnectorContext context;
-  @Mock private ReceiveMessageResult receiveMessageResult;
+  @Mock private ReceiveMessageResponse receiveMessageResult;
   @Mock private List<Message> messages;
   private Message message;
   @Captor private ArgumentCaptor<ReceiveMessageRequest> requestArgumentCaptor;
@@ -54,7 +56,7 @@ public class SqsQueueConsumerTest {
   void setUp() {
     properties = new SqsInboundProperties();
 
-    message = new Message().withMessageId("message id").withBody("body msg");
+    message = Message.builder().messageId("message id").body("body msg").build();
 
     queue = new SqsInboundQueueProperties("us-east-1", "my-queue", null, null, "1");
 
@@ -69,7 +71,7 @@ public class SqsQueueConsumerTest {
     // given
     when(sqsClient.receiveMessage(requestArgumentCaptor.capture()))
         .thenReturn(receiveMessageResult);
-    when(receiveMessageResult.getMessages()).thenReturn(messages);
+    when(receiveMessageResult.messages()).thenReturn(messages);
     when(messages.iterator())
         .thenReturn(Collections.singletonList(message).iterator())
         .thenReturn(emptyMessageList.iterator());
@@ -86,11 +88,18 @@ public class SqsQueueConsumerTest {
     // then
     verify(sqsClient, atLeast(1)).receiveMessage(any(ReceiveMessageRequest.class));
     verify(context).correlateWithResult(any(SqsInboundMessage.class));
-    verify(sqsClient).deleteMessage(queue.url(), message.getReceiptHandle());
+    ArgumentCaptor<DeleteMessageRequest> deleteCaptor =
+        ArgumentCaptor.forClass(DeleteMessageRequest.class);
+    verify(sqsClient).deleteMessage(deleteCaptor.capture());
 
     ReceiveMessageRequest receiveMessageRequest = requestArgumentCaptor.getValue();
-    assertThat(receiveMessageRequest.getAttributeNames()).isEqualTo(List.of("All"));
-    assertThat(receiveMessageRequest.getMessageAttributeNames()).isEqualTo(List.of("All"));
+    assertThat(receiveMessageRequest.messageAttributeNames()).isEqualTo(List.of("All"));
+    assertThat(receiveMessageRequest.messageSystemAttributeNames())
+        .isEqualTo(List.of(MessageSystemAttributeName.ALL));
+
+    DeleteMessageRequest deleteRequest = deleteCaptor.getValue();
+    assertThat(deleteRequest.queueUrl()).isEqualTo(queue.url());
+    assertThat(deleteRequest.receiptHandle()).isEqualTo(message.receiptHandle());
   }
 
   @Test
@@ -104,18 +113,14 @@ public class SqsQueueConsumerTest {
     properties.setQueue(queue);
     when(sqsClient.receiveMessage(requestArgumentCaptor.capture()))
         .thenReturn(receiveMessageResult);
-    when(receiveMessageResult.getMessages()).thenReturn(messages);
+    when(receiveMessageResult.messages()).thenReturn(messages);
     when(messages.iterator())
         .thenReturn(Collections.singletonList(message).iterator())
         .thenReturn(emptyMessageList.iterator());
     when(context.correlateWithResult(any())).thenReturn(new MessagePublished(null, 1L, null));
 
     // when
-    Thread thread =
-        new Thread(
-            () -> {
-              consumer.run();
-            });
+    Thread thread = new Thread(() -> consumer.run());
     thread.start();
     consumer.setQueueConsumerActive(false);
     thread.join();
@@ -123,9 +128,10 @@ public class SqsQueueConsumerTest {
     verify(sqsClient, atLeast(1)).receiveMessage(any(ReceiveMessageRequest.class));
     verify(context).correlateWithResult(MessageMapper.toSqsInboundMessage(message));
     ReceiveMessageRequest receiveMessageRequest = requestArgumentCaptor.getValue();
-    assertThat(receiveMessageRequest.getAttributeNames()).isEqualTo(attributeNames);
-    assertThat(receiveMessageRequest.getMessageAttributeNames()).isEqualTo(messageAttributeNames);
-    verify(sqsClient).deleteMessage(queue.url(), message.getReceiptHandle());
+    assertThat(receiveMessageRequest.messageSystemAttributeNames())
+        .isEqualTo(attributeNames.stream().map(MessageSystemAttributeName::fromValue).toList());
+    assertThat(receiveMessageRequest.messageAttributeNames()).isEqualTo(messageAttributeNames);
+    verify(sqsClient).deleteMessage(any(DeleteMessageRequest.class));
   }
 
   @Test
@@ -133,17 +139,13 @@ public class SqsQueueConsumerTest {
     // given
     when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
         .thenReturn(receiveMessageResult);
-    when(receiveMessageResult.getMessages()).thenReturn(messages);
+    when(receiveMessageResult.messages()).thenReturn(messages);
     when(messages.iterator())
         .thenReturn(Collections.singletonList(message).iterator())
         .thenReturn(emptyMessageList.iterator());
     when(context.correlateWithResult(any())).thenReturn(new Other(new RuntimeException()));
     // when
-    Thread thread =
-        new Thread(
-            () -> {
-              consumer.run();
-            });
+    Thread thread = new Thread(() -> consumer.run());
     thread.start();
     consumer.setQueueConsumerActive(false);
     thread.join();
@@ -158,24 +160,20 @@ public class SqsQueueConsumerTest {
     // given
     when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
         .thenReturn(receiveMessageResult);
-    when(receiveMessageResult.getMessages()).thenReturn(messages);
+    when(receiveMessageResult.messages()).thenReturn(messages);
     when(messages.iterator())
         .thenReturn(Collections.singletonList(message).iterator())
         .thenReturn(emptyMessageList.iterator());
     when(context.correlateWithResult(any())).thenReturn(new ActivationConditionNotMet(true));
     // when
-    Thread thread =
-        new Thread(
-            () -> {
-              consumer.run();
-            });
+    Thread thread = new Thread(() -> consumer.run());
     thread.start();
     consumer.setQueueConsumerActive(false);
     thread.join();
     // then
     verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
     verify(context).correlateWithResult(any(SqsInboundMessage.class));
-    verify(sqsClient).deleteMessage(queue.url(), message.getReceiptHandle());
+    verify(sqsClient).deleteMessage(any(DeleteMessageRequest.class));
   }
 
   @Test
@@ -183,7 +181,7 @@ public class SqsQueueConsumerTest {
     // given
     when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
         .thenReturn(receiveMessageResult);
-    when(receiveMessageResult.getMessages()).thenReturn(Collections.emptyList());
+    when(receiveMessageResult.messages()).thenReturn(Collections.emptyList());
     // when
     Thread thread =
         new Thread(

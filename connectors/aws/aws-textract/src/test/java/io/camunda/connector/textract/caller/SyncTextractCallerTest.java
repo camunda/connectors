@@ -10,13 +10,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.textract.AmazonTextractClient;
-import com.amazonaws.services.textract.model.AnalyzeDocumentRequest;
-import com.amazonaws.services.textract.model.AnalyzeDocumentResult;
 import io.camunda.connector.textract.model.TextractExecutionType;
 import io.camunda.connector.textract.model.TextractRequestData;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import software.amazon.awssdk.services.textract.TextractClient;
+import software.amazon.awssdk.services.textract.model.AnalyzeDocumentRequest;
+import software.amazon.awssdk.services.textract.model.AnalyzeDocumentResponse;
 
 class SyncTextractCallerTest {
   @Test
@@ -39,10 +39,10 @@ class SyncTextractCallerTest {
             "outputBucket",
             "prefix");
 
-    AmazonTextractClient textractClient = Mockito.mock(AmazonTextractClient.class);
+    TextractClient textractClient = Mockito.mock(TextractClient.class);
 
     when(textractClient.analyzeDocument(any(AnalyzeDocumentRequest.class)))
-        .thenReturn(new AnalyzeDocumentResult());
+        .thenReturn(AnalyzeDocumentResponse.builder().build());
 
     new SyncTextractCaller().call(requestData, textractClient);
 
