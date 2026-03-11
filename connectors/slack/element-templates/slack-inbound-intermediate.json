@@ -251,6 +251,7 @@
     "id" : "resultExpression",
     "label" : "Result expression",
     "description" : "Expression to map the response into process variables",
+    "value" : "{\n  myRequestBody: request.body\n  // Use FEEL to extract values, e.g.,:\n  // myUserId: request.body.event.user\n}",
     "feel" : "required",
     "group" : "output",
     "binding" : {
