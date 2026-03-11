@@ -1,7 +1,7 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Webhook Message Start Event Connector",
-  "id" : "io.camunda.connectors.webhook.WebhookConnectorStartMessage.v1",
+  "id" : "io.camunda.connectors.webhook.WebhookConnectorStartMessage.v2",
   "description" : "Configure webhook to receive callbacks",
   "metadata" : {
     "keywords" : [ ]
@@ -37,7 +37,7 @@
     "label" : "Activation"
   }, {
     "id" : "synchronousResponse",
-    "label" : "Response type"
+    "label" : "Response mode"
   }, {
     "id" : "correlation",
     "label" : "Correlation",
@@ -396,14 +396,15 @@
     "type" : "Boolean"
   }, {
     "id" : "synchronousResponse",
-    "label" : "Response type",
+    "label" : "Response mode",
+    "description" : "Synchronous or Asynchronous <a href=\"https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#response-mode\" target=\"_blank\">response handling</a>",
     "value" : "false",
     "group" : "synchronousResponse",
     "binding" : {
       "name" : "synchronousResponse",
       "type" : "zeebe:property"
     },
-    "tooltip" : "Select synchronous to wait for the result of the correlation. This is either the result of the created process or the process key that matched the correlated message subscription. Select asynchronous to trigger the correlation and return immediately without waiting for a result.",
+    "tooltip" : "Select synchronous to wait for the result of the correlation. This is either the result of the created process or the process instance key that matched the correlated message subscription. Select asynchronous to trigger the correlation and return immediately without waiting for a result. This affects the data available in the <a href=\"https://docs.camunda.io/docs/components/connectors/connectors/protocol/http-webhook/#use-the-correlation-object\">correlation</a> object for the response expression.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Asynchronous",

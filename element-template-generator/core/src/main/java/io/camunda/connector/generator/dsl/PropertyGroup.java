@@ -127,7 +127,7 @@ public record PropertyGroup(
   public static PropertyGroup SYNCHRONOUS_RESPONSE_GROUP =
       PropertyGroup.builder()
           .id("synchronousResponse")
-          .label("Response type")
+          .label("Response mode")
           .properties(CommonProperties.synchronousResponse().build())
           .build();
 
