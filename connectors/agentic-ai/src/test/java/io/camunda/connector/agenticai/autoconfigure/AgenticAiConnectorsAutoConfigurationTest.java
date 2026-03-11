@@ -42,6 +42,7 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.document.Camun
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.common.AgenticAiHttpSupport;
+import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -224,6 +225,34 @@ class AgenticAiConnectorsAutoConfigurationTest {
                                   -10L,
                                   "must be greater than or equal to 0");
                         }));
+  }
+
+  @Test
+  void whenProxySupportEnabled_thenAgenticAiHttpSupportUsesEnvironmentProxyConfiguration() {
+    contextRunner.run(
+        context -> {
+          assertThat(context).hasSingleBean(AgenticAiHttpSupport.class);
+          var httpSupport = context.getBean(AgenticAiHttpSupport.class);
+          assertThat(httpSupport.getProxyConfiguration())
+              .isInstanceOf(EnvironmentProxyConfiguration.class);
+        });
+  }
+
+  @Test
+  void whenProxySupportDisabled_thenAgenticAiHttpSupportHasNoProxyConfiguration() {
+    contextRunner
+        .withPropertyValues("camunda.connector.agenticai.http.proxy-support.enabled=false")
+        .run(
+            context -> {
+              assertThat(context).hasSingleBean(AgenticAiHttpSupport.class);
+              var httpSupport = context.getBean(AgenticAiHttpSupport.class);
+
+              final var proxyConfiguration = httpSupport.getProxyConfiguration();
+              assertThat(proxyConfiguration).isNotInstanceOf(EnvironmentProxyConfiguration.class);
+
+              assertThat(httpSupport.getProxyConfiguration().getProxyDetails("http")).isEmpty();
+              assertThat(httpSupport.getProxyConfiguration().getProxyDetails("https")).isEmpty();
+            });
   }
 
   private Predicate<Class<?>> notAnyOf(Class<?>... classes) {

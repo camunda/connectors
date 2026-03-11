@@ -7,13 +7,20 @@
 package io.camunda.connector.agenticai.common;
 
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 
 /** Provides HTTP support utilities for Agentic AI connectors, including proxy configuration. */
 public class AgenticAiHttpSupport {
+  private final ProxyConfiguration proxyConfiguration;
   private final JdkHttpClientProxyConfigurator jdkHttpClientProxyConfigurator;
 
-  public AgenticAiHttpSupport(JdkHttpClientProxyConfigurator jdkHttpClientProxyConfigurator) {
-    this.jdkHttpClientProxyConfigurator = jdkHttpClientProxyConfigurator;
+  public AgenticAiHttpSupport(ProxyConfiguration proxyConfiguration) {
+    this.proxyConfiguration = proxyConfiguration;
+    this.jdkHttpClientProxyConfigurator = new JdkHttpClientProxyConfigurator(proxyConfiguration);
+  }
+
+  public ProxyConfiguration getProxyConfiguration() {
+    return proxyConfiguration;
   }
 
   public JdkHttpClientProxyConfigurator getJdkHttpClientProxyConfigurator() {

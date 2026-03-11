@@ -64,7 +64,7 @@ import io.camunda.connector.agenticai.mcp.client.configuration.McpRemoteClientCo
 import io.camunda.connector.agenticai.mcp.discovery.configuration.McpDiscoveryConfiguration;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
+import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
@@ -100,8 +100,17 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public AgenticAiHttpSupport agenticAiHttpSupport() {
-    return new AgenticAiHttpSupport(new JdkHttpClientProxyConfigurator(new ProxyConfiguration()));
+  public AgenticAiHttpSupport agenticAiHttpSupport(
+      AgenticAiConnectorsConfigurationProperties configuration) {
+    // IMPORTANT: the proxy configuration needs to be configured to support
+    // CONNECTOR_HTTP(S)_PLAIN_* proxy vars as JDK clients are not able to connect to proxies
+    // running on HTTPS
+    final ProxyConfiguration proxyConfiguration =
+        configuration.http().proxySupport().enabled()
+            ? new EnvironmentProxyConfiguration(true)
+            : ProxyConfiguration.NONE;
+
+    return new AgenticAiHttpSupport(proxyConfiguration);
   }
 
   @Bean
