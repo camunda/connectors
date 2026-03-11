@@ -49,7 +49,7 @@ public sealed interface CorrelationResult {
      * the process instance key of the correlated process instance.
      */
     record MessageCorrelated(
-        ProcessElement activatedElement, Long processInstanceKey, String tenantId)
+        ProcessElement activatedElement, Long processInstanceKey, Long messageKey, String tenantId)
         implements Success {}
 
     record MessageAlreadyCorrelated(ProcessElement activatedElement) implements Success {}

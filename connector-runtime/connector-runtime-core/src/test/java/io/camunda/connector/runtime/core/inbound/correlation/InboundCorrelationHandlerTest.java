@@ -884,6 +884,7 @@ public class InboundCorrelationHandlerTest {
       assertThat(result).isInstanceOf(Success.MessageCorrelated.class);
       var success = (Success.MessageCorrelated) result;
       assertThat(success.activatedElement()).isEqualTo(element.element());
+      assertThat(success.messageKey()).isEqualTo(-1);
       assertThat(success.processInstanceKey()).isEqualTo(99L);
     }
 

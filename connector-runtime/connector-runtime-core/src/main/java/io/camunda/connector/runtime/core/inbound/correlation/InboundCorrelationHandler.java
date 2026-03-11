@@ -268,7 +268,10 @@ public class InboundCorrelationHandler {
           "Correlated message synchronously, process instance key: {}",
           response.getProcessInstanceKey());
       return new CorrelationResult.Success.MessageCorrelated(
-          activatedElement.element(), response.getProcessInstanceKey(), response.getTenantId());
+          activatedElement.element(),
+          response.getProcessInstanceKey(),
+          response.getMessageKey(),
+          response.getTenantId());
 
     } catch (ClientStatusException ex) {
       if (Status.ALREADY_EXISTS.getCode().equals(ex.getStatus().getCode())) {
