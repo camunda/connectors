@@ -402,7 +402,7 @@
       "name" : "synchronousResponse",
       "type" : "zeebe:property"
     },
-    "tooltip" : "Select synchronous to wait for the correlated process to complete or the message to be correlated and return the result. Select asynchronous to trigger the process and return immediately.",
+    "tooltip" : "Select synchronous to wait for the result of the correlation. This is either the result of the created process or the process key that matched the correlated message subscription. Select asynchronous to trigger the correlation and return immediately without waiting for a result.",
     "type" : "Dropdown",
     "choices" : [ {
       "name" : "Asynchronous",
