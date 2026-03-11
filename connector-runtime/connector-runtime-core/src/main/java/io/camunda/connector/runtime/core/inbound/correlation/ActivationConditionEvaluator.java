@@ -22,7 +22,6 @@ import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import java.util.List;
-import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -144,86 +143,89 @@ public class ActivationConditionEvaluator {
       return CompatibilityResult.incompatible(reason);
     }
 
-    // Check compatibility of all publish-relevant properties
-    var first = matchingElements.getFirst();
-    var firstCorrelationPoint = (MessageCorrelationPoint) first.correlationPoint();
-    String firstResultExpression = first.resultExpression();
-    String firstResultVariable = first.resultVariable();
-    String firstCorrelationKeyExpression = firstCorrelationPoint.correlationKeyExpression();
-    String firstMessageIdExpression = firstCorrelationPoint.messageIdExpression();
-    var firstTimeToLive = firstCorrelationPoint.timeToLive();
+    // Check compatibility of all publish-relevant properties using distinct count
+    var mismatches = new java.util.ArrayList<String>();
 
-    for (int i = 1; i < matchingElements.size(); i++) {
-      var element = matchingElements.get(i);
-      var correlationPoint = (MessageCorrelationPoint) element.correlationPoint();
+    var resultExpressions =
+        matchingElements.stream()
+            .map(InboundConnectorElement::resultExpression)
+            .distinct()
+            .toList();
+    if (resultExpressions.size() > 1) {
+      mismatches.add("resultExpression: " + resultExpressions);
+    }
 
-      var mismatches = new java.util.ArrayList<String>();
-      if (!Objects.equals(firstResultExpression, element.resultExpression())) {
-        mismatches.add(
-            "resultExpression: '%s' vs '%s'"
-                .formatted(firstResultExpression, element.resultExpression()));
-      }
-      if (!Objects.equals(firstResultVariable, element.resultVariable())) {
-        mismatches.add(
-            "resultVariable: '%s' vs '%s'"
-                .formatted(firstResultVariable, element.resultVariable()));
-      }
-      if (!Objects.equals(
-          firstCorrelationKeyExpression, correlationPoint.correlationKeyExpression())) {
-        mismatches.add(
-            "correlationKeyExpression: '%s' vs '%s'"
-                .formatted(
-                    firstCorrelationKeyExpression, correlationPoint.correlationKeyExpression()));
-      }
-      if (!Objects.equals(firstMessageIdExpression, correlationPoint.messageIdExpression())) {
-        mismatches.add(
-            "messageIdExpression: '%s' vs '%s'"
-                .formatted(firstMessageIdExpression, correlationPoint.messageIdExpression()));
-      }
-      if (!Objects.equals(firstTimeToLive, correlationPoint.timeToLive())) {
-        mismatches.add(
-            "timeToLive: '%s' vs '%s'".formatted(firstTimeToLive, correlationPoint.timeToLive()));
-      }
+    var resultVariables =
+        matchingElements.stream().map(InboundConnectorElement::resultVariable).distinct().toList();
+    if (resultVariables.size() > 1) {
+      mismatches.add("resultVariable: " + resultVariables);
+    }
 
-      if (!mismatches.isEmpty()) {
-        var reason = formatIncompatibilityReason(first, element, mismatches);
-        LOG.debug(reason);
-        return CompatibilityResult.incompatible(reason);
-      }
+    var correlationKeyExpressions =
+        matchingElements.stream()
+            .map(e -> ((MessageCorrelationPoint) e.correlationPoint()).correlationKeyExpression())
+            .distinct()
+            .toList();
+    if (correlationKeyExpressions.size() > 1) {
+      mismatches.add("correlationKeyExpression: " + correlationKeyExpressions);
+    }
+
+    var messageIdExpressions =
+        matchingElements.stream()
+            .map(e -> ((MessageCorrelationPoint) e.correlationPoint()).messageIdExpression())
+            .distinct()
+            .toList();
+    if (messageIdExpressions.size() > 1) {
+      mismatches.add("messageIdExpression: " + messageIdExpressions);
+    }
+
+    var timeToLives =
+        matchingElements.stream()
+            .map(e -> ((MessageCorrelationPoint) e.correlationPoint()).timeToLive())
+            .distinct()
+            .toList();
+    if (timeToLives.size() > 1) {
+      mismatches.add("timeToLive: " + timeToLives);
+    }
+
+    if (!mismatches.isEmpty()) {
+      var reason = formatIncompatibilityReason(matchingElements, mismatches);
+      LOG.debug(reason);
+      return CompatibilityResult.incompatible(reason);
     }
 
     LOG.debug(
         "Found {} compatible message elements with message name '{}', using first one",
         matchingElements.size(),
         messageNames.getFirst());
-    return CompatibilityResult.compatible(first);
+    return CompatibilityResult.compatible(matchingElements.getFirst());
   }
 
   private String formatIncompatibilityReason(
-      InboundConnectorElement first,
-      InboundConnectorElement second,
-      java.util.ArrayList<String> mismatches) {
-    var firstElement = first.element();
-    var secondElement = second.element();
+      List<InboundConnectorElement> elements, java.util.ArrayList<String> mismatches) {
     var mismatchDetails = String.join(", ", mismatches);
+    var versions = elements.stream().map(e -> e.element().version()).distinct().toList();
+    var elementIds =
+        elements.stream()
+            .map(e -> "'" + e.element().elementId() + "'")
+            .distinct()
+            .collect(java.util.stream.Collectors.joining(", "));
 
-    if (firstElement.version() == secondElement.version()) {
+    if (versions.size() == 1) {
       // Same version - mention version once
-      return "Elements '%s' and '%s' (version %d) have incompatible properties: %s"
-          .formatted(
-              firstElement.elementId(),
-              secondElement.elementId(),
-              firstElement.version(),
-              mismatchDetails);
+      return "Elements %s (version %d) have incompatible properties: %s"
+          .formatted(elementIds, versions.getFirst(), mismatchDetails);
     } else {
-      // Different versions - mention both
-      return "Element '%s' (version %d) and element '%s' (version %d) have incompatible properties: %s"
-          .formatted(
-              firstElement.elementId(),
-              firstElement.version(),
-              secondElement.elementId(),
-              secondElement.version(),
-              mismatchDetails);
+      // Different versions - list elements with their versions
+      var elementsWithVersions =
+          elements.stream()
+              .map(
+                  e ->
+                      "'%s' (version %d)".formatted(e.element().elementId(), e.element().version()))
+              .distinct()
+              .collect(java.util.stream.Collectors.joining(", "));
+      return "Elements %s have incompatible properties: %s"
+          .formatted(elementsWithVersions, mismatchDetails);
     }
   }
 
