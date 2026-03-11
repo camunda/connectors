@@ -34,6 +34,13 @@ public class JdkHttpClientProxyConfiguratorTest {
   }
 
   @Test
+  void shouldNotSetProxyOrAuthenticator_whenPlainEnabledButNoEnvVarsConfigured() {
+    var client = JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration(true));
+    assertThat(client.proxy()).isEmpty();
+    assertThat(client.authenticator()).isEmpty();
+  }
+
+  @Test
   void shouldSetProxyAndAuthenticator_whenHttpProxyConfigured() throws Exception {
     withEnvironmentVariables(
             "CONNECTOR_HTTP_PROXY_HOST", "proxy.example.com",
@@ -64,6 +71,38 @@ public class JdkHttpClientProxyConfiguratorTest {
   }
 
   @Test
+  void shouldSetProxyAndAuthenticator_whenPlainHttpProxyConfigured() throws Exception {
+    withEnvironmentVariables(
+            "CONNECTOR_HTTP_PLAIN_PROXY_HOST", "plain-proxy.example.com",
+            "CONNECTOR_HTTP_PLAIN_PROXY_PORT", "9090",
+            "CONNECTOR_HTTP_PLAIN_PROXY_USER", "user",
+            "CONNECTOR_HTTP_PLAIN_PROXY_PASSWORD", "pass")
+        .execute(
+            () -> {
+              var client =
+                  JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration(true));
+              assertThat(client.proxy()).isPresent();
+              assertThat(client.proxy().get()).isInstanceOf(JdkProxySelector.class);
+              assertThat(client.authenticator()).isPresent();
+              assertThat(client.authenticator().get()).isInstanceOf(Authenticator.class);
+            });
+  }
+
+  @Test
+  void shouldSetProxy_whenPlainHttpsProxyConfigured() throws Exception {
+    withEnvironmentVariables(
+            "CONNECTOR_HTTPS_PLAIN_PROXY_HOST", "plain-secure-proxy.example.com",
+            "CONNECTOR_HTTPS_PLAIN_PROXY_PORT", "3129")
+        .execute(
+            () -> {
+              var client =
+                  JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration(true));
+              assertThat(client.proxy()).isPresent();
+              assertThat(client.proxy().get()).isInstanceOf(JdkProxySelector.class);
+            });
+  }
+
+  @Test
   void shouldCreateClientViaInstance() throws Exception {
     withEnvironmentVariables(
             "CONNECTOR_HTTP_PROXY_HOST", "proxy.example.com",
@@ -71,6 +110,19 @@ public class JdkHttpClientProxyConfiguratorTest {
         .execute(
             () -> {
               var proxy = new JdkHttpClientProxyConfigurator(new ProxyConfiguration());
+              var client = proxy.newHttpClient();
+              assertThat(client.proxy()).isPresent();
+            });
+  }
+
+  @Test
+  void shouldCreateClientViaInstance_withPlainProxy() throws Exception {
+    withEnvironmentVariables(
+            "CONNECTOR_HTTP_PLAIN_PROXY_HOST", "plain-proxy.example.com",
+            "CONNECTOR_HTTP_PLAIN_PROXY_PORT", "9090")
+        .execute(
+            () -> {
+              var proxy = new JdkHttpClientProxyConfigurator(new ProxyConfiguration(true));
               var client = proxy.newHttpClient();
               assertThat(client.proxy()).isPresent();
             });

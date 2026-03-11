@@ -37,6 +37,20 @@ import org.apache.commons.lang3.StringUtils;
  *   <li>CONNECTOR_HTTP(S)_PROXY_PASSWORD
  *   <li>CONNECTOR_HTTP_NON_PROXY_HOSTS
  * </ul>
+ *
+ * <p>When {@code supportPlainProxyVars} is enabled, an additional set of "plain" environment
+ * variables is checked first:
+ *
+ * <ul>
+ *   <li>CONNECTOR_HTTP(S)_PLAIN_PROXY_SCHEME (default: http)
+ *   <li>CONNECTOR_HTTP(S)_PLAIN_PROXY_HOST
+ *   <li>CONNECTOR_HTTP(S)_PLAIN_PROXY_PORT
+ *   <li>CONNECTOR_HTTP(S)_PLAIN_PROXY_USER
+ *   <li>CONNECTOR_HTTP(S)_PLAIN_PROXY_PASSWORD
+ * </ul>
+ *
+ * <p>If the plain HOST variable is set, all proxy settings are read from the plain prefix.
+ * Otherwise, the standard variables are used as a fallback.
  */
 public class ProxyConfiguration {
 
@@ -47,9 +61,15 @@ public class ProxyConfiguration {
   private static final String DEFAULT_SCHEME = HTTP;
   private static final List<String> PROTOCOLS = List.of(HTTP, HTTPS);
 
+  private final boolean supportPlainProxyVars;
   private final Map<String, ProxyDetails> proxyConfigForProtocols;
 
   public ProxyConfiguration() {
+    this(false);
+  }
+
+  public ProxyConfiguration(boolean supportPlainProxyVars) {
+    this.supportPlainProxyVars = supportPlainProxyVars;
     this.proxyConfigForProtocols = loadProxyConfig();
   }
 
@@ -66,8 +86,19 @@ public class ProxyConfiguration {
   }
 
   private Optional<ProxyDetails> getConfigFromEnvVars(String protocol) {
-    final String prefix = "CONNECTOR_" + protocol.toUpperCase() + "_PROXY_";
+    if (supportPlainProxyVars) {
+      final String plainPrefix = "CONNECTOR_" + protocol.toUpperCase() + "_PLAIN_PROXY_";
+      Optional<ProxyDetails> plainDetails = readProxyDetails(plainPrefix);
+      if (plainDetails.isPresent()) {
+        return plainDetails;
+      }
+    }
 
+    final String standardPrefix = "CONNECTOR_" + protocol.toUpperCase() + "_PROXY_";
+    return readProxyDetails(standardPrefix);
+  }
+
+  private Optional<ProxyDetails> readProxyDetails(String prefix) {
     if (StringUtils.isNotBlank(System.getenv(prefix + "HOST"))
         && StringUtils.isNotBlank(System.getenv(prefix + "PORT"))) {
 

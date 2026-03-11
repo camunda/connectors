@@ -47,6 +47,15 @@ public class JdkProxySelectorTest {
   }
 
   @Test
+  void shouldReturnNoProxy_whenPlainEnabledButNoEnvVarsConfigured() {
+    var selector = new JdkProxySelector(new ProxyConfiguration(true));
+    var proxies = selector.select(URI.create("http://example.com"));
+
+    assertThat(proxies).hasSize(1);
+    assertThat(proxies.getFirst().type()).isEqualTo(Proxy.Type.DIRECT);
+  }
+
+  @Test
   void shouldReturnProxy_whenHttpProxyConfigured() throws Exception {
     withEnvironmentVariables(
             "CONNECTOR_HTTP_PROXY_HOST", "proxy.example.com",
@@ -136,6 +145,121 @@ public class JdkProxySelectorTest {
 
               assertThat(selector.select(URI.create("http://api.internal.com")).getFirst().type())
                   .isEqualTo(Proxy.Type.DIRECT);
+              assertThat(selector.select(URI.create("http://external.com")).getFirst().type())
+                  .isEqualTo(Proxy.Type.HTTP);
+            });
+  }
+
+  @Test
+  void shouldReturnProxy_whenPlainHttpProxyConfigured() throws Exception {
+    withEnvironmentVariables(
+            "CONNECTOR_HTTP_PLAIN_PROXY_HOST", "plain-proxy.example.com",
+            "CONNECTOR_HTTP_PLAIN_PROXY_PORT", "9090")
+        .execute(
+            () -> {
+              var config = new ProxyConfiguration(true);
+              var selector = new JdkProxySelector(config);
+              var proxies = selector.select(URI.create("http://target.com"));
+
+              assertThat(proxies).hasSize(1);
+              var proxy = proxies.getFirst();
+              assertThat(proxy.type()).isEqualTo(Proxy.Type.HTTP);
+              assertThat(proxy.address().toString()).contains("plain-proxy.example.com");
+              assertThat(proxy.address().toString()).contains("9090");
+            });
+  }
+
+  @Test
+  void shouldReturnProxy_whenPlainHttpsProxyConfigured() throws Exception {
+    withEnvironmentVariables(
+            "CONNECTOR_HTTPS_PLAIN_PROXY_HOST", "plain-secure-proxy.example.com",
+            "CONNECTOR_HTTPS_PLAIN_PROXY_PORT", "3129")
+        .execute(
+            () -> {
+              var config = new ProxyConfiguration(true);
+              var selector = new JdkProxySelector(config);
+              var proxies = selector.select(URI.create("https://target.com"));
+
+              assertThat(proxies).hasSize(1);
+              var proxy = proxies.getFirst();
+              assertThat(proxy.type()).isEqualTo(Proxy.Type.HTTP);
+              assertThat(proxy.address().toString()).contains("plain-secure-proxy.example.com");
+              assertThat(proxy.address().toString()).contains("3129");
+            });
+  }
+
+  @Test
+  void shouldReturnNoProxy_whenPlainHttpsProxyConfiguredButHttpRequested() throws Exception {
+    withEnvironmentVariables(
+            "CONNECTOR_HTTPS_PLAIN_PROXY_HOST", "plain-secure-proxy.example.com",
+            "CONNECTOR_HTTPS_PLAIN_PROXY_PORT", "3129")
+        .execute(
+            () -> {
+              var config = new ProxyConfiguration(true);
+              var selector = new JdkProxySelector(config);
+              var proxies = selector.select(URI.create("http://target.com"));
+
+              assertThat(proxies).hasSize(1);
+              assertThat(proxies.getFirst().type()).isEqualTo(Proxy.Type.DIRECT);
+            });
+  }
+
+  @Test
+  void shouldPreferPlainProxy_overStandardProxy() throws Exception {
+    withEnvironmentVariables(
+            "CONNECTOR_HTTP_PLAIN_PROXY_HOST", "plain-proxy.example.com",
+            "CONNECTOR_HTTP_PLAIN_PROXY_PORT", "9090",
+            "CONNECTOR_HTTP_PROXY_HOST", "standard-proxy.example.com",
+            "CONNECTOR_HTTP_PROXY_PORT", "8080")
+        .execute(
+            () -> {
+              var config = new ProxyConfiguration(true);
+              var selector = new JdkProxySelector(config);
+              var proxies = selector.select(URI.create("http://target.com"));
+
+              assertThat(proxies).hasSize(1);
+              var proxy = proxies.getFirst();
+              assertThat(proxy.type()).isEqualTo(Proxy.Type.HTTP);
+              assertThat(proxy.address().toString()).contains("plain-proxy.example.com");
+              assertThat(proxy.address().toString()).contains("9090");
+            });
+  }
+
+  @Test
+  void shouldFallBackToStandardProxy_whenPlainNotSet() throws Exception {
+    withEnvironmentVariables(
+            "CONNECTOR_HTTP_PROXY_HOST", "standard-proxy.example.com",
+            "CONNECTOR_HTTP_PROXY_PORT", "8080")
+        .execute(
+            () -> {
+              var config = new ProxyConfiguration(true);
+              var selector = new JdkProxySelector(config);
+              var proxies = selector.select(URI.create("http://target.com"));
+
+              assertThat(proxies).hasSize(1);
+              var proxy = proxies.getFirst();
+              assertThat(proxy.type()).isEqualTo(Proxy.Type.HTTP);
+              assertThat(proxy.address().toString()).contains("standard-proxy.example.com");
+              assertThat(proxy.address().toString()).contains("8080");
+            });
+  }
+
+  @Test
+  void shouldSkipPlainProxy_whenHostMatchesNonProxyHosts() throws Exception {
+    withEnvironmentVariables(
+            "CONNECTOR_HTTP_PLAIN_PROXY_HOST", "plain-proxy.example.com",
+            "CONNECTOR_HTTP_PLAIN_PROXY_PORT", "9090",
+            "CONNECTOR_HTTP_NON_PROXY_HOSTS", "*.internal.com|localhost")
+        .execute(
+            () -> {
+              var config = new ProxyConfiguration(true);
+              var selector = new JdkProxySelector(config);
+
+              assertThat(selector.select(URI.create("http://api.internal.com")).getFirst().type())
+                  .isEqualTo(Proxy.Type.DIRECT);
+              assertThat(selector.select(URI.create("http://localhost")).getFirst().type())
+                  .isEqualTo(Proxy.Type.DIRECT);
+
               assertThat(selector.select(URI.create("http://external.com")).getFirst().type())
                   .isEqualTo(Proxy.Type.HTTP);
             });
