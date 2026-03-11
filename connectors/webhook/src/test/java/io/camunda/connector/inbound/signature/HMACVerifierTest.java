@@ -7,13 +7,12 @@
 package io.camunda.connector.inbound.signature;
 
 import static io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice.sha_256;
+import static io.camunda.connector.inbound.utils.HttpWebhookUtil.HEADER_CONTENT_TYPE;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.google.common.net.HttpHeaders;
-import com.google.common.net.MediaType;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.inbound.model.HMACScope;
@@ -34,8 +33,8 @@ class HMACVerifierTest {
     when(payload.headers())
         .thenReturn(
             Map.of(
-                HttpHeaders.CONTENT_TYPE,
-                MediaType.JSON_UTF_8.toString(),
+                HEADER_CONTENT_TYPE,
+                "application/json",
                 "X-HMAC-Sig",
                 "fa431d91a69beb76186b3b082c5bb87bab0702769d65761af2361cbf3a17cc09"));
     when(payload.rawBody()).thenReturn("{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
@@ -52,11 +51,7 @@ class HMACVerifierTest {
     when(payload.method()).thenReturn(HttpMethods.post.name());
     when(payload.headers())
         .thenReturn(
-            Map.of(
-                HttpHeaders.CONTENT_TYPE,
-                MediaType.JSON_UTF_8.toString(),
-                "X-HMAC-Sig",
-                "invalidSignature123"));
+            Map.of(HEADER_CONTENT_TYPE, "application/json", "X-HMAC-Sig", "invalidSignature123"));
     when(payload.rawBody()).thenReturn("{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
 
     assertThatThrownBy(() -> verifier.verifySignature(payload))

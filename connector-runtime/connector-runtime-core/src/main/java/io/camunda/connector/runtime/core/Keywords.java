@@ -130,6 +130,28 @@ public class Keywords {
   public static final String OPERATION_ID_KEYWORD = "operation";
 
   /**
+   * The keyword that controls whether an inbound connector responds synchronously.
+   *
+   * <p>The exact behavior depends on the correlation point type:
+   *
+   * <ul>
+   *   <li><b>Start event</b>: waits for the created process instance to complete and returns its
+   *       result variables (via {@code createProcessInstanceWithResult}).
+   *   <li><b>Message start event / intermediate message catch event / boundary event</b>: waits for
+   *       the message to be correlated and returns the correlated process instance key (via {@code
+   *       newCorrelateMessageCommand}). Note that this does <em>not</em> wait for the process
+   *       instance to complete.
+   * </ul>
+   *
+   * <p>When set to {@code false} (the default), the connector uses fire-and-forget semantics for
+   * both cases ({@code createProcessInstance} / {@code publishMessage}).
+   *
+   * <p>This value only exists for inbound Connectors and comes from the extension properties of a
+   * BPMN element.
+   */
+  public static final String SYNCHRONOUS_RESPONSE = "synchronousResponse";
+
+  /**
    * Properties that are handled by the connector runtime and should not be passed to the inbound
    * connector along with the properties defined by the connector.
    */
@@ -143,7 +165,8 @@ public class Keywords {
           DEPRECATED_ACTIVATION_CONDITION_KEYWORD,
           ACTIVATION_CONDITION_KEYWORD,
           CONSUME_UNMATCHED_EVENTS_KEYWORD,
-          MESSAGE_TTL);
+          MESSAGE_TTL,
+          SYNCHRONOUS_RESPONSE);
 
   /**
    * Subset of {@link #INBOUND_RUNTIME_PROPERTIES} that should not be used for connector
@@ -163,5 +186,6 @@ public class Keywords {
           DEDUPLICATION_MODE_MANUAL_FLAG_KEYWORD,
           RESULT_EXPRESSION_KEYWORD,
           RESULT_VARIABLE_KEYWORD,
-          CONSUME_UNMATCHED_EVENTS_KEYWORD);
+          CONSUME_UNMATCHED_EVENTS_KEYWORD,
+          SYNCHRONOUS_RESPONSE);
 }

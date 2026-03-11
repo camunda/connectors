@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.inbound.utils;
 
-import com.google.common.net.HttpHeaders;
-import com.google.common.net.MediaType;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -21,17 +19,21 @@ import java.util.stream.Collectors;
 
 public class HttpWebhookUtil {
 
+  public static final String FORM_DATA_CONTENT_TYPE = "application/x-www-form-urlencoded";
+  public static final String HEADER_CONTENT_TYPE = "Content-Type";
+  public static final String HEADER_AUTHORIZATION = "Authorization";
+
   public static String extractContentType(Map<String, String> headers) {
     var caseInsensitiveMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
     caseInsensitiveMap.putAll(headers);
-    return caseInsensitiveMap.getOrDefault(HttpHeaders.CONTENT_TYPE, "").toString();
+    return caseInsensitiveMap.getOrDefault(HEADER_CONTENT_TYPE, "").toString();
   }
 
   public static Object transformRawBodyToObject(byte[] rawBody, String contentTypeHeader) {
     if (rawBody == null || rawBody.length == 0) {
       return Collections.emptyMap();
     }
-    if (MediaType.FORM_DATA.toString().equalsIgnoreCase(contentTypeHeader)) {
+    if (FORM_DATA_CONTENT_TYPE.equalsIgnoreCase(contentTypeHeader)) {
       String bodyAsString =
           URLDecoder.decode(new String(rawBody, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
       return Arrays.stream(bodyAsString.split("&"))

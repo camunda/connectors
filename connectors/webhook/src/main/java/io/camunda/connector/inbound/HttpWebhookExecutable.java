@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.webhook",
     name = "Webhook Connector",
     icon = "icon.svg",
-    version = 13,
+    version = 14,
     inputDataClass = WebhookConnectorPropertiesWrapper.class,
     description = "Configure webhook to receive callbacks",
     documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
@@ -58,6 +58,11 @@ import org.slf4j.LoggerFactory;
           elementType = BpmnType.MESSAGE_START_EVENT,
           templateIdOverride = "io.camunda.connectors.webhook.WebhookConnectorStartMessage.v1",
           templateNameOverride = "Webhook Message Start Event Connector"),
+      @ConnectorElementType(
+          appliesTo = BpmnType.START_EVENT,
+          elementType = BpmnType.START_EVENT,
+          templateIdOverride = "io.camunda.connectors.webhook.WebhookConnector.v1",
+          templateNameOverride = "Webhook Start Event Connector"),
       @ConnectorElementType(
           appliesTo = {BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT},
           elementType = BpmnType.INTERMEDIATE_CATCH_EVENT,

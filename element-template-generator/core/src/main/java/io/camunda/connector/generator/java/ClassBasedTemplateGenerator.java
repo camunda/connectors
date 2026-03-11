@@ -244,13 +244,21 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
         newGroups.add(PropertyGroup.ACTIVATION_GROUP);
       }
 
+      boolean syncResponseEnabled =
+          configuration.features().get(GenerationFeature.SYNCHRONOUS_RESPONSE) == Boolean.TRUE;
+
+      if (syncResponseEnabled) {
+        newGroups.add(PropertyGroup.SYNCHRONOUS_RESPONSE_GROUP);
+      }
+
       if (elementType.elementType().equals(BpmnType.MESSAGE_START_EVENT)) {
-        newGroups.add(PropertyGroup.CORRELATION_GROUP_MESSAGE_START_EVENT);
+        newGroups.add(PropertyGroup.correlationGroupMessageStartEvent(syncResponseEnabled));
       } else if (elementType.elementType().equals(BpmnType.INTERMEDIATE_CATCH_EVENT)
           || elementType.elementType().equals(BpmnType.BOUNDARY_EVENT)
           || elementType.elementType().equals(BpmnType.RECEIVE_TASK)) {
         newGroups.add(
-            PropertyGroup.CORRELATION_GROUP_INTERMEDIATE_CATCH_EVENT_OR_BOUNDARY_OR_RECEIVE);
+            PropertyGroup.correlationGroupIntermediateCatchEventOrBoundaryOrReceive(
+                syncResponseEnabled));
       }
       if (configuration.features().get(GenerationFeature.INBOUND_DEDUPLICATION) == Boolean.TRUE) {
         newGroups.add(PropertyGroup.DEDUPLICATION_GROUP);

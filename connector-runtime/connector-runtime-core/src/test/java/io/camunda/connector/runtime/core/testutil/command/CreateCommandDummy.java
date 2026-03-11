@@ -20,8 +20,10 @@ import io.camunda.client.api.CamundaFuture;
 import io.camunda.client.api.command.CreateProcessInstanceCommandStep1;
 import io.camunda.client.api.command.FinalCommandStep;
 import io.camunda.client.api.response.ProcessInstanceEvent;
+import io.camunda.client.api.response.ProcessInstanceResult;
 import io.camunda.client.impl.CamundaClientFutureImpl;
 import io.camunda.connector.runtime.core.testutil.response.ProcessInstanceEventDummy;
+import io.camunda.connector.runtime.core.testutil.response.ProcessInstanceResultDummy;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.Map;
@@ -31,6 +33,16 @@ public class CreateCommandDummy
     implements CreateProcessInstanceCommandStep1,
         CreateProcessInstanceCommandStep1.CreateProcessInstanceCommandStep2,
         CreateProcessInstanceCommandStep1.CreateProcessInstanceCommandStep3 {
+
+  private final Map<String, Object> variables;
+
+  public CreateCommandDummy() {
+    this.variables = Map.of();
+  }
+
+  public CreateCommandDummy(Map<String, Object> variables) {
+    this.variables = variables;
+  }
 
   public CreateProcessInstanceCommandStep2 bpmnProcessId(String bpmnProcessId) {
     return this;
@@ -74,8 +86,60 @@ public class CreateCommandDummy
   }
 
   public CreateProcessInstanceWithResultCommandStep1 withResult() {
-    throw new UnsupportedOperationException(
-        "This method is not supported in the dummy implementation.");
+    return new WithResultCommandDummy(variables);
+  }
+
+  public static class WithResultCommandDummy
+      implements CreateProcessInstanceWithResultCommandStep1 {
+
+    private final Map<String, Object> variables;
+
+    public WithResultCommandDummy(Map<String, Object> variables) {
+      this.variables = variables;
+    }
+
+    public WithResultCommandDummy() {
+      this.variables = Map.of();
+    }
+
+    @Override
+    public CreateProcessInstanceWithResultCommandStep1 tenantId(String tenantId) {
+      return this;
+    }
+
+    @Override
+    public CreateProcessInstanceWithResultCommandStep1 fetchVariables(String... fetchVariables) {
+      return this;
+    }
+
+    @Override
+    public CreateProcessInstanceWithResultCommandStep1 fetchVariables(
+        java.util.List<String> fetchVariables) {
+      return this;
+    }
+
+    @Override
+    public FinalCommandStep<ProcessInstanceResult> requestTimeout(Duration requestTimeout) {
+      return this;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    @Override
+    public CamundaFuture<ProcessInstanceResult> send() {
+      CamundaClientFutureImpl future = new CamundaClientFutureImpl<>();
+      future.complete(new ProcessInstanceResultDummy(variables));
+      return future;
+    }
+
+    @Override
+    public CreateProcessInstanceWithResultCommandStep1 useRest() {
+      return this;
+    }
+
+    @Override
+    public CreateProcessInstanceWithResultCommandStep1 useGrpc() {
+      return this;
+    }
   }
 
   @Override

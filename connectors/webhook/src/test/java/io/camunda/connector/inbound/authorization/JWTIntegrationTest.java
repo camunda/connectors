@@ -31,7 +31,6 @@ import io.camunda.connector.inbound.HttpWebhookExecutable;
 import io.camunda.connector.inbound.utils.TestRSAKeyProvider;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.test.inbound.InboundConnectorContextBuilder;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -190,8 +189,7 @@ public class JWTIntegrationTest {
     // then
     Throwable thrown = catchThrowable(() -> httpWebhookExecutable.triggerWebhook(payload));
     assertThat(thrown).isInstanceOf(WebhookConnectorException.class);
-    assertThat(((WebhookConnectorException) thrown).getStatusCode())
-        .isEqualTo(HttpResponseStatus.FORBIDDEN.code());
+    assertThat(((WebhookConnectorException) thrown).getStatusCode()).isEqualTo(403);
   }
 
   @Test
@@ -226,8 +224,7 @@ public class JWTIntegrationTest {
     // then
     Throwable thrown = catchThrowable(() -> httpWebhookExecutable.triggerWebhook(payload));
     assertThat(thrown).isInstanceOf(WebhookConnectorException.class);
-    assertThat(((WebhookConnectorException) thrown).getStatusCode())
-        .isEqualTo(HttpResponseStatus.UNAUTHORIZED.code());
+    assertThat(((WebhookConnectorException) thrown).getStatusCode()).isEqualTo(401);
   }
 
   @Test

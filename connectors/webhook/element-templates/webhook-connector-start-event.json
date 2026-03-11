@@ -7,13 +7,10 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
-  "version" : 13,
+  "version" : 14,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
-  },
-  "deprecated": {
-    "message": "Migrate to Webhook Message Start Event Connector"
   },
   "appliesTo" : [ "bpmn:StartEvent" ],
   "elementType" : {
@@ -37,6 +34,9 @@
   }, {
     "id" : "activation",
     "label" : "Activation"
+  }, {
+    "id" : "synchronousResponse",
+    "label" : "Response mode"
   }, {
     "id" : "deduplication",
     "label" : "Deduplication",
@@ -389,6 +389,25 @@
     },
     "tooltip" : "Unmatched events are rejected by default, allowing the upstream service to handle the error. Check this box to consume unmatched events and return a success response",
     "type" : "Boolean"
+  }, {
+    "id" : "synchronousResponse",
+    "label" : "Response mode",
+    "description" : "Synchronous or Asynchronous <a href=\"https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#response-mode\" target=\"_blank\">response handling</a>",
+    "value" : "false",
+    "group" : "synchronousResponse",
+    "binding" : {
+      "name" : "synchronousResponse",
+      "type" : "zeebe:property"
+    },
+    "tooltip" : "Select synchronous to wait for the result of the correlation. This is either the result of the created process or the process instance key that matched the correlated message subscription. Select asynchronous to trigger the correlation and return immediately without waiting for a result. This affects the data available in the <a href=\"https://docs.camunda.io/docs/components/connectors/connectors/protocol/http-webhook/#use-the-correlation-object\">correlation</a> object for the response expression.",
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Asynchronous",
+      "value" : "false"
+    }, {
+      "name" : "Synchronous",
+      "value" : "true"
+    } ]
   }, {
     "id" : "deduplicationModeManualFlag",
     "label" : "Manual mode",

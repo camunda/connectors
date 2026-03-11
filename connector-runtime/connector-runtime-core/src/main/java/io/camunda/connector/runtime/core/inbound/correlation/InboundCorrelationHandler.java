@@ -19,7 +19,9 @@ package io.camunda.connector.runtime.core.inbound.correlation;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientStatusException;
+import io.camunda.client.api.response.CorrelateMessageResponse;
 import io.camunda.client.api.response.ProcessInstanceEvent;
+import io.camunda.client.api.response.ProcessInstanceResult;
 import io.camunda.client.api.response.PublishMessageResponse;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
@@ -122,9 +124,18 @@ public class InboundCorrelationHandler {
       InboundConnectorElement activatedElement,
       StartEventCorrelationPoint correlationPoint,
       Object variables) {
-
     Object extractedVariables = extractVariables(variables, activatedElement);
+    if (activatedElement.synchronousResponse()) {
+      return triggerStartEventWithResult(activatedElement, correlationPoint, extractedVariables);
+    } else {
+      return triggerStartEventWithoutResult(activatedElement, correlationPoint, extractedVariables);
+    }
+  }
 
+  private CorrelationResult triggerStartEventWithoutResult(
+      InboundConnectorElement activatedElement,
+      StartEventCorrelationPoint correlationPoint,
+      Object extractedVariables) {
     try {
       ProcessInstanceEvent result =
           camundaClient
@@ -141,7 +152,41 @@ public class InboundCorrelationHandler {
           activatedElement.element(), result.getProcessInstanceKey(), result.getTenantId());
 
     } catch (ClientStatusException e1) {
-      LOG.info("Failed to publish message: ", e1);
+      LOG.info("Failed to create process instance: ", e1);
+      return new CorrelationResult.Failure.ZeebeClientStatus(
+          e1.getStatus().getCode().name(), e1.getMessage());
+    } catch (Throwable e2) {
+      return new Other(e2);
+    }
+  }
+
+  private CorrelationResult triggerStartEventWithResult(
+      InboundConnectorElement activatedElement,
+      StartEventCorrelationPoint correlationPoint,
+      Object extractedVariables) {
+    try {
+      ProcessInstanceResult result =
+          camundaClient
+              .newCreateInstanceCommand()
+              .bpmnProcessId(correlationPoint.bpmnProcessId())
+              .version(correlationPoint.version())
+              .tenantId(activatedElement.tenantId())
+              .variables(extractedVariables)
+              .withResult()
+              .send()
+              .join();
+
+      LOG.info(
+          "Created a process instance with key {} synchronously, received result variables",
+          result.getProcessInstanceKey());
+      return new CorrelationResult.Success.ProcessInstanceCreatedWithResult(
+          activatedElement.element(),
+          result.getProcessInstanceKey(),
+          result.getTenantId(),
+          result.getVariablesAsMap());
+
+    } catch (ClientStatusException e1) {
+      LOG.info("Failed to create process instance with result: ", e1);
       return new CorrelationResult.Failure.ZeebeClientStatus(
           e1.getStatus().getCode().name(), e1.getMessage());
     } catch (Throwable e2) {
@@ -157,6 +202,12 @@ public class InboundCorrelationHandler {
 
     var correlationKey =
         extractCorrelationKey(correlationPoint.correlationKeyExpression(), variables);
+
+    if (activatedElement.synchronousResponse()) {
+      return correlateMessageSynchronously(
+          activatedElement, correlationPoint.messageName(), variables, correlationKey.orElse(""));
+    }
+
     return publishMessage(
         activatedElement,
         correlationPoint.messageName(),
@@ -179,6 +230,11 @@ public class InboundCorrelationHandler {
           "Wasn't able to obtain correlation key for expression " + correlationKeyExpression, null);
     }
 
+    if (activatedElement.synchronousResponse()) {
+      return correlateMessageSynchronously(
+          activatedElement, correlationPoint.messageName(), variables, correlationKey.get());
+    }
+
     return publishMessage(
         activatedElement,
         correlationPoint.messageName(),
@@ -186,6 +242,44 @@ public class InboundCorrelationHandler {
         messageId,
         correlationPoint.timeToLive(),
         correlationKey.get());
+  }
+
+  /**
+   * Correlates a message synchronously using {@code newCorrelateMessageCommand}, waiting for the
+   * message to be correlated before returning. Returns a {@link
+   * CorrelationResult.Success.MessageCorrelated} with the process instance key on success.
+   */
+  private CorrelationResult correlateMessageSynchronously(
+      InboundConnectorElement activatedElement,
+      String messageName,
+      Object variables,
+      String correlationKey) {
+    Object extractedVariables = extractVariables(variables, activatedElement);
+    try {
+      var step2 = camundaClient.newCorrelateMessageCommand().messageName(messageName);
+      var step3 =
+          correlationKey.isBlank()
+              ? step2.withoutCorrelationKey()
+              : step2.correlationKey(correlationKey);
+      step3.variables(extractedVariables).tenantId(activatedElement.tenantId());
+      CorrelateMessageResponse response = step3.send().join();
+
+      LOG.info(
+          "Correlated message synchronously, process instance key: {}",
+          response.getProcessInstanceKey());
+      return new CorrelationResult.Success.MessageCorrelated(
+          activatedElement.element(),
+          response.getProcessInstanceKey(),
+          response.getMessageKey(),
+          response.getTenantId());
+
+    } catch (ClientStatusException ex) {
+      LOG.info("Failed to correlate message synchronously: {}", ex.getMessage());
+      return new CorrelationResult.Failure.ZeebeClientStatus(
+          ex.getStatus().getCode().name(), ex.getMessage());
+    } catch (Exception ex) {
+      return new Failure.Other(ex);
+    }
   }
 
   private CorrelationResult publishMessage(
@@ -222,7 +316,7 @@ public class InboundCorrelationHandler {
         result = new MessageAlreadyCorrelated(activatedElement.element());
         LOG.debug("Message already correlated: {}", ex.getMessage());
       } else {
-        LOG.info("Failed to publish message: ", ex);
+        LOG.info("Failed to publish message: {}", ex.getMessage());
         result =
             new CorrelationResult.Failure.ZeebeClientStatus(
                 ex.getStatus().getCode().name(), ex.getMessage());
