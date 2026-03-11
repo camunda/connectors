@@ -274,10 +274,6 @@ public class InboundCorrelationHandler {
           response.getTenantId());
 
     } catch (ClientStatusException ex) {
-      if (Status.ALREADY_EXISTS.getCode().equals(ex.getStatus().getCode())) {
-        LOG.debug("Message already correlated: {}", ex.getMessage());
-        return new MessageAlreadyCorrelated(activatedElement.element());
-      }
       LOG.info("Failed to correlate message synchronously: {}", ex.getMessage());
       return new CorrelationResult.Failure.ZeebeClientStatus(
           ex.getStatus().getCode().name(), ex.getMessage());
