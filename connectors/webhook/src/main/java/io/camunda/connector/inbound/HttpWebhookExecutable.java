@@ -46,6 +46,12 @@ import org.slf4j.LoggerFactory;
     inputDataClass = WebhookConnectorPropertiesWrapper.class,
     description = "Configure webhook to receive callbacks",
     documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
+    defaultResultExpression =
+        "{\n"
+            + "  myRequestBody: request.body\n"
+            + "  // Use FEEL to extract values, e.g.,:\n"
+            + "  // myMessage: request.body.message\n"
+            + "}",
     propertyGroups = {
       @PropertyGroup(id = "endpoint", label = "Webhook configuration"),
       @PropertyGroup(id = "authentication", label = "Authentication"),
