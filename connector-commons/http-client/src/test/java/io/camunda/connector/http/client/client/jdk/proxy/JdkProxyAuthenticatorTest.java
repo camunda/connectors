@@ -17,270 +17,101 @@
 package io.camunda.connector.http.client.client.jdk.proxy;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static uk.org.webcompere.systemstubs.SystemStubs.withEnvironmentVariables;
 
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration.ProxyDetails;
 import java.net.Authenticator;
 import java.net.InetAddress;
 import java.net.PasswordAuthentication;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 public class JdkProxyAuthenticatorTest {
 
   @Test
-  void shouldReturnCredentials_whenProxyAuthConfigured() throws Exception {
-    withEnvironmentVariables(
-            "CONNECTOR_HTTP_PROXY_HOST", "proxy.example.com",
-            "CONNECTOR_HTTP_PROXY_PORT", "8080",
-            "CONNECTOR_HTTP_PROXY_USER", "proxyuser",
-            "CONNECTOR_HTTP_PROXY_PASSWORD", "proxypass")
-        .execute(
-            () -> {
-              var config = new ProxyConfiguration();
-              var authenticator = new JdkProxyAuthenticator(config);
-              var auth = requestAuthentication(authenticator, "http", "proxy.example.com", 8080);
+  void shouldReturnCredentials_whenHttpProxyAuthConfigured() throws Exception {
+    var config =
+        configWith(
+            "http", new ProxyDetails("http", "proxy.example.com", 8080, "proxyuser", "proxypass"));
+    var authenticator = new JdkProxyAuthenticator(config);
+    var auth = requestAuthentication(authenticator, "http", "proxy.example.com", 8080);
 
-              assertThat(auth).isNotNull();
-              assertThat(auth.getUserName()).isEqualTo("proxyuser");
-              assertThat(new String(auth.getPassword())).isEqualTo("proxypass");
-            });
+    assertThat(auth).isNotNull();
+    assertThat(auth.getUserName()).isEqualTo("proxyuser");
+    assertThat(new String(auth.getPassword())).isEqualTo("proxypass");
+  }
+
+  @Test
+  void shouldReturnCredentials_whenHttpsProxyAuthConfigured() throws Exception {
+    var config =
+        configWith(
+            "https",
+            new ProxyDetails("http", "secure-proxy.example.com", 3128, "httpsuser", "httpspass"));
+    var authenticator = new JdkProxyAuthenticator(config);
+    var auth = requestAuthentication(authenticator, "https", "secure-proxy.example.com", 3128);
+
+    assertThat(auth).isNotNull();
+    assertThat(auth.getUserName()).isEqualTo("httpsuser");
+    assertThat(new String(auth.getPassword())).isEqualTo("httpspass");
   }
 
   @Test
   void shouldReturnNull_whenNoCredentialsConfigured() throws Exception {
-    withEnvironmentVariables(
-            "CONNECTOR_HTTP_PROXY_HOST", "proxy.example.com",
-            "CONNECTOR_HTTP_PROXY_PORT", "8080")
-        .execute(
-            () -> {
-              var config = new ProxyConfiguration();
-              var authenticator = new JdkProxyAuthenticator(config);
-              var auth = requestAuthentication(authenticator, "http", "proxy.example.com", 8080);
+    var config =
+        configWith("http", new ProxyDetails("http", "proxy.example.com", 8080, null, null));
+    var authenticator = new JdkProxyAuthenticator(config);
+    var auth = requestAuthentication(authenticator, "http", "proxy.example.com", 8080);
 
-              assertThat(auth).isNull();
-            });
+    assertThat(auth).isNull();
+  }
+
+  @Test
+  void shouldReturnNull_whenNoProxyConfigured() throws Exception {
+    var authenticator = new JdkProxyAuthenticator(ProxyConfiguration.NONE);
+    var auth = requestAuthentication(authenticator, "http", "proxy.example.com", 8080);
+
+    assertThat(auth).isNull();
   }
 
   @Test
   void shouldReturnNull_whenNotProxyRequest() throws Exception {
-    withEnvironmentVariables(
-            "CONNECTOR_HTTP_PROXY_HOST", "proxy.example.com",
-            "CONNECTOR_HTTP_PROXY_PORT", "8080",
-            "CONNECTOR_HTTP_PROXY_USER", "proxyuser",
-            "CONNECTOR_HTTP_PROXY_PASSWORD", "proxypass")
-        .execute(
-            () -> {
-              var config = new ProxyConfiguration();
-              var authenticator = new JdkProxyAuthenticator(config);
-              var auth =
-                  requestAuthentication(
-                      authenticator,
-                      "http",
-                      "proxy.example.com",
-                      8080,
-                      Authenticator.RequestorType.SERVER);
+    var config =
+        configWith(
+            "http", new ProxyDetails("http", "proxy.example.com", 8080, "proxyuser", "proxypass"));
+    var authenticator = new JdkProxyAuthenticator(config);
+    var auth =
+        requestAuthentication(
+            authenticator, "http", "proxy.example.com", 8080, Authenticator.RequestorType.SERVER);
 
-              assertThat(auth).isNull();
-            });
-  }
-
-  @Test
-  void shouldReturnHttpsCredentials_forHttpsProtocol() throws Exception {
-    withEnvironmentVariables(
-            "CONNECTOR_HTTPS_PROXY_HOST", "secure-proxy.example.com",
-            "CONNECTOR_HTTPS_PROXY_PORT", "3128",
-            "CONNECTOR_HTTPS_PROXY_USER", "httpsuser",
-            "CONNECTOR_HTTPS_PROXY_PASSWORD", "httpspass")
-        .execute(
-            () -> {
-              var config = new ProxyConfiguration();
-              var authenticator = new JdkProxyAuthenticator(config);
-              var auth =
-                  requestAuthentication(authenticator, "https", "secure-proxy.example.com", 3128);
-
-              assertThat(auth).isNotNull();
-              assertThat(auth.getUserName()).isEqualTo("httpsuser");
-              assertThat(new String(auth.getPassword())).isEqualTo("httpspass");
-            });
+    assertThat(auth).isNull();
   }
 
   @Test
   void shouldHandleProtocolWithVersion() throws Exception {
-    withEnvironmentVariables(
-            "CONNECTOR_HTTP_PROXY_HOST", "proxy.example.com",
-            "CONNECTOR_HTTP_PROXY_PORT", "8080",
-            "CONNECTOR_HTTP_PROXY_USER", "proxyuser",
-            "CONNECTOR_HTTP_PROXY_PASSWORD", "proxypass")
-        .execute(
-            () -> {
-              var config = new ProxyConfiguration();
-              var authenticator = new JdkProxyAuthenticator(config);
-              // JDK Authenticator may return protocol with version like "http/1.1"
-              var auth =
-                  requestAuthentication(authenticator, "http/1.1", "proxy.example.com", 8080);
+    var config =
+        configWith(
+            "http", new ProxyDetails("http", "proxy.example.com", 8080, "proxyuser", "proxypass"));
+    var authenticator = new JdkProxyAuthenticator(config);
+    var auth = requestAuthentication(authenticator, "http/1.1", "proxy.example.com", 8080);
 
-              assertThat(auth).isNotNull();
-              assertThat(auth.getUserName()).isEqualTo("proxyuser");
-            });
+    assertThat(auth).isNotNull();
+    assertThat(auth.getUserName()).isEqualTo("proxyuser");
   }
 
   @Test
-  void shouldReturnCredentials_whenPlainProxyAuthConfigured() throws Exception {
-    withEnvironmentVariables(
-            "CONNECTOR_HTTP_PLAIN_PROXY_HOST", "plain-proxy.example.com",
-            "CONNECTOR_HTTP_PLAIN_PROXY_PORT", "9090",
-            "CONNECTOR_HTTP_PLAIN_PROXY_USER", "plainuser",
-            "CONNECTOR_HTTP_PLAIN_PROXY_PASSWORD", "plainpass")
-        .execute(
-            () -> {
-              var config = new ProxyConfiguration(true);
-              var authenticator = new JdkProxyAuthenticator(config);
-              var auth =
-                  requestAuthentication(authenticator, "http", "plain-proxy.example.com", 9090);
+  void shouldReturnNull_whenProtocolDoesNotMatch() throws Exception {
+    var config =
+        configWith("https", new ProxyDetails("http", "proxy.example.com", 3128, "user", "pass"));
+    var authenticator = new JdkProxyAuthenticator(config);
+    var auth = requestAuthentication(authenticator, "http", "proxy.example.com", 8080);
 
-              assertThat(auth).isNotNull();
-              assertThat(auth.getUserName()).isEqualTo("plainuser");
-              assertThat(new String(auth.getPassword())).isEqualTo("plainpass");
-            });
+    assertThat(auth).isNull();
   }
 
-  @Test
-  void shouldPreferPlainCredentials_overStandardCredentials() throws Exception {
-    withEnvironmentVariables(
-            "CONNECTOR_HTTP_PLAIN_PROXY_HOST", "plain-proxy.example.com",
-            "CONNECTOR_HTTP_PLAIN_PROXY_PORT", "9090",
-            "CONNECTOR_HTTP_PLAIN_PROXY_USER", "plainuser",
-            "CONNECTOR_HTTP_PLAIN_PROXY_PASSWORD", "plainpass",
-            "CONNECTOR_HTTP_PROXY_HOST", "standard-proxy.example.com",
-            "CONNECTOR_HTTP_PROXY_PORT", "8080",
-            "CONNECTOR_HTTP_PROXY_USER", "standarduser",
-            "CONNECTOR_HTTP_PROXY_PASSWORD", "standardpass")
-        .execute(
-            () -> {
-              var config = new ProxyConfiguration(true);
-              var authenticator = new JdkProxyAuthenticator(config);
-              var auth =
-                  requestAuthentication(authenticator, "http", "plain-proxy.example.com", 9090);
-
-              assertThat(auth).isNotNull();
-              assertThat(auth.getUserName()).isEqualTo("plainuser");
-              assertThat(new String(auth.getPassword())).isEqualTo("plainpass");
-            });
+  private static ProxyConfiguration configWith(String protocol, ProxyDetails details) {
+    return p -> p.equals(protocol) ? Optional.of(details) : Optional.empty();
   }
 
-  @Test
-  void shouldFallBackToStandardCredentials_whenPlainNotSet() throws Exception {
-    withEnvironmentVariables(
-            "CONNECTOR_HTTP_PROXY_HOST", "proxy.example.com",
-            "CONNECTOR_HTTP_PROXY_PORT", "8080",
-            "CONNECTOR_HTTP_PROXY_USER", "standarduser",
-            "CONNECTOR_HTTP_PROXY_PASSWORD", "standardpass")
-        .execute(
-            () -> {
-              var config = new ProxyConfiguration(true);
-              var authenticator = new JdkProxyAuthenticator(config);
-              var auth = requestAuthentication(authenticator, "http", "proxy.example.com", 8080);
-
-              assertThat(auth).isNotNull();
-              assertThat(auth.getUserName()).isEqualTo("standarduser");
-              assertThat(new String(auth.getPassword())).isEqualTo("standardpass");
-            });
-  }
-
-  @Test
-  void shouldReturnNull_whenPlainProxyConfiguredWithoutCredentials() throws Exception {
-    withEnvironmentVariables(
-            "CONNECTOR_HTTP_PLAIN_PROXY_HOST", "plain-proxy.example.com",
-            "CONNECTOR_HTTP_PLAIN_PROXY_PORT", "9090")
-        .execute(
-            () -> {
-              var config = new ProxyConfiguration(true);
-              var authenticator = new JdkProxyAuthenticator(config);
-              var auth =
-                  requestAuthentication(authenticator, "http", "plain-proxy.example.com", 9090);
-
-              assertThat(auth).isNull();
-            });
-  }
-
-  @Test
-  void shouldReturnNull_whenPlainProxyConfiguredButNotProxyRequest() throws Exception {
-    withEnvironmentVariables(
-            "CONNECTOR_HTTP_PLAIN_PROXY_HOST", "plain-proxy.example.com",
-            "CONNECTOR_HTTP_PLAIN_PROXY_PORT", "9090",
-            "CONNECTOR_HTTP_PLAIN_PROXY_USER", "plainuser",
-            "CONNECTOR_HTTP_PLAIN_PROXY_PASSWORD", "plainpass")
-        .execute(
-            () -> {
-              var config = new ProxyConfiguration(true);
-              var authenticator = new JdkProxyAuthenticator(config);
-              var auth =
-                  requestAuthentication(
-                      authenticator,
-                      "http",
-                      "plain-proxy.example.com",
-                      9090,
-                      Authenticator.RequestorType.SERVER);
-
-              assertThat(auth).isNull();
-            });
-  }
-
-  @Test
-  void shouldReturnPlainHttpsCredentials_forHttpsProtocol() throws Exception {
-    withEnvironmentVariables(
-            "CONNECTOR_HTTPS_PLAIN_PROXY_HOST", "plain-secure-proxy.example.com",
-            "CONNECTOR_HTTPS_PLAIN_PROXY_PORT", "3129",
-            "CONNECTOR_HTTPS_PLAIN_PROXY_USER", "httpsuser",
-            "CONNECTOR_HTTPS_PLAIN_PROXY_PASSWORD", "httpspass")
-        .execute(
-            () -> {
-              var config = new ProxyConfiguration(true);
-              var authenticator = new JdkProxyAuthenticator(config);
-              var auth =
-                  requestAuthentication(
-                      authenticator, "https", "plain-secure-proxy.example.com", 3129);
-
-              assertThat(auth).isNotNull();
-              assertThat(auth.getUserName()).isEqualTo("httpsuser");
-              assertThat(new String(auth.getPassword())).isEqualTo("httpspass");
-            });
-  }
-
-  @Test
-  void shouldHandleProtocolWithVersion_withPlainProxy() throws Exception {
-    withEnvironmentVariables(
-            "CONNECTOR_HTTP_PLAIN_PROXY_HOST", "plain-proxy.example.com",
-            "CONNECTOR_HTTP_PLAIN_PROXY_PORT", "9090",
-            "CONNECTOR_HTTP_PLAIN_PROXY_USER", "plainuser",
-            "CONNECTOR_HTTP_PLAIN_PROXY_PASSWORD", "plainpass")
-        .execute(
-            () -> {
-              var config = new ProxyConfiguration(true);
-              var authenticator = new JdkProxyAuthenticator(config);
-              var auth =
-                  requestAuthentication(authenticator, "http/1.1", "plain-proxy.example.com", 9090);
-
-              assertThat(auth).isNotNull();
-              assertThat(auth.getUserName()).isEqualTo("plainuser");
-            });
-  }
-
-  @Test
-  void shouldNormalizeProtocol() {
-    assertThat(ProtocolNormalizer.normalize("http")).isEqualTo("http");
-    assertThat(ProtocolNormalizer.normalize("https")).isEqualTo("https");
-    assertThat(ProtocolNormalizer.normalize("http/1.1")).isEqualTo("http");
-    assertThat(ProtocolNormalizer.normalize("HTTP/1.1")).isEqualTo("http");
-    assertThat(ProtocolNormalizer.normalize("HTTPS")).isEqualTo("https");
-    assertThat(ProtocolNormalizer.normalize(null)).isNull();
-  }
-
-  /**
-   * Simulates the JDK calling getPasswordAuthentication() on the Authenticator by using the
-   * package-private requestPasswordAuthenticationInstance method via
-   * Authenticator.requestPasswordAuthentication.
-   */
   private PasswordAuthentication requestAuthentication(
       Authenticator authenticator, String protocol, String host, int port) throws Exception {
     return requestAuthentication(

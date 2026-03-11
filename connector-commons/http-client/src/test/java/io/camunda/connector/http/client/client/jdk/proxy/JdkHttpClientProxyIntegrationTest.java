@@ -24,7 +24,7 @@ import static uk.org.webcompere.systemstubs.SystemStubs.restoreSystemProperties;
 import static uk.org.webcompere.systemstubs.SystemStubs.withEnvironmentVariables;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
-import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import io.camunda.connector.test.utils.DockerImages;
 import java.io.IOException;
 import java.net.URI;
@@ -119,7 +119,8 @@ public class JdkHttpClientProxyIntegrationTest {
                         get("/protected").willReturn(ok().withBody("Hello, world!")));
 
                     var client =
-                        JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration());
+                        JdkHttpClientProxyConfigurator.newHttpClient(
+                            new EnvironmentProxyConfiguration());
                     var request =
                         HttpRequest.newBuilder()
                             .uri(URI.create(getWireMockUrl("/protected")))
@@ -165,7 +166,8 @@ public class JdkHttpClientProxyIntegrationTest {
                     wireMockTarget.stubFor(get(path).willReturn(ok().withBody("Success!")));
 
                     var client =
-                        JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration());
+                        JdkHttpClientProxyConfigurator.newHttpClient(
+                            new EnvironmentProxyConfiguration());
                     var request =
                         HttpRequest.newBuilder()
                             .uri(URI.create(getWireMockUrl(path)))
@@ -204,7 +206,8 @@ public class JdkHttpClientProxyIntegrationTest {
                         get("/protected").willReturn(ok().withBody("Hello, world!")));
 
                     var client =
-                        JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration());
+                        JdkHttpClientProxyConfigurator.newHttpClient(
+                            new EnvironmentProxyConfiguration());
                     var request =
                         HttpRequest.newBuilder()
                             .uri(URI.create(getWireMockUrl("/protected")))
@@ -244,7 +247,8 @@ public class JdkHttpClientProxyIntegrationTest {
                     wireMockTarget.stubFor(get("/path").willReturn(ok().withBody("Direct!")));
 
                     var client =
-                        JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration());
+                        JdkHttpClientProxyConfigurator.newHttpClient(
+                            new EnvironmentProxyConfiguration());
                     // Use localhost URL (WireMock running locally) to test direct connection
                     var request =
                         HttpRequest.newBuilder()
@@ -281,7 +285,8 @@ public class JdkHttpClientProxyIntegrationTest {
                     wireMockTarget.stubFor(get("/path").willReturn(ok().withBody("Direct!")));
 
                     var client =
-                        JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration());
+                        JdkHttpClientProxyConfigurator.newHttpClient(
+                            new EnvironmentProxyConfiguration());
                     // Use localhost URL - bypasses proxy because localhost is in nonProxyHosts
                     var request =
                         HttpRequest.newBuilder()
@@ -317,7 +322,8 @@ public class JdkHttpClientProxyIntegrationTest {
                     wireMockTarget.stubFor(get("/path").willReturn(ok().withBody("Direct!")));
 
                     var client =
-                        JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration());
+                        JdkHttpClientProxyConfigurator.newHttpClient(
+                            new EnvironmentProxyConfiguration());
                     // Use localhost URL which matches *host pattern - bypasses proxy
                     var request =
                         HttpRequest.newBuilder()
@@ -353,7 +359,8 @@ public class JdkHttpClientProxyIntegrationTest {
                     wireMockTarget.stubFor(get("/path").willReturn(ok().withBody("Proxied!")));
 
                     var client =
-                        JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration());
+                        JdkHttpClientProxyConfigurator.newHttpClient(
+                            new EnvironmentProxyConfiguration());
                     var request =
                         HttpRequest.newBuilder()
                             .uri(URI.create(getWireMockUrl("/path")))
@@ -391,7 +398,8 @@ public class JdkHttpClientProxyIntegrationTest {
                         post("/data").willReturn(created().withBody("{\"id\": 123}")));
 
                     var client =
-                        JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration());
+                        JdkHttpClientProxyConfigurator.newHttpClient(
+                            new EnvironmentProxyConfiguration());
                     var request =
                         HttpRequest.newBuilder()
                             .uri(URI.create(getWireMockUrl("/data")))
@@ -428,7 +436,8 @@ public class JdkHttpClientProxyIntegrationTest {
                   () -> {
                     wireMockTarget.stubFor(get("/path").willReturn(ok().withBody("Instance API!")));
 
-                    var configurator = new JdkHttpClientProxyConfigurator(new ProxyConfiguration());
+                    var configurator =
+                        new JdkHttpClientProxyConfigurator(new EnvironmentProxyConfiguration());
                     var client = configurator.newHttpClient();
                     var request =
                         HttpRequest.newBuilder()
@@ -465,7 +474,8 @@ public class JdkHttpClientProxyIntegrationTest {
                   () -> {
                     wireMockTarget.stubFor(get("/path").willReturn(ok().withBody("Manual API!")));
 
-                    var configurator = new JdkHttpClientProxyConfigurator(new ProxyConfiguration());
+                    var configurator =
+                        new JdkHttpClientProxyConfigurator(new EnvironmentProxyConfiguration());
                     var builder = HttpClient.newBuilder();
                     configurator.configure(builder);
                     var client = builder.build();
@@ -507,7 +517,8 @@ public class JdkHttpClientProxyIntegrationTest {
                         get("/plain").willReturn(ok().withBody("Hello via plain proxy!")));
 
                     var client =
-                        JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration(true));
+                        JdkHttpClientProxyConfigurator.newHttpClient(
+                            new EnvironmentProxyConfiguration(true));
                     var request =
                         HttpRequest.newBuilder()
                             .uri(URI.create(getWireMockUrl("/plain")))
@@ -554,7 +565,8 @@ public class JdkHttpClientProxyIntegrationTest {
                         get("/prefer-plain").willReturn(ok().withBody("Plain preferred!")));
 
                     var client =
-                        JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration(true));
+                        JdkHttpClientProxyConfigurator.newHttpClient(
+                            new EnvironmentProxyConfiguration(true));
                     var request =
                         HttpRequest.newBuilder()
                             .uri(URI.create(getWireMockUrl("/prefer-plain")))
@@ -586,7 +598,8 @@ public class JdkHttpClientProxyIntegrationTest {
                     wireMockTarget.stubFor(get("/fallback").willReturn(ok().withBody("Fallback!")));
 
                     var client =
-                        JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration(true));
+                        JdkHttpClientProxyConfigurator.newHttpClient(
+                            new EnvironmentProxyConfiguration(true));
                     var request =
                         HttpRequest.newBuilder()
                             .uri(URI.create(getWireMockUrl("/fallback")))
@@ -625,7 +638,8 @@ public class JdkHttpClientProxyIntegrationTest {
                     wireMockTarget.stubFor(get("/direct").willReturn(ok().withBody("Direct!")));
 
                     var client =
-                        JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration(true));
+                        JdkHttpClientProxyConfigurator.newHttpClient(
+                            new EnvironmentProxyConfiguration(true));
                     var request =
                         HttpRequest.newBuilder()
                             .uri(URI.create(getWireMockUrlDirect("/direct")))

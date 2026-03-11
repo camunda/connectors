@@ -65,11 +65,34 @@ Different proxy settings can be configured for HTTP and HTTPS target URLs.
 
 The `http.nonProxyHosts` Java system property is also respected.
 
+#### Plain proxy environment variables
+
+When using `EnvironmentProxyConfiguration(true)`, an additional set of "plain" proxy environment
+variables is checked first. If a complete plain configuration (both HOST and PORT) is present, it
+takes priority. Otherwise, the standard variables above are used as a fallback.
+
+| Environment Variable | Description |
+|---|---|
+| `CONNECTOR_HTTP_PLAIN_PROXY_HOST` | Plain proxy host for HTTP targets |
+| `CONNECTOR_HTTP_PLAIN_PROXY_PORT` | Plain proxy port for HTTP targets |
+| `CONNECTOR_HTTP_PLAIN_PROXY_SCHEME` | Plain proxy scheme for HTTP targets (default: `http`) |
+| `CONNECTOR_HTTP_PLAIN_PROXY_USER` | Plain proxy username for HTTP targets (optional) |
+| `CONNECTOR_HTTP_PLAIN_PROXY_PASSWORD` | Plain proxy password for HTTP targets (optional) |
+| `CONNECTOR_HTTPS_PLAIN_PROXY_HOST` | Plain proxy host for HTTPS targets |
+| `CONNECTOR_HTTPS_PLAIN_PROXY_PORT` | Plain proxy port for HTTPS targets |
+| `CONNECTOR_HTTPS_PLAIN_PROXY_SCHEME` | Plain proxy scheme for HTTPS targets (default: `http`) |
+| `CONNECTOR_HTTPS_PLAIN_PROXY_USER` | Plain proxy username for HTTPS targets (optional) |
+| `CONNECTOR_HTTPS_PLAIN_PROXY_PASSWORD` | Plain proxy password for HTTPS targets (optional) |
+
 #### JDK HttpClient proxy setup
 
 ```java
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
-import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 
-HttpClient client = JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration());
+// Standard proxy vars only
+HttpClient client = JdkHttpClientProxyConfigurator.newHttpClient(new EnvironmentProxyConfiguration());
+
+// With plain proxy var support (falls back to standard vars if plain vars are incomplete)
+client = JdkHttpClientProxyConfigurator.newHttpClient(new EnvironmentProxyConfiguration(true));
 ```

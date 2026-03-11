@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.http.client.proxy;
 
-import static io.camunda.connector.http.client.proxy.ProxyConfiguration.CONNECTOR_HTTP_NON_PROXY_HOSTS_ENV_VAR;
-
 import java.util.Objects;
 import java.util.stream.Stream;
 
@@ -30,6 +28,9 @@ import java.util.stream.Stream;
  * wildcard.
  */
 public class NonProxyHosts {
+
+  public static final String CONNECTOR_HTTP_NON_PROXY_HOSTS_ENV_VAR =
+      "CONNECTOR_HTTP_NON_PROXY_HOSTS";
 
   private NonProxyHosts() {}
 

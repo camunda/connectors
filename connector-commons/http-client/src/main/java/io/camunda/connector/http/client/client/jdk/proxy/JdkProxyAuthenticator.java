@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
  * provides proxy authentication credentials from the same environment variables as the Apache HTTP
  * client proxy support.
  *
- * @see ProxyConfiguration for the list of supported environment variables
+ * @see ProxyConfiguration for details on how proxy settings are configured
  */
 public class JdkProxyAuthenticator extends Authenticator {
   private static final Logger LOG = LoggerFactory.getLogger(JdkProxyAuthenticator.class);

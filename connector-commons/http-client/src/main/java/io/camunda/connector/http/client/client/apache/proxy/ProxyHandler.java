@@ -16,6 +16,10 @@
  */
 package io.camunda.connector.http.client.client.apache.proxy;
 
+import static io.camunda.connector.http.client.proxy.ProxyConfiguration.SCHEME_HTTP;
+import static io.camunda.connector.http.client.proxy.ProxyConfiguration.SCHEME_HTTPS;
+
+import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration.ProxyDetails;
 import java.util.HashMap;
@@ -29,21 +33,17 @@ import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
 
 /**
  * This class is responsible for handling proxy configuration for the Apache HTTP client. It
- * delegates environment variable reading to {@link ProxyConfiguration} and provides Apache-specific
- * credentials providers.
+ * delegates environment variable reading to {@link EnvironmentProxyConfiguration} and provides
+ * Apache-specific credentials providers.
  *
- * @see ProxyConfiguration for the list of supported environment variables
+ * @see EnvironmentProxyConfiguration for the list of supported environment variables
  */
 public class ProxyHandler {
-
-  public static final String HTTP = ProxyConfiguration.HTTP;
-  public static final String HTTPS = ProxyConfiguration.HTTPS;
-
   private final ProxyConfiguration proxyConfiguration;
   private final Map<String, CredentialsProvider> credentialsProvidersForProtocols;
 
   public ProxyHandler() {
-    this.proxyConfiguration = new ProxyConfiguration();
+    this.proxyConfiguration = new EnvironmentProxyConfiguration();
     this.credentialsProvidersForProtocols = initializeCredentialsProviders();
   }
 
@@ -53,7 +53,7 @@ public class ProxyHandler {
 
   private Map<String, CredentialsProvider> initializeCredentialsProviders() {
     Map<String, CredentialsProvider> providers = new HashMap<>();
-    for (String protocol : List.of(HTTP, HTTPS)) {
+    for (String protocol : List.of(SCHEME_HTTP, SCHEME_HTTPS)) {
       proxyConfiguration
           .getProxyDetails(protocol)
           .filter(ProxyDetails::hasCredentials)
