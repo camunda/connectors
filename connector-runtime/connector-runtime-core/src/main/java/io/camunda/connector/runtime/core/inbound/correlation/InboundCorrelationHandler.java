@@ -85,8 +85,9 @@ public class InboundCorrelationHandler {
     return switch (activationCheckResult) {
       case ActivationCheckResult.Failure.NoMatchingElement noMatchingElement ->
           new ActivationConditionNotMet(noMatchingElement.discardUnmatchedEvents());
-      case ActivationCheckResult.Failure.TooManyMatchingElements ignored ->
-          new Failure.InvalidInput("Multiple connectors are activated for the same input", null);
+      case ActivationCheckResult.Failure.TooManyMatchingElements tooMany ->
+          new Failure.InvalidInput(
+              "Multiple connectors are activated for the same input: " + tooMany.reason(), null);
       case ActivationCheckResult.Success.CanActivate canActivate ->
           correlateInternal(
               findMatchingElement(elements, canActivate.activatedElement()),

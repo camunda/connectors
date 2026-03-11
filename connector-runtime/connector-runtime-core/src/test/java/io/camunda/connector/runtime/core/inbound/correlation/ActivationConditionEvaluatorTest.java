@@ -52,10 +52,30 @@ public class ActivationConditionEvaluatorTest {
       String resultExpression,
       String resultVariable,
       String correlationKeyExpression) {
+    return createMessageElement(
+        elementId,
+        messageName,
+        activationCondition,
+        resultExpression,
+        resultVariable,
+        correlationKeyExpression,
+        null,
+        Duration.ofHours(1));
+  }
+
+  private InboundConnectorElement createMessageElement(
+      String elementId,
+      String messageName,
+      String activationCondition,
+      String resultExpression,
+      String resultVariable,
+      String correlationKeyExpression,
+      String messageIdExpression,
+      Duration timeToLive) {
     var element = mock(InboundConnectorElement.class);
     var correlationPoint =
         new StandaloneMessageCorrelationPoint(
-            messageName, correlationKeyExpression, null, Duration.ofHours(1));
+            messageName, correlationKeyExpression, messageIdExpression, timeToLive);
     when(element.correlationPoint()).thenReturn(correlationPoint);
     when(element.element())
         .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, elementId, "default"));
@@ -176,6 +196,35 @@ public class ActivationConditionEvaluatorTest {
 
       assertThat(result).isInstanceOf(ActivationCheckResult.Success.CanActivate.class);
     }
+
+    @Test
+    @DisplayName("Elements with same messageIdExpression and timeToLive should be compatible")
+    void elements_sameMessageIdAndTtl_shouldBeCompatible() {
+      var element1 =
+          createMessageElement(
+              "elem1",
+              "shared-msg",
+              "",
+              "=result",
+              "outputVar",
+              "=correlationKey",
+              "=msgId",
+              Duration.ofMinutes(30));
+      var element2 =
+          createMessageElement(
+              "elem2",
+              "shared-msg",
+              "",
+              "=result",
+              "outputVar",
+              "=correlationKey",
+              "=msgId",
+              Duration.ofMinutes(30));
+
+      var result = evaluator.checkActivation(List.of(element1, element2), Map.of());
+
+      assertThat(result).isInstanceOf(ActivationCheckResult.Success.CanActivate.class);
+    }
   }
 
   @Nested
@@ -222,6 +271,65 @@ public class ActivationConditionEvaluatorTest {
     void oneNullOneNonNull_resultExpression_shouldBeIncompatible() {
       var element1 = createMessageElement("elem1", "shared-msg", "", null, "var", "=key");
       var element2 = createMessageElement("elem2", "shared-msg", "", "=result", "var", "=key");
+
+      var result = evaluator.checkActivation(List.of(element1, element2), Map.of());
+
+      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+    }
+
+    @Test
+    @DisplayName("Different messageIdExpression should be incompatible")
+    void differentMessageIdExpression_shouldBeIncompatible() {
+      var element1 =
+          createMessageElement(
+              "elem1", "shared-msg", "", "=result", "var", "=key", "=msgId1", Duration.ofHours(1));
+      var element2 =
+          createMessageElement(
+              "elem2", "shared-msg", "", "=result", "var", "=key", "=msgId2", Duration.ofHours(1));
+
+      var result = evaluator.checkActivation(List.of(element1, element2), Map.of());
+
+      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+    }
+
+    @Test
+    @DisplayName("One null and one non-null messageIdExpression should be incompatible")
+    void oneNullOneNonNull_messageIdExpression_shouldBeIncompatible() {
+      var element1 =
+          createMessageElement(
+              "elem1", "shared-msg", "", "=result", "var", "=key", null, Duration.ofHours(1));
+      var element2 =
+          createMessageElement(
+              "elem2", "shared-msg", "", "=result", "var", "=key", "=msgId", Duration.ofHours(1));
+
+      var result = evaluator.checkActivation(List.of(element1, element2), Map.of());
+
+      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+    }
+
+    @Test
+    @DisplayName("Different timeToLive should be incompatible")
+    void differentTimeToLive_shouldBeIncompatible() {
+      var element1 =
+          createMessageElement(
+              "elem1", "shared-msg", "", "=result", "var", "=key", null, Duration.ofHours(1));
+      var element2 =
+          createMessageElement(
+              "elem2", "shared-msg", "", "=result", "var", "=key", null, Duration.ofHours(2));
+
+      var result = evaluator.checkActivation(List.of(element1, element2), Map.of());
+
+      assertThat(result).isInstanceOf(ActivationCheckResult.Failure.TooManyMatchingElements.class);
+    }
+
+    @Test
+    @DisplayName("One null and one non-null timeToLive should be incompatible")
+    void oneNullOneNonNull_timeToLive_shouldBeIncompatible() {
+      var element1 =
+          createMessageElement("elem1", "shared-msg", "", "=result", "var", "=key", null, null);
+      var element2 =
+          createMessageElement(
+              "elem2", "shared-msg", "", "=result", "var", "=key", null, Duration.ofHours(1));
 
       var result = evaluator.checkActivation(List.of(element1, element2), Map.of());
 

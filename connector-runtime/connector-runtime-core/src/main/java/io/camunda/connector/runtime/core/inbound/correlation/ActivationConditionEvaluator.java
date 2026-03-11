@@ -23,7 +23,6 @@ import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,11 +61,13 @@ public class ActivationConditionEvaluator {
 
     if (matchingElements.size() > 1) {
       // Multiple elements match - check if they are compatible message elements
-      var compatibleElement = findCompatibleMessageElement(matchingElements);
-      if (compatibleElement.isPresent()) {
-        return new ActivationCheckResult.Success.CanActivate(compatibleElement.get().element());
+      var compatibilityResult = checkMessageElementCompatibility(matchingElements);
+      if (compatibilityResult.compatible()) {
+        return new ActivationCheckResult.Success.CanActivate(
+            compatibilityResult.element().element());
       }
-      return new ActivationCheckResult.Failure.TooManyMatchingElements();
+      return new ActivationCheckResult.Failure.TooManyMatchingElements(
+          compatibilityResult.reason());
     }
 
     return new ActivationCheckResult.Success.CanActivate(matchingElements.getFirst().element());
@@ -105,18 +106,20 @@ public class ActivationConditionEvaluator {
    * correlated. Elements are compatible if:
    *
    * <ul>
-   *   <li>All are message correlation points (intermediate catch events or message start events)
+   *   <li>All are intermediate catch events
    *   <li>All have the same message name
-   *   <li>All have the same resultExpression, resultVariable, and correlationKeyExpression
+   *   <li>All have the same resultExpression, resultVariable, correlationKeyExpression,
+   *       messageIdExpression, and timeToLive
    * </ul>
    *
    * <p>When compatible, we can pick any one (the first) since they're functionally identical and
    * Zeebe will route the message correctly via the correlation key.
    *
    * @param matchingElements elements that matched the activation condition
-   * @return the first element if all are compatible, empty otherwise
+   * @return the compatibility result with either the element to use or the reason for
+   *     incompatibility
    */
-  private Optional<InboundConnectorElement> findCompatibleMessageElement(
+  private CompatibilityResult checkMessageElementCompatibility(
       List<InboundConnectorElement> matchingElements) {
 
     // Check all elements are message correlation points
@@ -124,8 +127,9 @@ public class ActivationConditionEvaluator {
         matchingElements.stream()
             .allMatch(e -> e.correlationPoint() instanceof MessageCorrelationPoint);
     if (!allMessageElements) {
-      LOG.debug("Not all matching elements are message correlation points");
-      return Optional.empty();
+      var reason = "Not all matching elements are message correlation points";
+      LOG.debug(reason);
+      return CompatibilityResult.incompatible(reason);
     }
 
     // Check all have the same message name
@@ -135,38 +139,56 @@ public class ActivationConditionEvaluator {
             .distinct()
             .toList();
     if (messageNames.size() != 1) {
-      LOG.debug("Multiple matching elements have different message names: {}", messageNames);
-      return Optional.empty();
+      var reason = "Multiple matching elements have different message names: " + messageNames;
+      LOG.debug(reason);
+      return CompatibilityResult.incompatible(reason);
     }
 
-    // Check compatibility of resultExpression, resultVariable, correlationKeyExpression
+    // Check compatibility of all publish-relevant properties
     var first = matchingElements.getFirst();
+    var firstCorrelationPoint = (MessageCorrelationPoint) first.correlationPoint();
     String firstResultExpression = first.resultExpression();
     String firstResultVariable = first.resultVariable();
-    String firstCorrelationKeyExpression =
-        ((MessageCorrelationPoint) first.correlationPoint()).correlationKeyExpression();
+    String firstCorrelationKeyExpression = firstCorrelationPoint.correlationKeyExpression();
+    String firstMessageIdExpression = firstCorrelationPoint.messageIdExpression();
+    var firstTimeToLive = firstCorrelationPoint.timeToLive();
 
     for (int i = 1; i < matchingElements.size(); i++) {
       var element = matchingElements.get(i);
-      String correlationKeyExpression =
-          ((MessageCorrelationPoint) element.correlationPoint()).correlationKeyExpression();
+      var correlationPoint = (MessageCorrelationPoint) element.correlationPoint();
 
-      if (!Objects.equals(firstResultExpression, element.resultExpression())
-          || !Objects.equals(firstResultVariable, element.resultVariable())
-          || !Objects.equals(firstCorrelationKeyExpression, correlationKeyExpression)) {
-        LOG.debug(
-            "Matching elements have incompatible properties. "
-                + "Element {} has resultExpression={}, resultVariable={}, correlationKeyExpression={}. "
-                + "Element {} has resultExpression={}, resultVariable={}, correlationKeyExpression={}",
-            first.element().elementId(),
-            firstResultExpression,
-            firstResultVariable,
-            firstCorrelationKeyExpression,
-            element.element().elementId(),
-            element.resultExpression(),
-            element.resultVariable(),
-            correlationKeyExpression);
-        return Optional.empty();
+      var mismatches = new java.util.ArrayList<String>();
+      if (!Objects.equals(firstResultExpression, element.resultExpression())) {
+        mismatches.add(
+            "resultExpression: '%s' vs '%s'"
+                .formatted(firstResultExpression, element.resultExpression()));
+      }
+      if (!Objects.equals(firstResultVariable, element.resultVariable())) {
+        mismatches.add(
+            "resultVariable: '%s' vs '%s'"
+                .formatted(firstResultVariable, element.resultVariable()));
+      }
+      if (!Objects.equals(
+          firstCorrelationKeyExpression, correlationPoint.correlationKeyExpression())) {
+        mismatches.add(
+            "correlationKeyExpression: '%s' vs '%s'"
+                .formatted(
+                    firstCorrelationKeyExpression, correlationPoint.correlationKeyExpression()));
+      }
+      if (!Objects.equals(firstMessageIdExpression, correlationPoint.messageIdExpression())) {
+        mismatches.add(
+            "messageIdExpression: '%s' vs '%s'"
+                .formatted(firstMessageIdExpression, correlationPoint.messageIdExpression()));
+      }
+      if (!Objects.equals(firstTimeToLive, correlationPoint.timeToLive())) {
+        mismatches.add(
+            "timeToLive: '%s' vs '%s'".formatted(firstTimeToLive, correlationPoint.timeToLive()));
+      }
+
+      if (!mismatches.isEmpty()) {
+        var reason = formatIncompatibilityReason(first, element, mismatches);
+        LOG.debug(reason);
+        return CompatibilityResult.incompatible(reason);
       }
     }
 
@@ -174,6 +196,45 @@ public class ActivationConditionEvaluator {
         "Found {} compatible message elements with message name '{}', using first one",
         matchingElements.size(),
         messageNames.getFirst());
-    return Optional.of(first);
+    return CompatibilityResult.compatible(first);
+  }
+
+  private String formatIncompatibilityReason(
+      InboundConnectorElement first,
+      InboundConnectorElement second,
+      java.util.ArrayList<String> mismatches) {
+    var firstElement = first.element();
+    var secondElement = second.element();
+    var mismatchDetails = String.join(", ", mismatches);
+
+    if (firstElement.version() == secondElement.version()) {
+      // Same version - mention version once
+      return "Elements '%s' and '%s' (version %d) have incompatible properties: %s"
+          .formatted(
+              firstElement.elementId(),
+              secondElement.elementId(),
+              firstElement.version(),
+              mismatchDetails);
+    } else {
+      // Different versions - mention both
+      return "Element '%s' (version %d) and element '%s' (version %d) have incompatible properties: %s"
+          .formatted(
+              firstElement.elementId(),
+              firstElement.version(),
+              secondElement.elementId(),
+              secondElement.version(),
+              mismatchDetails);
+    }
+  }
+
+  private record CompatibilityResult(
+      boolean compatible, InboundConnectorElement element, String reason) {
+    static CompatibilityResult compatible(InboundConnectorElement element) {
+      return new CompatibilityResult(true, element, null);
+    }
+
+    static CompatibilityResult incompatible(String reason) {
+      return new CompatibilityResult(false, null, reason);
+    }
   }
 }
