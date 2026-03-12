@@ -33,9 +33,11 @@ import org.slf4j.LoggerFactory;
 public class CustomResponseHandler<T> implements HttpClientResponseHandler<HttpResponse<T>> {
 
   private final ResponseMapper<T> responseMapper;
+  private final boolean followRedirects;
 
-  public CustomResponseHandler(ResponseMapper<T> responseMapper) {
+  public CustomResponseHandler(ResponseMapper<T> responseMapper, boolean followRedirects) {
     this.responseMapper = responseMapper;
+    this.followRedirects = followRedirects;
   }
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CustomResponseHandler.class);
@@ -45,9 +47,8 @@ public class CustomResponseHandler<T> implements HttpClientResponseHandler<HttpR
     int code = response.getCode();
     String reason = response.getReasonPhrase();
     Map<String, List<String>> headers = formatHeaders(response.getHeaders());
-
+    boolean isRedirect = code >= 300 && code < 400;
     if (response.getEntity() != null) {
-
       try (InputStream content = response.getEntity().getContent()) {
         StreamingHttpResponse rawResponse =
             new StreamingHttpResponse(code, reason, headers, content);
@@ -62,6 +63,11 @@ public class CustomResponseHandler<T> implements HttpClientResponseHandler<HttpR
         LOGGER.error("Failed to process response: {}", response, e);
         throw ConnectorExceptionMapper.from(e);
       }
+    }
+
+    // No entity present
+    if (isRedirect && !followRedirects) {
+      return new HttpResponse<>(code, reason, headers, null);
     }
     if (HttpStatusHelper.isError(code)) {
       StreamingHttpResponse rawResponse = new StreamingHttpResponse(code, reason, headers, null);

@@ -19,6 +19,7 @@ package io.camunda.connector.http.client.client.apache.proxy;
 import java.io.Closeable;
 import java.io.IOException;
 import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.DefaultRedirectStrategy;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
@@ -42,7 +43,8 @@ public class ProxyAwareHttpClient implements Closeable {
   private final ProxyContext proxyContext;
   private final CloseableHttpClient client;
 
-  public record TimeoutConfiguration(int connectionTimeoutInSeconds, int readTimeoutInSeconds) {}
+  public record TimeoutConfiguration(
+      int connectionTimeoutInSeconds, int readTimeoutInSeconds, boolean followRedirects) {}
 
   public record ProxyContext(String scheme, String host) {}
 
@@ -73,7 +75,11 @@ public class ProxyAwareHttpClient implements Closeable {
     builder
         .setDefaultRequestConfig(getRequestTimeoutConfig(timeoutConfiguration))
         .useSystemProperties();
-
+    if (!timeoutConfiguration.followRedirects()) {
+      builder.disableRedirectHandling();
+    } else {
+      builder.setRedirectStrategy(DefaultRedirectStrategy.INSTANCE);
+    }
     return builder.build();
   }
 
@@ -96,9 +102,7 @@ public class ProxyAwareHttpClient implements Closeable {
   }
 
   private HttpClientBuilder createHttpClientBuilder() {
-    return HttpClients.custom()
-        .setConnectionManager(createConnectionManager())
-        .disableRedirectHandling();
+    return HttpClients.custom().setConnectionManager(createConnectionManager());
   }
 
   private PoolingHttpClientConnectionManager createConnectionManager() {
