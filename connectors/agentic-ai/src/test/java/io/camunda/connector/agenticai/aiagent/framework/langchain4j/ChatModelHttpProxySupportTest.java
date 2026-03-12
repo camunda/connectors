@@ -22,6 +22,7 @@ import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfi
 import io.camunda.connector.http.client.proxy.NonProxyHosts;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.http.client.proxy.ProxyConfiguration.ProxyDetails;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -81,7 +82,7 @@ class ChatModelHttpProxySupportTest {
   class CreateAwsHttpClient {
 
     @Test
-    void shouldCreateAwsHttpClient() {
+    void shouldCreateAwsHttpClientWithHttpsEndpoint() {
       // given
       when(proxyConfiguration.getProxyDetails(SCHEME_HTTPS)).thenReturn(Optional.empty());
 
@@ -93,13 +94,58 @@ class ChatModelHttpProxySupportTest {
         apacheMock.when(ApacheHttpClient::builder).thenReturn(httpClientBuilder);
 
         // when
-        SdkHttpClient result = proxySupport.createAwsHttpClient(SCHEME_HTTPS);
+        SdkHttpClient result =
+            proxySupport.createAwsHttpClient(URI.create("https://bedrock.amazonaws.com"));
 
         // then
         assertThat(result).isNotNull();
+        verify(proxyConfiguration).getProxyDetails(SCHEME_HTTPS);
         verify(httpClientBuilder)
             .proxyConfiguration(
                 notNull(software.amazon.awssdk.http.apache.ProxyConfiguration.class));
+      }
+    }
+
+    @Test
+    void shouldCreateAwsHttpClientWithHttpEndpoint() {
+      // given
+      when(proxyConfiguration.getProxyDetails(SCHEME_HTTP)).thenReturn(Optional.empty());
+
+      ApacheHttpClient.Builder httpClientBuilder =
+          Mockito.mock(ApacheHttpClient.Builder.class, Answers.RETURNS_SELF);
+      when(httpClientBuilder.build()).thenReturn(Mockito.mock(SdkHttpClient.class));
+
+      try (MockedStatic<ApacheHttpClient> apacheMock = mockStatic(ApacheHttpClient.class)) {
+        apacheMock.when(ApacheHttpClient::builder).thenReturn(httpClientBuilder);
+
+        // when
+        SdkHttpClient result =
+            proxySupport.createAwsHttpClient(URI.create("http://localhost:8080"));
+
+        // then
+        assertThat(result).isNotNull();
+        verify(proxyConfiguration).getProxyDetails(SCHEME_HTTP);
+      }
+    }
+
+    @Test
+    void shouldCreateAwsHttpClientWithNullEndpointDefaultingToHttps() {
+      // given
+      when(proxyConfiguration.getProxyDetails(SCHEME_HTTPS)).thenReturn(Optional.empty());
+
+      ApacheHttpClient.Builder httpClientBuilder =
+          Mockito.mock(ApacheHttpClient.Builder.class, Answers.RETURNS_SELF);
+      when(httpClientBuilder.build()).thenReturn(Mockito.mock(SdkHttpClient.class));
+
+      try (MockedStatic<ApacheHttpClient> apacheMock = mockStatic(ApacheHttpClient.class)) {
+        apacheMock.when(ApacheHttpClient::builder).thenReturn(httpClientBuilder);
+
+        // when
+        SdkHttpClient result = proxySupport.createAwsHttpClient(null);
+
+        // then
+        assertThat(result).isNotNull();
+        verify(proxyConfiguration).getProxyDetails(SCHEME_HTTPS);
       }
     }
 

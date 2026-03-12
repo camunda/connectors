@@ -31,7 +31,6 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderCon
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -160,13 +159,15 @@ public class ChatModelFactoryImpl implements ChatModelFactory {
     authenticationCustomizer.provideAuthenticationMechanism(
         bedrockClientBuilder, overrideClientConfigurationBuilder);
 
+    URI endpointOverride = null;
     if (connection.endpoint() != null) {
-      bedrockClientBuilder.endpointOverride(URI.create(connection.endpoint()));
+      endpointOverride = URI.create(connection.endpoint());
+      bedrockClientBuilder.endpointOverride(endpointOverride);
     }
 
     overrideClientConfigurationBuilder.apiCallTimeout(deriveTimeoutSetting(connection.timeouts()));
 
-    SdkHttpClient httpClient = proxySupport.createAwsHttpClient(ProxyConfiguration.SCHEME_HTTPS);
+    SdkHttpClient httpClient = proxySupport.createAwsHttpClient(endpointOverride);
     bedrockClientBuilder.httpClient(httpClient);
 
     bedrockClientBuilder.overrideConfiguration(overrideClientConfigurationBuilder.build());
