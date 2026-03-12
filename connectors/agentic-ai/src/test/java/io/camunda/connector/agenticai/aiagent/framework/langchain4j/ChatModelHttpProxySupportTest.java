@@ -53,14 +53,14 @@ class ChatModelHttpProxySupportTest {
   private static final String NON_PROXY_HOST_127 = "127\\.0\\.0\\.1";
   private static final String NON_PROXY_HOST_INTERNAL = "*.internal.com";
 
-  @Mock private JdkHttpClientProxyConfigurator proxyConfigurator;
   @Mock private ProxyConfiguration proxyConfiguration;
+  @Mock private JdkHttpClientProxyConfigurator jdkProxyConfigurator;
 
   private ChatModelHttpProxySupport proxySupport;
 
   @BeforeEach
   void setUp() {
-    proxySupport = new ChatModelHttpProxySupport(proxyConfigurator);
+    proxySupport = new ChatModelHttpProxySupport(proxyConfiguration, jdkProxyConfigurator);
   }
 
   @Nested
@@ -73,17 +73,12 @@ class ChatModelHttpProxySupportTest {
 
       // then
       assertThat(result).isNotNull();
-      verify(proxyConfigurator).configure(any(HttpClient.Builder.class));
+      verify(jdkProxyConfigurator).configure(any(HttpClient.Builder.class));
     }
   }
 
   @Nested
   class CreateAwsHttpClient {
-
-    @BeforeEach
-    void setUp() {
-      when(proxyConfigurator.getProxyConfiguration()).thenReturn(proxyConfiguration);
-    }
 
     @Test
     void shouldCreateAwsHttpClient() {
@@ -210,11 +205,6 @@ class ChatModelHttpProxySupportTest {
 
   @Nested
   class CreateAzureProxyOptions {
-
-    @BeforeEach
-    void setUp() {
-      when(proxyConfigurator.getProxyConfiguration()).thenReturn(proxyConfiguration);
-    }
 
     @Test
     void shouldReturnEmptyWhenNoProxyConfigured() {

@@ -16,20 +16,27 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 
 public class ChatModelHttpProxySupport {
+  private static final Logger LOG = LoggerFactory.getLogger(ChatModelHttpProxySupport.class);
 
-  private final JdkHttpClientProxyConfigurator proxyConfigurator;
+  private final ProxyConfiguration proxyConfiguration;
+  private final JdkHttpClientProxyConfigurator jdkHttpClientProxyConfigurator;
 
-  public ChatModelHttpProxySupport(JdkHttpClientProxyConfigurator proxyConfigurator) {
-    this.proxyConfigurator = proxyConfigurator;
+  public ChatModelHttpProxySupport(
+      ProxyConfiguration proxyConfiguration,
+      JdkHttpClientProxyConfigurator jdkHttpClientProxyConfigurator) {
+    this.proxyConfiguration = proxyConfiguration;
+    this.jdkHttpClientProxyConfigurator = jdkHttpClientProxyConfigurator;
   }
 
   JdkHttpClientBuilder createJdkHttpClientBuilder() {
     final var httpClientBuilder = HttpClient.newBuilder();
-    proxyConfigurator.configure(httpClientBuilder);
+    jdkHttpClientProxyConfigurator.configure(httpClientBuilder);
     return new JdkHttpClientBuilder().httpClientBuilder(httpClientBuilder);
   }
 
@@ -41,15 +48,20 @@ public class ChatModelHttpProxySupport {
 
   software.amazon.awssdk.http.apache.ProxyConfiguration createAwsProxyConfiguration(
       String schemeName) {
-    ProxyConfiguration proxyConfig = proxyConfigurator.getProxyConfiguration();
     software.amazon.awssdk.http.apache.ProxyConfiguration.Builder awsProxyConfigBuilder =
         software.amazon.awssdk.http.apache.ProxyConfiguration.builder()
             .useSystemPropertyValues(true);
 
-    proxyConfig
+    proxyConfiguration
         .getProxyDetails(schemeName)
         .ifPresent(
             proxyDetails -> {
+              LOG.debug(
+                  "Using proxy for target scheme [{}] => [{}://{}:{}]",
+                  schemeName,
+                  proxyDetails.scheme(),
+                  proxyDetails.host(),
+                  proxyDetails.port());
               awsProxyConfigBuilder
                   .scheme(proxyDetails.scheme())
                   .endpoint(toUri(proxyDetails))
@@ -66,7 +78,6 @@ public class ChatModelHttpProxySupport {
   }
 
   Optional<ProxyOptions> createAzureProxyOptions(String endpoint) {
-    ProxyConfiguration proxyConfig = proxyConfigurator.getProxyConfiguration();
     final var uri = URI.create(endpoint);
     if (uri.getScheme() == null) {
       throw new IllegalArgumentException("Invalid endpoint URI: " + endpoint);
@@ -74,10 +85,17 @@ public class ChatModelHttpProxySupport {
 
     // If connector proxy env vars are not present, the Azure OpenAI client will use the system
     // properties for proxy configuration.
-    return proxyConfig
+    return proxyConfiguration
         .getProxyDetails(uri.getScheme())
         .map(
             proxyDetails -> {
+              LOG.debug(
+                  "Using proxy for target scheme [{}] and host [{}] => [{}://{}:{}]",
+                  uri.getScheme(),
+                  uri.getHost(),
+                  proxyDetails.scheme(),
+                  proxyDetails.host(),
+                  proxyDetails.port());
               ProxyOptions proxyOptions =
                   new ProxyOptions(
                       ProxyOptions.Type.HTTP,

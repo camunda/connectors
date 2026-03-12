@@ -98,13 +98,4 @@ public class JdkHttpClientProxyConfigurator {
   public static HttpClient newHttpClient(ProxyConfiguration proxyConfiguration) {
     return new JdkHttpClientProxyConfigurator(proxyConfiguration).newHttpClient();
   }
-
-  /**
-   * Returns the {@link ProxyConfiguration} used by this configurator.
-   *
-   * @return the proxy configuration
-   */
-  public ProxyConfiguration getProxyConfiguration() {
-    return proxyConfiguration;
-  }
 }

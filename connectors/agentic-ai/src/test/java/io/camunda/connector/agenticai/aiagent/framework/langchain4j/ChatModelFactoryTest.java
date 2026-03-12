@@ -102,10 +102,11 @@ class ChatModelFactoryTest {
   private static final TimeoutConfiguration MODEL_TIMEOUT =
       new TimeoutConfiguration(Duration.ofSeconds(30));
 
+  private final ProxyConfiguration proxyConfiguration = ProxyConfiguration.NONE;
   private final ChatModelHttpProxySupport proxySupport =
       spy(
           new ChatModelHttpProxySupport(
-              new JdkHttpClientProxyConfigurator(ProxyConfiguration.NONE)));
+              proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration)));
 
   private final ChatModelFactory chatModelFactory =
       new ChatModelFactoryImpl(createDefaultConfigurationProperties(), proxySupport);

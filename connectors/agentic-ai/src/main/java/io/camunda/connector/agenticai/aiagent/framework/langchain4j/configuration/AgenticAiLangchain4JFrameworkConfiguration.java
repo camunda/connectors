@@ -41,7 +41,9 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
   @ConditionalOnMissingBean
   public ChatModelHttpProxySupport langchain4JChatModelHttpProxySupport(
       AgenticAiHttpProxySupport httpProxySupport) {
-    return new ChatModelHttpProxySupport(httpProxySupport.getJdkHttpClientProxyConfigurator());
+    return new ChatModelHttpProxySupport(
+        httpProxySupport.getProxyConfiguration(),
+        httpProxySupport.getJdkHttpClientProxyConfigurator());
   }
 
   @Bean
