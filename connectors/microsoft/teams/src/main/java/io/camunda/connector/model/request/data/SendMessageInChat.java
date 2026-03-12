@@ -9,8 +9,10 @@ package io.camunda.connector.model.request.data;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import io.camunda.connector.model.Attachment;
 import io.camunda.connector.model.MSTeamsMethodTypes;
 import jakarta.validation.constraints.NotBlank;
+import java.util.List;
 
 @TemplateSubType(label = "Send message in chat", id = MSTeamsMethodTypes.SEND_MESSAGE_IN_CHAT)
 public record SendMessageInChat(
@@ -21,14 +23,6 @@ public record SendMessageInChat(
             label = "Chat ID",
             description = "The chat ID")
         String chatId,
-    @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "sendMessageInChat.content",
-            type = TemplateProperty.PropertyType.Text,
-            label = "Content",
-            description = "Enter content")
-        String content,
     @TemplateProperty(
             group = "data",
             id = "sendMessageInChat.bodyType",
@@ -42,18 +36,29 @@ public record SendMessageInChat(
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             description = "The type of the content. Possible values are text and html")
         String bodyType,
-    @TemplateProperty(
-            label = "Card attachments (JSON)",
+    @NotBlank
+        @TemplateProperty(
             group = "data",
-            id = "sendMessageInChat.attachmentsJson",
+            id = "sendMessageInChat.content",
             type = TemplateProperty.PropertyType.Text,
-            feel = FeelMode.optional,
+            label = "Content",
+            description = "Enter content")
+        String content,
+    @TemplateProperty(
+            label = "Attachments",
+            group = "data",
+            id = "sendMessageInChat.attachments",
+            feel = FeelMode.required,
             optional = true,
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "data.sendMessageInChat.bodyType",
+                    equals = "HTML"),
             description =
-                "Optional JSON array (or single object) of Microsoft Graph ChatMessageAttachment"
-                    + " objects to send cards. Each object must have an 'id' and 'contentType'"
-                    + " (e.g. 'application/vnd.microsoft.card.thumbnail'). Attachment IDs must"
-                    + " match <attachment id=\"...\"></attachment> tags in the message body (auto-"
-                    + "appended if missing).")
-        String attachmentsJson)
+                "Optional list of attachments. Each item must have an 'id', 'contentType'"
+                    + " (e.g. 'application/vnd.microsoft.card.adaptive') and 'content'"
+                    + " (e.g. an Adaptive Card JSON payload). Attachment IDs must match"
+                    + " <attachment id=\"...\"></attachment> tags in the message body"
+                    + " (auto-appended if missing).")
+        List<Attachment> attachments)
     implements ChatData {}

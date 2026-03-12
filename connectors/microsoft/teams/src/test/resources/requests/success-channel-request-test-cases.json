@@ -851,7 +851,13 @@
       "channelId": "abc01234-0c7f-012c-9876-testClientId",
       "content": "Here is a card",
       "bodyType": "html",
-      "attachmentsJson": "[{\"id\":\"74d20c7f34aa4a7fb74e2b30004247c5\",\"contentType\":\"application/vnd.microsoft.card.thumbnail\",\"content\":\"{\\\"title\\\":\\\"Example\\\",\\\"text\\\":\\\"Body\\\"}\"}]"
+      "cardAttachments": [
+        {
+          "id": "74d20c7f34aa4a7fb74e2b30004247c5",
+          "contentType": "application/vnd.microsoft.card.thumbnail",
+          "content": "{\"title\":\"Example\",\"text\":\"Body\"}"
+        }
+      ]
     }
   }
 ]

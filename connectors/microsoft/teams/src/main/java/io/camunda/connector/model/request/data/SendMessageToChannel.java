@@ -10,6 +10,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import io.camunda.connector.model.Attachment;
 import io.camunda.connector.model.MSTeamsMethodTypes;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
@@ -30,14 +31,6 @@ public record SendMessageToChannel(
             label = "Channel ID",
             description = "The channel ID")
         String channelId,
-    @NotBlank
-        @TemplateProperty(
-            group = "data",
-            id = "sendMessageToChannel.content",
-            label = "Content",
-            type = TemplateProperty.PropertyType.Text,
-            description = "Enter content")
-        String content,
     @TemplateProperty(
             group = "data",
             id = "sendMessageToChannel.bodyType",
@@ -51,6 +44,14 @@ public record SendMessageToChannel(
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             description = "The type of the content. Possible values are text and html")
         String bodyType,
+    @NotBlank
+        @TemplateProperty(
+            group = "data",
+            id = "sendMessageToChannel.content",
+            label = "Content",
+            type = TemplateProperty.PropertyType.Text,
+            description = "Enter content")
+        String content,
     @TemplateProperty(
             label = "documents",
             group = "data",
@@ -59,17 +60,20 @@ public record SendMessageToChannel(
             optional = true)
         List<Document> documents,
     @TemplateProperty(
-            label = "Card attachments (JSON)",
+            label = "Attachments",
             group = "data",
-            id = "sendMessageToChannel.attachmentsJson",
-            type = TemplateProperty.PropertyType.Text,
-            feel = FeelMode.optional,
+            id = "sendMessageToChannel.attachments",
+            feel = FeelMode.required,
             optional = true,
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "data.sendMessageToChannel.bodyType",
+                    equals = "HTML"),
             description =
-                "Optional JSON array (or single object) of Microsoft Graph ChatMessageAttachment"
-                    + " objects to send cards. Each object must have an 'id' and 'contentType'"
-                    + " (e.g. 'application/vnd.microsoft.card.thumbnail'). Attachment IDs must"
-                    + " match <attachment id=\"...\"></attachment> tags in the message body (auto-"
-                    + "appended if missing).")
-        String attachmentsJson)
+                "Optional list of attachments. Each item must have an 'id', 'contentType'"
+                    + " (e.g. 'application/vnd.microsoft.card.adaptive') and 'content'"
+                    + " (e.g. an Adaptive Card JSON payload). Attachment IDs must match"
+                    + " <attachment id=\"...\"></attachment> tags in the message body"
+                    + " (auto-appended if missing).")
+        List<Attachment> attachments)
     implements ChannelData {}

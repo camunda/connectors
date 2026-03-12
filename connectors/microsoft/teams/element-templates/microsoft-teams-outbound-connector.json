@@ -542,32 +542,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.sendMessageInChat.content",
-    "label" : "Content",
-    "description" : "Enter content",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "data",
-    "binding" : {
-      "name" : "data.content",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.chatMethod",
-        "equals" : "sendMessageToChat",
-        "type" : "simple"
-      }, {
-        "property" : "data.type",
-        "equals" : "chat",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Text"
-  }, {
     "id" : "data.sendMessageInChat.bodyType",
     "label" : "Content type",
     "description" : "The type of the content. Possible values are text and html",
@@ -601,14 +575,17 @@
       "value" : "HTML"
     } ]
   }, {
-    "id" : "data.sendMessageInChat.attachmentsJson",
-    "label" : "Card attachments (JSON)",
-    "description" : "Optional JSON array (or single object) of Microsoft Graph ChatMessageAttachment objects to send cards. Each object must have an 'id' and 'contentType' (e.g. 'application/vnd.microsoft.card.thumbnail'). Attachment IDs must match <attachment id=\"...\"></attachment> tags in the message body (auto-appended if missing).",
-    "optional" : true,
+    "id" : "data.sendMessageInChat.content",
+    "label" : "Content",
+    "description" : "Enter content",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "data",
     "binding" : {
-      "name" : "data.attachmentsJson",
+      "name" : "data.content",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -623,6 +600,33 @@
       } ]
     },
     "type" : "Text"
+  }, {
+    "id" : "data.sendMessageInChat.attachments",
+    "label" : "Attachments",
+    "description" : "Optional list of attachments. Each item must have an 'id', 'contentType' (e.g. 'application/vnd.microsoft.card.adaptive') and 'content' (e.g. an Adaptive Card JSON payload). Attachment IDs must match <attachment id=\"...\"></attachment> tags in the message body (auto-appended if missing).",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "data",
+    "binding" : {
+      "name" : "data.attachments",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.sendMessageInChat.bodyType",
+        "equals" : "HTML",
+        "type" : "simple"
+      }, {
+        "property" : "data.chatMethod",
+        "equals" : "sendMessageToChat",
+        "type" : "simple"
+      }, {
+        "property" : "data.type",
+        "equals" : "chat",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
   }, {
     "id" : "data.listMessagesInChat.chatId",
     "label" : "Chat ID",
@@ -1077,32 +1081,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.sendMessageToChannel.content",
-    "label" : "Content",
-    "description" : "Enter content",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "data",
-    "binding" : {
-      "name" : "data.content",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.channelMethod",
-        "equals" : "sendMessageToChannel",
-        "type" : "simple"
-      }, {
-        "property" : "data.type",
-        "equals" : "channel",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Text"
-  }, {
     "id" : "data.sendMessageToChannel.bodyType",
     "label" : "Content type",
     "description" : "The type of the content. Possible values are text and html",
@@ -1136,6 +1114,32 @@
       "value" : "HTML"
     } ]
   }, {
+    "id" : "data.sendMessageToChannel.content",
+    "label" : "Content",
+    "description" : "Enter content",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "data",
+    "binding" : {
+      "name" : "data.content",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.channelMethod",
+        "equals" : "sendMessageToChannel",
+        "type" : "simple"
+      }, {
+        "property" : "data.type",
+        "equals" : "channel",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Text"
+  }, {
     "id" : "data.sendMessageToChannel.documents",
     "label" : "documents",
     "optional" : true,
@@ -1158,18 +1162,22 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.sendMessageToChannel.attachmentsJson",
-    "label" : "Card attachments (JSON)",
-    "description" : "Optional JSON array (or single object) of Microsoft Graph ChatMessageAttachment objects to send cards. Each object must have an 'id' and 'contentType' (e.g. 'application/vnd.microsoft.card.thumbnail'). Attachment IDs must match <attachment id=\"...\"></attachment> tags in the message body (auto-appended if missing).",
+    "id" : "data.sendMessageToChannel.attachments",
+    "label" : "Attachments",
+    "description" : "Optional list of attachments. Each item must have an 'id', 'contentType' (e.g. 'application/vnd.microsoft.card.adaptive') and 'content' (e.g. an Adaptive Card JSON payload). Attachment IDs must match <attachment id=\"...\"></attachment> tags in the message body (auto-appended if missing).",
     "optional" : true,
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "data",
     "binding" : {
-      "name" : "data.attachmentsJson",
+      "name" : "data.attachments",
       "type" : "zeebe:input"
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "data.sendMessageToChannel.bodyType",
+        "equals" : "HTML",
+        "type" : "simple"
+      }, {
         "property" : "data.channelMethod",
         "equals" : "sendMessageToChannel",
         "type" : "simple"
@@ -1179,7 +1187,7 @@
         "type" : "simple"
       } ]
     },
-    "type" : "Text"
+    "type" : "String"
   }, {
     "id" : "data.getChannelMessage.groupId",
     "label" : "Group ID",
