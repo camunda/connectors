@@ -18,10 +18,12 @@ package io.camunda.connector.feel.jackson;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import java.io.IOException;
 import java.util.function.Supplier;
@@ -30,7 +32,8 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     implements ContextualDeserializer {
 
   protected FeelEngineWrapper feelEngineWrapper;
-  protected boolean relaxed;
+  protected final boolean relaxed;
+  protected final Supplier<CamundaClient> camundaClientSupplier;
 
   /**
    * A blank object mapper object for use in inheriting classes.
@@ -42,10 +45,22 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
    */
   protected static final ObjectMapper BLANK_OBJECT_MAPPER = new ObjectMapper();
 
-  protected AbstractFeelDeserializer(FeelEngineWrapper feelEngineWrapper, boolean relaxed) {
+  /**
+   * @param feelEngineWrapper the FEEL engine wrapper for local evaluation
+   * @param relaxed if true, the deserializer will be triggered for any string value, even if not a
+   *     FEEL expression. if false, the deserializer will only be triggered for string values that
+   *     start with '=' (indicating a FEEL expression).
+   * @param camundaClientSupplier supplier for CamundaClient for remote evaluation, or null to use
+   *     local FeelEngineWrapper
+   */
+  protected AbstractFeelDeserializer(
+      FeelEngineWrapper feelEngineWrapper,
+      boolean relaxed,
+      Supplier<CamundaClient> camundaClientSupplier) {
     super(String.class);
     this.feelEngineWrapper = feelEngineWrapper;
     this.relaxed = relaxed;
+    this.camundaClientSupplier = camundaClientSupplier;
   }
 
   @Override
@@ -79,6 +94,38 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
 
   protected boolean isFeelExpression(String value) {
     return value != null && value.startsWith("=");
+  }
+
+  protected Object evaluateFeelExpression(
+      final DeserializationContext ctx,
+      final String expression,
+      final JavaType clazz,
+      final JsonNode... variables) {
+
+    if (camundaClientSupplier == null) {
+      return feelEngineWrapper.evaluate(ctx, expression, clazz, (Object[]) variables);
+    }
+
+    var request = camundaClientSupplier.get().newEvaluateExpressionCommand().expression(expression);
+    var mergedVariables = feelEngineWrapper.mergeMapVariables(variables);
+
+    if (mergedVariables != null && !mergedVariables.isEmpty()) {
+      request.variables(mergedVariables);
+    }
+    var response = request.send().join();
+    // TODO: should we handle warnings? should they be logged or propagated in some way?
+    try {
+      // response type might be a problem even if it's compatible (e.g. int/long)
+      // we use the blank object mapper to convert the result to a JsonNode and then use the
+      // deserialization context to convert it to the expected type.
+      // This way we can leverage Jackson's type coercion and custom deserializers if needed.
+      // if custom modules are registered (like the JavaTimeModule for java.time types), they will
+      // be used here.
+      return ctx.readTreeAsValue(BLANK_OBJECT_MAPPER.valueToTree(response.getResult()), clazz);
+    } catch (IOException e) {
+      throw new RuntimeException(
+          "Failed to deserialize FEEL expression result: " + e.getMessage(), e);
+    }
   }
 
   protected abstract T doDeserialize(

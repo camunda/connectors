@@ -19,6 +19,7 @@ package io.camunda.connector.feel.jackson;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.type.TypeFactory;
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -35,12 +36,23 @@ public class JacksonModuleFeelFunction extends SimpleModule {
    */
   private final boolean processFEELAnnotation;
 
+  private final Supplier<CamundaClient> camundaClientSupplier;
+
+  /** Creates a module using local FEEL engine. */
   public JacksonModuleFeelFunction() {
-    this(true);
+    this(true, null);
   }
 
-  public JacksonModuleFeelFunction(boolean processFEELAnnotation) {
+  /**
+   * Creates a module with optional CamundaClient for remote FEEL evaluation.
+   *
+   * @param processFEELAnnotation whether to process @FEEL annotations
+   * @param camundaClientSupplier supplier for CamundaClient, or null to use local FEEL engine
+   */
+  public JacksonModuleFeelFunction(
+      boolean processFEELAnnotation, Supplier<CamundaClient> camundaClientSupplier) {
     this.processFEELAnnotation = processFEELAnnotation;
+    this.camundaClientSupplier = camundaClientSupplier;
   }
 
   @Override
@@ -58,12 +70,14 @@ public class JacksonModuleFeelFunction extends SimpleModule {
   public void setupModule(SetupContext context) {
     addDeserializer(
         Function.class,
-        new FeelFunctionDeserializer<>(TypeFactory.unknownType(), feelEngineWrapper));
+        new FeelFunctionDeserializer<>(
+            TypeFactory.unknownType(), feelEngineWrapper, camundaClientSupplier));
     addDeserializer(
         Supplier.class,
-        new FeelSupplierDeserializer<>(TypeFactory.unknownType(), feelEngineWrapper));
+        new FeelSupplierDeserializer<>(
+            TypeFactory.unknownType(), feelEngineWrapper, camundaClientSupplier));
     if (processFEELAnnotation) {
-      context.insertAnnotationIntrospector(new FeelAnnotationIntrospector());
+      context.insertAnnotationIntrospector(new FeelAnnotationIntrospector(camundaClientSupplier));
     }
     super.setupModule(context);
   }

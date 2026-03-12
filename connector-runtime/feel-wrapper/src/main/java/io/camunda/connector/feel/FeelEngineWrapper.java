@@ -86,7 +86,7 @@ public class FeelEngineWrapper {
     return scala.collection.immutable.Map.from(CollectionConverters.asScala(context));
   }
 
-  private Map<String, Object> mergeMapVariables(final Object[] variables) {
+  public Map<String, Object> mergeMapVariables(final Object[] variables) {
     try {
       Objects.requireNonNull(variables, ERROR_CONTEXT_IS_NULL);
       Map<String, Object> variablesMap = new HashMap<>();
@@ -104,7 +104,7 @@ public class FeelEngineWrapper {
 
   private Optional<Map<String, Object>> tryConvertToMap(Object o) {
     try {
-      return Optional.of(objectMapper.convertValue(o, MAP_TYPE_REFERENCE));
+      return Optional.of(sanitizeScalaOutput(objectMapper.convertValue(o, MAP_TYPE_REFERENCE)));
     } catch (IllegalArgumentException ex) {
       log.warn(ex.getMessage(), ex);
       return Optional.empty();
@@ -112,22 +112,27 @@ public class FeelEngineWrapper {
   }
 
   @SuppressWarnings("unchecked")
-  private <T> T sanitizeScalaOutput(T output) {
-    if (output instanceof scala.collection.Map<?, ?> scalaMap) {
-      return (T)
-          CollectionConverters.asJava(scalaMap).entrySet().stream()
-              .collect(
-                  HashMap::new,
-                  (m, v) -> m.put(v.getKey(), sanitizeScalaOutput(v.getValue())),
-                  HashMap::putAll);
-    } else if (output instanceof Iterable<?> scalaIterable) {
-      return (T)
-          StreamSupport.stream(CollectionConverters.asJava(scalaIterable).spliterator(), false)
-              .map(this::sanitizeScalaOutput)
-              .collect(Collectors.toList());
-    } else {
-      return output;
-    }
+  public <T> T sanitizeScalaOutput(T output) {
+    return switch (output) {
+      case scala.collection.Map<?, ?> scalaMap ->
+          (T)
+              CollectionConverters.asJava(scalaMap).entrySet().stream()
+                  .collect(
+                      HashMap::new,
+                      (m, v) -> m.put(v.getKey(), sanitizeScalaOutput(v.getValue())),
+                      HashMap::putAll);
+      case Map<?, ?> javaMap ->
+          (T)
+              javaMap.entrySet().stream()
+                  .collect(
+                      Collectors.toMap(Map.Entry::getKey, e -> sanitizeScalaOutput(e.getValue())));
+      case Iterable<?> scalaIterable ->
+          (T)
+              StreamSupport.stream(CollectionConverters.asJava(scalaIterable).spliterator(), false)
+                  .map(this::sanitizeScalaOutput)
+                  .collect(Collectors.toList());
+      case null, default -> output;
+    };
   }
 
   /**
