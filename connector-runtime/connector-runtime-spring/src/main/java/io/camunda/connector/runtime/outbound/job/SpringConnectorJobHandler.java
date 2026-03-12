@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.outbound.job;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.api.CamundaFuture;
 import io.camunda.client.api.command.FinalCommandStep;
 import io.camunda.client.api.command.ThrowErrorCommandStep1;
 import io.camunda.client.api.response.ActivatedJob;
@@ -43,6 +44,7 @@ import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -181,12 +183,21 @@ public class SpringConnectorJobHandler implements JobHandler {
           new JobHandlerContext(
               job, getSecretProvider(), validationProvider, documentFactory, objectMapper);
       var response = call.execute(context);
+
+      ConnectorResponse connectorResponse = null;
+      Object actualResponse = response;
+      if (response instanceof ConnectorResponse cr) {
+        connectorResponse = cr;
+        actualResponse = cr.responseValue();
+      }
+
       var responseVariables =
           connectorResultHandler.createOutputVariables(
-              response,
+              actualResponse,
               job.getCustomHeaders().get(Keywords.RESULT_VARIABLE_KEYWORD),
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
-      return new ConnectorResult.SuccessResult(response, responseVariables);
+      return new ConnectorResult.SuccessResult(
+          actualResponse, responseVariables, connectorResponse);
     } catch (Exception e) {
       return outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
           e, job, retryBackoff);
@@ -206,8 +217,8 @@ public class SpringConnectorJobHandler implements JobHandler {
               new ErrorExpressionJobContext(
                   new ErrorExpressionJobContext.ErrorExpressionJob(job.getRetries())));
       optionalConnectorError.ifPresentOrElse(
-          error -> handleBPMNError(client, job, error, counterMetricsContext),
-          () -> handleSuccessResult(client, job, finalResult, counterMetricsContext));
+          error -> handleBPMNError(client, job, error, finalResult, counterMetricsContext),
+          () -> handleFinalResult(client, job, finalResult, counterMetricsContext));
     } catch (Exception ex) {
       failJob(
           client,
@@ -217,7 +228,7 @@ public class SpringConnectorJobHandler implements JobHandler {
     }
   }
 
-  private void handleSuccessResult(
+  private void handleFinalResult(
       JobClient jobClient,
       ActivatedJob job,
       ConnectorResult finalResult,
@@ -241,6 +252,7 @@ public class SpringConnectorJobHandler implements JobHandler {
       JobClient client,
       ActivatedJob job,
       ConnectorError error,
+      ConnectorResult finalResult,
       CounterMetricsContext counterMetricsContext) {
     switch (error) {
       case BpmnError bpmnError -> {
@@ -261,12 +273,28 @@ public class SpringConnectorJobHandler implements JobHandler {
             counterMetricsContext);
       }
       case IgnoreError ignoreError -> {
-        LOGGER.debug("Ignoring error for job {}", job.getKey());
-        completeJob(
-            client,
-            job,
-            new ConnectorResult.SuccessResult(null, ignoreError.variables()),
-            counterMetricsContext);
+        if (finalResult instanceof ConnectorResult.SuccessResult successResult
+            && successResult.connectorResponse() instanceof ConnectorJobCompletion completion
+            && completion.rejectIgnoreError()) {
+          LOGGER.debug("IgnoreError rejected by ConnectorJobCompletion for job {}", job.getKey());
+          failJob(
+              client,
+              job,
+              new ConnectorResult.ErrorResult(
+                  ignoreError.variables(),
+                  new UnsupportedOperationException(
+                      "IgnoreError is not supported for this connector"),
+                  0,
+                  null),
+              counterMetricsContext);
+        } else {
+          LOGGER.debug("Ignoring error for job {}", job.getKey());
+          completeJob(
+              client,
+              job,
+              new ConnectorResult.SuccessResult(null, ignoreError.variables()),
+              counterMetricsContext);
+        }
       }
     }
   }
@@ -322,21 +350,70 @@ public class SpringConnectorJobHandler implements JobHandler {
         .executeAsync();
   }
 
-  @SuppressWarnings("rawtypes")
   protected void completeJob(
       JobClient client,
       ActivatedJob job,
       ConnectorResult.SuccessResult result,
       CounterMetricsContext counterMetricsContext) {
 
-    FinalCommandStep commandStep = prepareCompleteJobCommand(client, job, result);
+    ConnectorResponse connectorResponse = result.connectorResponse();
+    FinalCommandStep<?> commandStep;
+    if (connectorResponse instanceof ConnectorJobCompletion completion) {
+      commandStep = completion.prepareCompleteCommand(client, job, result.variables());
+    } else {
+      commandStep = prepareCompleteJobCommand(client, job, result);
+    }
+
+    var strategy =
+        connectorResponse != null
+            ? wrapWithOnCompletionError(commandExceptionHandlingStrategy, connectorResponse)
+            : commandExceptionHandlingStrategy;
+    if (connectorResponse != null) {
+      commandStep = wrapWithOnCompletionSuccess(commandStep, connectorResponse);
+    }
+
     new CommandWrapper(
             commandStep,
             job,
-            commandExceptionHandlingStrategy,
+            strategy,
             connectorsOutboundMetrics,
             counterMetricsContext,
             MAX_ZEEBE_COMMAND_RETRIES)
         .executeAsync();
+  }
+
+  private CommandExceptionHandlingStrategy wrapWithOnCompletionError(
+      CommandExceptionHandlingStrategy delegate, ConnectorResponse connectorResponse) {
+    return (command, throwable) -> {
+      connectorResponse.onCompletionError(unwrapCompletionException(throwable));
+      delegate.handleCommandError(command, throwable);
+    };
+  }
+
+  private static <T> FinalCommandStep<T> wrapWithOnCompletionSuccess(
+      FinalCommandStep<T> delegate, ConnectorResponse connectorResponse) {
+    return new FinalCommandStep<T>() {
+      @Override
+      public FinalCommandStep<T> requestTimeout(Duration requestTimeout) {
+        delegate.requestTimeout(requestTimeout);
+        return this;
+      }
+
+      @Override
+      public CamundaFuture<T> send() {
+        var future = delegate.send();
+        future.whenComplete(
+            (result, error) -> {
+              if (error == null) {
+                connectorResponse.onCompletionSuccess(result);
+              }
+            });
+        return future;
+      }
+    };
+  }
+
+  private static Throwable unwrapCompletionException(Throwable t) {
+    return t instanceof CompletionException ce && ce.getCause() != null ? ce.getCause() : t;
   }
 }

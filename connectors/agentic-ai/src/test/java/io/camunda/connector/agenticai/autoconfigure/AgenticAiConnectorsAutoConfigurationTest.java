@@ -34,9 +34,6 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.Doc
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.JsonSchemaConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
-import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentJobWorkerHandler;
-import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentJobWorkerValueCustomizer;
-import io.camunda.connector.agenticai.aiagent.jobworker.JobWorkerAgentExecutionContextFactory;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
@@ -70,10 +67,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentResponseHandler.class,
           OutboundConnectorAgentRequestHandler.class,
           AiAgentFunction.class,
-          AiAgentJobWorkerValueCustomizer.class,
           JobWorkerAgentRequestHandler.class,
-          JobWorkerAgentExecutionContextFactory.class,
-          AiAgentJobWorkerHandler.class,
           AiAgentJobWorker.class);
 
   private static final List<Class<?>> LANGCHAIN4J_BEANS =
@@ -138,19 +132,10 @@ class AgenticAiConnectorsAutoConfigurationTest {
               assertHasAllBeansOf(
                   context,
                   ALL_BEANS.stream()
-                      .filter(
-                          notAnyOf(
-                              AiAgentJobWorkerValueCustomizer.class,
-                              JobWorkerAgentRequestHandler.class,
-                              JobWorkerAgentExecutionContextFactory.class,
-                              AiAgentJobWorkerHandler.class,
-                              AiAgentJobWorker.class))
+                      .filter(notAnyOf(JobWorkerAgentRequestHandler.class, AiAgentJobWorker.class))
                       .toList());
               assertThat(context)
-                  .doesNotHaveBean(AiAgentJobWorkerValueCustomizer.class)
                   .doesNotHaveBean(JobWorkerAgentRequestHandler.class)
-                  .doesNotHaveBean(JobWorkerAgentExecutionContextFactory.class)
-                  .doesNotHaveBean(AiAgentJobWorkerHandler.class)
                   .doesNotHaveBean(AiAgentJobWorker.class);
             });
   }

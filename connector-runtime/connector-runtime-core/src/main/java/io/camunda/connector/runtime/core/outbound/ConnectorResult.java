@@ -34,8 +34,14 @@ public sealed interface ConnectorResult {
     }
   }
 
-  record SuccessResult(Object rawResponse, Map<String, Object> variables)
+  record SuccessResult(
+      Object rawResponse, Map<String, Object> variables, ConnectorResponse connectorResponse)
       implements ConnectorResult {
+
+    public SuccessResult(Object rawResponse, Map<String, Object> variables) {
+      this(rawResponse, variables, null);
+    }
+
     public Object responseValue() {
       if (variables == null || variables.isEmpty()) {
         return rawResponse;

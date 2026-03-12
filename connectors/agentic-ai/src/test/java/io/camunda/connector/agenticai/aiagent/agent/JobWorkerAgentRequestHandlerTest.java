@@ -20,14 +20,12 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
@@ -100,8 +98,6 @@ class JobWorkerAgentRequestHandlerTest {
 
   private ConversationStore conversationStore;
 
-  @Mock private ActivatedJob job;
-
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private JobWorkerAgentExecutionContext agentExecutionContext;
 
@@ -111,9 +107,6 @@ class JobWorkerAgentRequestHandlerTest {
 
   @BeforeEach
   void setUp() {
-    lenient().when(job.getKey()).thenReturn(123456L);
-    when(agentExecutionContext.job()).thenReturn(job);
-
     conversationStore = spy(new InProcessConversationStore());
     doReturn(conversationStore)
         .when(conversationStoreRegistry)
