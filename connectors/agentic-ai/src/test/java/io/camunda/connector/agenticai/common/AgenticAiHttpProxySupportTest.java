@@ -19,15 +19,15 @@ import java.net.http.HttpClient;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
-class AgenticAiHttpSupportTest {
+class AgenticAiHttpProxySupportTest {
 
   @Test
   void shouldConfigureProxyOnHttpClientBuilder() throws Exception {
     var proxyConfig = testProxyConfiguration("proxy.example.com", 8080, "user", "pass");
-    var httpSupport = new AgenticAiHttpSupport(proxyConfig);
+    var httpProxySupport = new AgenticAiHttpProxySupport(proxyConfig);
 
     var builder = HttpClient.newBuilder();
-    httpSupport.getJdkHttpClientProxyConfigurator().configure(builder);
+    httpProxySupport.getJdkHttpClientProxyConfigurator().configure(builder);
     var client = builder.build();
 
     assertThat(client.proxy()).isPresent().get().isInstanceOf(JdkProxySelector.class);
@@ -53,10 +53,10 @@ class AgenticAiHttpSupportTest {
   @Test
   void shouldConfigureProxyWithoutCredentials() throws Exception {
     var proxyConfig = testProxyConfiguration("proxy.example.com", 3128, null, null);
-    var httpSupport = new AgenticAiHttpSupport(proxyConfig);
+    var httpProxySupport = new AgenticAiHttpProxySupport(proxyConfig);
 
     var builder = HttpClient.newBuilder();
-    httpSupport.getJdkHttpClientProxyConfigurator().configure(builder);
+    httpProxySupport.getJdkHttpClientProxyConfigurator().configure(builder);
     var client = builder.build();
 
     assertThat(client.proxy()).isPresent().get().isInstanceOf(JdkProxySelector.class);
@@ -81,10 +81,10 @@ class AgenticAiHttpSupportTest {
 
   @Test
   void shouldNotConfigureProxyWhenDisabled() {
-    var httpSupport = new AgenticAiHttpSupport(ProxyConfiguration.NONE);
+    var httpProxySupport = new AgenticAiHttpProxySupport(ProxyConfiguration.NONE);
 
     var builder = HttpClient.newBuilder();
-    httpSupport.getJdkHttpClientProxyConfigurator().configure(builder);
+    httpProxySupport.getJdkHttpClientProxyConfigurator().configure(builder);
     var client = builder.build();
 
     assertThat(client.proxy()).isEmpty();
@@ -94,17 +94,17 @@ class AgenticAiHttpSupportTest {
   @Test
   void shouldExposeProxyConfiguration() {
     var proxyConfig = testProxyConfiguration("proxy.example.com", 8080, "user", "pass");
-    var httpSupport = new AgenticAiHttpSupport(proxyConfig);
+    var httpProxySupport = new AgenticAiHttpProxySupport(proxyConfig);
 
-    assertThat(httpSupport.getProxyConfiguration()).isSameAs(proxyConfig);
+    assertThat(httpProxySupport.getProxyConfiguration()).isSameAs(proxyConfig);
   }
 
   @Test
   void shouldExposeJdkHttpClientProxyConfigurator() {
     var proxyConfig = testProxyConfiguration("proxy.example.com", 8080, "user", "pass");
-    var httpSupport = new AgenticAiHttpSupport(proxyConfig);
+    var httpProxySupport = new AgenticAiHttpProxySupport(proxyConfig);
 
-    assertThat(httpSupport.getJdkHttpClientProxyConfigurator())
+    assertThat(httpProxySupport.getJdkHttpClientProxyConfigurator())
         .isNotNull()
         .isInstanceOf(JdkHttpClientProxyConfigurator.class);
   }
@@ -120,15 +120,15 @@ class AgenticAiHttpSupportTest {
           }
           return Optional.empty();
         };
-    var httpSupport = new AgenticAiHttpSupport(httpOnlyProxy);
+    var httpProxySupport = new AgenticAiHttpProxySupport(httpOnlyProxy);
 
     var builder = HttpClient.newBuilder();
-    httpSupport.getJdkHttpClientProxyConfigurator().configure(builder);
+    httpProxySupport.getJdkHttpClientProxyConfigurator().configure(builder);
     var client = builder.build();
 
     assertThat(client.proxy()).isPresent().get().isInstanceOf(JdkProxySelector.class);
-    assertThat(httpSupport.getProxyConfiguration().getProxyDetails("http")).isPresent();
-    assertThat(httpSupport.getProxyConfiguration().getProxyDetails("https")).isEmpty();
+    assertThat(httpProxySupport.getProxyConfiguration().getProxyDetails("http")).isPresent();
+    assertThat(httpProxySupport.getProxyConfiguration().getProxyDetails("https")).isEmpty();
   }
 
   private static ProxyConfiguration testProxyConfiguration(
