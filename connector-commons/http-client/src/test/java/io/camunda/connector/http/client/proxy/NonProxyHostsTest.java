@@ -19,20 +19,25 @@ package io.camunda.connector.http.client.proxy;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.stream.Stream;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
+import uk.org.webcompere.systemstubs.properties.SystemProperties;
 
+@ExtendWith(SystemStubsExtension.class)
 public class NonProxyHostsTest {
 
-  @BeforeEach
-  @AfterEach
-  public void clearSystemProperties() {
-    System.clearProperty("http.nonProxyHosts");
-  }
+  @SystemStub
+  private SystemProperties systemProperties = new SystemProperties().remove("http.nonProxyHosts");
+
+  @SystemStub
+  private EnvironmentVariables environmentVariables =
+      new EnvironmentVariables().remove("CONNECTOR_HTTP_NON_PROXY_HOSTS");
 
   private static Stream<Arguments> provideNonProxyHostTestData() {
     return Stream.of(
@@ -67,10 +72,9 @@ public class NonProxyHostsTest {
   @ParameterizedTest
   @MethodSource("provideNonProxyHostTestData")
   void shouldMatchNonProxyHosts_fromEnvVar(
-      String nonProxyHosts, String hostname, boolean expectedMatch) throws Exception {
-    uk.org.webcompere.systemstubs.SystemStubs.withEnvironmentVariables(
-            "CONNECTOR_HTTP_NON_PROXY_HOSTS", nonProxyHosts)
-        .execute(() -> assertThat(NonProxyHosts.isNonProxyHost(hostname)).isEqualTo(expectedMatch));
+      String nonProxyHosts, String hostname, boolean expectedMatch) {
+    environmentVariables.set("CONNECTOR_HTTP_NON_PROXY_HOSTS", nonProxyHosts);
+    assertThat(NonProxyHosts.isNonProxyHost(hostname)).isEqualTo(expectedMatch);
   }
 
   @Test
@@ -80,24 +84,18 @@ public class NonProxyHostsTest {
   }
 
   @Test
-  void shouldReturnPatternsFromEnvVar() throws Exception {
-    uk.org.webcompere.systemstubs.SystemStubs.withEnvironmentVariables(
-            "CONNECTOR_HTTP_NON_PROXY_HOSTS", "*.internal.com|127.0.0.1")
-        .execute(
-            () ->
-                assertThat(NonProxyHosts.getNonProxyHostsPatterns())
-                    .containsExactly("*.internal.com|127.0.0.1"));
+  void shouldReturnPatternsFromEnvVar() {
+    environmentVariables.set("CONNECTOR_HTTP_NON_PROXY_HOSTS", "*.internal.com|127.0.0.1");
+    assertThat(NonProxyHosts.getNonProxyHostsPatterns())
+        .containsExactly("*.internal.com|127.0.0.1");
   }
 
   @Test
-  void shouldReturnPatternsFromBothSources() throws Exception {
+  void shouldReturnPatternsFromBothSources() {
     System.setProperty("http.nonProxyHosts", "localhost");
-    uk.org.webcompere.systemstubs.SystemStubs.withEnvironmentVariables(
-            "CONNECTOR_HTTP_NON_PROXY_HOSTS", "*.example.com")
-        .execute(
-            () ->
-                assertThat(NonProxyHosts.getNonProxyHostsPatterns())
-                    .containsExactlyInAnyOrder("localhost", "*.example.com"));
+    environmentVariables.set("CONNECTOR_HTTP_NON_PROXY_HOSTS", "*.example.com");
+    assertThat(NonProxyHosts.getNonProxyHostsPatterns())
+        .containsExactlyInAnyOrder("localhost", "*.example.com");
   }
 
   @Test
