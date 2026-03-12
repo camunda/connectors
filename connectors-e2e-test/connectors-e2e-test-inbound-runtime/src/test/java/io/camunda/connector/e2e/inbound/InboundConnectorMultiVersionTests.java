@@ -1009,4 +1009,66 @@ public class InboundConnectorMultiVersionTests {
               });
     }
   }
+
+  @Nested
+  class ClusterVariableResolution {
+
+    @Test
+    void deployProcessWithClusterVariableInConfig_shouldResolveAndActivate() {
+      // Given: Create a cluster variable
+      String variableName =
+          "testConfigVar_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+      String variableValue = "cluster-config-value";
+
+      camundaClient
+          .newGloballyScopedClusterVariableCreateRequest()
+          .create(variableName, variableValue)
+          .send()
+          .join();
+
+      // Wait for cluster variable to be available
+      awaitClusterVariableAvailable(variableName);
+
+      // When: Deploy a process with connector that uses the cluster variable in configValue
+      var model = createInboundConnectorProcess("=camunda.vars.env." + variableName);
+      long processDefKey = deploy(model);
+      waitForProcessDefinitionIndexed(processDefKey);
+
+      // Then: Connector should be activated with healthy status
+      // (cluster variable resolved during property binding)
+      awaitHealthyExecutable(testProcessId);
+
+      var executables = queryExecutables(testProcessId);
+      assertThat(executables).hasSize(1);
+      assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
+      assertThat(executables.getFirst().elements()).hasSize(1);
+      assertThat(executables.getFirst().elements().getFirst().element().processDefinitionKey())
+          .isEqualTo(processDefKey);
+    }
+
+    /**
+     * Waits until a cluster variable is available (not returning 404). There is a delay between
+     * creating a cluster variable and it being ready to use.
+     */
+    private void awaitClusterVariableAvailable(String variableName) {
+      Awaitility.await("cluster variable " + variableName + " should be available")
+          .atMost(AWAIT_TIMEOUT)
+          .pollInterval(Duration.ofMillis(500))
+          .ignoreExceptions()
+          .until(
+              () -> {
+                try {
+                  var result =
+                      camundaClient
+                          .newEvaluateExpressionCommand()
+                          .expression("=camunda.vars.env." + variableName)
+                          .send()
+                          .join();
+                  return result.getResult() != null;
+                } catch (Exception e) {
+                  return false;
+                }
+              });
+    }
+  }
 }
