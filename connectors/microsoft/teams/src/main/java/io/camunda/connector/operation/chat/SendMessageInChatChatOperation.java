@@ -15,6 +15,7 @@ import io.camunda.connector.model.Attachment;
 import io.camunda.connector.model.request.data.SendMessageInChat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 public record SendMessageInChatChatOperation(SendMessageInChat model) implements ChatOperation {
@@ -25,7 +26,7 @@ public record SendMessageInChatChatOperation(SendMessageInChat model) implements
     ItemBody body = new ItemBody();
     BodyType resolvedBodyType =
         Optional.ofNullable(model.bodyType())
-            .map(type -> BodyType.forValue(type.toLowerCase()))
+            .map(type -> BodyType.forValue(type.toLowerCase(Locale.ROOT)))
             .orElse(BodyType.Text);
     String content = model.content();
 
