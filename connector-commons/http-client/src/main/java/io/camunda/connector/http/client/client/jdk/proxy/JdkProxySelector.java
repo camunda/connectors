@@ -73,7 +73,13 @@ public class JdkProxySelector extends ProxySelector {
             details -> {
               Proxy proxy =
                   new Proxy(Proxy.Type.HTTP, new InetSocketAddress(details.host(), details.port()));
-              LOG.debug("Using proxy for target host [{}] => [{}]", host, proxy);
+              LOG.debug(
+                  "Using proxy for target scheme [{}] and host [{}] => [{}://{}:{}]",
+                  protocol,
+                  host,
+                  details.scheme(),
+                  details.host(),
+                  details.port());
               return List.of(proxy);
             })
         .orElse(NO_PROXY);
