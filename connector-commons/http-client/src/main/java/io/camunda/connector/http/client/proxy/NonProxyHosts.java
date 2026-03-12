@@ -18,7 +18,10 @@ package io.camunda.connector.http.client.proxy;
 
 import static io.camunda.connector.http.client.proxy.ProxyConfiguration.CONNECTOR_HTTP_NON_PROXY_HOSTS_ENV_VAR;
 
+import java.util.Arrays;
 import java.util.Objects;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -58,9 +61,18 @@ public class NonProxyHosts {
 
   /**
    * Converts a non-proxy hosts pattern string (pipe-separated, with {@code *} wildcards) into a
-   * regex pattern. The conversion replaces {@code *} with {@code .*}.
+   * regex pattern. Each token is split by {@code *}, each part is regex-escaped via {@link
+   * Pattern#quote}, and parts are rejoined with {@code .*}. Tokens are then rejoined with {@code |}
+   * for alternation. This ensures that regex metacharacters such as {@code .} are treated as
+   * literals rather than regex constructs.
    */
   static String toRegex(String nonProxyHosts) {
-    return nonProxyHosts.replace("*", ".*");
+    return Arrays.stream(nonProxyHosts.split("\\|", -1))
+        .map(
+            token ->
+                Arrays.stream(token.split("\\*", -1))
+                    .map(Pattern::quote)
+                    .collect(Collectors.joining(".*")))
+        .collect(Collectors.joining("|"));
   }
 }
