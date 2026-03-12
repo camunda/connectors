@@ -22,11 +22,14 @@ public class DefaultActionProcessor {
   private final EmbeddingActionProcessor embeddingActionProcessor;
   private final RetrievingActionProcessor retrievingActionProcessor;
 
+  private static final String PROXY_SUPPORT_ENABLED_ENV_VAR =
+      "CAMUNDA_CONNECTOR_VECTORDB_HTTP_PROXYSUPPORT_ENABLED";
+
   public DefaultActionProcessor() {
-    this(EnvironmentProxyConfiguration.withPlainProxySupport());
+    this(resolveProxyConfiguration());
   }
 
-  public DefaultActionProcessor(ProxyConfiguration proxyConfiguration) {
+  private DefaultActionProcessor(ProxyConfiguration proxyConfiguration) {
     this(
         new DefaultEmbeddingActionProcessor(proxyConfiguration),
         new DefaultRetrievingActionProcessor(proxyConfiguration));
@@ -45,5 +48,15 @@ public class DefaultActionProcessor {
       case RetrieveDocumentOperation ignored ->
           retrievingActionProcessor.retrieve(request, documentFactory);
     };
+  }
+
+  private static ProxyConfiguration resolveProxyConfiguration() {
+    // defaults to true
+    String envValue = System.getenv(PROXY_SUPPORT_ENABLED_ENV_VAR);
+    if ("false".equalsIgnoreCase(envValue)) {
+      return ProxyConfiguration.NONE;
+    }
+
+    return EnvironmentProxyConfiguration.withPlainProxySupport();
   }
 }
