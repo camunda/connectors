@@ -102,4 +102,24 @@ public class NonProxyHostsTest {
   void shouldReturnEmptyStreamWhenNoPatternsConfigured() {
     assertThat(NonProxyHosts.getNonProxyHostsPatterns()).isEmpty();
   }
+
+  @Test
+  void shouldReturnRegexPatternsFromSystemProperty() {
+    System.setProperty("http.nonProxyHosts", "localhost|*.example.com");
+    assertThat(NonProxyHosts.getNonProxyHostRegexPatterns())
+        .containsExactly("localhost|.*.example.com");
+  }
+
+  @Test
+  void shouldReturnRegexPatternsFromBothSources() {
+    System.setProperty("http.nonProxyHosts", "localhost");
+    environmentVariables.set("CONNECTOR_HTTP_NON_PROXY_HOSTS", "*.example.com");
+    assertThat(NonProxyHosts.getNonProxyHostRegexPatterns())
+        .containsExactlyInAnyOrder("localhost", ".*.example.com");
+  }
+
+  @Test
+  void shouldReturnEmptyStreamWhenNoRegexPatternsConfigured() {
+    assertThat(NonProxyHosts.getNonProxyHostRegexPatterns()).isEmpty();
+  }
 }

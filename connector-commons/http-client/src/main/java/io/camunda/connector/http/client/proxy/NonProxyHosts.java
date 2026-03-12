@@ -58,6 +58,17 @@ public class NonProxyHosts {
   }
 
   /**
+   * Returns configured non-proxy host patterns converted to regex patterns, from the system
+   * property {@code http.nonProxyHosts} and the environment variable {@code
+   * CONNECTOR_HTTP_NON_PROXY_HOSTS}.
+   *
+   * @return a stream of regex patterns matching non-proxy hosts
+   */
+  public static Stream<String> getNonProxyHostRegexPatterns() {
+    return getNonProxyHostsPatterns().map(NonProxyHosts::toRegex);
+  }
+
+  /**
    * Converts a non-proxy hosts pattern string (pipe-separated, with {@code *} wildcards) into a
    * regex pattern. The conversion replaces {@code *} with {@code .*}.
    */
