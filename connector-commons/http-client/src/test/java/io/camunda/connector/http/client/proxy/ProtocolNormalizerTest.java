@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.client.client.jdk.proxy;
+package io.camunda.connector.http.client.proxy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-public class ProtocolNormalizerTest {
+class ProtocolNormalizerTest {
 
   @Test
   void shouldNormalizeLowercaseProtocols() {

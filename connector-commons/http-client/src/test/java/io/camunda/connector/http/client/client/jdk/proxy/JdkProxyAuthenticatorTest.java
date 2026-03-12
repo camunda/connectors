@@ -87,10 +87,14 @@ public class JdkProxyAuthenticatorTest {
   }
 
   @Test
-  void shouldHandleProtocolWithVersion() throws Exception {
+  void shouldPassProtocolAsIs() throws Exception {
+    // JdkProxyAuthenticator passes the protocol as-is to ProxyConfiguration;
+    // normalization of versioned strings like "http/1.1" is handled by
+    // EnvironmentProxyConfiguration.getProxyDetails()
     var config =
         configWith(
-            "http", new ProxyDetails("http", "proxy.example.com", 8080, "proxyuser", "proxypass"));
+            "http/1.1",
+            new ProxyDetails("http", "proxy.example.com", 8080, "proxyuser", "proxypass"));
     var authenticator = new JdkProxyAuthenticator(config);
     var auth = requestAuthentication(authenticator, "http/1.1", "proxy.example.com", 8080);
 

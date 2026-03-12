@@ -80,7 +80,7 @@ public class EnvironmentProxyConfiguration implements ProxyConfiguration {
 
   @Override
   public Optional<ProxyDetails> getProxyDetails(String protocol) {
-    return Optional.ofNullable(proxyConfigForProtocols.get(protocol));
+    return Optional.ofNullable(proxyConfigForProtocols.get(ProtocolNormalizer.normalize(protocol)));
   }
 
   private Optional<ProxyDetails> getConfigFromEnvVars(String protocol) {

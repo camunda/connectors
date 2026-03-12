@@ -66,7 +66,7 @@ public class JdkProxySelector extends ProxySelector {
       return NO_PROXY;
     }
 
-    String protocol = ProtocolNormalizer.normalize(uri.getScheme());
+    String protocol = uri.getScheme();
     return proxyConfiguration
         .getProxyDetails(protocol)
         .map(

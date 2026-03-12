@@ -269,6 +269,54 @@ class EnvironmentProxyConfigurationTest {
             });
   }
 
+  @Test
+  void shouldNormalizeUppercaseProtocol() throws Exception {
+    withEnvironmentVariables(
+            "CONNECTOR_HTTP_PROXY_HOST", "proxy.example.com",
+            "CONNECTOR_HTTP_PROXY_PORT", "8080")
+        .execute(
+            () -> {
+              var config = new EnvironmentProxyConfiguration();
+              assertThat(config.getProxyDetails("HTTP"))
+                  .isPresent()
+                  .hasValueSatisfying(d -> assertThat(d.host()).isEqualTo("proxy.example.com"));
+              assertThat(config.getProxyDetails("HTTPS")).isEmpty();
+            });
+  }
+
+  @Test
+  void shouldNormalizeVersionedProtocol() throws Exception {
+    withEnvironmentVariables(
+            "CONNECTOR_HTTP_PROXY_HOST", "proxy.example.com",
+            "CONNECTOR_HTTP_PROXY_PORT", "8080",
+            "CONNECTOR_HTTPS_PROXY_HOST", "secure.example.com",
+            "CONNECTOR_HTTPS_PROXY_PORT", "8443")
+        .execute(
+            () -> {
+              var config = new EnvironmentProxyConfiguration();
+
+              assertThat(config.getProxyDetails("HTTP/1.1"))
+                  .isPresent()
+                  .hasValueSatisfying(d -> assertThat(d.host()).isEqualTo("proxy.example.com"));
+
+              assertThat(config.getProxyDetails("http/1.1"))
+                  .isPresent()
+                  .hasValueSatisfying(d -> assertThat(d.host()).isEqualTo("proxy.example.com"));
+            });
+  }
+
+  @Test
+  void shouldReturnEmpty_whenProtocolIsNull() throws Exception {
+    withEnvironmentVariables(
+            "CONNECTOR_HTTP_PROXY_HOST", "proxy.example.com",
+            "CONNECTOR_HTTP_PROXY_PORT", "8080")
+        .execute(
+            () -> {
+              var config = new EnvironmentProxyConfiguration();
+              assertThat(config.getProxyDetails(null)).isEmpty();
+            });
+  }
+
   private static String prefix(String protocol, boolean plain) {
     return "CONNECTOR_" + protocol.toUpperCase() + (plain ? "_PLAIN_PROXY_" : "_PROXY_");
   }

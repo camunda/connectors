@@ -45,7 +45,7 @@ public class JdkProxyAuthenticator extends Authenticator {
       return null;
     }
 
-    String protocol = ProtocolNormalizer.normalize(getRequestingProtocol());
+    String protocol = getRequestingProtocol();
     return proxyConfiguration
         .getProxyDetails(protocol)
         .filter(ProxyDetails::hasCredentials)
