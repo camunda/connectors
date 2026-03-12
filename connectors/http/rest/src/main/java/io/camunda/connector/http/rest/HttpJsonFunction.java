@@ -50,7 +50,7 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
     description = "Invoke REST API",
     inputDataClass = HttpJsonRequest.class,
     outputDataClass = HttpCommonResult.class,
-    version = 12,
+    version = 13,
     defaultResultExpression =
         "{\n"
             + "  myResponseBody: response.body\n"
