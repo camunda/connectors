@@ -1,13 +1,13 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid REST Outbound Connector",
-  "id" : "io.camunda.connectors.HttpJson.v2-hybrid",
+  "name" : "REST Outbound Connector",
+  "id" : "io.camunda.connectors.HttpJson.v2",
   "description" : "Invoke REST API",
   "metadata" : {
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
-  "version" : 13,
+  "version" : 12,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -20,9 +20,6 @@
     "camunda" : "^8.3"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
@@ -48,14 +45,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda:http-json:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "authentication.type",
     "label" : "Type",
@@ -504,7 +499,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "13",
+    "value" : "12",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -536,7 +531,6 @@
     "id" : "resultExpression",
     "label" : "Result expression",
     "description" : "Expression to map the response into process variables",
-    "value" : "{\n  myResponseBody: response.body\n  // Use FEEL to extract values, e.g.,:\n  // myUserId: response.body.post.userId\n}",
     "feel" : "required",
     "group" : "output",
     "binding" : {

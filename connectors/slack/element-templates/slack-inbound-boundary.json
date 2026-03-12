@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=inbound",
-  "version" : 7,
+  "version" : 8,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -251,6 +251,7 @@
     "id" : "resultExpression",
     "label" : "Result expression",
     "description" : "Expression to map the response into process variables",
+    "value" : "{\n  myRequestBody: request.body\n  // Use FEEL to extract values, e.g.,:\n  // myUserId: request.body.event.user\n}",
     "feel" : "required",
     "group" : "output",
     "binding" : {

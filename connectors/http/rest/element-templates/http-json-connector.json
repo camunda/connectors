@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
-  "version" : 12,
+  "version" : 13,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -499,7 +499,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "12",
+    "value" : "13",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -531,6 +531,7 @@
     "id" : "resultExpression",
     "label" : "Result expression",
     "description" : "Expression to map the response into process variables",
+    "value" : "{\n  myResponseBody: response.body\n  // Use FEEL to extract values, e.g.,:\n  // myUserId: response.body.post.userId\n}",
     "feel" : "required",
     "group" : "output",
     "binding" : {

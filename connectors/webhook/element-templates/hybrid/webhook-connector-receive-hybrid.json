@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
-  "version" : 13,
+  "version" : 14,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -539,6 +539,7 @@
     "id" : "resultExpression",
     "label" : "Result expression",
     "description" : "Expression to map the response into process variables",
+    "value" : "{\n  myRequestBody: request.body\n  // Use FEEL to extract values, e.g.,:\n  // myMessage: request.body.message\n}",
     "feel" : "required",
     "group" : "output",
     "binding" : {

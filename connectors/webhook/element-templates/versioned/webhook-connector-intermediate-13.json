@@ -1,20 +1,20 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Webhook Boundary Event Connector",
-  "id" : "io.camunda.connectors.webhook.WebhookConnectorBoundary.v1",
+  "name" : "Webhook Intermediate Event Connector",
+  "id" : "io.camunda.connectors.webhook.WebhookConnectorIntermediate.v1",
   "description" : "Configure webhook to receive callbacks",
   "metadata" : {
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
-  "version" : 14,
+  "version" : 13,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:BoundaryEvent" ],
+  "appliesTo" : [ "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent" ],
   "elementType" : {
-    "value" : "bpmn:BoundaryEvent",
+    "value" : "bpmn:IntermediateCatchEvent",
     "eventDefinition" : "bpmn:MessageEventDefinition"
   },
   "engines" : {
@@ -535,7 +535,6 @@
     "id" : "resultExpression",
     "label" : "Result expression",
     "description" : "Expression to map the response into process variables",
-    "value" : "{\n  myRequestBody: request.body\n  // Use FEEL to extract values, e.g.,:\n  // myMessage: request.body.message\n}",
     "feel" : "required",
     "group" : "output",
     "binding" : {
