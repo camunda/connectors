@@ -20,12 +20,12 @@ import io.camunda.connector.operation.OperationFactory;
     inputVariables = {"authentication", "data"},
     type = "io.camunda:connector-microsoft-teams:1")
 @ElementTemplate(
-    engineVersion = "^8.3",
+    engineVersion = "^8.9",
     id = "io.camunda.connectors.MSTeams.v1",
     name = "Microsoft Teams Outbound Connector",
     description = "Create, update, and send a message to your Microsoft Teams",
     inputDataClass = MSTeamsRequest.class,
-    version = 5,
+    version = 6,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),

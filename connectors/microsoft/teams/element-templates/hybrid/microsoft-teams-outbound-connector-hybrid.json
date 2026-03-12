@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/",
-  "version" : 5,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -17,7 +17,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.3"
+    "camunda" : "^8.9"
   },
   "groups" : [ {
     "id" : "taskDefinitionType",
@@ -547,32 +547,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.sendMessageInChat.content",
-    "label" : "Content",
-    "description" : "Enter content",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "data",
-    "binding" : {
-      "name" : "data.content",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.chatMethod",
-        "equals" : "sendMessageToChat",
-        "type" : "simple"
-      }, {
-        "property" : "data.type",
-        "equals" : "chat",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Text"
-  }, {
     "id" : "data.sendMessageInChat.bodyType",
     "label" : "Content type",
     "description" : "The type of the content. Possible values are text and html",
@@ -605,6 +579,59 @@
       "name" : "HTML",
       "value" : "HTML"
     } ]
+  }, {
+    "id" : "data.sendMessageInChat.content",
+    "label" : "Content",
+    "description" : "Enter content",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "data",
+    "binding" : {
+      "name" : "data.content",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.chatMethod",
+        "equals" : "sendMessageToChat",
+        "type" : "simple"
+      }, {
+        "property" : "data.type",
+        "equals" : "chat",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Text"
+  }, {
+    "id" : "data.sendMessageInChat.attachments",
+    "label" : "Attachments",
+    "description" : "Optional list of attachments. Each item must have an 'id', 'contentType' (e.g. 'application/vnd.microsoft.card.adaptive') and 'content' (e.g. an Adaptive Card JSON payload). Attachment IDs must match <attachment id=\"...\"></attachment> tags in the message body (auto-appended if missing).",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "data",
+    "binding" : {
+      "name" : "data.attachments",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.sendMessageInChat.bodyType",
+        "equals" : "HTML",
+        "type" : "simple"
+      }, {
+        "property" : "data.chatMethod",
+        "equals" : "sendMessageToChat",
+        "type" : "simple"
+      }, {
+        "property" : "data.type",
+        "equals" : "chat",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
   }, {
     "id" : "data.listMessagesInChat.chatId",
     "label" : "Chat ID",
@@ -1059,32 +1086,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.sendMessageToChannel.content",
-    "label" : "Content",
-    "description" : "Enter content",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "data",
-    "binding" : {
-      "name" : "data.content",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "allMatch" : [ {
-        "property" : "data.channelMethod",
-        "equals" : "sendMessageToChannel",
-        "type" : "simple"
-      }, {
-        "property" : "data.type",
-        "equals" : "channel",
-        "type" : "simple"
-      } ]
-    },
-    "type" : "Text"
-  }, {
     "id" : "data.sendMessageToChannel.bodyType",
     "label" : "Content type",
     "description" : "The type of the content. Possible values are text and html",
@@ -1118,6 +1119,32 @@
       "value" : "HTML"
     } ]
   }, {
+    "id" : "data.sendMessageToChannel.content",
+    "label" : "Content",
+    "description" : "Enter content",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "data",
+    "binding" : {
+      "name" : "data.content",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.channelMethod",
+        "equals" : "sendMessageToChannel",
+        "type" : "simple"
+      }, {
+        "property" : "data.type",
+        "equals" : "channel",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Text"
+  }, {
     "id" : "data.sendMessageToChannel.documents",
     "label" : "documents",
     "optional" : true,
@@ -1129,6 +1156,33 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "data.channelMethod",
+        "equals" : "sendMessageToChannel",
+        "type" : "simple"
+      }, {
+        "property" : "data.type",
+        "equals" : "channel",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.sendMessageToChannel.attachments",
+    "label" : "Attachments",
+    "description" : "Optional list of attachments. Each item must have an 'id', 'contentType' (e.g. 'application/vnd.microsoft.card.adaptive') and 'content' (e.g. an Adaptive Card JSON payload). Attachment IDs must match <attachment id=\"...\"></attachment> tags in the message body (auto-appended if missing).",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "data",
+    "binding" : {
+      "name" : "data.attachments",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.sendMessageToChannel.bodyType",
+        "equals" : "HTML",
+        "type" : "simple"
+      }, {
         "property" : "data.channelMethod",
         "equals" : "sendMessageToChannel",
         "type" : "simple"
@@ -1459,7 +1513,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "5",
+    "value" : "6",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
