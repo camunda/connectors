@@ -15,6 +15,7 @@ import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.model.embedding.vector.store.AmazonManagedOpenSearchVectorStore;
 import io.camunda.connector.model.embedding.vector.store.OpenSearchVectorStore;
 import io.camunda.connector.util.ProxyUtil;
+import java.io.IOException;
 import java.net.URISyntaxException;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
@@ -45,32 +46,37 @@ public class OpenSearchVectorStoreFactory {
   public ClosableEmbeddingStore<TextSegment> createOpenSearchVectorStore(
       OpenSearchVectorStore openSearchVectorStore) {
     final var openSearch = openSearchVectorStore.openSearch();
-    OpenSearchEmbeddingStore.Builder builder =
-        OpenSearchEmbeddingStore.builder().indexName(openSearch.indexName());
-
-    configureOpenSearchProxy(builder, openSearch);
-
-    OpenSearchEmbeddingStore openSearchEmbeddingStore = builder.build();
-    return ClosableEmbeddingStore.wrap(openSearchEmbeddingStore);
+    OpenSearchTransport transport = createOpenSearchTransport(openSearch);
+    OpenSearchEmbeddingStore openSearchEmbeddingStore =
+        OpenSearchEmbeddingStore.builder()
+            .openSearchClient(new OpenSearchClient(transport))
+            .indexName(openSearch.indexName())
+            .build();
+    return ClosableEmbeddingStore.wrap(
+        openSearchEmbeddingStore,
+        () -> {
+          try {
+            transport.close();
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
-  private void configureOpenSearchProxy(
-      OpenSearchEmbeddingStore.Builder builder, OpenSearchVectorStore.Configuration openSearch) {
+  private OpenSearchTransport createOpenSearchTransport(
+      OpenSearchVectorStore.Configuration openSearch) {
     HttpHost openSearchHost;
     try {
       openSearchHost = HttpHost.create(openSearch.baseUrl());
     } catch (URISyntaxException e) {
       throw new IllegalArgumentException("Invalid base URL", e);
     }
-    OpenSearchTransport transport =
-        ApacheHttpClient5TransportBuilder.builder(openSearchHost)
-            .setMapper(new JacksonJsonpMapper())
-            .setHttpClientConfigCallback(
-                httpClientBuilder ->
-                    configureHttpAsyncClientBuilder(httpClientBuilder, openSearchHost, openSearch))
-            .build();
-
-    builder.openSearchClient(new OpenSearchClient(transport));
+    return ApacheHttpClient5TransportBuilder.builder(openSearchHost)
+        .setMapper(new JacksonJsonpMapper())
+        .setHttpClientConfigCallback(
+            httpClientBuilder ->
+                configureHttpAsyncClientBuilder(httpClientBuilder, openSearchHost, openSearch))
+        .build();
   }
 
   private HttpAsyncClientBuilder configureHttpAsyncClientBuilder(
