@@ -208,7 +208,7 @@ public class ConnectorsAutoConfiguration {
 
     return copy.registerModules(
         jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(false), // FEEL functions disabled
+        new JacksonModuleFeelFunction(false, null), // FEEL annotation processing disabled
         new JacksonModuleDocumentSerializer());
   }
 }

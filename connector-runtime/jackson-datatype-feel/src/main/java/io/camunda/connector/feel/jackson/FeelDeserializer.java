@@ -23,11 +23,13 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.type.TypeFactory;
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -38,14 +40,18 @@ import java.util.stream.Collectors;
 public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
 
   private final JavaType outputType;
-  private static final FeelEngineWrapper FEEL_ENGINE_WRAPPER = new FeelEngineWrapper();
+  private static final FeelEngineWrapper FALLBACK_FEEL_ENGINE_WRAPPER = new FeelEngineWrapper();
 
-  public FeelDeserializer() { // needed for references in @JsonDeserialize
-    this(FEEL_ENGINE_WRAPPER, TypeFactory.unknownType());
+  /** Default constructor for use with @JsonDeserialize annotations. Uses local FEEL engine. */
+  public FeelDeserializer(Supplier<CamundaClient> camundaClientSupplier) {
+    this(FALLBACK_FEEL_ENGINE_WRAPPER, TypeFactory.unknownType(), camundaClientSupplier);
   }
 
-  protected FeelDeserializer(FeelEngineWrapper feelEngineWrapper, JavaType outputType) {
-    super(feelEngineWrapper, true);
+  protected FeelDeserializer(
+      FeelEngineWrapper feelEngineWrapper,
+      JavaType outputType,
+      Supplier<CamundaClient> camundaClientSupplier) {
+    super(feelEngineWrapper, true, camundaClientSupplier);
     this.outputType = outputType;
   }
 
@@ -54,7 +60,7 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
       JsonNode node, JsonNode feelContext, DeserializationContext jacksonCtx) throws IOException {
 
     if (isFeelExpression(node.textValue())) {
-      return feelEngineWrapper.evaluate(jacksonCtx, node.textValue(), outputType, feelContext);
+      return evaluateFeelExpression(jacksonCtx, node.textValue(), outputType, feelContext);
     }
 
     if (node.isTextual()) {
@@ -139,6 +145,6 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
 
   @Override
   public JsonDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property) {
-    return new FeelDeserializer(feelEngineWrapper, property.getType());
+    return new FeelDeserializer(feelEngineWrapper, property.getType(), camundaClientSupplier);
   }
 }

@@ -24,10 +24,12 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.type.TypeFactory;
+import io.camunda.client.CamundaClient;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Function<IN, OUT>> {
 
@@ -35,12 +37,15 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
 
   private static final TypeReference<Map<String, Object>> MAP_TYPE_REF = new TypeReference<>() {};
 
-  public FeelFunctionDeserializer(JavaType outputType, FeelEngineWrapper feelEngineWrapper) {
-    super(feelEngineWrapper, false);
+  public FeelFunctionDeserializer(
+      JavaType outputType,
+      FeelEngineWrapper feelEngineWrapper,
+      Supplier<CamundaClient> camundaClientSupplier) {
+    super(feelEngineWrapper, false, camundaClientSupplier);
     this.outputType = outputType;
   }
 
-  private final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
+  private final FeelEngineWrapper localFeelEngineWrapper = new FeelEngineWrapper();
 
   @Override
   @SuppressWarnings("unchecked")
@@ -48,12 +53,13 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
       JsonNode node, JsonNode feelContext, DeserializationContext deserializationContext) {
     return (input) -> {
       JsonNode jsonNode =
-          feelEngineWrapper.evaluate(
-              deserializationContext,
-              node.textValue(),
-              deserializationContext.getTypeFactory().constructType(JsonNode.class),
-              input,
-              feelContext);
+          BLANK_OBJECT_MAPPER.valueToTree(
+              evaluateFeelExpression(
+                  deserializationContext,
+                  node.textValue(),
+                  deserializationContext.getTypeFactory().constructType(JsonNode.class),
+                  BLANK_OBJECT_MAPPER.valueToTree(input),
+                  feelContext));
       try {
         if (jsonNode == null || jsonNode.isNull()) {
           return null;
@@ -74,11 +80,12 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
     if (property != null) {
       if (property.getType().containedTypeCount() == 2) {
         var outputType = property.getType().containedType(1);
-        return new FeelFunctionDeserializer<>(outputType, feelEngineWrapper);
+        return new FeelFunctionDeserializer<>(outputType, feelEngineWrapper, camundaClientSupplier);
       }
     }
 
-    return new FeelFunctionDeserializer<>(TypeFactory.unknownType(), feelEngineWrapper);
+    return new FeelFunctionDeserializer<>(
+        TypeFactory.unknownType(), feelEngineWrapper, camundaClientSupplier);
   }
 
   private static class MergedContext {
