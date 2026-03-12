@@ -51,7 +51,10 @@ public class NonProxyHostsTest {
         Arguments.of("*.example.de|*.camunda.io", "api.camunda.io", true),
         Arguments.of("*.example.de|*.camunda.io", "www.google.com", false),
         Arguments.of("localhost", "localhost", true),
-        Arguments.of("localhost", "example.com", false));
+        Arguments.of("localhost", "example.com", false),
+        // dots in patterns must be treated as literals, not regex wildcards
+        Arguments.of("example.de", "exampleXde", false),
+        Arguments.of("example.de", "example-de", false));
   }
 
   @ParameterizedTest
