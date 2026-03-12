@@ -40,7 +40,9 @@ public class ChatModelHttpProxySupport {
     return new JdkHttpClientBuilder().httpClientBuilder(httpClientBuilder);
   }
 
-  SdkHttpClient createAwsHttpClient(String schemeName) {
+  SdkHttpClient createAwsHttpClient(URI endpointOverride) {
+    String schemeName =
+        endpointOverride != null ? endpointOverride.getScheme() : ProxyConfiguration.SCHEME_HTTPS;
     return ApacheHttpClient.builder()
         .proxyConfiguration(createAwsProxyConfiguration(schemeName))
         .build();

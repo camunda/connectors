@@ -460,7 +460,7 @@ class ChatModelFactoryTest {
     }
 
     @Test
-    void createsBedrockChatModelWithCustomEndpoint() {
+    void createsBedrockChatModelWithCustomHttpsEndpoint() {
       final var providerConfig =
           new BedrockProviderConfiguration(
               new BedrockConnection(
@@ -472,9 +472,29 @@ class ChatModelFactoryTest {
 
       testBedrockChatModelBuilder(
           providerConfig,
+          URI.create("https://my-custom-endpoint.local"),
           (builders) -> {
             verify(builders.clientBuilder)
                 .endpointOverride(URI.create("https://my-custom-endpoint.local"));
+          });
+    }
+
+    @Test
+    void createsBedrockChatModelWithCustomHttpEndpoint() {
+      final var providerConfig =
+          new BedrockProviderConfiguration(
+              new BedrockConnection(
+                  BEDROCK_REGION,
+                  "http://localhost:8080",
+                  new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+                  MODEL_TIMEOUT,
+                  new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
+
+      testBedrockChatModelBuilder(
+          providerConfig,
+          URI.create("http://localhost:8080"),
+          (builders) -> {
+            verify(builders.clientBuilder).endpointOverride(URI.create("http://localhost:8080"));
           });
     }
 
@@ -559,6 +579,13 @@ class ChatModelFactoryTest {
     private void testBedrockChatModelBuilder(
         BedrockProviderConfiguration providerConfig,
         ThrowingConsumer<BedrockBuilderContext> builderAssertions) {
+      testBedrockChatModelBuilder(providerConfig, (URI) null, builderAssertions);
+    }
+
+    private void testBedrockChatModelBuilder(
+        BedrockProviderConfiguration providerConfig,
+        URI expectedEndpointOverride,
+        ThrowingConsumer<BedrockBuilderContext> builderAssertions) {
       final var clientBuilder = spy(BedrockRuntimeClient.builder());
       final var clientResultCaptor = new ResultCaptor<BedrockRuntimeClient>();
       doAnswer(clientResultCaptor).when(clientBuilder).build();
@@ -581,7 +608,7 @@ class ChatModelFactoryTest {
         assertThat(chatModel).isNotNull().isInstanceOf(BedrockChatModel.class);
         assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
-        verify(proxySupport).createAwsHttpClient(ProxyConfiguration.SCHEME_HTTPS);
+        verify(proxySupport).createAwsHttpClient(expectedEndpointOverride);
         builderAssertions.accept(builders);
       }
     }
