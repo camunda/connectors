@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=outbound",
-  "version" : 8,
+  "version" : 9,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -539,7 +539,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "8",
+    "value" : "9",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -571,6 +571,7 @@
     "id" : "resultExpression",
     "label" : "Result expression",
     "description" : "Expression to map the response into process variables",
+    "value" : "{\n  myResponse: response\n  // Use FEEL to extract values depending on message\n  // type, e.g.,: myMessage: response.message.text\n}",
     "feel" : "required",
     "group" : "output",
     "binding" : {
