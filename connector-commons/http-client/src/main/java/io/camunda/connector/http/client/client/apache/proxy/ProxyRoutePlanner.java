@@ -16,8 +16,9 @@
  */
 package io.camunda.connector.http.client.client.apache.proxy;
 
+import static io.camunda.connector.http.client.proxy.NonProxyHosts.CONNECTOR_HTTP_NON_PROXY_HOSTS_ENV_VAR;
+
 import io.camunda.connector.http.client.proxy.NonProxyHosts;
-import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import org.apache.hc.client5.http.impl.routing.DefaultProxyRoutePlanner;
 import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.HttpHost;
@@ -38,7 +39,7 @@ public class ProxyRoutePlanner extends DefaultProxyRoutePlanner {
       LOG.debug(
           "Not using proxy for target host [{}] as it matched either system properties (http.nonProxyHosts) or environment variables ({})",
           target.getHostName(),
-          ProxyConfiguration.CONNECTOR_HTTP_NON_PROXY_HOSTS_ENV_VAR);
+          CONNECTOR_HTTP_NON_PROXY_HOSTS_ENV_VAR);
       return null;
     }
     var proxy = super.determineProxy(target, context);

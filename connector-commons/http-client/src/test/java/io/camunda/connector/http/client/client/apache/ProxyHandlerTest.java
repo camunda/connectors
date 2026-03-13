@@ -124,4 +124,43 @@ public class ProxyHandlerTest {
                   });
         });
   }
+
+  @Test
+  public void shouldNeverConsumePlainProxyVars() throws Exception {
+    withEnvironmentVariables(
+            "CONNECTOR_HTTP_PLAIN_PROXY_HOST", "plain-proxy.example.com",
+            "CONNECTOR_HTTP_PLAIN_PROXY_PORT", "9090",
+            "CONNECTOR_HTTP_PLAIN_PROXY_USER", "plainuser",
+            "CONNECTOR_HTTP_PLAIN_PROXY_PASSWORD", "plainpass",
+            "CONNECTOR_HTTPS_PLAIN_PROXY_HOST", "plain-secure.example.com",
+            "CONNECTOR_HTTPS_PLAIN_PROXY_PORT", "3129")
+        .execute(
+            () -> {
+              ProxyHandler handler = new ProxyHandler();
+
+              assertThat(handler.getProxyDetails("http")).isEmpty();
+              assertThat(handler.getProxyDetails("https")).isEmpty();
+            });
+  }
+
+  @Test
+  public void shouldUseStandardVars_evenWhenPlainVarsAlsoSet() throws Exception {
+    withEnvironmentVariables(
+            "CONNECTOR_HTTP_PLAIN_PROXY_HOST", "plain-proxy.example.com",
+            "CONNECTOR_HTTP_PLAIN_PROXY_PORT", "9090",
+            "CONNECTOR_HTTP_PROXY_HOST", "standard-proxy.example.com",
+            "CONNECTOR_HTTP_PROXY_PORT", "8080")
+        .execute(
+            () -> {
+              ProxyHandler handler = new ProxyHandler();
+
+              assertThat(handler.getProxyDetails("http"))
+                  .isPresent()
+                  .hasValueSatisfying(
+                      d -> {
+                        assertThat(d.host()).isEqualTo("standard-proxy.example.com");
+                        assertThat(d.port()).isEqualTo(8080);
+                      });
+            });
+  }
 }
