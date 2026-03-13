@@ -1018,7 +1018,7 @@ public class InboundConnectorMultiVersionTests {
       // Given: Create a cluster variable
       String variableName =
           "testConfigVar_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
-      String variableValue = "cluster-config-value";
+      String variableValue = "cluster-config-value-" + UUID.randomUUID().toString().substring(0, 8);
 
       camundaClient
           .newGloballyScopedClusterVariableCreateRequest()
@@ -1030,12 +1030,13 @@ public class InboundConnectorMultiVersionTests {
       awaitClusterVariableAvailable(variableName);
 
       // When: Deploy a process with connector that uses the cluster variable in configValue
-      var model = createInboundConnectorProcess("=camunda.vars.env." + variableName);
+      String deduplicationId = "cluster-var-test-" + UUID.randomUUID().toString().substring(0, 8);
+      var model =
+          createInboundConnectorProcess("=camunda.vars.env." + variableName, deduplicationId);
       long processDefKey = deploy(model);
       waitForProcessDefinitionIndexed(processDefKey);
 
       // Then: Connector should be activated with healthy status
-      // (cluster variable resolved during property binding)
       awaitHealthyExecutable(testProcessId);
 
       var executables = queryExecutables(testProcessId);
@@ -1044,6 +1045,16 @@ public class InboundConnectorMultiVersionTests {
       assertThat(executables.getFirst().elements()).hasSize(1);
       assertThat(executables.getFirst().elements().getFirst().element().processDefinitionKey())
           .isEqualTo(processDefKey);
+
+      // Verify that the cluster variable was actually resolved to the expected value
+      // The TestInboundConnector captures bound properties when activated
+      var boundProperties = TestInboundConnector.getBoundProperties();
+      assertThat(boundProperties)
+          .as("Bound properties should be captured by the test connector")
+          .isNotNull();
+      assertThat(boundProperties.configValue())
+          .as("Cluster variable should be resolved to the actual value, not the FEEL expression")
+          .isEqualTo(variableValue);
     }
 
     /**
