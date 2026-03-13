@@ -571,16 +571,16 @@ jobs:
             secret/data/products/connectors/ci/common FOSSA_API_KEY;
       - name: Get FOSSA context
         id: fossa-context
-        uses: camunda/infra-global-github-actions/fossa/info@34d17e681b0f813fbdf0fc5cef28ae58246fcd1a
+        uses: camunda/infra-global-github-actions/fossa/info@c3c34d95a63fdba5bb6acf931a5afb6523987634
       - name: Wait for FOSSA scan completion
-        uses: camunda/infra-global-github-actions/fossa/wait-for-scan@34d17e681b0f813fbdf0fc5cef28ae58246fcd1a
+        uses: camunda/infra-global-github-actions/fossa/wait-for-scan@c3c34d95a63fdba5bb6acf931a5afb6523987634
         with:
           api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           branch: ${{ steps.fossa-context.outputs.head-ref }}
           project-id: "custom+50756/camunda/connectors"
           revision-id: ${{ steps.fossa-context.outputs.head-revision }}
       - name: Create FOSSA releases and generate reports
-        uses: camunda/infra-global-github-actions/fossa/release@34d17e681b0f813fbdf0fc5cef28ae58246fcd1a
+        uses: camunda/infra-global-github-actions/fossa/release@c3c34d95a63fdba5bb6acf931a5afb6523987634
         with:
           api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           branch: ${{ steps.fossa-context.outputs.head-ref }}
