@@ -24,7 +24,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.LocalFeelEngineWrapper;
 import io.camunda.connector.generator.api.DocsGenerator;
 import io.camunda.connector.generator.api.DocsGeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
@@ -75,7 +75,7 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
           .setSerializationInclusion(JsonInclude.Include.NON_NULL)
           .registerModule(new ElementTemplateModule())
           .writerWithDefaultPrettyPrinter();
-  private static final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
+  private static final LocalFeelEngineWrapper feelEngine = new LocalFeelEngineWrapper();
   private final ClassLoader classLoader;
 
   public ClassBasedDocsGenerator(ClassLoader classLoader) {
@@ -101,7 +101,7 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
                 result = method.invoke(new Arrays[0]);
                 json = OBJECT_WRITER.writeValueAsString(result);
                 if (StringUtils.isNotBlank(annotation.feel())) {
-                  feelResult = feelEngineWrapper.evaluate(annotation.feel(), result);
+                  feelResult = feelEngine.evaluate(annotation.feel(), result);
                   feelResultJson = OBJECT_WRITER.writeValueAsString(feelResult);
                 }
               } catch (Exception e) {

@@ -1009,4 +1009,77 @@ public class InboundConnectorMultiVersionTests {
               });
     }
   }
+
+  @Nested
+  class ClusterVariableResolution {
+
+    @Test
+    void deployProcessWithClusterVariableInConfig_shouldResolveAndActivate() {
+      // Given: Create a cluster variable
+      String variableName =
+          "testConfigVar_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+      String variableValue = "cluster-config-value-" + UUID.randomUUID().toString().substring(0, 8);
+
+      camundaClient
+          .newGloballyScopedClusterVariableCreateRequest()
+          .create(variableName, variableValue)
+          .send()
+          .join();
+
+      // Wait for cluster variable to be available
+      awaitClusterVariableAvailable(variableName);
+
+      // When: Deploy a process with connector that uses the cluster variable in configValue
+      String deduplicationId = "cluster-var-test-" + UUID.randomUUID().toString().substring(0, 8);
+      var model =
+          createInboundConnectorProcess("=camunda.vars.env." + variableName, deduplicationId);
+      long processDefKey = deploy(model);
+      waitForProcessDefinitionIndexed(processDefKey);
+
+      // Then: Connector should be activated with healthy status
+      awaitHealthyExecutable(testProcessId);
+
+      var executables = queryExecutables(testProcessId);
+      assertThat(executables).hasSize(1);
+      assertThat(executables.getFirst().health().getStatus()).isEqualTo(Health.Status.UP);
+      assertThat(executables.getFirst().elements()).hasSize(1);
+      assertThat(executables.getFirst().elements().getFirst().element().processDefinitionKey())
+          .isEqualTo(processDefKey);
+
+      // Verify that the cluster variable was actually resolved to the expected value
+      // The TestInboundConnector captures bound properties when activated
+      var boundProperties = TestInboundConnector.getBoundProperties();
+      assertThat(boundProperties)
+          .as("Bound properties should be captured by the test connector")
+          .isNotNull();
+      assertThat(boundProperties.configValue())
+          .as("Cluster variable should be resolved to the actual value, not the FEEL expression")
+          .isEqualTo(variableValue);
+    }
+
+    /**
+     * Waits until a cluster variable is available (not returning 404). There is a delay between
+     * creating a cluster variable and it being ready to use.
+     */
+    private void awaitClusterVariableAvailable(String variableName) {
+      Awaitility.await("cluster variable " + variableName + " should be available")
+          .atMost(AWAIT_TIMEOUT)
+          .pollInterval(Duration.ofMillis(500))
+          .ignoreExceptions()
+          .until(
+              () -> {
+                try {
+                  var result =
+                      camundaClient
+                          .newEvaluateExpressionCommand()
+                          .expression("=camunda.vars.env." + variableName)
+                          .send()
+                          .join();
+                  return result.getResult() != null;
+                } catch (Exception e) {
+                  return false;
+                }
+              });
+    }
+  }
 }

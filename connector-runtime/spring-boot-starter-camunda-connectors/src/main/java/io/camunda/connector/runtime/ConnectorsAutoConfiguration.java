@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
 import io.camunda.client.impl.CamundaObjectMapper;
 import io.camunda.client.spring.configuration.CamundaAutoConfiguration;
 import io.camunda.client.spring.properties.CamundaClientProperties;
@@ -24,7 +25,9 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
-import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.CamundaClientFeelExpressionEvaluator;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.feel.LocalFeelEngineWrapper;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
@@ -50,6 +53,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 
 @AutoConfiguration
@@ -82,11 +86,21 @@ public class ConnectorsAutoConfiguration {
   @Value("${camunda.connector.secretprovider.console.audience:secrets.camunda.io}")
   String consoleSecretsApiAudience;
 
-  /** Provides a {@link FeelEngineWrapper} unless already present in the Spring Context */
+  /**
+   * Provides a {@link FeelExpressionEvaluator} unless already present in the Spring Context. When a
+   * {@link CamundaClient} is available, uses cluster-based evaluation (enabling access to cluster
+   * variables like {@code camunda.vars.env.*}). Otherwise, falls back to local FEEL engine.
+   */
   @Bean
-  @ConditionalOnMissingBean(FeelEngineWrapper.class)
-  public FeelEngineWrapper feelEngine() {
-    return new FeelEngineWrapper();
+  @Primary
+  @ConditionalOnMissingBean(FeelExpressionEvaluator.class)
+  public FeelExpressionEvaluator feelExpressionEvaluator(Optional<CamundaClient> camundaClient) {
+    return camundaClient
+        .<FeelExpressionEvaluator>map(
+            client ->
+                new CamundaClientFeelExpressionEvaluator(
+                    client, ConnectorsObjectMapperSupplier.getCopy()))
+        .orElseGet(LocalFeelEngineWrapper::new);
   }
 
   @Bean
@@ -167,7 +181,8 @@ public class ConnectorsAutoConfiguration {
   @Bean(defaultCandidate = false)
   @ConnectorsObjectMapper
   @ConditionalOnMissingBean(name = "connectorObjectMapper")
-  public ObjectMapper connectorObjectMapper(DocumentFactory documentFactory) {
+  public ObjectMapper connectorObjectMapper(
+      DocumentFactory documentFactory, FeelExpressionEvaluator feelExpressionEvaluator) {
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
     // default intrinsic function contains a pointer of the copy
     var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
@@ -180,18 +195,20 @@ public class ConnectorsAutoConfiguration {
             functionExecutor,
             JacksonModuleDocumentDeserializer.DocumentModuleSettings.create());
 
-    // We register the deserializer module which contains the function executor, which contains the
-    // pointer of the object mapper
-    // we are overloading
+    // Function/Supplier always use local evaluation to avoid serializing runtime objects
+    // (e.g., Documents) to the cluster. The injected evaluator is used for @FEEL-annotated fields.
     return copy.registerModules(
         jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(),
+        new JacksonModuleFeelFunction(true, feelExpressionEvaluator, new LocalFeelEngineWrapper()),
         new JacksonModuleDocumentSerializer());
   }
 
   /**
-   * ObjectMapper for OutboundConnectorManager with FEEL functions disabled. This prevents FEEL
-   * expression evaluation during outbound connector variable binding.
+   * ObjectMapper for OutboundConnectorManager with FEEL annotation processing disabled. This
+   * prevents {@code @FEEL}-annotated properties from being evaluated as FEEL expressions during
+   * outbound connector variable binding, which would otherwise conflict with other modules (e.g.
+   * the document module) and can prevent the correct deserializer from being picked. {@code @FEEL}
+   * is not relevant for outbound connectors anyway, as FEEL for jobs is evaluated by Zeebe.
    */
   @Bean(defaultCandidate = false)
   @OutboundConnectorObjectMapper
@@ -208,7 +225,8 @@ public class ConnectorsAutoConfiguration {
 
     return copy.registerModules(
         jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(false), // FEEL functions disabled
+        new JacksonModuleFeelFunction(
+            false, new LocalFeelEngineWrapper()), // FEEL annotation processing disabled
         new JacksonModuleDocumentSerializer());
   }
 }

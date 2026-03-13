@@ -203,7 +203,7 @@ public class FeelFunctionDeserializerTest {
     TargetTypeObject targetType = contextualReader.readValue(json, TargetTypeObject.class);
 
     // then
-    InputContextString inputContext = new InputContextString("foo", null);
+    InputContextString inputContext = new InputContextString("foo", "some value");
     OutputContext result = targetType.function().apply(inputContext);
     assertThat(result).isInstanceOf(OutputContext.class);
     assertThat(result.result).isEqualTo("foobar");

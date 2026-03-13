@@ -20,6 +20,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.Map;
 
 public class JacksonSupport {
-  protected static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE =
+  public static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE =
       new TypeReference<>() {};
 }

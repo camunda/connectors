@@ -25,6 +25,11 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-core</artifactId>
     </dependency>
+    <!-- to get the default mapper with basic modules registered -->
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-object-mapper</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>org.junit.jupiter</groupId>
