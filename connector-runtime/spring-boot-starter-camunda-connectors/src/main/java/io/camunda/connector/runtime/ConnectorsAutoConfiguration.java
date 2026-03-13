@@ -197,7 +197,8 @@ public class ConnectorsAutoConfiguration {
         new JacksonModuleFeelFunction(
             true,
             new CamundaClientFeelExpressionEvaluator(
-                camundaClient, ConnectorsObjectMapperSupplier.getCopy())),
+                camundaClient, ConnectorsObjectMapperSupplier.getCopy()),
+            new LocalFeelEngineWrapper()),
         new JacksonModuleDocumentSerializer());
   }
 

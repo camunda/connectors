@@ -26,7 +26,19 @@ import java.util.function.Supplier;
 
 public class JacksonModuleFeelFunction extends SimpleModule {
 
-  private final FeelExpressionEvaluator evaluator;
+  /**
+   * Evaluator used for {@code @FEEL}-annotated fields (via {@link FeelAnnotationIntrospector}).
+   * These fields typically represent connector properties that may reference cluster variables
+   * (e.g., {@code camunda.vars.env.*}), so this evaluator may use cluster-based evaluation.
+   */
+  private final FeelExpressionEvaluator annotationEvaluator;
+
+  /**
+   * Evaluator used for {@link Function} and {@link Supplier} deserializers. These types represent
+   * runtime transformations that operate on in-process data (which may include Documents or other
+   * non-serializable objects), so this evaluator should use local evaluation.
+   */
+  private final FeelExpressionEvaluator functionEvaluator;
 
   /**
    * Using this flag, the module can be configured to not process the {@code @FEEL} annotation. This
@@ -36,21 +48,42 @@ public class JacksonModuleFeelFunction extends SimpleModule {
    */
   private final boolean processFEELAnnotation;
 
-  /** Creates a module using local FEEL engine. */
+  /** Creates a module using local FEEL engine for all evaluations. */
   public JacksonModuleFeelFunction() {
-    this(true, new LocalFeelEngineWrapper());
+    this(true, new LocalFeelEngineWrapper(), null);
   }
 
   /**
-   * Creates a module with the specified FEEL expression evaluator.
+   * Creates a module with the specified FEEL expression evaluator used for all evaluation types.
    *
    * @param processFEELAnnotation whether to process @FEEL annotations
-   * @param evaluator the FEEL expression evaluator to use
+   * @param evaluator the FEEL expression evaluator to use for all evaluations
    */
   public JacksonModuleFeelFunction(
       boolean processFEELAnnotation, FeelExpressionEvaluator evaluator) {
+    this(processFEELAnnotation, evaluator, null);
+  }
+
+  /**
+   * Creates a module with separate evaluators for annotation-driven and type-driven
+   * deserialization.
+   *
+   * @param processFEELAnnotation whether to process @FEEL annotations
+   * @param annotationEvaluator evaluator for {@code @FEEL}-annotated fields (may use cluster
+   *     evaluation for access to cluster variables)
+   * @param functionEvaluator evaluator for {@link Function}/{@link Supplier} fields (should use
+   *     local evaluation to avoid serializing runtime objects like Documents). If null, defaults to
+   *     a local FEEL engine.
+   */
+  public JacksonModuleFeelFunction(
+      boolean processFEELAnnotation,
+      FeelExpressionEvaluator annotationEvaluator,
+      FeelExpressionEvaluator functionEvaluator) {
     this.processFEELAnnotation = processFEELAnnotation;
-    this.evaluator = evaluator != null ? evaluator : new LocalFeelEngineWrapper();
+    this.annotationEvaluator =
+        annotationEvaluator != null ? annotationEvaluator : new LocalFeelEngineWrapper();
+    this.functionEvaluator =
+        functionEvaluator != null ? functionEvaluator : new LocalFeelEngineWrapper();
   }
 
   @Override
@@ -67,11 +100,13 @@ public class JacksonModuleFeelFunction extends SimpleModule {
   @Override
   public void setupModule(SetupContext context) {
     addDeserializer(
-        Function.class, new FeelFunctionDeserializer<>(TypeFactory.unknownType(), evaluator));
+        Function.class,
+        new FeelFunctionDeserializer<>(TypeFactory.unknownType(), functionEvaluator));
     addDeserializer(
-        Supplier.class, new FeelSupplierDeserializer<>(TypeFactory.unknownType(), evaluator));
+        Supplier.class,
+        new FeelSupplierDeserializer<>(TypeFactory.unknownType(), functionEvaluator));
     if (processFEELAnnotation) {
-      context.insertAnnotationIntrospector(new FeelAnnotationIntrospector(evaluator));
+      context.insertAnnotationIntrospector(new FeelAnnotationIntrospector(annotationEvaluator));
     }
     super.setupModule(context);
   }
