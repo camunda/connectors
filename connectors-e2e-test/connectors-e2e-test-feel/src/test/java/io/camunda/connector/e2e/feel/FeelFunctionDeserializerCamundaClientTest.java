@@ -62,7 +62,7 @@ public class FeelFunctionDeserializerCamundaClientTest {
 
   @BeforeEach
   void setup() {
-    var evaluator = new CamundaClientFeelExpressionEvaluator(() -> camundaClient);
+    var evaluator = new CamundaClientFeelExpressionEvaluator(camundaClient);
     mapper =
         new ObjectMapper()
             .registerModule(new JacksonModuleFeelFunction(true, evaluator))

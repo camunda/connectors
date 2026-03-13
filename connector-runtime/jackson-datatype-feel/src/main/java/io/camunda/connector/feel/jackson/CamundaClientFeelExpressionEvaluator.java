@@ -25,7 +25,6 @@ import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.FeelEngineWrapperUtil;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import java.util.Map;
-import java.util.function.Supplier;
 
 /**
  * Implementation of {@link FeelExpressionEvaluator} that uses the Camunda cluster for FEEL
@@ -34,27 +33,27 @@ import java.util.function.Supplier;
  */
 public class CamundaClientFeelExpressionEvaluator implements FeelExpressionEvaluator {
 
-  private final Supplier<CamundaClient> camundaClientSupplier;
+  private final CamundaClient camundaClient;
   private final ObjectMapper objectMapper;
 
   /**
-   * Creates a new evaluator that uses the provided CamundaClient supplier.
+   * Creates a new evaluator that uses the provided CamundaClient.
    *
-   * @param camundaClientSupplier supplier for obtaining the CamundaClient instance
+   * @param camundaClient the CamundaClient instance to use for expression evaluation
    */
-  public CamundaClientFeelExpressionEvaluator(Supplier<CamundaClient> camundaClientSupplier) {
-    this(camundaClientSupplier, new ObjectMapper());
+  public CamundaClientFeelExpressionEvaluator(CamundaClient camundaClient) {
+    this(camundaClient, new ObjectMapper());
   }
 
   /**
    * Creates a new evaluator with a custom ObjectMapper for result conversion.
    *
-   * @param camundaClientSupplier supplier for obtaining the CamundaClient instance
+   * @param camundaClient the CamundaClient instance to use for expression evaluation
    * @param objectMapper the ObjectMapper to use for JSON conversion
    */
   public CamundaClientFeelExpressionEvaluator(
-      Supplier<CamundaClient> camundaClientSupplier, ObjectMapper objectMapper) {
-    this.camundaClientSupplier = camundaClientSupplier;
+      CamundaClient camundaClient, ObjectMapper objectMapper) {
+    this.camundaClient = camundaClient;
     this.objectMapper = objectMapper;
   }
 
@@ -97,8 +96,7 @@ public class CamundaClientFeelExpressionEvaluator implements FeelExpressionEvalu
   }
 
   private Object evaluateInternal(String expression, Object[] variables) {
-    var client = camundaClientSupplier.get();
-    var request = client.newEvaluateExpressionCommand().expression(expression);
+    var request = camundaClient.newEvaluateExpressionCommand().expression(expression);
 
     Map<String, Object> mergedVariables = FeelEngineWrapperUtil.mergeMapVariables(variables);
     if (mergedVariables != null && !mergedVariables.isEmpty()) {
