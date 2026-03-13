@@ -43,7 +43,7 @@ public class ProxyHandler {
   private final Map<String, CredentialsProvider> credentialsProvidersForProtocols;
 
   public ProxyHandler() {
-    this.proxyConfiguration = new EnvironmentProxyConfiguration();
+    this.proxyConfiguration = EnvironmentProxyConfiguration.withDefaults();
     this.credentialsProvidersForProtocols = initializeCredentialsProviders();
   }
 

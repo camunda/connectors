@@ -61,13 +61,25 @@ public class EnvironmentProxyConfiguration implements ProxyConfiguration {
   private final boolean supportPlainProxyVars;
   private final Map<String, ProxyDetails> proxyConfigForProtocols;
 
-  public EnvironmentProxyConfiguration() {
-    this(false);
-  }
-
-  public EnvironmentProxyConfiguration(boolean supportPlainProxyVars) {
+  private EnvironmentProxyConfiguration(boolean supportPlainProxyVars) {
     this.supportPlainProxyVars = supportPlainProxyVars;
     this.proxyConfigForProtocols = loadProxyConfig();
+  }
+
+  /**
+   * Creates a configuration that reads from the standard {@code CONNECTOR_HTTP(S)_PROXY_*}
+   * variables.
+   */
+  public static EnvironmentProxyConfiguration withDefaults() {
+    return new EnvironmentProxyConfiguration(false);
+  }
+
+  /**
+   * Creates a configuration that first checks the {@code CONNECTOR_HTTP(S)_PLAIN_PROXY_*} variables
+   * and falls back to the standard {@code CONNECTOR_HTTP(S)_PROXY_*} variables.
+   */
+  public static EnvironmentProxyConfiguration withPlainProxySupport() {
+    return new EnvironmentProxyConfiguration(true);
   }
 
   private Map<String, ProxyDetails> loadProxyConfig() {

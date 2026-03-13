@@ -42,7 +42,7 @@ class EnvironmentProxyConfigurationTest {
             prefix + "PASSWORD", "pass")
         .execute(
             () -> {
-              var details = new EnvironmentProxyConfiguration(plain).getProxyDetails(protocol);
+              var details = createConfig(plain).getProxyDetails(protocol);
 
               assertThat(details)
                   .isPresent()
@@ -67,7 +67,7 @@ class EnvironmentProxyConfigurationTest {
             prefix + "PORT", "8080")
         .execute(
             () -> {
-              var details = new EnvironmentProxyConfiguration(plain).getProxyDetails(protocol);
+              var details = createConfig(plain).getProxyDetails(protocol);
 
               assertThat(details)
                   .isPresent()
@@ -83,7 +83,7 @@ class EnvironmentProxyConfigurationTest {
     withEnvironmentVariables(prefix + "HOST", "proxy.example.com")
         .execute(
             () -> {
-              var details = new EnvironmentProxyConfiguration(plain).getProxyDetails(protocol);
+              var details = createConfig(plain).getProxyDetails(protocol);
               assertThat(details).isEmpty();
             });
   }
@@ -96,7 +96,7 @@ class EnvironmentProxyConfigurationTest {
     withEnvironmentVariables(prefix + "PORT", "8080")
         .execute(
             () -> {
-              var details = new EnvironmentProxyConfiguration(plain).getProxyDetails(protocol);
+              var details = createConfig(plain).getProxyDetails(protocol);
               assertThat(details).isEmpty();
             });
   }
@@ -110,8 +110,7 @@ class EnvironmentProxyConfigurationTest {
             prefix + "PORT", "not-a-number")
         .execute(
             () ->
-                assertThatThrownBy(
-                        () -> new EnvironmentProxyConfiguration(plain).getProxyDetails(protocol))
+                assertThatThrownBy(() -> createConfig(plain).getProxyDetails(protocol))
                     .isInstanceOf(ConnectorInputException.class)
                     .hasMessageContaining(prefix + "PORT"));
   }
@@ -128,7 +127,7 @@ class EnvironmentProxyConfigurationTest {
             standardPrefix + "PORT", "8080")
         .execute(
             () -> {
-              var details = new EnvironmentProxyConfiguration(false).getProxyDetails(protocol);
+              var details = EnvironmentProxyConfiguration.withDefaults().getProxyDetails(protocol);
 
               assertThat(details)
                   .isPresent()
@@ -152,7 +151,8 @@ class EnvironmentProxyConfigurationTest {
             standardPrefix + "PORT", "8080")
         .execute(
             () -> {
-              var details = new EnvironmentProxyConfiguration(true).getProxyDetails(protocol);
+              var details =
+                  EnvironmentProxyConfiguration.withPlainProxySupport().getProxyDetails(protocol);
 
               assertThat(details)
                   .isPresent()
@@ -173,7 +173,8 @@ class EnvironmentProxyConfigurationTest {
             standardPrefix + "PORT", "8080")
         .execute(
             () -> {
-              var details = new EnvironmentProxyConfiguration(true).getProxyDetails(protocol);
+              var details =
+                  EnvironmentProxyConfiguration.withPlainProxySupport().getProxyDetails(protocol);
 
               assertThat(details)
                   .isPresent()
@@ -196,7 +197,8 @@ class EnvironmentProxyConfigurationTest {
             standardPrefix + "PORT", "8080")
         .execute(
             () -> {
-              var details = new EnvironmentProxyConfiguration(true).getProxyDetails(protocol);
+              var details =
+                  EnvironmentProxyConfiguration.withPlainProxySupport().getProxyDetails(protocol);
 
               assertThat(details)
                   .isPresent()
@@ -217,7 +219,7 @@ class EnvironmentProxyConfigurationTest {
             "CONNECTOR_HTTPS_PROXY_PORT", "3128")
         .execute(
             () -> {
-              var config = new EnvironmentProxyConfiguration(true);
+              var config = EnvironmentProxyConfiguration.withPlainProxySupport();
 
               assertThat(config.getProxyDetails("http"))
                   .isPresent()
@@ -242,7 +244,7 @@ class EnvironmentProxyConfigurationTest {
         .execute(
             () ->
                 assertThatThrownBy(
-                        () -> new EnvironmentProxyConfiguration(false).getProxyDetails("http"))
+                        () -> EnvironmentProxyConfiguration.withDefaults().getProxyDetails("http"))
                     .isInstanceOf(ConnectorInputException.class)
                     .hasMessageContaining("out of range"));
   }
@@ -252,7 +254,7 @@ class EnvironmentProxyConfigurationTest {
     withEnvironmentVariables()
         .execute(
             () -> {
-              var config = new EnvironmentProxyConfiguration();
+              var config = EnvironmentProxyConfiguration.withDefaults();
               assertThat(config.getProxyDetails("http")).isEmpty();
               assertThat(config.getProxyDetails("https")).isEmpty();
             });
@@ -263,7 +265,7 @@ class EnvironmentProxyConfigurationTest {
     withEnvironmentVariables()
         .execute(
             () -> {
-              var config = new EnvironmentProxyConfiguration(true);
+              var config = EnvironmentProxyConfiguration.withPlainProxySupport();
               assertThat(config.getProxyDetails("http")).isEmpty();
               assertThat(config.getProxyDetails("https")).isEmpty();
             });
@@ -276,7 +278,7 @@ class EnvironmentProxyConfigurationTest {
             "CONNECTOR_HTTP_PROXY_PORT", "8080")
         .execute(
             () -> {
-              var config = new EnvironmentProxyConfiguration();
+              var config = EnvironmentProxyConfiguration.withDefaults();
               assertThat(config.getProxyDetails("HTTP"))
                   .isPresent()
                   .hasValueSatisfying(d -> assertThat(d.host()).isEqualTo("proxy.example.com"));
@@ -293,7 +295,7 @@ class EnvironmentProxyConfigurationTest {
             "CONNECTOR_HTTPS_PROXY_PORT", "8443")
         .execute(
             () -> {
-              var config = new EnvironmentProxyConfiguration();
+              var config = EnvironmentProxyConfiguration.withDefaults();
 
               assertThat(config.getProxyDetails("HTTP/1.1"))
                   .isPresent()
@@ -312,9 +314,15 @@ class EnvironmentProxyConfigurationTest {
             "CONNECTOR_HTTP_PROXY_PORT", "8080")
         .execute(
             () -> {
-              var config = new EnvironmentProxyConfiguration();
+              var config = EnvironmentProxyConfiguration.withDefaults();
               assertThat(config.getProxyDetails(null)).isEmpty();
             });
+  }
+
+  private static EnvironmentProxyConfiguration createConfig(boolean plain) {
+    return plain
+        ? EnvironmentProxyConfiguration.withPlainProxySupport()
+        : EnvironmentProxyConfiguration.withDefaults();
   }
 
   private static String prefix(String protocol, boolean plain) {
