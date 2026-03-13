@@ -20,6 +20,7 @@ import static io.camunda.connector.feel.JacksonSupport.MAP_TYPE_REFERENCE;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -63,7 +64,7 @@ public class FeelEngineWrapperUtil {
       return variablesMap;
     } catch (IllegalArgumentException ex) {
       throw new IllegalArgumentException(
-          String.format("Unable to parse '%s' as context", (Object) variables), ex);
+          String.format("Unable to parse '%s' as context", Arrays.toString(variables)), ex);
     }
   }
 
