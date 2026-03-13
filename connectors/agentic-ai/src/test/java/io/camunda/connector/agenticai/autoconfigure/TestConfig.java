@@ -14,7 +14,7 @@ import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.client.metrics.DefaultNoopMetricsRecorder;
 import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.connector.api.document.DocumentFactory;
-import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
@@ -43,8 +43,8 @@ class TestConfig {
   }
 
   @Bean
-  public FeelEngineWrapper feelEngineWrapper() {
-    return mock(FeelEngineWrapper.class);
+  public FeelExpressionEvaluator feelExpressionEvaluator() {
+    return mock(FeelExpressionEvaluator.class);
   }
 
   @Bean

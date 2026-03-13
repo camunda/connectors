@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.generator.dsl.http;
 
-import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.LocalFeelEngineWrapper;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -30,7 +30,7 @@ public abstract class HttpFeelBuilder {
 
   protected StringBuilder sb = new StringBuilder();
   protected final Set<String> propertySet = new HashSet<>();
-  private static final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
+  private static final LocalFeelEngineWrapper feelEngine = new LocalFeelEngineWrapper();
 
   public static final String FEEL_OPERATOR_CHARACTERS = "!=<>+-*/[]{}@ ";
 
@@ -61,7 +61,7 @@ public abstract class HttpFeelBuilder {
   static void evaluateFeel(String expression, Set<String> propertyList) {
     Map<String, String> mockPropertyContext =
         propertyList.stream().collect(Collectors.toMap(property -> property, property -> "mock"));
-    feelEngineWrapper.evaluate(expression, mockPropertyContext);
+    feelEngine.evaluate(expression, mockPropertyContext);
   }
 
   public static class HttpFeelStringBuilder extends HttpFeelBuilder {

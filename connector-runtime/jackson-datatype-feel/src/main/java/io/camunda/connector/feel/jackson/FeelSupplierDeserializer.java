@@ -21,19 +21,15 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.type.TypeFactory;
-import io.camunda.client.CamundaClient;
-import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
 import java.util.function.Supplier;
 
 class FeelSupplierDeserializer<OUT> extends AbstractFeelDeserializer<Supplier<OUT>> {
 
   private final JavaType outputType;
 
-  protected FeelSupplierDeserializer(
-      JavaType outputType,
-      FeelEngineWrapper feelEngineWrapper,
-      Supplier<CamundaClient> camundaClientSupplier) {
-    super(feelEngineWrapper, false, camundaClientSupplier);
+  protected FeelSupplierDeserializer(JavaType outputType, FeelExpressionEvaluator evaluator) {
+    super(evaluator, false);
     this.outputType = outputType;
   }
 
@@ -53,9 +49,8 @@ class FeelSupplierDeserializer<OUT> extends AbstractFeelDeserializer<Supplier<OU
 
     if (property.getType().containedTypeCount() == 1) {
       var outputType = property.getType().containedType(0);
-      return new FeelSupplierDeserializer<>(outputType, feelEngineWrapper, camundaClientSupplier);
+      return new FeelSupplierDeserializer<>(outputType, evaluator);
     }
-    return new FeelSupplierDeserializer<>(
-        TypeFactory.unknownType(), feelEngineWrapper, camundaClientSupplier);
+    return new FeelSupplierDeserializer<>(TypeFactory.unknownType(), evaluator);
   }
 }

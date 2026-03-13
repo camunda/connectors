@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.LocalFeelEngineWrapper;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.Forbidden;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.InvalidCredentials;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Success;
@@ -39,7 +39,7 @@ public class JWTAuthHandlerTest {
   private static final String NO_ALG_PRESENT_JWT =
       "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6InoxcnNZSEhKOS04bWdndDRIc1p1OEJLa0JQdyIsImtpZCI6InoxcnNZSEhKOS04bWdndDRIc1p1OEJLa0JQdyJ9.eyJhdWQiOiJhcGk6Ly83YWJlOGQzNi1iMDViLTQ1OGItOTdkNy0zYjhiM2VjOWM4ZTkiLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC84ZWJlMjQ5ZC04MzEyLTRmZmItOWI2Yi0wOGU1NjY2OWQ1NzgvIiwiaWF0IjoxNzM2NzYzMDk4LCJuYmYiOjE3MzY3NjMwOTgsImV4cCI6MTczNjc2Njk5OCwiYWlvIjoiazJSZ1lJaHp2Tzg4MldoMnBwV0M3cjdyaVpsbUFBPT0iLCJhcHBpZCI6IjdhYmU4ZDM2LWIwNWItNDU4Yi05N2Q3LTNiOGIzZWM5YzhlOSIsImFwcGlkYWNyIjoiMSIsImlkcCI6Imh0dHBzOi8vc3RzLndpbmRvd3MubmV0LzhlYmUyNDlkLTgzMTItNGZmYi05YjZiLTA4ZTU2NjY5ZDU3OC8iLCJvaWQiOiIxOTZkYzU0NC1kMzAyLTQxYmQtYjJiMS04ODE0YWUzNmRmZmEiLCJyaCI6IjEuQVRrQW5TUy1qaEtELTAtYmF3amxabW5WZURhTnZucGJzSXRGbDljN2l6N0p5T2s1QUFBNUFBLiIsInN1YiI6IjE5NmRjNTQ0LWQzMDItNDFiZC1iMmIxLTg4MTRhZTM2ZGZmYSIsInRpZCI6IjhlYmUyNDlkLTgzMTItNGZmYi05YjZiLTA4ZTU2NjY5ZDU3OCIsInV0aSI6InZkaDlRQjBySEVlUm1fZFZ4VkVLQUEiLCJ2ZXIiOiIxLjAifQ.kAEtEYbMD47IyhgZL8KDX1I65j7gPtjXdL9iv4JwcCwTx8NL0R1gKHZPvWyyg09XqyQxVF8m5r0SxXVhvaGZCbMDrkaGOKDlwNjTzQIta3gtCiLxHdsmbrMAOt8ktVGRHLKzQcvYpVSUJhSxX4XikqugusNlU1acvKWUgkzal98YF-RvwcqlevkbHeyYmaful-6gP9Yf7p4mawlupOzl_A30Qf13a07kH-39CO5H2z_akA1eB0u8sINY-Y8l0We0ncKmP-C0vlQe5T2z3vyWuTPESRtCWgXipuYzzD1T9ZupkMTa72DAWhCOLCHKeuckLTajhj_9ZmfWRkePZUC0SQ";
   private final ObjectMapper objectMapper;
-  private final FeelEngineWrapper feelEngineWrapper;
+  private final LocalFeelEngineWrapper feelEngine;
 
   /* JWT token content *
   {
@@ -74,7 +74,7 @@ public class JWTAuthHandlerTest {
 
   public JWTAuthHandlerTest() {
     this.objectMapper = ConnectorsObjectMapperSupplier.getCopy();
-    this.feelEngineWrapper = new FeelEngineWrapper();
+    this.feelEngine = new LocalFeelEngineWrapper();
   }
 
   @Test
@@ -98,7 +98,7 @@ public class JWTAuthHandlerTest {
   }
 
   Function<Object, List<String>> getRoleExpressionFunction(String rawFeelExpression) {
-    return variables -> this.feelEngineWrapper.evaluate(rawFeelExpression, variables);
+    return variables -> this.feelEngine.evaluate(rawFeelExpression, variables);
   }
 
   @Test
