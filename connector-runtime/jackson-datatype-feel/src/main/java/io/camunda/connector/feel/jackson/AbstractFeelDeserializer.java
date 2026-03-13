@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.util.function.Supplier;
 
@@ -38,11 +39,13 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
    * A blank object mapper object for use in inheriting classes.
    *
    * <p>NOTE: This object mapper does not preserve the original deserialization context nor is it
-   * aware of any registered modules. It should not be used to deserialize the final result. For
-   * final results, use the {@link DeserializationContext} object passed to {@link
+   * aware of any registered modules beyond what's present in the default ObjectMapper. For example,
+   * jackson-datatype-document will not be registered. It should not be used to deserialize the
+   * final result. For final results, use the {@link DeserializationContext} object passed to {@link
    * #doDeserialize(JsonNode, JsonNode, DeserializationContext)} instead.
    */
-  protected static final ObjectMapper BLANK_OBJECT_MAPPER = new ObjectMapper();
+  protected static final ObjectMapper BLANK_OBJECT_MAPPER =
+      ConnectorsObjectMapperSupplier.getCopy();
 
   /**
    * Creates a new deserializer with the given FEEL expression evaluator.

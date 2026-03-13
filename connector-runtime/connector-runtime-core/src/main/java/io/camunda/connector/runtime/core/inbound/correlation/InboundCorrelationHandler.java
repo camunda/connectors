@@ -371,7 +371,7 @@ public class InboundCorrelationHandler {
         return feelExpressionEvaluator.evaluate(messageIdExpression, String.class, context);
       } catch (Exception e) {
         throw new ConnectorInputException(
-            "Message expression could not be evaluated" + messageIdExpression, e);
+            "Message expression could not be evaluated: " + messageIdExpression, e);
       }
     } else if (!Objects.isNull(messageId)) {
       return messageId;

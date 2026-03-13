@@ -35,10 +35,6 @@ public class TestInboundConnector implements InboundConnectorExecutable<InboundC
   private static final AtomicInteger activationCount = new AtomicInteger(0);
   private static final AtomicInteger deactivationCount = new AtomicInteger(0);
 
-  /**
-   * Stores the last bound properties by deduplication ID. This allows tests to verify that FEEL
-   * expressions (including cluster variables) were resolved correctly.
-   */
   private static TestConnectorProperties props;
 
   private InboundConnectorContext context;

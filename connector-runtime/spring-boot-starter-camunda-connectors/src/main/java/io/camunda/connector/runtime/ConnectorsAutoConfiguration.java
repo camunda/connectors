@@ -25,9 +25,9 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
+import io.camunda.connector.feel.CamundaClientFeelExpressionEvaluator;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.LocalFeelEngineWrapper;
-import io.camunda.connector.feel.jackson.CamundaClientFeelExpressionEvaluator;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
@@ -175,8 +175,8 @@ public class ConnectorsAutoConfiguration {
   @Bean(defaultCandidate = false)
   @ConnectorsObjectMapper
   @ConditionalOnMissingBean(name = "connectorObjectMapper")
-  public ObjectMapper connectorObjectMapper(DocumentFactory documentFactory,
-      CamundaClient camundaClient) {
+  public ObjectMapper connectorObjectMapper(
+      DocumentFactory documentFactory, CamundaClient camundaClient) {
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
     // default intrinsic function contains a pointer of the copy
     var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
@@ -194,18 +194,19 @@ public class ConnectorsAutoConfiguration {
     // we are overloading
     return copy.registerModules(
         jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(true,
-            new CamundaClientFeelExpressionEvaluator(camundaClient,
-                ConnectorsObjectMapperSupplier.getCopy())),
+        new JacksonModuleFeelFunction(
+            true,
+            new CamundaClientFeelExpressionEvaluator(
+                camundaClient, ConnectorsObjectMapperSupplier.getCopy())),
         new JacksonModuleDocumentSerializer());
   }
 
   /**
-   * ObjectMapper for OutboundConnectorManager with FEEL functions disabled. This prevents FEEL
-   * expression evaluation during outbound connector variable binding. This is needed because the
-   * FEEL annotation processing conflicts with the other modules (e.g. the document module) and can
-   * prevent the correct deserializer from being picked. @FEEL annotation is not relevant for
-   * outbound connectors anyway, as FEEL for jobs is evaluated by Zeebe.
+   * ObjectMapper for OutboundConnectorManager with FEEL annotation processing disabled. This
+   * prevents {@code @FEEL}-annotated properties from being evaluated as FEEL expressions during
+   * outbound connector variable binding, which would otherwise conflict with other modules (e.g.
+   * the document module) and can prevent the correct deserializer from being picked. {@code @FEEL}
+   * is not relevant for outbound connectors anyway, as FEEL for jobs is evaluated by Zeebe.
    */
   @Bean(defaultCandidate = false)
   @OutboundConnectorObjectMapper
