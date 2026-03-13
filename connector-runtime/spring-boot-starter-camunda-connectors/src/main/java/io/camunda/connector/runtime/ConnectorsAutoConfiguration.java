@@ -195,7 +195,8 @@ public class ConnectorsAutoConfiguration {
     return copy.registerModules(
         jacksonModuleDocumentDeserializer,
         new JacksonModuleFeelFunction(true,
-            new CamundaClientFeelExpressionEvaluator(camundaClient)),
+            new CamundaClientFeelExpressionEvaluator(camundaClient,
+                ConnectorsObjectMapperSupplier.getCopy())),
         new JacksonModuleDocumentSerializer());
   }
 

@@ -37,19 +37,10 @@ public class CamundaClientFeelExpressionEvaluator implements FeelExpressionEvalu
   private final ObjectMapper objectMapper;
 
   /**
-   * Creates a new evaluator that uses the provided CamundaClient.
-   *
-   * @param camundaClient the CamundaClient instance to use for expression evaluation
-   */
-  public CamundaClientFeelExpressionEvaluator(CamundaClient camundaClient) {
-    this(camundaClient, new ObjectMapper());
-  }
-
-  /**
    * Creates a new evaluator with a custom ObjectMapper for result conversion.
    *
    * @param camundaClient the CamundaClient instance to use for expression evaluation
-   * @param objectMapper the ObjectMapper to use for JSON conversion
+   * @param objectMapper the ObjectMapper to use for JSON conversion of the results
    */
   public CamundaClientFeelExpressionEvaluator(
       CamundaClient camundaClient, ObjectMapper objectMapper) {
@@ -99,7 +90,7 @@ public class CamundaClientFeelExpressionEvaluator implements FeelExpressionEvalu
     var request = camundaClient.newEvaluateExpressionCommand().expression(expression);
 
     Map<String, Object> mergedVariables = FeelEngineWrapperUtil.mergeMapVariables(variables);
-    if (mergedVariables != null && !mergedVariables.isEmpty()) {
+    if (!mergedVariables.isEmpty()) {
       request.variables(mergedVariables);
     }
 
