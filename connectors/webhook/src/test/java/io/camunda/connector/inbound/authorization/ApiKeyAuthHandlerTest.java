@@ -11,8 +11,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.feel.LocalFeelEngineWrapper;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.InvalidCredentials;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Success;
 import io.camunda.connector.inbound.model.WebhookAuthorization.ApiKeyAuth;
@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 public class ApiKeyAuthHandlerTest {
 
-  private final FeelEngineWrapper feel = new FeelEngineWrapper();
+  private final LocalFeelEngineWrapper feel = new LocalFeelEngineWrapper();
   private final String locatorExpression = "=split(request.headers.authorization, \" \")[2]";
   private final Function<Object, String> locator =
       request -> feel.evaluate(locatorExpression, request);

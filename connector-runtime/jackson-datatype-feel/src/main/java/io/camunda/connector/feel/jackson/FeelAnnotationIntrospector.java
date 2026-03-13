@@ -18,33 +18,27 @@ package io.camunda.connector.feel.jackson;
 
 import com.fasterxml.jackson.databind.introspect.Annotated;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.annotation.FEEL;
-import java.util.function.Supplier;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
 
 public class FeelAnnotationIntrospector extends JacksonAnnotationIntrospector {
 
-  private final Supplier<CamundaClient> camundaClientSupplier;
-
-  /** Creates an introspector that uses local FEEL engine. */
-  public FeelAnnotationIntrospector() {
-    this(null);
-  }
+  private final FeelExpressionEvaluator evaluator;
 
   /**
-   * Creates an introspector with optional CamundaClient for remote FEEL evaluation.
+   * Creates an introspector with the specified FEEL expression evaluator.
    *
-   * @param camundaClientSupplier supplier for CamundaClient, or null to use local FEEL engine
+   * @param evaluator the FEEL expression evaluator to use
    */
-  public FeelAnnotationIntrospector(Supplier<CamundaClient> camundaClientSupplier) {
-    this.camundaClientSupplier = camundaClientSupplier;
+  public FeelAnnotationIntrospector(FeelExpressionEvaluator evaluator) {
+    this.evaluator = evaluator;
   }
 
   @Override
   public Object findDeserializer(Annotated a) {
     FEEL ann = _findAnnotation(a, FEEL.class);
     if (ann != null) {
-      return new FeelDeserializer(camundaClientSupplier);
+      return new FeelDeserializer(evaluator);
     }
     return super.findDeserializer(a);
   }

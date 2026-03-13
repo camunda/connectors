@@ -19,14 +19,14 @@ package io.camunda.connector.feel.jackson;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.type.TypeFactory;
-import io.camunda.client.CamundaClient;
-import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.feel.LocalFeelEngineWrapper;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class JacksonModuleFeelFunction extends SimpleModule {
 
-  private final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
+  private final FeelExpressionEvaluator evaluator;
 
   /**
    * Using this flag, the module can be configured to not process the {@code @FEEL} annotation. This
@@ -36,23 +36,21 @@ public class JacksonModuleFeelFunction extends SimpleModule {
    */
   private final boolean processFEELAnnotation;
 
-  private final Supplier<CamundaClient> camundaClientSupplier;
-
   /** Creates a module using local FEEL engine. */
   public JacksonModuleFeelFunction() {
-    this(true, null);
+    this(true, new LocalFeelEngineWrapper());
   }
 
   /**
-   * Creates a module with optional CamundaClient for remote FEEL evaluation.
+   * Creates a module with the specified FEEL expression evaluator.
    *
    * @param processFEELAnnotation whether to process @FEEL annotations
-   * @param camundaClientSupplier supplier for CamundaClient, or null to use local FEEL engine
+   * @param evaluator the FEEL expression evaluator to use
    */
   public JacksonModuleFeelFunction(
-      boolean processFEELAnnotation, Supplier<CamundaClient> camundaClientSupplier) {
+      boolean processFEELAnnotation, FeelExpressionEvaluator evaluator) {
     this.processFEELAnnotation = processFEELAnnotation;
-    this.camundaClientSupplier = camundaClientSupplier;
+    this.evaluator = evaluator != null ? evaluator : new LocalFeelEngineWrapper();
   }
 
   @Override
@@ -69,15 +67,11 @@ public class JacksonModuleFeelFunction extends SimpleModule {
   @Override
   public void setupModule(SetupContext context) {
     addDeserializer(
-        Function.class,
-        new FeelFunctionDeserializer<>(
-            TypeFactory.unknownType(), feelEngineWrapper, camundaClientSupplier));
+        Function.class, new FeelFunctionDeserializer<>(TypeFactory.unknownType(), evaluator));
     addDeserializer(
-        Supplier.class,
-        new FeelSupplierDeserializer<>(
-            TypeFactory.unknownType(), feelEngineWrapper, camundaClientSupplier));
+        Supplier.class, new FeelSupplierDeserializer<>(TypeFactory.unknownType(), evaluator));
     if (processFEELAnnotation) {
-      context.insertAnnotationIntrospector(new FeelAnnotationIntrospector(camundaClientSupplier));
+      context.insertAnnotationIntrospector(new FeelAnnotationIntrospector(evaluator));
     }
     super.setupModule(context);
   }

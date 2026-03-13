@@ -24,7 +24,8 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
-import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.feel.LocalFeelEngineWrapper;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
@@ -50,6 +51,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 
 @AutoConfiguration
@@ -82,11 +84,15 @@ public class ConnectorsAutoConfiguration {
   @Value("${camunda.connector.secretprovider.console.audience:secrets.camunda.io}")
   String consoleSecretsApiAudience;
 
-  /** Provides a {@link FeelEngineWrapper} unless already present in the Spring Context */
+  /**
+   * Provides a {@link FeelExpressionEvaluator} unless already present in the Spring Context. Uses
+   * local FEEL engine by default.
+   */
   @Bean
-  @ConditionalOnMissingBean(FeelEngineWrapper.class)
-  public FeelEngineWrapper feelEngine() {
-    return new FeelEngineWrapper();
+  @Primary
+  @ConditionalOnMissingBean(FeelExpressionEvaluator.class)
+  public FeelExpressionEvaluator feelExpressionEvaluator() {
+    return new LocalFeelEngineWrapper();
   }
 
   @Bean
@@ -191,7 +197,10 @@ public class ConnectorsAutoConfiguration {
 
   /**
    * ObjectMapper for OutboundConnectorManager with FEEL functions disabled. This prevents FEEL
-   * expression evaluation during outbound connector variable binding.
+   * expression evaluation during outbound connector variable binding. This is needed because
+   * the FEEL annotation processing conflicts with the other modules (e.g. the document module)
+   * and can prevent the correct deserializer from being picked. @FEEL annotation is not relevant
+   * for outbound connectors anyway, as FEEL for jobs is evaluated by Zeebe.
    */
   @Bean(defaultCandidate = false)
   @OutboundConnectorObjectMapper
@@ -208,7 +217,7 @@ public class ConnectorsAutoConfiguration {
 
     return copy.registerModules(
         jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(false, null), // FEEL annotation processing disabled
+        new JacksonModuleFeelFunction(false, new LocalFeelEngineWrapper()), // FEEL annotation processing disabled
         new JacksonModuleDocumentSerializer());
   }
 }

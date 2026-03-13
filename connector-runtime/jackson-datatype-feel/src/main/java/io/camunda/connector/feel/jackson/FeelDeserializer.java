@@ -23,13 +23,12 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.type.TypeFactory;
-import io.camunda.client.CamundaClient;
-import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.feel.LocalFeelEngineWrapper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -40,18 +39,24 @@ import java.util.stream.Collectors;
 public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
 
   private final JavaType outputType;
-  private static final FeelEngineWrapper FALLBACK_FEEL_ENGINE_WRAPPER = new FeelEngineWrapper();
+  private static final FeelExpressionEvaluator FALLBACK_EVALUATOR = new LocalFeelEngineWrapper();
 
   /** Default constructor for use with @JsonDeserialize annotations. Uses local FEEL engine. */
-  public FeelDeserializer(Supplier<CamundaClient> camundaClientSupplier) {
-    this(FALLBACK_FEEL_ENGINE_WRAPPER, TypeFactory.unknownType(), camundaClientSupplier);
+  public FeelDeserializer() {
+    this(FALLBACK_EVALUATOR, TypeFactory.unknownType());
   }
 
-  protected FeelDeserializer(
-      FeelEngineWrapper feelEngineWrapper,
-      JavaType outputType,
-      Supplier<CamundaClient> camundaClientSupplier) {
-    super(feelEngineWrapper, true, camundaClientSupplier);
+  /**
+   * Constructor with custom evaluator.
+   *
+   * @param evaluator the FEEL expression evaluator to use
+   */
+  public FeelDeserializer(FeelExpressionEvaluator evaluator) {
+    this(evaluator, TypeFactory.unknownType());
+  }
+
+  protected FeelDeserializer(FeelExpressionEvaluator evaluator, JavaType outputType) {
+    super(evaluator, true);
     this.outputType = outputType;
   }
 
@@ -145,6 +150,6 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
 
   @Override
   public JsonDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property) {
-    return new FeelDeserializer(feelEngineWrapper, property.getType(), camundaClientSupplier);
+    return new FeelDeserializer(evaluator, property.getType());
   }
 }
