@@ -87,14 +87,20 @@ public class ConnectorsAutoConfiguration {
   String consoleSecretsApiAudience;
 
   /**
-   * Provides a {@link FeelExpressionEvaluator} unless already present in the Spring Context. Uses
-   * local FEEL engine by default.
+   * Provides a {@link FeelExpressionEvaluator} unless already present in the Spring Context. When a
+   * {@link CamundaClient} is available, uses cluster-based evaluation (enabling access to cluster
+   * variables like {@code camunda.vars.env.*}). Otherwise, falls back to local FEEL engine.
    */
   @Bean
   @Primary
   @ConditionalOnMissingBean(FeelExpressionEvaluator.class)
-  public FeelExpressionEvaluator feelExpressionEvaluator() {
-    return new LocalFeelEngineWrapper();
+  public FeelExpressionEvaluator feelExpressionEvaluator(Optional<CamundaClient> camundaClient) {
+    return camundaClient
+        .<FeelExpressionEvaluator>map(
+            client ->
+                new CamundaClientFeelExpressionEvaluator(
+                    client, ConnectorsObjectMapperSupplier.getCopy()))
+        .orElseGet(LocalFeelEngineWrapper::new);
   }
 
   @Bean
@@ -176,7 +182,7 @@ public class ConnectorsAutoConfiguration {
   @ConnectorsObjectMapper
   @ConditionalOnMissingBean(name = "connectorObjectMapper")
   public ObjectMapper connectorObjectMapper(
-      DocumentFactory documentFactory, CamundaClient camundaClient) {
+      DocumentFactory documentFactory, FeelExpressionEvaluator feelExpressionEvaluator) {
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
     // default intrinsic function contains a pointer of the copy
     var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
@@ -189,16 +195,11 @@ public class ConnectorsAutoConfiguration {
             functionExecutor,
             JacksonModuleDocumentDeserializer.DocumentModuleSettings.create());
 
-    // We register the deserializer module which contains the function executor, which contains the
-    // pointer of the object mapper
-    // we are overloading
+    // Function/Supplier always use local evaluation to avoid serializing runtime objects
+    // (e.g., Documents) to the cluster. The injected evaluator is used for @FEEL-annotated fields.
     return copy.registerModules(
         jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(
-            true,
-            new CamundaClientFeelExpressionEvaluator(
-                camundaClient, ConnectorsObjectMapperSupplier.getCopy()),
-            new LocalFeelEngineWrapper()),
+        new JacksonModuleFeelFunction(true, feelExpressionEvaluator, new LocalFeelEngineWrapper()),
         new JacksonModuleDocumentSerializer());
   }
 
