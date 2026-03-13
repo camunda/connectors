@@ -26,7 +26,7 @@ import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ProblemException;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
-import io.camunda.connector.feel.jackson.CamundaClientFeelExpressionEvaluator;
+import io.camunda.connector.feel.CamundaClientFeelExpressionEvaluator;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.test.utils.annotation.SlowTest;
@@ -64,8 +64,9 @@ public class FeelDeserializerCamundaClientTest {
 
   @BeforeEach
   void setup() {
-    var evaluator = new CamundaClientFeelExpressionEvaluator(camundaClient,
-        ConnectorsObjectMapperSupplier.getCopy());
+    var evaluator =
+        new CamundaClientFeelExpressionEvaluator(
+            camundaClient, ConnectorsObjectMapperSupplier.getCopy());
     mapper =
         new ObjectMapper()
             .registerModule(new JacksonModuleFeelFunction(true, evaluator))

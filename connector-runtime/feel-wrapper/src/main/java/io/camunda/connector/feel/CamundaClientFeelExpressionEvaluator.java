@@ -14,16 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.feel.jackson;
+package io.camunda.connector.feel;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
-import io.camunda.connector.feel.FeelEngineWrapperException;
-import io.camunda.connector.feel.FeelEngineWrapperUtil;
-import io.camunda.connector.feel.FeelExpressionEvaluator;
 import java.util.Map;
 
 /**

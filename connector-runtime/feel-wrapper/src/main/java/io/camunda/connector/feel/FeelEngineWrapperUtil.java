@@ -19,6 +19,7 @@ package io.camunda.connector.feel;
 import static io.camunda.connector.feel.JacksonSupport.MAP_TYPE_REFERENCE;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -31,7 +32,8 @@ public class FeelEngineWrapperUtil {
 
   private static final Logger LOG = LoggerFactory.getLogger(FeelEngineWrapperUtil.class);
   private static final String ERROR_CONTEXT_IS_NULL = "Context is null";
-  private static final ObjectMapper DEFAULT_OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectMapper DEFAULT_OBJECT_MAPPER =
+      ConnectorsObjectMapperSupplier.getCopy();
 
   public static Map<String, Object> wrapResponse(Object response) {
     Map<String, Object> responseContext = new HashMap<>();
