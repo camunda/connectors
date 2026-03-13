@@ -87,6 +87,8 @@ import org.mockito.MockedStatic;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
 import software.amazon.awssdk.auth.credentials.*;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
@@ -99,13 +101,7 @@ class ChatModelFactoryTest {
       new TimeoutConfiguration(Duration.ofSeconds(30));
 
   private final ChatModelFactory chatModelFactory =
-      new ChatModelFactoryImpl(
-          new AgenticAiConnectorsConfigurationProperties(
-              null,
-              new AgenticAiConnectorsConfigurationProperties.AiAgentProperties(
-                  new AgenticAiConnectorsConfigurationProperties.ChatModelProperties(
-                      new AgenticAiConnectorsConfigurationProperties.ChatModelProperties
-                          .ApiProperties(Duration.ofMinutes(3))))));
+      new ChatModelFactoryImpl(createDefaultConfigurationProperties());
 
   static Stream<TimeoutConfiguration> defaultTimeoutYieldingConfigs() {
     return Stream.of(
@@ -1048,6 +1044,13 @@ class ChatModelFactoryTest {
     static Stream<OpenAiCompatibleModelParameters> nullModelParameters() {
       return Stream.of(new OpenAiCompatibleModelParameters(null, null, null, null));
     }
+  }
+
+  private static AgenticAiConnectorsConfigurationProperties createDefaultConfigurationProperties() {
+    final var binder = new Binder(List.of());
+    return binder.bindOrCreate(
+        "camunda.connector.agenticai",
+        Bindable.of(AgenticAiConnectorsConfigurationProperties.class));
   }
 
   private static class ResultCaptor<T> implements Answer<T> {
