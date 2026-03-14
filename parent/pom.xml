@@ -99,7 +99,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.32</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.42.11</version.aws-sdk2>
+    <version.aws-sdk2>2.42.13</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -114,11 +114,11 @@ limitations under the License.</license.inlineheader>
 
     <version.google-http-client>2.1.0</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20260220-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20260305-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.43.0</version.google-auth-library-oauth2-http>
-    <version.google-api-services-docs>v1-rev20260114-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.77.0</version.google-libraries-bom>
+    <version.google-api-services-docs>v1-rev20260309-2.0.0</version.google-api-services-docs>
+    <version.google-libraries-bom>26.78.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20251110-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <version.jsr305>3.0.2</version.jsr305>
@@ -152,7 +152,7 @@ limitations under the License.</license.inlineheader>
     <version.wss4j>4.0.1</version.wss4j>
     <version.xmlsec>4.0.4</version.xmlsec>
 
-    <version.slack>1.47.0</version.slack>
+    <version.slack>1.48.0</version.slack>
 
     <version.testcontainers>2.0.3</version.testcontainers>
     <version.awaitility>4.3.0</version.awaitility>
@@ -171,7 +171,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwks>0.23.0</version.auth0.jwks>
 
     <version.langchain4j>1.12.2</version.langchain4j>
-    <version.mcp-sdk>1.0.0</version.mcp-sdk>
+    <version.mcp-sdk>1.1.0</version.mcp-sdk>
     <version.elasticsearch-java-client>8.19.12</version.elasticsearch-java-client>
 
     <version.scala>3.8.2</version.scala>
