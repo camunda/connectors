@@ -21,10 +21,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
-import software.amazon.awssdk.services.sqs.model.SqsException;
 
 public class SqsConnectorFunctionTest extends BaseTest {
 
@@ -48,11 +48,11 @@ public class SqsConnectorFunctionTest extends BaseTest {
     // Given context with correct data and request
     connector = new SqsConnectorFunction();
     // When connector.execute(context) without amazon sqs client
-    // Then we expect SqsException
+    // Then we expect an SDK exception (could be SqsException or SdkClientException)
     assertThrows(
-        SqsException.class,
+        SdkException.class,
         () -> connector.execute(context),
-        "SqsException from amazon was expected");
+        "SdkException from AWS SDK was expected");
   }
 
   @Test

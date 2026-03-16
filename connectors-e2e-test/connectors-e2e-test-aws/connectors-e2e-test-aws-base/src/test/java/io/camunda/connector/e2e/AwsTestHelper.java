@@ -45,6 +45,8 @@ import software.amazon.awssdk.services.sqs.model.CreateQueueResponse;
 import software.amazon.awssdk.services.sqs.model.DeleteQueueRequest;
 import software.amazon.awssdk.services.sqs.model.GetQueueAttributesRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
+import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 
 /**
@@ -278,7 +280,7 @@ public class AwsTestHelper {
         .getQueueAttributes(
             GetQueueAttributesRequest.builder()
                 .queueUrl(queueUrl)
-                .attributeNamesWithStrings("QueueArn")
+                .attributeNames(QueueAttributeName.QUEUE_ARN)
                 .build())
         .attributesAsStrings()
         .get("QueueArn");
@@ -306,7 +308,7 @@ public class AwsTestHelper {
     ReceiveMessageRequest receiveMessageRequest =
         ReceiveMessageRequest.builder()
             .queueUrl(queueUrl)
-            .attributeNamesWithStrings("All")
+            .messageSystemAttributeNames(MessageSystemAttributeName.ALL)
             .messageAttributeNames("All")
             .waitTimeSeconds(5)
             .maxNumberOfMessages(1)

@@ -40,6 +40,7 @@ import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.DeleteQueueRequest;
 import software.amazon.awssdk.services.sqs.model.GetQueueAttributesRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 
 public class AwsEventBridgeTest extends BaseAwsTest {
   private static final String ELEMENT_TEMPLATE_PATH =
@@ -75,7 +76,7 @@ public class AwsEventBridgeTest extends BaseAwsTest {
             .getQueueAttributes(
                 GetQueueAttributesRequest.builder()
                     .queueUrl(queueUrl)
-                    .attributeNamesWithStrings("QueueArn")
+                    .attributeNames(QueueAttributeName.QUEUE_ARN)
                     .build())
             .attributesAsStrings()
             .get("QueueArn");

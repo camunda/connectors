@@ -33,6 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
@@ -84,7 +85,8 @@ public class SqsQueueConsumerTest {
     verify(sqsClient).deleteMessage(any(DeleteMessageRequest.class));
 
     ReceiveMessageRequest receiveMessageRequest = requestArgumentCaptor.getValue();
-    assertThat(receiveMessageRequest.attributeNamesAsStrings()).isEqualTo(List.of("All"));
+    assertThat(receiveMessageRequest.messageSystemAttributeNames())
+        .isEqualTo(List.of(MessageSystemAttributeName.ALL));
     assertThat(receiveMessageRequest.messageAttributeNames()).isEqualTo(List.of("All"));
   }
 
@@ -117,7 +119,8 @@ public class SqsQueueConsumerTest {
     verify(sqsClient, atLeast(1)).receiveMessage(any(ReceiveMessageRequest.class));
     verify(context).correlateWithResult(MessageMapper.toSqsInboundMessage(message));
     ReceiveMessageRequest receiveMessageRequest = requestArgumentCaptor.getValue();
-    assertThat(receiveMessageRequest.attributeNamesAsStrings()).isEqualTo(attributeNames);
+    assertThat(receiveMessageRequest.messageSystemAttributeNames())
+        .isEqualTo(attributeNames.stream().map(MessageSystemAttributeName::fromValue).toList());
     assertThat(receiveMessageRequest.messageAttributeNames()).isEqualTo(messageAttributeNames);
     verify(sqsClient).deleteMessage(any(DeleteMessageRequest.class));
   }
