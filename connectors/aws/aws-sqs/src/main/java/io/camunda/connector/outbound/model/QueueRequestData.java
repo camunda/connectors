@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.outbound.model;
 
-import io.camunda.connector.generator.java.annotation.FeelMode;
+import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotEmpty;
