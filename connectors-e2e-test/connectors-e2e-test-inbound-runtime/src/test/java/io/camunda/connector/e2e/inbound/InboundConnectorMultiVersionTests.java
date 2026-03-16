@@ -648,6 +648,68 @@ public class InboundConnectorMultiVersionTests {
                     .isEqualTo(keyV1);
               });
     }
+
+    @Test
+    void deployV1StartInstance_deployV2WithoutConnector_afterCorrelation_v1ShouldBeDeactivated() {
+      // This test verifies that the messageSubscriptionState(CREATED) filter correctly excludes
+      // subscriptions that are no longer in CREATED state. Once all CREATED subscriptions for a
+      // process version are gone (e.g., after message correlation), the old version should no
+      // longer be considered "active" and its connector should be deactivated.
+
+      // Given: v1 deployed with connector using Intermediate Catch Event
+      var model1 = createInboundConnectorProcess("config-a");
+      long keyV1 = deploy(model1);
+      waitForProcessDefinitionIndexed(keyV1);
+      awaitHealthyExecutable(testProcessId);
+
+      // Start an instance on v1 - it will wait at the intermediate catch event,
+      // creating a message subscription in CREATED state (makes v1 "active")
+      camundaClient
+          .newCreateInstanceCommand()
+          .processDefinitionKey(keyV1)
+          .variable("correlationKey", "test-correlation-key")
+          .send()
+          .join();
+
+      // Deploy v2 WITHOUT connector (plain process) - v1's connector would normally be deactivated
+      // but is kept alive because v1 has an active CREATED message subscription
+      var model2 = createPlainProcessWithIntermediateEvent();
+      long keyV2 = deploy(model2);
+      waitForProcessDefinitionIndexed(keyV2);
+
+      // Verify v1 connector is still active (protected by the CREATED subscription)
+      Awaitility.await("v1 connector should still be active before message correlation")
+          .atMost(AWAIT_TIMEOUT)
+          .untilAsserted(
+              () -> {
+                var executables = queryExecutables(testProcessId);
+                assertThat(executables).hasSize(1);
+                assertThat(
+                        executables
+                            .getFirst()
+                            .elements()
+                            .getFirst()
+                            .element()
+                            .processDefinitionKey())
+                    .isEqualTo(keyV1);
+              });
+
+      // When: Publish the Zeebe message that correlates with v1's waiting instance.
+      // This transitions the message subscription away from the CREATED state,
+      // so the statistics query (filtered by CREATED state) will no longer count
+      // it as an active subscription for v1.
+      camundaClient
+          .newPublishMessageCommand()
+          .messageName("test-inbound-message")
+          .correlationKey("test-correlation-key")
+          .send()
+          .join();
+
+      // Then: With no remaining CREATED subscriptions, v1 is no longer "active".
+      // The connector runtime should deactivate v1's element and, since v2 has no connector,
+      // the entire executable should be removed.
+      awaitExecutableCount(testProcessId, 0);
+    }
   }
 
   @Nested
