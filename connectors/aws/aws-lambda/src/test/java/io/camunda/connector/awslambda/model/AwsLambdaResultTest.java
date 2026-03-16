@@ -8,17 +8,16 @@ package io.camunda.connector.awslambda.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.amazonaws.services.lambda.model.InvokeResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.awslambda.BaseTest;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 
 class AwsLambdaResultTest extends BaseTest {
 
-  @ParameterizedTest(name = "create result from invokeResult #{index}")
+  @ParameterizedTest(name = "create result from invokeResponse #{index}")
   @CsvSource({
     "200,1.2,{\"body\": {\"key\":\"value\"}}",
     "400,$LATEST,{\"1\":\"2\"}",
@@ -26,16 +25,16 @@ class AwsLambdaResultTest extends BaseTest {
   })
   public void newAwsLambdaResult_shouldReturnResultWithCorrectData(
       Integer statusCode, String version, String payload) throws JsonProcessingException {
-    // Given invoke result from aws lambda client
-    ByteBuffer wrap = ByteBuffer.wrap(payload.getBytes(StandardCharsets.UTF_8));
-    InvokeResult invokeResult =
-        new InvokeResult()
-            .withStatusCode(statusCode)
-            .withExecutedVersion(version)
-            .withPayload(wrap);
+    // Given invoke response from aws lambda client
+    InvokeResponse invokeResponse =
+        InvokeResponse.builder()
+            .statusCode(statusCode)
+            .executedVersion(version)
+            .payload(SdkBytes.fromUtf8String(payload))
+            .build();
 
     // When
-    AwsLambdaResult awsLambdaResult = new AwsLambdaResult(invokeResult, objectMapper);
+    AwsLambdaResult awsLambdaResult = new AwsLambdaResult(invokeResponse, objectMapper);
     // Then
     assertThat(awsLambdaResult.getStatusCode()).isEqualTo(statusCode);
     assertThat(awsLambdaResult.getExecutedVersion()).isEqualTo(version);
