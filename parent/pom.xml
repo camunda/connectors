@@ -488,6 +488,26 @@ limitations under the License.</license.inlineheader>
       </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
+        <artifactId>lambda</artifactId>
+        <version>${version.aws-sdk2}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sqs</artifactId>
+        <version>${version.aws-sdk2}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sns</artifactId>
+        <version>${version.aws-sdk2}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>eventbridge</artifactId>
+        <version>${version.aws-sdk2}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
         <artifactId>bedrockruntime</artifactId>
         <version>${version.aws-sdk2}</version>
       </dependency>

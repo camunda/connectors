@@ -9,7 +9,6 @@ package io.camunda.connector.sns.outbound;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.amazonaws.services.sns.model.MessageAttributeValue;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
@@ -17,6 +16,7 @@ import io.camunda.connector.sns.outbound.model.SnsConnectorRequest;
 import io.camunda.connector.sns.outbound.model.SnsMessageAttribute;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
 
 class SnsConnectorRequestTest extends BaseTest {
 

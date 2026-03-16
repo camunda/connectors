@@ -13,10 +13,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
-import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
@@ -34,19 +30,21 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
 @ExtendWith(MockitoExtension.class)
 public class SqsQueueConsumerTest {
 
-  @Mock private AmazonSQS sqsClient;
+  @Mock private SqsClient sqsClient;
   private SqsInboundProperties properties;
   private SqsInboundQueueProperties queue;
   @Mock private InboundConnectorContext context;
-  @Mock private ReceiveMessageResult receiveMessageResult;
-  @Mock private List<Message> messages;
   private Message message;
   @Captor private ArgumentCaptor<ReceiveMessageRequest> requestArgumentCaptor;
-  private List<Message> emptyMessageList;
 
   private SqsQueueConsumer consumer;
 
@@ -54,25 +52,22 @@ public class SqsQueueConsumerTest {
   void setUp() {
     properties = new SqsInboundProperties();
 
-    message = new Message().withMessageId("message id").withBody("body msg");
+    message = Message.builder().messageId("message id").body("body msg").build();
 
     queue = new SqsInboundQueueProperties("us-east-1", "my-queue", null, null, "1");
 
     properties.setQueue(queue);
 
     consumer = new SqsQueueConsumer(sqsClient, properties, context);
-    emptyMessageList = Collections.emptyList();
   }
 
   @Test
   void run_shouldActivate() throws InterruptedException {
     // given
     when(sqsClient.receiveMessage(requestArgumentCaptor.capture()))
-        .thenReturn(receiveMessageResult);
-    when(receiveMessageResult.getMessages()).thenReturn(messages);
-    when(messages.iterator())
-        .thenReturn(Collections.singletonList(message).iterator())
-        .thenReturn(emptyMessageList.iterator());
+        .thenReturn(ReceiveMessageResponse.builder().messages(message).build())
+        .thenReturn(
+            ReceiveMessageResponse.builder().messages(Collections.<Message>emptyList()).build());
     when(context.correlate(any(CorrelationRequest.class)))
         .thenReturn(new MessagePublished(null, 1L, null));
     // when
@@ -83,11 +78,11 @@ public class SqsQueueConsumerTest {
     // then
     verify(sqsClient, atLeast(1)).receiveMessage(any(ReceiveMessageRequest.class));
     verify(context).correlate(any(CorrelationRequest.class));
-    verify(sqsClient).deleteMessage(queue.url(), message.getReceiptHandle());
+    verify(sqsClient).deleteMessage(any(DeleteMessageRequest.class));
 
     ReceiveMessageRequest receiveMessageRequest = requestArgumentCaptor.getValue();
-    assertThat(receiveMessageRequest.getAttributeNames()).isEqualTo(List.of("All"));
-    assertThat(receiveMessageRequest.getMessageAttributeNames()).isEqualTo(List.of("All"));
+    assertThat(receiveMessageRequest.attributeNamesAsStrings()).isEqualTo(List.of("All"));
+    assertThat(receiveMessageRequest.messageAttributeNames()).isEqualTo(List.of("All"));
   }
 
   @Test
@@ -99,12 +94,11 @@ public class SqsQueueConsumerTest {
         new SqsInboundQueueProperties(
             "us-east-1", "my-queue", attributeNames, messageAttributeNames, "1");
     properties.setQueue(queue);
+    consumer = new SqsQueueConsumer(sqsClient, properties, context);
     when(sqsClient.receiveMessage(requestArgumentCaptor.capture()))
-        .thenReturn(receiveMessageResult);
-    when(receiveMessageResult.getMessages()).thenReturn(messages);
-    when(messages.iterator())
-        .thenReturn(Collections.singletonList(message).iterator())
-        .thenReturn(emptyMessageList.iterator());
+        .thenReturn(ReceiveMessageResponse.builder().messages(message).build())
+        .thenReturn(
+            ReceiveMessageResponse.builder().messages(Collections.<Message>emptyList()).build());
     when(context.correlate(any(CorrelationRequest.class)))
         .thenReturn(new MessagePublished(null, 1L, null));
 
@@ -123,23 +117,21 @@ public class SqsQueueConsumerTest {
         .correlate(
             CorrelationRequest.builder()
                 .variables(MessageMapper.toSqsInboundMessage(message))
-                .messageId(message.getMessageId())
+                .messageId(message.messageId())
                 .build());
     ReceiveMessageRequest receiveMessageRequest = requestArgumentCaptor.getValue();
-    assertThat(receiveMessageRequest.getAttributeNames()).isEqualTo(attributeNames);
-    assertThat(receiveMessageRequest.getMessageAttributeNames()).isEqualTo(messageAttributeNames);
-    verify(sqsClient).deleteMessage(queue.url(), message.getReceiptHandle());
+    assertThat(receiveMessageRequest.attributeNamesAsStrings()).isEqualTo(attributeNames);
+    assertThat(receiveMessageRequest.messageAttributeNames()).isEqualTo(messageAttributeNames);
+    verify(sqsClient).deleteMessage(any(DeleteMessageRequest.class));
   }
 
   @Test
   void correlationFailure_ForwardToUpstream() throws InterruptedException {
     // given
     when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
-        .thenReturn(receiveMessageResult);
-    when(receiveMessageResult.getMessages()).thenReturn(messages);
-    when(messages.iterator())
-        .thenReturn(Collections.singletonList(message).iterator())
-        .thenReturn(emptyMessageList.iterator());
+        .thenReturn(ReceiveMessageResponse.builder().messages(message).build())
+        .thenReturn(
+            ReceiveMessageResponse.builder().messages(Collections.<Message>emptyList()).build());
     when(context.correlate(any(CorrelationRequest.class)))
         .thenReturn(new Other(new RuntimeException()));
     // when
@@ -161,11 +153,9 @@ public class SqsQueueConsumerTest {
   void correlationFailure_Ignored() throws InterruptedException {
     // given
     when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
-        .thenReturn(receiveMessageResult);
-    when(receiveMessageResult.getMessages()).thenReturn(messages);
-    when(messages.iterator())
-        .thenReturn(Collections.singletonList(message).iterator())
-        .thenReturn(emptyMessageList.iterator());
+        .thenReturn(ReceiveMessageResponse.builder().messages(message).build())
+        .thenReturn(
+            ReceiveMessageResponse.builder().messages(Collections.<Message>emptyList()).build());
     when(context.correlate(any(CorrelationRequest.class)))
         .thenReturn(new ActivationConditionNotMet(true));
     // when
@@ -180,15 +170,15 @@ public class SqsQueueConsumerTest {
     // then
     verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
     verify(context).correlate(any(CorrelationRequest.class));
-    verify(sqsClient).deleteMessage(queue.url(), message.getReceiptHandle());
+    verify(sqsClient).deleteMessage(any(DeleteMessageRequest.class));
   }
 
   @Test
   void consumeRun_withNoResults() throws InterruptedException {
     // given
     when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
-        .thenReturn(receiveMessageResult);
-    when(receiveMessageResult.getMessages()).thenReturn(Collections.emptyList());
+        .thenReturn(
+            ReceiveMessageResponse.builder().messages(Collections.<Message>emptyList()).build());
     // when
     Thread thread =
         new Thread(

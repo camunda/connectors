@@ -9,11 +9,6 @@ package io.camunda.connector.sns.outbound;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 
-import com.amazonaws.SdkClientException;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.sns.AmazonSNS;
-import com.amazonaws.services.sns.model.PublishRequest;
-import com.amazonaws.services.sns.model.PublishResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
@@ -29,15 +24,20 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
+import software.amazon.awssdk.services.sns.model.PublishResponse;
 
 @ExtendWith(MockitoExtension.class)
 public class SnsConnectorFunctionTest extends BaseTest {
 
   private SnsConnectorFunction connector;
   private OutboundConnectorContext context;
-  private PublishResult publishResult;
+  private PublishResponse publishResponse;
 
-  @Mock private AmazonSNS snsClient;
+  @Mock private SnsClient snsClient;
   @Captor private ArgumentCaptor<PublishRequest> requestArgumentCaptor;
 
   @BeforeEach
@@ -48,8 +48,7 @@ public class SnsConnectorFunctionTest extends BaseTest {
             .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
             .variables(DEFAULT_REQUEST_BODY)
             .build();
-    publishResult = new PublishResult();
-    publishResult.setMessageId(MSG_ID);
+    publishResponse = PublishResponse.builder().messageId(MSG_ID).build();
   }
 
   @Test
@@ -59,20 +58,20 @@ public class SnsConnectorFunctionTest extends BaseTest {
     // When connector.execute(context) without amazon sns client
     // Then we expect SdkClientException
     assertThrows(
-        SdkClientException.class,
+        SdkException.class,
         () -> connector.execute(context),
-        "SdkClientException from amazon was expected");
+        "SdkException from amazon was expected");
   }
 
   @Test
   public void execute_shouldExecuteRequestAndReturnResultWithMsgId()
       throws JsonProcessingException {
     // Given
-    Mockito.when(snsClient.publish(any(PublishRequest.class))).thenReturn(publishResult);
+    Mockito.when(snsClient.publish(any(PublishRequest.class))).thenReturn(publishResponse);
     SnsClientSupplier snsClientSupplier = Mockito.mock(SnsClientSupplier.class);
     Mockito.when(
             snsClientSupplier.getSnsClient(
-                any(AWSCredentialsProvider.class), ArgumentMatchers.anyString()))
+                any(AwsCredentialsProvider.class), ArgumentMatchers.anyString()))
         .thenReturn(snsClient);
     connector = new SnsConnectorFunction(snsClientSupplier, objectMapper);
 
@@ -80,7 +79,7 @@ public class SnsConnectorFunctionTest extends BaseTest {
     Object execute = connector.execute(context);
 
     // Then
-    Mockito.verify(snsClient, Mockito.times(1)).shutdown();
+    Mockito.verify(snsClient, Mockito.times(1)).close();
 
     Assertions.assertThat(execute).isInstanceOf(SnsConnectorResult.class);
     var result = (SnsConnectorResult) execute;
@@ -90,11 +89,11 @@ public class SnsConnectorFunctionTest extends BaseTest {
   @Test
   public void execute_shouldExecuteRequestWithJsonTypeMsg() throws JsonProcessingException {
     // Given
-    Mockito.when(snsClient.publish(requestArgumentCaptor.capture())).thenReturn(publishResult);
+    Mockito.when(snsClient.publish(requestArgumentCaptor.capture())).thenReturn(publishResponse);
     SnsClientSupplier snsClientSupplier = Mockito.mock(SnsClientSupplier.class);
     Mockito.when(
             snsClientSupplier.getSnsClient(
-                any(AWSCredentialsProvider.class), ArgumentMatchers.anyString()))
+                any(AwsCredentialsProvider.class), ArgumentMatchers.anyString()))
         .thenReturn(snsClient);
     connector = new SnsConnectorFunction(snsClientSupplier, objectMapper);
     context =
@@ -108,19 +107,19 @@ public class SnsConnectorFunctionTest extends BaseTest {
     connector.execute(context);
 
     // Then
-    Mockito.verify(snsClient, Mockito.times(1)).shutdown();
-    String message = requestArgumentCaptor.getValue().getMessage();
+    Mockito.verify(snsClient, Mockito.times(1)).close();
+    String message = requestArgumentCaptor.getValue().message();
     Assertions.assertThat(message).isEqualTo("{\"key\":\"value\"}");
   }
 
   @Test
   public void execute_shouldExecuteRequestWithJsonTypeMsgShouldNotEscape() {
     // Given
-    Mockito.when(snsClient.publish(requestArgumentCaptor.capture())).thenReturn(publishResult);
+    Mockito.when(snsClient.publish(requestArgumentCaptor.capture())).thenReturn(publishResponse);
     SnsClientSupplier snsClientSupplier = Mockito.mock(SnsClientSupplier.class);
     Mockito.when(
             snsClientSupplier.getSnsClient(
-                any(AWSCredentialsProvider.class), ArgumentMatchers.anyString()))
+                any(AwsCredentialsProvider.class), ArgumentMatchers.anyString()))
         .thenReturn(snsClient);
     connector = new SnsConnectorFunction(snsClientSupplier, objectMapper);
     context =
@@ -134,8 +133,8 @@ public class SnsConnectorFunctionTest extends BaseTest {
     connector.execute(context);
 
     // Then
-    Mockito.verify(snsClient, Mockito.times(1)).shutdown();
-    String message = requestArgumentCaptor.getValue().getMessage();
+    Mockito.verify(snsClient, Mockito.times(1)).close();
+    String message = requestArgumentCaptor.getValue().message();
     Assertions.assertThat(message).isEqualTo("{\"key\":\"\\\"normal\\\" value\"}");
   }
 }
