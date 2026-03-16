@@ -113,7 +113,7 @@ public class DefaultEmbeddingModelFactory {
                   new ProxyOptions(
                       ProxyOptions.Type.HTTP,
                       new InetSocketAddress(proxyDetails.host(), proxyDetails.port()));
-              // Non-proxy hosts patterns are sanitized indide ProxyOptions
+              // Non-proxy hosts patterns are sanitized inside ProxyOptions
               proxyOptions.setNonProxyHosts(
                   NonProxyHosts.getNonProxyHostsPatterns()
                       .distinct()
