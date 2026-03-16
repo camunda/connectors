@@ -54,10 +54,12 @@ public class SearchQueryClientImpl implements SearchQueryClient {
   @Override
   public ProcessDefinitionMessageSubscriptionStatistics queryMessageSubscriptionStatistics(
       String paginationIndex) {
-    final var query = camundaClient.newProcessDefinitionMessageSubscriptionStatisticsRequest()
-        .filter(
-            subscription ->
-                subscription.messageSubscriptionState(MessageSubscriptionState.CREATED));
+    final var query =
+        camundaClient
+            .newProcessDefinitionMessageSubscriptionStatisticsRequest()
+            .filter(
+                subscription ->
+                    subscription.messageSubscriptionState(MessageSubscriptionState.CREATED));
     if (paginationIndex != null) {
       query.page(p -> p.limit(limit).after(paginationIndex));
     } else {

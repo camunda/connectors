@@ -650,8 +650,7 @@ public class InboundConnectorMultiVersionTests {
     }
 
     @Test
-    void
-        deployV1StartInstance_deployV2WithoutConnector_afterCorrelation_v1ShouldBeDeactivated() {
+    void deployV1StartInstance_deployV2WithoutConnector_afterCorrelation_v1ShouldBeDeactivated() {
       // This test verifies that the messageSubscriptionState(CREATED) filter correctly excludes
       // subscriptions that are no longer in CREATED state. Once all CREATED subscriptions for a
       // process version are gone (e.g., after message correlation), the old version should no
