@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
 import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
@@ -27,6 +28,8 @@ public class SqsQueueConsumer implements Runnable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsQueueConsumer.class);
 
+  private static final List<MessageSystemAttributeName> ALL_SYSTEM_ATTRIBUTES =
+      List.of(MessageSystemAttributeName.ALL);
   private static final List<String> ALL_ATTRIBUTES_KEY = List.of("All");
 
   private final SqsClient sqsClient;
@@ -129,10 +132,11 @@ public class SqsQueueConsumer implements Runnable {
             Optional.ofNullable(properties.getQueue().messageAttributeNames())
                 .filter(list -> !list.isEmpty())
                 .orElse(ALL_ATTRIBUTES_KEY))
-        .attributeNamesWithStrings(
+        .messageSystemAttributeNames(
             Optional.ofNullable(properties.getQueue().attributeNames())
                 .filter(list -> !list.isEmpty())
-                .orElse(ALL_ATTRIBUTES_KEY))
+                .map(names -> names.stream().map(MessageSystemAttributeName::fromValue).toList())
+                .orElse(ALL_SYSTEM_ATTRIBUTES))
         .build();
   }
 
