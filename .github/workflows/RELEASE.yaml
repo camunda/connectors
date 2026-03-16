@@ -196,7 +196,7 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Run e2e tests
-        run: mvn -B test -pl connectors-e2e-test -am
+        run: mvn -B test -pl connectors-e2e-test
 
       - name: Publish Test Report
         if: always()
