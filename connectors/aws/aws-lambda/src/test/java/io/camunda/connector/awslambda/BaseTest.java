@@ -17,10 +17,9 @@ import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Stream;
+import software.amazon.awssdk.core.SdkBytes;
 
 public abstract class BaseTest {
 
@@ -49,8 +48,8 @@ public abstract class BaseTest {
     }
   }
 
-  protected static final ByteBuffer ACTUAL_BYTEBUFFER_PAYLOAD =
-      ByteBuffer.wrap(ACTUAL_STRING_PAYLOAD.getBytes(StandardCharsets.UTF_8));
+  protected static final SdkBytes ACTUAL_SDK_BYTES_PAYLOAD =
+      SdkBytes.fromUtf8String(ACTUAL_STRING_PAYLOAD);
 
   protected static final String EXECUTED_VERSION = "LATEST";
 
