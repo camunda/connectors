@@ -122,7 +122,7 @@ jobs:
           RELEASE_VERSION: ${{ inputs.version }}
 
       - name: Compile and Test
-        run: mvn -B -U package generate-sources source:jar javadoc:jar
+        run: mvn -B -U package generate-sources source:jar javadoc:jar -Pe2eExcluded
 
       - name: Publish Test Report
         if: always()
@@ -167,6 +167,47 @@ jobs:
           path: .
           include-hidden-files: 'true'
 
+
+  e2e-tests:
+    needs: setup
+    name: Run e2e tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+    steps:
+      - name: Download repository
+        uses: actions/download-artifact@v8
+        with:
+          name: repository
+
+      - name: Prepare Java and Maven settings
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21.0.9'
+
+      - name: Restore cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Run e2e tests
+        run: mvn -B test -pl connectors-e2e-test -am
+
+      - name: Publish Test Report
+        if: always()
+        uses: scacap/action-surefire-report@v1
+
+      - name: Upload detailed surefire reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: surefire-reports-e2e
+          path: '**/target/surefire-reports/*.xml'
 
   version-bump-docs-links:
     needs: setup
