@@ -58,10 +58,10 @@ jobs:
           }]
         mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
     - name: Setup fossa-cli
-      uses: camunda/infra-global-github-actions/fossa/setup@76984bd06bb37b0efe547900968cb78c383a8eb8
+      uses: camunda/infra-global-github-actions/fossa/setup@e33e51ba46d23e8b84743b4e3b7b884bb1231f33
     - name: Get context info
       id: info
-      uses: camunda/infra-global-github-actions/fossa/info@76984bd06bb37b0efe547900968cb78c383a8eb8
+      uses: camunda/infra-global-github-actions/fossa/info@e33e51ba46d23e8b84743b4e3b7b884bb1231f33
     - name: Adjust pom.xml files for FOSSA
       run: |
         # The parent/pom.xml must be the actual root, otherwise, FOSSA won't detect the hierarchy correctly
@@ -73,7 +73,7 @@ jobs:
           'del(.project.modules.module[] | select(. == "parent"))' \
           pom.xml
     - name: Analyze project
-      uses: camunda/infra-global-github-actions/fossa/analyze@76984bd06bb37b0efe547900968cb78c383a8eb8
+      uses: camunda/infra-global-github-actions/fossa/analyze@e33e51ba46d23e8b84743b4e3b7b884bb1231f33
       with:
         api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
         branch: ${{  steps.info.outputs.head-ref }}
@@ -83,7 +83,7 @@ jobs:
     # It does not fail for pre-existing issues already present in the base branch.
     - name: Check Pull Request for new License Issues
       if: steps.info.outputs.is-pull-request == 'true'
-      uses: camunda/infra-global-github-actions/fossa/pr-check@76984bd06bb37b0efe547900968cb78c383a8eb8
+      uses: camunda/infra-global-github-actions/fossa/pr-check@e33e51ba46d23e8b84743b4e3b7b884bb1231f33
       with:
         api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
         base-ref: ${{ steps.info.outputs.base-ref }}
