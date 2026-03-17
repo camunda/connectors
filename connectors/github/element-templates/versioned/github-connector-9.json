@@ -1759,7 +1759,7 @@
           "value": "sources"
         },
         {
-          "name": "Memeber",
+          "name": "Member",
           "value": "member"
         }
       ],
@@ -1816,7 +1816,7 @@
       "id": "repoSortOrder",
       "group": "input",
       "type": "Dropdown",
-      "value": "true",
+      "value": "desc",
       "choices": [
         {
           "name": "Ascending",
@@ -1926,7 +1926,7 @@
         },
         {
           "name": "Billing manager",
-          "value": "billing_manage"
+          "value": "billing_manager"
         }
       ],
       "binding": {
@@ -2689,7 +2689,7 @@
     {
       "group": "input",
       "type": "Hidden",
-      "value": "={\"type\": repoType, \"sort\": repoSortOrder, \"direction\": repoSortOrder}",
+      "value": "={\"type\": repoType, \"sort\": repoSort, \"direction\": repoSortOrder}",
       "binding": {
         "type": "zeebe:input",
         "name": "queryParameters"
@@ -3358,10 +3358,9 @@
         "name": "url"
       },
       "condition": {
-        "property": "reposOperationType",
+        "property": "listAlertsOperationType",
         "oneOf": [
-          "listOrganizationRepos",
-          "createOrganizationRepo"
+          "listAlertsForOrg"
         ]
       }
     },
@@ -3494,7 +3493,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "8",
+      "value": "9",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
