@@ -27,7 +27,7 @@ import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.CamundaClientFeelExpressionEvaluator;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
-import io.camunda.connector.feel.LocalFeelEngineWrapper;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
@@ -100,7 +100,7 @@ public class ConnectorsAutoConfiguration {
             client ->
                 new CamundaClientFeelExpressionEvaluator(
                     client, ConnectorsObjectMapperSupplier.getCopy()))
-        .orElseGet(LocalFeelEngineWrapper::new);
+        .orElseGet(LocalFeelExpressionEvaluator::new);
   }
 
   @Bean
@@ -199,7 +199,8 @@ public class ConnectorsAutoConfiguration {
     // (e.g., Documents) to the cluster. The injected evaluator is used for @FEEL-annotated fields.
     return copy.registerModules(
         jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(true, feelExpressionEvaluator, new LocalFeelEngineWrapper()),
+        new JacksonModuleFeelFunction(
+            true, feelExpressionEvaluator, new LocalFeelExpressionEvaluator()),
         new JacksonModuleDocumentSerializer());
   }
 
@@ -226,7 +227,7 @@ public class ConnectorsAutoConfiguration {
     return copy.registerModules(
         jacksonModuleDocumentDeserializer,
         new JacksonModuleFeelFunction(
-            false, new LocalFeelEngineWrapper()), // FEEL annotation processing disabled
+            false, new LocalFeelExpressionEvaluator()), // FEEL annotation processing disabled
         new JacksonModuleDocumentSerializer());
   }
 }

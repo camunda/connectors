@@ -26,7 +26,7 @@ import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
-import io.camunda.connector.feel.LocalFeelEngineWrapper;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
@@ -70,7 +70,7 @@ public class InboundCorrelationHandlerTest {
     handler =
         new InboundCorrelationHandler(
             camundaClient,
-            new LocalFeelEngineWrapper(),
+            new LocalFeelExpressionEvaluator(),
             TestObjectMapperSupplier.INSTANCE,
             DEFAULT_TTL);
   }

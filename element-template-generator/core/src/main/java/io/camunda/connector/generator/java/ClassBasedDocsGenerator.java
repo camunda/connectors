@@ -24,7 +24,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import io.camunda.connector.feel.LocalFeelEngineWrapper;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.generator.api.DocsGenerator;
 import io.camunda.connector.generator.api.DocsGeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
@@ -75,7 +75,7 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
           .setSerializationInclusion(JsonInclude.Include.NON_NULL)
           .registerModule(new ElementTemplateModule())
           .writerWithDefaultPrettyPrinter();
-  private static final LocalFeelEngineWrapper feelEngine = new LocalFeelEngineWrapper();
+  private static final LocalFeelExpressionEvaluator feelEngine = new LocalFeelExpressionEvaluator();
   private final ClassLoader classLoader;
 
   public ClassBasedDocsGenerator(ClassLoader classLoader) {

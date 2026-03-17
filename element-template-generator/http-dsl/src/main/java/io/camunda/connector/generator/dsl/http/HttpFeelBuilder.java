@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.generator.dsl.http;
 
-import io.camunda.connector.feel.LocalFeelEngineWrapper;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -30,7 +30,7 @@ public abstract class HttpFeelBuilder {
 
   protected StringBuilder sb = new StringBuilder();
   protected final Set<String> propertySet = new HashSet<>();
-  private static final LocalFeelEngineWrapper feelEngine = new LocalFeelEngineWrapper();
+  private static final LocalFeelExpressionEvaluator feelEngine = new LocalFeelExpressionEvaluator();
 
   public static final String FEEL_OPERATOR_CHARACTERS = "!=<>+-*/[]{}@ ";
 

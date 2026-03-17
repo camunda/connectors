@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
-import io.camunda.connector.feel.LocalFeelEngineWrapper;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,7 +39,8 @@ import java.util.stream.Collectors;
 public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
 
   private final JavaType outputType;
-  private static final FeelExpressionEvaluator FALLBACK_EVALUATOR = new LocalFeelEngineWrapper();
+  private static final FeelExpressionEvaluator FALLBACK_EVALUATOR =
+      new LocalFeelExpressionEvaluator();
 
   /** Default constructor for use with @JsonDeserialize annotations. Uses local FEEL engine. */
   public FeelDeserializer() {

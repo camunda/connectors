@@ -46,13 +46,13 @@ import scala.jdk.javaapi.CollectionConverters;
  * expression evaluation. This is the default implementation for scenarios where cluster-based
  * evaluation is not needed.
  */
-public class LocalFeelEngineWrapper implements FeelExpressionEvaluator {
+public class LocalFeelExpressionEvaluator implements FeelExpressionEvaluator {
 
-  private static final Logger LOG = LoggerFactory.getLogger(LocalFeelEngineWrapper.class);
+  private static final Logger LOG = LoggerFactory.getLogger(LocalFeelExpressionEvaluator.class);
   private final FeelEngine feelEngine;
   private final ObjectMapper objectMapper;
 
-  public LocalFeelEngineWrapper() {
+  public LocalFeelExpressionEvaluator() {
     this.objectMapper =
         new ObjectMapper()
             .registerModule(DefaultScalaModule$.MODULE$)

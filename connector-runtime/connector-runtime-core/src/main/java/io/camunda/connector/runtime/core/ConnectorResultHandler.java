@@ -28,7 +28,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
-import io.camunda.connector.feel.LocalFeelEngineWrapper;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
@@ -46,7 +46,7 @@ public class ConnectorResultHandler {
   private final ObjectMapper objectMapper;
 
   public ConnectorResultHandler(ObjectMapper objectMapper) {
-    this(objectMapper, new LocalFeelEngineWrapper());
+    this(objectMapper, new LocalFeelExpressionEvaluator());
   }
 
   public ConnectorResultHandler(

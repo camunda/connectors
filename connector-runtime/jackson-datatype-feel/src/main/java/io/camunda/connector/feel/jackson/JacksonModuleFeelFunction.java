@@ -20,7 +20,7 @@ import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
-import io.camunda.connector.feel.LocalFeelEngineWrapper;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -50,7 +50,7 @@ public class JacksonModuleFeelFunction extends SimpleModule {
 
   /** Creates a module using local FEEL engine for all evaluations. */
   public JacksonModuleFeelFunction() {
-    this(true, new LocalFeelEngineWrapper(), null);
+    this(true, new LocalFeelExpressionEvaluator(), null);
   }
 
   /**
@@ -81,9 +81,9 @@ public class JacksonModuleFeelFunction extends SimpleModule {
       FeelExpressionEvaluator functionEvaluator) {
     this.processFEELAnnotation = processFEELAnnotation;
     this.annotationEvaluator =
-        annotationEvaluator != null ? annotationEvaluator : new LocalFeelEngineWrapper();
+        annotationEvaluator != null ? annotationEvaluator : new LocalFeelExpressionEvaluator();
     this.functionEvaluator =
-        functionEvaluator != null ? functionEvaluator : new LocalFeelEngineWrapper();
+        functionEvaluator != null ? functionEvaluator : new LocalFeelExpressionEvaluator();
   }
 
   @Override
