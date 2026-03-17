@@ -239,7 +239,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
   }
 
   @Test
-  void whenProxySupportDisabled_thenAgenticAiHttpProxySupportHasNoProxyConfiguration() {
+  void whenProxySupportDisabled_thenAgenticAiHttpProxySupportUsesNoProxyConfiguration() {
     contextRunner
         .withPropertyValues("camunda.connector.agenticai.http.proxy-support.enabled=false")
         .run(
