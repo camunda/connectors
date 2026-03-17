@@ -277,7 +277,7 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-feel-wrapper</artifactId>
+      <artifactId>connector-feel</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

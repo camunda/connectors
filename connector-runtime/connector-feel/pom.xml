@@ -9,9 +9,9 @@
     <version>8.9.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>connector-feel-wrapper</artifactId>
-  <name>Connector Feel Wrapper</name>
-  <description>Common FEEL and Jackson configurations for Camunda Connectors</description>
+  <artifactId>connector-feel</artifactId>
+  <name>Connector FEEL evaluators</name>
+  <description>Common FEEL evaluation infrastructure for Camunda connectors</description>
 
   <dependencies>
     <dependency>
