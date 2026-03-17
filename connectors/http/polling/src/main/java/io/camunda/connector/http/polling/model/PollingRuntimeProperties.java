@@ -115,6 +115,7 @@ public class PollingRuntimeProperties {
       defaultValueType = TemplateProperty.DefaultValueType.Boolean,
       defaultValue = "false",
       optional = true)
+  @FEEL
   private boolean followRedirects;
 
   public Authentication getAuthentication() {
