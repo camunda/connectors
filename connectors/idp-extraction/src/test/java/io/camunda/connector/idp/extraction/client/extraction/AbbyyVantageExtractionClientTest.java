@@ -6,19 +6,28 @@
  */
 package io.camunda.connector.idp.extraction.client.extraction;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.idp.extraction.client.extraction.base.TextExtractor;
+import io.camunda.connector.idp.extraction.model.abbyy.AbbyyTransactionResponse;
+import io.camunda.connector.idp.extraction.model.abbyy.AbbyyTransactionResponse.AbbyyDocument;
+import io.camunda.connector.idp.extraction.model.abbyy.AbbyyTransactionResponse.AbbyyResultFile;
 import java.io.ByteArrayInputStream;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,8 +35,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AbbyyVantageExtractionClientTest {
 
+  private static final String BASE_URL = "https://vantage-us.abbyy.com";
+
   @Mock private Document mockDocument;
   @Mock private DocumentMetadata mockMetadata;
+  @Mock private HttpClient mockHttpClient;
+
+  @SuppressWarnings("unchecked")
+  private HttpResponse<String> mockResponse(int statusCode, String body) {
+    HttpResponse<String> response = Mockito.mock(HttpResponse.class);
+    when(response.statusCode()).thenReturn(statusCode);
+    when(response.body()).thenReturn(body);
+    return response;
+  }
 
   @Nested
   class ConstructorAndLifecycle {
@@ -69,52 +89,45 @@ class AbbyyVantageExtractionClientTest {
   }
 
   @Nested
-  @WireMockTest
   class ApiIntegration {
 
     @Test
-    void obtainAccessToken_shouldSucceed(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-      String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
-
-      stubFor(
-          post(urlPathEqualTo("/auth2/connect/token"))
-              .willReturn(
-                  aResponse()
-                      .withStatus(200)
-                      .withHeader("Content-Type", "application/json")
-                      .withBody(
-                          """
-                          {
-                            "access_token": "test-token-123",
-                            "token_type": "Bearer",
-                            "expires_in": 3600
-                          }
-                          """)));
+    void obtainAccessToken_shouldSucceed() throws Exception {
+      doReturn(
+              mockResponse(
+                  200,
+                  """
+                  {"access_token": "test-token-123", "token_type": "Bearer", "expires_in": 3600}
+                  """))
+          .when(mockHttpClient)
+          .send(any(HttpRequest.class), any());
 
       AbbyyVantageExtractionClient client =
-          new AbbyyVantageExtractionClient(baseUrl, "client-id", "client-secret", "OCR");
+          new AbbyyVantageExtractionClient(
+              BASE_URL, "client-id", "client-secret", "OCR", mockHttpClient);
 
       String token = client.obtainAccessToken();
 
       assertThat(token).isEqualTo("test-token-123");
-      verify(
-          postRequestedFor(urlPathEqualTo("/auth2/connect/token"))
-              .withHeader("Content-Type", containing("application/x-www-form-urlencoded"))
-              .withRequestBody(containing("grant_type=client_credentials"))
-              .withRequestBody(containing("client_id=client-id"))
-              .withRequestBody(containing("client_secret=client-secret")));
+
+      ArgumentCaptor<HttpRequest> requestCaptor = ArgumentCaptor.forClass(HttpRequest.class);
+      verify(mockHttpClient).send(requestCaptor.capture(), any());
+
+      HttpRequest capturedRequest = requestCaptor.getValue();
+      assertThat(capturedRequest.uri().toString()).isEqualTo(BASE_URL + "/auth2/connect/token");
+      assertThat(capturedRequest.headers().firstValue("Content-Type"))
+          .hasValue("application/x-www-form-urlencoded");
     }
 
     @Test
-    void obtainAccessToken_shouldThrowOnAuthError(WireMockRuntimeInfo wmRuntimeInfo) {
-      String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
-
-      stubFor(
-          post(urlPathEqualTo("/auth2/connect/token"))
-              .willReturn(aResponse().withStatus(401).withBody("Unauthorized")));
+    void obtainAccessToken_shouldThrowOnAuthError() throws Exception {
+      doReturn(mockResponse(401, "Unauthorized"))
+          .when(mockHttpClient)
+          .send(any(HttpRequest.class), any());
 
       AbbyyVantageExtractionClient client =
-          new AbbyyVantageExtractionClient(baseUrl, "client-id", "wrong-secret", "OCR");
+          new AbbyyVantageExtractionClient(
+              BASE_URL, "client-id", "wrong-secret", "OCR", mockHttpClient);
 
       assertThatThrownBy(client::obtainAccessToken)
           .isInstanceOf(ConnectorException.class)
@@ -122,89 +135,84 @@ class AbbyyVantageExtractionClientTest {
     }
 
     @Test
-    void launchTransaction_shouldReturnTransactionId(WireMockRuntimeInfo wmRuntimeInfo)
-        throws Exception {
-      String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
-
-      stubFor(
-          post(urlPathEqualTo("/api/publicapi/v1/transactions/launch"))
-              .willReturn(
-                  aResponse()
-                      .withStatus(200)
-                      .withHeader("Content-Type", "application/json")
-                      .withBody("{\"transactionId\":\"tx-abc-123\"}")));
+    void launchTransaction_shouldReturnTransactionId() throws Exception {
+      doReturn(mockResponse(200, "{\"transactionId\":\"tx-abc-123\"}"))
+          .when(mockHttpClient)
+          .send(any(HttpRequest.class), any());
 
       AbbyyVantageExtractionClient client =
-          new AbbyyVantageExtractionClient(baseUrl, "client-id", "client-secret", "OCR");
+          new AbbyyVantageExtractionClient(
+              BASE_URL, "client-id", "client-secret", "OCR", mockHttpClient);
 
-      Mockito.when(mockDocument.asInputStream())
+      when(mockDocument.asInputStream())
           .thenReturn(new ByteArrayInputStream("fake pdf content".getBytes()));
-      Mockito.when(mockDocument.metadata()).thenReturn(mockMetadata);
-      Mockito.when(mockMetadata.getContentType()).thenReturn("application/pdf");
+      when(mockDocument.metadata()).thenReturn(mockMetadata);
+      when(mockMetadata.getContentType()).thenReturn("application/pdf");
 
       String transactionId = client.launchTransaction("test-token", mockDocument);
 
       assertThat(transactionId).isEqualTo("tx-abc-123");
+
+      ArgumentCaptor<HttpRequest> requestCaptor = ArgumentCaptor.forClass(HttpRequest.class);
+      verify(mockHttpClient).send(requestCaptor.capture(), any());
+
+      HttpRequest capturedRequest = requestCaptor.getValue();
+      assertThat(capturedRequest.uri().toString())
+          .contains("/api/publicapi/v1/transactions/launch")
+          .contains("skillId=OCR");
+      assertThat(capturedRequest.headers().firstValue("Authorization"))
+          .hasValue("Bearer test-token");
     }
 
     @Test
-    void pollUntilProcessed_shouldReturnWhenProcessed(WireMockRuntimeInfo wmRuntimeInfo)
-        throws Exception {
-      String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
-
-      stubFor(
-          get(urlPathEqualTo("/api/publicapi/v1/transactions/tx-123"))
-              .willReturn(
-                  aResponse()
-                      .withStatus(200)
-                      .withHeader("Content-Type", "application/json")
-                      .withBody(
-                          """
-                          {
-                            "id": "tx-123",
-                            "status": "Processed",
-                            "documents": [
-                              {
-                                "id": "doc-1",
-                                "resultFiles": [
-                                  {"fileId": "file-1", "type": "Text"}
-                                ]
-                              }
-                            ]
-                          }
-                          """)));
+    void pollUntilProcessed_shouldReturnWhenProcessed() throws Exception {
+      doReturn(
+              mockResponse(
+                  200,
+                  """
+                  {
+                    "id": "tx-123",
+                    "status": "Processed",
+                    "documents": [
+                      {
+                        "id": "doc-1",
+                        "resultFiles": [
+                          {"fileId": "file-1", "type": "Text"}
+                        ]
+                      }
+                    ]
+                  }
+                  """))
+          .when(mockHttpClient)
+          .send(any(HttpRequest.class), any());
 
       AbbyyVantageExtractionClient client =
-          new AbbyyVantageExtractionClient(baseUrl, "client-id", "client-secret", "OCR");
+          new AbbyyVantageExtractionClient(
+              BASE_URL, "client-id", "client-secret", "OCR", mockHttpClient);
 
       var result = client.pollUntilProcessed("test-token", "tx-123");
 
       assertThat(result.status()).isEqualTo("Processed");
       assertThat(result.documents()).hasSize(1);
       assertThat(result.documents().getFirst().resultFiles()).hasSize(1);
-      assertThat(result.documents().getFirst().resultFiles().getFirst().fileId()).isEqualTo("file-1");
+      assertThat(result.documents().getFirst().resultFiles().getFirst().fileId())
+          .isEqualTo("file-1");
     }
 
     @Test
-    void pollUntilProcessed_shouldThrowOnFailed(WireMockRuntimeInfo wmRuntimeInfo) {
-      String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
-
-      stubFor(
-          get(urlPathEqualTo("/api/publicapi/v1/transactions/tx-fail"))
-              .willReturn(
-                  aResponse()
-                      .withStatus(200)
-                      .withHeader("Content-Type", "application/json")
-                      .withBody(
-                          """
-                          {
-                            "id": "tx-fail",
-                            "status": "Failed"
-                          }
-                          """)));
+    void pollUntilProcessed_shouldThrowOnFailed() throws Exception {
+      doReturn(
+              mockResponse(
+                  200,
+                  """
+                  {"id": "tx-fail", "status": "Failed"}
+                  """))
+          .when(mockHttpClient)
+          .send(any(HttpRequest.class), any());
 
       AbbyyVantageExtractionClient client =
-          new AbbyyVantageExtractionClient(baseUrl, "client-id", "client-secret", "OCR");
+          new AbbyyVantageExtractionClient(
+              BASE_URL, "client-id", "client-secret", "OCR", mockHttpClient);
 
       assertThatThrownBy(() -> client.pollUntilProcessed("test-token", "tx-fail"))
           .isInstanceOf(ConnectorException.class)
@@ -212,87 +220,61 @@ class AbbyyVantageExtractionClientTest {
     }
 
     @Test
-    void downloadResultText_shouldFindTextFile(WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-      String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
-
-      stubFor(
-          get(urlPathEqualTo("/api/publicapi/v1/transactions/tx-txt"))
-              .willReturn(
-                  aResponse()
-                      .withStatus(200)
-                      .withHeader("Content-Type", "application/json")
-                      .withBody(
-                          """
-                          {
-                            "id": "tx-txt",
-                            "status": "Processed",
-                            "documents": [
-                              {
-                                "id": "doc-1",
-                                "resultFiles": [
-                                  {"fileId": "file-json", "type": "OcrJson"},
-                                  {"fileId": "file-txt", "type": "Text"},
-                                  {"fileId": "file-pdf", "type": "Pdf"}
-                                ]
-                              }
-                            ]
-                          }
-                          """)));
-
-      stubFor(
-          get(urlPathEqualTo("/api/publicapi/v1/transactions/tx-txt/files/file-txt/download"))
-              .willReturn(
-                  aResponse()
-                      .withStatus(200)
-                      .withHeader("Content-Type", "text/plain")
-                      .withBody("Extracted document text")));
+    void downloadResultText_shouldFindTextFile() throws Exception {
+      doReturn(mockResponse(200, "Extracted document text"))
+          .when(mockHttpClient)
+          .send(any(HttpRequest.class), any());
 
       AbbyyVantageExtractionClient client =
-          new AbbyyVantageExtractionClient(baseUrl, "client-id", "client-secret", "OCR");
+          new AbbyyVantageExtractionClient(
+              BASE_URL, "client-id", "client-secret", "OCR", mockHttpClient);
 
-      var txResponse = client.pollUntilProcessed("test-token", "tx-txt");
+      AbbyyTransactionResponse txResponse =
+          new AbbyyTransactionResponse(
+              "tx-txt",
+              "Processed",
+              List.of(
+                  new AbbyyDocument(
+                      "doc-1",
+                      List.of(
+                          new AbbyyResultFile("file-json", "OcrJson"),
+                          new AbbyyResultFile("file-txt", "Text"),
+                          new AbbyyResultFile("file-pdf", "Pdf")),
+                      null,
+                      null)),
+              null);
+
       String result = client.downloadResultText("test-token", txResponse);
 
       assertThat(result).isEqualTo("Extracted document text");
 
+      ArgumentCaptor<HttpRequest> requestCaptor = ArgumentCaptor.forClass(HttpRequest.class);
+      verify(mockHttpClient).send(requestCaptor.capture(), any());
+
       // Verify it picked the Text file, not the OcrJson or Pdf
-      verify(
-          getRequestedFor(
-              urlPathEqualTo("/api/publicapi/v1/transactions/tx-txt/files/file-txt/download")));
+      assertThat(requestCaptor.getValue().uri().toString())
+          .contains("/transactions/tx-txt/files/file-txt/download");
     }
 
     @Test
-    void downloadResultText_shouldThrowWhenNoTextFile(WireMockRuntimeInfo wmRuntimeInfo)
-        throws Exception {
-      String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
-
-      stubFor(
-          get(urlPathEqualTo("/api/publicapi/v1/transactions/tx-no-txt"))
-              .willReturn(
-                  aResponse()
-                      .withStatus(200)
-                      .withHeader("Content-Type", "application/json")
-                      .withBody(
-                          """
-                          {
-                            "id": "tx-no-txt",
-                            "status": "Processed",
-                            "documents": [
-                              {
-                                "id": "doc-1",
-                                "resultFiles": [
-                                  {"fileId": "file-json", "type": "OcrJson"},
-                                  {"fileId": "file-pdf", "type": "Pdf"}
-                                ]
-                              }
-                            ]
-                          }
-                          """)));
-
+    void downloadResultText_shouldThrowWhenNoTextFile() {
       AbbyyVantageExtractionClient client =
-          new AbbyyVantageExtractionClient(baseUrl, "client-id", "client-secret", "OCR");
+          new AbbyyVantageExtractionClient(
+              BASE_URL, "client-id", "client-secret", "OCR", mockHttpClient);
 
-      var txResponse = client.pollUntilProcessed("test-token", "tx-no-txt");
+      AbbyyTransactionResponse txResponse =
+          new AbbyyTransactionResponse(
+              "tx-no-txt",
+              "Processed",
+              List.of(
+                  new AbbyyDocument(
+                      "doc-1",
+                      List.of(
+                          new AbbyyResultFile("file-json", "OcrJson"),
+                          new AbbyyResultFile("file-pdf", "Pdf")),
+                      null,
+                      null)),
+              null);
 
       assertThatThrownBy(() -> client.downloadResultText("test-token", txResponse))
           .isInstanceOf(ConnectorException.class)
@@ -301,75 +283,60 @@ class AbbyyVantageExtractionClientTest {
     }
 
     @Test
-    void extract_fullFlow_shouldReturnTextDirectly(WireMockRuntimeInfo wmRuntimeInfo) {
-      String baseUrl = wmRuntimeInfo.getHttpBaseUrl();
+    void extract_fullFlow_shouldReturnTextDirectly() throws Exception {
+      String tokenJson =
+          """
+          {"access_token": "token-123", "token_type": "Bearer", "expires_in": 3600}
+          """;
+      String launchJson = "{\"transactionId\":\"tx-full-flow\"}";
+      String pollJson =
+          """
+          {
+            "id": "tx-full-flow",
+            "status": "Processed",
+            "documents": [
+              {
+                "id": "doc-1",
+                "resultFiles": [{"fileId": "result-txt-1", "type": "Text"}]
+              }
+            ]
+          }
+          """;
+      String downloadText =
+          """
+          Invoice #12345
+          Camunda Services GmbH
+          Berlin, Germany
 
-      stubFor(
-          post(urlPathEqualTo("/auth2/connect/token"))
-              .willReturn(
-                  aResponse()
-                      .withStatus(200)
-                      .withHeader("Content-Type", "application/json")
-                      .withBody(
-                          """
-                          {"access_token": "token-123", "token_type": "Bearer", "expires_in": 3600}
-                          """)));
+          Item          Qty    Price
+          Widget A       10   $50.00
+          Widget B        5   $75.00
 
-      stubFor(
-          post(urlPathEqualTo("/api/publicapi/v1/transactions/launch"))
-              .willReturn(
-                  aResponse()
-                      .withStatus(200)
-                      .withHeader("Content-Type", "application/json")
-                      .withBody("{\"transactionId\":\"tx-full-flow\"}")));
+          Total: $1,234.56
+          """;
 
-      stubFor(
-          get(urlPathEqualTo("/api/publicapi/v1/transactions/tx-full-flow"))
-              .willReturn(
-                  aResponse()
-                      .withStatus(200)
-                      .withHeader("Content-Type", "application/json")
-                      .withBody(
-                          """
-                          {
-                            "id": "tx-full-flow",
-                            "status": "Processed",
-                            "documents": [
-                              {
-                                "id": "doc-1",
-                                "resultFiles": [{"fileId": "result-txt-1", "type": "Text"}]
-                              }
-                            ]
-                          }
-                          """)));
+      // Pre-create responses to avoid UnfinishedStubbing from nested when() calls
+      var tokenResponse = mockResponse(200, tokenJson);
+      var launchResponse = mockResponse(200, launchJson);
+      var pollResponse = mockResponse(200, pollJson);
+      var downloadResponse = mockResponse(200, downloadText);
 
-      stubFor(
-          get(urlPathEqualTo(
-                  "/api/publicapi/v1/transactions/tx-full-flow/files/result-txt-1/download"))
-              .willReturn(
-                  aResponse()
-                      .withStatus(200)
-                      .withHeader("Content-Type", "text/plain")
-                      .withBody(
-                          """
-                          Invoice #12345
-                          Camunda Services GmbH
-                          Berlin, Germany
-
-                          Item          Qty    Price
-                          Widget A       10   $50.00
-                          Widget B        5   $75.00
-
-                          Total: $1,234.56
-                          """)));
+      // Sequential responses: token → launch → poll → download
+      doReturn(tokenResponse)
+          .doReturn(launchResponse)
+          .doReturn(pollResponse)
+          .doReturn(downloadResponse)
+          .when(mockHttpClient)
+          .send(any(HttpRequest.class), any());
 
       AbbyyVantageExtractionClient client =
-          new AbbyyVantageExtractionClient(baseUrl, "client-id", "client-secret", "OCR");
+          new AbbyyVantageExtractionClient(
+              BASE_URL, "client-id", "client-secret", "OCR", mockHttpClient);
 
-      Mockito.when(mockDocument.asInputStream())
+      when(mockDocument.asInputStream())
           .thenReturn(new ByteArrayInputStream("fake pdf".getBytes()));
-      Mockito.when(mockDocument.metadata()).thenReturn(mockMetadata);
-      Mockito.when(mockMetadata.getContentType()).thenReturn("application/pdf");
+      when(mockDocument.metadata()).thenReturn(mockMetadata);
+      when(mockMetadata.getContentType()).thenReturn("application/pdf");
 
       String result = client.extract(mockDocument);
 

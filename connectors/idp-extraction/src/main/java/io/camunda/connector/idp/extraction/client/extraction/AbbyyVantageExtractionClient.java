@@ -53,11 +53,21 @@ public class AbbyyVantageExtractionClient implements TextExtractor, AutoCloseabl
 
   public AbbyyVantageExtractionClient(
       String baseUrl, String clientId, String clientSecret, String skillId) {
+    this(
+        baseUrl,
+        clientId,
+        clientSecret,
+        skillId,
+        HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build());
+  }
+
+  AbbyyVantageExtractionClient(
+      String baseUrl, String clientId, String clientSecret, String skillId, HttpClient httpClient) {
     this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
     this.clientId = clientId;
     this.clientSecret = clientSecret;
     this.skillId = skillId;
-    this.httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
+    this.httpClient = httpClient;
     this.objectMapper = ConnectorsObjectMapperSupplier.getCopy();
   }
 
