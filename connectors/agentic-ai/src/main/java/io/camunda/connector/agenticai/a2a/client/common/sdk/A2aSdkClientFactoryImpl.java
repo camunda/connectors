@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.a2a.client.common.sdk;
 import io.a2a.client.Client;
 import io.a2a.client.ClientEvent;
 import io.a2a.client.config.ClientConfig;
+import io.a2a.client.http.A2AHttpClient;
 import io.a2a.client.transport.grpc.GrpcTransport;
 import io.a2a.client.transport.grpc.GrpcTransportConfig;
 import io.a2a.client.transport.jsonrpc.JSONRPCTransport;
@@ -21,6 +22,7 @@ import io.a2a.spec.PushNotificationAuthenticationInfo;
 import io.a2a.spec.PushNotificationConfig;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aClientCommonConfigurationProperties.TransportConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.grpc.ManagedChannelFactory;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.http.A2aHttpClientFactory;
 import java.util.function.BiConsumer;
 import org.apache.commons.lang3.StringUtils;
 
@@ -29,10 +31,12 @@ public class A2aSdkClientFactoryImpl implements A2aSdkClientFactory {
   private final RestTransportConfig restTransportConfig;
   private final TransportConfiguration transportConfiguration;
 
-  public A2aSdkClientFactoryImpl(TransportConfiguration transportConfiguration) {
+  public A2aSdkClientFactoryImpl(
+      TransportConfiguration transportConfiguration, A2aHttpClientFactory httpClientFactory) {
     this.transportConfiguration = transportConfiguration;
-    this.jsonrpcTransportConfig = new JSONRPCTransportConfig();
-    this.restTransportConfig = new RestTransportConfig();
+    A2AHttpClient httpClient = httpClientFactory.createHttpClient();
+    this.jsonrpcTransportConfig = new JSONRPCTransportConfig(httpClient);
+    this.restTransportConfig = new RestTransportConfig(httpClient);
   }
 
   @Override
