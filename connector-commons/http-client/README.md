@@ -91,8 +91,8 @@ import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfi
 import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 
 // Standard proxy vars only
-HttpClient client = JdkHttpClientProxyConfigurator.newHttpClient(new EnvironmentProxyConfiguration());
+HttpClient client = JdkHttpClientProxyConfigurator.newHttpClient(EnvironmentProxyConfiguration.withDefaults());
 
 // With plain proxy var support (falls back to standard vars if plain vars are incomplete)
-client = JdkHttpClientProxyConfigurator.newHttpClient(new EnvironmentProxyConfiguration(true));
+client = JdkHttpClientProxyConfigurator.newHttpClient(EnvironmentProxyConfiguration.withPlainProxySupport());
 ```
