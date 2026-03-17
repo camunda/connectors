@@ -1467,6 +1467,30 @@
     },
     {
       "label": "Color",
+      "description": "A 6 character hex code, without the leading #, identifying the color of the label (required)",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "labelColor"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "^(=|[0-9a-fA-F]{6}$)",
+          "message": "must be a 6-character hex code without the leading # (e.g., ff0000)"
+        }
+      },
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "createLabel"
+        ]
+      }
+    },
+    {
+      "label": "Color",
       "description": "A 6 character hex code, without the leading #, identifying the color of the label",
       "group": "input",
       "type": "String",
@@ -1476,10 +1500,15 @@
         "name": "labelColor"
       },
       "optional": true,
+      "constraints": {
+        "pattern": {
+          "value": "^(=|[0-9a-fA-F]{6}$|$)",
+          "message": "must be a 6-character hex code without the leading # (e.g., ff0000)"
+        }
+      },
       "condition": {
         "property": "labelOperationType",
         "oneOf": [
-          "createLabel",
           "updateLabel"
         ]
       }
@@ -1997,7 +2026,7 @@
           "value": "sources"
         },
         {
-          "name": "Memeber",
+          "name": "Member",
           "value": "member"
         }
       ],
@@ -2054,7 +2083,7 @@
       "id": "repoSortOrder",
       "group": "input",
       "type": "Dropdown",
-      "value": "true",
+      "value": "desc",
       "choices": [
         {
           "name": "Ascending",
@@ -2164,7 +2193,7 @@
         },
         {
           "name": "Billing manager",
-          "value": "billing_manage"
+          "value": "billing_manager"
         }
       ],
       "binding": {
@@ -2959,7 +2988,7 @@
     {
       "group": "input",
       "type": "Hidden",
-      "value": "={\"type\": repoType, \"sort\": repoSortOrder, \"direction\": repoSortOrder}",
+      "value": "={\"type\": repoType, \"sort\": repoSort, \"direction\": repoSortOrder}",
       "binding": {
         "type": "zeebe:input",
         "name": "queryParameters"
@@ -3704,10 +3733,9 @@
         "name": "url"
       },
       "condition": {
-        "property": "reposOperationType",
+        "property": "listAlertsOperationType",
         "oneOf": [
-          "listOrganizationRepos",
-          "createOrganizationRepo"
+          "listAlertsForOrg"
         ]
       }
     },
@@ -3871,7 +3899,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "8",
+      "value": "10",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",
