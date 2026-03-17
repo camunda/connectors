@@ -14,6 +14,8 @@ import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConv
 import io.camunda.connector.agenticai.a2a.client.common.convert.A2aSdkObjectConverterImpl;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactory;
 import io.camunda.connector.agenticai.a2a.client.common.sdk.A2aSdkClientFactoryImpl;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.http.A2aHttpClientFactory;
+import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -38,14 +40,20 @@ public class A2aClientCommonConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public A2aAgentCardFetcher a2aAgentCardFetcher() {
-    return new A2aAgentCardFetcherImpl();
+  public A2aHttpClientFactory a2aHttpClientFactory(AgenticAiHttpProxySupport proxySupport) {
+    return new A2aHttpClientFactory(proxySupport);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public A2aAgentCardFetcher a2aAgentCardFetcher(A2aHttpClientFactory httpClientFactory) {
+    return new A2aAgentCardFetcherImpl(httpClientFactory);
   }
 
   @Bean
   @ConditionalOnMissingBean
   public A2aSdkClientFactory a2aSdkClientFactory(
-      A2aClientCommonConfigurationProperties properties) {
-    return new A2aSdkClientFactoryImpl(properties.transport());
+      A2aClientCommonConfigurationProperties properties, A2aHttpClientFactory httpClientFactory) {
+    return new A2aSdkClientFactoryImpl(properties.transport(), httpClientFactory);
   }
 }
