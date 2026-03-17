@@ -1467,7 +1467,7 @@
     },
     {
       "label": "Color",
-      "description": "A 6 character hex code, without the leading #, identifying the color of the label (required)",
+      "description": "A 6 character hex code, without the leading #, identifying the color of the label",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -1485,30 +1485,7 @@
       "condition": {
         "property": "labelOperationType",
         "oneOf": [
-          "createLabel"
-        ]
-      }
-    },
-    {
-      "label": "Color",
-      "description": "A 6 character hex code, without the leading #, identifying the color of the label",
-      "group": "input",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "labelColor"
-      },
-      "optional": true,
-      "constraints": {
-        "pattern": {
-          "value": "^(=|[0-9a-fA-F]{6}$|$)",
-          "message": "must be a 6-character hex code without the leading # (e.g., ff0000)"
-        }
-      },
-      "condition": {
-        "property": "labelOperationType",
-        "oneOf": [
+          "createLabel",
           "updateLabel"
         ]
       }
