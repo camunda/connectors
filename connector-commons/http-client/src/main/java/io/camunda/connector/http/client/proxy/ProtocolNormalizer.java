@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.client.client.jdk.proxy;
+package io.camunda.connector.http.client.proxy;
 
 /**
  * Normalizes protocol/scheme strings from the JDK, which may include version suffixes like {@code
  * "http/1.1"} or {@code "HTTP/1.1"}, to their lowercase base form (e.g. {@code "http"}).
  */
-final class ProtocolNormalizer {
+class ProtocolNormalizer {
 
   private ProtocolNormalizer() {}
 
@@ -28,7 +28,7 @@ final class ProtocolNormalizer {
    * Returns the lowercased part before the first {@code /}, or the full value lowercased if no
    * slash is present. Returns {@code null} if the input is {@code null}.
    */
-  static String normalize(String protocol) {
+  public static String normalize(String protocol) {
     if (protocol == null) {
       return null;
     }

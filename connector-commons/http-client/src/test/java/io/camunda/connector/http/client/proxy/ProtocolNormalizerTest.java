@@ -16,21 +16,32 @@
  */
 package io.camunda.connector.http.client.proxy;
 
-import java.util.Optional;
-import org.apache.commons.lang3.StringUtils;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public interface ProxyConfiguration {
-  String SCHEME_HTTP = "http";
-  String SCHEME_HTTPS = "https";
+import org.junit.jupiter.api.Test;
 
-  /** A no-op proxy configuration that never returns proxy details. */
-  ProxyConfiguration NONE = protocol -> Optional.empty();
+class ProtocolNormalizerTest {
 
-  Optional<ProxyDetails> getProxyDetails(String protocol);
+  @Test
+  void shouldNormalizeLowercaseProtocols() {
+    assertThat(ProtocolNormalizer.normalize("http")).isEqualTo("http");
+    assertThat(ProtocolNormalizer.normalize("https")).isEqualTo("https");
+  }
 
-  record ProxyDetails(String scheme, String host, int port, String user, String password) {
-    public boolean hasCredentials() {
-      return StringUtils.isNotBlank(user) && StringUtils.isNotEmpty(password);
-    }
+  @Test
+  void shouldNormalizeUppercaseProtocols() {
+    assertThat(ProtocolNormalizer.normalize("HTTP")).isEqualTo("http");
+    assertThat(ProtocolNormalizer.normalize("HTTPS")).isEqualTo("https");
+  }
+
+  @Test
+  void shouldStripVersionSuffix() {
+    assertThat(ProtocolNormalizer.normalize("http/1.1")).isEqualTo("http");
+    assertThat(ProtocolNormalizer.normalize("HTTP/1.1")).isEqualTo("http");
+  }
+
+  @Test
+  void shouldReturnNullForNull() {
+    assertThat(ProtocolNormalizer.normalize(null)).isNull();
   }
 }

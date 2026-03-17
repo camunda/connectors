@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.http.client.proxy;
 
-import static io.camunda.connector.http.client.proxy.ProxyConfiguration.CONNECTOR_HTTP_NON_PROXY_HOSTS_ENV_VAR;
-
 import java.util.Objects;
 import java.util.stream.Stream;
 
@@ -30,6 +28,9 @@ import java.util.stream.Stream;
  * wildcard.
  */
 public class NonProxyHosts {
+
+  public static final String CONNECTOR_HTTP_NON_PROXY_HOSTS_ENV_VAR =
+      "CONNECTOR_HTTP_NON_PROXY_HOSTS";
 
   private NonProxyHosts() {}
 
@@ -54,6 +55,17 @@ public class NonProxyHosts {
             System.getProperty("http.nonProxyHosts"),
             System.getenv(CONNECTOR_HTTP_NON_PROXY_HOSTS_ENV_VAR))
         .filter(Objects::nonNull);
+  }
+
+  /**
+   * Returns configured non-proxy host patterns converted to regex patterns, from the system
+   * property {@code http.nonProxyHosts} and the environment variable {@code
+   * CONNECTOR_HTTP_NON_PROXY_HOSTS}.
+   *
+   * @return a stream of regex patterns matching non-proxy hosts
+   */
+  public static Stream<String> getNonProxyHostRegexPatterns() {
+    return getNonProxyHostsPatterns().map(NonProxyHosts::toRegex);
   }
 
   /**

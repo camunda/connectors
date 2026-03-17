@@ -17,62 +17,53 @@
 package io.camunda.connector.http.client.client.jdk.proxy;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static uk.org.webcompere.systemstubs.SystemStubs.withEnvironmentVariables;
 
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration.ProxyDetails;
 import java.net.Authenticator;
 import java.net.ProxySelector;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 public class JdkHttpClientProxyConfiguratorTest {
 
   @Test
-  void shouldNotSetProxyOrAuthenticator_whenNoEnvVarsConfigured() {
-    var client = JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration());
+  void shouldNotSetProxyOrAuthenticator_whenNoProxyConfigured() {
+    var client = JdkHttpClientProxyConfigurator.newHttpClient(ProxyConfiguration.NONE);
     assertThat(client.proxy()).isEmpty();
     assertThat(client.authenticator()).isEmpty();
   }
 
   @Test
-  void shouldSetProxyAndAuthenticator_whenHttpProxyConfigured() throws Exception {
-    withEnvironmentVariables(
-            "CONNECTOR_HTTP_PROXY_HOST", "proxy.example.com",
-            "CONNECTOR_HTTP_PROXY_PORT", "8080",
-            "CONNECTOR_HTTP_PROXY_USER", "user",
-            "CONNECTOR_HTTP_PROXY_PASSWORD", "pass")
-        .execute(
-            () -> {
-              var client = JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration());
-              assertThat(client.proxy()).isPresent();
-              assertThat(client.proxy().get()).isInstanceOf(ProxySelector.class);
-              assertThat(client.authenticator()).isPresent();
-              assertThat(client.authenticator().get()).isInstanceOf(Authenticator.class);
-            });
+  void shouldSetProxyAndAuthenticator_whenHttpProxyConfigured() {
+    var config =
+        configWith("http", new ProxyDetails("http", "proxy.example.com", 8080, "user", "pass"));
+    var client = JdkHttpClientProxyConfigurator.newHttpClient(config);
+    assertThat(client.proxy()).isPresent();
+    assertThat(client.proxy().get()).isInstanceOf(ProxySelector.class);
+    assertThat(client.authenticator()).isPresent();
+    assertThat(client.authenticator().get()).isInstanceOf(Authenticator.class);
   }
 
   @Test
-  void shouldSetProxyAndAuthenticator_whenHttpsProxyConfigured() throws Exception {
-    withEnvironmentVariables(
-            "CONNECTOR_HTTPS_PROXY_HOST", "secure-proxy.example.com",
-            "CONNECTOR_HTTPS_PROXY_PORT", "3128")
-        .execute(
-            () -> {
-              var client = JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration());
-              assertThat(client.proxy()).isPresent();
-              assertThat(client.proxy().get()).isInstanceOf(JdkProxySelector.class);
-            });
+  void shouldSetProxy_whenHttpsProxyConfigured() {
+    var config =
+        configWith("https", new ProxyDetails("http", "secure-proxy.example.com", 3128, null, null));
+    var client = JdkHttpClientProxyConfigurator.newHttpClient(config);
+    assertThat(client.proxy()).isPresent();
+    assertThat(client.proxy().get()).isInstanceOf(JdkProxySelector.class);
   }
 
   @Test
-  void shouldCreateClientViaInstance() throws Exception {
-    withEnvironmentVariables(
-            "CONNECTOR_HTTP_PROXY_HOST", "proxy.example.com",
-            "CONNECTOR_HTTP_PROXY_PORT", "8080")
-        .execute(
-            () -> {
-              var proxy = new JdkHttpClientProxyConfigurator(new ProxyConfiguration());
-              var client = proxy.newHttpClient();
-              assertThat(client.proxy()).isPresent();
-            });
+  void shouldCreateClientViaInstance() {
+    var config =
+        configWith("http", new ProxyDetails("http", "proxy.example.com", 8080, null, null));
+    var proxy = new JdkHttpClientProxyConfigurator(config);
+    var client = proxy.newHttpClient();
+    assertThat(client.proxy()).isPresent();
+  }
+
+  private static ProxyConfiguration configWith(String protocol, ProxyDetails details) {
+    return p -> p.equals(protocol) ? Optional.of(details) : Optional.empty();
   }
 }
