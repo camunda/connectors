@@ -13,6 +13,7 @@ import io.camunda.connector.idp.extraction.client.ai.BedrockAiClient;
 import io.camunda.connector.idp.extraction.client.ai.OpenAiClient;
 import io.camunda.connector.idp.extraction.client.ai.VertexAiClient;
 import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
+import io.camunda.connector.idp.extraction.client.extraction.AbbyyVantageExtractionClient;
 import io.camunda.connector.idp.extraction.client.extraction.AwsTextrtactExtractionClient;
 import io.camunda.connector.idp.extraction.client.extraction.AzureDocumentIntelligenceExtractionClient;
 import io.camunda.connector.idp.extraction.client.extraction.GcpDocumentAiExtractionClient;
@@ -33,6 +34,7 @@ import io.camunda.connector.idp.extraction.request.common.ai.AzureAiRequest;
 import io.camunda.connector.idp.extraction.request.common.ai.BedrockAiRequest;
 import io.camunda.connector.idp.extraction.request.common.ai.OpenAiRequest;
 import io.camunda.connector.idp.extraction.request.common.ai.VertexAiRequest;
+import io.camunda.connector.idp.extraction.request.common.extraction.AbbyyVantageExtractorRequest;
 import io.camunda.connector.idp.extraction.request.common.extraction.DocumentAiExtractorRequest;
 import io.camunda.connector.idp.extraction.request.common.extraction.DocumentIntelligenceExtractorRequest;
 import io.camunda.connector.idp.extraction.request.common.extraction.ExtractionProvider;
@@ -155,6 +157,12 @@ public class ProviderUtil {
         yield new AwsTextrtactExtractionClient(
             credentialsProvider, textractRequest.region(), textractRequest.bucketName());
       }
+      case AbbyyVantageExtractorRequest abbyyRequest ->
+          new AbbyyVantageExtractionClient(
+              abbyyRequest.baseUrl(),
+              abbyyRequest.clientId(),
+              abbyyRequest.clientSecret(),
+              abbyyRequest.skillId());
       case ExtractionProvider.ApachePdfBoxExtractorRequest pdfbox -> new PdfBoxExtractionClient();
       case ExtractionProvider.MultimodalExtractorRequest multimodal -> null;
     };
