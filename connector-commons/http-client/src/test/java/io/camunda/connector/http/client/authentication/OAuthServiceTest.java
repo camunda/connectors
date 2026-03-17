@@ -106,13 +106,13 @@ public class OAuthServiceTest {
       String body = "{\"scope\":\"read:clients\", \"expires_in\":86400,\"token_type\":\"Bearer\"}";
 
       // When
-      String token =
+      TokenResponse tokenResponse =
           oAuthService.extractTokenFromResponse(
               new StreamingHttpResponse(
                   200, null, null, new ByteArrayInputStream(body.getBytes())));
 
       // Then
-      assertNull(token);
+      assertNull(tokenResponse);
     }
 
     @Test
@@ -134,10 +134,12 @@ public class OAuthServiceTest {
           new StreamingHttpResponse(200, null, null, new ByteArrayInputStream(s.getBytes()));
 
       // When
-      String token = oAuthService.extractTokenFromResponse(response);
+      TokenResponse tokenResponse = oAuthService.extractTokenFromResponse(response);
 
       // Then
-      assertThat(token).isEqualTo("abcd");
+      assertThat(tokenResponse).isNotNull();
+      assertThat(tokenResponse.accessToken()).isEqualTo("abcd");
+      assertThat(tokenResponse.expiresInSeconds()).hasValue(86400);
     }
 
     @Test
@@ -149,10 +151,12 @@ public class OAuthServiceTest {
           new StreamingHttpResponse(200, null, null, new ByteArrayInputStream(body.getBytes()));
 
       // When
-      String token = oAuthService.extractTokenFromResponse(response);
+      TokenResponse tokenResponse = oAuthService.extractTokenFromResponse(response);
 
       // Then
-      assertThat(token).isEqualTo("abcd");
+      assertThat(tokenResponse).isNotNull();
+      assertThat(tokenResponse.accessToken()).isEqualTo("abcd");
+      assertThat(tokenResponse.expiresInSeconds()).hasValue(86400);
     }
 
     @Test
@@ -163,10 +167,28 @@ public class OAuthServiceTest {
           new StreamingHttpResponse(200, null, null, new ByteArrayInputStream(body.getBytes()));
 
       // When
-      String token = oAuthService.extractTokenFromResponse(response);
+      TokenResponse tokenResponse = oAuthService.extractTokenFromResponse(response);
 
       // Then
-      assertThat(token).isEqualTo("abcd");
+      assertThat(tokenResponse).isNotNull();
+      assertThat(tokenResponse.accessToken()).isEqualTo("abcd");
+      assertThat(tokenResponse.expiresInSeconds()).hasValue(86400);
+    }
+
+    @Test
+    public void shouldReturnTokenWithoutExpiry_whenExtractingTokenFromJsonWithoutExpiresIn() {
+      // Given
+      String body = "{\"access_token\": \"abcd\", \"token_type\":\"Bearer\"}";
+      var response =
+          new StreamingHttpResponse(200, null, null, new ByteArrayInputStream(body.getBytes()));
+
+      // When
+      TokenResponse tokenResponse = oAuthService.extractTokenFromResponse(response);
+
+      // Then
+      assertThat(tokenResponse).isNotNull();
+      assertThat(tokenResponse.accessToken()).isEqualTo("abcd");
+      assertThat(tokenResponse.expiresInSeconds()).isEmpty();
     }
   }
 }

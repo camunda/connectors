@@ -32,6 +32,7 @@ import com.github.tomakehurst.wiremock.matching.MultipartValuePatternBuilder;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
+import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
 import io.camunda.connector.http.client.mapper.HttpResponse;
 import io.camunda.connector.http.client.mapper.ResponseMappers;
 import io.camunda.connector.http.client.model.HttpClientRequest;
@@ -885,6 +886,11 @@ public class CustomApacheHttpClientTest {
 
   @Nested
   class AuthenticationTests {
+
+    @BeforeEach
+    void resetOAuthTokenCache() {
+      CaffeineOAuthTokenCache.getInstance().invalidateAll();
+    }
 
     @Test
     public void shouldReturn200WithBody_whenGetWithBasicAuth(WireMockRuntimeInfo wmRuntimeInfo) {

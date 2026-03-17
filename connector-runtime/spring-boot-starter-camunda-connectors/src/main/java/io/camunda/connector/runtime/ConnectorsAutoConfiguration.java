@@ -29,6 +29,8 @@ import io.camunda.connector.feel.CamundaClientFeelExpressionEvaluator;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
+import io.camunda.connector.http.client.authentication.OAuthTokenCache;
+import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
@@ -101,6 +103,21 @@ public class ConnectorsAutoConfiguration {
                 new CamundaClientFeelExpressionEvaluator(
                     client, ConnectorsObjectMapperSupplier.getCopy()))
         .orElseGet(LocalFeelExpressionEvaluator::new);
+  }
+
+  /**
+   * Initializes and exposes the shared {@link CaffeineOAuthTokenCache} singleton, configured from
+   * {@code camunda.connector.oauth.cache.ttl} and {@code camunda.connector.oauth.cache.skew-buffer}
+   * properties.
+   */
+  @Bean
+  @ConditionalOnMissingBean(OAuthTokenCache.class)
+  public OAuthTokenCache oAuthTokenCache(ConnectorProperties properties) {
+    var cacheProps = properties.oauth() != null ? properties.oauth().cache() : null;
+    if (cacheProps != null) {
+      return CaffeineOAuthTokenCache.initialize(cacheProps.ttl(), cacheProps.skewBuffer());
+    }
+    return CaffeineOAuthTokenCache.getInstance();
   }
 
   @Bean
