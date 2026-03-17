@@ -140,7 +140,6 @@ public class AbbyyVantageExtractionClient implements TextExtractor, AutoCloseabl
             + "/transactions/launch?skillId="
             + URLEncoder.encode(skillId, StandardCharsets.UTF_8);
 
-    InputStream documentStream = document.asInputStream();
     String contentType =
         document.metadata() != null && document.metadata().getContentType() != null
             ? document.metadata().getContentType()
@@ -149,40 +148,42 @@ public class AbbyyVantageExtractionClient implements TextExtractor, AutoCloseabl
     String fileName = "document-" + UUID.randomUUID();
     String boundary = UUID.randomUUID().toString();
 
-    InputStream multipartStream =
-        buildMultipartStream(boundary, fileName, contentType, documentStream);
+    try (InputStream multipartStream =
+        buildMultipartStream(boundary, fileName, contentType, document.asInputStream())) {
 
-    HttpRequest request =
-        HttpRequest.newBuilder()
-            .uri(URI.create(launchUrl))
-            .header("Authorization", "Bearer " + accessToken)
-            .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-            .header("Accept", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofInputStream(() -> multipartStream))
-            .build();
+      HttpRequest request =
+          HttpRequest.newBuilder()
+              .uri(URI.create(launchUrl))
+              .header("Authorization", "Bearer " + accessToken)
+              .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+              .header("Accept", "application/json")
+              .POST(HttpRequest.BodyPublishers.ofInputStream(() -> multipartStream))
+              .build();
 
-    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      HttpResponse<String> response =
+          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-    if (response.statusCode() != 200 && response.statusCode() != 201) {
-      throw new ConnectorException(
-          "ABBYY_LAUNCH_ERROR",
-          "Failed to launch ABBYY transaction. Status: "
-              + response.statusCode()
-              + ", Body: "
-              + response.body());
+      if (response.statusCode() != 200 && response.statusCode() != 201) {
+        throw new ConnectorException(
+            "ABBYY_LAUNCH_ERROR",
+            "Failed to launch ABBYY transaction. Status: "
+                + response.statusCode()
+                + ", Body: "
+                + response.body());
+      }
+
+      String transactionId;
+      String responseBody = response.body().trim();
+      var jsonNode = objectMapper.readTree(responseBody);
+      if (jsonNode.has("transactionId")) {
+        transactionId = jsonNode.get("transactionId").asText();
+      } else {
+        // Fallback: plain string response (strip quotes)
+        transactionId = responseBody.replace("\"", "");
+      }
+      LOGGER.debug("Launched ABBYY transaction: {}", transactionId);
+      return transactionId;
     }
-
-    String transactionId;
-    String responseBody = response.body().trim();
-    var jsonNode = objectMapper.readTree(responseBody);
-    if (jsonNode.has("transactionId")) {
-      transactionId = jsonNode.get("transactionId").asText();
-    } else {
-      // Fallback: plain string response (strip quotes)
-      transactionId = responseBody.replace("\"", "");
-    }
-    LOGGER.debug("Launched ABBYY transaction: {}", transactionId);
-    return transactionId;
   }
 
   AbbyyTransactionResponse pollUntilProcessed(String accessToken, String transactionId)
