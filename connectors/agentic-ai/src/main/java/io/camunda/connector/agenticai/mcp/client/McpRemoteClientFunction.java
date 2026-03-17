@@ -25,10 +25,10 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
     type = "io.camunda.agenticai:mcpremoteclient:1")
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.mcp.remoteclient.v0",
-    name = "MCP Remote Client (early access)",
+    name = "MCP Remote Client",
     description = "MCP (Model Context Protocol) client, operating on temporary remote connections.",
     documentationRef =
-        "https://docs.camunda.io/docs/8.9/components/early-access/alpha/mcp-client/mcp-remote-client-connector/",
+        "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-remote-client/",
     engineVersion = "^8.9",
     version = 2,
     inputDataClass = McpRemoteClientRequest.class,
