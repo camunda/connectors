@@ -17,150 +17,138 @@
 package io.camunda.connector.http.client.client.apache;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static uk.org.webcompere.systemstubs.SystemStubs.restoreSystemProperties;
-import static uk.org.webcompere.systemstubs.SystemStubs.withEnvironmentVariables;
 
-import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.client.apache.proxy.ProxyHandler;
+import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.CredentialsProvider;
 import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
+@ExtendWith(SystemStubsExtension.class)
 public class ProxyHandlerTest {
 
-  private ProxyHandler proxyHandler;
+  @SystemStub private EnvironmentVariables environmentVariables = new EnvironmentVariables();
 
-  @BeforeEach
-  public void setUp() {
-    unsetAllSystemProperties();
-    proxyHandler = new ProxyHandler();
-  }
-
-  @AfterAll
-  public static void cleanUp() {
-    unsetAllSystemProperties();
-  }
-
-  public static void unsetAllSystemProperties() {
-    System.clearProperty("http.proxyHost");
-    System.clearProperty("http.proxyPort");
-    System.clearProperty("http.nonProxyHosts");
-    // user and password kept to null to make tests easier. You can still test https value if needed
-
-    System.clearProperty("https.proxyHost");
-    System.clearProperty("https.proxyPort");
-    System.clearProperty("https.proxyUser");
-    System.clearProperty("https.proxyPassword");
-  }
-
-  @Test
-  public void shouldThrowException_whenProxyPortInvalidInEnvVars() throws Exception {
-    restoreSystemProperties(
-        () -> {
-          withEnvironmentVariables(
-                  "CONNECTOR_HTTP_PROXY_HOST", "localhost", "CONNECTOR_HTTP_PROXY_PORT", "invalid")
-              .execute(
-                  () -> {
-                    assertThrows(ConnectorInputException.class, () -> new ProxyHandler());
-                  });
-        });
-  }
-
-  @Test
-  public void shouldReturnCredentialsProvider_whenConfigured() {
-    System.setProperty("https.proxyHost", "localhost");
-    System.setProperty("https.proxyPort", "8080");
-    System.setProperty("https.proxyUser", "user");
-    System.setProperty("https.proxyPassword", "password");
+  @ParameterizedTest
+  @ValueSource(strings = {"http", "https"})
+  public void shouldReturnProxyDetails_whenConfigured(String protocol) {
+    environmentVariables
+        .set(envVar(protocol, "HOST"), "proxy.example.com")
+        .set(envVar(protocol, "PORT"), "3128");
 
     ProxyHandler handler = new ProxyHandler();
-    CredentialsProvider provider = handler.getCredentialsProvider("https");
 
-    assertThat(provider).isInstanceOf(CredentialsProvider.class);
-  }
-
-  @Test
-  public void shouldReturnDefaultCredentialsProvider_whenNotConfigured() {
-    CredentialsProvider provider = proxyHandler.getCredentialsProvider("http");
-
-    assertThat(provider).isInstanceOf(BasicCredentialsProvider.class);
-  }
-
-  @Test
-  public void shouldNotOverwriteSystemProperties_whenProxySettingsEnvVarsAndSystemProperties()
-      throws Exception {
-    restoreSystemProperties(
-        () -> {
-          withEnvironmentVariables(
-                  "CONNECTOR_HTTPS_PROXY_HOST",
-                  "localhost",
-                  "CONNECTOR_HTTPS_PROXY_PORT",
-                  "3128",
-                  "CONNECTOR_HTTPS_PROXY_USER",
-                  "my-user",
-                  "CONNECTOR_HTTPS_PROXY_PASSWORD",
-                  "demo",
-                  "CONNECTOR_HTTP_PROXY_NON_PROXY_HOSTS",
-                  "www.env-var.de")
-              .execute(
-                  () -> {
-                    System.setProperty("https.proxyHost", "localhost");
-                    System.setProperty("https.proxyPort", "8080");
-                    System.setProperty("https.proxyUser", "user");
-                    System.setProperty("https.proxyPassword", "password");
-                    System.setProperty("http.nonProxyHosts", "www.system-property.de");
-
-                    new ProxyHandler();
-
-                    assertThat(System.getProperty("https.proxyHost")).isEqualTo("localhost");
-                    assertThat(System.getProperty("https.proxyPort")).isEqualTo("8080");
-                    assertThat(System.getProperty("https.proxyUser")).isEqualTo("user");
-                    assertThat(System.getProperty("https.proxyPassword")).isEqualTo("password");
-                    assertThat(System.getProperty("http.nonProxyHosts"))
-                        .isEqualTo("www.system-property.de");
-                  });
-        });
-  }
-
-  @Test
-  public void shouldNeverConsumePlainProxyVars() throws Exception {
-    withEnvironmentVariables(
-            "CONNECTOR_HTTP_PLAIN_PROXY_HOST", "plain-proxy.example.com",
-            "CONNECTOR_HTTP_PLAIN_PROXY_PORT", "9090",
-            "CONNECTOR_HTTP_PLAIN_PROXY_USER", "plainuser",
-            "CONNECTOR_HTTP_PLAIN_PROXY_PASSWORD", "plainpass",
-            "CONNECTOR_HTTPS_PLAIN_PROXY_HOST", "plain-secure.example.com",
-            "CONNECTOR_HTTPS_PLAIN_PROXY_PORT", "3129")
-        .execute(
-            () -> {
-              ProxyHandler handler = new ProxyHandler();
-
-              assertThat(handler.getProxyDetails("http")).isEmpty();
-              assertThat(handler.getProxyDetails("https")).isEmpty();
+    assertThat(handler.getProxyDetails(protocol))
+        .isPresent()
+        .hasValueSatisfying(
+            d -> {
+              assertThat(d.host()).isEqualTo("proxy.example.com");
+              assertThat(d.port()).isEqualTo(3128);
             });
   }
 
-  @Test
-  public void shouldUseStandardVars_evenWhenPlainVarsAlsoSet() throws Exception {
-    withEnvironmentVariables(
-            "CONNECTOR_HTTP_PLAIN_PROXY_HOST", "plain-proxy.example.com",
-            "CONNECTOR_HTTP_PLAIN_PROXY_PORT", "9090",
-            "CONNECTOR_HTTP_PROXY_HOST", "standard-proxy.example.com",
-            "CONNECTOR_HTTP_PROXY_PORT", "8080")
-        .execute(
-            () -> {
-              ProxyHandler handler = new ProxyHandler();
+  @ParameterizedTest
+  @ValueSource(strings = {"http", "https"})
+  public void shouldReturnEmpty_whenNoVarsConfigured(String protocol) {
+    ProxyHandler handler = new ProxyHandler();
 
-              assertThat(handler.getProxyDetails("http"))
-                  .isPresent()
-                  .hasValueSatisfying(
-                      d -> {
-                        assertThat(d.host()).isEqualTo("standard-proxy.example.com");
-                        assertThat(d.port()).isEqualTo(8080);
-                      });
+    assertThat(handler.getProxyDetails(protocol)).isEmpty();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"http", "https"})
+  public void shouldReturnCredentialsProvider_withCorrectCredentials(String protocol) {
+    environmentVariables
+        .set(envVar(protocol, "HOST"), "proxy.example.com")
+        .set(envVar(protocol, "PORT"), "3128")
+        .set(envVar(protocol, "USER"), "myuser")
+        .set(envVar(protocol, "PASSWORD"), "mypass");
+
+    ProxyHandler handler = new ProxyHandler();
+
+    assertThat(
+            handler
+                .getCredentialsProvider(protocol)
+                .getCredentials(new AuthScope("proxy.example.com", 3128), null))
+        .isNotNull()
+        .satisfies(
+            creds -> {
+              assertThat(creds.getUserPrincipal().getName()).isEqualTo("myuser");
+              assertThat(new String(creds.getPassword())).isEqualTo("mypass");
             });
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"http", "https"})
+  public void shouldReturnEmptyCredentialsProvider_whenNoCredentials(String protocol) {
+    environmentVariables
+        .set(envVar(protocol, "HOST"), "proxy.example.com")
+        .set(envVar(protocol, "PORT"), "3128");
+
+    ProxyHandler handler = new ProxyHandler();
+
+    assertThat(
+            handler
+                .getCredentialsProvider(protocol)
+                .getCredentials(new AuthScope("proxy.example.com", 3128), null))
+        .isNull();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"http", "https"})
+  public void shouldReturnEmptyCredentialsProvider_whenNoProxyConfigured(String protocol) {
+    ProxyHandler handler = new ProxyHandler();
+
+    // returns a credentials provider
+    CredentialsProvider credentialsProvider = handler.getCredentialsProvider(protocol);
+    assertThat(credentialsProvider).isNotNull().isInstanceOf(BasicCredentialsProvider.class);
+
+    // wildcard auth scope does not return anything
+    assertThat(credentialsProvider.getCredentials(new AuthScope(null, -1), null)).isNull();
+  }
+
+  @Test
+  public void shouldNeverConsumePlainProxyVars() {
+    environmentVariables
+        .set("CONNECTOR_HTTP_PLAIN_PROXY_HOST", "plain-proxy.example.com")
+        .set("CONNECTOR_HTTP_PLAIN_PROXY_PORT", "9090")
+        .set("CONNECTOR_HTTP_PLAIN_PROXY_USER", "plainuser")
+        .set("CONNECTOR_HTTP_PLAIN_PROXY_PASSWORD", "plainpass")
+        .set("CONNECTOR_HTTPS_PLAIN_PROXY_HOST", "plain-secure.example.com")
+        .set("CONNECTOR_HTTPS_PLAIN_PROXY_PORT", "3129");
+
+    ProxyHandler handler = new ProxyHandler();
+
+    assertThat(handler.getProxyDetails("http")).isEmpty();
+    assertThat(handler.getProxyDetails("https")).isEmpty();
+  }
+
+  @Test
+  public void shouldUseStandardVars_evenWhenPlainVarsAlsoSet() {
+    environmentVariables
+        .set("CONNECTOR_HTTP_PLAIN_PROXY_HOST", "plain-proxy.example.com")
+        .set("CONNECTOR_HTTP_PLAIN_PROXY_PORT", "9090")
+        .set("CONNECTOR_HTTP_PROXY_HOST", "standard-proxy.example.com")
+        .set("CONNECTOR_HTTP_PROXY_PORT", "8080");
+
+    ProxyHandler handler = new ProxyHandler();
+
+    assertThat(handler.getProxyDetails("http"))
+        .isPresent()
+        .hasValueSatisfying(
+            d -> {
+              assertThat(d.host()).isEqualTo("standard-proxy.example.com");
+              assertThat(d.port()).isEqualTo(8080);
+            });
+  }
+
+  private String envVar(String protocol, String suffix) {
+    return "CONNECTOR_" + protocol.toUpperCase() + "_PROXY_" + suffix;
   }
 }

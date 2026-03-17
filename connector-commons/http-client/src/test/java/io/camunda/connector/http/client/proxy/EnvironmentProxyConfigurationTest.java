@@ -112,7 +112,7 @@ class EnvironmentProxyConfigurationTest {
             () ->
                 assertThatThrownBy(() -> createConfig(plain).getProxyDetails(protocol))
                     .isInstanceOf(ConnectorInputException.class)
-                    .hasMessageContaining(prefix + "PORT"));
+                    .hasMessage("Invalid proxy port in environment variable " + prefix + "PORT"));
   }
 
   @ParameterizedTest
