@@ -36,7 +36,6 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
       "skipEncoding",
       "connectionTimeoutInSeconds",
       "readTimeoutInSeconds",
-      "writeTimeoutInSeconds",
       "body",
       "storeResponse",
       "groupSetCookieHeaders",
