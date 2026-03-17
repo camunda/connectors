@@ -12,9 +12,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyMap;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import io.a2a.A2A;
+import io.a2a.client.http.A2AHttpClient;
 import io.a2a.spec.A2AClientError;
 import io.a2a.spec.AgentCapabilities;
 import io.a2a.spec.AgentCard;
@@ -23,6 +26,7 @@ import io.a2a.spec.AgentSkill;
 import io.a2a.spec.TransportProtocol;
 import io.camunda.connector.agenticai.a2a.client.common.model.A2aConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aAgentCard;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.http.A2aHttpClientFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Collections;
 import java.util.List;
@@ -37,7 +41,15 @@ class A2aAgentCardFetcherTest {
   public static final List<String> DEFAULT_INPUT_MODES = List.of("text");
   public static final List<String> DEFAULT_OUTPUT_MODES = List.of("application/json");
 
-  private final A2aAgentCardFetcher agentCardFetcher = new A2aAgentCardFetcherImpl();
+  private final A2AHttpClient mockHttpClient = mock(A2AHttpClient.class);
+  private final A2aAgentCardFetcher agentCardFetcher =
+      new A2aAgentCardFetcherImpl(mockHttpClientFactory());
+
+  private A2aHttpClientFactory mockHttpClientFactory() {
+    A2aHttpClientFactory factory = mock(A2aHttpClientFactory.class);
+    when(factory.createHttpClient()).thenReturn(mockHttpClient);
+    return factory;
+  }
 
   @Test
   void fetchAgentCardWithCustomLocation() {
@@ -46,11 +58,14 @@ class A2aAgentCardFetcherTest {
     final var agentCard = createAgentCard(null, null);
 
     try (MockedStatic<A2A> a2aStatic = mockStatic(A2A.class)) {
-      a2aStatic.when(() -> A2A.getAgentCard(anyString(), any(), anyMap())).thenReturn(agentCard);
+      a2aStatic
+          .when(() -> A2A.getAgentCard(any(A2AHttpClient.class), anyString(), any(), anyMap()))
+          .thenReturn(agentCard);
 
       final var result = agentCardFetcher.fetchAgentCard(request);
 
-      a2aStatic.verify(() -> A2A.getAgentCard(AGENT_URL, location, Collections.emptyMap()));
+      a2aStatic.verify(
+          () -> A2A.getAgentCard(mockHttpClient, AGENT_URL, location, Collections.emptyMap()));
       assertAgentCard(result, DEFAULT_INPUT_MODES, DEFAULT_OUTPUT_MODES);
     }
   }
@@ -62,12 +77,19 @@ class A2aAgentCardFetcherTest {
     final var agentCard = createAgentCard(null, null);
 
     try (MockedStatic<A2A> a2aStatic = mockStatic(A2A.class)) {
-      a2aStatic.when(() -> A2A.getAgentCard(anyString(), any(), anyMap())).thenReturn(agentCard);
+      a2aStatic
+          .when(() -> A2A.getAgentCard(any(A2AHttpClient.class), anyString(), any(), anyMap()))
+          .thenReturn(agentCard);
 
       final var result = agentCardFetcher.fetchAgentCard(request);
 
       a2aStatic.verify(
-          () -> A2A.getAgentCard(AGENT_URL, ".well-known/agent-card.json", Collections.emptyMap()));
+          () ->
+              A2A.getAgentCard(
+                  mockHttpClient,
+                  AGENT_URL,
+                  ".well-known/agent-card.json",
+                  Collections.emptyMap()));
       assertAgentCard(result, DEFAULT_INPUT_MODES, DEFAULT_OUTPUT_MODES);
     }
   }
@@ -80,12 +102,19 @@ class A2aAgentCardFetcherTest {
     final var agentCard = createAgentCard(inputModes, outputModes);
 
     try (MockedStatic<A2A> a2aStatic = mockStatic(A2A.class)) {
-      a2aStatic.when(() -> A2A.getAgentCard(anyString(), any(), anyMap())).thenReturn(agentCard);
+      a2aStatic
+          .when(() -> A2A.getAgentCard(any(A2AHttpClient.class), anyString(), any(), anyMap()))
+          .thenReturn(agentCard);
 
       final var result = agentCardFetcher.fetchAgentCard(request);
 
       a2aStatic.verify(
-          () -> A2A.getAgentCard(AGENT_URL, ".well-known/agent-card.json", Collections.emptyMap()));
+          () ->
+              A2A.getAgentCard(
+                  mockHttpClient,
+                  AGENT_URL,
+                  ".well-known/agent-card.json",
+                  Collections.emptyMap()));
       assertAgentCard(result, inputModes, outputModes);
     }
   }
@@ -135,7 +164,7 @@ class A2aAgentCardFetcherTest {
 
     try (MockedStatic<A2A> a2aStatic = mockStatic(A2A.class)) {
       a2aStatic
-          .when(() -> A2A.getAgentCard(anyString(), any(), anyMap()))
+          .when(() -> A2A.getAgentCard(any(A2AHttpClient.class), anyString(), any(), anyMap()))
           .thenThrow(expectedException);
 
       assertThatThrownBy(() -> agentCardFetcher.fetchAgentCard(request))
@@ -155,7 +184,7 @@ class A2aAgentCardFetcherTest {
 
     try (MockedStatic<A2A> a2aStatic = mockStatic(A2A.class)) {
       a2aStatic
-          .when(() -> A2A.getAgentCard(anyString(), any(), anyMap()))
+          .when(() -> A2A.getAgentCard(any(A2AHttpClient.class), anyString(), any(), anyMap()))
           .thenThrow(expectedException);
 
       assertThatThrownBy(() -> agentCardFetcher.fetchAgentCard(request))

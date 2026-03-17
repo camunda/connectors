@@ -11,10 +11,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 import io.a2a.client.Client;
+import io.a2a.client.http.A2AHttpClient;
 import io.a2a.spec.AgentCard;
 import io.a2a.spec.TransportProtocol;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aClientCommonConfigurationProperties.TransportConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.configuration.A2aClientCommonConfigurationProperties.TransportConfiguration.GrpcConfiguration;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.http.A2aHttpClientFactory;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,10 +26,17 @@ import org.mockito.Answers;
 
 class A2aSdkClientFactoryTest {
 
+  private static A2aHttpClientFactory mockHttpClientFactory() {
+    A2aHttpClientFactory factory = mock(A2aHttpClientFactory.class);
+    when(factory.createHttpClient()).thenReturn(mock(A2AHttpClient.class));
+    return factory;
+  }
+
   @Test
   void createsClientWithGrpcTransportWithTls() {
     final var transportConfig = new TransportConfiguration(new GrpcConfiguration(true));
-    A2aSdkClientFactory factory = new A2aSdkClientFactoryImpl(transportConfig);
+    A2aSdkClientFactory factory =
+        new A2aSdkClientFactoryImpl(transportConfig, mockHttpClientFactory());
     AgentCard agentCard = mock(AgentCard.class);
 
     when(agentCard.preferredTransport()).thenReturn(TransportProtocol.GRPC.asString());
@@ -43,7 +52,8 @@ class A2aSdkClientFactoryTest {
   @Test
   void createsClientWithGrpcTransportWithoutTls() {
     final var transportConfig = new TransportConfiguration(new GrpcConfiguration(false));
-    A2aSdkClientFactory factory = new A2aSdkClientFactoryImpl(transportConfig);
+    A2aSdkClientFactory factory =
+        new A2aSdkClientFactoryImpl(transportConfig, mockHttpClientFactory());
     AgentCard agentCard = mock(AgentCard.class);
 
     when(agentCard.preferredTransport()).thenReturn(TransportProtocol.GRPC.asString());
@@ -59,7 +69,8 @@ class A2aSdkClientFactoryTest {
   @Test
   void createsClientWithRestTransport() {
     final var transportConfig = new TransportConfiguration(new GrpcConfiguration(true));
-    A2aSdkClientFactory factory = new A2aSdkClientFactoryImpl(transportConfig);
+    A2aSdkClientFactory factory =
+        new A2aSdkClientFactoryImpl(transportConfig, mockHttpClientFactory());
     AgentCard agentCard = mock(AgentCard.class);
 
     when(agentCard.preferredTransport()).thenReturn(TransportProtocol.HTTP_JSON.asString());
@@ -75,7 +86,8 @@ class A2aSdkClientFactoryTest {
   @Test
   void createsClientWithJsonRpcTransport() {
     final var transportConfig = new TransportConfiguration(new GrpcConfiguration(true));
-    A2aSdkClientFactory factory = new A2aSdkClientFactoryImpl(transportConfig);
+    A2aSdkClientFactory factory =
+        new A2aSdkClientFactoryImpl(transportConfig, mockHttpClientFactory());
     AgentCard agentCard = mock(AgentCard.class);
 
     when(agentCard.preferredTransport()).thenReturn(TransportProtocol.JSONRPC.asString());
@@ -91,7 +103,8 @@ class A2aSdkClientFactoryTest {
   @Test
   void factoryCanCreateMultipleClients() {
     final var transportConfig = new TransportConfiguration(new GrpcConfiguration(true));
-    A2aSdkClientFactory factory = new A2aSdkClientFactoryImpl(transportConfig);
+    A2aSdkClientFactory factory =
+        new A2aSdkClientFactoryImpl(transportConfig, mockHttpClientFactory());
 
     AgentCard agentCard1 = mock(AgentCard.class);
     when(agentCard1.preferredTransport()).thenReturn(TransportProtocol.GRPC.asString());
@@ -115,7 +128,8 @@ class A2aSdkClientFactoryTest {
   @Test
   void closingClientDoesNotThrowException() {
     final var transportConfig = new TransportConfiguration(new GrpcConfiguration(true));
-    A2aSdkClientFactory factory = new A2aSdkClientFactoryImpl(transportConfig);
+    A2aSdkClientFactory factory =
+        new A2aSdkClientFactoryImpl(transportConfig, mockHttpClientFactory());
     AgentCard agentCard = mock(AgentCard.class);
 
     when(agentCard.preferredTransport()).thenReturn(TransportProtocol.GRPC.asString());
@@ -132,7 +146,8 @@ class A2aSdkClientFactoryTest {
   @Test
   void throwsRuntimeExceptionWhenClientBuildingFails() {
     final var transportConfig = new TransportConfiguration(new GrpcConfiguration(true));
-    A2aSdkClientFactory factory = new A2aSdkClientFactoryImpl(transportConfig);
+    A2aSdkClientFactory factory =
+        new A2aSdkClientFactoryImpl(transportConfig, mockHttpClientFactory());
     AgentCard agentCard = mock(AgentCard.class);
     // Set up an invalid configuration that will cause A2AClientException
     when(agentCard.preferredTransport()).thenReturn(null);
@@ -146,7 +161,8 @@ class A2aSdkClientFactoryTest {
   @ValueSource(booleans = {true, false})
   void passesCorrectParametersToClientConfigBuilderWithoutPushNotification(Boolean blocking) {
     final var transportConfig = new TransportConfiguration(new GrpcConfiguration(true));
-    A2aSdkClientFactory factory = new A2aSdkClientFactoryImpl(transportConfig);
+    A2aSdkClientFactory factory =
+        new A2aSdkClientFactoryImpl(transportConfig, mockHttpClientFactory());
     AgentCard agentCard = mock(AgentCard.class);
 
     when(agentCard.preferredTransport()).thenReturn(TransportProtocol.GRPC.asString());
@@ -182,7 +198,8 @@ class A2aSdkClientFactoryTest {
     String credentials = authScheme != null ? "test-credentials-" + authScheme : null;
     List<String> authSchemes = authScheme != null ? List.of(authScheme) : List.of();
     final var transportConfig = new TransportConfiguration(new GrpcConfiguration(true));
-    A2aSdkClientFactory factory = new A2aSdkClientFactoryImpl(transportConfig);
+    A2aSdkClientFactory factory =
+        new A2aSdkClientFactoryImpl(transportConfig, mockHttpClientFactory());
     AgentCard agentCard = mock(AgentCard.class);
 
     when(agentCard.preferredTransport()).thenReturn(TransportProtocol.GRPC.asString());
