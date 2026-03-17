@@ -70,13 +70,13 @@ limitations under the License.</license.inlineheader>
     <nexus.release.repository>https://artifacts.camunda.com/artifactory/connectors/</nexus.release.repository>
 
     <!-- Camunda internal libraries -->
-    <version.camunda>8.8.16</version.camunda>
+    <version.camunda>8.8.17</version.camunda>
     <version.feel-engine>1.21.0</version.feel-engine>
 
     <!-- Third party dependencies -->
 
     <!-- gRPC version has to be equal or greater than the one from the Camunda client -->
-    <version.grpc>1.79.0</version.grpc>
+    <version.grpc>1.80.0</version.grpc>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.23.0</version.mockito>
