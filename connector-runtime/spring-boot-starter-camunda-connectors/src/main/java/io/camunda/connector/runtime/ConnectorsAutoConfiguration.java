@@ -26,6 +26,8 @@ import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
+import io.camunda.connector.http.client.authentication.OAuthTokenCache;
+import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
@@ -87,6 +89,21 @@ public class ConnectorsAutoConfiguration {
   @ConditionalOnMissingBean(FeelEngineWrapper.class)
   public FeelEngineWrapper feelEngine() {
     return new FeelEngineWrapper();
+  }
+
+  /**
+   * Initializes and exposes the shared {@link CaffeineOAuthTokenCache} singleton, configured from
+   * {@code camunda.connector.oauth.cache.ttl} and {@code camunda.connector.oauth.cache.skew-buffer}
+   * properties.
+   */
+  @Bean
+  @ConditionalOnMissingBean(OAuthTokenCache.class)
+  public OAuthTokenCache oAuthTokenCache(ConnectorProperties properties) {
+    var cacheProps = properties.oauth() != null ? properties.oauth().cache() : null;
+    if (cacheProps != null) {
+      return CaffeineOAuthTokenCache.initialize(cacheProps.ttl(), cacheProps.skewBuffer());
+    }
+    return CaffeineOAuthTokenCache.getInstance();
   }
 
   @Bean

@@ -66,13 +66,26 @@ public class OAuthService {
     return oauthRequest;
   }
 
-  public String extractTokenFromResponse(StreamingHttpResponse body) {
+  public TokenResponse extractTokenFromResponse(StreamingHttpResponse body) {
     var jsonNode = ResponseMappers.asJsonNode(() -> OBJECT_MAPPER).apply(body);
-    return Optional.ofNullable(jsonNode)
-        .filter(JsonNode::isObject)
-        .map(node -> node.findValue(OAuthConstants.ACCESS_TOKEN))
-        .map(JsonNode::asText)
-        .orElse(null);
+    String accessToken =
+        Optional.ofNullable(jsonNode)
+            .filter(JsonNode::isObject)
+            .map(node -> node.findValue(OAuthConstants.ACCESS_TOKEN))
+            .map(JsonNode::asText)
+            .orElse(null);
+    if (accessToken == null) {
+      return null;
+    }
+    var expiresIn =
+        Optional.of(jsonNode)
+            .filter(JsonNode::isObject)
+            .map(node -> node.findValue(OAuthConstants.EXPIRES_IN))
+            .filter(JsonNode::isNumber)
+            .map(JsonNode::asLong);
+    return expiresIn
+        .map(exp -> new TokenResponse(accessToken, exp))
+        .orElseGet(() -> new TokenResponse(accessToken));
   }
 
   private void addCredentials(
