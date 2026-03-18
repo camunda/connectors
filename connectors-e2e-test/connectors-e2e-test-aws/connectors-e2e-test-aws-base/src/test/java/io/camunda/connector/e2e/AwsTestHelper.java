@@ -16,38 +16,38 @@
  */
 package io.camunda.connector.e2e;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.services.eventbridge.AmazonEventBridge;
-import com.amazonaws.services.eventbridge.AmazonEventBridgeClient;
-import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.model.CreateFunctionRequest;
-import com.amazonaws.services.lambda.model.DeleteFunctionRequest;
-import com.amazonaws.services.lambda.model.FunctionCode;
-import com.amazonaws.services.lambda.model.GetFunctionRequest;
-import com.amazonaws.services.lambda.model.GetFunctionResult;
-import com.amazonaws.services.lambda.model.ResourceNotFoundException;
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
-import com.amazonaws.services.sqs.model.CreateQueueRequest;
-import com.amazonaws.services.sqs.model.CreateQueueResult;
-import com.amazonaws.services.sqs.model.DeleteQueueRequest;
-import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
-import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.localstack.LocalStackContainer;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.eventbridge.EventBridgeClient;
+import software.amazon.awssdk.services.lambda.LambdaClient;
+import software.amazon.awssdk.services.lambda.model.CreateFunctionRequest;
+import software.amazon.awssdk.services.lambda.model.DeleteFunctionRequest;
+import software.amazon.awssdk.services.lambda.model.FunctionCode;
+import software.amazon.awssdk.services.lambda.model.GetFunctionRequest;
+import software.amazon.awssdk.services.lambda.model.GetFunctionResponse;
+import software.amazon.awssdk.services.lambda.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.lambda.model.State;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.CreateQueueRequest;
+import software.amazon.awssdk.services.sqs.model.CreateQueueResponse;
+import software.amazon.awssdk.services.sqs.model.DeleteQueueRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueAttributesRequest;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
+import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 
 /**
  * Utility class providing helper methods for setting up and managing AWS Lambda and LocalStack in
@@ -97,7 +97,7 @@ public class AwsTestHelper {
    * @param lambdaClient The AWS Lambda client.
    * @throws InterruptedException if the waiting thread is interrupted.
    */
-  static void waitForLambdaClientInitialization(final AWSLambda lambdaClient)
+  static void waitForLambdaClientInitialization(final LambdaClient lambdaClient)
       throws InterruptedException {
     long startTime = System.currentTimeMillis();
     long maxDurationMillis = 30000; // 30 seconds
@@ -124,28 +124,32 @@ public class AwsTestHelper {
    * @throws java.io.IOException if an error occurs during file operations.
    */
   static void initializeLambdaFunction(
-      final AWSLambda lambdaClient,
+      final LambdaClient lambdaClient,
       final String lambdaFunctionZipFilePath,
       final String functionName)
       throws IOException {
     try {
-      lambdaClient.getFunction(new GetFunctionRequest().withFunctionName(functionName));
+      lambdaClient.getFunction(GetFunctionRequest.builder().functionName(functionName).build());
       LOGGER.info("Function already exists, deleting: " + functionName);
-      lambdaClient.deleteFunction(new DeleteFunctionRequest().withFunctionName(functionName));
+      lambdaClient.deleteFunction(
+          DeleteFunctionRequest.builder().functionName(functionName).build());
     } catch (ResourceNotFoundException e) {
       LOGGER.info("Function does not exist, no need to delete: " + functionName);
     }
 
-    File zipFile = Paths.get(lambdaFunctionZipFilePath).toFile();
     CreateFunctionRequest functionRequest =
-        new CreateFunctionRequest()
-            .withFunctionName("myLambdaFunction")
-            .withRuntime("python3.9")
-            .withRole("arn:aws:iam::000000000000:role/lambda-execute")
-            .withHandler("lambda_function.lambda_handler")
-            .withCode(
-                new FunctionCode()
-                    .withZipFile(ByteBuffer.wrap(Files.readAllBytes(zipFile.toPath()))));
+        CreateFunctionRequest.builder()
+            .functionName("myLambdaFunction")
+            .runtime("python3.9")
+            .role("arn:aws:iam::000000000000:role/lambda-execute")
+            .handler("lambda_function.lambda_handler")
+            .code(
+                FunctionCode.builder()
+                    .zipFile(
+                        SdkBytes.fromByteArray(
+                            Files.readAllBytes(Paths.get(lambdaFunctionZipFilePath))))
+                    .build())
+            .build();
 
     lambdaClient.createFunction(functionRequest);
   }
@@ -160,15 +164,16 @@ public class AwsTestHelper {
    * @throws InterruptedException if the waiting thread is interrupted.
    */
   static void waitForLambdaFunctionToBeReady(
-      final AWSLambda lambdaClient, final String functionName) throws InterruptedException {
+      final LambdaClient lambdaClient, final String functionName) throws InterruptedException {
     LOGGER.info("Waiting for Lambda function to be ready...");
     int attempts = 30;
 
     while (attempts > 0) {
       try {
-        GetFunctionResult function =
-            lambdaClient.getFunction(new GetFunctionRequest().withFunctionName(functionName));
-        if (function.getConfiguration().getState().equals("Active")) {
+        GetFunctionResponse function =
+            lambdaClient.getFunction(
+                GetFunctionRequest.builder().functionName(functionName).build());
+        if (function.configuration().state() == State.ACTIVE) {
           LOGGER.info("Lambda function is ready for invocation.");
           return;
         }
@@ -212,99 +217,103 @@ public class AwsTestHelper {
   }
 
   /**
-   * Initializes an AmazonSQS client for interacting with AWS SQS service.
+   * Initializes a SqsClient for interacting with AWS SQS service.
    *
    * @param localstack The LocalStack container instance.
-   * @return Initialized AmazonSQS client.
+   * @return Initialized SqsClient.
    */
-  public static AmazonSQS initSqsClient(LocalStackContainer localstack) {
-    return AmazonSQSClientBuilder.standard()
-        .withCredentials(
-            new AWSStaticCredentialsProvider(
-                new BasicAWSCredentials(localstack.getAccessKey(), localstack.getSecretKey())))
-        .withEndpointConfiguration(
-            new AwsClientBuilder.EndpointConfiguration(
-                localstack.getEndpoint().toString(), localstack.getRegion()))
+  public static SqsClient initSqsClient(LocalStackContainer localstack) {
+    return SqsClient.builder()
+        .credentialsProvider(
+            StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
+        .region(Region.of(localstack.getRegion()))
+        .endpointOverride(localstack.getEndpoint())
         .build();
   }
 
   /**
-   * Initializes an AmazonEventBridge client using LocalStack configuration.
+   * Initializes an EventBridgeClient using LocalStack configuration.
    *
    * @param localstack The LocalStack container instance.
-   * @return Configured AmazonEventBridge client.
+   * @return Configured EventBridgeClient.
    */
-  public static AmazonEventBridge initEventBridgeClient(LocalStackContainer localstack) {
-    return AmazonEventBridgeClient.builder()
-        .withCredentials(
-            new AWSStaticCredentialsProvider(
-                new BasicAWSCredentials(localstack.getAccessKey(), localstack.getSecretKey())))
-        .withEndpointConfiguration(
-            new AwsClientBuilder.EndpointConfiguration(
-                localstack.getEndpoint().toString(), localstack.getRegion()))
+  public static EventBridgeClient initEventBridgeClient(LocalStackContainer localstack) {
+    return EventBridgeClient.builder()
+        .credentialsProvider(
+            StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
+        .region(Region.of(localstack.getRegion()))
+        .endpointOverride(localstack.getEndpoint())
         .build();
   }
 
   /**
    * Create an SQS queue with specified attributes.
    *
-   * @param sqsClient The AmazonSQS client.
+   * @param sqsClient The SqsClient.
    * @param queueName The name of the queue to be created.
    * @return The URL of the created queue.
    */
-  public static String createQueue(AmazonSQS sqsClient, String queueName, boolean isFifo) {
-    CreateQueueRequest createQueueRequest = new CreateQueueRequest().withQueueName(queueName);
+  public static String createQueue(SqsClient sqsClient, String queueName, boolean isFifo) {
+    CreateQueueRequest.Builder createQueueRequestBuilder =
+        CreateQueueRequest.builder().queueName(queueName);
     if (isFifo) {
-      createQueueRequest
-          .addAttributesEntry("FifoQueue", "true")
-          .addAttributesEntry("ContentBasedDeduplication", "true");
+      createQueueRequestBuilder.attributesWithStrings(
+          Map.of("FifoQueue", "true", "ContentBasedDeduplication", "true"));
     }
-    CreateQueueResult createQueueResult = sqsClient.createQueue(createQueueRequest);
+    CreateQueueResponse createQueueResponse =
+        sqsClient.createQueue(createQueueRequestBuilder.build());
     LOGGER.info("Created SQS queue: {}", queueName);
-    return createQueueResult.getQueueUrl().replace("localhost", "127.0.0.1");
+    return createQueueResponse.queueUrl().replace("localhost", "127.0.0.1");
   }
 
   /**
    * Retrieves the Amazon Resource Name (ARN) for a given SQS queue URL.
    *
-   * @param sqsClient The AmazonSQS client used to interact with SQS.
+   * @param sqsClient The SqsClient used to interact with SQS.
    * @param queueUrl The URL of the SQS queue for which the ARN is to be retrieved.
    * @return The ARN of the SQS queue.
    */
-  public static String getQueueArn(AmazonSQS sqsClient, String queueUrl) {
+  public static String getQueueArn(SqsClient sqsClient, String queueUrl) {
     return sqsClient
-        .getQueueAttributes(new GetQueueAttributesRequest(queueUrl).withAttributeNames("QueueArn"))
-        .getAttributes()
+        .getQueueAttributes(
+            GetQueueAttributesRequest.builder()
+                .queueUrl(queueUrl)
+                .attributeNames(QueueAttributeName.QUEUE_ARN)
+                .build())
+        .attributesAsStrings()
         .get("QueueArn");
   }
 
   /**
    * Deletes the specified SQS queue.
    *
-   * @param sqsClient The AmazonSQS client.
+   * @param sqsClient The SqsClient.
    * @param queueUrl The URL of the queue to be deleted.
    */
-  public static void deleteQueue(AmazonSQS sqsClient, String queueUrl) {
-    sqsClient.deleteQueue(new DeleteQueueRequest(queueUrl));
+  public static void deleteQueue(SqsClient sqsClient, String queueUrl) {
+    sqsClient.deleteQueue(DeleteQueueRequest.builder().queueUrl(queueUrl).build());
     LOGGER.info("Deleted SQS queue: {}", queueUrl);
   }
 
   /**
    * Polls messages from the specified SQS queue.
    *
-   * @param sqsClient The AmazonSQS client.
+   * @param sqsClient The SqsClient.
    * @param queueUrl The URL of the queue to poll messages from.
    * @return List of messages.
    */
-  public static List<Message> receiveMessages(AmazonSQS sqsClient, String queueUrl) {
+  public static List<Message> receiveMessages(SqsClient sqsClient, String queueUrl) {
     ReceiveMessageRequest receiveMessageRequest =
-        new ReceiveMessageRequest(queueUrl)
-            .withAttributeNames("All")
-            .withMessageAttributeNames("All")
-            .withWaitTimeSeconds(5)
-            .withMaxNumberOfMessages(1);
-    ReceiveMessageResult receiveMessageResult = sqsClient.receiveMessage(receiveMessageRequest);
-    List<Message> messages = receiveMessageResult.getMessages();
+        ReceiveMessageRequest.builder()
+            .queueUrl(queueUrl)
+            .messageSystemAttributeNames(MessageSystemAttributeName.ALL)
+            .messageAttributeNames("All")
+            .waitTimeSeconds(5)
+            .maxNumberOfMessages(1)
+            .build();
+    List<Message> messages = sqsClient.receiveMessage(receiveMessageRequest).messages();
     LOGGER.info("Received {} messages from SQS queue: {}", messages.size(), queueUrl);
     return messages;
   }

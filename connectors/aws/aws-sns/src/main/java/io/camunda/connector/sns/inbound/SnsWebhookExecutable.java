@@ -6,6 +6,9 @@
  */
 package io.camunda.connector.sns.inbound;
 
+// TODO: These v1 imports are required because AWS SDK v2 has no equivalent of SnsMessageManager
+//  for parsing and verifying SNS HTTP webhook messages (signature verification).
+//  Migrate once resolved: https://github.com/aws/aws-sdk-java-v2/issues/1302
 import com.amazonaws.services.sns.message.SnsMessage;
 import com.amazonaws.services.sns.message.SnsMessageManager;
 import com.amazonaws.services.sns.message.SnsNotification;
