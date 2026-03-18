@@ -410,6 +410,46 @@ limitations under the License.</license.inlineheader>
         <artifactId>aws-java-sdk-sagemaker</artifactId>
         <version>${version.aws-java-sdk}</version>
       </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>lambda</artifactId>
+        <version>${version.software-aws-java-sdk}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sqs</artifactId>
+        <version>${version.software-aws-java-sdk}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sns</artifactId>
+        <version>${version.software-aws-java-sdk}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>eventbridge</artifactId>
+        <version>${version.software-aws-java-sdk}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sdk-core</artifactId>
+        <version>${version.software-aws-java-sdk}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>aws-core</artifactId>
+        <version>${version.software-aws-java-sdk}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>auth</artifactId>
+        <version>${version.software-aws-java-sdk}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>regions</artifactId>
+        <version>${version.software-aws-java-sdk}</version>
+      </dependency>
 
       <dependency>
         <groupId>com.google.api-client</groupId>
