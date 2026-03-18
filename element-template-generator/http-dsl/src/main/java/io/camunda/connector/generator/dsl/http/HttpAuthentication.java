@@ -242,6 +242,10 @@ public interface HttpAuthentication {
       return new BasicAuth(key);
     }
 
+    public String key() {
+      return key;
+    }
+
     @Override
     public String label() {
       return "Basic";
