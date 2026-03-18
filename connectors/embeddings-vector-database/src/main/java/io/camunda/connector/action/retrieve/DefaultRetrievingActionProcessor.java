@@ -16,6 +16,7 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.embeddingmodel.DefaultEmbeddingModelFactory;
 import io.camunda.connector.embeddingstore.ClosableEmbeddingStore;
 import io.camunda.connector.embeddingstore.DefaultEmbeddingStoreFactory;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import io.camunda.connector.model.EmbeddingsVectorDBRequest;
 import io.camunda.connector.model.operation.RetrieveDocumentOperation;
 import java.nio.charset.StandardCharsets;
@@ -28,8 +29,10 @@ public class DefaultRetrievingActionProcessor implements RetrievingActionProcess
   private final DefaultEmbeddingModelFactory embeddingModelProvider;
   private final DefaultEmbeddingStoreFactory embeddingStoreProvider;
 
-  public DefaultRetrievingActionProcessor() {
-    this(new DefaultEmbeddingModelFactory(), new DefaultEmbeddingStoreFactory());
+  public DefaultRetrievingActionProcessor(ProxyConfiguration proxyConfiguration) {
+    this(
+        new DefaultEmbeddingModelFactory(proxyConfiguration),
+        new DefaultEmbeddingStoreFactory(proxyConfiguration));
   }
 
   public DefaultRetrievingActionProcessor(
