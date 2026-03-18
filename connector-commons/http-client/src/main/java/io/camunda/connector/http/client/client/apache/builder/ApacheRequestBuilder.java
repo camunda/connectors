@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.http.client.client.apache.builder;
 
+import io.camunda.connector.http.client.client.apache.ContextualizedClassicHttpRequest;
+import io.camunda.connector.http.client.client.apache.ContextualizedClassicRequestBuilder;
 import io.camunda.connector.http.client.client.apache.builder.parts.ApacheRequestAuthenticationBuilder;
 import io.camunda.connector.http.client.client.apache.builder.parts.ApacheRequestBodyBuilder;
 import io.camunda.connector.http.client.client.apache.builder.parts.ApacheRequestHeadersBuilder;
@@ -25,7 +27,6 @@ import io.camunda.connector.http.client.client.apache.builder.parts.ApacheReques
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 
 /**
@@ -65,8 +66,10 @@ public class ApacheRequestBuilder {
             new ApacheRequestQueryParametersBuilder()));
   }
 
-  public ClassicHttpRequest build(HttpClientRequest request) {
-    ClassicRequestBuilder requestBuilder = ClassicRequestBuilder.create(request.getMethod().name());
+  public ContextualizedClassicHttpRequest build(HttpClientRequest request) {
+    ContextualizedClassicRequestBuilder requestBuilder =
+        new ContextualizedClassicRequestBuilder(
+            ClassicRequestBuilder.create(request.getMethod().name()));
     for (ApacheRequestPartBuilder b : builders) {
       b.build(requestBuilder, request);
     }

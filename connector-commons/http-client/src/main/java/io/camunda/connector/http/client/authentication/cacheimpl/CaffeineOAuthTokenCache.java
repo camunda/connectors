@@ -18,6 +18,7 @@ package io.camunda.connector.http.client.authentication.cacheimpl;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.camunda.connector.http.client.authentication.CachedTokenResponse;
 import io.camunda.connector.http.client.authentication.OAuthTokenCache;
 import io.camunda.connector.http.client.authentication.TokenResponse;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
@@ -58,6 +59,30 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
   private static final Logger LOG = LoggerFactory.getLogger(CaffeineOAuthTokenCache.class);
 
   private static volatile CaffeineOAuthTokenCache INSTANCE;
+  private final Duration explicitTtl;
+  private final Duration clockSkewBuffer;
+  private final Cache<String, CaffeineCacheToken> cache;
+
+  /** Creates a cache with default TTL settings. */
+  public CaffeineOAuthTokenCache() {
+    this(DEFAULT_EXPLICIT_TTL, DEFAULT_CLOCK_SKEW_BUFFER);
+  }
+
+  /**
+   * Creates a cache with custom TTL settings. Intended for testing.
+   *
+   * @param explicitTtl the fallback TTL when no {@code expires_in} is present
+   * @param clockSkewBuffer the buffer subtracted from token-derived TTL
+   */
+  public CaffeineOAuthTokenCache(Duration explicitTtl, Duration clockSkewBuffer) {
+    this.explicitTtl = explicitTtl;
+    this.clockSkewBuffer = clockSkewBuffer;
+    this.cache =
+        Caffeine.newBuilder()
+            .maximumSize(1000)
+            .expireAfter(new CaffeineOauthExpiryStrategy())
+            .build();
+  }
 
   /**
    * Returns the shared singleton instance of this cache. If no instance has been configured via
@@ -103,31 +128,6 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
     return INSTANCE;
   }
 
-  private final Duration explicitTtl;
-  private final Duration clockSkewBuffer;
-  private final Cache<String, CaffeineCacheToken> cache;
-
-  /** Creates a cache with default TTL settings. */
-  public CaffeineOAuthTokenCache() {
-    this(DEFAULT_EXPLICIT_TTL, DEFAULT_CLOCK_SKEW_BUFFER);
-  }
-
-  /**
-   * Creates a cache with custom TTL settings. Intended for testing.
-   *
-   * @param explicitTtl the fallback TTL when no {@code expires_in} is present
-   * @param clockSkewBuffer the buffer subtracted from token-derived TTL
-   */
-  public CaffeineOAuthTokenCache(Duration explicitTtl, Duration clockSkewBuffer) {
-    this.explicitTtl = explicitTtl;
-    this.clockSkewBuffer = clockSkewBuffer;
-    this.cache =
-        Caffeine.newBuilder()
-            .maximumSize(1000)
-            .expireAfter(new CaffeineOauthExpiryStrategy())
-            .build();
-  }
-
   /**
    * Computes a SHA-256 hash of the OAuth configuration fields to use as the cache key. This ensures
    * that sensitive credential material is never stored in plain text.
@@ -157,12 +157,13 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
   }
 
   @Override
-  public String getOrFetch(OAuthAuthentication auth, Supplier<TokenResponse> tokenSupplier) {
+  public CachedTokenResponse getOrFetch(
+      OAuthAuthentication auth, Supplier<TokenResponse> tokenSupplier) {
     String cacheKey = computeCacheKey(auth);
     CaffeineCacheToken cached = cache.getIfPresent(cacheKey);
     if (cached != null) {
       LOG.debug("OAuth token cache hit");
-      return cached.accessToken();
+      return new CachedTokenResponse(cached.accessToken(), true);
     }
     LOG.debug("OAuth token cache miss, fetching new token");
     TokenResponse response = tokenSupplier.get();
@@ -170,7 +171,7 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
     if (ttlNanos > 0) {
       cache.put(cacheKey, new CaffeineCacheToken(response.accessToken(), ttlNanos));
     }
-    return response.accessToken();
+    return new CachedTokenResponse(response.accessToken(), false);
   }
 
   @Override

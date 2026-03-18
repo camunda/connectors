@@ -34,7 +34,7 @@ public interface OAuthTokenCache {
    * @param tokenSupplier a supplier that fetches a new token from the token endpoint
    * @return the access token string
    */
-  String getOrFetch(OAuthAuthentication auth, Supplier<TokenResponse> tokenSupplier);
+  CachedTokenResponse getOrFetch(OAuthAuthentication auth, Supplier<TokenResponse> tokenSupplier);
 
   /**
    * Invalidates the cached token for the given authentication configuration, e.g. after receiving a

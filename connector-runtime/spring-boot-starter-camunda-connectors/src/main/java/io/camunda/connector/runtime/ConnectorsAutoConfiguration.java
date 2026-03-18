@@ -100,10 +100,9 @@ public class ConnectorsAutoConfiguration {
   @ConditionalOnMissingBean(OAuthTokenCache.class)
   public OAuthTokenCache oAuthTokenCache(ConnectorProperties properties) {
     var cacheProps = properties.oauth() != null ? properties.oauth().cache() : null;
-    if (cacheProps != null) {
-      return CaffeineOAuthTokenCache.initialize(cacheProps.ttl(), cacheProps.skewBuffer());
-    }
-    return CaffeineOAuthTokenCache.getInstance();
+    Duration ttl = cacheProps != null ? cacheProps.ttl() : null;
+    Duration skewBuffer = cacheProps != null ? cacheProps.skewBuffer() : null;
+    return CaffeineOAuthTokenCache.initialize(ttl, skewBuffer);
   }
 
   @Bean
