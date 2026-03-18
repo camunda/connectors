@@ -32,11 +32,17 @@ import org.apache.hc.core5.http.HttpStatus;
 
 public class CustomApacheHttpClient implements HttpClient {
 
+  private static final String HTTP_STATUS_UNAUTHORIZED = String.valueOf(HttpStatus.SC_UNAUTHORIZED);
+
   private final HttpBlockListManager httpBlocklistManager = new DefaultHttpBlocklistManager();
 
   /**
    * Converts the given {@link HttpClientRequest} to an Apache {@link
    * org.apache.hc.core5.http.ClassicHttpRequest} and executes it.
+   *
+   * <p>If the request uses an OAuth2 token that was served from the cache and the server responds
+   * with 401 Unauthorized, the cached token is invalidated and the request is retried once with a
+   * freshly fetched token.
    *
    * @param request the request to execute
    * @return the {@link StreamingHttpResponse} containing the response details
@@ -45,7 +51,31 @@ public class CustomApacheHttpClient implements HttpClient {
   public <T> HttpResponse<T> execute(HttpClientRequest request, ResponseMapper<T> responseMapper) {
     // Will throw ConnectorInputException if URL is blocked
     httpBlocklistManager.validateUrlAgainstBlocklist(request.getUrl());
-    var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
+    var contextualizedRequest = ApacheRequestFactory.get().createHttpRequest(request);
+    try {
+      return executeApacheRequest(contextualizedRequest, request, responseMapper);
+    } catch (ConnectorException e) {
+      if (shouldRetryWithFreshToken(e, contextualizedRequest)) {
+        contextualizedRequest.getRevokeTokenCallback().run();
+        var freshRequest = ApacheRequestFactory.get().createHttpRequest(request);
+        return executeApacheRequest(freshRequest, request, responseMapper);
+      }
+      throw e;
+    }
+  }
+
+  private boolean shouldRetryWithFreshToken(
+      ConnectorException e, ContextualizedClassicHttpRequest contextualizedRequest) {
+    return HTTP_STATUS_UNAUTHORIZED.equals(e.getErrorCode())
+        && contextualizedRequest.wasTokenCached()
+        && contextualizedRequest.getRevokeTokenCallback() != null;
+  }
+
+  private <T> HttpResponse<T> executeApacheRequest(
+      ContextualizedClassicHttpRequest contextualizedRequest,
+      HttpClientRequest request,
+      ResponseMapper<T> responseMapper) {
+    var apacheRequest = contextualizedRequest.getRequest();
     var host = apacheRequest.getAuthority().getHostName();
     var scheme = apacheRequest.getScheme();
 

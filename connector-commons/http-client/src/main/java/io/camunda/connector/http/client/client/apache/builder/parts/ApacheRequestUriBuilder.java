@@ -16,13 +16,15 @@
  */
 package io.camunda.connector.http.client.client.apache.builder.parts;
 
+import io.camunda.connector.http.client.client.apache.ContextualizedClassicRequestBuilder;
 import io.camunda.connector.http.client.model.HttpClientRequest;
-import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 
 public class ApacheRequestUriBuilder implements ApacheRequestPartBuilder {
 
   @Override
-  public void build(ClassicRequestBuilder builder, HttpClientRequest request) {
-    builder.setUri(UrlEncoder.toEncodedUri(request.getUrl(), request.getSkipEncoding()));
+  public void build(ContextualizedClassicRequestBuilder builder, HttpClientRequest request) {
+    builder
+        .getDelegate()
+        .setUri(UrlEncoder.toEncodedUri(request.getUrl(), request.getSkipEncoding()));
   }
 }

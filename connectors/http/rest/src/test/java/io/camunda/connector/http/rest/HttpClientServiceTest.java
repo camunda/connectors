@@ -97,8 +97,8 @@ class HttpClientServiceTest extends BaseTest {
     var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
     // check if the bearer token is correctly added on the header of the main request
-    assertEquals("Bearer " + bearerToken, apacheRequest.getHeader("Authorization").getValue());
-    assertNotEquals("Bearer abcde", apacheRequest.getHeader("Authorization").getValue());
+    assertEquals("Bearer " + bearerToken, apacheRequest.getRequest().getHeader("Authorization").getValue());
+    assertNotEquals("Bearer abcde", apacheRequest.getRequest().getHeader("Authorization").getValue());
     assertThat(oauthRequest.getBody())
         .isEqualTo(
             scopes == null

@@ -101,7 +101,7 @@ public class CaffeineOAuthTokenCacheTest {
       var fetchCount = new AtomicInteger(0);
 
       // First call - fetches token
-      String token1 =
+      var result1 =
           cache.getOrFetch(
               auth,
               () -> {
@@ -110,7 +110,7 @@ public class CaffeineOAuthTokenCacheTest {
               });
 
       // Second call - should return cached token without calling supplier
-      String token2 =
+      var result2 =
           cache.getOrFetch(
               auth,
               () -> {
@@ -118,8 +118,10 @@ public class CaffeineOAuthTokenCacheTest {
                 return new TokenResponse("token-xyz", 300);
               });
 
-      assertThat(token1).isEqualTo("token-abc");
-      assertThat(token2).isEqualTo("token-abc");
+      assertThat(result1.token()).isEqualTo("token-abc");
+      assertThat(result1.wasCached()).isFalse();
+      assertThat(result2.token()).isEqualTo("token-abc");
+      assertThat(result2.wasCached()).isTrue();
       assertThat(fetchCount.get()).isEqualTo(1);
     }
 
@@ -129,11 +131,11 @@ public class CaffeineOAuthTokenCacheTest {
       var auth1 = createAuth("https://token.example.com", "id1", "secret1");
       var auth2 = createAuth("https://token.example.com", "id2", "secret2");
 
-      String token1 = cache.getOrFetch(auth1, () -> new TokenResponse("token-for-id1", 300));
-      String token2 = cache.getOrFetch(auth2, () -> new TokenResponse("token-for-id2", 300));
+      var result1 = cache.getOrFetch(auth1, () -> new TokenResponse("token-for-id1", 300));
+      var result2 = cache.getOrFetch(auth2, () -> new TokenResponse("token-for-id2", 300));
 
-      assertThat(token1).isEqualTo("token-for-id1");
-      assertThat(token2).isEqualTo("token-for-id2");
+      assertThat(result1.token()).isEqualTo("token-for-id1");
+      assertThat(result2.token()).isEqualTo("token-for-id2");
     }
 
     @Test
@@ -141,9 +143,9 @@ public class CaffeineOAuthTokenCacheTest {
       var cache = new CaffeineOAuthTokenCache();
       var auth = createAuth("https://token.example.com", "id1", "secret1");
 
-      String token = cache.getOrFetch(auth, () -> new TokenResponse("token-no-expiry"));
+      var result = cache.getOrFetch(auth, () -> new TokenResponse("token-no-expiry"));
 
-      assertThat(token).isEqualTo("token-no-expiry");
+      assertThat(result.token()).isEqualTo("token-no-expiry");
     }
 
     @Test
@@ -153,7 +155,7 @@ public class CaffeineOAuthTokenCacheTest {
       var auth = createAuth("https://token.example.com", "id1", "secret1");
       var fetchCount = new AtomicInteger(0);
 
-      String token1 =
+      var result1 =
           cache.getOrFetch(
               auth,
               () -> {
@@ -161,7 +163,7 @@ public class CaffeineOAuthTokenCacheTest {
                 return new TokenResponse("token-a", 50); // 50s - 100s skew = negative
               });
 
-      String token2 =
+      var result2 =
           cache.getOrFetch(
               auth,
               () -> {
@@ -169,8 +171,10 @@ public class CaffeineOAuthTokenCacheTest {
                 return new TokenResponse("token-b", 50);
               });
 
-      assertThat(token1).isEqualTo("token-a");
-      assertThat(token2).isEqualTo("token-b");
+      assertThat(result1.token()).isEqualTo("token-a");
+      assertThat(result1.wasCached()).isFalse();
+      assertThat(result2.token()).isEqualTo("token-b");
+      assertThat(result2.wasCached()).isFalse();
       assertThat(fetchCount.get()).isEqualTo(2);
     }
   }
@@ -193,7 +197,7 @@ public class CaffeineOAuthTokenCacheTest {
 
       cache.invalidate(auth);
 
-      String token =
+      var result =
           cache.getOrFetch(
               auth,
               () -> {
@@ -201,7 +205,8 @@ public class CaffeineOAuthTokenCacheTest {
                 return new TokenResponse("token-2", 300);
               });
 
-      assertThat(token).isEqualTo("token-2");
+      assertThat(result.token()).isEqualTo("token-2");
+      assertThat(result.wasCached()).isFalse();
       assertThat(fetchCount.get()).isEqualTo(2);
     }
 
@@ -217,7 +222,7 @@ public class CaffeineOAuthTokenCacheTest {
       cache.invalidate(auth1);
 
       var fetchCount = new AtomicInteger(0);
-      String token2 =
+      var result2 =
           cache.getOrFetch(
               auth2,
               () -> {
@@ -225,7 +230,8 @@ public class CaffeineOAuthTokenCacheTest {
                 return new TokenResponse("should-not-fetch", 300);
               });
 
-      assertThat(token2).isEqualTo("token-2");
+      assertThat(result2.token()).isEqualTo("token-2");
+      assertThat(result2.wasCached()).isTrue();
       assertThat(fetchCount.get()).isEqualTo(0);
     }
   }

@@ -14,16 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.client.client.apache.builder.parts;
+package io.camunda.connector.http.client.authentication;
 
-import io.camunda.connector.http.client.client.apache.ContextualizedClassicRequestBuilder;
-import io.camunda.connector.http.client.model.HttpClientRequest;
-
-public class ApacheRequestQueryParametersBuilder implements ApacheRequestPartBuilder {
-  @Override
-  public void build(ContextualizedClassicRequestBuilder builder, HttpClientRequest request) {
-    if (request.hasQueryParameters()) {
-      request.getQueryParameters().forEach(builder.getDelegate()::addParameter);
-    }
-  }
-}
+public record CachedTokenResponse(String token, boolean wasCached) {}
