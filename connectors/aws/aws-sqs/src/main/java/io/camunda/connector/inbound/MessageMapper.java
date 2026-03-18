@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.inbound;
 
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.inbound.model.message.SqsInboundMessage;
@@ -15,6 +13,9 @@ import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 
 public class MessageMapper {
   private static final Logger LOGGER = LoggerFactory.getLogger(MessageMapper.class);
@@ -22,8 +23,7 @@ public class MessageMapper {
   public static SqsInboundMessage toSqsInboundMessage(final Message message) {
     Map<String, io.camunda.connector.inbound.model.message.MessageAttributeValue>
         sqsInboundMessageAttributes = new HashMap<>();
-    for (Map.Entry<String, MessageAttributeValue> entry :
-        message.getMessageAttributes().entrySet()) {
+    for (Map.Entry<String, MessageAttributeValue> entry : message.messageAttributes().entrySet()) {
       io.camunda.connector.inbound.model.message.MessageAttributeValue sqsInboundMessageAttribute =
           toSqsInboundMessageAttribute(entry.getValue());
 
@@ -31,12 +31,12 @@ public class MessageMapper {
     }
 
     return new SqsInboundMessage(
-        message.getMessageId(),
-        message.getReceiptHandle(),
-        message.getMD5OfBody(),
-        toObjectIfPossible(message.getBody()),
-        message.getAttributes(),
-        message.getMD5OfMessageAttributes(),
+        message.messageId(),
+        message.receiptHandle(),
+        message.md5OfBody(),
+        toObjectIfPossible(message.body()),
+        message.attributesAsStrings(),
+        message.md5OfMessageAttributes(),
         sqsInboundMessageAttributes);
   }
 
@@ -52,10 +52,12 @@ public class MessageMapper {
   private static io.camunda.connector.inbound.model.message.MessageAttributeValue
       toSqsInboundMessageAttribute(final MessageAttributeValue attributeValue) {
     return new io.camunda.connector.inbound.model.message.MessageAttributeValue(
-        attributeValue.getStringValue(),
-        attributeValue.getBinaryValue(),
-        attributeValue.getStringListValues(),
-        attributeValue.getBinaryListValues(),
-        attributeValue.getDataType());
+        attributeValue.stringValue(),
+        attributeValue.binaryValue() != null ? attributeValue.binaryValue().asByteBuffer() : null,
+        attributeValue.stringListValues(),
+        attributeValue.binaryListValues() != null
+            ? attributeValue.binaryListValues().stream().map(SdkBytes::asByteBuffer).toList()
+            : null,
+        attributeValue.dataType());
   }
 }

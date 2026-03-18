@@ -6,32 +6,35 @@
  */
 package io.camunda.connector.sns.suppliers;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.services.sns.AmazonSNS;
-import com.amazonaws.services.sns.AmazonSNSClientBuilder;
 import com.amazonaws.services.sns.message.SnsMessageManager;
+import java.net.URI;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.sns.SnsClient;
 
 public class SnsClientSupplier {
 
-  public AmazonSNS getSnsClient(
-      final AWSCredentialsProvider credentialsProvider, final String region) {
-    return AmazonSNSClientBuilder.standard()
-        .withCredentials(credentialsProvider)
-        .withRegion(region)
+  public SnsClient getSnsClient(
+      final AwsCredentialsProvider credentialsProvider, final String region) {
+    return SnsClient.builder()
+        .credentialsProvider(credentialsProvider)
+        .region(Region.of(region))
         .build();
   }
 
-  public AmazonSNS getSnsClient(
-      final AWSCredentialsProvider credentialsProvider,
+  public SnsClient getSnsClient(
+      final AwsCredentialsProvider credentialsProvider,
       final String region,
       final String endpoint) {
-    return AmazonSNSClientBuilder.standard()
-        .withCredentials(credentialsProvider)
-        .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endpoint, region))
+    return SnsClient.builder()
+        .credentialsProvider(credentialsProvider)
+        .region(Region.of(region))
+        .endpointOverride(URI.create(endpoint))
         .build();
   }
 
+  // TODO: SnsMessageManager is from AWS SDK v1 and has no equivalent in v2.
+  //  Migrate once resolved: https://github.com/aws/aws-sdk-java-v2/issues/1302
   public SnsMessageManager messageManager(final String region) {
     return new SnsMessageManager(region);
   }
