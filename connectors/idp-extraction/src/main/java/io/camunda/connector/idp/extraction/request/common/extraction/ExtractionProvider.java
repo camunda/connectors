@@ -28,7 +28,8 @@ import jakarta.validation.constraints.NotNull;
   @JsonSubTypes.Type(
       value = DocumentIntelligenceExtractorRequest.class,
       name = "documentIntelligence"),
-  @JsonSubTypes.Type(value = DocumentAiExtractorRequest.class, name = "documentAi")
+  @JsonSubTypes.Type(value = DocumentAiExtractorRequest.class, name = "documentAi"),
+  @JsonSubTypes.Type(value = AbbyyVantageExtractorRequest.class, name = "abbyy")
 })
 @TemplateDiscriminatorProperty(
     label = "Text extraction providers",
@@ -39,7 +40,8 @@ public sealed interface ExtractionProvider
         ExtractionProvider.MultimodalExtractorRequest,
         DocumentIntelligenceExtractorRequest,
         DocumentAiExtractorRequest,
-        TextractExtractorRequest {
+        TextractExtractorRequest,
+        AbbyyVantageExtractorRequest {
 
   @TemplateSubType(id = "pdfBox", label = "Apache PdfBox text extractor")
   record ApachePdfBoxExtractorRequest() implements ExtractionProvider {}
