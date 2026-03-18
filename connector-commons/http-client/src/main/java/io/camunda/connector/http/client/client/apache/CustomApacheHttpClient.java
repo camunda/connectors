@@ -52,10 +52,9 @@ public class CustomApacheHttpClient implements HttpClient {
     try (var client =
         new ProxyAwareHttpClient(
             new ProxyAwareHttpClient.TimeoutConfiguration(
-                request.getConnectionTimeoutInSeconds(),
-                request.getReadTimeoutInSeconds(),
-                request.isFollowRedirects()),
-            new ProxyAwareHttpClient.ProxyContext(scheme, host))) {
+                request.getConnectionTimeoutInSeconds(), request.getReadTimeoutInSeconds()),
+            new ProxyAwareHttpClient.ProxyContext(scheme, host),
+            request.isFollowRedirects())) {
 
       var apacheResponseHandler =
           new CustomResponseHandler<>(responseMapper, request.isFollowRedirects());

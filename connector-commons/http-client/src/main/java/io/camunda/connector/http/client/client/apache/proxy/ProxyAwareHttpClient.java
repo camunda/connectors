@@ -42,16 +42,19 @@ public class ProxyAwareHttpClient implements Closeable {
   private final TimeoutConfiguration timeoutConfiguration;
   private final ProxyContext proxyContext;
   private final CloseableHttpClient client;
+  private final boolean followRedirects;
 
-  public record TimeoutConfiguration(
-      int connectionTimeoutInSeconds, int readTimeoutInSeconds, boolean followRedirects) {}
+  public record TimeoutConfiguration(int connectionTimeoutInSeconds, int readTimeoutInSeconds) {}
 
   public record ProxyContext(String scheme, String host) {}
 
   public ProxyAwareHttpClient(
-      TimeoutConfiguration timeoutConfiguration, ProxyContext proxyContext) {
+      TimeoutConfiguration timeoutConfiguration,
+      ProxyContext proxyContext,
+      boolean followRedirects) {
     this.timeoutConfiguration = timeoutConfiguration;
     this.proxyContext = proxyContext;
+    this.followRedirects = followRedirects;
     this.client = createClient();
   }
 
@@ -75,7 +78,7 @@ public class ProxyAwareHttpClient implements Closeable {
     builder
         .setDefaultRequestConfig(getRequestTimeoutConfig(timeoutConfiguration))
         .useSystemProperties();
-    if (!timeoutConfiguration.followRedirects()) {
+    if (!followRedirects) {
       builder.disableRedirectHandling();
     } else {
       builder.setRedirectStrategy(DefaultRedirectStrategy.INSTANCE);
