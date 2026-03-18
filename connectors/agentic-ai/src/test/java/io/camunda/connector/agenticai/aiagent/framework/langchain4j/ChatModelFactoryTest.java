@@ -66,6 +66,8 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProvi
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
+import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
+import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Collections;
@@ -100,8 +102,14 @@ class ChatModelFactoryTest {
   private static final TimeoutConfiguration MODEL_TIMEOUT =
       new TimeoutConfiguration(Duration.ofSeconds(30));
 
+  private final ProxyConfiguration proxyConfiguration = ProxyConfiguration.NONE;
+  private final ChatModelHttpProxySupport proxySupport =
+      spy(
+          new ChatModelHttpProxySupport(
+              proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration)));
+
   private final ChatModelFactory chatModelFactory =
-      new ChatModelFactoryImpl(createDefaultConfigurationProperties());
+      new ChatModelFactoryImpl(createDefaultConfigurationProperties(), proxySupport);
 
   static Stream<TimeoutConfiguration> defaultTimeoutYieldingConfigs() {
     return Stream.of(
@@ -215,6 +223,7 @@ class ChatModelFactoryTest {
         assertThat(chatModel).isNotNull().isInstanceOf(AnthropicChatModel.class);
         assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
+        verify(proxySupport).createJdkHttpClientBuilder();
         builderAssertions.accept(chatModelBuilder);
       }
     }
@@ -228,7 +237,7 @@ class ChatModelFactoryTest {
   class AzureOpenAiChatModelFactoryTest {
 
     private static final String AZURE_OPENAI_API_KEY = "azureOpenAiApiKey";
-    private static final String AZURE_OPENAI_ENDPOINT = "azure-openai-endpoint.local";
+    private static final String AZURE_OPENAI_ENDPOINT = "https://azure-openai-endpoint.local";
     private static final String AZURE_OPENAI_DEPLOYMENT_NAME = "gpt-4o";
     private static final String CLIENT_ID = "clientId";
     private static final String CLIENT_SECRET = "clientSecret";
@@ -347,6 +356,7 @@ class ChatModelFactoryTest {
         assertThat(chatModel).isNotNull().isInstanceOf(AzureOpenAiChatModel.class);
         assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
+        verify(proxySupport).createAzureProxyOptions(AZURE_OPENAI_ENDPOINT);
         verify(chatModelBuilder).endpoint(AZURE_OPENAI_ENDPOINT);
         verify(chatModelBuilder).deploymentName(AZURE_OPENAI_DEPLOYMENT_NAME);
         builderAssertions.accept(chatModelBuilder);
@@ -450,7 +460,7 @@ class ChatModelFactoryTest {
     }
 
     @Test
-    void createsBedrockChatModelWithCustomEndpoint() {
+    void createsBedrockChatModelWithCustomHttpsEndpoint() {
       final var providerConfig =
           new BedrockProviderConfiguration(
               new BedrockConnection(
@@ -462,9 +472,29 @@ class ChatModelFactoryTest {
 
       testBedrockChatModelBuilder(
           providerConfig,
+          URI.create("https://my-custom-endpoint.local"),
           (builders) -> {
             verify(builders.clientBuilder)
                 .endpointOverride(URI.create("https://my-custom-endpoint.local"));
+          });
+    }
+
+    @Test
+    void createsBedrockChatModelWithCustomHttpEndpoint() {
+      final var providerConfig =
+          new BedrockProviderConfiguration(
+              new BedrockConnection(
+                  BEDROCK_REGION,
+                  "http://localhost:8080",
+                  new AwsAuthentication.AwsDefaultCredentialsChainAuthentication(),
+                  MODEL_TIMEOUT,
+                  new BedrockModel(BEDROCK_MODEL, DEFAULT_MODEL_PARAMETERS)));
+
+      testBedrockChatModelBuilder(
+          providerConfig,
+          URI.create("http://localhost:8080"),
+          (builders) -> {
+            verify(builders.clientBuilder).endpointOverride(URI.create("http://localhost:8080"));
           });
     }
 
@@ -549,6 +579,13 @@ class ChatModelFactoryTest {
     private void testBedrockChatModelBuilder(
         BedrockProviderConfiguration providerConfig,
         ThrowingConsumer<BedrockBuilderContext> builderAssertions) {
+      testBedrockChatModelBuilder(providerConfig, (URI) null, builderAssertions);
+    }
+
+    private void testBedrockChatModelBuilder(
+        BedrockProviderConfiguration providerConfig,
+        URI expectedEndpointOverride,
+        ThrowingConsumer<BedrockBuilderContext> builderAssertions) {
       final var clientBuilder = spy(BedrockRuntimeClient.builder());
       final var clientResultCaptor = new ResultCaptor<BedrockRuntimeClient>();
       doAnswer(clientResultCaptor).when(clientBuilder).build();
@@ -571,6 +608,7 @@ class ChatModelFactoryTest {
         assertThat(chatModel).isNotNull().isInstanceOf(BedrockChatModel.class);
         assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
+        verify(proxySupport).createAwsHttpClient(expectedEndpointOverride);
         builderAssertions.accept(builders);
       }
     }
@@ -820,6 +858,7 @@ class ChatModelFactoryTest {
         assertThat(chatModel).isNotNull().isInstanceOf(OpenAiChatModel.class);
         assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
+        verify(proxySupport).createJdkHttpClientBuilder();
         builderAssertions.accept(chatModelBuilder);
       }
     }
@@ -1037,6 +1076,7 @@ class ChatModelFactoryTest {
         assertThat(chatModel).isNotNull().isInstanceOf(OpenAiChatModel.class);
         assertThat(chatModel).isSameAs(chatModelResultCaptor.getResult());
 
+        verify(proxySupport).createJdkHttpClientBuilder();
         builderAssertions.accept(chatModelBuilder);
       }
     }

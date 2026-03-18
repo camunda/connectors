@@ -8,6 +8,12 @@ package io.camunda.connector.agenticai.aiagent.model.request;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicModel;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureOpenAiConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAiProviderConfiguration.AzureOpenAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockConnection;
@@ -16,15 +22,23 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVerte
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiModel.GoogleVertexAiModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompatibleProviderConfiguration.OpenAiCompatibleModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.time.Duration;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.validation.autoconfigure.ValidationAutoConfiguration;
 import org.springframework.context.annotation.Import;
@@ -36,6 +50,10 @@ import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 @ExtendWith({SpringExtension.class, SystemStubsExtension.class})
 @Import(ValidationAutoConfiguration.class)
 class ProviderConfigurationTest {
+
+  private static final TimeoutConfiguration TIMEOUT =
+      new TimeoutConfiguration(Duration.ofSeconds(30));
+  private static final String HTTP_URL_VALIDATION_MESSAGE = "Must be an HTTP or HTTPS URL";
 
   @Autowired private Validator validator;
   @SystemStub private EnvironmentVariables environment;
@@ -52,7 +70,7 @@ class ProviderConfigurationTest {
     void validationShouldFail_WhenSaaSAndDefaultCredentialChainUsed() {
       simulateSaaSEnvironment();
       final var connection =
-          createConnection(new AwsAuthentication.AwsDefaultCredentialsChainAuthentication());
+          createConnection(null, new AwsAuthentication.AwsDefaultCredentialsChainAuthentication());
       assertThat(validator.validate(connection))
           .hasSize(1)
           .extracting(ConstraintViolation::getMessage)
@@ -62,7 +80,7 @@ class ProviderConfigurationTest {
     @Test
     void validationShouldSucceed_WhenNotSaaSAndDefaultCredentialChainUsed() {
       final var connection =
-          createConnection(new AwsAuthentication.AwsDefaultCredentialsChainAuthentication());
+          createConnection(null, new AwsAuthentication.AwsDefaultCredentialsChainAuthentication());
       assertThat(validator.validate(connection)).isEmpty();
     }
 
@@ -71,7 +89,7 @@ class ProviderConfigurationTest {
       simulateSaaSEnvironment();
       final var connection =
           createConnection(
-              new AwsAuthentication.AwsStaticCredentialsAuthentication("key", "secret"));
+              null, new AwsAuthentication.AwsStaticCredentialsAuthentication("key", "secret"));
       assertThat(validator.validate(connection)).isEmpty();
     }
 
@@ -79,20 +97,174 @@ class ProviderConfigurationTest {
     void validationShouldSucceed_WhenNotSaaSAndNotDefaultCredentialChainUsed() {
       final var connection =
           createConnection(
-              new AwsAuthentication.AwsStaticCredentialsAuthentication("key", "secret"));
+              null, new AwsAuthentication.AwsStaticCredentialsAuthentication("key", "secret"));
       assertThat(validator.validate(connection)).isEmpty();
     }
 
-    private BedrockConnection createConnection(AwsAuthentication authentication) {
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.model.request.ProviderConfigurationTest#validHttpUrls")
+    @NullSource
+    void shouldAcceptValidEndpoint(String endpoint) {
+      var connection =
+          createConnection(
+              endpoint, new AwsAuthentication.AwsStaticCredentialsAuthentication("key", "secret"));
+      assertThat(validator.validate(connection)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.model.request.ProviderConfigurationTest#invalidHttpUrls")
+    void shouldRejectInvalidEndpoint(String endpoint) {
+      var connection =
+          createConnection(
+              endpoint, new AwsAuthentication.AwsStaticCredentialsAuthentication("key", "secret"));
+      assertThat(validator.validate(connection))
+          .extracting(ConstraintViolation::getMessage)
+          .contains(HTTP_URL_VALIDATION_MESSAGE);
+    }
+
+    private BedrockConnection createConnection(String endpoint, AwsAuthentication authentication) {
       return new BedrockConnection(
           "eu-central-1",
-          null,
+          endpoint,
           authentication,
-          new TimeoutConfiguration(Duration.ofSeconds(30)),
+          TIMEOUT,
           new BedrockProviderConfiguration.BedrockModel(
               "test",
               new BedrockProviderConfiguration.BedrockModel.BedrockModelParameters(
                   null, null, null)));
+    }
+  }
+
+  @Nested
+  class AnthropicConnectionTest {
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.model.request.ProviderConfigurationTest#validHttpUrls")
+    @NullSource
+    void shouldAcceptValidEndpoint(String endpoint) {
+      var connection =
+          new AnthropicConnection(
+              endpoint,
+              new AnthropicAuthentication("key"),
+              TIMEOUT,
+              new AnthropicModel("model", null));
+      assertThat(validator.validate(connection)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.model.request.ProviderConfigurationTest#invalidHttpUrls")
+    void shouldRejectInvalidEndpoint(String endpoint) {
+      var connection =
+          new AnthropicConnection(
+              endpoint,
+              new AnthropicAuthentication("key"),
+              TIMEOUT,
+              new AnthropicModel("model", null));
+      assertThat(validator.validate(connection))
+          .extracting(ConstraintViolation::getMessage)
+          .contains(HTTP_URL_VALIDATION_MESSAGE);
+    }
+  }
+
+  @Nested
+  class AzureOpenAiConnectionTest {
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.model.request.ProviderConfigurationTest#validHttpUrls")
+    void shouldAcceptValidEndpoint(String endpoint) {
+      var connection =
+          new AzureOpenAiConnection(
+              endpoint,
+              new AzureAuthentication.AzureApiKeyAuthentication("key"),
+              TIMEOUT,
+              new AzureOpenAiModel("deployment", null));
+      assertThat(validator.validate(connection)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.model.request.ProviderConfigurationTest#invalidHttpUrls")
+    void shouldRejectInvalidUrlEndpoint(String endpoint) {
+      var connection =
+          new AzureOpenAiConnection(
+              endpoint,
+              new AzureAuthentication.AzureApiKeyAuthentication("key"),
+              TIMEOUT,
+              new AzureOpenAiModel("deployment", null));
+      assertThat(validator.validate(connection))
+          .extracting(ConstraintViolation::getMessage)
+          .contains(HTTP_URL_VALIDATION_MESSAGE);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void shouldRejectBlankEndpoint(String endpoint) {
+      var connection =
+          new AzureOpenAiConnection(
+              endpoint,
+              new AzureAuthentication.AzureApiKeyAuthentication("key"),
+              TIMEOUT,
+              new AzureOpenAiModel("deployment", null));
+      assertThat(validator.validate(connection))
+          .extracting(ConstraintViolation::getMessage)
+          .contains("must not be blank");
+    }
+  }
+
+  @Nested
+  class OpenAiCompatibleConnectionTest {
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.model.request.ProviderConfigurationTest#validHttpUrls")
+    void shouldAcceptValidEndpoint(String endpoint) {
+      var connection =
+          new OpenAiCompatibleConnection(
+              endpoint,
+              new OpenAiCompatibleAuthentication("key"),
+              null,
+              null,
+              TIMEOUT,
+              new OpenAiCompatibleModel("model", null));
+      assertThat(validator.validate(connection)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.agenticai.aiagent.model.request.ProviderConfigurationTest#invalidHttpUrls")
+    void shouldRejectInvalidUrlEndpoint(String endpoint) {
+      var connection =
+          new OpenAiCompatibleConnection(
+              endpoint,
+              new OpenAiCompatibleAuthentication("key"),
+              null,
+              null,
+              TIMEOUT,
+              new OpenAiCompatibleModel("model", null));
+      assertThat(validator.validate(connection))
+          .extracting(ConstraintViolation::getMessage)
+          .contains(HTTP_URL_VALIDATION_MESSAGE);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void shouldRejectBlankEndpoint(String endpoint) {
+      var connection =
+          new OpenAiCompatibleConnection(
+              endpoint,
+              new OpenAiCompatibleAuthentication("key"),
+              null,
+              null,
+              TIMEOUT,
+              new OpenAiCompatibleModel("model", null));
+      assertThat(validator.validate(connection))
+          .extracting(ConstraintViolation::getMessage)
+          .contains("must not be blank");
     }
   }
 
@@ -149,5 +321,14 @@ class ProviderConfigurationTest {
 
   private void simulateSaaSEnvironment() {
     environment.set(ConnectorUtils.CONNECTOR_RUNTIME_SAAS_ENV_VARIABLE, "true");
+  }
+
+  static Stream<String> validHttpUrls() {
+    return Stream.of(
+        "https://api.example.com", "http://localhost:8080", "https://my-endpoint.local/v1/chat");
+  }
+
+  static Stream<String> invalidHttpUrls() {
+    return Stream.of("not-a-url", "ftp://files.example.com", "http://", "https://", "  ");
   }
 }
