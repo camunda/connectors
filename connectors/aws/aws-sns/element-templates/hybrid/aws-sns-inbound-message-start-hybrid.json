@@ -159,6 +159,18 @@
     },
     "type" : "String"
   }, {
+    "id" : "messageIdExpression",
+    "label" : "Message ID expression",
+    "description" : "Expression to extract unique identifier of a message",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "messageIdExpression",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
     "id" : "messageTtl",
     "label" : "Message TTL",
     "description" : "Time-to-live for the message in the broker (ISO-8601 duration)",
@@ -174,18 +186,6 @@
     "group" : "correlation",
     "binding" : {
       "name" : "messageTtl",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "messageIdExpression",
-    "label" : "Message ID expression",
-    "description" : "Expression to extract unique identifier of a message",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "correlation",
-    "binding" : {
-      "name" : "messageIdExpression",
       "type" : "zeebe:property"
     },
     "type" : "String"

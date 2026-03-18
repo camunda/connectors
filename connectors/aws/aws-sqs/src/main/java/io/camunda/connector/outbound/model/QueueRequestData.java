@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.outbound.model;
 
-import com.amazonaws.services.sqs.model.MessageAttributeValue;
-import com.amazonaws.util.StringUtils;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.AssertTrue;
@@ -18,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 
 public class QueueRequestData {
 
@@ -129,12 +128,11 @@ public class QueueRequestData {
   }
 
   private Function<SqsMessageAttribute, MessageAttributeValue> messageAttributeTransformer() {
-    return snsMessageAttribute -> {
-      MessageAttributeValue msgAttr = new MessageAttributeValue();
-      msgAttr.setDataType(snsMessageAttribute.getDataType());
-      msgAttr.setStringValue(snsMessageAttribute.getStringValue());
-      return msgAttr;
-    };
+    return sqsMessageAttribute ->
+        MessageAttributeValue.builder()
+            .dataType(sqsMessageAttribute.getDataType())
+            .stringValue(sqsMessageAttribute.getStringValue())
+            .build();
   }
 
   public QueueType getType() {
@@ -164,9 +162,9 @@ public class QueueRequestData {
   @AssertTrue
   public boolean hasValidQueueProperties() {
     if (QueueType.standard == type) {
-      return StringUtils.isNullOrEmpty(messageGroupId);
+      return messageGroupId == null || messageGroupId.isEmpty();
     } else if (QueueType.fifo == type) {
-      return StringUtils.hasValue(messageGroupId);
+      return messageGroupId != null && !messageGroupId.isEmpty();
     } else throw new IllegalArgumentException("No valid type value " + type);
   }
 
