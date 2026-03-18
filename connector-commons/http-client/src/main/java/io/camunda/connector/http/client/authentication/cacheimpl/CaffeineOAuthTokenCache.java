@@ -97,11 +97,12 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
     if (INSTANCE == null) {
       synchronized (CaffeineOAuthTokenCache.class) {
         if (INSTANCE == null) {
-          INSTANCE = new CaffeineOAuthTokenCache();
+          CaffeineOAuthTokenCache instance = new CaffeineOAuthTokenCache();
           LOG.debug(
               "Created default CaffeineOAuthTokenCache singleton (ttl={}, skewBuffer={})",
               DEFAULT_EXPLICIT_TTL,
               DEFAULT_CLOCK_SKEW_BUFFER);
+          INSTANCE = instance;
         }
       }
     }
