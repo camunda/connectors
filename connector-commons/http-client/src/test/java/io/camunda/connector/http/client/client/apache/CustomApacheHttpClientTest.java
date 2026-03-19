@@ -32,7 +32,7 @@ import com.github.tomakehurst.wiremock.matching.MultipartValuePatternBuilder;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.authentication.OAuthConstants;
-import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
+import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
 import io.camunda.connector.http.client.mapper.HttpResponse;
 import io.camunda.connector.http.client.mapper.ResponseMappers;
 import io.camunda.connector.http.client.model.HttpClientRequest;
@@ -889,7 +889,7 @@ public class CustomApacheHttpClientTest {
 
     @BeforeEach
     void resetOAuthTokenCache() {
-      CaffeineOAuthTokenCache.getInstance().invalidateAll();
+      OAuthTokenCacheHolder.get().invalidateAll();
     }
 
     @Test

@@ -22,8 +22,8 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.client.authentication.Base64Helper;
 import io.camunda.connector.http.client.authentication.OAuthService;
 import io.camunda.connector.http.client.authentication.OAuthTokenCache;
+import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
 import io.camunda.connector.http.client.authentication.TokenResponse;
-import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
 import io.camunda.connector.http.client.client.apache.ContextualizedClassicRequestBuilder;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.client.model.HttpClientRequest;
@@ -41,7 +41,7 @@ public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuil
   private final OAuthTokenCache tokenCache;
 
   public ApacheRequestAuthenticationBuilder() {
-    this(new OAuthService(), CaffeineOAuthTokenCache.getInstance());
+    this(new OAuthService(), OAuthTokenCacheHolder.get());
   }
 
   public ApacheRequestAuthenticationBuilder(OAuthService oAuthService, OAuthTokenCache tokenCache) {

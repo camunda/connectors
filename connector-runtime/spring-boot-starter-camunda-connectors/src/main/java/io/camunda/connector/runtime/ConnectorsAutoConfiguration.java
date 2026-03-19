@@ -30,6 +30,7 @@ import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.http.client.authentication.OAuthTokenCache;
+import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
 import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
@@ -106,9 +107,16 @@ public class ConnectorsAutoConfiguration {
   }
 
   /**
-   * Initializes and exposes the shared {@link CaffeineOAuthTokenCache} singleton, configured from
-   * {@code camunda.connector.oauth.cache.ttl} and {@code camunda.connector.oauth.cache.skew-buffer}
+   * Initializes and exposes the shared {@link OAuthTokenCache}, configured from {@code
+   * camunda.connector.oauth.cache.ttl} and {@code camunda.connector.oauth.cache.skew-buffer}
    * properties.
+   *
+   * <p>The cache instance is also registered in {@link OAuthTokenCacheHolder} so that non-Spring
+   * HTTP client code (which cannot use dependency injection) can access it.
+   *
+   * <p>Users can replace this bean by defining their own {@link OAuthTokenCache} bean. Custom
+   * implementations will be picked up both by the Spring context and by the HTTP client via the
+   * holder.
    */
   @Bean
   @ConditionalOnMissingBean(OAuthTokenCache.class)
@@ -116,7 +124,9 @@ public class ConnectorsAutoConfiguration {
     var cacheProps = properties.oauth() != null ? properties.oauth().cache() : null;
     Duration ttl = cacheProps != null ? cacheProps.ttl() : null;
     Duration skewBuffer = cacheProps != null ? cacheProps.skewBuffer() : null;
-    return CaffeineOAuthTokenCache.initialize(ttl, skewBuffer);
+    OAuthTokenCache cache = CaffeineOAuthTokenCache.initialize(ttl, skewBuffer);
+    OAuthTokenCacheHolder.set(cache);
+    return cache;
   }
 
   @Bean
