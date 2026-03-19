@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.client.authentication;
+package io.camunda.connector.http.client.authentication.cacheimpl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
+import io.camunda.connector.http.client.authentication.OAuthConstants;
+import io.camunda.connector.http.client.authentication.TokenResponse;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;

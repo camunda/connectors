@@ -18,6 +18,7 @@ package io.camunda.connector.http.client.authentication.cacheimpl;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.annotations.VisibleForTesting;
 import io.camunda.connector.http.client.authentication.CachedTokenResponse;
 import io.camunda.connector.http.client.authentication.OAuthTokenCache;
 import io.camunda.connector.http.client.authentication.TokenResponse;
@@ -27,6 +28,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.HexFormat;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +60,6 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
 
   private static final Logger LOG = LoggerFactory.getLogger(CaffeineOAuthTokenCache.class);
 
-  private static volatile CaffeineOAuthTokenCache INSTANCE;
   private final Duration explicitTtl;
   private final Duration clockSkewBuffer;
   private final Cache<String, CaffeineCacheToken> cache;
@@ -85,55 +86,27 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
   }
 
   /**
-   * Returns the shared singleton instance of this cache. If no instance has been configured via
-   * {@link #initialize(Duration, Duration)}, a default instance is created lazily.
-   *
-   * <p>This is the recommended way to obtain a {@link CaffeineOAuthTokenCache} in production code
-   * to ensure all components share the same token cache.
-   *
-   * @return the singleton instance
-   */
-  public static CaffeineOAuthTokenCache getInstance() {
-    if (INSTANCE == null) {
-      synchronized (CaffeineOAuthTokenCache.class) {
-        if (INSTANCE == null) {
-          CaffeineOAuthTokenCache instance = new CaffeineOAuthTokenCache();
-          LOG.debug(
-              "Created default CaffeineOAuthTokenCache singleton (ttl={}, skewBuffer={})",
-              DEFAULT_EXPLICIT_TTL,
-              DEFAULT_CLOCK_SKEW_BUFFER);
-          INSTANCE = instance;
-        }
-      }
-    }
-    return INSTANCE;
-  }
-
-  /**
-   * Initializes the singleton instance with the given TTL settings. Must be called before any call
-   * to {@link #getInstance()} (e.g. at application startup via Spring configuration). If a
-   * singleton already exists, it is replaced. {@code null} values fall back to defaults.
+   * Creates a new instance with the given TTL settings. {@code null} values fall back to defaults.
    *
    * @param explicitTtl the fallback TTL when no {@code expires_in} is present, or {@code null} for
    *     default
    * @param clockSkewBuffer the buffer subtracted from token-derived TTL, or {@code null} for
    *     default
-   * @return the newly created singleton instance
+   * @return a new cache instance
    */
-  public static synchronized CaffeineOAuthTokenCache initialize(
-      Duration explicitTtl, Duration clockSkewBuffer) {
+  public static CaffeineOAuthTokenCache initialize(Duration explicitTtl, Duration clockSkewBuffer) {
     var ttl = explicitTtl != null ? explicitTtl : DEFAULT_EXPLICIT_TTL;
     var skew = clockSkewBuffer != null ? clockSkewBuffer : DEFAULT_CLOCK_SKEW_BUFFER;
-    INSTANCE = new CaffeineOAuthTokenCache(ttl, skew);
-    LOG.info("Initialized CaffeineOAuthTokenCache singleton (ttl={}, skewBuffer={})", ttl, skew);
-    return INSTANCE;
+    LOG.info("Creating CaffeineOAuthTokenCache (ttl={}, skewBuffer={})", ttl, skew);
+    return new CaffeineOAuthTokenCache(ttl, skew);
   }
 
   /**
    * Computes a SHA-256 hash of the OAuth configuration fields to use as the cache key. This ensures
    * that sensitive credential material is never stored in plain text.
    */
-  public static String computeCacheKey(OAuthAuthentication auth) {
+  @VisibleForTesting
+  static String computeCacheKey(OAuthAuthentication auth) {
     String raw =
         String.join(
             "\0",
@@ -161,18 +134,19 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
   public CachedTokenResponse getOrFetch(
       OAuthAuthentication auth, Supplier<TokenResponse> tokenSupplier) {
     String cacheKey = computeCacheKey(auth);
-    CaffeineCacheToken cached = cache.getIfPresent(cacheKey);
-    if (cached != null) {
-      LOG.debug("OAuth token cache hit");
-      return new CachedTokenResponse(cached.accessToken(), true);
-    }
-    LOG.debug("OAuth token cache miss, fetching new token");
-    TokenResponse response = tokenSupplier.get();
-    long ttlNanos = computeTtlNanos(response);
-    if (ttlNanos > 0) {
-      cache.put(cacheKey, new CaffeineCacheToken(response.accessToken(), ttlNanos));
-    }
-    return new CachedTokenResponse(response.accessToken(), false);
+    AtomicBoolean wasCached = new AtomicBoolean(true);
+    CaffeineCacheToken token =
+        cache.get(
+            cacheKey,
+            k -> {
+              wasCached.set(false);
+              LOG.debug("OAuth token cache miss, fetching new token");
+              TokenResponse response = tokenSupplier.get();
+              long ttlNanos = computeTtlNanos(response);
+              return new CaffeineCacheToken(response.accessToken(), ttlNanos);
+            });
+    if (wasCached.get()) LOG.debug("OAuth token cache hit");
+    return new CachedTokenResponse(token.accessToken(), wasCached.get());
   }
 
   @Override
