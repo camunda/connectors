@@ -28,6 +28,7 @@ import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JAiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
@@ -81,6 +82,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
   private static final List<Class<?>> LANGCHAIN4J_BEANS =
       List.of(
+          ChatModelHttpProxySupport.class,
           ChatModelFactory.class,
           DocumentToContentConverter.class,
           ContentConverter.class,
