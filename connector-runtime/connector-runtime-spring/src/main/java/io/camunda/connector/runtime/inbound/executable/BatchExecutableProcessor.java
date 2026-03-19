@@ -43,6 +43,7 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Fail
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.InvalidDefinition;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
@@ -230,6 +231,44 @@ public class BatchExecutableProcessor {
             activated.context().connectorElements().getFirst());
       }
     }
+  }
+
+  /**
+   * Resets an executable by deactivating it (if currently active) and re-activating it with a fresh
+   * instance, reusing the same context. Only {@link Activated} and {@link
+   * RegisteredExecutable.Cancelled} states are supported.
+   *
+   * @param executable the executable to reset
+   * @return a {@link CompletableFuture} that resolves to the new {@link Activated} executable
+   * @throws IllegalStateException if the executable is not in a resettable state
+   */
+  public CompletableFuture<Activated> restartFromContext(RegisteredExecutable executable) {
+    RegisteredExecutable.Cancelled cancelled =
+        switch (executable) {
+          case Activated activated -> {
+            LOG.info(
+                "Resetting activated inbound connector of type '{}'",
+                activated.context().getDefinition().type());
+            deactivateBatch(List.of(activated));
+            yield new RegisteredExecutable.Cancelled(
+                activated.executable(), activated.context(), null, activated.id());
+          }
+          case RegisteredExecutable.Cancelled c -> {
+            LOG.info(
+                "Resetting cancelled inbound connector of type '{}'",
+                c.context().getDefinition().type());
+            yield c;
+          }
+          default ->
+              throw new IllegalStateException(
+                  "Cannot reset connector in state: "
+                      + executable.getClass().getSimpleName()
+                      + ". Only Activated or Cancelled executables can be reset.");
+        };
+
+    var noRetry =
+        ConnectorRetryException.builder().retries(0).backoffDuration(Duration.ZERO).build();
+    return restartFromContext(cancelled, noRetry);
   }
 
   public CompletableFuture<Activated> restartFromContext(

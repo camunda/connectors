@@ -122,4 +122,20 @@ public class InboundInstancesRestController {
         () -> inboundInstancesService.findInstanceAwareActivityLogs(type, executableId, hostname),
         new TypeReference<>() {});
   }
+
+  @PostMapping("/{type}/executables/{executableId}/reset")
+  public ActiveInboundConnectorResponse resetConnectorInstanceExecutable(
+      HttpServletRequest request,
+      @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
+      @PathVariable(name = "type") String type,
+      @PathVariable(name = "executableId") String executableId) {
+    return Optional.ofNullable(
+            instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
+                request,
+                forwardedFor,
+                () -> inboundInstancesService.resetExecutable(type, executableId),
+                new TypeReference<>() {}))
+        .orElseThrow(
+            () -> new DataNotFoundException(ActiveInboundConnectorResponse.class, executableId));
+  }
 }

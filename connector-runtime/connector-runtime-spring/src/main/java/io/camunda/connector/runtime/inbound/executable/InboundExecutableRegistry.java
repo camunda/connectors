@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound.executable;
 
+import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import java.util.List;
 
 public interface InboundExecutableRegistry {
@@ -25,4 +26,14 @@ public interface InboundExecutableRegistry {
   List<ActiveExecutableResponse> query(ActiveExecutableQuery query);
 
   String getConnectorName(String type);
+
+  /**
+   * Resets the executable with the given ID by deactivating it and re-activating it with a fresh
+   * instance. Only executables in {@code Activated} or {@code Cancelled} state can be reset.
+   *
+   * @param id the ID of the executable to reset
+   * @throws IllegalArgumentException if no executable with the given ID is found
+   * @throws IllegalStateException if the executable is not in a resettable state
+   */
+  void reset(ExecutableId id);
 }
