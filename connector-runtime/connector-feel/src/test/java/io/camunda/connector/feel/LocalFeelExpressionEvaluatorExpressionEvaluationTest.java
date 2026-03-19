@@ -31,13 +31,13 @@ import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 
-class FeelEngineWrapperExpressionEvaluationTest {
+class LocalFeelExpressionEvaluatorExpressionEvaluationTest {
 
-  private FeelEngineWrapper objectUnderTest;
+  private LocalFeelExpressionEvaluator objectUnderTest;
 
   @BeforeEach
   void beforeEach() {
-    objectUnderTest = new FeelEngineWrapper();
+    objectUnderTest = new LocalFeelExpressionEvaluator();
   }
 
   @Test

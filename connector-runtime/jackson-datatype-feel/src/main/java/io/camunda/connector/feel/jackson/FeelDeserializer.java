@@ -23,7 +23,8 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.type.TypeFactory;
-import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,14 +39,25 @@ import java.util.stream.Collectors;
 public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
 
   private final JavaType outputType;
-  private static final FeelEngineWrapper FEEL_ENGINE_WRAPPER = new FeelEngineWrapper();
+  private static final FeelExpressionEvaluator FALLBACK_EVALUATOR =
+      new LocalFeelExpressionEvaluator();
 
-  public FeelDeserializer() { // needed for references in @JsonDeserialize
-    this(FEEL_ENGINE_WRAPPER, TypeFactory.unknownType());
+  /** Default constructor for use with @JsonDeserialize annotations. Uses local FEEL engine. */
+  public FeelDeserializer() {
+    this(FALLBACK_EVALUATOR, TypeFactory.unknownType());
   }
 
-  protected FeelDeserializer(FeelEngineWrapper feelEngineWrapper, JavaType outputType) {
-    super(feelEngineWrapper, true);
+  /**
+   * Constructor with custom evaluator.
+   *
+   * @param evaluator the FEEL expression evaluator to use
+   */
+  public FeelDeserializer(FeelExpressionEvaluator evaluator) {
+    this(evaluator, TypeFactory.unknownType());
+  }
+
+  protected FeelDeserializer(FeelExpressionEvaluator evaluator, JavaType outputType) {
+    super(evaluator, true);
     this.outputType = outputType;
   }
 
@@ -54,7 +66,7 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
       JsonNode node, JsonNode feelContext, DeserializationContext jacksonCtx) throws IOException {
 
     if (isFeelExpression(node.textValue())) {
-      return feelEngineWrapper.evaluate(jacksonCtx, node.textValue(), outputType, feelContext);
+      return evaluateFeelExpression(jacksonCtx, node.textValue(), outputType, feelContext);
     }
 
     if (node.isTextual()) {
@@ -139,6 +151,6 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
 
   @Override
   public JsonDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property) {
-    return new FeelDeserializer(feelEngineWrapper, property.getType());
+    return new FeelDeserializer(evaluator, property.getType());
   }
 }

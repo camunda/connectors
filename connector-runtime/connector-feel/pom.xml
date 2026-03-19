@@ -9,9 +9,9 @@
     <version>8.9.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>connector-feel-wrapper</artifactId>
-  <name>Connector Feel Wrapper</name>
-  <description>Common FEEL and Jackson configurations for Camunda Connectors</description>
+  <artifactId>connector-feel</artifactId>
+  <name>Connector FEEL evaluators</name>
+  <description>Common FEEL evaluation infrastructure for Camunda connectors</description>
 
   <dependencies>
     <dependency>
@@ -26,6 +26,10 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>jackson-datatype-document</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-object-mapper</artifactId>
     </dependency>
     <dependency>
       <groupId>org.camunda.feel</groupId>
@@ -55,6 +59,11 @@
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>camunda-client-java</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.assertj</groupId>

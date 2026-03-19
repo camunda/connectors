@@ -318,7 +318,7 @@ limitations under the License.</license.inlineheader>
 
       <dependency>
         <groupId>io.camunda.connector</groupId>
-        <artifactId>connector-feel-wrapper</artifactId>
+        <artifactId>connector-feel</artifactId>
         <version>${project.version}</version>
       </dependency>
 

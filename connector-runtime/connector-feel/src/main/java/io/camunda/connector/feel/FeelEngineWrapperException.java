@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.feel;
 
-/** Exception class indicating issues in a {@link FeelEngineWrapper} call */
+/** Exception class indicating issues in a {@link LocalFeelExpressionEvaluator} call */
 public class FeelEngineWrapperException extends RuntimeException {
 
   private final String reason;

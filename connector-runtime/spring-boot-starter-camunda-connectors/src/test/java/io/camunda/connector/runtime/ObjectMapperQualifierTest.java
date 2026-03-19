@@ -24,6 +24,8 @@ import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.test.utils.annotation.SlowTest;
+import io.camunda.process.test.api.CamundaSpringProcessTest;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +38,8 @@ import org.springframework.boot.test.context.SpringBootTest;
       "camunda.connector.polling.enabled=false"
     },
     classes = {Jackson2AutoConfiguration.class, TestConnectorRuntimeApplication.class})
+@CamundaSpringProcessTest // spin up cluster because @ConnectorsObjectMapper evaluates via OC API
+@SlowTest
 public class ObjectMapperQualifierTest {
 
   @Autowired @ConnectorsObjectMapper private ObjectMapper connectorObjectMapper;

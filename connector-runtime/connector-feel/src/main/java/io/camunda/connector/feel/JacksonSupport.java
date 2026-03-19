@@ -16,13 +16,10 @@
  */
 package io.camunda.connector.feel;
 
-import java.util.HashMap;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.Map;
 
-public class FeelEngineWrapperUtil {
-  public static Map<String, Object> wrapResponse(Object response) {
-    Map<String, Object> responseContext = new HashMap<>();
-    responseContext.put("response", response);
-    return responseContext;
-  }
+public class JacksonSupport {
+  public static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE =
+      new TypeReference<>() {};
 }

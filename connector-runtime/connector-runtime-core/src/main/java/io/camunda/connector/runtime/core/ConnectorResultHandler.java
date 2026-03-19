@@ -26,8 +26,9 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.document.jackson.IntrinsicFunctionModel;
-import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
@@ -41,11 +42,17 @@ public class ConnectorResultHandler {
   private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse '%s' as '%s'.";
   public static List<String> FORBIDDEN_LITERALS = List.of(IntrinsicFunctionModel.DISCRIMINATOR_KEY);
 
-  private FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
-  private ObjectMapper objectMapper;
+  private final FeelExpressionEvaluator feelExpressionEvaluator;
+  private final ObjectMapper objectMapper;
 
   public ConnectorResultHandler(ObjectMapper objectMapper) {
+    this(objectMapper, new LocalFeelExpressionEvaluator());
+  }
+
+  public ConnectorResultHandler(
+      ObjectMapper objectMapper, FeelExpressionEvaluator feelExpressionEvaluator) {
     this.objectMapper = objectMapper;
+    this.feelExpressionEvaluator = feelExpressionEvaluator;
   }
 
   /**
@@ -65,7 +72,7 @@ public class ConnectorResultHandler {
 
     if (isNotBlank(resultExpression)) {
       var mappedResponseJson =
-          feelEngineWrapper.evaluateToJson(
+          feelExpressionEvaluator.evaluateToJson(
               resultExpression, responseContent, wrapResponse(responseContent));
       if (mappedResponseJson != null) {
         verifyNoForbiddenLiterals(mappedResponseJson);
@@ -89,7 +96,7 @@ public class ConnectorResultHandler {
         .filter(s -> !s.isBlank())
         .map(
             expression ->
-                feelEngineWrapper.evaluateToJson(
+                feelExpressionEvaluator.evaluateToJson(
                     expression, responseContent, wrapResponse(responseContent), jobContext))
         .filter(
             json ->

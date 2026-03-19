@@ -16,8 +16,8 @@
  */
 package io.camunda.connector.generator.openapi.util;
 
-import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.generator.dsl.http.HttpFeelBuilder;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
@@ -85,13 +85,13 @@ public class BodyUtil {
     if (schema.getProperties() == null) {
       return false;
     }
-    FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
+    var feelEngine = new LocalFeelExpressionEvaluator();
     return schema.getProperties().keySet().stream()
         .anyMatch(
             property -> {
               try {
                 Map<String, String> mockPropertyContext = Map.of(property, "mock");
-                String result = feelEngineWrapper.evaluate(property, mockPropertyContext);
+                String result = feelEngine.evaluate(property, mockPropertyContext);
                 return result == null;
               } catch (FeelEngineWrapperException e) {
                 return true;
