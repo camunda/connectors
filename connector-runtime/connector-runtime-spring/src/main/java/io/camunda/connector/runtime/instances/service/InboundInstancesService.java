@@ -112,6 +112,20 @@ public class InboundInstancesService {
   }
 
   /**
+   * Resets the connector executable identified by the given type and executable ID. The executable
+   * is deactivated and re-activated with a fresh instance while keeping its current context.
+   *
+   * @param type the connector type
+   * @param executableId the executable ID
+   * @return the updated {@link ActiveInboundConnectorResponse} after reset
+   */
+  public ActiveInboundConnectorResponse resetExecutable(String type, String executableId) {
+    var executable = findExecutable(type, executableId);
+    executableRegistry.reset(executable.executableId());
+    return findExecutable(type, executableId);
+  }
+
+  /**
    * Be aware that this API is used by c4-connectors to get the active inbound connectors grouped by
    * connector type. Changing the response format will break the c4-connectors, so make sure to
    * update the c4-connectors as well.

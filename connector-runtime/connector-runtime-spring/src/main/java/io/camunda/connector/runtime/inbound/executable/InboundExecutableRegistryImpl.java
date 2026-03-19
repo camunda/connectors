@@ -298,6 +298,26 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     return queryService.getConnectorName(type);
   }
 
+  @Override
+  public void reset(ExecutableId id) {
+    var current = stateStore.get(id);
+    if (current == null) {
+      throw new IllegalArgumentException("No executable found with ID: " + id);
+    }
+    batchExecutableProcessor
+        .restartFromContext(current)
+        .thenAccept(
+            newActivated -> {
+              stateStore.replace(id, newActivated);
+              LOG.info("Connector executable '{}' reset successfully", id);
+            })
+        .exceptionally(
+            e -> {
+              LOG.error("Failed to reset connector executable '{}'", id, e);
+              return null;
+            });
+  }
+
   @Scheduled(fixedDelay = 30000)
   void logHealthStatus() {
     var health = queryService.aggregateHealth();
