@@ -21,7 +21,9 @@ import io.camunda.connector.http.client.client.apache.builder.ApacheRequestBuild
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 
-/** Maps a {@link HttpClientRequest}(element template model) to a {@link HttpClientRequest}. */
+/**
+ * Maps a {@link HttpClientRequest}(element template model) to an Apache {@link ClassicHttpRequest}.
+ */
 public class ApacheRequestFactory implements RequestFactory<ClassicHttpRequest> {
   private static final ApacheRequestFactory INSTANCE = new ApacheRequestFactory();
 

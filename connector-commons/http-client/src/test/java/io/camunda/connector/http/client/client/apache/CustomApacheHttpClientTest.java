@@ -1085,6 +1085,114 @@ public class CustomApacheHttpClientTest {
       assertThat(e.getMessage()).contains("Unauthorized");
     }
 
+    @Test
+    public void shouldCacheOAuthToken_andReuseOnSecondRequest(WireMockRuntimeInfo wmRuntimeInfo) {
+      createAuthServer(OAuthConstants.CREDENTIALS_BODY);
+      stubFor(
+          get("/path")
+              .withHeader("Authorization", equalTo("Bearer token"))
+              .willReturn(
+                  ok().withJsonBody(JsonNodeFactory.instance.objectNode().put("result", "ok"))));
+
+      HttpClientRequest request = new HttpClientRequest();
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
+      request.setMethod(HttpMethod.GET);
+      request.setAuthentication(
+          new OAuthAuthentication(
+              wmRuntimeInfo.getHttpBaseUrl() + "/oauth",
+              "clientId",
+              "clientSecret",
+              "theAudience",
+              OAuthConstants.CREDENTIALS_BODY,
+              "read:resource"));
+
+      // First request — should fetch a new token from the OAuth server
+      httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
+
+      // Second request — token should come from cache, no second call to /oauth
+      httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
+
+      // The OAuth endpoint should have been called exactly once
+      verify(1, postRequestedFor(urlEqualTo("/oauth")));
+    }
+
+    @Test
+    public void shouldNotCacheOAuthToken_whenExpiresInIsAbsent(WireMockRuntimeInfo wmRuntimeInfo) {
+      // OAuth server returns a token without expires_in
+      stubFor(
+          post("/oauth")
+              .willReturn(
+                  ok().withJsonBody(
+                          JsonNodeFactory.instance
+                              .objectNode()
+                              .put("access_token", "token-no-expiry")
+                              .put("token_type", "Bearer"))));
+      stubFor(
+          get("/path")
+              .withHeader("Authorization", equalTo("Bearer token-no-expiry"))
+              .willReturn(
+                  ok().withJsonBody(JsonNodeFactory.instance.objectNode().put("result", "ok"))));
+
+      HttpClientRequest request = new HttpClientRequest();
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
+      request.setMethod(HttpMethod.GET);
+      request.setAuthentication(
+          new OAuthAuthentication(
+              wmRuntimeInfo.getHttpBaseUrl() + "/oauth",
+              "clientId",
+              "clientSecret",
+              "theAudience",
+              OAuthConstants.CREDENTIALS_BODY,
+              "read:resource"));
+
+      // First request
+      httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
+
+      // Second request — token should NOT be cached, so /oauth is called again
+      httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
+
+      // The OAuth endpoint should have been called twice
+      verify(2, postRequestedFor(urlEqualTo("/oauth")));
+    }
+
+    @Test
+    public void shouldFetchNewToken_afterCacheInvalidation(WireMockRuntimeInfo wmRuntimeInfo) {
+      createAuthServer(OAuthConstants.CREDENTIALS_BODY);
+      stubFor(
+          get("/path")
+              .withHeader("Authorization", equalTo("Bearer token"))
+              .willReturn(
+                  ok().withJsonBody(JsonNodeFactory.instance.objectNode().put("result", "ok"))));
+
+      var oauthAuth =
+          new OAuthAuthentication(
+              wmRuntimeInfo.getHttpBaseUrl() + "/oauth",
+              "clientId",
+              "clientSecret",
+              "theAudience",
+              OAuthConstants.CREDENTIALS_BODY,
+              "read:resource");
+
+      HttpClientRequest request = new HttpClientRequest();
+      request.setUrl(wmRuntimeInfo.getHttpBaseUrl() + "/path");
+      request.setMethod(HttpMethod.GET);
+      request.setAuthentication(oauthAuth);
+
+      // First request — fetches token
+      httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
+      verify(1, postRequestedFor(urlEqualTo("/oauth")));
+
+      // Invalidate the cached token
+      OAuthTokenCacheHolder.get()
+          .invalidate(
+              (io.camunda.connector.http.client.model.auth.OAuthAuthentication)
+                  request.getAuthentication());
+
+      // Second request — should fetch a new token after invalidation
+      httpClient.execute(request, ResponseMappers.asJsonNode(() -> objectMapper));
+      verify(2, postRequestedFor(urlEqualTo("/oauth")));
+    }
+
     private void createAuthServer(String credentialsLocation) {
       var request =
           post("/oauth")

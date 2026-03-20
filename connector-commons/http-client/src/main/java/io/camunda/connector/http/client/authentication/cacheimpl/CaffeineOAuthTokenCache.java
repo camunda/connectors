@@ -18,7 +18,6 @@ package io.camunda.connector.http.client.authentication.cacheimpl;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.google.common.annotations.VisibleForTesting;
 import io.camunda.connector.http.client.authentication.OAuthTokenCache;
 import io.camunda.connector.http.client.authentication.TokenResponse;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
@@ -93,7 +92,6 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
    * Computes a SHA-256 hash of the OAuth configuration fields to use as the cache key. This ensures
    * that sensitive credential material is never stored in plain text.
    */
-  @VisibleForTesting
   static String computeCacheKey(OAuthAuthentication auth) {
     String raw =
         String.join(
