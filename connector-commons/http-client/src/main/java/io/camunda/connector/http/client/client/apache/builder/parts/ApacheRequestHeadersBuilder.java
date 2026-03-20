@@ -21,7 +21,6 @@ import static org.apache.hc.core5.http.ContentType.APPLICATION_JSON;
 import static org.apache.hc.core5.http.ContentType.MULTIPART_FORM_DATA;
 import static org.apache.hc.core5.http.HttpHeaders.CONTENT_TYPE;
 
-import io.camunda.connector.http.client.client.apache.ContextualizedClassicRequestBuilder;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,19 +31,18 @@ import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 public class ApacheRequestHeadersBuilder implements ApacheRequestPartBuilder {
 
   @Override
-  public void build(ContextualizedClassicRequestBuilder builder, HttpClientRequest request) {
-    var delegate = builder.getDelegate();
+  public void build(ClassicRequestBuilder builder, HttpClientRequest request) {
     var headers = sanitizedHeaders(request);
 
     var hasContentTypeHeader =
         headers.entrySet().stream().anyMatch(e -> e.getKey().equalsIgnoreCase(CONTENT_TYPE));
     if (request.getMethod().supportsBody && request.hasBody() && !hasContentTypeHeader) {
       // default content type
-      delegate.addHeader(CONTENT_TYPE, APPLICATION_JSON.getMimeType());
+      builder.addHeader(CONTENT_TYPE, APPLICATION_JSON.getMimeType());
     }
     headers.entrySet().stream()
         .filter(not(defaultMultipartContentType()))
-        .forEach(e -> delegate.addHeader(e.getKey(), e.getValue()));
+        .forEach(e -> builder.addHeader(e.getKey(), e.getValue()));
   }
 
   /**

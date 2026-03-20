@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
-import io.camunda.connector.http.client.client.apache.ContextualizedClassicRequestBuilder;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.client.utils.DocumentHelper;
 import java.nio.charset.StandardCharsets;
@@ -55,17 +54,16 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
   public static final ObjectMapper mapperSendNull = HttpClientObjectMapperSupplier.getCopy();
 
   @Override
-  public void build(ContextualizedClassicRequestBuilder builder, HttpClientRequest request) {
-    var delegate = builder.getDelegate();
+  public void build(ClassicRequestBuilder builder, HttpClientRequest request) {
     if (request.getMethod().supportsBody) {
       if (!request.hasBody()) {
         /**
          * We need to set the body to something not null due to how {@link
-         * CustomApacheHttpClient}{@link #build(ContextualizedClassicRequestBuilder,
-         * HttpClientRequest)} works. If the body is null, the {@link ClassicRequestBuilder} will
-         * override it in some cases (PUT/POST using query parameters).
+         * CustomApacheHttpClient}{@link #build(ClassicRequestBuilder, HttpClientRequest)} works. If
+         * the body is null, the {@link ClassicRequestBuilder} will override it in some cases
+         * (PUT/POST using query parameters).
          */
-        delegate.setEntity(EMPTY_BODY);
+        builder.setEntity(EMPTY_BODY);
         return;
       }
 
@@ -73,10 +71,10 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
         tryGetContentType(request)
             .ifPresentOrElse(
                 contentType ->
-                    delegate.setEntity(createEntityForContentType(contentType, body, request)),
-                () -> delegate.setEntity(createStringEntity(request)));
+                    builder.setEntity(createEntityForContentType(contentType, body, request)),
+                () -> builder.setEntity(createStringEntity(request)));
       } else {
-        delegate.setEntity(createStringEntity(request));
+        builder.setEntity(createStringEntity(request));
       }
     }
   }

@@ -16,14 +16,14 @@
  */
 package io.camunda.connector.http.client.client.apache.builder.parts;
 
-import io.camunda.connector.http.client.client.apache.ContextualizedClassicRequestBuilder;
 import io.camunda.connector.http.client.model.HttpClientRequest;
+import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 
 public class ApacheRequestQueryParametersBuilder implements ApacheRequestPartBuilder {
   @Override
-  public void build(ContextualizedClassicRequestBuilder builder, HttpClientRequest request) {
+  public void build(ClassicRequestBuilder builder, HttpClientRequest request) {
     if (request.hasQueryParameters()) {
-      request.getQueryParameters().forEach(builder.getDelegate()::addParameter);
+      request.getQueryParameters().forEach(builder::addParameter);
     }
   }
 }

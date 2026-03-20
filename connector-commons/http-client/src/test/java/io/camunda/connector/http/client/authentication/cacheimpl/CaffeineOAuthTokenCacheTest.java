@@ -119,10 +119,8 @@ public class CaffeineOAuthTokenCacheTest {
                 return new TokenResponse("token-xyz", 300);
               });
 
-      assertThat(result1.token()).isEqualTo("token-abc");
-      assertThat(result1.wasCached()).isFalse();
-      assertThat(result2.token()).isEqualTo("token-abc");
-      assertThat(result2.wasCached()).isTrue();
+      assertThat(result1).isEqualTo("token-abc");
+      assertThat(result2).isEqualTo("token-abc");
       assertThat(fetchCount.get()).isEqualTo(1);
     }
 
@@ -135,24 +133,41 @@ public class CaffeineOAuthTokenCacheTest {
       var result1 = cache.getOrFetch(auth1, () -> new TokenResponse("token-for-id1", 300));
       var result2 = cache.getOrFetch(auth2, () -> new TokenResponse("token-for-id2", 300));
 
-      assertThat(result1.token()).isEqualTo("token-for-id1");
-      assertThat(result2.token()).isEqualTo("token-for-id2");
+      assertThat(result1).isEqualTo("token-for-id1");
+      assertThat(result2).isEqualTo("token-for-id2");
     }
 
     @Test
-    void shouldReturnToken_whenExpiresInIsAbsent() {
+    void shouldReturnToken_whenExpiresInIsAbsent_andNotCacheIt() {
       var cache = new CaffeineOAuthTokenCache();
       var auth = createAuth("https://token.example.com", "id1", "secret1");
+      var fetchCount = new AtomicInteger(0);
 
-      var result = cache.getOrFetch(auth, () -> new TokenResponse("token-no-expiry"));
+      var result1 =
+          cache.getOrFetch(
+              auth,
+              () -> {
+                fetchCount.incrementAndGet();
+                return new TokenResponse("token-no-expiry-1");
+              });
 
-      assertThat(result.token()).isEqualTo("token-no-expiry");
+      var result2 =
+          cache.getOrFetch(
+              auth,
+              () -> {
+                fetchCount.incrementAndGet();
+                return new TokenResponse("token-no-expiry-2");
+              });
+
+      assertThat(result1).isEqualTo("token-no-expiry-1");
+      assertThat(result2).isEqualTo("token-no-expiry-2");
+      assertThat(fetchCount.get()).isEqualTo(2);
     }
 
     @Test
     void shouldNotCache_whenTtlIsZeroOrNegative() {
       // clockSkewBuffer > expiresIn => effective TTL is 0, so token should not be cached
-      var cache = new CaffeineOAuthTokenCache(Duration.ofSeconds(270), Duration.ofSeconds(100));
+      var cache = new CaffeineOAuthTokenCache(Duration.ofSeconds(100));
       var auth = createAuth("https://token.example.com", "id1", "secret1");
       var fetchCount = new AtomicInteger(0);
 
@@ -172,10 +187,8 @@ public class CaffeineOAuthTokenCacheTest {
                 return new TokenResponse("token-b", 50);
               });
 
-      assertThat(result1.token()).isEqualTo("token-a");
-      assertThat(result1.wasCached()).isFalse();
-      assertThat(result2.token()).isEqualTo("token-b");
-      assertThat(result2.wasCached()).isFalse();
+      assertThat(result1).isEqualTo("token-a");
+      assertThat(result2).isEqualTo("token-b");
       assertThat(fetchCount.get()).isEqualTo(2);
     }
   }
@@ -206,8 +219,7 @@ public class CaffeineOAuthTokenCacheTest {
                 return new TokenResponse("token-2", 300);
               });
 
-      assertThat(result.token()).isEqualTo("token-2");
-      assertThat(result.wasCached()).isFalse();
+      assertThat(result).isEqualTo("token-2");
       assertThat(fetchCount.get()).isEqualTo(2);
     }
 
@@ -231,8 +243,7 @@ public class CaffeineOAuthTokenCacheTest {
                 return new TokenResponse("should-not-fetch", 300);
               });
 
-      assertThat(result2.token()).isEqualTo("token-2");
-      assertThat(result2.wasCached()).isTrue();
+      assertThat(result2).isEqualTo("token-2");
       assertThat(fetchCount.get()).isEqualTo(0);
     }
   }

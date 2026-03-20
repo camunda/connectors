@@ -108,8 +108,7 @@ public class ConnectorsAutoConfiguration {
 
   /**
    * Initializes and exposes the shared {@link OAuthTokenCache}, configured from {@code
-   * camunda.connector.oauth.cache.ttl} and {@code camunda.connector.oauth.cache.skew-buffer}
-   * properties.
+   * camunda.connector.oauth.cache.skew-buffer} property.
    *
    * <p>The cache instance is also registered in {@link OAuthTokenCacheHolder} so that non-Spring
    * HTTP client code (which cannot use dependency injection) can access it.
@@ -122,9 +121,8 @@ public class ConnectorsAutoConfiguration {
   @ConditionalOnMissingBean(OAuthTokenCache.class)
   public OAuthTokenCache oAuthTokenCache(ConnectorProperties properties) {
     var cacheProps = properties.oauth() != null ? properties.oauth().cache() : null;
-    Duration ttl = cacheProps != null ? cacheProps.ttl() : null;
     Duration skewBuffer = cacheProps != null ? cacheProps.skewBuffer() : null;
-    OAuthTokenCache cache = CaffeineOAuthTokenCache.initialize(ttl, skewBuffer);
+    OAuthTokenCache cache = CaffeineOAuthTokenCache.initialize(skewBuffer);
     OAuthTokenCacheHolder.set(cache);
     return cache;
   }

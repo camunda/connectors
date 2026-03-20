@@ -19,7 +19,6 @@ package io.camunda.connector.http.client.authentication.cacheimpl;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
-import io.camunda.connector.http.client.authentication.CachedTokenResponse;
 import io.camunda.connector.http.client.authentication.OAuthTokenCache;
 import io.camunda.connector.http.client.authentication.TokenResponse;
 import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
@@ -28,7 +27,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.HexFormat;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,39 +42,32 @@ import org.slf4j.LoggerFactory;
  *
  * <ul>
  *   <li><b>Token-derived TTL</b> – When the token response contains an {@code expires_in} field,
- *       the cache entry expires at {@code expires_in - clockSkewBuffer}. This mode takes precedence
- *       when {@code expires_in} is present.
- *   <li><b>Explicit TTL</b> – A fixed duration used as fallback when {@code expires_in} is not
- *       available. Defaults to 270 seconds (accounting for a typical 300 s token lifetime).
+ *       the cache entry expires at {@code expires_in - clockSkewBuffer}.
+ *   <li><b>No caching</b> – When the token response does not contain {@code expires_in}, the token
+ *       is returned directly without being cached.
  * </ul>
  */
 public class CaffeineOAuthTokenCache implements OAuthTokenCache {
-
-  /** Default explicit TTL when no {@code expires_in} is present in the token response. */
-  static final Duration DEFAULT_EXPLICIT_TTL = Duration.ofSeconds(270);
 
   /** Default clock-skew buffer subtracted from the token-derived TTL. */
   static final Duration DEFAULT_CLOCK_SKEW_BUFFER = Duration.ofSeconds(10);
 
   private static final Logger LOG = LoggerFactory.getLogger(CaffeineOAuthTokenCache.class);
 
-  private final Duration explicitTtl;
   private final Duration clockSkewBuffer;
   private final Cache<String, CaffeineCacheToken> cache;
 
   /** Creates a cache with default TTL settings. */
   public CaffeineOAuthTokenCache() {
-    this(DEFAULT_EXPLICIT_TTL, DEFAULT_CLOCK_SKEW_BUFFER);
+    this(DEFAULT_CLOCK_SKEW_BUFFER);
   }
 
   /**
    * Creates a cache with custom TTL settings. Intended for testing.
    *
-   * @param explicitTtl the fallback TTL when no {@code expires_in} is present
    * @param clockSkewBuffer the buffer subtracted from token-derived TTL
    */
-  public CaffeineOAuthTokenCache(Duration explicitTtl, Duration clockSkewBuffer) {
-    this.explicitTtl = explicitTtl;
+  public CaffeineOAuthTokenCache(Duration clockSkewBuffer) {
     this.clockSkewBuffer = clockSkewBuffer;
     this.cache =
         Caffeine.newBuilder()
@@ -88,17 +79,14 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
   /**
    * Creates a new instance with the given TTL settings. {@code null} values fall back to defaults.
    *
-   * @param explicitTtl the fallback TTL when no {@code expires_in} is present, or {@code null} for
-   *     default
    * @param clockSkewBuffer the buffer subtracted from token-derived TTL, or {@code null} for
    *     default
    * @return a new cache instance
    */
-  public static CaffeineOAuthTokenCache initialize(Duration explicitTtl, Duration clockSkewBuffer) {
-    var ttl = explicitTtl != null ? explicitTtl : DEFAULT_EXPLICIT_TTL;
+  public static CaffeineOAuthTokenCache initialize(Duration clockSkewBuffer) {
     var skew = clockSkewBuffer != null ? clockSkewBuffer : DEFAULT_CLOCK_SKEW_BUFFER;
-    LOG.info("Creating CaffeineOAuthTokenCache (ttl={}, skewBuffer={})", ttl, skew);
-    return new CaffeineOAuthTokenCache(ttl, skew);
+    LOG.info("Creating CaffeineOAuthTokenCache (skewBuffer={})", skew);
+    return new CaffeineOAuthTokenCache(skew);
   }
 
   /**
@@ -131,22 +119,29 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
   }
 
   @Override
-  public CachedTokenResponse getOrFetch(
-      OAuthAuthentication auth, Supplier<TokenResponse> tokenSupplier) {
+  public String getOrFetch(OAuthAuthentication auth, Supplier<TokenResponse> tokenSupplier) {
     String cacheKey = computeCacheKey(auth);
-    AtomicBoolean wasCached = new AtomicBoolean(true);
-    CaffeineCacheToken token =
-        cache.get(
-            cacheKey,
-            k -> {
-              wasCached.set(false);
-              LOG.debug("OAuth token cache miss, fetching new token");
-              TokenResponse response = tokenSupplier.get();
-              long ttlNanos = computeTtlNanos(response);
-              return new CaffeineCacheToken(response.accessToken(), ttlNanos);
-            });
-    if (wasCached.get()) LOG.debug("OAuth token cache hit");
-    return new CachedTokenResponse(token.accessToken(), wasCached.get());
+
+    // Check cache first
+    CaffeineCacheToken cached = cache.getIfPresent(cacheKey);
+    if (cached != null) {
+      LOG.debug("OAuth token cache hit");
+      return cached.accessToken();
+    }
+
+    // Cache miss – fetch a new token
+    LOG.debug("OAuth token cache miss, fetching new token");
+    TokenResponse response = tokenSupplier.get();
+
+    if (response.expiresInSeconds().isEmpty()) {
+      LOG.debug("No expires_in in token response, token will not be cached");
+      return response.accessToken();
+    }
+
+    long ttlNanos = computeTtlNanos(response);
+    CaffeineCacheToken entry = new CaffeineCacheToken(response.accessToken(), ttlNanos);
+    cache.put(cacheKey, entry);
+    return response.accessToken();
   }
 
   @Override
@@ -163,20 +158,14 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
   }
 
   private long computeTtlNanos(TokenResponse response) {
-    Duration ttl;
-    if (response.expiresInSeconds().isPresent()) {
-      long expiresIn = response.expiresInSeconds().getAsLong();
-      Duration tokenDerived = Duration.ofSeconds(expiresIn).minus(clockSkewBuffer);
-      ttl = tokenDerived.isPositive() ? tokenDerived : Duration.ZERO;
-      LOG.debug(
-          "Using token-derived TTL: {} seconds (expires_in={}, clockSkewBuffer={})",
-          ttl.toSeconds(),
-          expiresIn,
-          clockSkewBuffer.toSeconds());
-    } else {
-      ttl = explicitTtl;
-      LOG.debug("No expires_in in token response, using explicit TTL: {} seconds", ttl.toSeconds());
-    }
+    long expiresIn = response.expiresInSeconds().getAsLong();
+    Duration tokenDerived = Duration.ofSeconds(expiresIn).minus(clockSkewBuffer);
+    Duration ttl = tokenDerived.isPositive() ? tokenDerived : Duration.ZERO;
+    LOG.debug(
+        "Using token-derived TTL: {} seconds (expires_in={}, clockSkewBuffer={})",
+        ttl.toSeconds(),
+        expiresIn,
+        clockSkewBuffer.toSeconds());
     return ttl.toNanos();
   }
 }

@@ -19,12 +19,10 @@ package io.camunda.connector.http.client.client.apache;
 import io.camunda.connector.http.client.client.RequestFactory;
 import io.camunda.connector.http.client.client.apache.builder.ApacheRequestBuilder;
 import io.camunda.connector.http.client.model.HttpClientRequest;
+import org.apache.hc.core5.http.ClassicHttpRequest;
 
-/**
- * Maps a {@link HttpClientRequest}(element template model) to a {@link
- * ContextualizedClassicHttpRequest}.
- */
-public class ApacheRequestFactory implements RequestFactory<ContextualizedClassicHttpRequest> {
+/** Maps a {@link HttpClientRequest}(element template model) to a {@link HttpClientRequest}. */
+public class ApacheRequestFactory implements RequestFactory<ClassicHttpRequest> {
   private static final ApacheRequestFactory INSTANCE = new ApacheRequestFactory();
 
   private ApacheRequestFactory() {}
@@ -34,7 +32,7 @@ public class ApacheRequestFactory implements RequestFactory<ContextualizedClassi
   }
 
   @Override
-  public ContextualizedClassicHttpRequest createHttpRequest(HttpClientRequest request) {
+  public ClassicHttpRequest createHttpRequest(HttpClientRequest request) {
     return ApacheRequestBuilder.create().build(request);
   }
 }

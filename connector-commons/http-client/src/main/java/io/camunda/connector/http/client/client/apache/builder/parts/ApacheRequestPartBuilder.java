@@ -16,15 +16,15 @@
  */
 package io.camunda.connector.http.client.client.apache.builder.parts;
 
-import io.camunda.connector.http.client.client.apache.ContextualizedClassicRequestBuilder;
 import io.camunda.connector.http.client.model.HttpClientRequest;
+import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 
 /**
- * Maps a part of a {@link HttpClientRequest} to a {@link ContextualizedClassicRequestBuilder}. Each
- * part of the request is mapped by a different builder, for example the request body, the URI, the
+ * Maps a part of a {@link HttpClientRequest} to an Apache {@link ClassicRequestBuilder}. Each part
+ * of the request is mapped by a different builder, for example the request body, the URI, the
  * authentication, etc.
  */
 public interface ApacheRequestPartBuilder {
 
-  void build(ContextualizedClassicRequestBuilder builder, HttpClientRequest request);
+  void build(ClassicRequestBuilder builder, HttpClientRequest request);
 }

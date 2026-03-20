@@ -19,19 +19,11 @@ package io.camunda.connector.http.client.client.apache.builder.parts;
 import static org.apache.hc.core5.http.HttpHeaders.AUTHORIZATION;
 
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.http.client.authentication.Base64Helper;
-import io.camunda.connector.http.client.authentication.OAuthService;
-import io.camunda.connector.http.client.authentication.OAuthTokenCache;
-import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
-import io.camunda.connector.http.client.authentication.TokenResponse;
-import io.camunda.connector.http.client.client.apache.ContextualizedClassicRequestBuilder;
+import io.camunda.connector.http.client.authentication.*;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.client.model.HttpClientRequest;
-import io.camunda.connector.http.client.model.auth.ApiKeyAuthentication;
-import io.camunda.connector.http.client.model.auth.BasicAuthentication;
-import io.camunda.connector.http.client.model.auth.BearerAuthentication;
-import io.camunda.connector.http.client.model.auth.NoAuthentication;
-import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
+import io.camunda.connector.http.client.model.auth.*;
+import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 
 public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuilder {
 
@@ -50,28 +42,25 @@ public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuil
   }
 
   @Override
-  public void build(ContextualizedClassicRequestBuilder builder, HttpClientRequest request) {
+  public void build(ClassicRequestBuilder builder, HttpClientRequest request) {
     if (request.hasAuthentication()) {
-      var delegate = builder.getDelegate();
       switch (request.getAuthentication()) {
         case NoAuthentication ignored -> {}
         case BasicAuthentication auth ->
-            delegate.addHeader(
+            builder.addHeader(
                 AUTHORIZATION,
                 Base64Helper.buildBasicAuthenticationHeader(auth.username(), auth.password()));
         case OAuthAuthentication auth -> {
-          var cachedTokenResponse = tokenCache.getOrFetch(auth, () -> fetchOAuthToken(auth));
-          builder.setWasTokenCached(cachedTokenResponse.wasCached());
-          builder.setRevokeTokenCallback(() -> tokenCache.invalidate(auth));
-          delegate.addHeader(AUTHORIZATION, String.format(BEARER, cachedTokenResponse.token()));
+          var token = tokenCache.getOrFetch(auth, () -> fetchOAuthToken(auth));
+          builder.addHeader(AUTHORIZATION, String.format(BEARER, token));
         }
         case BearerAuthentication auth ->
-            delegate.addHeader(AUTHORIZATION, String.format(BEARER, auth.token()));
+            builder.addHeader(AUTHORIZATION, String.format(BEARER, auth.token()));
         case ApiKeyAuthentication auth -> {
           if (auth.isQueryLocationApiKeyAuthentication()) {
-            delegate.addParameter(auth.name(), auth.value());
+            builder.addParameter(auth.name(), auth.value());
           } else {
-            delegate.addHeader(auth.name(), auth.value());
+            builder.addHeader(auth.name(), auth.value());
           }
         }
         default ->

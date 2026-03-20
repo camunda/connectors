@@ -81,10 +81,8 @@ public record ConnectorProperties(
   /**
    * Configuration for the OAuth token cache.
    *
-   * @param ttl Fallback TTL when the token response does not include {@code expires_in}. Default is
-   *     270 seconds.
    * @param skewBuffer Buffer subtracted from the token-derived TTL to account for clock skew.
    *     Default is 10 seconds.
    */
-  public record OAuthCache(Duration ttl, Duration skewBuffer) {}
+  public record OAuthCache(Duration skewBuffer) {}
 }

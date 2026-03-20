@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.http.client.client.apache.builder;
 
-import io.camunda.connector.http.client.client.apache.ContextualizedClassicHttpRequest;
-import io.camunda.connector.http.client.client.apache.ContextualizedClassicRequestBuilder;
 import io.camunda.connector.http.client.client.apache.builder.parts.ApacheRequestAuthenticationBuilder;
 import io.camunda.connector.http.client.client.apache.builder.parts.ApacheRequestBodyBuilder;
 import io.camunda.connector.http.client.client.apache.builder.parts.ApacheRequestHeadersBuilder;
@@ -27,22 +25,15 @@ import io.camunda.connector.http.client.client.apache.builder.parts.ApacheReques
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 
 /**
- * Builds an Apache {@link ContextualizedClassicHttpRequest} from a {@link HttpClientRequest} using
- * the composite builder pattern.
+ * Builder for Apache {@link ClassicHttpRequest}.
  *
- * <p>This builder delegates the construction of individual request concerns (URI, headers, body,
- * authentication, and query parameters) to a set of {@link ApacheRequestPartBuilder} instances.
- * Each part builder is responsible for configuring a specific aspect of the outgoing HTTP request.
- *
- * <p>Use {@link #create()} to obtain a pre-configured instance with the default part builders, or
- * construct an instance directly with a custom list of part builders for advanced use cases.
- *
- * @see ApacheRequestPartBuilder
- * @see ContextualizedClassicHttpRequest
- * @see HttpClientRequest
+ * <p>Follows the composite builder pattern to create a {@link ClassicHttpRequest} from a {@link
+ * HttpClientRequest}. The builder is composed of multiple {@link ApacheRequestPartBuilder}s that
+ * are responsible for building different parts of the request.
  */
 public class ApacheRequestBuilder {
   private final List<ApacheRequestPartBuilder> builders = new ArrayList<>();
@@ -74,10 +65,8 @@ public class ApacheRequestBuilder {
             new ApacheRequestQueryParametersBuilder()));
   }
 
-  public ContextualizedClassicHttpRequest build(HttpClientRequest request) {
-    ContextualizedClassicRequestBuilder requestBuilder =
-        new ContextualizedClassicRequestBuilder(
-            ClassicRequestBuilder.create(request.getMethod().name()));
+  public ClassicHttpRequest build(HttpClientRequest request) {
+    ClassicRequestBuilder requestBuilder = ClassicRequestBuilder.create(request.getMethod().name());
     for (ApacheRequestPartBuilder b : builders) {
       b.build(requestBuilder, request);
     }

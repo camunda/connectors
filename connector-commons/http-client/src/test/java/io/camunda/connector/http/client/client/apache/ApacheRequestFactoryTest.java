@@ -68,8 +68,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getHeader(HttpHeaders.AUTHORIZATION)).isNull();
@@ -84,8 +83,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getHeader(HttpHeaders.AUTHORIZATION).getValue())
@@ -101,8 +99,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getHeader(HttpHeaders.AUTHORIZATION).getValue())
@@ -127,8 +124,7 @@ public class ApacheRequestFactoryTest {
                   when(mock.execute(any(HttpClientRequest.class), any(ResponseMapper.class)))
                       .thenReturn(response))) {
         // when
-        ClassicHttpRequest httpRequest =
-            ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+        ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
         // then
         assertThat(httpRequest.getHeader(HttpHeaders.AUTHORIZATION).getValue())
@@ -145,8 +141,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getHeader("name").getValue()).isEqualTo("value");
@@ -161,8 +156,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getHeader("name")).isNull();
@@ -181,8 +175,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getUri().getQuery()).isNull();
@@ -197,8 +190,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getUri().getQuery()).isEqualTo("key=value");
@@ -213,8 +205,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getUri().getQuery()).contains("key=value");
@@ -234,8 +225,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("http://localhost:8080");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getUri().toString()).isEqualTo("http://localhost:8080/");
@@ -250,8 +240,7 @@ public class ApacheRequestFactoryTest {
       request.setQueryParameters(Map.of("key", "value"));
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getUri().toString()).isEqualTo("http://localhost:8080/?key=value");
@@ -265,8 +254,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("http://localhost:8080/path?key=value");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getUri().toString()).isEqualTo("http://localhost:8080/path?key=value");
@@ -338,8 +326,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getEntity()).isNull();
@@ -354,8 +341,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getEntity()).isNotNull();
@@ -380,8 +366,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getEntity()).isNotNull();
@@ -406,8 +391,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getEntity()).isNotNull();
@@ -433,8 +417,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getEntity()).isNotNull();
@@ -464,8 +447,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getEntity()).isNotNull();
@@ -500,8 +482,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getEntity()).isNotNull();
@@ -530,8 +511,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getEntity()).isNotNull();
@@ -559,8 +539,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getEntity()).isNotNull();
@@ -590,8 +569,7 @@ public class ApacheRequestFactoryTest {
       request.setHeaders(headers);
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       if (method.supportsBody) {
@@ -612,8 +590,7 @@ public class ApacheRequestFactoryTest {
       request.setBody(Map.of("key", "value"));
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       Header headers = httpRequest.getHeader(HttpHeaders.CONTENT_TYPE);
@@ -631,8 +608,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       Header headers = httpRequest.getHeader(HttpHeaders.CONTENT_TYPE);
@@ -651,8 +627,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       assertThat(httpRequest.getHeaders().length).isEqualTo(2);
@@ -670,8 +645,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       Header headers = httpRequest.getHeader(HttpHeaders.CONTENT_TYPE);
@@ -687,8 +661,7 @@ public class ApacheRequestFactoryTest {
       request.setUrl("theurl");
 
       // when
-      ClassicHttpRequest httpRequest =
-          ApacheRequestFactory.get().createHttpRequest(request).getRequest();
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
       Header headers = httpRequest.getHeader(HttpHeaders.CONTENT_TYPE);
