@@ -69,9 +69,4 @@ public final class OAuthTokenCacheHolder {
     }
     return cache;
   }
-
-  /** Resets the holder to its uninitialized state. Intended for testing only. */
-  static void reset() {
-    instance = null;
-  }
 }

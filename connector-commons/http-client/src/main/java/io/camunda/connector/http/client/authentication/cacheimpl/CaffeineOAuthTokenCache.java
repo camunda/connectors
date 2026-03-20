@@ -26,6 +26,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.HexFormat;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +54,8 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
   static final Duration DEFAULT_CLOCK_SKEW_BUFFER = Duration.ofSeconds(10);
 
   private static final Logger LOG = LoggerFactory.getLogger(CaffeineOAuthTokenCache.class);
+  private static final ThreadLocal<MessageDigest> SHA_256_DIGEST =
+      ThreadLocal.withInitial(CaffeineOAuthTokenCache::createSha256Digest);
 
   private final Duration clockSkewBuffer;
   private final Cache<String, CaffeineCacheToken> cache;
@@ -96,50 +100,58 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
     String raw =
         String.join(
             "\0",
-            nullSafe(auth.oauthTokenEndpoint()),
-            nullSafe(auth.clientId()),
-            nullSafe(auth.clientSecret()),
-            nullSafe(auth.audience()),
-            nullSafe(auth.scopes()),
-            nullSafe(auth.clientAuthentication()));
+            Objects.requireNonNullElse(auth.oauthTokenEndpoint(), ""),
+            Objects.requireNonNullElse(auth.clientId(), ""),
+            Objects.requireNonNullElse(auth.clientSecret(), ""),
+            Objects.requireNonNullElse(auth.audience(), ""),
+            Objects.requireNonNullElse(auth.scopes(), ""),
+            Objects.requireNonNullElse(auth.clientAuthentication(), ""));
+
+    MessageDigest digest = SHA_256_DIGEST.get();
+    digest.reset();
+    byte[] hash = digest.digest(raw.getBytes(StandardCharsets.UTF_8));
+    return HexFormat.of().formatHex(hash);
+  }
+
+  private static MessageDigest createSha256Digest() {
     try {
-      MessageDigest digest = MessageDigest.getInstance("SHA-256");
-      byte[] hash = digest.digest(raw.getBytes(StandardCharsets.UTF_8));
-      return HexFormat.of().formatHex(hash);
+      return MessageDigest.getInstance("SHA-256");
     } catch (NoSuchAlgorithmException e) {
       // SHA-256 is required by the Java spec, so this should never happen
       throw new IllegalStateException("SHA-256 algorithm not available", e);
     }
   }
 
-  private static String nullSafe(String value) {
-    return value == null ? "" : value;
-  }
-
   @Override
   public String getOrFetch(OAuthAuthentication auth, Supplier<TokenResponse> tokenSupplier) {
     String cacheKey = computeCacheKey(auth);
 
-    // Check cache first
-    CaffeineCacheToken cached = cache.getIfPresent(cacheKey);
-    if (cached != null) {
+    AtomicReference<String> uncachedToken = new AtomicReference<>();
+
+    CaffeineCacheToken entry =
+        cache.get(
+            cacheKey,
+            k -> {
+              LOG.debug("OAuth token cache miss, fetching new token");
+              TokenResponse response = tokenSupplier.get();
+              if (response.expiresInSeconds().isEmpty()) {
+                LOG.debug("No expires_in in token response, token will not be cached");
+                uncachedToken.set(response.accessToken());
+                return null; // Caffeine will not cache a null mapping
+              } else {
+                return new CaffeineCacheToken(
+                    response.accessToken(),
+                    computeTtlNanos(response.expiresInSeconds().getAsLong()));
+              }
+            });
+
+    if (entry != null) {
       LOG.debug("OAuth token cache hit");
-      return cached.accessToken();
+      return entry.accessToken();
     }
 
-    // Cache miss – fetch a new token
-    LOG.debug("OAuth token cache miss, fetching new token");
-    TokenResponse response = tokenSupplier.get();
-
-    if (response.expiresInSeconds().isEmpty()) {
-      LOG.debug("No expires_in in token response, token will not be cached");
-      return response.accessToken();
-    }
-
-    long ttlNanos = computeTtlNanos(response);
-    CaffeineCacheToken entry = new CaffeineCacheToken(response.accessToken(), ttlNanos);
-    cache.put(cacheKey, entry);
-    return response.accessToken();
+    // Mapping returned null → token was fetched but not cached (no expires_in)
+    return uncachedToken.get();
   }
 
   @Override
@@ -155,8 +167,7 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
     LOG.debug("OAuth token cache fully cleared");
   }
 
-  private long computeTtlNanos(TokenResponse response) {
-    long expiresIn = response.expiresInSeconds().getAsLong();
+  private long computeTtlNanos(long expiresIn) {
     Duration tokenDerived = Duration.ofSeconds(expiresIn).minus(clockSkewBuffer);
     Duration ttl = tokenDerived.isPositive() ? tokenDerived : Duration.ZERO;
     LOG.debug(
