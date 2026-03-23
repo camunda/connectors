@@ -1,56 +1,54 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "HTTP Polling Intermediate Catch Event Connector",
-  "id" : "io.camunda.connectors.http.Polling",
-  "description" : "Polls endpoint at regular intervals",
+  "name" : "REST Outbound Connector",
+  "id" : "io.camunda.connectors.HttpJson.v2",
+  "description" : "Invoke REST API",
   "metadata" : {
     "keywords" : [ ]
   },
-  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/polling/",
-  "version" : 5,
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
+  "version" : 12,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent" ],
+  "appliesTo" : [ "bpmn:Task" ],
   "elementType" : {
-    "value" : "bpmn:IntermediateCatchEvent",
-    "eventDefinition" : "bpmn:MessageEventDefinition"
+    "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.9"
+    "camunda" : "^8.3"
   },
   "groups" : [ {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
     "id" : "endpoint",
-    "label" : "HTTP Polling configuration"
-  }, {
-    "id" : "payload",
-    "label" : "Payload"
-  }, {
-    "id" : "interval",
-    "label" : "HTTP Polling Interval"
+    "label" : "HTTP endpoint"
   }, {
     "id" : "timeout",
     "label" : "Connection timeout"
   }, {
-    "id" : "activation",
-    "label" : "Activation"
+    "id" : "payload",
+    "label" : "Payload"
   }, {
-    "id" : "correlation",
-    "label" : "Correlation",
-    "tooltip" : "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>."
+    "id" : "connector",
+    "label" : "Connector"
   }, {
     "id" : "output",
     "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
   } ],
   "properties" : [ {
-    "value" : "io.camunda:http-polling:1",
+    "value" : "io.camunda:http-json:1",
     "binding" : {
-      "name" : "inbound.type",
-      "type" : "zeebe:property"
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
     },
     "type" : "Hidden"
   }, {
@@ -61,7 +59,7 @@
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.type",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -92,7 +90,7 @@
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.apiKeyLocation",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "authentication.type",
@@ -114,10 +112,11 @@
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.name",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "authentication.type",
@@ -132,10 +131,11 @@
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.value",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "authentication.type",
@@ -150,10 +150,11 @@
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.username",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "authentication.type",
@@ -168,10 +169,11 @@
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.password",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "authentication.type",
@@ -186,10 +188,11 @@
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.token",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "authentication.type",
@@ -209,10 +212,11 @@
         "message" : "Must be a http(s) URL"
       }
     },
+    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.oauthTokenEndpoint",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "authentication.type",
@@ -228,10 +232,11 @@
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.clientId",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "authentication.type",
@@ -247,10 +252,11 @@
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.clientSecret",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "authentication.type",
@@ -263,10 +269,11 @@
     "label" : "Audience",
     "description" : "The unique identifier of the target API you want to access",
     "optional" : true,
+    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.audience",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "authentication.type",
@@ -285,7 +292,7 @@
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.clientAuthentication",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "authentication.type",
@@ -305,10 +312,11 @@
     "label" : "Scopes",
     "description" : "The scopes which you want to request authorization for (e.g.read:contacts)",
     "optional" : true,
+    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.scopes",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "authentication.type",
@@ -327,7 +335,7 @@
     "group" : "endpoint",
     "binding" : {
       "name" : "method",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -361,19 +369,7 @@
     "group" : "endpoint",
     "binding" : {
       "name" : "url",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "queryParameters",
-    "label" : "Query parameters",
-    "description" : "Map of query parameters to add to the request URL",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "endpoint",
-    "binding" : {
-      "name" : "queryParameters",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "type" : "String"
   }, {
@@ -385,9 +381,34 @@
     "group" : "endpoint",
     "binding" : {
       "name" : "headers",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "type" : "String"
+  }, {
+    "id" : "queryParameters",
+    "label" : "Query parameters",
+    "description" : "Map of query parameters to add to the request URL",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "endpoint",
+    "binding" : {
+      "name" : "queryParameters",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "storeResponse",
+    "label" : "Store response",
+    "description" : "Store the response as a document in the document store",
+    "optional" : false,
+    "value" : false,
+    "feel" : "static",
+    "group" : "endpoint",
+    "binding" : {
+      "name" : "storeResponse",
+      "type" : "zeebe:input"
+    },
+    "type" : "Boolean"
   }, {
     "id" : "skipEncoding",
     "label" : "Skip URL encoding",
@@ -396,22 +417,62 @@
     "group" : "endpoint",
     "binding" : {
       "name" : "skipEncoding",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "type" : "Hidden"
   }, {
     "id" : "followRedirects",
     "label" : "Follow redirects",
     "description" : "If enabled, HTTP 3xx redirects will be followed automatically. Disabled by default.",
-    "optional" : true,
+    "optional" : false,
     "value" : false,
     "feel" : "static",
     "group" : "endpoint",
     "binding" : {
       "name" : "followRedirects",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "type" : "Boolean"
+  }, {
+    "id" : "connectionTimeoutInSeconds",
+    "label" : "Connection timeout in seconds",
+    "description" : "Defines the connection timeout in seconds, or 0 for an infinite timeout",
+    "optional" : false,
+    "value" : 20,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^\\d+$",
+        "message" : "Must be a number"
+      }
+    },
+    "feel" : "static",
+    "group" : "timeout",
+    "binding" : {
+      "name" : "connectionTimeoutInSeconds",
+      "type" : "zeebe:input"
+    },
+    "type" : "Number"
+  }, {
+    "id" : "readTimeoutInSeconds",
+    "label" : "Read timeout in seconds",
+    "description" : "Timeout in seconds to read data from an established connection or 0 for an infinite timeout",
+    "optional" : false,
+    "value" : 20,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^\\d+$",
+        "message" : "Must be a number"
+      }
+    },
+    "feel" : "static",
+    "group" : "timeout",
+    "binding" : {
+      "name" : "readTimeoutInSeconds",
+      "type" : "zeebe:input"
+    },
+    "type" : "Number"
   }, {
     "id" : "body",
     "label" : "Request body",
@@ -421,7 +482,7 @@
     "group" : "payload",
     "binding" : {
       "name" : "body",
-      "type" : "zeebe:property"
+      "type" : "zeebe:input"
     },
     "condition" : {
       "property" : "method",
@@ -430,150 +491,43 @@
     },
     "type" : "Text"
   }, {
-    "id" : "httpRequestInterval",
-    "label" : "Http request interval",
-    "description" : "The delay between HTTP requests, defined as ISO 8601 durations format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
+    "id" : "ignoreNullValues",
+    "label" : "Ignore null values",
     "optional" : false,
-    "value" : "PT50S",
-    "feel" : "optional",
-    "group" : "interval",
+    "value" : false,
+    "feel" : "static",
+    "group" : "payload",
     "binding" : {
-      "name" : "httpRequestInterval",
-      "type" : "zeebe:property"
+      "name" : "ignoreNullValues",
+      "type" : "zeebe:input"
     },
-    "type" : "String"
+    "condition" : {
+      "property" : "method",
+      "oneOf" : [ "POST", "PUT", "PATCH" ],
+      "type" : "simple"
+    },
+    "tooltip" : "Null values will not be sent",
+    "type" : "Boolean"
   }, {
-    "id" : "processPollingInterval",
-    "label" : "Process polling interval",
-    "optional" : false,
-    "value" : "PT5S",
-    "group" : "interval",
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "12",
+    "group" : "connector",
     "binding" : {
-      "name" : "processPollingInterval",
-      "type" : "zeebe:property"
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
     },
     "type" : "Hidden"
   }, {
-    "id" : "connectionTimeoutInSeconds",
-    "label" : "Connection timeout in seconds",
-    "description" : "Defines the connection timeout in seconds, or 0 for an infinite timeout",
-    "optional" : false,
-    "value" : "20",
-    "constraints" : {
-      "notEmpty" : true,
-      "pattern" : {
-        "value" : "^\\d+$",
-        "message" : "Must be a number"
-      }
-    },
-    "feel" : "optional",
-    "group" : "timeout",
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.HttpJson.v2",
+    "group" : "connector",
     "binding" : {
-      "name" : "connectionTimeoutInSeconds",
-      "type" : "zeebe:property"
-    },
-    "tooltip" : "Set the timeout in seconds to establish a connection or 0 for an infinite timeout",
-    "type" : "String"
-  }, {
-    "id" : "readTimeoutInSeconds",
-    "label" : "Read timeout in seconds",
-    "description" : "Timeout in seconds to read data from an established connection or 0 for an infinite timeout",
-    "optional" : false,
-    "value" : "20",
-    "constraints" : {
-      "notEmpty" : true,
-      "pattern" : {
-        "value" : "^\\d+$",
-        "message" : "Must be a number"
-      }
-    },
-    "feel" : "optional",
-    "group" : "timeout",
-    "binding" : {
-      "name" : "readTimeoutInSeconds",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "activationCondition",
-    "label" : "Activation condition",
-    "description" : "Condition under which the Connector triggers. Leave empty to catch all events",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "activation",
-    "binding" : {
-      "name" : "activationCondition",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "correlationKeyProcess",
-    "label" : "Correlation key (process)",
-    "description" : "Sets up the correlation key from process variables",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "correlation",
-    "binding" : {
-      "name" : "correlationKey",
-      "type" : "bpmn:Message#zeebe:subscription#property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "correlationKeyPayload",
-    "label" : "Correlation key (payload)",
-    "description" : "Extracts the correlation key from the incoming message payload",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "correlation",
-    "binding" : {
-      "name" : "correlationKeyExpression",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "messageIdExpression",
-    "label" : "Message ID expression",
-    "description" : "Expression to extract unique identifier of a message",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "correlation",
-    "binding" : {
-      "name" : "messageIdExpression",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "messageTtl",
-    "label" : "Message TTL",
-    "description" : "Time-to-live for the message in the broker (ISO-8601 duration)",
-    "optional" : true,
-    "constraints" : {
-      "notEmpty" : false,
-      "pattern" : {
-        "value" : "^(PT.*|)$",
-        "message" : "must be an ISO-8601 duration"
-      }
-    },
-    "feel" : "optional",
-    "group" : "correlation",
-    "binding" : {
-      "name" : "messageTtl",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "messageNameUuid",
-    "generatedValue" : {
-      "type" : "uuid"
-    },
-    "group" : "correlation",
-    "binding" : {
-      "name" : "name",
-      "type" : "bpmn:Message#property"
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
     },
     "type" : "Hidden"
   }, {
@@ -582,8 +536,8 @@
     "description" : "Name of variable to store the response in",
     "group" : "output",
     "binding" : {
-      "name" : "resultVariable",
-      "type" : "zeebe:property"
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
     },
     "type" : "String"
   }, {
@@ -593,12 +547,46 @@
     "feel" : "required",
     "group" : "output",
     "binding" : {
-      "name" : "resultExpression",
-      "type" : "zeebe:property"
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
     },
     "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
   } ],
   "icon" : {
-    "contents" : "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0nMS4wJz8+Cjxzdmcgd2lkdGg9JzE4JyBoZWlnaHQ9JzE4JyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnPgogICAgPGcgY2xhc3M9J2xheWVyJz4KICAgICAgICA8dGl0bGU+TGF5ZXIgMTwvdGl0bGU+CiAgICAgICAgPHBhdGggZD0nbTE3LjAzLDljMCw0LjQ1IC0zLjYsOC4wNSAtOC4wNSw4LjA1Yy00LjQ1LDAgLTguMDUsLTMuNiAtOC4wNSwtOC4wNWMwLC00LjQ1IDMuNiwtOC4wNSA4LjA1LC04LjA1YzQuNDUsMCA4LjA1LDMuNiA4LjA1LDguMDV6JwogICAgICAgICAgICAgIGZpbGw9JyM1MDU1NjInIGlkPSdzdmdfMScvPgogICAgICAgIDxwYXRoIGQ9J200LjkzLDE0LjE2bDEuODUsLTEwLjQ1bDMuMzYsMGMxLjA1LDAgMS44NCwwLjI3IDIuMzcsMC44MWMwLjU0LDAuNTMgMC44LDEuMjEgMC44LDIuMDZjMCwwLjg2IC0wLjI0LDEuNTggLTAuNzMsMi4xM2MtMC40NywwLjU1IC0xLjEyLDAuOTMgLTEuOTUsMS4xNGwtMC40OCwwLjA5bC0wLjUzLDAuMDNsLTAuNiwwLjA1bC0xLjc5LDBsLTAuNzMsNC4xNGwtMS41OCwwem0yLjU3LC01LjU3bDEuNzQsMGMwLjc2LDAgMS4zNSwtMC4xNyAxLjc4LC0wLjVjMC40NCwtMC4zNSAwLjY1LC0wLjgyIDAuNjUsLTEuNDJjMCwtMC40OCAtMC4xNSwtMC44NSAtMC40NCwtMS4xMmMtMC4zLC0wLjI4IC0wLjc3LC0wLjQyIC0xLjQyLC0wLjQybC0xLjcsMGwtMC42MSwzLjQ2eicKICAgICAgICAgICAgICBmaWxsPSd3aGl0ZScgaWQ9J3N2Z18yJy8+CiAgICA8L2c+Cjwvc3ZnPg=="
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4NCjxwYXRoIGQ9Ik0xNy4wMzM1IDguOTk5OTdDMTcuMDMzNSAxMy40NDc1IDEzLjQyODEgMTcuMDUyOSA4Ljk4MDY1IDE3LjA1MjlDNC41MzMxNiAxNy4wNTI5IDAuOTI3NzY1IDEzLjQ0NzUgMC45Mjc3NjUgOC45OTk5N0MwLjkyNzc2NSA0LjU1MjQ4IDQuNTMzMTYgMC45NDcwODMgOC45ODA2NSAwLjk0NzA4M0MxMy40MjgxIDAuOTQ3MDgzIDE3LjAzMzUgNC41NTI0OCAxNy4wMzM1IDguOTk5OTdaIiBmaWxsPSIjNTA1NTYyIi8+DQo8cGF0aCBkPSJNNC45MzEyNiAxNC4xNTcxTDYuNzgxMDYgMy43MTQ3MUgxMC4xMzc1QzExLjE5MTcgMy43MTQ3MSAxMS45ODI0IDMuOTgzMjMgMTIuNTA5NSA0LjUyMDI3QzEzLjA0NjUgNS4wNDczNiAxMy4zMTUgNS43MzM1OCAxMy4zMTUgNi41Nzg5MkMxMy4zMTUgNy40NDQxNCAxMy4wNzE0IDguMTU1MjIgMTIuNTg0MSA4LjcxMjE1QzEyLjEwNjcgOS4yNTkxMyAxMS40NTUzIDkuNjM3MDUgMTAuNjI5OCA5Ljg0NTlMMTIuMDYxOSAxNC4xNTcxSDEwLjMzMTVMOS4wMzM2NCAxMC4wMjQ5SDcuMjQzNTFMNi41MTI1NCAxNC4xNTcxSDQuOTMxMjZaTTcuNDk3MTEgOC41OTI4MUg5LjI0MjQ4QzkuOTk4MzIgOC41OTI4MSAxMC41OTAxIDguNDIzNzQgMTEuMDE3NyA4LjA4NTYxQzExLjQ1NTMgNy43Mzc1MyAxMS42NzQxIDcuMjY1MTMgMTEuNjc0MSA2LjY2ODQyQzExLjY3NDEgNi4xOTEwNiAxMS41MjQ5IDUuODE4MTEgMTEuMjI2NSA1LjU0OTU5QzEwLjkyODIgNS4yNzExMyAxMC40NTU4IDUuMTMxOSA5LjgwOTM2IDUuMTMxOUg4LjEwODc0TDcuNDk3MTEgOC41OTI4MVoiIGZpbGw9IndoaXRlIi8+DQo8L3N2Zz4NCg=="
   }
 }
