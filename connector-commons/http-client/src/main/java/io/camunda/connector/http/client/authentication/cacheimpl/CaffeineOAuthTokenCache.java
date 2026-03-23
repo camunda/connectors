@@ -75,6 +75,7 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
     this.cache =
         Caffeine.newBuilder()
             .maximumSize(1000)
+            .recordStats()
             .expireAfter(new CaffeineOauthExpiryStrategy())
             .build();
   }
@@ -165,6 +166,17 @@ public class CaffeineOAuthTokenCache implements OAuthTokenCache {
   public void invalidateAll() {
     cache.invalidateAll();
     LOG.debug("OAuth token cache fully cleared");
+  }
+
+  @Override
+  public Stats getStats() {
+    var stats = cache.stats();
+    return new Stats(
+        cache.estimatedSize(),
+        stats.hitCount(),
+        stats.missCount(),
+        stats.hitRate(),
+        stats.evictionCount());
   }
 
   private long computeTtlNanos(long expiresIn) {

@@ -26,6 +26,9 @@ import java.util.function.Supplier;
  */
 public interface OAuthTokenCache {
 
+  record Stats(
+      long estimatedSize, long hitCount, long missCount, double hitRate, long evictionCount) {}
+
   /**
    * Returns a cached token for the given authentication configuration, or fetches a new one using
    * the provided supplier and caches it according to the configured TTL strategy.
@@ -46,4 +49,7 @@ public interface OAuthTokenCache {
 
   /** Invalidates all cached tokens. */
   void invalidateAll();
+
+  /** Returns cache statistics useful for diagnostics and observability. */
+  Stats getStats();
 }

@@ -247,4 +247,38 @@ public class CaffeineOAuthTokenCacheTest {
       assertThat(fetchCount.get()).isEqualTo(0);
     }
   }
+
+  @Nested
+  class StatsTests {
+
+    @Test
+    void shouldReportHitAndMissStats_forCachedFlow() {
+      var cache = new CaffeineOAuthTokenCache();
+      var auth = createAuth("https://token.example.com", "id1", "secret1");
+
+      cache.getOrFetch(auth, () -> new TokenResponse("token-1", 300));
+      cache.getOrFetch(auth, () -> new TokenResponse("token-2", 300));
+
+      var stats = cache.getStats();
+      assertThat(stats.missCount()).isEqualTo(1);
+      assertThat(stats.hitCount()).isEqualTo(1);
+      assertThat(stats.estimatedSize()).isEqualTo(1);
+      assertThat(stats.hitRate()).isGreaterThan(0.0);
+    }
+
+    @Test
+    void shouldReportMissesOnly_whenTokensAreNotCached() {
+      var cache = new CaffeineOAuthTokenCache();
+      var auth = createAuth("https://token.example.com", "id1", "secret1");
+
+      cache.getOrFetch(auth, () -> new TokenResponse("token-no-expiry-1"));
+      cache.getOrFetch(auth, () -> new TokenResponse("token-no-expiry-2"));
+
+      var stats = cache.getStats();
+      assertThat(stats.missCount()).isEqualTo(2);
+      assertThat(stats.hitCount()).isEqualTo(0);
+      assertThat(stats.estimatedSize()).isEqualTo(0);
+      assertThat(stats.hitRate()).isEqualTo(0.0);
+    }
+  }
 }

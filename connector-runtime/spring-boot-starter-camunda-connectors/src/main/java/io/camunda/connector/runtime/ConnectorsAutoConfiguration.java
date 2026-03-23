@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
@@ -58,6 +59,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
+import org.springframework.scheduling.annotation.Scheduled;
 
 @AutoConfiguration
 @AutoConfigureBefore({
@@ -69,6 +71,8 @@ import org.springframework.core.env.Environment;
 public class ConnectorsAutoConfiguration {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConnectorsAutoConfiguration.class);
+
+  private final ObjectProvider<OAuthTokenCache> oAuthTokenCacheProvider;
 
   @Value("${camunda.connector.secretprovider.discovery.enabled:true}")
   Boolean secretProviderLookupEnabled;
@@ -88,6 +92,10 @@ public class ConnectorsAutoConfiguration {
 
   @Value("${camunda.connector.secretprovider.console.audience:secrets.camunda.io}")
   String consoleSecretsApiAudience;
+
+  public ConnectorsAutoConfiguration(ObjectProvider<OAuthTokenCache> oAuthTokenCacheProvider) {
+    this.oAuthTokenCacheProvider = oAuthTokenCacheProvider;
+  }
 
   /**
    * Provides a {@link FeelExpressionEvaluator} unless already present in the Spring Context. When a
@@ -253,5 +261,15 @@ public class ConnectorsAutoConfiguration {
         new JacksonModuleFeelFunction(
             false, new LocalFeelExpressionEvaluator()), // FEEL annotation processing disabled
         new JacksonModuleDocumentSerializer());
+  }
+
+  @Scheduled(fixedRate = 60_000, initialDelay = 60_000)
+  public void logOAuthTokenCacheStats() {
+    if (!LOG.isDebugEnabled()) {
+      return;
+    }
+
+    OAuthTokenCache cache = oAuthTokenCacheProvider.getIfAvailable(OAuthTokenCacheHolder::get);
+    LOG.debug("OAuth token cache stats: {}", cache.getStats());
   }
 }
