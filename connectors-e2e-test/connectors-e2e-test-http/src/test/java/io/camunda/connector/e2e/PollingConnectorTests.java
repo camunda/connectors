@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.command.ProblemException;
 import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.test.utils.annotation.SlowTest;
@@ -156,20 +157,16 @@ public class PollingConnectorTests {
     Awaitility.await("cluster variable " + variableName + " should be available")
         .atMost(CLUSTER_VAR_TIMEOUT)
         .pollInterval(Duration.ofMillis(500))
-        .ignoreExceptions()
+        .ignoreExceptionsMatching(
+            e -> e instanceof ProblemException && e.getMessage().contains("404"))
         .until(
-            () -> {
-              try {
-                var result =
-                    camundaClient
+            () ->
+                camundaClient
                         .newEvaluateExpressionCommand()
                         .expression("=camunda.vars.env." + variableName)
                         .send()
-                        .join();
-                return result.getResult() != null;
-              } catch (Exception e) {
-                return false;
-              }
-            });
+                        .join()
+                        .getResult()
+                    != null);
   }
 }
