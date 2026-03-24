@@ -57,7 +57,15 @@ A **job worker** is a lower-level construct. While connectors use the job worker
 - Whether to auto-complete (`autoComplete = false`)
 - The exact `CompleteJobCommand` sent back to Zeebe, including ad-hoc sub-process control commands
 
-The AI Agent Sub-process (job worker flavor) uses `autoComplete = false` because it needs to send custom completion commands that include ad-hoc sub-process element activation instructions.
+### ConnectorJobCompletion — Custom Job Completion via the SDK
+
+The AI Agent Sub-process flavor needs custom job completion (ad-hoc sub-process directives) but is implemented as a standard `OutboundConnectorFunction`. This is enabled by the `ConnectorJobCompletion` interface in the Connectors SDK:
+
+- The connector returns a `ConnectorJobCompletion` from `execute()`
+- The SDK delegates job completion to `ConnectorJobCompletion.prepareCompleteCommand()`, which builds the custom Zeebe complete command (element activation, completion condition)
+- The SDK continues to handle error expressions, retries, and metrics
+
+This avoids duplicating SDK concerns in the connector. See [ADR 002](../adr/002-consolidate-job-worker-into-sdk.md) for the decision rationale.
 
 ### What is an Ad-Hoc Sub-Process?
 
@@ -129,7 +137,7 @@ Variables inside an ad-hoc sub-process have their own scope:
 | Event sub-process support            | No                                       | Yes (non-interrupting)                              |
 | Config re-evaluation per iteration   | Yes (input mappings per task execution)  | No (input mappings evaluated once on AHSP entry)    |
 | Process migration config changes     | Supported                                | Not supported (frozen at entry)                     |
-| Job completion                       | Auto (connector runtime)                 | Manual (custom command)                             |
+| Job completion                       | Auto (connector runtime)                 | Custom (`ConnectorJobCompletion`)                   |
 
 ---
 
@@ -302,8 +310,7 @@ record AiAgentJobCompletion(
     AgentResponse agentResponse,
     boolean completionConditionFulfilled,   // true = AHSP done
     boolean cancelRemainingInstances,        // true = cancel active tools
-    Map<String, Object> variables,           // variables to set
-    Consumer<Throwable> completionErrorHandler   // compensateFailedJobCompletion
+    Map<String, Object> variables            // variables to set
 )
 ```
 
@@ -509,12 +516,11 @@ jobClient.newCompleteCommand(job)
 
 3. **`completionConditionFulfilled`**: Directly controls whether the AHSP terminates. When `true`, the AHSP completes and output mappings propagate results to the parent process.
 
-4. **`cancelRemainingInstances`**: Used when event handling interrupts tool calls — cancels all still-running tool instances.
+4. **`cancelRemainingInstances`**: Used when event handling interrupts tool calls — cancels all still-running tool instances. Currently determined via a mutable flag on `JobWorkerAgentExecutionContext`, set as a side effect in `handleAddedUserMessages()`. **Future improvement**: move detection into `completeWithResponse()` by inspecting `executionContext.initialToolCallResults()` directly for interrupted results, eliminating the mutable state.
 
 5. **Async execution**: The complete command is sent asynchronously via `CommandWrapper` with up to 3 retries. This is important because:
    - The job may have been superseded (NOT_FOUND)
    - Network issues may occur
-   - The `onCompletionError` callback calls `conversationStore.compensateFailedJobCompletion()`
 
 ### No-Op Completion (Waiting for More Results)
 
@@ -634,8 +640,8 @@ This is the key gate: if no user messages were added (because tool results were 
 
 **Mitigation**:
 - The `CommandWrapper` retries up to 3 times via `CommandExceptionHandlingStrategy`
-- The `completionErrorHandler` callback on `AiAgentJobCompletion` calls `conversationStore.compensateFailedJobCompletion()` (default no-op)
 - The no-op completion pattern means most superseded jobs were doing nothing anyway
+- `ConversationStore.compensateFailedJobCompletion()` exists as an extension point for future completion callback support (currently a no-op, not yet invoked)
 
 ### Challenge 2: Conversation Store Ahead of Zeebe
 
@@ -982,7 +988,6 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 ### Job Completion
 - `AiAgentJobCompletion.prepareCompleteCommand()` → AHSP completion command with tool activations
 - `JobWorkerAgentRequestHandler.completeJob()` → Job worker completion logic (no-op vs response)
-- `AiAgentJobCompletion.onCompletionError()` → Failure compensation via store
 
 ### Memory
 - `ConversationStoreRegistryImpl.getConversationStore()` → Store resolution

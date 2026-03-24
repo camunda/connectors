@@ -27,7 +27,7 @@ infrastructure for tool calling, conversation memory, and event handling.
 | Agent context        | Wired via process variables by modeler | Scoped within sub-process                    |
 | Event support        | No                                   | Yes (non-interrupting only)                    |
 | Config per iteration | Yes (input mappings re-evaluated)    | No (frozen on AHSP entry)                      |
-| Job completion       | Auto (connector runtime)             | Manual (`autoComplete = false`)                |
+| Job completion       | Auto (connector runtime)             | Custom (`ConnectorJobCompletion`)              |
 
 ### Ad-Hoc Sub-Process (AHSP)
 
@@ -105,7 +105,7 @@ tool/
 
 **`ToolCallProcessVariable`** — flattened tool call for process variables: `{_meta: {id, name}, ...args}`.
 
-**`AiAgentJobCompletion`** — job completion directives: AHSP done/continue, cancel flags, variables, error callback.
+**`AiAgentJobCompletion`** — job completion directives: AHSP done/continue, cancel flags, variables. Implements `ConnectorJobCompletion` to control the Zeebe complete command.
 
 For full record definitions, see [ai-agent.md §5](docs/reference/ai-agent.md#5-data-model).
 
@@ -127,7 +127,7 @@ For full record definitions, see [ai-agent.md §5](docs/reference/ai-agent.md#5-
 ## Critical Behaviors
 
 Partial tool results trigger no-op completions until all expected results arrive. Jobs may be superseded when tools
-complete — handled via `CommandWrapper` retries and `onCompletionError` callbacks. For detailed mechanics, see
+complete — handled via `CommandWrapper` retries. For detailed mechanics, see
 [ai-agent.md §9 (tool completion)](docs/reference/ai-agent.md#9-tool-completion) and
 [§10 (concurrency)](docs/reference/ai-agent.md#10-concurrency).
 
