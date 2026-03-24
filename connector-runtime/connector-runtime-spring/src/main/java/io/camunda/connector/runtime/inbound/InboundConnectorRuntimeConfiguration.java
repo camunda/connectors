@@ -144,8 +144,10 @@ public class InboundConnectorRuntimeConfiguration {
   @ConditionalOnMissingBean
   public InboundExecutableRegistry inboundExecutableRegistry(
       InboundConnectorFactory inboundConnectorFactory,
-      BatchExecutableProcessor batchExecutableProcessor) {
-    return new InboundExecutableRegistryImpl(inboundConnectorFactory, batchExecutableProcessor);
+      BatchExecutableProcessor batchExecutableProcessor,
+      ActivityLogRegistry activityLogRegistry) {
+    return new InboundExecutableRegistryImpl(
+        inboundConnectorFactory, batchExecutableProcessor, activityLogRegistry);
   }
 
   @Bean
