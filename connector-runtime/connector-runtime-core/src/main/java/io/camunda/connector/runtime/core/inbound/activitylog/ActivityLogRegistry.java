@@ -42,11 +42,9 @@ public class ActivityLogRegistry implements ActivityLogWriter {
 
   public Collection<Activity> getLogs(ExecutableId executableId) {
     synchronized (activityLogs) {
-      EvictingQueue<Activity> queue = activityLogs.get(executableId);
-      if (queue == null) {
-        return Collections.emptyList();
-      }
-      return Collections.unmodifiableList(new ArrayList<>(queue));
+      return Optional.ofNullable(activityLogs.get(executableId))
+          .<Collection<Activity>>map(queue -> Collections.unmodifiableList(new ArrayList<>(queue)))
+          .orElse(Collections.emptyList());
     }
   }
 
