@@ -19,9 +19,7 @@ package io.camunda.connector.runtime.core.inbound.activitylog;
 import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -43,7 +41,9 @@ public class ActivityLogRegistry implements ActivityLogWriter {
   }
 
   public Queue<Activity> getLogs(ExecutableId executableId) {
-    return activityLogs.get(executableId);
+    return Optional.ofNullable(activityLogs.get(executableId))
+        .orElseGet(
+            () -> EvictingQueue.create(0)); // Return empty queue if no logs for the executable
   }
 
   @Override
