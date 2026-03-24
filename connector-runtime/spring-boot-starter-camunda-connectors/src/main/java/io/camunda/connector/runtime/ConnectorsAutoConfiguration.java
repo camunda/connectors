@@ -77,7 +77,8 @@ public class ConnectorsAutoConfiguration {
   @Value("${camunda.connector.secretprovider.discovery.enabled:true}")
   Boolean secretProviderLookupEnabled;
 
-  @Value("${camunda.connector.secretprovider.environment.prefix:}")
+  @Value(
+      "${camunda.connector.secretprovider.environment.prefix:SECRET_}")
   String environmentSecretProviderPrefix;
 
   @Value("${camunda.connector.secretprovider.environment.tenantaware:false}")
