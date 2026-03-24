@@ -19,9 +19,7 @@ package io.camunda.connector.runtime.core.inbound.activitylog;
 import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -42,8 +40,12 @@ public class ActivityLogRegistry implements ActivityLogWriter {
     this(100); // Default size, can be overridden
   }
 
-  public Queue<Activity> getLogs(ExecutableId executableId) {
-    return activityLogs.get(executableId);
+  public Collection<Activity> getLogs(ExecutableId executableId) {
+    synchronized (activityLogs) {
+      return Optional.ofNullable(activityLogs.get(executableId))
+          .<Collection<Activity>>map(queue -> Collections.unmodifiableList(new ArrayList<>(queue)))
+          .orElse(Collections.emptyList());
+    }
   }
 
   @Override
@@ -57,8 +59,10 @@ public class ActivityLogRegistry implements ActivityLogWriter {
       case ERROR, WARNING -> LOG.warn(message); // errors would be too noisy
     }
     MDC.clear();
-    activityLogs
-        .computeIfAbsent(logEntry.executableId(), key -> EvictingQueue.create(maxLogSize))
-        .add(logEntry.activity());
+    synchronized (activityLogs) {
+      activityLogs
+          .computeIfAbsent(logEntry.executableId(), key -> EvictingQueue.create(maxLogSize))
+          .add(logEntry.activity());
+    }
   }
 }
