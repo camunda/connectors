@@ -19,13 +19,13 @@ package io.camunda.connector.runtime.inbound.executable;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.Health.Status;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Activated;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Cancelled;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.ConnectorNotRegistered;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.FailedToActivate;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.InvalidDefinition;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,11 +34,15 @@ public class InboundExecutableQueryService {
 
   private final InboundExecutableStateStore stateStore;
   private final InboundConnectorFactory connectorFactory;
+  private final ActivityLogRegistry activityLogRegistry;
 
   public InboundExecutableQueryService(
-      InboundExecutableStateStore stateStore, InboundConnectorFactory connectorFactory) {
+      InboundExecutableStateStore stateStore,
+      InboundConnectorFactory connectorFactory,
+      ActivityLogRegistry activityLogRegistry) {
     this.stateStore = stateStore;
     this.connectorFactory = connectorFactory;
+    this.activityLogRegistry = activityLogRegistry;
   }
 
   /**
@@ -117,7 +121,7 @@ public class InboundExecutableQueryService {
         activated.executable().getClass(),
         context.connectorElements(),
         context.getHealth(),
-        Collections.emptyList(),
+        activityLogRegistry.getLogs(activated.id()),
         context.getActivationTimestamp());
   }
 
@@ -129,7 +133,7 @@ public class InboundExecutableQueryService {
         cancelled.executable().getClass(),
         context.connectorElements(),
         Health.down(cancelled.exceptionThrown()),
-        Collections.emptyList(),
+        activityLogRegistry.getLogs(cancelled.id()),
         context.getActivationTimestamp());
   }
 
@@ -141,7 +145,7 @@ public class InboundExecutableQueryService {
         null,
         data.connectorElements(),
         Health.down(new RuntimeException("Connector " + data.type() + " not registered")),
-        Collections.emptyList(),
+        activityLogRegistry.getLogs(notRegistered.id()),
         null);
   }
 
@@ -153,7 +157,7 @@ public class InboundExecutableQueryService {
         null,
         data.connectorElements(),
         Health.down(new RuntimeException(failed.reason())),
-        Collections.emptyList(),
+        activityLogRegistry.getLogs(failed.id()),
         null);
   }
 
@@ -165,7 +169,7 @@ public class InboundExecutableQueryService {
         null,
         data.connectorElements(),
         Health.down(new RuntimeException("Invalid connector definition: " + invalid.reason())),
-        Collections.emptyList(),
+        activityLogRegistry.getLogs(invalid.id()),
         null);
   }
 
