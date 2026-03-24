@@ -16,21 +16,22 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
 
 public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
-  private final AgentJobContext jobContext;
+  private final JobContext jobContext;
   private final JobWorkerAgentRequest request;
   private boolean cancelRemainingInstances;
 
   public JobWorkerAgentExecutionContext(
-      final AgentJobContext jobContext, final JobWorkerAgentRequest request) {
+      final JobContext jobContext, final JobWorkerAgentRequest request) {
     this.jobContext = jobContext;
     this.request = request;
   }
 
   @Override
-  public AgentJobContext jobContext() {
+  public JobContext jobContext() {
     return jobContext;
   }
 
