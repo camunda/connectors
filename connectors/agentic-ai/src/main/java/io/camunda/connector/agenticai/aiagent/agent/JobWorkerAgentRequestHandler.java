@@ -138,16 +138,6 @@ public class JobWorkerAgentRequestHandler
         .completionConditionFulfilled(completionConditionFulfilled)
         .cancelRemainingInstances(cancelRemainingInstances)
         .variables(variables)
-        .completionErrorHandler(
-            throwable -> {
-              if (conversationStore != null) {
-                LOGGER.debug("Allowing conversation store to compensate job failure");
-
-                // allow storage to compensate for failed job completion
-                conversationStore.compensateFailedJobCompletion(
-                    executionContext, agentResponse.context(), throwable);
-              }
-            })
         .build();
   }
 

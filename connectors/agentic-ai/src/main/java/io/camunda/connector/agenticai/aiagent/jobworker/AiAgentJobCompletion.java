@@ -15,7 +15,6 @@ import io.camunda.connector.agenticai.model.AgenticAiRecord;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.runtime.core.outbound.ConnectorJobCompletion;
 import java.util.Map;
-import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.Nullable;
@@ -25,8 +24,7 @@ public record AiAgentJobCompletion(
     @Nullable AgentResponse agentResponse,
     boolean completionConditionFulfilled,
     boolean cancelRemainingInstances,
-    Map<String, Object> variables,
-    @Nullable Consumer<Throwable> completionErrorHandler)
+    Map<String, Object> variables)
     implements ConnectorJobCompletion, AiAgentJobCompletionBuilder.With {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AiAgentJobCompletion.class);
@@ -43,13 +41,6 @@ public record AiAgentJobCompletion(
   @Override
   public boolean rejectIgnoreError() {
     return true;
-  }
-
-  @Override
-  public void onCompletionError(Throwable throwable) {
-    if (completionErrorHandler != null) {
-      completionErrorHandler.accept(throwable);
-    }
   }
 
   @Override

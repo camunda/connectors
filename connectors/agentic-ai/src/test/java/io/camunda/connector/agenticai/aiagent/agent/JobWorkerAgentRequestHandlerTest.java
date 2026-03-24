@@ -403,43 +403,6 @@ class JobWorkerAgentRequestHandlerTest {
     verifyNoInteractions(framework);
   }
 
-  @Test
-  void completionErrorHandlerCompensatesStorageOnCompletionError() {
-    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
-    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS, List.of());
-
-    when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
-
-    final var assistantMessageText =
-        "Endless waves whisper | moonlight dances on the tide | secrets drift below.";
-    final var assistantMessage = assistantMessage(assistantMessageText);
-
-    mockFrameworkExecution(assistantMessage);
-
-    when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
-        .thenAnswer(i -> i.getArgument(1));
-    when(responseHandler.createResponse(
-            eq(agentExecutionContext), any(AgentContext.class), eq(assistantMessage), anyList()))
-        .thenAnswer(
-            i ->
-                AgentResponse.builder()
-                    .context(i.getArgument(1, AgentContext.class))
-                    .responseMessage(i.getArgument(2, AssistantMessage.class))
-                    .responseText(assistantMessageText)
-                    .toolCalls(i.getArgument(3))
-                    .build());
-
-    final var completion = requestHandler.handleRequest(agentExecutionContext);
-
-    final var exception = new RuntimeException("This is a test");
-    completion.onCompletionError(exception);
-
-    verify(conversationStore)
-        .compensateFailedJobCompletion(
-            agentExecutionContext, completion.agentResponse().context(), exception);
-  }
-
   private RuntimeMemory setupRuntimeMemorySizeTest(MemoryConfiguration memoryConfiguration) {
     mockUserPrompt(new UserPromptConfiguration("User message 30", List.of()), List.of());
 
