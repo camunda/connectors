@@ -16,33 +16,23 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
-import java.time.Duration;
-import java.util.Map;
+/**
+ * Base interface for connector responses. When returned from {@link
+ * io.camunda.connector.api.outbound.OutboundConnectorFunction#execute}, the runtime will unwrap
+ * {@link #responseValue()} for result expression evaluation.
+ */
+public interface ConnectorResponse {
 
-public sealed interface ConnectorResult {
-
+  /** The raw response value used for result expression evaluation. */
   Object responseValue();
 
-  default boolean isSuccess() {
-    return this instanceof SuccessResult;
-  }
-
-  record ErrorResult(Object responseValue, Exception exception, int retries, Duration retryBackoff)
-      implements ConnectorResult {
-    public ErrorResult(Object responseValue, Exception exception, int retries) {
-      this(responseValue, exception, retries, null);
+  record DefaultConnectorResponse(Object responseValue) implements ConnectorResponse {
+    public DefaultConnectorResponse(Object responseValue) {
+      this.responseValue = responseValue;
     }
-  }
 
-  record SuccessResult(ConnectorResponse connectorResponse, Map<String, Object> variables)
-      implements ConnectorResult {
-
-    public Object responseValue() {
-      if (variables == null || variables.isEmpty()) {
-        return connectorResponse.responseValue();
-      } else {
-        return variables;
-      }
+    public static ConnectorResponse of(Object responseValue) {
+      return new DefaultConnectorResponse(responseValue);
     }
   }
 }

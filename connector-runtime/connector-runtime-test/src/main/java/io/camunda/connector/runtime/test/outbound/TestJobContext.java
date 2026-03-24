@@ -26,6 +26,7 @@ public class TestJobContext implements JobContext {
 
   private final Supplier<String> variables;
 
+  private long key;
   private String type;
   private long processInstanceKey;
   private String bpmnProcessId;
@@ -39,6 +40,15 @@ public class TestJobContext implements JobContext {
   public TestJobContext(Supplier<Map<String, String>> headers, Supplier<String> variables) {
     this.headers = headers;
     this.variables = variables;
+  }
+
+  @Override
+  public long getKey() {
+    return key;
+  }
+
+  public void setKey(long key) {
+    this.key = key;
   }
 
   @Override

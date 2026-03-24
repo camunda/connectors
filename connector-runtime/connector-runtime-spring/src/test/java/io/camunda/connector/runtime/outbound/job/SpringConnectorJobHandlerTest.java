@@ -33,6 +33,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.api.command.FailJobCommandStep1;
+import io.camunda.client.api.command.FinalCommandStep;
+import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.BackoffSupplier;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.jobhandling.DefaultCommandExceptionHandlingStrategy;
@@ -48,6 +50,7 @@ import io.camunda.connector.runtime.JobBuilder;
 import io.camunda.connector.runtime.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.TestValidation;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.outbound.ConnectorJobCompletion;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -1524,5 +1527,78 @@ class SpringConnectorJobHandlerTest {
         .contains("status=400")
         .contains("type=io.camunda.connector.api.error.ConnectorException")
         .contains("message=HTTP request failed");
+  }
+
+  @Nested
+  class ConnectorJobCompletionTests {
+
+    @Test
+    void delegatesToPrepareCompleteCommandForConnectorJobCompletion() throws Exception {
+      var stubCompletion = new StubConnectorJobCompletion(null, false);
+      var handler = newConnectorJobHandler(context -> stubCompletion);
+
+      var result = JobBuilder.create().executeAndCaptureResult(handler);
+
+      assertThat(result.getVariables()).containsEntry("delegated-to-job-completion", true);
+    }
+
+    @Test
+    void rejectsIgnoreErrorWhenRejectIgnoreErrorIsTrue() throws Exception {
+      var stubCompletion = new StubConnectorJobCompletion(Map.of("status", "trigger ignore"), true);
+      var handler = newConnectorJobHandler(context -> stubCompletion);
+
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(
+                  "=if response.status = \"trigger ignore\" then ignoreError({}) else null")
+              .executeAndCaptureResult(handler, false);
+
+      assertThat(result.getErrorMessage())
+          .startsWith("IgnoreError is not supported for this connector");
+    }
+
+    @Test
+    void allowsIgnoreErrorWhenRejectIgnoreErrorIsFalse() throws Exception {
+      var stubCompletion =
+          new StubConnectorJobCompletion(Map.of("status", "trigger ignore"), false);
+      var handler = newConnectorJobHandler(context -> stubCompletion);
+
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(
+                  "=if response.status = \"trigger ignore\" then ignoreError({\"recovered\": true}) else null")
+              .executeAndCaptureResult(handler);
+
+      assertThat(result.getVariables()).containsEntry("recovered", true);
+    }
+
+    static class StubConnectorJobCompletion implements ConnectorJobCompletion {
+
+      private final Object responseValue;
+      private final boolean rejectIgnoreError;
+
+      StubConnectorJobCompletion(Object responseValue, boolean rejectIgnoreError) {
+        this.responseValue = responseValue;
+        this.rejectIgnoreError = rejectIgnoreError;
+      }
+
+      @Override
+      public Object responseValue() {
+        return responseValue;
+      }
+
+      @Override
+      public boolean rejectIgnoreError() {
+        return rejectIgnoreError;
+      }
+
+      @Override
+      public FinalCommandStep<?> prepareCompleteCommand(
+          JobClient client, ActivatedJob job, Map<String, Object> variables) {
+        return client
+            .newCompleteCommand(job)
+            .variables(Map.of("delegated-to-job-completion", true));
+      }
+    }
   }
 }
