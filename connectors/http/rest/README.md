@@ -235,6 +235,6 @@ leading to the following result
 | Connector Info            |                                                                       |
 | ---                       | ---                                                                   |
 | Type                      | io.camunda:http-json:1                                                            |
-| Version                   | 12                                                         |
+| Version                   | 13                                                         |
 | Supported element types   |     |
 
