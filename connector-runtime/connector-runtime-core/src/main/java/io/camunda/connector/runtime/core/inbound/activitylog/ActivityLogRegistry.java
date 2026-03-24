@@ -40,10 +40,12 @@ public class ActivityLogRegistry implements ActivityLogWriter {
     this(100); // Default size, can be overridden
   }
 
-  public Queue<Activity> getLogs(ExecutableId executableId) {
-    return Optional.ofNullable(activityLogs.get(executableId))
-        .orElseGet(
-            () -> EvictingQueue.create(0)); // Return empty queue if no logs for the executable
+  public Collection<Activity> getLogs(ExecutableId executableId) {
+    synchronized (activityLogs) {
+      return Optional.ofNullable(activityLogs.get(executableId))
+          .<Collection<Activity>>map(queue -> Collections.unmodifiableList(new ArrayList<>(queue)))
+          .orElse(Collections.emptyList());
+    }
   }
 
   @Override
@@ -57,8 +59,10 @@ public class ActivityLogRegistry implements ActivityLogWriter {
       case ERROR, WARNING -> LOG.warn(message); // errors would be too noisy
     }
     MDC.clear();
-    activityLogs
-        .computeIfAbsent(logEntry.executableId(), key -> EvictingQueue.create(maxLogSize))
-        .add(logEntry.activity());
+    synchronized (activityLogs) {
+      activityLogs
+          .computeIfAbsent(logEntry.executableId(), key -> EvictingQueue.create(maxLogSize))
+          .add(logEntry.activity());
+    }
   }
 }
