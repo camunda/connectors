@@ -131,6 +131,10 @@ limitations under the License.</license.inlineheader>
       <artifactId>commons-text</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+    </dependency>
   </dependencies>
 
   <profiles>

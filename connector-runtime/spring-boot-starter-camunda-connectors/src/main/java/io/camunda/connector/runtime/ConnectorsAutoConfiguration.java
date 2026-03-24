@@ -29,6 +29,9 @@ import io.camunda.connector.feel.CamundaClientFeelExpressionEvaluator;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
+import io.camunda.connector.http.client.authentication.OAuthTokenCache;
+import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
+import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
@@ -46,6 +49,7 @@ import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
@@ -55,6 +59,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
+import org.springframework.scheduling.annotation.Scheduled;
 
 @AutoConfiguration
 @AutoConfigureBefore({
@@ -66,6 +71,8 @@ import org.springframework.core.env.Environment;
 public class ConnectorsAutoConfiguration {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConnectorsAutoConfiguration.class);
+
+  private final ObjectProvider<OAuthTokenCache> oAuthTokenCacheProvider;
 
   @Value("${camunda.connector.secretprovider.discovery.enabled:true}")
   Boolean secretProviderLookupEnabled;
@@ -86,6 +93,10 @@ public class ConnectorsAutoConfiguration {
   @Value("${camunda.connector.secretprovider.console.audience:secrets.camunda.io}")
   String consoleSecretsApiAudience;
 
+  public ConnectorsAutoConfiguration(ObjectProvider<OAuthTokenCache> oAuthTokenCacheProvider) {
+    this.oAuthTokenCacheProvider = oAuthTokenCacheProvider;
+  }
+
   /**
    * Provides a {@link FeelExpressionEvaluator} unless already present in the Spring Context. When a
    * {@link CamundaClient} is available, uses cluster-based evaluation (enabling access to cluster
@@ -101,6 +112,27 @@ public class ConnectorsAutoConfiguration {
                 new CamundaClientFeelExpressionEvaluator(
                     client, ConnectorsObjectMapperSupplier.getCopy()))
         .orElseGet(LocalFeelExpressionEvaluator::new);
+  }
+
+  /**
+   * Initializes and exposes the shared {@link OAuthTokenCache}, configured from {@code
+   * camunda.connector.oauth.cache.skew-buffer} property.
+   *
+   * <p>The cache instance is also registered in {@link OAuthTokenCacheHolder} so that non-Spring
+   * HTTP client code (which cannot use dependency injection) can access it.
+   *
+   * <p>Users can replace this bean by defining their own {@link OAuthTokenCache} bean. Custom
+   * implementations will be picked up both by the Spring context and by the HTTP client via the
+   * holder.
+   */
+  @Bean
+  @ConditionalOnMissingBean(OAuthTokenCache.class)
+  public OAuthTokenCache oAuthTokenCache(ConnectorProperties properties) {
+    var cacheProps = properties.oauth() != null ? properties.oauth().cache() : null;
+    Duration skewBuffer = cacheProps != null ? cacheProps.skewBuffer() : null;
+    OAuthTokenCache cache = CaffeineOAuthTokenCache.initialize(skewBuffer);
+    OAuthTokenCacheHolder.set(cache);
+    return cache;
   }
 
   @Bean
@@ -229,5 +261,15 @@ public class ConnectorsAutoConfiguration {
         new JacksonModuleFeelFunction(
             false, new LocalFeelExpressionEvaluator()), // FEEL annotation processing disabled
         new JacksonModuleDocumentSerializer());
+  }
+
+  @Scheduled(fixedRate = 60_000, initialDelay = 60_000)
+  public void logOAuthTokenCacheStats() {
+    if (!LOG.isDebugEnabled()) {
+      return;
+    }
+
+    OAuthTokenCache cache = oAuthTokenCacheProvider.getIfAvailable(OAuthTokenCacheHolder::get);
+    LOG.debug("OAuth token cache stats: {}", cache.getStats());
   }
 }

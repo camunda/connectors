@@ -18,6 +18,7 @@ package io.camunda.connector.http.client.authentication;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
 import io.camunda.connector.http.client.mapper.ResponseMappers;
 import io.camunda.connector.http.client.mapper.StreamingHttpResponse;
@@ -66,13 +67,26 @@ public class OAuthService {
     return oauthRequest;
   }
 
-  public String extractTokenFromResponse(StreamingHttpResponse body) {
+  public TokenResponse extractTokenFromResponse(StreamingHttpResponse body) {
     var jsonNode = ResponseMappers.asJsonNode(() -> OBJECT_MAPPER).apply(body);
     return Optional.ofNullable(jsonNode)
         .filter(JsonNode::isObject)
         .map(node -> node.findValue(OAuthConstants.ACCESS_TOKEN))
         .map(JsonNode::asText)
-        .orElse(null);
+        .map(accessToken -> toTokenResponse(accessToken, jsonNode))
+        .orElseThrow(
+            () ->
+                new ConnectorException(
+                    "OAUTH_TOKEN_ERROR",
+                    "OAuth token response does not contain an access_token field"));
+  }
+
+  private TokenResponse toTokenResponse(String accessToken, JsonNode jsonNode) {
+    return Optional.of(jsonNode)
+        .map(node -> node.findValue(OAuthConstants.EXPIRES_IN))
+        .filter(JsonNode::isNumber)
+        .map(node -> new TokenResponse(accessToken, node.asLong()))
+        .orElseGet(() -> new TokenResponse(accessToken));
   }
 
   private void addCredentials(
