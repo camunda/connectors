@@ -20,6 +20,7 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.ActivationCheckResult;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import java.util.List;
 import org.slf4j.Logger;
@@ -33,11 +34,8 @@ public class ActivationConditionEvaluator {
 
   private static final Logger LOG = LoggerFactory.getLogger(ActivationConditionEvaluator.class);
 
-  private final FeelExpressionEvaluator feelExpressionEvaluator;
-
-  public ActivationConditionEvaluator(FeelExpressionEvaluator feelExpressionEvaluator) {
-    this.feelExpressionEvaluator = feelExpressionEvaluator;
-  }
+  private final FeelExpressionEvaluator feelExpressionEvaluator =
+      new LocalFeelExpressionEvaluator();
 
   /**
    * Checks whether any of the provided elements can be activated for the given context.

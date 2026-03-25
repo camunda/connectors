@@ -33,6 +33,7 @@ import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessageAlreadyCorrelated;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.grpc.Status;
@@ -49,7 +50,8 @@ public class InboundCorrelationHandler {
   private static final Logger LOG = LoggerFactory.getLogger(InboundCorrelationHandler.class);
 
   private final CamundaClient camundaClient;
-  private final FeelExpressionEvaluator feelExpressionEvaluator;
+  private final FeelExpressionEvaluator feelExpressionEvaluator =
+      new LocalFeelExpressionEvaluator();
   private final ActivationConditionEvaluator activationConditionEvaluator;
 
   private final Duration defaultMessageTtl;
@@ -57,13 +59,9 @@ public class InboundCorrelationHandler {
   private final ConnectorResultHandler connectorResultHandler;
 
   public InboundCorrelationHandler(
-      CamundaClient camundaClient,
-      FeelExpressionEvaluator feelExpressionEvaluator,
-      ObjectMapper objectMapper,
-      Duration defaultMessageTtl) {
+      CamundaClient camundaClient, ObjectMapper objectMapper, Duration defaultMessageTtl) {
     this.camundaClient = camundaClient;
-    this.feelExpressionEvaluator = feelExpressionEvaluator;
-    this.activationConditionEvaluator = new ActivationConditionEvaluator(feelExpressionEvaluator);
+    this.activationConditionEvaluator = new ActivationConditionEvaluator();
     this.defaultMessageTtl = defaultMessageTtl;
     this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
   }
