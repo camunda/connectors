@@ -53,7 +53,7 @@ import org.testcontainers.utility.DockerImageName;
 @ExtendWith(MockitoExtension.class)
 public abstract class BaseAwsTest {
   private static final DockerImageName localstackImage =
-      DockerImageName.parse("localstack/localstack");
+      DockerImageName.parse("localstack/localstack:4.8.0");
   @TempDir File tempDir;
   @Autowired ZeebeClient zeebeClient;
   @MockBean ProcessDefinitionSearch processDefinitionSearch;
