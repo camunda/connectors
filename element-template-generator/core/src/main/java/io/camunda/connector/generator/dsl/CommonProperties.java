@@ -192,7 +192,7 @@ public class CommonProperties {
         .label("Message name")
         .tooltip(
             "By default, this is an auto-generated random UUID. We recommend using a unique message name for each connector element in the diagram. "
-                + "Override to set a custom message name. Learn more about <a href=\"\">message subscriptions</a> that power inbound connectors.")
+                + "Override to set a custom message name. Learn more about <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-subscriptions\">message subscriptions</a> that power inbound connectors.")
         .group("correlation")
         .generatedValue()
         .binding(PropertyBinding.MessageProperty.NAME);
