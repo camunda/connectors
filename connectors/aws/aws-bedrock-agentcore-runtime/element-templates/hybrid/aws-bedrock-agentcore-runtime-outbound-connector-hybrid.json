@@ -1,0 +1,260 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Hybrid AWS Bedrock AgentCore Runtime",
+  "id" : "io.camunda.connectors.aws.bedrock.agentcore.runtime.v1-hybrid",
+  "description" : "Invoke an external agent running in AWS Bedrock AgentCore Runtime",
+  "metadata" : {
+    "keywords" : [ ]
+  },
+  "documentationRef" : "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-invoke-agent.html",
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "groups" : [ {
+    "id" : "taskDefinitionType",
+    "label" : "Task definition type"
+  }, {
+    "id" : "authentication",
+    "label" : "Authentication"
+  }, {
+    "id" : "configuration",
+    "label" : "Configuration"
+  }, {
+    "id" : "agentConfig",
+    "label" : "Agent Configuration"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "id" : "taskDefinitionType",
+    "value" : "io.camunda:aws-bedrock-agentcore-runtime:1",
+    "group" : "taskDefinitionType",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
+    "value" : "credentials",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
+      "value" : "defaultCredentialsChain"
+    }, {
+      "name" : "Credentials",
+      "value" : "credentials"
+    } ]
+  }, {
+    "id" : "authentication.accessKey",
+    "label" : "Access key",
+    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.accessKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "credentials",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.secretKey",
+    "label" : "Secret key",
+    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.secretKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "credentials",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "configuration.region",
+    "label" : "Region",
+    "description" : "Specify the AWS region",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.region",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "configuration.endpoint",
+    "label" : "Endpoint",
+    "description" : "Specify endpoint if need to use custom endpoint",
+    "optional" : true,
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.endpoint",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "agentRuntimeArn",
+    "label" : "Agent Runtime ARN",
+    "description" : "The ARN or agent ID of the AgentCore Runtime agent to invoke",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "agentConfig",
+    "binding" : {
+      "name" : "agentRuntimeArn",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "prompt",
+    "label" : "Prompt",
+    "description" : "The message or task to send to the agent",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "agentConfig",
+    "binding" : {
+      "name" : "prompt",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "sessionId",
+    "label" : "Session ID",
+    "description" : "Optional session ID for multi-turn conversations",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "agentConfig",
+    "binding" : {
+      "name" : "sessionId",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.aws.bedrock.agentcore.runtime.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/png;base64,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"
+  }
+}
