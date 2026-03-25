@@ -9,12 +9,17 @@ package io.camunda.connector.aws.bedrock.codeinterpreter;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.aws.bedrock.codeinterpreter.model.request.CodeInterpreterInput;
 import io.camunda.connector.aws.bedrock.codeinterpreter.model.request.CodeInterpreterRequest;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,12 +41,13 @@ class CodeInterpreterExecutorTest extends BaseTest {
 
   @Mock private BedrockAgentCoreClient syncClient;
   @Mock private BedrockAgentCoreAsyncClient asyncClient;
+  @Mock private Function<DocumentCreationRequest, Document> createDocument;
 
   private CodeInterpreterExecutor executor;
 
   @BeforeEach
   void setUp() {
-    executor = new CodeInterpreterExecutor(syncClient, asyncClient);
+    executor = new CodeInterpreterExecutor(syncClient, asyncClient, createDocument);
   }
 
   @Test
@@ -64,7 +70,7 @@ class CodeInterpreterExecutorTest extends BaseTest {
     assertThat(result.images()).isEmpty();
 
     verify(syncClient).startCodeInterpreterSession(any(StartCodeInterpreterSessionRequest.class));
-    verify(asyncClient)
+    verify(asyncClient, atLeast(2))
         .invokeCodeInterpreter(
             any(InvokeCodeInterpreterRequest.class),
             any(InvokeCodeInterpreterResponseHandler.class));
@@ -92,10 +98,11 @@ class CodeInterpreterExecutorTest extends BaseTest {
     assertThat(startCaptor.getValue().sessionTimeoutSeconds()).isEqualTo(300);
 
     var invokeCaptor = ArgumentCaptor.forClass(InvokeCodeInterpreterRequest.class);
-    verify(asyncClient).invokeCodeInterpreter(invokeCaptor.capture(), any());
-    assertThat(invokeCaptor.getValue().sessionId()).isEqualTo("sess-123");
-    assertThat(invokeCaptor.getValue().arguments().code()).isEqualTo("x = 1 + 2\nprint(x)");
-    assertThat(invokeCaptor.getValue().arguments().languageAsString()).isEqualTo("python");
+    verify(asyncClient, atLeast(2)).invokeCodeInterpreter(invokeCaptor.capture(), any());
+    var executeCall = invokeCaptor.getAllValues().get(0);
+    assertThat(executeCall.sessionId()).isEqualTo("sess-123");
+    assertThat(executeCall.arguments().code()).isEqualTo("x = 1 + 2\nprint(x)");
+    assertThat(executeCall.arguments().languageAsString()).isEqualTo("python");
   }
 
   @Test
@@ -131,9 +138,11 @@ class CodeInterpreterExecutorTest extends BaseTest {
   }
 
   private CodeInterpreterRequest buildRequest(String code, Integer timeout) {
+    var input = new CodeInterpreterInput();
+    input.setCode(code);
+    input.setSessionTimeoutSeconds(timeout);
     var request = new CodeInterpreterRequest();
-    request.setCode(code);
-    request.setSessionTimeoutSeconds(timeout);
+    request.setInput(input);
     return request;
   }
 }

@@ -7,6 +7,8 @@
 package io.camunda.connector.aws.bedrock.codeinterpreter;
 
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.CredentialsProviderSupportV2;
@@ -14,16 +16,17 @@ import io.camunda.connector.aws.bedrock.codeinterpreter.model.request.CodeInterp
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import java.net.URI;
+import java.util.function.Function;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreAsyncClient;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
 
 @OutboundConnector(
     name = "AWS Bedrock Code Interpreter",
-    inputVariables = {"authentication", "configuration", "code", "sessionTimeoutSeconds"},
+    inputVariables = {"authentication", "configuration", "input"},
     type = "io.camunda:aws-bedrock-codeinterpreter:1")
 @ElementTemplate(
-    engineVersion = "^8.7",
+    engineVersion = "^8.8",
     id = "io.camunda.connectors.aws.bedrock.codeinterpreter.v1",
     name = "AWS Bedrock Code Interpreter Outbound Connector",
     description = "Execute Python code in a secure AWS Bedrock AgentCore Code Interpreter sandbox",
@@ -42,6 +45,7 @@ public class BedrockCodeInterpreterConnectorFunction implements OutboundConnecto
     var request = context.bindVariables(CodeInterpreterRequest.class);
     var credentialsProvider = CredentialsProviderSupportV2.credentialsProvider(request);
     var config = request.getConfiguration();
+    Function<DocumentCreationRequest, Document> createDocument = context::create;
 
     var syncBuilder = BedrockAgentCoreClient.builder().credentialsProvider(credentialsProvider);
     var asyncBuilder =
@@ -60,7 +64,7 @@ public class BedrockCodeInterpreterConnectorFunction implements OutboundConnecto
 
     try (var syncClient = syncBuilder.build();
         var asyncClient = asyncBuilder.build()) {
-      return new CodeInterpreterExecutor(syncClient, asyncClient).execute(request);
+      return new CodeInterpreterExecutor(syncClient, asyncClient, createDocument).execute(request);
     }
   }
 }

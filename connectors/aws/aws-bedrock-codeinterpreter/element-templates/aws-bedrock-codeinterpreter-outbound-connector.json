@@ -16,7 +16,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.7"
+    "camunda" : "^8.8"
   },
   "groups" : [ {
     "id" : "authentication",
@@ -132,7 +132,7 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "code",
+    "id" : "input.code",
     "label" : "Code",
     "description" : "The Python code to execute in the Code Interpreter sandbox.",
     "optional" : false,
@@ -142,20 +142,20 @@
     "feel" : "optional",
     "group" : "codeExecution",
     "binding" : {
-      "name" : "code",
+      "name" : "input.code",
       "type" : "zeebe:input"
     },
     "type" : "String"
   }, {
-    "id" : "sessionTimeoutSeconds",
+    "id" : "input.sessionTimeoutSeconds",
     "label" : "Session timeout (seconds)",
-    "description" : "Session timeout in seconds (60–28800). Defaults to 900.",
+    "description" : "Session timeout in seconds (60–28800). Defaults to 300.",
     "optional" : true,
-    "value" : 900,
+    "value" : 300,
     "feel" : "static",
     "group" : "codeExecution",
     "binding" : {
-      "name" : "sessionTimeoutSeconds",
+      "name" : "input.sessionTimeoutSeconds",
       "type" : "zeebe:input"
     },
     "type" : "Number"
