@@ -18,6 +18,7 @@ package io.camunda.connector.api.inbound;
 
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
+import java.util.Map;
 
 public sealed interface CorrelationResult {
 
@@ -29,7 +30,26 @@ public sealed interface CorrelationResult {
         ProcessElement activatedElement, Long processInstanceKey, String tenantId)
         implements Success {}
 
+    /**
+     * Result for synchronous process instance creation via {@code createProcessInstanceWithResult}.
+     * Contains the variables returned by the process instance upon completion.
+     */
+    record ProcessInstanceCreatedWithResult(
+        ProcessElement activatedElement,
+        Long processInstanceKey,
+        String tenantId,
+        Map<String, Object> variables)
+        implements Success {}
+
     record MessagePublished(ProcessElement activatedElement, Long messageKey, String tenantId)
+        implements Success {}
+
+    /**
+     * Result for synchronous message correlation via {@code newCorrelateMessageCommand}. Contains
+     * the process instance key of the correlated process instance.
+     */
+    record MessageCorrelated(
+        ProcessElement activatedElement, Long processInstanceKey, Long messageKey, String tenantId)
         implements Success {}
 
     record MessageAlreadyCorrelated(ProcessElement activatedElement) implements Success {}

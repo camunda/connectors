@@ -133,6 +133,14 @@
       <groupId>dev.langchain4j</groupId>
       <artifactId>langchain4j-vertex-ai-gemini</artifactId>
     </dependency>
+    <dependency>
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j-http-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j-http-client-jdk</artifactId>
+    </dependency>
 
     <!-- Native MCP Java SDK -->
     <dependency>
@@ -186,6 +194,16 @@
     </dependency>
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
+      <artifactId>apache-client</artifactId>
+      <version>${version.aws-sdk2}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>http-client-spi</artifactId>
+      <version>${version.aws-sdk2}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
       <artifactId>http-auth-spi</artifactId>
     </dependency>
     <dependency>
@@ -195,7 +213,27 @@
 
     <dependency>
       <groupId>io.github.a2asdk</groupId>
+      <artifactId>a2a-java-sdk-common</artifactId>
+      <version>${version.a2asdk}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.github.a2asdk</groupId>
+      <artifactId>a2a-java-sdk-spec</artifactId>
+      <version>${version.a2asdk}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.github.a2asdk</groupId>
+      <artifactId>a2a-java-sdk-http-client</artifactId>
+      <version>${version.a2asdk}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.github.a2asdk</groupId>
       <artifactId>a2a-java-sdk-client</artifactId>
+      <version>${version.a2asdk}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.github.a2asdk</groupId>
+      <artifactId>a2a-java-sdk-client-transport-spi</artifactId>
       <version>${version.a2asdk}</version>
     </dependency>
     <dependency>
@@ -206,16 +244,6 @@
     <dependency>
       <groupId>io.github.a2asdk</groupId>
       <artifactId>a2a-java-sdk-client-transport-rest</artifactId>
-      <version>${version.a2asdk}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.github.a2asdk</groupId>
-      <artifactId>a2a-java-sdk-spec</artifactId>
-      <version>${version.a2asdk}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.github.a2asdk</groupId>
-      <artifactId>a2a-java-sdk-client-transport-spi</artifactId>
       <version>${version.a2asdk}</version>
     </dependency>
     <dependency>
@@ -281,12 +309,7 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-feel-wrapper</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>dev.langchain4j</groupId>
-      <artifactId>langchain4j-http-client</artifactId>
+      <artifactId>connector-feel</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

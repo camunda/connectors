@@ -60,4 +60,29 @@ public class HttpClientRequestTest {
     // then
     assertThat(readTimeout).isEqualTo(20);
   }
+
+  @Test
+  public void shouldHaveFollowRedirectsFalse_whenNotSet() {
+    // given
+    HttpClientRequest request = new HttpClientRequest();
+
+    // when
+    boolean followRedirects = request.isFollowRedirects();
+
+    // then
+    assertThat(followRedirects).isFalse();
+  }
+
+  @Test
+  public void shouldHaveFollowRedirectsTrue_whenSet() {
+    // given
+    HttpClientRequest request = new HttpClientRequest();
+    request.setFollowRedirects(true);
+
+    // when
+    boolean followRedirects = request.isFollowRedirects();
+
+    // then
+    assertThat(followRedirects).isTrue();
+  }
 }

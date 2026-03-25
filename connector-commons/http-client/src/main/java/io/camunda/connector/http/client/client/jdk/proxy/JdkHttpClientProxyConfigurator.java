@@ -16,6 +16,9 @@
  */
 package io.camunda.connector.http.client.client.jdk.proxy;
 
+import static io.camunda.connector.http.client.proxy.ProxyConfiguration.SCHEME_HTTP;
+import static io.camunda.connector.http.client.proxy.ProxyConfiguration.SCHEME_HTTPS;
+
 import io.camunda.connector.http.client.proxy.ProxyConfiguration;
 import java.net.http.HttpClient;
 
@@ -27,7 +30,7 @@ import java.net.http.HttpClient;
  * <p>Usage:
  *
  * <pre>{@code
- * var proxy = new JdkHttpClientProxyConfigurator(new ProxyConfiguration());
+ * var proxy = new JdkHttpClientProxyConfigurator(proxyConfiguration);
  * HttpClient.Builder builder = proxy.configure(HttpClient.newBuilder());
  * // ... further customization ...
  * HttpClient client = builder.build();
@@ -36,10 +39,10 @@ import java.net.http.HttpClient;
  * <p>Or as a static one-liner when no further customization is needed:
  *
  * <pre>{@code
- * HttpClient client = JdkHttpClientProxyConfigurator.newHttpClient(new ProxyConfiguration());
+ * HttpClient client = JdkHttpClientProxyConfigurator.newHttpClient(proxyConfiguration);
  * }</pre>
  *
- * @see ProxyConfiguration for the list of supported environment variables
+ * @see ProxyConfiguration for details on how proxy settings are configured
  */
 public class JdkHttpClientProxyConfigurator {
 
@@ -63,8 +66,8 @@ public class JdkHttpClientProxyConfigurator {
    */
   public HttpClient.Builder configure(HttpClient.Builder builder) {
     boolean hasProxy =
-        proxyConfiguration.getProxyDetails(ProxyConfiguration.HTTP).isPresent()
-            || proxyConfiguration.getProxyDetails(ProxyConfiguration.HTTPS).isPresent();
+        proxyConfiguration.getProxyDetails(SCHEME_HTTP).isPresent()
+            || proxyConfiguration.getProxyDetails(SCHEME_HTTPS).isPresent();
 
     if (hasProxy) {
       builder

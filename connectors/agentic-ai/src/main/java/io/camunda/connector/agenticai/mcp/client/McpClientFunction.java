@@ -25,11 +25,11 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
     type = "io.camunda.agenticai:mcpclient:1")
 @ElementTemplate(
     id = "io.camunda.connectors.agenticai.mcp.client.v0",
-    name = "MCP Client (early access)",
+    name = "MCP Client",
     description =
         "MCP (Model Context Protocol) client using MCP connections configured on the connector runtime.",
     documentationRef =
-        "https://docs.camunda.io/docs/8.9/components/early-access/alpha/mcp-client/mcp-client-connector/",
+        "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-client-connector/",
     engineVersion = "^8.9",
     version = 2,
     inputDataClass = McpClientRequest.class,

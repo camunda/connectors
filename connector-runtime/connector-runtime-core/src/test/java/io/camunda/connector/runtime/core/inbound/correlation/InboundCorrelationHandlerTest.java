@@ -18,11 +18,7 @@ package io.camunda.connector.runtime.core.inbound.correlation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.ClientStatusException;
@@ -30,12 +26,13 @@ import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
-import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
+import io.camunda.connector.runtime.core.testutil.command.CorrelateMessageCommandDummy;
 import io.camunda.connector.runtime.core.testutil.command.CreateCommandDummy;
 import io.camunda.connector.runtime.core.testutil.command.PublishMessageCommandDummy;
 import io.grpc.Status;
@@ -72,7 +69,10 @@ public class InboundCorrelationHandlerTest {
     camundaClient = mock(CamundaClient.class);
     handler =
         new InboundCorrelationHandler(
-            camundaClient, new FeelEngineWrapper(), TestObjectMapperSupplier.INSTANCE, DEFAULT_TTL);
+            camundaClient,
+            new LocalFeelExpressionEvaluator(),
+            TestObjectMapperSupplier.INSTANCE,
+            DEFAULT_TTL);
   }
 
   @ParameterizedTest
@@ -769,6 +769,150 @@ public class InboundCorrelationHandlerTest {
           List.of(element), CorrelationRequest.builder().variables(Collections.emptyMap()).build());
       // then
       verify(dummyCommand).messageId("");
+    }
+  }
+
+  @Nested
+  class SynchronousResponse {
+
+    @Test
+    void startEvent_synchronous_shouldUseWithResult() {
+      // given
+      var point = new StartEventCorrelationPoint("process1", 0, 0);
+      var element = mock(InboundConnectorElement.class);
+      when(element.correlationPoint()).thenReturn(point);
+      when(element.synchronousResponse()).thenReturn(true);
+      when(element.element())
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
+
+      Map<String, Object> processVariables = Map.of("test", "value");
+
+      var dummyCommand = Mockito.spy(new CreateCommandDummy(processVariables));
+      when(camundaClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
+
+      // when
+      var result = handler.correlate(List.of(element), Collections.emptyMap());
+
+      // then
+      verify(camundaClient).newCreateInstanceCommand();
+      verifyNoMoreInteractions(camundaClient);
+      verify(dummyCommand).bpmnProcessId("process1");
+      verify(dummyCommand).version(0);
+      verify(dummyCommand).withResult();
+
+      assertThat(result).isInstanceOf(Success.ProcessInstanceCreatedWithResult.class);
+      var success = (Success.ProcessInstanceCreatedWithResult) result;
+      assertThat(success.activatedElement()).isEqualTo(element.element());
+      assertThat(success.processInstanceKey()).isEqualTo(42L);
+      assertThat(success.variables()).isEqualTo(processVariables);
+    }
+
+    @Test
+    void startEvent_asynchronous_shouldNotUseWithResult() {
+      // given
+      var point = new StartEventCorrelationPoint("process1", 0, 0);
+      var element = mock(InboundConnectorElement.class);
+      when(element.correlationPoint()).thenReturn(point);
+      when(element.synchronousResponse()).thenReturn(false);
+      when(element.element())
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
+
+      var dummyCommand = Mockito.spy(new CreateCommandDummy());
+      when(camundaClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
+
+      // when
+      var result = handler.correlate(List.of(element), Collections.emptyMap());
+
+      // then
+      verify(dummyCommand, Mockito.never()).withResult();
+      assertThat(result).isInstanceOf(Success.ProcessInstanceCreated.class);
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandlerTest#durationsProvider")
+    void messageStartEvent_synchronous_shouldUseCorrelateCommand(Duration duration) {
+      // given
+      var point = new MessageStartEventCorrelationPoint("testMsg", "", duration, "", "1", 1, 0);
+      var element = mock(InboundConnectorElement.class);
+      when(element.correlationPoint()).thenReturn(point);
+      when(element.synchronousResponse()).thenReturn(true);
+      when(element.element())
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
+
+      var dummyCommand = Mockito.spy(new CorrelateMessageCommandDummy());
+      when(camundaClient.newCorrelateMessageCommand()).thenReturn(dummyCommand);
+
+      // when
+      var result = handler.correlate(List.of(element), Collections.emptyMap());
+
+      // then
+      verify(camundaClient).newCorrelateMessageCommand();
+      verifyNoMoreInteractions(camundaClient);
+      verify(dummyCommand).messageName("testMsg");
+      verify(dummyCommand).withoutCorrelationKey();
+      verify(dummyCommand).send();
+
+      assertThat(result).isInstanceOf(Success.MessageCorrelated.class);
+      var success = (Success.MessageCorrelated) result;
+      assertThat(success.activatedElement()).isEqualTo(element.element());
+      assertThat(success.processInstanceKey()).isEqualTo(99L);
+    }
+
+    @Test
+    void message_synchronous_shouldUseCorrelateCommand() {
+      // given
+      var correlationKeyValue = "myKey";
+      var point = new StandaloneMessageCorrelationPoint("msg1", "=correlationKey", null, null);
+      var element = mock(InboundConnectorElement.class);
+      when(element.correlationPoint()).thenReturn(point);
+      when(element.synchronousResponse()).thenReturn(true);
+      when(element.element())
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
+
+      var dummyCommand = Mockito.spy(new CorrelateMessageCommandDummy());
+      when(camundaClient.newCorrelateMessageCommand()).thenReturn(dummyCommand);
+
+      // when
+      var result =
+          handler.correlate(List.of(element), Map.of("correlationKey", correlationKeyValue));
+
+      // then
+      verify(camundaClient).newCorrelateMessageCommand();
+      verifyNoMoreInteractions(camundaClient);
+      verify(dummyCommand).messageName("msg1");
+      verify(dummyCommand).correlationKey(correlationKeyValue);
+      verify(dummyCommand).send();
+
+      assertThat(result).isInstanceOf(Success.MessageCorrelated.class);
+      var success = (Success.MessageCorrelated) result;
+      assertThat(success.activatedElement()).isEqualTo(element.element());
+      assertThat(success.messageKey()).isEqualTo(-1);
+      assertThat(success.processInstanceKey()).isEqualTo(99L);
+    }
+
+    @Test
+    void message_asynchronous_shouldUsePublishCommand() {
+      // given
+      var correlationKeyValue = "myKey";
+      var point = new StandaloneMessageCorrelationPoint("msg1", "=correlationKey", null, null);
+      var element = mock(InboundConnectorElement.class);
+      when(element.correlationPoint()).thenReturn(point);
+      when(element.synchronousResponse()).thenReturn(false);
+      when(element.element())
+          .thenReturn(new ProcessElementWithRuntimeData("process1", 0, 0, "element", "default"));
+
+      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
+      when(camundaClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+
+      // when
+      var result =
+          handler.correlate(List.of(element), Map.of("correlationKey", correlationKeyValue));
+
+      // then
+      verify(camundaClient).newPublishMessageCommand();
+      verifyNoMoreInteractions(camundaClient);
+      assertThat(result).isInstanceOf(Success.MessagePublished.class);
     }
   }
 }

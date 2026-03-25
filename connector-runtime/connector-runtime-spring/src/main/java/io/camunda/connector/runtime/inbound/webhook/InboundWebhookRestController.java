@@ -32,8 +32,10 @@ import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Forwa
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult;
+import io.camunda.connector.api.inbound.CorrelationResult.Success.MessageCorrelated;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessagePublished;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.ProcessInstanceCreated;
+import io.camunda.connector.api.inbound.CorrelationResult.Success.ProcessInstanceCreatedWithResult;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
@@ -351,7 +353,7 @@ public class InboundWebhookRestController {
       LOG.error("Failed to get parts from request", e);
       throw new RuntimeException("Failed to get parts from request", e);
     } catch (ServletException e) {
-      LOG.debug("The request is not multipart/form-data, silently ignoring", e);
+      LOG.debug("The request is not multipart/form-data, silently ignoring: {}", e.getMessage());
       return List.of();
     } catch (IllegalStateException e) {
       LOG.error("Size limits are exceeded or no multipart configuration is provided", e);
@@ -389,7 +391,9 @@ public class InboundWebhookRestController {
     if (processedResult != null) {
       CorrelationResult.Success correlation = null;
       if (correlationResult instanceof ProcessInstanceCreated
-          || correlationResult instanceof MessagePublished) {
+          || correlationResult instanceof ProcessInstanceCreatedWithResult
+          || correlationResult instanceof MessagePublished
+          || correlationResult instanceof MessageCorrelated) {
         correlation = correlationResult;
       }
       ctx =

@@ -39,6 +39,7 @@ public final class GraphQLRequestMapper {
     httpCommonRequest.setUrl(graphQLRequest.graphql().url());
     httpCommonRequest.setConnectionTimeoutInSeconds(
         graphQLRequest.graphql().connectionTimeoutInSeconds());
+    httpCommonRequest.setReadTimeoutInSeconds(graphQLRequest.graphql().readTimeoutInSeconds());
 
     return httpCommonRequest;
   }

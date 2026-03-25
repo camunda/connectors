@@ -21,9 +21,6 @@ import static io.camunda.process.test.api.CamundaAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.io.File;
@@ -33,6 +30,9 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
 
 @SlowTest
 public class AwsSqsTest extends BaseAwsTest {
@@ -47,7 +47,7 @@ public class AwsSqsTest extends BaseAwsTest {
   private static final String FIFO_QUEUE = "fifo";
   private static final String STANDARD_QUEUE = "standard";
 
-  private static AmazonSQS sqsClient;
+  private static SqsClient sqsClient;
   private String sqsQueueUrl;
 
   /**
@@ -114,15 +114,15 @@ public class AwsSqsTest extends BaseAwsTest {
     List<Message> messages = AwsTestHelper.receiveMessages(sqsClient, sqsQueueUrl);
 
     assertFalse(messages.isEmpty(), "The SQS queue should have received a message");
-    String actualBody = messages.get(0).getBody();
+    String actualBody = messages.get(0).body();
     assertEquals(
         MESSAGE_BODY, actualBody, "The received message content does not match the expected body");
 
-    Map<String, MessageAttributeValue> messageAttributes = messages.get(0).getMessageAttributes();
+    Map<String, MessageAttributeValue> messageAttributes = messages.get(0).messageAttributes();
     MessageAttributeValue priority = messageAttributes.get("priority");
     assertEquals(
         PRIORITY,
-        priority.getStringValue(),
+        priority.stringValue(),
         "The received message priority does not match the expected value");
   }
 
@@ -174,17 +174,17 @@ public class AwsSqsTest extends BaseAwsTest {
     List<Message> messages = AwsTestHelper.receiveMessages(sqsClient, sqsQueueUrl);
 
     assertFalse(messages.isEmpty(), "The SQS queue should have received a message");
-    String actualBody = messages.get(0).getBody();
+    String actualBody = messages.get(0).body();
     assertEquals(
         MESSAGE_FIFO_BODY,
         actualBody,
         "The received message content does not match the expected body");
 
-    Map<String, MessageAttributeValue> messageAttributes = messages.get(0).getMessageAttributes();
+    Map<String, MessageAttributeValue> messageAttributes = messages.get(0).messageAttributes();
     MessageAttributeValue priorityAttribute = messageAttributes.get("priority");
     assertEquals(
         PRIORITY,
-        priorityAttribute.getStringValue(),
+        priorityAttribute.stringValue(),
         "The received message priority does not match the expected value");
   }
 }

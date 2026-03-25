@@ -195,6 +195,30 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
                     .withTag(ActivityLogTag.CORRELATION)
                     .withMessage("Message already correlated"));
         break;
+      case Success.MessageCorrelated messageCorrelated:
+        logRuntime(
+            activity ->
+                activity
+                    .withSeverity(Severity.INFO)
+                    .withTag(ActivityLogTag.CORRELATION)
+                    .withMessage("Message correlated to process instance")
+                    .withData(
+                        Map.of("processInstanceKey", messageCorrelated.processInstanceKey())));
+
+        break;
+      case Success.ProcessInstanceCreatedWithResult processInstanceCreatedWithResult:
+        logRuntime(
+            activity ->
+                activity
+                    .withSeverity(Severity.INFO)
+                    .withTag(ActivityLogTag.CORRELATION)
+                    .withMessage("Process instance created with result")
+                    .withData(
+                        Map.of(
+                            "processInstanceKey",
+                            processInstanceCreatedWithResult.processInstanceKey())));
+
+        break;
     }
   }
 

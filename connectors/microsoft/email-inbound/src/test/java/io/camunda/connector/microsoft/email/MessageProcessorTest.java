@@ -206,7 +206,9 @@ class MessageProcessorTest {
       var message = createTestMessage();
 
       when(context.canActivate(any()))
-          .thenReturn(new ActivationCheckResult.Failure.TooManyMatchingElements());
+          .thenReturn(
+              new ActivationCheckResult.Failure.TooManyMatchingElements(
+                  "Multiple elements matched"));
 
       var processor = new MessageProcessor(operation, spyMailClient, context);
 

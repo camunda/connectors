@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.inbound.authorization;
 
-import com.google.common.net.HttpHeaders;
 import io.camunda.connector.api.inbound.webhook.Part;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import java.util.Collection;
@@ -25,11 +24,7 @@ public record TestWebhookProcessingPayload(
     this(
         null,
         null,
-        Map.of(
-            HttpHeaders.AUTHORIZATION.toLowerCase(),
-            "Bearer " + token,
-            HttpHeaders.CONTENT_TYPE.toLowerCase(),
-            "application/json"),
+        Map.of("authorization", "Bearer " + token, "Content-Type", "application/json"),
         null,
         body == null ? null : body.getBytes(),
         List.of());

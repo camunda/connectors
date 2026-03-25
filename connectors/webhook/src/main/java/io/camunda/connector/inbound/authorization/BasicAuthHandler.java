@@ -6,7 +6,8 @@
  */
 package io.camunda.connector.inbound.authorization;
 
-import com.google.common.net.HttpHeaders;
+import static io.camunda.connector.inbound.utils.HttpWebhookUtil.HEADER_AUTHORIZATION;
+
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.InvalidCredentials;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Success;
@@ -45,7 +46,7 @@ final class BasicAuthHandler extends WebhookAuthorizationHandler<BasicAuth> {
   private String getAuthHeader(WebhookProcessingPayload payload) {
     return payload.headers().entrySet().stream()
         .collect(Collectors.toMap(entry -> entry.getKey().toLowerCase(), Entry::getValue))
-        .get(HttpHeaders.AUTHORIZATION.toLowerCase());
+        .get(HEADER_AUTHORIZATION.toLowerCase());
   }
 
   private static final AuthorizationResult AUTH_HEADER_MISSING_RESULT =

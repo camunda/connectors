@@ -83,7 +83,7 @@ limitations under the License.</license.inlineheader>
     <version.protobuf>4.34.0</version.protobuf>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
-    <version.mockito>5.22.0</version.mockito>
+    <version.mockito>5.23.0</version.mockito>
     <version.junit-jupiter>6.0.3</version.junit-jupiter>
     <version.assertj>3.27.7</version.assertj>
     <version.jackson-bom>2.21.1</version.jackson-bom>
@@ -95,11 +95,11 @@ limitations under the License.</license.inlineheader>
     <version.hamcrest>3.0</version.hamcrest>
 
     <version.spring-boot>4.0.3</version.spring-boot>
-    <version.spring-cloud-gcp-starter-logging>7.4.5</version.spring-cloud-gcp-starter-logging>
+    <version.spring-cloud-gcp-starter-logging>8.0.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.32</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.42.8</version.aws-sdk2>
+    <version.aws-sdk2>2.42.11</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -128,7 +128,7 @@ limitations under the License.</license.inlineheader>
     <version.httpcore5>5.4.2</version.httpcore5>
     <version.httpclient5>5.6</version.httpclient5>
     <version.httpclient>4.5.14</version.httpclient>
-    <version.pdfbox>3.0.6</version.pdfbox>
+    <version.pdfbox>3.0.7</version.pdfbox>
     <version.collections4>4.5.0</version.collections4>
 
     <version.commons-io>2.21.0</version.commons-io>
@@ -318,7 +318,7 @@ limitations under the License.</license.inlineheader>
 
       <dependency>
         <groupId>io.camunda.connector</groupId>
-        <artifactId>connector-feel-wrapper</artifactId>
+        <artifactId>connector-feel</artifactId>
         <version>${project.version}</version>
       </dependency>
 
@@ -485,6 +485,26 @@ limitations under the License.</license.inlineheader>
         <groupId>com.amazonaws</groupId>
         <artifactId>aws-java-sdk-sagemaker</artifactId>
         <version>${version.aws-java-sdk}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>lambda</artifactId>
+        <version>${version.aws-sdk2}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sqs</artifactId>
+        <version>${version.aws-sdk2}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>sns</artifactId>
+        <version>${version.aws-sdk2}</version>
+      </dependency>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>eventbridge</artifactId>
+        <version>${version.aws-sdk2}</version>
       </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>

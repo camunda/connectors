@@ -11,11 +11,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Map;
 import java.util.TreeMap;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import javax.xml.bind.DatatypeConverter;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,7 +91,7 @@ public class HMACSignatureValidator {
     String expectedHmacString = Hex.encodeHexString(expectedHmac);
 
     // The Twilio produce base64 version
-    String expectedBase64HmacString = DatatypeConverter.printBase64Binary(expectedHmac);
+    String expectedBase64HmacString = Base64.getEncoder().encodeToString(expectedHmac);
     LOG.debug("Computed HMAC from webhook body: {}", expectedHmacString);
     return providedHmac.equals(expectedHmacString)
         || providedHmacWithoutTag.equals(expectedHmacString)

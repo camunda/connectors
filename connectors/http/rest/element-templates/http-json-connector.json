@@ -7,7 +7,7 @@
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
-  "version" : 12,
+  "version" : 13,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -17,7 +17,7 @@
     "value" : "bpmn:ServiceTask"
   },
   "engines" : {
-    "camunda" : "^8.3"
+    "camunda" : "^8.9"
   },
   "groups" : [ {
     "id" : "authentication",
@@ -421,6 +421,19 @@
     },
     "type" : "Hidden"
   }, {
+    "id" : "followRedirects",
+    "label" : "Follow redirects",
+    "description" : "If enabled, HTTP 3xx redirects will be followed automatically. Disabled by default.",
+    "optional" : false,
+    "value" : false,
+    "feel" : "static",
+    "group" : "endpoint",
+    "binding" : {
+      "name" : "followRedirects",
+      "type" : "zeebe:input"
+    },
+    "type" : "Boolean"
+  }, {
     "id" : "connectionTimeoutInSeconds",
     "label" : "Connection timeout in seconds",
     "description" : "Defines the connection timeout in seconds, or 0 for an infinite timeout",
@@ -499,7 +512,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "12",
+    "value" : "13",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -574,6 +587,6 @@
     "type" : "String"
   } ],
   "icon" : {
-    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjAzMzUgOC45OTk5N0MxNy4wMzM1IDEzLjQ0NzUgMTMuNDI4MSAxNy4wNTI5IDguOTgwNjUgMTcuMDUyOUM0LjUzMzE2IDE3LjA1MjkgMC45Mjc3NjUgMTMuNDQ3NSAwLjkyNzc2NSA4Ljk5OTk3QzAuOTI3NzY1IDQuNTUyNDggNC41MzMxNiAwLjk0NzA4MyA4Ljk4MDY1IDAuOTQ3MDgzQzEzLjQyODEgMC45NDcwODMgMTcuMDMzNSA0LjU1MjQ4IDE3LjAzMzUgOC45OTk5N1oiIGZpbGw9IiM1MDU1NjIiLz4KPHBhdGggZD0iTTQuOTMxMjYgMTQuMTU3MUw2Ljc4MTA2IDMuNzE0NzFIMTAuMTM3NUMxMS4xOTE3IDMuNzE0NzEgMTEuOTgyNCAzLjk4MzIzIDEyLjUwOTUgNC41MjAyN0MxMy4wNDY1IDUuMDQ3MzYgMTMuMzE1IDUuNzMzNTggMTMuMzE1IDYuNTc4OTJDMTMuMzE1IDcuNDQ0MTQgMTMuMDcxNCA4LjE1NTIyIDEyLjU4NDEgOC43MTIxNUMxMi4xMDY3IDkuMjU5MTMgMTEuNDU1MyA5LjYzNzA1IDEwLjYyOTggOS44NDU5TDEyLjA2MTkgMTQuMTU3MUgxMC4zMzE1TDkuMDMzNjQgMTAuMDI0OUg3LjI0MzUxTDYuNTEyNTQgMTQuMTU3MUg0LjkzMTI2Wk03LjQ5NzExIDguNTkyODFIOS4yNDI0OEM5Ljk5ODMyIDguNTkyODEgMTAuNTkwMSA4LjQyMzc0IDExLjAxNzcgOC4wODU2MUMxMS40NTUzIDcuNzM3NTMgMTEuNjc0MSA3LjI2NTEzIDExLjY3NDEgNi42Njg0MkMxMS42NzQxIDYuMTkxMDYgMTEuNTI0OSA1LjgxODExIDExLjIyNjUgNS41NDk1OUMxMC45MjgyIDUuMjcxMTMgMTAuNDU1OCA1LjEzMTkgOS44MDkzNiA1LjEzMTlIOC4xMDg3NEw3LjQ5NzExIDguNTkyODFaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K"
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4NCjxwYXRoIGQ9Ik0xNy4wMzM1IDguOTk5OTdDMTcuMDMzNSAxMy40NDc1IDEzLjQyODEgMTcuMDUyOSA4Ljk4MDY1IDE3LjA1MjlDNC41MzMxNiAxNy4wNTI5IDAuOTI3NzY1IDEzLjQ0NzUgMC45Mjc3NjUgOC45OTk5N0MwLjkyNzc2NSA0LjU1MjQ4IDQuNTMzMTYgMC45NDcwODMgOC45ODA2NSAwLjk0NzA4M0MxMy40MjgxIDAuOTQ3MDgzIDE3LjAzMzUgNC41NTI0OCAxNy4wMzM1IDguOTk5OTdaIiBmaWxsPSIjNTA1NTYyIi8+DQo8cGF0aCBkPSJNNC45MzEyNiAxNC4xNTcxTDYuNzgxMDYgMy43MTQ3MUgxMC4xMzc1QzExLjE5MTcgMy43MTQ3MSAxMS45ODI0IDMuOTgzMjMgMTIuNTA5NSA0LjUyMDI3QzEzLjA0NjUgNS4wNDczNiAxMy4zMTUgNS43MzM1OCAxMy4zMTUgNi41Nzg5MkMxMy4zMTUgNy40NDQxNCAxMy4wNzE0IDguMTU1MjIgMTIuNTg0MSA4LjcxMjE1QzEyLjEwNjcgOS4yNTkxMyAxMS40NTUzIDkuNjM3MDUgMTAuNjI5OCA5Ljg0NTlMMTIuMDYxOSAxNC4xNTcxSDEwLjMzMTVMOS4wMzM2NCAxMC4wMjQ5SDcuMjQzNTFMNi41MTI1NCAxNC4xNTcxSDQuOTMxMjZaTTcuNDk3MTEgOC41OTI4MUg5LjI0MjQ4QzkuOTk4MzIgOC41OTI4MSAxMC41OTAxIDguNDIzNzQgMTEuMDE3NyA4LjA4NTYxQzExLjQ1NTMgNy43Mzc1MyAxMS42NzQxIDcuMjY1MTMgMTEuNjc0MSA2LjY2ODQyQzExLjY3NDEgNi4xOTEwNiAxMS41MjQ5IDUuODE4MTEgMTEuMjI2NSA1LjU0OTU5QzEwLjkyODIgNS4yNzExMyAxMC40NTU4IDUuMTMxOSA5LjgwOTM2IDUuMTMxOUg4LjEwODc0TDcuNDk3MTEgOC41OTI4MVoiIGZpbGw9IndoaXRlIi8+DQo8L3N2Zz4NCg=="
   }
 }

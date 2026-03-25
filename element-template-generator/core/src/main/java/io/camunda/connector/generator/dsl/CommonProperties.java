@@ -255,4 +255,28 @@ public class CommonProperties {
         .condition(new IsActive("deduplicationId", false))
         .binding(new ZeebeProperty("deduplicationMode"));
   }
+
+  /**
+   * Dropdown that lets the user choose between asynchronous (fire-and-forget) and synchronous
+   * (wait-for-result) correlation. Belongs to its own group {@code "synchronousResponse"} so it is
+   * independent of the activation condition group.
+   */
+  public static PropertyBuilder synchronousResponse() {
+    return DropdownProperty.builder()
+        .choices(
+            List.of(
+                new DropdownChoice("Asynchronous", "false"),
+                new DropdownChoice("Synchronous", "true")))
+        .id("synchronousResponse")
+        .label("Response mode")
+        .tooltip(
+            "Select synchronous to wait for the result of the correlation. This is either the result of the created process or the process instance key that matched the correlated message subscription."
+                + " Select asynchronous to trigger the correlation and return immediately without waiting for a result."
+                + " This affects the data available in the <a href=\"https://docs.camunda.io/docs/components/connectors/connectors/protocol/http-webhook/#use-the-correlation-object\">correlation</a> object for the response expression.")
+        .description(
+            "Synchronous or Asynchronous <a href=\"https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#response-mode\" target=\"_blank\">response handling</a>")
+        .group("synchronousResponse")
+        .value("false")
+        .binding(new ZeebeProperty("synchronousResponse"));
+  }
 }
