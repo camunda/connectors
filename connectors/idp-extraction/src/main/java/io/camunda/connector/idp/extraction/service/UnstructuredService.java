@@ -22,6 +22,7 @@ import io.camunda.connector.idp.extraction.model.ExtractionMetadata;
 import io.camunda.connector.idp.extraction.model.ExtractionResult;
 import io.camunda.connector.idp.extraction.model.LlmModel;
 import io.camunda.connector.idp.extraction.model.TaxonomyItem;
+import io.camunda.connector.idp.extraction.utils.GuardrailsUtil;
 import io.camunda.connector.idp.extraction.utils.StringUtil;
 import java.util.List;
 import java.util.Map;
@@ -44,13 +45,25 @@ public class UnstructuredService {
     ChatResponse aiResponse;
     long latencyMs;
     if (textExtractor == null) {
+      GuardrailsUtil.DocumentPreprocessingResult preprocessingResult =
+          GuardrailsUtil.preprocessDocumentForLlm(document);
       long aiStartTime = System.currentTimeMillis();
-      LOGGER.info("Starting multimodal {} conversation", aiClient.getClass().getSimpleName());
-      aiResponse =
-          aiClient.chat(
-              LlmModel.getExtractionSystemInstruction(),
-              LlmModel.getExtractionUserPrompt(taxonomyItems),
-              document);
+      if (preprocessingResult.fallbackToTextPrompt()) {
+        LOGGER.info(
+            "Guardrails detected suspicious file content. Starting sanitized text-only {} conversation",
+            aiClient.getClass().getSimpleName());
+        aiResponse =
+            aiClient.chat(
+                LlmModel.getExtractionSystemInstruction(),
+                LlmModel.getExtractionUserPrompt(preprocessingResult.sanitizedText(), taxonomyItems));
+      } else {
+        LOGGER.info("Starting multimodal {} conversation", aiClient.getClass().getSimpleName());
+        aiResponse =
+            aiClient.chat(
+                LlmModel.getExtractionSystemInstruction(),
+                LlmModel.getExtractionUserPrompt(taxonomyItems),
+                document);
+      }
       long aiEndTime = System.currentTimeMillis();
       latencyMs = aiEndTime - aiStartTime;
       LOGGER.info(
@@ -65,12 +78,17 @@ public class UnstructuredService {
           textExtractor.getClass().getSimpleName(),
           (extractionEndTime - startTime));
 
+      String sanitizedText = GuardrailsUtil.sanitizeLlmInput(extractedText);
+      if (!sanitizedText.equals(extractedText)) {
+        LOGGER.info("Guardrails sanitized extracted text before LLM prompt");
+      }
+
       long aiStartTime = System.currentTimeMillis();
       LOGGER.info("Starting {} conversation", aiClient.getClass().getSimpleName());
       aiResponse =
           aiClient.chat(
               LlmModel.getExtractionSystemInstruction(),
-              LlmModel.getExtractionUserPrompt(extractedText, taxonomyItems));
+              LlmModel.getExtractionUserPrompt(sanitizedText, taxonomyItems));
       long aiEndTime = System.currentTimeMillis();
       latencyMs = aiEndTime - startTime;
       LOGGER.info(
