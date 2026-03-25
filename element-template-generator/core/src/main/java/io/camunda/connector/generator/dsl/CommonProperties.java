@@ -186,9 +186,13 @@ public class CommonProperties {
         .binding(new PropertyBinding.ZeebeProperty("messageTtl"));
   }
 
-  public static PropertyBuilder messageNameUuidHidden() {
-    return HiddenProperty.builder()
+  public static PropertyBuilder messageNameUuid() {
+    return StringProperty.builder()
         .id("messageNameUuid")
+        .label("Message name")
+        .tooltip(
+            "By default, this is an auto-generated random UUID. We recommend using a unique message name for each connector element in the diagram. "
+                + "Override to set a custom message name. Learn more about <a href=\"\">message subscriptions</a> that power inbound connectors.")
         .group("correlation")
         .generatedValue()
         .binding(PropertyBinding.MessageProperty.NAME);

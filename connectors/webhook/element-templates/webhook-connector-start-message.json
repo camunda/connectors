@@ -1,7 +1,7 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Webhook Message Start Event Connector",
-  "id" : "io.camunda.connectors.webhook.WebhookConnectorStartMessage.v1",
+  "name" : "v2 Webhook Message Start Event Connector",
+  "id" : "io.camunda.connectors.webhook.WebhookConnectorStartMessage.v2",
   "description" : "Configure webhook to receive callbacks",
   "metadata" : {
     "keywords" : [ ]
@@ -512,15 +512,18 @@
     "type" : "String"
   }, {
     "id" : "messageNameUuid",
+    "label" : "Message name",
     "generatedValue" : {
       "type" : "uuid"
     },
+    "feel" : "optional",
     "group" : "correlation",
     "binding" : {
       "name" : "name",
       "type" : "bpmn:Message#property"
     },
-    "type" : "Hidden"
+    "tooltip" : "By default, this is an auto-generated random UUID. We recommend using a unique message name for each connector element in the diagram. Override to set a custom message name. Learn more about <a href=\"\">message subscriptions</a> that power inbound connectors.",
+    "type" : "String"
   }, {
     "id" : "deduplicationModeManualFlag",
     "label" : "Manual mode",
