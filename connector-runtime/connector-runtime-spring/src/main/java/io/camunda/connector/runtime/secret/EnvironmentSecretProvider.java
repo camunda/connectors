@@ -106,9 +106,10 @@ public class EnvironmentSecretProvider implements SecretProvider {
   }
 
   /**
-   * returns the secret name in format ${prefix}${name}
+   * Returns the secret name in format {@code ${prefix}${name}}.
    *
-   * @param name the secrets' name to find the value for
+   * @param name the secret name to find the value for
+   * @param resolvedPrefix the prefix to prepend (may be empty)
    * @return the final secret name
    */
   private String composeSecretNameSimple(String name, String resolvedPrefix) {
@@ -116,10 +117,11 @@ public class EnvironmentSecretProvider implements SecretProvider {
   }
 
   /**
-   * returns the secret name in format ${prefix}${tenantId}_${name}
+   * Returns the secret name in format {@code ${prefix}${tenantId}_${name}}.
    *
-   * @param name the secrets' name to find the value for
+   * @param name the secret name to find the value for
    * @param context the context of where the secret is originated
+   * @param resolvedPrefix the prefix to prepend (may be empty)
    * @return the final secret name
    */
   private String composeSecretNameTenantAware(
@@ -128,9 +130,11 @@ public class EnvironmentSecretProvider implements SecretProvider {
   }
 
   /**
-   * returns the secret name in format ${prefix}${processDefinitionId}_${name}
+   * Returns the secret name in format {@code ${prefix}${processDefinitionId}_${name}}.
    *
-   * @param name the secrets' name to find the value for
+   * @param name the secret name to find the value for
+   * @param context the context of where the secret is originated
+   * @param resolvedPrefix the prefix to prepend (may be empty)
    * @return the final secret name
    */
   private String composeSecretNameProcessDefinitionAware(
@@ -139,10 +143,11 @@ public class EnvironmentSecretProvider implements SecretProvider {
   }
 
   /**
-   * returns the secret name in format ${prefix}${tenantId}_${processDefinitionId}_${name}
+   * Returns the secret name in format {@code ${prefix}${tenantId}_${processDefinitionId}_${name}}.
    *
-   * @param name the secrets' name to find the value for
+   * @param name the secret name to find the value for
    * @param context the context of where the secret is originated
+   * @param resolvedPrefix the prefix to prepend (may be empty)
    * @return the final secret name
    */
   private String composeSecretNameTenantAwareProcessDefinitionAware(
