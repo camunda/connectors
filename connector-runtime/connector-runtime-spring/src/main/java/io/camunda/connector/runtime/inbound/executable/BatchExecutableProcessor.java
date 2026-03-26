@@ -204,32 +204,37 @@ public class BatchExecutableProcessor {
     return new Activated(executable, context, id);
   }
 
+  /** Deactivates a single inbound connector. */
+  public void deactivateSingle(RegisteredExecutable executable) {
+    if (executable instanceof Activated activated) {
+      try {
+        if (activated.executable() instanceof WebhookConnectorExecutable) {
+          LOG.debug("Unregistering webhook: {}", activated.context().getDefinition().type());
+          webhookConnectorRegistry.deregister(activated);
+        }
+        activated.executable().deactivate();
+        log(
+            executable.id(),
+            Activity.newBuilder()
+                .withSeverity(Severity.INFO)
+                .withTag(ActivityLogTag.LIFECYCLE)
+                .withMessage(
+                    "Deactivated executable: "
+                        + activated.context().getDefinition().type()
+                        + " with executable ID "
+                        + activated.id()));
+      } catch (Exception e) {
+        LOG.error("Failed to deactivate executable", e);
+      }
+      connectorsInboundMetrics.increaseDeactivation(
+          activated.context().connectorElements().getFirst());
+    }
+  }
+
   /** Deactivates a batch of inbound connectors. */
   public void deactivateBatch(List<RegisteredExecutable> executables) {
-    for (var activeExecutable : executables) {
-      if (activeExecutable instanceof Activated activated) {
-        try {
-          if (activated.executable() instanceof WebhookConnectorExecutable) {
-            LOG.debug("Unregistering webhook: {}", activated.context().getDefinition().type());
-            webhookConnectorRegistry.deregister(activated);
-          }
-          activated.executable().deactivate();
-          log(
-              activeExecutable.id(),
-              Activity.newBuilder()
-                  .withSeverity(Severity.INFO)
-                  .withTag(ActivityLogTag.LIFECYCLE)
-                  .withMessage(
-                      "Deactivated executable: "
-                          + activated.context().getDefinition().type()
-                          + " with executable ID "
-                          + activated.id()));
-        } catch (Exception e) {
-          LOG.error("Failed to deactivate executable", e);
-        }
-        connectorsInboundMetrics.increaseDeactivation(
-            activated.context().connectorElements().getFirst());
-      }
+    for (var executable : executables) {
+      deactivateSingle(executable);
     }
   }
 
