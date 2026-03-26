@@ -7,8 +7,6 @@
 package io.camunda.connector.aws.bedrock.codeinterpreter;
 
 import io.camunda.connector.api.annotation.OutboundConnector;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.CredentialsProviderSupportV2;
@@ -16,7 +14,7 @@ import io.camunda.connector.aws.bedrock.codeinterpreter.model.request.CodeInterp
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import java.net.URI;
-import java.util.function.Function;
+import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreAsyncClient;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
@@ -26,7 +24,7 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
     inputVariables = {"authentication", "configuration", "input"},
     type = "io.camunda:aws-bedrock-codeinterpreter:1")
 @ElementTemplate(
-    engineVersion = "^8.8",
+    engineVersion = "^8.9", // TODO: update to ^8.10 when available
     id = "io.camunda.connectors.aws.bedrock.codeinterpreter.v1",
     name = "AWS Bedrock Code Interpreter Outbound Connector",
     description = "Execute Python code in a secure AWS Bedrock AgentCore Code Interpreter sandbox",
@@ -43,28 +41,23 @@ public class BedrockCodeInterpreterConnectorFunction implements OutboundConnecto
   @Override
   public Object execute(OutboundConnectorContext context) {
     var request = context.bindVariables(CodeInterpreterRequest.class);
-    var credentialsProvider = CredentialsProviderSupportV2.credentialsProvider(request);
+    try (var syncClient = createClient(request, BedrockAgentCoreClient.builder());
+        var asyncClient = createClient(request, BedrockAgentCoreAsyncClient.builder())) {
+      return new CodeInterpreterExecutor(syncClient, asyncClient, context::create)
+          .execute(request, context.getJobContext().getElementInstanceKey());
+    }
+  }
+
+  private <B extends AwsClientBuilder<B, C>, C extends AutoCloseable> C createClient(
+      CodeInterpreterRequest request, B builder) {
+    builder.credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(request));
     var config = request.getConfiguration();
-    Function<DocumentCreationRequest, Document> createDocument = context::create;
-
-    var syncBuilder = BedrockAgentCoreClient.builder().credentialsProvider(credentialsProvider);
-    var asyncBuilder =
-        BedrockAgentCoreAsyncClient.builder().credentialsProvider(credentialsProvider);
-
     if (config != null && config.region() != null) {
-      var region = Region.of(config.region());
-      syncBuilder.region(region);
-      asyncBuilder.region(region);
+      builder.region(Region.of(config.region()));
     }
     if (config != null && config.endpoint() != null && !config.endpoint().isBlank()) {
-      var endpoint = URI.create(config.endpoint());
-      syncBuilder.endpointOverride(endpoint);
-      asyncBuilder.endpointOverride(endpoint);
+      builder.endpointOverride(URI.create(config.endpoint()));
     }
-
-    try (var syncClient = syncBuilder.build();
-        var asyncClient = asyncBuilder.build()) {
-      return new CodeInterpreterExecutor(syncClient, asyncClient, createDocument).execute(request);
-    }
+    return builder.build();
   }
 }

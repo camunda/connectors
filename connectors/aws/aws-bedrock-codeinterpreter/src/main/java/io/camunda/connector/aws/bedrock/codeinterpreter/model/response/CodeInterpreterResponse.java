@@ -10,8 +10,4 @@ import io.camunda.connector.api.document.Document;
 import java.util.List;
 
 public record CodeInterpreterResponse(
-    String stdout,
-    String stderr,
-    Integer exitCode,
-    Double executionTimeMs,
-    List<Document> images) {}
+    String stdout, String stderr, Integer exitCode, Double executionTimeMs, List<Document> files) {}

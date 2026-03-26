@@ -63,14 +63,14 @@ class CodeInterpreterExecutorTest extends BaseTest {
         .thenReturn(StopCodeInterpreterSessionResponse.builder().build());
 
     var request = buildRequest(ActualValue.CODE, null);
-    var result = executor.execute(request);
+    var result = executor.execute(request, 12345L);
 
     assertThat(result).isNotNull();
     assertThat(result.stdout()).isNotNull();
-    assertThat(result.images()).isEmpty();
+    assertThat(result.files()).isEmpty();
 
     verify(syncClient).startCodeInterpreterSession(any(StartCodeInterpreterSessionRequest.class));
-    verify(asyncClient, atLeast(2))
+    verify(asyncClient, atLeast(3))
         .invokeCodeInterpreter(
             any(InvokeCodeInterpreterRequest.class),
             any(InvokeCodeInterpreterResponseHandler.class));
@@ -89,7 +89,7 @@ class CodeInterpreterExecutorTest extends BaseTest {
         .thenReturn(StopCodeInterpreterSessionResponse.builder().build());
 
     var request = buildRequest("x = 1 + 2\nprint(x)", 300);
-    executor.execute(request);
+    executor.execute(request, 12345L);
 
     var startCaptor = ArgumentCaptor.forClass(StartCodeInterpreterSessionRequest.class);
     verify(syncClient).startCodeInterpreterSession(startCaptor.capture());
@@ -98,8 +98,9 @@ class CodeInterpreterExecutorTest extends BaseTest {
     assertThat(startCaptor.getValue().sessionTimeoutSeconds()).isEqualTo(300);
 
     var invokeCaptor = ArgumentCaptor.forClass(InvokeCodeInterpreterRequest.class);
-    verify(asyncClient, atLeast(2)).invokeCodeInterpreter(invokeCaptor.capture(), any());
-    var executeCall = invokeCaptor.getAllValues().get(0);
+    verify(asyncClient, atLeast(3)).invokeCodeInterpreter(invokeCaptor.capture(), any());
+    // First call is listFiles (before execution), second is executeCode, third is listFiles (after)
+    var executeCall = invokeCaptor.getAllValues().get(1);
     assertThat(executeCall.sessionId()).isEqualTo("sess-123");
     assertThat(executeCall.arguments().code()).isEqualTo("x = 1 + 2\nprint(x)");
     assertThat(executeCall.arguments().languageAsString()).isEqualTo("python");
@@ -118,7 +119,7 @@ class CodeInterpreterExecutorTest extends BaseTest {
 
     var request = buildRequest("bad code", null);
 
-    assertThatThrownBy(() -> executor.execute(request))
+    assertThatThrownBy(() -> executor.execute(request, 12345L))
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("Code Interpreter error");
 
@@ -132,7 +133,7 @@ class CodeInterpreterExecutorTest extends BaseTest {
 
     var request = buildRequest(ActualValue.CODE, null);
 
-    assertThatThrownBy(() -> executor.execute(request))
+    assertThatThrownBy(() -> executor.execute(request, 12345L))
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("Code Interpreter error");
   }
