@@ -10,6 +10,7 @@ import static io.camunda.connector.agenticai.aiagent.model.request.provider.Azur
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
@@ -29,7 +30,9 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
   public static final String AZURE_OPENAI_ID = "azureOpenAi";
 
   public record AzureOpenAiConnection(
-      @FEEL
+      @NotBlank
+          @HttpUrl
+          @FEEL
           @TemplateProperty(
               group = "provider",
               description =

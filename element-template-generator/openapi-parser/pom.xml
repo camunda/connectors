@@ -15,8 +15,8 @@
   <packaging>jar</packaging>
 
   <properties>
-    <version.swagger-parser>2.1.38</version.swagger-parser>
-    <version.swagger-models>2.2.44</version.swagger-models>
+    <version.swagger-parser>2.1.39</version.swagger-parser>
+    <version.swagger-models>2.2.45</version.swagger-models>
   </properties>
 
   <dependencies>
@@ -63,7 +63,7 @@
 
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-feel-wrapper</artifactId>
+      <artifactId>connector-feel</artifactId>
     </dependency>
 
     <dependency>

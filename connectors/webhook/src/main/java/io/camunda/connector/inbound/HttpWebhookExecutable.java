@@ -65,6 +65,11 @@ import org.slf4j.LoggerFactory;
           templateIdOverride = "io.camunda.connectors.webhook.WebhookConnectorStartMessage.v1",
           templateNameOverride = "Webhook Message Start Event Connector"),
       @ConnectorElementType(
+          appliesTo = BpmnType.START_EVENT,
+          elementType = BpmnType.START_EVENT,
+          templateIdOverride = "io.camunda.connectors.webhook.WebhookConnector.v1",
+          templateNameOverride = "Webhook Start Event Connector"),
+      @ConnectorElementType(
           appliesTo = {BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT},
           elementType = BpmnType.INTERMEDIATE_CATCH_EVENT,
           templateIdOverride = "io.camunda.connectors.webhook.WebhookConnectorIntermediate.v1",

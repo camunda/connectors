@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.CamundaClient;
 import io.camunda.client.impl.CamundaObjectMapper;
 import io.camunda.client.spring.configuration.CamundaAutoConfiguration;
 import io.camunda.client.spring.properties.CamundaClientProperties;
@@ -24,8 +25,13 @@ import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentDeserializer;
 import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
-import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.CamundaClientFeelExpressionEvaluator;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
+import io.camunda.connector.http.client.authentication.OAuthTokenCache;
+import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
+import io.camunda.connector.http.client.authentication.cacheimpl.CaffeineOAuthTokenCache;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.annotation.OutboundConnectorObjectMapper;
@@ -43,6 +49,7 @@ import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
@@ -50,7 +57,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
+import org.springframework.scheduling.annotation.Scheduled;
 
 @AutoConfiguration
 @AutoConfigureBefore({
@@ -63,10 +72,12 @@ public class ConnectorsAutoConfiguration {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConnectorsAutoConfiguration.class);
 
+  private final ObjectProvider<OAuthTokenCache> oAuthTokenCacheProvider;
+
   @Value("${camunda.connector.secretprovider.discovery.enabled:true}")
   Boolean secretProviderLookupEnabled;
 
-  @Value("${camunda.connector.secretprovider.environment.prefix:}")
+  @Value("${camunda.connector.secretprovider.environment.prefix:SECRET_}")
   String environmentSecretProviderPrefix;
 
   @Value("${camunda.connector.secretprovider.environment.tenantaware:false}")
@@ -82,11 +93,42 @@ public class ConnectorsAutoConfiguration {
   @Value("${camunda.connector.secretprovider.console.audience:secrets.camunda.io}")
   String consoleSecretsApiAudience;
 
-  /** Provides a {@link FeelEngineWrapper} unless already present in the Spring Context */
+  public ConnectorsAutoConfiguration(ObjectProvider<OAuthTokenCache> oAuthTokenCacheProvider) {
+    this.oAuthTokenCacheProvider = oAuthTokenCacheProvider;
+  }
+
+  /**
+   * Provides a {@link FeelExpressionEvaluator} unless already present in the Spring Context. Uses
+   * cluster-based evaluation (enabling access to cluster variables like {@code
+   * camunda.vars.env.*}).
+   */
   @Bean
-  @ConditionalOnMissingBean(FeelEngineWrapper.class)
-  public FeelEngineWrapper feelEngine() {
-    return new FeelEngineWrapper();
+  @Primary
+  @ConditionalOnMissingBean(FeelExpressionEvaluator.class)
+  public FeelExpressionEvaluator camundaClientFeelExpressionEvaluator(CamundaClient camundaClient) {
+    return new CamundaClientFeelExpressionEvaluator(
+        camundaClient, ConnectorsObjectMapperSupplier.getCopy());
+  }
+
+  /**
+   * Initializes and exposes the shared {@link OAuthTokenCache}, configured from {@code
+   * camunda.connector.oauth.cache.skew-buffer} property.
+   *
+   * <p>The cache instance is also registered in {@link OAuthTokenCacheHolder} so that non-Spring
+   * HTTP client code (which cannot use dependency injection) can access it.
+   *
+   * <p>Users can replace this bean by defining their own {@link OAuthTokenCache} bean. Custom
+   * implementations will be picked up both by the Spring context and by the HTTP client via the
+   * holder.
+   */
+  @Bean
+  @ConditionalOnMissingBean(OAuthTokenCache.class)
+  public OAuthTokenCache oAuthTokenCache(ConnectorProperties properties) {
+    var cacheProps = properties.oauth() != null ? properties.oauth().cache() : null;
+    Duration skewBuffer = cacheProps != null ? cacheProps.skewBuffer() : null;
+    OAuthTokenCache cache = CaffeineOAuthTokenCache.initialize(skewBuffer);
+    OAuthTokenCacheHolder.set(cache);
+    return cache;
   }
 
   @Bean
@@ -167,7 +209,8 @@ public class ConnectorsAutoConfiguration {
   @Bean(defaultCandidate = false)
   @ConnectorsObjectMapper
   @ConditionalOnMissingBean(name = "connectorObjectMapper")
-  public ObjectMapper connectorObjectMapper(DocumentFactory documentFactory) {
+  public ObjectMapper connectorObjectMapper(
+      DocumentFactory documentFactory, FeelExpressionEvaluator feelExpressionEvaluator) {
     final ObjectMapper copy = ConnectorsObjectMapperSupplier.getCopy();
     // default intrinsic function contains a pointer of the copy
     var functionExecutor = new DefaultIntrinsicFunctionExecutor(copy);
@@ -180,18 +223,21 @@ public class ConnectorsAutoConfiguration {
             functionExecutor,
             JacksonModuleDocumentDeserializer.DocumentModuleSettings.create());
 
-    // We register the deserializer module which contains the function executor, which contains the
-    // pointer of the object mapper
-    // we are overloading
+    // Function/Supplier always use local evaluation to avoid serializing runtime objects
+    // (e.g., Documents) to the cluster. The injected evaluator is used for @FEEL-annotated fields.
     return copy.registerModules(
         jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(),
+        new JacksonModuleFeelFunction(
+            true, feelExpressionEvaluator, new LocalFeelExpressionEvaluator()),
         new JacksonModuleDocumentSerializer());
   }
 
   /**
-   * ObjectMapper for OutboundConnectorManager with FEEL functions disabled. This prevents FEEL
-   * expression evaluation during outbound connector variable binding.
+   * ObjectMapper for OutboundConnectorManager with FEEL annotation processing disabled. This
+   * prevents {@code @FEEL}-annotated properties from being evaluated as FEEL expressions during
+   * outbound connector variable binding, which would otherwise conflict with other modules (e.g.
+   * the document module) and can prevent the correct deserializer from being picked. {@code @FEEL}
+   * is not relevant for outbound connectors anyway, as FEEL for jobs is evaluated by Zeebe.
    */
   @Bean(defaultCandidate = false)
   @OutboundConnectorObjectMapper
@@ -208,7 +254,18 @@ public class ConnectorsAutoConfiguration {
 
     return copy.registerModules(
         jacksonModuleDocumentDeserializer,
-        new JacksonModuleFeelFunction(false), // FEEL functions disabled
+        new JacksonModuleFeelFunction(
+            false, new LocalFeelExpressionEvaluator()), // FEEL annotation processing disabled
         new JacksonModuleDocumentSerializer());
+  }
+
+  @Scheduled(fixedRate = 60_000, initialDelay = 60_000)
+  public void logOAuthTokenCacheStats() {
+    if (!LOG.isDebugEnabled()) {
+      return;
+    }
+
+    OAuthTokenCache cache = oAuthTokenCacheProvider.getIfAvailable(OAuthTokenCacheHolder::get);
+    LOG.debug("OAuth token cache stats: {}", cache.getStats());
   }
 }

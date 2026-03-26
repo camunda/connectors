@@ -28,6 +28,6 @@ public sealed interface ActivationCheckResult {
 
     record NoMatchingElement(boolean discardUnmatchedEvents) implements Failure {}
 
-    record TooManyMatchingElements() implements Failure {}
+    record TooManyMatchingElements(String reason) implements Failure {}
   }
 }

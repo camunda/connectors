@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "GitHub Outbound Connector",
   "id": "io.camunda.connectors.GitHub.v1",
-  "version": 9,
+  "version": 10,
   "engines": {
     "camunda": "^8.7"
   },
@@ -97,40 +97,44 @@
       "type": "Dropdown",
       "choices": [
         {
-          "name": "Issues",
-          "value": "issues"
-        },
-        {
-          "name": "Releases",
-          "value": "releases"
+          "name": "Actions",
+          "value": "actions"
         },
         {
           "name": "Branches",
           "value": "branches"
         },
         {
-          "name": "Repositories",
-          "value": "repositories"
-        },
-        {
           "name": "Code scanning",
           "value": "codeScanning"
         },
         {
-          "name": "Actions",
-          "value": "actions"
+          "name": "Collaborators",
+          "value": "collaborators"
         },
         {
-          "name": "References",
-          "value": "references"
+          "name": "Issues",
+          "value": "issues"
+        },
+        {
+          "name": "Labels",
+          "value": "labels"
         },
         {
           "name": "Pulls",
           "value": "pulls"
         },
         {
-          "name": "Collaborators",
-          "value": "collaborators"
+          "name": "References",
+          "value": "references"
+        },
+        {
+          "name": "Releases",
+          "value": "releases"
+        },
+        {
+          "name": "Repositories",
+          "value": "repositories"
         }
       ],
       "binding": {
@@ -150,24 +154,24 @@
           "value": "createIssue"
         },
         {
+          "name": "Create an issue comment",
+          "value": "createIssueComment"
+        },
+        {
           "name": "Get an issue",
           "value": "getIssue"
         },
         {
-          "name": "Update an issue",
-          "value": "updateIssue"
-        },
-        {
-          "name": "Create an issue comment",
-          "value": "createIssueComment"
+          "name": "List commits",
+          "value": "listCommits"
         },
         {
           "name": "Search issues and pull requests",
           "value": "searchIssues"
         },
         {
-          "name": "List commits",
-          "value": "listCommits"
+          "name": "Update an issue",
+          "value": "updateIssue"
         }
       ],
       "condition": {
@@ -193,16 +197,16 @@
           "value": "createRelease"
         },
         {
-          "name": "Update a release",
-          "value": "updateRelease"
-        },
-        {
           "name": "Delete a release",
           "value": "deleteRelease"
         },
         {
           "name": "List releases",
           "value": "listReleases"
+        },
+        {
+          "name": "Update a release",
+          "value": "updateRelease"
         }
       ],
       "condition": {
@@ -224,12 +228,12 @@
       "value": "listBranches",
       "choices": [
         {
-          "name": "List branches",
-          "value": "listBranches"
-        },
-        {
           "name": "Get a branch",
           "value": "getBranch"
+        },
+        {
+          "name": "List branches",
+          "value": "listBranches"
         },
         {
           "name": "Merge a branch",
@@ -255,40 +259,40 @@
       "value": "listOrganizationRepos",
       "choices": [
         {
-          "name": "List organization repositories",
-          "value": "listOrganizationRepos"
+          "name": "Create an organization invitation",
+          "value": "orgInvitation"
         },
         {
           "name": "Create an organization repository",
           "value": "createOrganizationRepo"
         },
         {
-          "name": "Get a repository",
-          "value": "getRepo"
-        },
-        {
-          "name": "Update a repository",
-          "value": "updateRepo"
+          "name": "Create or Update File Content",
+          "value": "uploadFile"
         },
         {
           "name": "Delete a repository",
           "value": "deleteRepo"
         },
         {
-          "name": "List repository contributors",
-          "value": "listRepoContributors"
-        },
-        {
-          "name": "Create an organization invitation",
-          "value": "orgInvitation"
+          "name": "Get a repository",
+          "value": "getRepo"
         },
         {
           "name": "Get repository content",
           "value": "getRepoContent"
         },
         {
-          "name": "Create or Update File Content",
-          "value": "uploadFile"
+          "name": "List organization repositories",
+          "value": "listOrganizationRepos"
+        },
+        {
+          "name": "List repository contributors",
+          "value": "listRepoContributors"
+        },
+        {
+          "name": "Update a repository",
+          "value": "updateRepo"
         }
       ],
       "condition": {
@@ -414,6 +418,45 @@
         "property": "operationGroup",
         "oneOf": [
           "collaborators"
+        ]
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operationType"
+      }
+    },
+    {
+      "label": "Operation type",
+      "id": "labelOperationType",
+      "group": "operation",
+      "type": "Dropdown",
+      "value": "createLabel",
+      "choices": [
+        {
+          "name": "Create a label",
+          "value": "createLabel"
+        },
+        {
+          "name": "Delete a label",
+          "value": "deleteLabel"
+        },
+        {
+          "name": "Get a label",
+          "value": "getLabel"
+        },
+        {
+          "name": "List labels",
+          "value": "listLabels"
+        },
+        {
+          "name": "Update a label",
+          "value": "updateLabel"
+        }
+      ],
+      "condition": {
+        "property": "operationGroup",
+        "oneOf": [
+          "labels"
         ]
       },
       "binding": {
@@ -860,6 +903,71 @@
       }
     },
     {
+      "id": "labelMethodPost",
+      "group": "configuration",
+      "type": "Hidden",
+      "value": "post",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "createLabel"
+        ]
+      }
+    },
+    {
+      "id": "labelMethodGet",
+      "group": "configuration",
+      "type": "Hidden",
+      "value": "get",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "getLabel",
+          "listLabels"
+        ]
+      }
+    },
+    {
+      "id": "labelMethodPatch",
+      "group": "configuration",
+      "type": "Hidden",
+      "value": "patch",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "updateLabel"
+        ]
+      }
+    },
+    {
+      "id": "labelMethodDelete",
+      "group": "configuration",
+      "type": "Hidden",
+      "value": "delete",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "deleteLabel"
+        ]
+      }
+    },
+    {
       "label": "Owner",
       "description": "Repository owner",
       "group": "configuration",
@@ -1063,6 +1171,31 @@
       }
     },
     {
+      "label": "Owner",
+      "description": "Repository owner",
+      "group": "configuration",
+      "type": "String",
+      "feel": "optional",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "owner"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "createLabel",
+          "getLabel",
+          "listLabels",
+          "updateLabel",
+          "deleteLabel"
+        ]
+      }
+    },
+    {
       "label": "Repository",
       "description": "Name of the repository",
       "group": "configuration",
@@ -1262,6 +1395,117 @@
         "property": "pullRequestOperationType",
         "oneOf": [
           "createPullRequest"
+        ]
+      }
+    },
+    {
+      "label": "Repository",
+      "description": "Name of the repository",
+      "group": "configuration",
+      "type": "String",
+      "feel": "optional",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "repo"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "createLabel",
+          "getLabel",
+          "listLabels",
+          "updateLabel",
+          "deleteLabel"
+        ]
+      }
+    },
+    {
+      "label": "Label name",
+      "description": "The name of the label",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "labelName"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "createLabel",
+          "getLabel",
+          "updateLabel",
+          "deleteLabel"
+        ]
+      }
+    },
+    {
+      "label": "New label name",
+      "description": "New name for the label (only for update)",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "labelNewName"
+      },
+      "optional": true,
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "updateLabel"
+        ]
+      }
+    },
+    {
+      "label": "Color",
+      "description": "A 6 character hex code, without the leading #, identifying the color of the label",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "labelColor"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "^(=|[0-9a-fA-F]{6}$)",
+          "message": "must be a 6-character hex code without the leading # (e.g., ff0000)"
+        }
+      },
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "createLabel",
+          "updateLabel"
+        ]
+      }
+    },
+    {
+      "label": "Description",
+      "description": "A short description of the label",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "labelDescription"
+      },
+      "optional": true,
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "createLabel",
+          "updateLabel"
         ]
       }
     },
@@ -1759,7 +2003,7 @@
           "value": "sources"
         },
         {
-          "name": "Memeber",
+          "name": "Member",
           "value": "member"
         }
       ],
@@ -1816,7 +2060,7 @@
       "id": "repoSortOrder",
       "group": "input",
       "type": "Dropdown",
-      "value": "true",
+      "value": "desc",
       "choices": [
         {
           "name": "Ascending",
@@ -1926,7 +2170,7 @@
         },
         {
           "name": "Billing manager",
-          "value": "billing_manage"
+          "value": "billing_manager"
         }
       ],
       "binding": {
@@ -2689,7 +2933,39 @@
     {
       "group": "input",
       "type": "Hidden",
-      "value": "={\"type\": repoType, \"sort\": repoSortOrder, \"direction\": repoSortOrder}",
+      "value": "={\"name\": labelName, \"color\": if labelColor = null then null else labelColor, \"description\": if labelDescription = null then null else labelDescription}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "createLabel"
+        ]
+      },
+      "optional": true
+    },
+    {
+      "group": "input",
+      "type": "Hidden",
+      "value": "={\"new_name\": if labelNewName = null then null else labelNewName, \"color\": if labelColor = null then null else labelColor, \"description\": if labelDescription = null then null else labelDescription}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "updateLabel"
+        ]
+      },
+      "optional": true
+    },
+    {
+      "group": "input",
+      "type": "Hidden",
+      "value": "={\"type\": repoType, \"sort\": repoSort, \"direction\": repoSortOrder}",
       "binding": {
         "type": "zeebe:input",
         "name": "queryParameters"
@@ -3137,6 +3413,82 @@
       }
     },
     {
+      "label": "Result expression",
+      "id": "resultExpressionCreateLabel",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={createdLabel: response.body}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "createLabel"
+        ]
+      }
+    },
+    {
+      "label": "Result expression",
+      "id": "resultExpressionGetLabel",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={label: response.body}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "getLabel"
+        ]
+      }
+    },
+    {
+      "label": "Result expression",
+      "id": "resultExpressionListLabels",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={labelsList: response.body}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "listLabels"
+        ]
+      }
+    },
+    {
+      "label": "Result expression",
+      "id": "resultExpressionUpdateLabel",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={updatedLabel: response.body}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "updateLabel"
+        ]
+      }
+    },
+    {
       "label": "Connection timeout",
       "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
       "group": "errors",
@@ -3358,10 +3710,9 @@
         "name": "url"
       },
       "condition": {
-        "property": "reposOperationType",
+        "property": "listAlertsOperationType",
         "oneOf": [
-          "listOrganizationRepos",
-          "createOrganizationRepo"
+          "listAlertsForOrg"
         ]
       }
     },
@@ -3480,6 +3831,37 @@
       }
     },
     {
+      "type": "Hidden",
+      "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/labels\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "createLabel",
+          "listLabels"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/labels/\" + labelName",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "labelOperationType",
+        "oneOf": [
+          "getLabel",
+          "updateLabel",
+          "deleteLabel"
+        ]
+      }
+    },
+    {
       "label": "Error expression",
       "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
       "group": "errors",
@@ -3494,7 +3876,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "8",
+      "value": "10",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",

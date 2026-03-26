@@ -17,13 +17,18 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "camunda.connector.agenticai")
 public record AgenticAiConnectorsConfigurationProperties(
-    @Valid @DefaultValue ToolsProperties tools, @Valid @DefaultValue AiAgentProperties aiagent) {
+    @Valid @DefaultValue ToolsProperties tools,
+    @Valid @DefaultValue AiAgentProperties aiagent,
+    @Valid @DefaultValue HttpProperties http) {
 
   public record AiAgentProperties(@Valid @DefaultValue ChatModelProperties chatModel) {}
 
   public record ChatModelProperties(@Valid @DefaultValue ApiProperties api) {
-
     public record ApiProperties(@DefaultValue("PT3M") Duration defaultTimeout) {}
+  }
+
+  public record HttpProperties(@Valid @DefaultValue ProxySupportProperties proxySupport) {
+    public record ProxySupportProperties(@DefaultValue("true") boolean enabled) {}
   }
 
   public record ToolsProperties(

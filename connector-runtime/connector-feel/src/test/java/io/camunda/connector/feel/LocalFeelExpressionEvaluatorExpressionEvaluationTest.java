@@ -1,0 +1,491 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Camunda licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.camunda.connector.feel;
+
+import static io.camunda.connector.feel.FeelEngineWrapperUtil.*;
+import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.time.Duration;
+import java.time.LocalDate;
+import java.util.Collections;
+import java.util.Map;
+import org.assertj.core.api.Assertions;
+import org.json.JSONException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
+import org.skyscreamer.jsonassert.JSONCompareMode;
+
+class LocalFeelExpressionEvaluatorExpressionEvaluationTest {
+
+  private LocalFeelExpressionEvaluator objectUnderTest;
+
+  @BeforeEach
+  void beforeEach() {
+    objectUnderTest = new LocalFeelExpressionEvaluator();
+  }
+
+  @Test
+  void evaluateToJson_ShouldSucceed_WhenHappyCase() throws JSONException {
+    // given
+    // FEEL expression -> {"processedOutput":response.callStatus}
+    final var resultExpression = "{\"processedOutput\": response.callStatus }";
+    // Response from service -> {"callStatus":{"statusCode":"200 OK"}}
+    final var variables = Map.of("callStatus", Map.of("statusCode", "200 OK"));
+
+    // when
+    final var evaluatedResultAsJson =
+        objectUnderTest.evaluateToJson(resultExpression, variables, wrapResponse(variables));
+
+    // then
+    JSONAssert.assertEquals(
+        "{\"processedOutput\":{\"statusCode\":\"200 OK\"}}",
+        evaluatedResultAsJson,
+        JSONCompareMode.STRICT);
+  }
+
+  @Test
+  void evaluate_ShouldSucceed_WhenHappyCaseJavaType() {
+    // given
+    // FEEL expression -> {"processedOutput":response.callStatus}
+    final var resultExpression = "{\"processedOutput\": response.callStatus }";
+    // Response from service -> {"callStatus":{"statusCode":"200 OK"}}
+    final var variables = Map.of("callStatus", Map.of("statusCode", "200 OK"));
+
+    // when
+    final var evaluatedResultAsMap =
+        objectUnderTest.evaluate(resultExpression, variables, wrapResponse(variables));
+
+    // then
+    final var expectedResult = Map.of("processedOutput", Map.of("statusCode", "200 OK"));
+    assertThat(evaluatedResultAsMap).isEqualTo(expectedResult);
+  }
+
+  @Test
+  void evaluateToJson_ShouldSucceed_WhenHandlingPojo() throws JSONException {
+    // given
+    final var resultExpression = "= { value: response.value, response: response }";
+    final var variables = new TestPojo("FOO");
+
+    // when
+    final var evaluatedResultAsJson =
+        objectUnderTest.evaluateToJson(resultExpression, variables, wrapResponse(variables));
+
+    // then
+    JSONAssert.assertEquals(
+        "{\"response\":{\"value\":\"FOO\"},\"value\":\"FOO\"}",
+        evaluatedResultAsJson,
+        JSONCompareMode.STRICT);
+  }
+
+  @Test
+  void evaluateToJson_ShouldSucceed_WhenExpressionStartsWithEqualsSign() throws JSONException {
+    // given
+    // FEEL expression -> ={"processedOutput":response.callStatus}
+    final var resultExpression = "={\"processedOutput\": response.callStatus }";
+    // Response from service -> {"callStatus":{"statusCode":"200 OK"}}
+    final var variables = Map.of("callStatus", Map.of("statusCode", "200 OK"));
+
+    // when
+    final var evaluatedResultAsJson =
+        objectUnderTest.evaluateToJson(resultExpression, variables, wrapResponse(variables));
+
+    // then
+    JSONAssert.assertEquals(
+        "{\"processedOutput\":{\"statusCode\":\"200 OK\"}}",
+        evaluatedResultAsJson,
+        JSONCompareMode.STRICT);
+  }
+
+  @Test
+  void evaluateToJson_ShouldSucceed_WhenContextWithContextFromHttpResponse() throws JSONException {
+    // given
+    // FEEL expression which is a bit useless, but it proves 2 things
+    // 1. status is wrapped to response
+    // 2. job is not
+    final var errorExpression =
+        "if response.status = 204 then {retries: job.retries, responseRetries: response.job.retries} else null";
+    final var variables = Map.of("status", 204, "body", "", "headers", Map.of());
+    final var jobContent = Map.of("job", Map.of("retries", 3));
+    final var evaluatedResultAsJson =
+        objectUnderTest.evaluateToJson(
+            errorExpression, variables, Map.of("response", variables), jobContent);
+    // then
+    JSONAssert.assertEquals(
+        "{\"retries\":3,\"responseRetries\":null}", evaluatedResultAsJson, JSONCompareMode.STRICT);
+  }
+
+  @Test
+  void evaluateToJson_ShouldSucceed_WhenVariableNotFound() throws JSONException {
+    // given
+    // FEEL expression -> ={"processedOutput":response.doesnt-exist}
+    final var resultExpression = "={\"processedOutput\": response.doesnt-exist }";
+    // Response from service -> {"callStatus":{"statusCode":"200 OK"}}
+    final var variables = Map.of("callStatus", Map.of("statusCode", "200 OK"));
+
+    // when
+    final var evaluatedResultAsJson = objectUnderTest.evaluateToJson(resultExpression, variables);
+
+    // then
+    JSONAssert.assertEquals(
+        "{\"processedOutput\":null}", evaluatedResultAsJson, JSONCompareMode.STRICT);
+  }
+
+  @Test
+  void evaluateToJson_ShouldSucceed_WhenUsedBuiltInFunction() throws JSONException {
+    // given
+    // FEEL expression -> {"processedOutput": upper case(response.callStatus)}
+    final var resultExpression = "{\"processedOutput\": upper case(response.callStatus) }";
+    // Response from service -> {"callStatus":"done"}
+    final var variables = Map.of("callStatus", "done");
+
+    // when
+    final var evaluatedResultAsJson =
+        objectUnderTest.evaluateToJson(resultExpression, variables, wrapResponse(variables));
+
+    // then
+    JSONAssert.assertEquals(
+        "{\"processedOutput\":\"DONE\"}", evaluatedResultAsJson, JSONCompareMode.STRICT);
+    // processedOutput in upper-case!
+  }
+
+  @Test
+  void evaluateToJson_ShouldFail_WhenVariablesAreNull() {
+    // given
+    // FEEL expression -> {"processedOutput":response.callStatus}
+    final var resultExpression = "{\"processedOutput\": response.callStatus }";
+
+    // when & then
+    final var exception =
+        Assertions.catchThrowable(() -> objectUnderTest.evaluateToJson(resultExpression, null));
+
+    Assertions.assertThat(exception)
+        .isInstanceOf(FeelEngineWrapperException.class)
+        .hasMessageContaining("Context is null");
+  }
+
+  @Test
+  void evaluateToJson_ShouldNotFail_WhenVariablesAreNotMap() throws JSONException {
+    // given
+    // FEEL expression -> {"processedOutput":response.callStatus}
+    final var resultExpression = "{\"processedOutput\": response.callStatus }";
+
+    // when & then
+    final var evaluatedResultAsJson =
+        objectUnderTest.evaluateToJson(resultExpression, "I am not a map");
+
+    JSONAssert.assertEquals(
+        "{\"processedOutput\": null}", evaluatedResultAsJson, JSONCompareMode.STRICT);
+  }
+
+  @Test
+  void evaluateToJson_ShouldNotFail_WhenResponseBodyIsEmpty() throws JSONException {
+    // given - simulates HTTP response with empty body (null)
+    // FEEL expression -> {"processedOutput": response.status}
+    final var resultExpression = "{\"processedOutput\": response.status }";
+    // Response body is null, but wrapped response contains the null
+    final Object responseContent = null;
+
+    // when - this should not throw exception even though responseContent is null
+    final var evaluatedResultAsJson =
+        objectUnderTest.evaluateToJson(
+            resultExpression, responseContent, wrapResponse(responseContent));
+
+    // then - should evaluate successfully with null values
+    JSONAssert.assertEquals(
+        "{\"processedOutput\": null}", evaluatedResultAsJson, JSONCompareMode.STRICT);
+  }
+
+  @Test
+  void evaluateToJson_ShouldNotFail_WhenCallingNonExistingFunction() {
+    // given
+    // FEEL expression -> {"processedOutput": camel case(response.callStatus)}
+    // camel case function does not exist in FEEL
+    final var resultExpression = "{\"processedOutput\": camel case(response.callStatus) }";
+    // Response from service -> {"callStatus":"done"}
+    final var variables = Map.of("callStatus", "done");
+    Assertions.assertThatNoException()
+        .isThrownBy(() -> objectUnderTest.evaluateToJson(resultExpression, variables));
+  }
+
+  @Test
+  void evaluateToJson_ShouldNotFail_WhenCallingNonProperty() {
+    final var resultExpression = "{\"processedOutput\": my.non.existing.property }";
+    final var variables = Map.of("callStatus", "done");
+    Assertions.assertThatNoException()
+        .isThrownBy(() -> objectUnderTest.evaluateToJson(resultExpression, variables));
+  }
+
+  @Test
+  void evaluateToJson_ShouldHandleDates() {
+    final var jsonDeserialized = Map.of("data", LocalDate.of(2024, 1, 1));
+    assertThat(objectUnderTest.evaluateToJson("{res: data}", jsonDeserialized))
+        .isEqualTo("{\"res\":\"2024-01-01\"}");
+
+    assertThat(objectUnderTest.evaluateToJson("\"test\"", jsonDeserialized)).isEqualTo("\"test\"");
+
+    assertThat(objectUnderTest.evaluateToJson("test", jsonDeserialized)).isEqualTo(null);
+
+    assertThat(objectUnderTest.evaluateToJson("null", jsonDeserialized)).isEqualTo(null);
+  }
+
+  @Test
+  void shouldSanitizeScalaMapOutput() {
+    // given
+    final var expression = "={\"processedOutput\": response.callStatus, \"response\": response }";
+    final var variables = Map.of("callStatus", "200 OK");
+
+    // when
+    final var result =
+        objectUnderTest.evaluate(expression, Object.class, variables, wrapResponse(variables));
+
+    // then
+    // result is not a scala map
+    assertThat(result).isNotInstanceOf(scala.collection.Map.class);
+    assertThat(result).isEqualTo(Map.of("processedOutput", "200 OK", "response", variables));
+  }
+
+  @Test
+  void bpmnErrorFunction() {
+    // given
+    final var resultExpression = "=bpmnError(\"test\", \"test message\")";
+    final var variables = Map.of("code", "TestCode", "message", "TestMessage");
+    // when
+    Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    assertEquals("test", result.get("errorCode"));
+    assertEquals("test message", result.get("errorMessage"));
+    assertNull(result.get("variables"));
+  }
+
+  @Test
+  void bpmnErrorFunctionWithVars() {
+    // given
+    final var resultExpression = "=bpmnError(\"test\", \"test message\", variables)";
+    final var errorVariables = Map.of("errorVariable", "test");
+    final var variables =
+        Map.of("code", "TestCode", "message", "TestMessage", "variables", errorVariables);
+    // when
+    Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    assertEquals("test", result.get("errorCode"));
+    assertEquals("test message", result.get("errorMessage"));
+    Map<String, Object> resultErrorVariables = (Map<String, Object>) result.get("variables");
+    assertEquals(errorVariables.get("errorVariable"), resultErrorVariables.get("errorVariable"));
+  }
+
+  @Test
+  void bpmnErrorFunctionWithCodeOnly() {
+    // given
+    final var resultExpression = "=bpmnError(\"test\")";
+    final var variables = Map.of("code", "TestCode");
+    // when
+    final var result = objectUnderTest.evaluate(resultExpression, variables);
+    assertNull(result);
+  }
+
+  @Test
+  void failJobFunctionWithAllParameters() {
+    // given
+    final var resultExpression =
+        "=jobError(message, {\"key\": \"value\"}, job.retries - 1, @\"PT1M\")";
+    final var variables = Map.of("message", "some Message", "job", Map.of("retries", 3));
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    assertThat(result)
+        .containsEntry("retries", 2L)
+        .containsEntry("retryBackoff", Duration.ofMinutes(1))
+        .containsEntry("variables", Map.of("key", "value"))
+        .containsEntry("errorType", "jobError")
+        .containsEntry("errorMessage", "some Message");
+  }
+
+  @Test
+  void failJobFunctionWithoutRetryBackoff() {
+    // given
+    final var resultExpression = "=jobError(message, {\"key\": \"value\"}, 2)";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    assertThat(result)
+        .containsEntry("retries", 2L)
+        .containsEntry("retryBackoff", Duration.ZERO)
+        .containsEntry("variables", Map.of("key", "value"))
+        .containsEntry("errorType", "jobError")
+        .containsEntry("errorMessage", "some Message");
+  }
+
+  @Test
+  void failJobFunctionWithoutRetries() {
+    // given
+    final var resultExpression = "=jobError(message, {})";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    assertThat(result)
+        .containsEntry("retries", 0L)
+        .containsEntry("retryBackoff", Duration.ZERO)
+        .containsEntry("variables", Collections.emptyMap())
+        .containsEntry("errorType", "jobError")
+        .containsEntry("errorMessage", "some Message");
+  }
+
+  @Test
+  void failJobFunctionWithoutVariables() {
+    // given
+    final var resultExpression = "=jobError(message)";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    assertThat(result)
+        .containsEntry("retries", 0L)
+        .containsEntry("retryBackoff", Duration.ZERO)
+        .containsEntry("variables", Collections.emptyMap())
+        .containsEntry("errorType", "jobError")
+        .containsEntry("errorMessage", "some Message");
+  }
+
+  @Test
+  void failJobFunctionWithExpressionInVariables() {
+    // given - variables map contains an expression that should be evaluated
+    final var resultExpression = "=jobError(message, {\"expr\": 1 + 5})";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    // then - the expression should be evaluated to 6 (Java Integer)
+    assertThat(result)
+        .containsEntry("errorType", "jobError")
+        .containsEntry("errorMessage", "some Message");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> resultVariables = (Map<String, Object>) result.get("variables");
+    assertThat(resultVariables).containsEntry("expr", 6L);
+  }
+
+  @Test
+  void failJobFunctionVariablesShouldContainJavaStrings() {
+    // given - variables map contains a string value
+    final var resultExpression = "=jobError(message, {\"key\": \"value\"})";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    // then - the variables should contain Java String, not ValString
+    @SuppressWarnings("unchecked")
+    Map<String, Object> resultVariables = (Map<String, Object>) result.get("variables");
+    assertThat(resultVariables.get("key")).isInstanceOf(String.class).isEqualTo("value");
+  }
+
+  @Test
+  void failJobFunctionWithNestedContext() {
+    // given - variables contain a nested context
+    final var resultExpression = "=jobError(message, {\"nested\": {\"key\": \"value\"}})";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    // then - nested context should be converted to Java Map
+    @SuppressWarnings("unchecked")
+    Map<String, Object> resultVariables = (Map<String, Object>) result.get("variables");
+    assertThat(resultVariables.get("nested")).isInstanceOf(Map.class);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> nestedMap = (Map<String, Object>) resultVariables.get("nested");
+    assertThat(nestedMap.get("key")).isInstanceOf(String.class).isEqualTo("value");
+  }
+
+  @Test
+  void failJobFunctionWithList() {
+    // given - variables contain a list
+    final var resultExpression = "=jobError(message, {\"items\": [1, 2, 3]})";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    // then - list should be converted to Java List with Integer values
+    @SuppressWarnings("unchecked")
+    Map<String, Object> resultVariables = (Map<String, Object>) result.get("variables");
+    assertThat(resultVariables.get("items")).isInstanceOf(java.util.List.class);
+    @SuppressWarnings("unchecked")
+    java.util.List<Object> items = (java.util.List<Object>) resultVariables.get("items");
+    assertThat(items).containsExactly(1L, 2L, 3L);
+    assertThat(items.get(0)).isInstanceOf(Long.class);
+  }
+
+  @Test
+  void failJobFunctionWithMixedTypes() {
+    // given - variables contain mixed types: string, number, boolean
+    final var resultExpression =
+        "=jobError(message, {\"str\": \"text\", \"num\": 42, \"bool\": true})";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    // then - all types should be properly converted
+    @SuppressWarnings("unchecked")
+    Map<String, Object> resultVariables = (Map<String, Object>) result.get("variables");
+    assertThat(resultVariables.get("str")).isInstanceOf(String.class).isEqualTo("text");
+    assertThat(resultVariables.get("num")).isInstanceOf(Long.class).isEqualTo(42L);
+    assertThat(resultVariables.get("bool")).isInstanceOf(Boolean.class).isEqualTo(true);
+  }
+
+  @Test
+  void failJobFunctionWithLargeNumbers() {
+    // given - variables contain numbers of different ranges
+    final var resultExpression =
+        "=jobError(message, {\"int\": 100, \"long\": 9999999999, \"decimal\": 3.14159})";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    // then - numbers should be converted to appropriate Java types
+    @SuppressWarnings("unchecked")
+    Map<String, Object> resultVariables = (Map<String, Object>) result.get("variables");
+    assertThat(resultVariables.get("int")).isInstanceOf(Long.class).isEqualTo(100L);
+    assertThat(resultVariables.get("long")).isInstanceOf(Long.class).isEqualTo(9999999999L);
+    // Note: FEEL may represent 3.14159 as a double
+    assertThat(resultVariables.get("decimal")).isInstanceOf(Number.class);
+  }
+
+  @Test
+  void bpmnErrorFunctionWithVarsButWrongDatatype() {
+    // given
+    final var resultExpression = "=bpmnError(\"test\", \"test\", \"test\")";
+    final var variables = Map.of("code", "TestCode");
+    // when
+    assertThrowsExactly(
+        FeelEngineWrapperException.class,
+        () -> objectUnderTest.evaluate(resultExpression, variables));
+  }
+
+  record TestPojo(String value) {}
+
+  @Test
+  void ignoreErrorFunction() {
+    // given
+    final var resultExpression = "=ignoreError(vars)";
+    var vars = Map.of("testKey", "testValue");
+    final var context = Map.of("vars", vars);
+    // when
+    Map<String, Object> result = objectUnderTest.evaluate(resultExpression, context);
+    // then
+    assertThat(result).containsEntry("variables", vars).containsEntry("errorType", "ignoreError");
+  }
+
+  @Test
+  void ignoreErrorFunctionNoArgs() {
+    // given
+    final var resultExpression = "=ignoreError()";
+    final var context = Map.of();
+    // when
+    Map<String, Object> result = objectUnderTest.evaluate(resultExpression, context);
+    // then
+    assertThat(result).doesNotContainKey("variables").containsEntry("errorType", "ignoreError");
+  }
+}

@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.http.rest;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
@@ -30,12 +31,14 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import io.camunda.connector.http.client.authentication.OAuthService;
+import io.camunda.connector.http.client.authentication.OAuthTokenCacheHolder;
 import io.camunda.connector.http.client.client.apache.ApacheRequestFactory;
 import io.camunda.connector.http.client.model.HttpClientRequest;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
 import java.io.IOException;
 import java.util.Map;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -56,6 +59,11 @@ class HttpClientServiceTest extends BaseTest {
       "src/test/resources/requests/success-test-cases-oauth.json";
 
   private final OAuthService oAuthService = new OAuthService();
+
+  @BeforeEach
+  void resetOAuthTokenCache() {
+    OAuthTokenCacheHolder.get().invalidateAll();
+  }
 
   private static Stream<String> successCasesOauth() throws IOException {
     return loadTestCasesFromResourceFile(SUCCESS_CASES_OAUTH_RESOURCE_PATH);
@@ -114,5 +122,76 @@ class HttpClientServiceTest extends BaseTest {
                     "client_credentials",
                     "scope",
                     scopes));
+  }
+
+  @ParameterizedTest(name = "Executing test case: {0}")
+  @MethodSource("successCasesOauth")
+  void shouldCacheOAuthToken_andReuseOnSecondCall(
+      final String input, final WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    var oauthBodyBytes =
+        objectMapper.writeValueAsBytes(objectMapper.readValue(ACCESS_TOKEN, Object.class));
+
+    stubFor(
+        WireMock.post(urlPathMatching("/oauth"))
+            .willReturn(
+                WireMock.aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(oauthBodyBytes)));
+
+    String formattedInput = String.format(input, wmRuntimeInfo.getHttpBaseUrl() + "/oauth");
+
+    final var context = getContextBuilderWithSecrets().variables(formattedInput).build();
+    final var httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
+    var httpService = new HttpService();
+
+    HttpClientRequest request = httpService.mapToHttpClientRequest(httpJsonRequest);
+
+    // First call — should fetch a new token
+    var apacheRequest1 = ApacheRequestFactory.get().createHttpRequest(request);
+    assertThat(apacheRequest1.getHeader("Authorization").getValue()).isEqualTo("Bearer abcd");
+
+    // Second call — token should come from cache, no additional call to /oauth
+    var apacheRequest2 = ApacheRequestFactory.get().createHttpRequest(request);
+    assertThat(apacheRequest2.getHeader("Authorization").getValue()).isEqualTo("Bearer abcd");
+
+    // The OAuth endpoint should have been called exactly once
+    WireMock.verify(1, postRequestedFor(urlPathMatching("/oauth")));
+  }
+
+  @ParameterizedTest(name = "Executing test case: {0}")
+  @MethodSource("successCasesOauth")
+  void shouldNotCacheOAuthToken_whenExpiresInIsAbsent(
+      String input, final WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    // OAuth response without expires_in
+    String accessTokenNoExpiry =
+        "{\"access_token\": \"abcd\", \"scope\":\"read:clients\", \"token_type\":\"Bearer\"}";
+    var oauthBodyBytes =
+        objectMapper.writeValueAsBytes(objectMapper.readValue(accessTokenNoExpiry, Object.class));
+
+    stubFor(
+        WireMock.post(urlPathMatching("/oauth"))
+            .willReturn(
+                WireMock.aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(oauthBodyBytes)));
+
+    String formattedInput = String.format(input, wmRuntimeInfo.getHttpBaseUrl() + "/oauth");
+
+    final var context = getContextBuilderWithSecrets().variables(formattedInput).build();
+    final var httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
+    var httpService = new HttpService();
+
+    HttpClientRequest request = httpService.mapToHttpClientRequest(httpJsonRequest);
+
+    // First call — fetches token (not cached since no expires_in)
+    ApacheRequestFactory.get().createHttpRequest(request);
+
+    // Second call — should fetch again since token was not cached
+    ApacheRequestFactory.get().createHttpRequest(request);
+
+    // The OAuth endpoint should have been called twice
+    WireMock.verify(2, postRequestedFor(urlPathMatching("/oauth")));
   }
 }

@@ -221,6 +221,7 @@ class TextExtractorTest {
           .isAssignableFrom(AzureDocumentIntelligenceExtractionClient.class);
       assertThat(TextExtractor.class).isAssignableFrom(GcpDocumentAiExtractionClient.class);
       assertThat(TextExtractor.class).isAssignableFrom(AwsTextrtactExtractionClient.class);
+      assertThat(TextExtractor.class).isAssignableFrom(AbbyyVantageExtractionClient.class);
     }
   }
 

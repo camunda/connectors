@@ -245,10 +245,14 @@ jobs:
     name: Notify on failure
     runs-on: ubuntu-latest
     needs: [ deploy-snapshots, helm-deploy ]
-    if: failure() && !cancelled() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/stable/') || startsWith(github.ref, 'refs/heads/alpha/'))
+    if: |
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/stable/') || startsWith(github.ref, 'refs/heads/alpha/')) &&
+      (needs.deploy-snapshots.result == 'failure' || needs.helm-deploy.result == 'failure') &&
+      needs.deploy-snapshots.result != 'cancelled' &&
+      needs.helm-deploy.result != 'cancelled'
     steps:
       - name: Send Slack notification on failure
-        uses: slackapi/slack-github-action@v2.1.1
+        uses: slackapi/slack-github-action@v3.0.1
         with:
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
           method: chat.postMessage

@@ -45,6 +45,8 @@ public class HttpClientRequest {
 
   private boolean ignoreNullValues;
 
+  private boolean followRedirects;
+
   public Object getBody() {
     return body;
   }
@@ -201,5 +203,13 @@ public class HttpClientRequest {
 
   public void setIgnoreNullValues(boolean ignoreNullValues) {
     this.ignoreNullValues = ignoreNullValues;
+  }
+
+  public boolean isFollowRedirects() {
+    return followRedirects;
+  }
+
+  public void setFollowRedirects(boolean followRedirects) {
+    this.followRedirects = followRedirects;
   }
 }

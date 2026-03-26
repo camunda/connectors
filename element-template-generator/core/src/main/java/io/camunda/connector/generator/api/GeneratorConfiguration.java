@@ -45,7 +45,13 @@ public record GeneratorConfiguration(
 
   public enum GenerationFeature {
     INBOUND_DEDUPLICATION,
-    ACKNOWLEDGEMENT_STRATEGY_SELECTION
+    ACKNOWLEDGEMENT_STRATEGY_SELECTION,
+    /**
+     * When enabled, adds a synchronous response toggle to inbound connector element templates.
+     * Supports both synchronous process instance creation with result (start events) and
+     * synchronous message correlation (message events).
+     */
+    SYNCHRONOUS_RESPONSE
   }
 
   public static final GeneratorConfiguration DEFAULT =

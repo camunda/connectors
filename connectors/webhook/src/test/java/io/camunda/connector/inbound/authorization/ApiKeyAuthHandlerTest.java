@@ -10,10 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.google.common.net.HttpHeaders;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.InvalidCredentials;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Success;
 import io.camunda.connector.inbound.model.WebhookAuthorization.ApiKeyAuth;
@@ -23,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 public class ApiKeyAuthHandlerTest {
 
-  private final FeelEngineWrapper feel = new FeelEngineWrapper();
+  private final LocalFeelExpressionEvaluator feel = new LocalFeelExpressionEvaluator();
   private final String locatorExpression = "=split(request.headers.authorization, \" \")[2]";
   private final Function<Object, String> locator =
       request -> feel.evaluate(locatorExpression, request);
@@ -59,7 +58,7 @@ public class ApiKeyAuthHandlerTest {
   void apiKey_malformedHeader() {
     // given
     var payload = mock(WebhookProcessingPayload.class);
-    when(payload.headers()).thenReturn(Map.of(HttpHeaders.AUTHORIZATION, "NotBearer"));
+    when(payload.headers()).thenReturn(Map.of("Authorization", "NotBearer"));
     var checker = new ApiKeyAuthHandler(expectedAuth);
 
     // when

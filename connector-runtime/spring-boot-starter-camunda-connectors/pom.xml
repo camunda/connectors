@@ -38,9 +38,13 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-object-mapper</artifactId>
     </dependency>
+      <dependency>
+          <groupId>io.camunda.connector</groupId>
+          <artifactId>http-client</artifactId>
+      </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-feel-wrapper</artifactId>
+      <artifactId>connector-feel</artifactId>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>

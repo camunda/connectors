@@ -17,7 +17,7 @@ import io.camunda.connector.http.polling.service.SharedExecutorService;
 import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
 
 @ElementTemplate(
-    engineVersion = "^8.8",
+    engineVersion = "^8.9",
     id = "io.camunda:http-polling:1",
     name = "Polling Connector",
     icon = "icon.svg",

@@ -18,25 +18,28 @@ package io.camunda.connector.http.client.client.apache.builder.parts;
 
 import static org.apache.hc.core5.http.HttpHeaders.AUTHORIZATION;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.http.client.HttpClientObjectMapperSupplier;
-import io.camunda.connector.http.client.authentication.Base64Helper;
-import io.camunda.connector.http.client.authentication.OAuthService;
+import io.camunda.connector.http.client.authentication.*;
 import io.camunda.connector.http.client.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.client.model.HttpClientRequest;
-import io.camunda.connector.http.client.model.auth.ApiKeyAuthentication;
-import io.camunda.connector.http.client.model.auth.BasicAuthentication;
-import io.camunda.connector.http.client.model.auth.BearerAuthentication;
-import io.camunda.connector.http.client.model.auth.NoAuthentication;
-import io.camunda.connector.http.client.model.auth.OAuthAuthentication;
+import io.camunda.connector.http.client.model.auth.*;
 import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 
 public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuilder {
 
   private static final String BEARER = "Bearer %s";
-  private final OAuthService oAuthService = new OAuthService();
-  private final ObjectMapper objectMapper = HttpClientObjectMapperSupplier.getCopy();
+
+  private final OAuthService oAuthService;
+  private final OAuthTokenCache tokenCache;
+
+  public ApacheRequestAuthenticationBuilder() {
+    this(new OAuthService(), OAuthTokenCacheHolder.get());
+  }
+
+  public ApacheRequestAuthenticationBuilder(OAuthService oAuthService, OAuthTokenCache tokenCache) {
+    this.oAuthService = oAuthService;
+    this.tokenCache = tokenCache;
+  }
 
   @Override
   public void build(ClassicRequestBuilder builder, HttpClientRequest request) {
@@ -48,7 +51,7 @@ public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuil
                 AUTHORIZATION,
                 Base64Helper.buildBasicAuthenticationHeader(auth.username(), auth.password()));
         case OAuthAuthentication auth -> {
-          String token = fetchOAuthToken(auth);
+          var token = tokenCache.getOrFetch(auth, () -> fetchOAuthToken(auth));
           builder.addHeader(AUTHORIZATION, String.format(BEARER, token));
         }
         case BearerAuthentication auth ->
@@ -67,7 +70,7 @@ public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuil
     }
   }
 
-  String fetchOAuthToken(OAuthAuthentication authentication) {
+  TokenResponse fetchOAuthToken(OAuthAuthentication authentication) {
     HttpClientRequest oAuthRequest = oAuthService.createOAuthRequestFrom(authentication);
     return new CustomApacheHttpClient()
         .execute(oAuthRequest, oAuthService::extractTokenFromResponse)

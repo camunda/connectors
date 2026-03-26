@@ -6,8 +6,9 @@
  */
 package io.camunda.connector.inbound.signature.strategy;
 
+import static io.camunda.connector.inbound.utils.HttpWebhookUtil.FORM_DATA_CONTENT_TYPE;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.common.net.MediaType;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
@@ -28,7 +29,7 @@ public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
     // Twilio-specific HMAC encryption. If this is an url encoded parameter or body that is a map
     // then this algo will be used
     // If not we will just return the object as a serialized String
-    if (MediaType.FORM_DATA.toString().equalsIgnoreCase(contentTypeHeader)) {
+    if (FORM_DATA_CONTENT_TYPE.equalsIgnoreCase(contentTypeHeader)) {
       String bodyAsString =
           URLDecoder.decode(new String(rawBody, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
       Map<String, String> strMap =
