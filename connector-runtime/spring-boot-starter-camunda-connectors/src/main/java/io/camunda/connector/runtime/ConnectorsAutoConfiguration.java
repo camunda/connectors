@@ -99,8 +99,8 @@ public class ConnectorsAutoConfiguration {
 
   /**
    * Provides a {@link FeelExpressionEvaluator} unless already present in the Spring Context. Uses
-   * cluster-based evaluation (enabling access to cluster variables like
-   * {@code camunda.vars.env.*}).
+   * cluster-based evaluation (enabling access to cluster variables like {@code
+   * camunda.vars.env.*}).
    */
   @Bean
   @Primary
