@@ -61,7 +61,7 @@ public class InboundCorrelationHandler {
   public InboundCorrelationHandler(
       CamundaClient camundaClient, ObjectMapper objectMapper, Duration defaultMessageTtl) {
     this.camundaClient = camundaClient;
-    this.activationConditionEvaluator = new ActivationConditionEvaluator();
+    this.activationConditionEvaluator = new ActivationConditionEvaluator(feelExpressionEvaluator);
     this.defaultMessageTtl = defaultMessageTtl;
     this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
   }

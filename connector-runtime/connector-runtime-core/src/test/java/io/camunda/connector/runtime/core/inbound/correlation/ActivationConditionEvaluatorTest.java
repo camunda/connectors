@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.inbound.ActivationCheckResult;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
@@ -41,7 +42,7 @@ public class ActivationConditionEvaluatorTest {
 
   @BeforeEach
   void setUp() {
-    evaluator = new ActivationConditionEvaluator();
+    evaluator = new ActivationConditionEvaluator(new LocalFeelExpressionEvaluator());
   }
 
   private InboundConnectorElement createMessageElement(
