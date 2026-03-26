@@ -182,7 +182,9 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       var template = templates.getFirst();
       var property = getPropertyById("messageNameUuid", template);
       assertThat(property).isNotNull();
-      assertThat(property.getType()).isEqualTo("Hidden");
+      assertThat(property.getType()).isEqualTo("String");
+      assertThat(property.getLabel()).isEqualTo("Message name");
+      assertThat(property.getTooltip()).isNotNull();
       assertThat(property.getBinding().type()).isEqualTo("bpmn:Message#property");
       assertThat(((MessageProperty) property.getBinding()).name()).isEqualTo("name");
       assertThat(property.getGeneratedValue()).isNotNull();
