@@ -30,7 +30,6 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkChatResponse;
-import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentJobCompletion;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
@@ -129,11 +128,11 @@ class JobWorkerAgentRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new AgentResponseInitializationResult(agentResponse));
 
-    final var completion = requestHandler.handleRequest(agentExecutionContext);
-    assertThat(completion.variables()).containsOnlyKeys("agentContext", "toolCallResults");
-    assertThat(completion.completionConditionFulfilled()).isFalse();
-    assertThat(completion.cancelRemainingInstances()).isFalse();
-    assertThat(completion.agentResponse()).isNotNull().isEqualTo(agentResponse);
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    assertThat(response.variables()).containsOnlyKeys("agentContext", "toolCallResults");
+    assertThat(response.completionConditionFulfilled()).isFalse();
+    assertThat(response.cancelRemainingInstances()).isFalse();
+    assertThat(response.agentResponse()).isNotNull().isEqualTo(agentResponse);
 
     verifyNoInteractions(
         limitsValidator, messagesHandler, gatewayToolHandlers, framework, responseHandler);
@@ -172,13 +171,14 @@ class JobWorkerAgentRequestHandlerTest {
                     .toolCalls(i.getArgument(3))
                     .build());
 
-    final var completion = requestHandler.handleRequest(agentExecutionContext);
-    assertThat(completion.variables()).containsOnlyKeys("agentContext", "agent");
-    assertThat(completion.completionConditionFulfilled()).isTrue();
-    assertThat(completion.cancelRemainingInstances()).isFalse();
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    assertThat(response.variables()).containsOnlyKeys("agentContext", "agent");
+    assertThat(response.completionConditionFulfilled()).isTrue();
+    assertThat(response.cancelRemainingInstances()).isFalse();
 
-    final var agentResponse = completion.agentResponse();
-    assertThat(agentResponse.context()).isEqualTo(completion.variables().get("agentContext"));
+    final var agentResponse = response.agentResponse();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.context()).isEqualTo(response.variables().get("agentContext"));
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
         .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
@@ -237,12 +237,13 @@ class JobWorkerAgentRequestHandlerTest {
                     .toolCalls(i.getArgument(3))
                     .build());
 
-    final var completion = requestHandler.handleRequest(agentExecutionContext);
-    assertThat(completion.variables()).containsOnlyKeys("agentContext", "toolCallResults");
-    assertThat(completion.completionConditionFulfilled()).isFalse();
-    assertThat(completion.cancelRemainingInstances()).isFalse();
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    assertThat(response.variables()).containsOnlyKeys("agentContext", "toolCallResults");
+    assertThat(response.completionConditionFulfilled()).isFalse();
+    assertThat(response.cancelRemainingInstances()).isFalse();
 
-    final var agentResponse = completion.agentResponse();
+    final var agentResponse = response.agentResponse();
+    assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
         .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
@@ -314,13 +315,14 @@ class JobWorkerAgentRequestHandlerTest {
                     .toolCalls(i.getArgument(3))
                     .build());
 
-    final var completion = requestHandler.handleRequest(agentExecutionContext);
-    assertThat(completion.variables()).containsOnlyKeys("agentContext", "agent");
-    assertThat(completion.completionConditionFulfilled()).isTrue();
-    assertThat(completion.cancelRemainingInstances()).isTrue();
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    assertThat(response.variables()).containsOnlyKeys("agentContext", "agent");
+    assertThat(response.completionConditionFulfilled()).isTrue();
+    assertThat(response.cancelRemainingInstances()).isTrue();
 
-    final var agentResponse = completion.agentResponse();
-    assertThat(agentResponse.context()).isEqualTo(completion.variables().get("agentContext"));
+    final var agentResponse = response.agentResponse();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.context()).isEqualTo(response.variables().get("agentContext"));
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
         .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
@@ -395,10 +397,10 @@ class JobWorkerAgentRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
 
-    AiAgentJobCompletion completion = requestHandler.handleRequest(agentExecutionContext);
-    assertThat(completion.variables()).isEmpty();
-    assertThat(completion.completionConditionFulfilled()).isFalse();
-    assertThat(completion.cancelRemainingInstances()).isFalse();
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    assertThat(response.variables()).isEmpty();
+    assertThat(response.completionConditionFulfilled()).isFalse();
+    assertThat(response.cancelRemainingInstances()).isFalse();
 
     verifyNoInteractions(framework);
   }

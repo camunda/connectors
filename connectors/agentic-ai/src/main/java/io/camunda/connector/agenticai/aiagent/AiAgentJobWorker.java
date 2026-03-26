@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent;
 
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
-import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentJobCompletion;
+import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentSubProcessResponse;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest;
 import io.camunda.connector.api.annotation.OutboundConnector;
@@ -55,7 +55,7 @@ public class AiAgentJobWorker implements OutboundConnectorFunction {
   }
 
   @Override
-  public AiAgentJobCompletion execute(OutboundConnectorContext context) throws Exception {
+  public AiAgentSubProcessResponse execute(OutboundConnectorContext context) throws Exception {
     var request = context.bindVariables(JobWorkerAgentRequest.class);
     var executionContext = new JobWorkerAgentExecutionContext(context.getJobContext(), request);
     return agentRequestHandler.handleRequest(executionContext);

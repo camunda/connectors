@@ -28,22 +28,26 @@ Should we keep the custom handler or consolidate into the SDK's `OutboundConnect
 ## Considered Options
 
 1. Keep the custom `AiAgentJobWorkerHandlerImpl` and manually sync SDK changes
-2. Introduce `ConnectorJobCompletion` in the SDK and make the job worker a standard `OutboundConnectorFunction`
+2. Introduce a `ConnectorResponse` sealed interface hierarchy in the SDK and make the job worker a standard `OutboundConnectorFunction`
 
 ## Decision Outcome
 
-Chosen option: **Option 2 — Introduce `ConnectorJobCompletion` in the SDK**.
+Chosen option: **Option 2 — Introduce a `ConnectorResponse` sealed interface hierarchy in the SDK**.
 
-Two interfaces were added to the SDK:
+A sealed interface hierarchy was added to the SDK (`io.camunda.connector.api.outbound`):
 
-- **`ConnectorResponse`**: Wraps connector return values for result expression evaluation. Currently minimal, but
-  designed as the extension point for future job completion callbacks (success/error notification).
-- **`ConnectorJobCompletion extends ConnectorResponse`**: Allows connectors to build a custom Zeebe complete command via
-  `prepareCompleteCommand(JobClient, ActivatedJob, Map<String, Object>)`. Also supports `rejectIgnoreError()` for
-  connectors where the `IgnoreError` error expression path is not applicable.
+- **`ConnectorResponse`** (sealed): Base interface for connector responses. Wraps return values for result expression
+  evaluation. Provides `getVariables(resultVariables)` to control which variables are sent with the complete command,
+  and `rejectIgnoreError()` for connectors where the `IgnoreError` error expression path is not applicable.
+- **`StandardConnectorResponse`** (non-sealed): Standard job completion — the default for connectors returning plain
+  objects.
+- **`AdHocSubProcessConnectorResponse`** (non-sealed): Ad-hoc sub-process completion with `elementActivations()`,
+  `completionConditionFulfilled()`, and `cancelRemainingInstances()`. The runtime translates this into the Zeebe
+  complete command with `.withResult().forAdHocSubProcess()` configuration. No Camunda client dependencies on the
+  response interface.
 
-`AiAgentJobWorker` becomes a standard `@OutboundConnector`-annotated function that returns `AiAgentJobCompletion`
-(implementing `ConnectorJobCompletion`) from `execute()`. The SDK handles everything else.
+`AiAgentJobWorker` becomes a standard `@OutboundConnector`-annotated function that returns `AiAgentSubProcessResponse`
+(implementing `AdHocSubProcessConnectorResponse`) from `execute()`. The SDK handles everything else.
 
 ### Consequences
 
@@ -54,8 +58,8 @@ Two interfaces were added to the SDK:
 - Future SDK improvements automatically apply to both AI Agent flavors
 
 **Negative:**
-- Job completion callbacks (success/error notification) are not yet supported — `ConnectorResponse` is prepared for
-  this but the callback mechanism on `CommandWrapper` needs to be implemented in a follow-up
+- Job completion callbacks (success/error notification) are not yet supported — the callback mechanism on
+  `CommandWrapper` needs to be implemented in a follow-up
 - `ConversationStore.compensateFailedJobCompletion()` exists as a placeholder but is currently not invoked
 
 ### Future improvements

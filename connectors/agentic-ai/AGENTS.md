@@ -27,7 +27,7 @@ infrastructure for tool calling, conversation memory, and event handling.
 | Agent context        | Wired via process variables by modeler | Scoped within sub-process                    |
 | Event support        | No                                   | Yes (non-interrupting only)                    |
 | Config per iteration | Yes (input mappings re-evaluated)    | No (frozen on AHSP entry)                      |
-| Job completion       | Auto (connector runtime)             | Custom (`ConnectorJobCompletion`)              |
+| Job completion       | Auto (connector runtime)             | Custom (`AdHocSubProcessConnectorResponse`)    |
 
 ### Ad-Hoc Sub-Process (AHSP)
 
@@ -84,7 +84,7 @@ memory/
     └── MessageWindowRuntimeMemory  # Sliding window filter (keeps last N messages)
 
 jobworker/
-└── AiAgentJobCompletion  # ConnectorJobCompletion for AHSP directives (element activation, completion condition)
+└── AiAgentSubProcessResponse  # AdHocSubProcessConnectorResponse for AHSP directives (element activation, completion condition)
 
 tool/
 ├── GatewayToolHandler          # Interface for gateway tools (MCP, A2A)
@@ -105,7 +105,7 @@ tool/
 
 **`ToolCallProcessVariable`** — flattened tool call for process variables: `{_meta: {id, name}, ...args}`.
 
-**`AiAgentJobCompletion`** — job completion directives: AHSP done/continue, cancel flags, variables. Implements `ConnectorJobCompletion` to control the Zeebe complete command.
+**`AiAgentSubProcessResponse`** — job completion directives: AHSP done/continue, cancel flags, element activations, variables. Implements `AdHocSubProcessConnectorResponse` — the runtime translates it into the Zeebe complete command with ad-hoc sub-process result configuration.
 
 For full record definitions, see [ai-agent.md §5](docs/reference/ai-agent.md#5-data-model).
 

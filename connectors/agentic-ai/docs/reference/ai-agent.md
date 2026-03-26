@@ -57,12 +57,13 @@ A **job worker** is a lower-level construct. While connectors use the job worker
 - Whether to auto-complete (`autoComplete = false`)
 - The exact `CompleteJobCommand` sent back to Zeebe, including ad-hoc sub-process control commands
 
-### ConnectorJobCompletion — Custom Job Completion via the SDK
+### AdHocSubProcessConnectorResponse — Custom Job Completion via the SDK
 
-The AI Agent Sub-process flavor needs custom job completion (ad-hoc sub-process directives) but is implemented as a standard `OutboundConnectorFunction`. This is enabled by the `ConnectorJobCompletion` interface in the Connectors SDK:
+The AI Agent Sub-process flavor needs custom job completion (ad-hoc sub-process directives) but is implemented as a standard `OutboundConnectorFunction`. This is enabled by the `ConnectorResponse` sealed interface hierarchy in the Connectors SDK:
 
-- The connector returns a `ConnectorJobCompletion` from `execute()`
-- The SDK delegates job completion to `ConnectorJobCompletion.prepareCompleteCommand()`, which builds the custom Zeebe complete command (element activation, completion condition)
+- The connector returns an `AdHocSubProcessConnectorResponse` from `execute()`
+- The runtime translates the response's `elementActivations()`, `completionConditionFulfilled()`, and `cancelRemainingInstances()` into the Zeebe complete command with `.withResult().forAdHocSubProcess()` configuration
+- `getVariables(resultVariables)` controls which variables are sent with the complete command (the AI Agent ignores result expression variables and uses its own)
 - The SDK continues to handle error expressions, retries, and metrics
 
 This avoids duplicating SDK concerns in the connector. See [ADR 002](../adr/002-consolidate-job-worker-into-sdk.md) for the decision rationale.
@@ -137,7 +138,7 @@ Variables inside an ad-hoc sub-process have their own scope:
 | Event sub-process support            | No                                       | Yes (non-interrupting)                              |
 | Config re-evaluation per iteration   | Yes (input mappings per task execution)  | No (input mappings evaluated once on AHSP entry)    |
 | Process migration config changes     | Supported                                | Not supported (frozen at entry)                     |
-| Job completion                       | Auto (connector runtime)                 | Custom (`ConnectorJobCompletion`)                   |
+| Job completion                       | Auto (connector runtime)                 | Custom (`AdHocSubProcessConnectorResponse`)         |
 
 ---
 
@@ -193,7 +194,7 @@ The loop operates as a distributed state machine between the connector runtime a
    - Store updated conversation back to memory store (via `ConversationSession`)
    - Transform tool calls and create response
 
-5. **Job completion** (`AiAgentJobCompletion.prepareCompleteCommand`):
+5. **Job completion** (`AiAgentSubProcessResponse`):
    - Sets `agentContext` variable with updated state
    - If tool calls present:
      - `completionConditionFulfilled = false`
@@ -302,11 +303,11 @@ record AgentResponse(
 )
 ```
 
-### AiAgentJobCompletion (job worker specific)
+### AiAgentSubProcessResponse (job worker specific)
 
-Implements `ConnectorJobCompletion` with job completion control:
+Implements `AdHocSubProcessConnectorResponse` with job completion control:
 ```java
-record AiAgentJobCompletion(
+record AiAgentSubProcessResponse(
     AgentResponse agentResponse,
     boolean completionConditionFulfilled,   // true = AHSP done
     boolean cancelRemainingInstances,        // true = cancel active tools
@@ -476,12 +477,12 @@ SpringConnectorJobHandler.handle(jobClient, job)
   ├─ AiAgentJobWorker.execute(context)
   │    ├─ Binds variables to JobWorkerAgentRequest
   │    └─ agentRequestHandler.handleRequest(executionContext)
-  │         └─ Returns AiAgentJobCompletion (ConnectorJobCompletion)
+  │         └─ Returns AiAgentSubProcessResponse (AdHocSubProcessConnectorResponse)
   │
   ├─ SpringConnectorJobHandler examines error expression
   │    └─ Checks for error expressions (BPMN error handling)
   │
-  └─ AiAgentJobCompletion.prepareCompleteCommand() / failJob / throwBpmnError
+  └─ SpringConnectorJobHandler builds Zeebe command from response / failJob / throwBpmnError
        └─ Asynchronous command execution via CommandWrapper
 ```
 
@@ -527,7 +528,7 @@ jobClient.newCompleteCommand(job)
 When the agent cannot proceed (e.g., not all tool call results are present yet, or discovery is in progress):
 
 ```java
-return AiAgentJobCompletion.builder()
+return AiAgentSubProcessResponse.builder()
     .completionConditionFulfilled(false)
     .cancelRemainingInstances(false)
     .build();
@@ -976,7 +977,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 ### Entry Points
 - `AiAgentFunction.execute()` → Connector (Task) entry point
 - `AiAgentJobWorker.execute()` → Job worker (Sub-process) entry point
-- `AiAgentJobWorker.execute()` wraps into `AiAgentJobCompletion` → handled by `SpringConnectorJobHandler`
+- `AiAgentJobWorker.execute()` wraps into `AiAgentSubProcessResponse` → handled by `SpringConnectorJobHandler`
 
 ### Core Agent Logic
 - `BaseAgentRequestHandler.handleRequest()` → Core orchestrator: init → memory → messages → LLM → response → complete
@@ -986,7 +987,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `AgentResponseHandlerImpl.createResponse()` → Response formatting
 
 ### Job Completion
-- `AiAgentJobCompletion.prepareCompleteCommand()` → AHSP completion command with tool activations
+- `AiAgentSubProcessResponse.elementActivations()` → AHSP element activations from tool calls
 - `JobWorkerAgentRequestHandler.completeJob()` → Job worker completion logic (no-op vs response)
 
 ### Memory

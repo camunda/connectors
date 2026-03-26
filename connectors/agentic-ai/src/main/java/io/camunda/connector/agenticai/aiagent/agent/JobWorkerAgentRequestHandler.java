@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
-import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentJobCompletion;
+import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentSubProcessResponse;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 public class JobWorkerAgentRequestHandler
-    extends BaseAgentRequestHandler<JobWorkerAgentExecutionContext, AiAgentJobCompletion> {
+    extends BaseAgentRequestHandler<JobWorkerAgentExecutionContext, AiAgentSubProcessResponse> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JobWorkerAgentRequestHandler.class);
 
@@ -80,18 +80,18 @@ public class JobWorkerAgentRequestHandler
   }
 
   @Override
-  public AiAgentJobCompletion completeJob(
+  public AiAgentSubProcessResponse completeJob(
       JobWorkerAgentExecutionContext executionContext,
       AgentResponse agentResponse,
       ConversationStore conversationStore) {
     if (agentResponse == null) {
       LOGGER.debug(
           "No agent response provided, completing job {} without response",
-          executionContext.jobContext().getKey());
+          executionContext.jobContext().getJobKey());
 
       // no-op (do not activate elements, do not complete agent process) -> wait for next job to
       // proceed (e.g. by adding user messages or to complete tool call results)
-      return AiAgentJobCompletion.builder()
+      return AiAgentSubProcessResponse.builder()
           .completionConditionFulfilled(false)
           .cancelRemainingInstances(false)
           .build();
@@ -99,7 +99,7 @@ public class JobWorkerAgentRequestHandler
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug(
             "Agent response provided, completing job {} with response and tool calls: {}",
-            executionContext.jobContext().getKey(),
+            executionContext.jobContext().getJobKey(),
             agentResponse.toolCalls().stream().map(tc -> tc.metadata().name()).toList());
       }
 
@@ -107,7 +107,7 @@ public class JobWorkerAgentRequestHandler
     }
   }
 
-  private AiAgentJobCompletion completeWithResponse(
+  private AiAgentSubProcessResponse completeWithResponse(
       JobWorkerAgentExecutionContext executionContext,
       AgentResponse agentResponse,
       ConversationStore conversationStore) {
@@ -133,7 +133,7 @@ public class JobWorkerAgentRequestHandler
       variables.put(AiAgentJobWorker.TOOL_CALL_RESULTS_VARIABLE, List.of());
     }
 
-    return AiAgentJobCompletion.builder()
+    return AiAgentSubProcessResponse.builder()
         .agentResponse(agentResponse)
         .completionConditionFulfilled(completionConditionFulfilled)
         .cancelRemainingInstances(cancelRemainingInstances)
