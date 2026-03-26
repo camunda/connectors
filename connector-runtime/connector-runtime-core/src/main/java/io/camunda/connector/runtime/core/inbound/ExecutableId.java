@@ -37,9 +37,8 @@ public class ExecutableId {
     this.id = id;
   }
 
-  /** Only used for deserialization, in the InboundInstancesRestController for instance. */
   @JsonCreator
-  private static ExecutableId fromHashedId(String id) {
+  public static ExecutableId fromHashedId(String id) {
     return new ExecutableId(id);
   }
 

@@ -84,13 +84,12 @@ public class InboundInstancesRestController {
   public ActiveInboundConnectorResponse getConnectorInstanceExecutable(
       HttpServletRequest request,
       @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
-      @PathVariable(name = "type") String type,
       @PathVariable(name = "executableId") String executableId) {
     return Optional.ofNullable(
             instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
                 request,
                 forwardedFor,
-                () -> inboundInstancesService.findExecutable(type, executableId),
+                () -> inboundInstancesService.findExecutable(executableId),
                 new TypeReference<>() {}))
         .orElseThrow(
             () -> new DataNotFoundException(ActiveInboundConnectorResponse.class, executableId));
@@ -100,13 +99,12 @@ public class InboundInstancesRestController {
   public List<InstanceAwareModel.InstanceAwareHealth> getConnectorInstanceExecutableHealth(
       HttpServletRequest request,
       @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
-      @PathVariable(name = "type") String type,
       @PathVariable(name = "executableId") String executableId) {
 
     return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
         request,
         forwardedFor,
-        () -> inboundInstancesService.findInstanceAwareHealth(type, executableId, hostname),
+        () -> inboundInstancesService.findInstanceAwareHealth(executableId, hostname),
         new TypeReference<>() {});
   }
 
@@ -114,12 +112,11 @@ public class InboundInstancesRestController {
   public List<InstanceAwareModel.InstanceAwareActivity> getConnectorInstanceExecutableLogs(
       HttpServletRequest request,
       @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
-      @PathVariable(name = "type") String type,
       @PathVariable(name = "executableId") String executableId) {
     return instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
         request,
         forwardedFor,
-        () -> inboundInstancesService.findInstanceAwareActivityLogs(type, executableId, hostname),
+        () -> inboundInstancesService.findInstanceAwareActivityLogs(executableId, hostname),
         new TypeReference<>() {});
   }
 
@@ -127,13 +124,12 @@ public class InboundInstancesRestController {
   public ActiveInboundConnectorResponse resetConnectorInstanceExecutable(
       HttpServletRequest request,
       @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
-      @PathVariable(name = "type") String type,
       @PathVariable(name = "executableId") String executableId) {
     return Optional.ofNullable(
             instanceForwardingRouter.forwardToInstancesAndReduceOrLocal(
                 request,
                 forwardedFor,
-                () -> inboundInstancesService.resetExecutable(type, executableId),
+                () -> inboundInstancesService.resetExecutable(executableId),
                 new TypeReference<>() {}))
         .orElseThrow(
             () -> new DataNotFoundException(ActiveInboundConnectorResponse.class, executableId));

@@ -89,7 +89,7 @@ public class InboundExecutableRegistryTest {
         new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element1, element2))));
 
     // then
-    var result = registry.query(new ActiveExecutableQuery(null, elementId, null, null));
+    var result = registry.query(f -> f.elementId(elementId));
     assertThat(result.getFirst().health().getStatus()).isEqualTo(Status.DOWN);
     assertThat(result.getFirst().health().getError().message())
         .contains("Invalid connector definition: All elements in a group must have the same type");
@@ -166,7 +166,7 @@ public class InboundExecutableRegistryTest {
     registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
 
     // then
-    var result = registry.query(new ActiveExecutableQuery(null, elementId, null, null));
+    var result = registry.query(f -> f.elementId(elementId));
     assertThat(result.getFirst().health().getStatus()).isEqualTo(Status.DOWN);
     assertThat(result.getFirst().health().getError().message()).contains("failed");
   }
@@ -208,7 +208,7 @@ public class InboundExecutableRegistryTest {
     verify(executable2).activate(mockContext);
     verify(executable1).deactivate();
 
-    var results = registry.query(new ActiveExecutableQuery(null, null, null, null));
+    var results = registry.query(f -> {});
     assertThat(results.size()).isEqualTo(2);
     assertThat(results.stream().allMatch(r -> r.health().getStatus() == Status.DOWN)).isTrue();
   }
@@ -251,7 +251,7 @@ public class InboundExecutableRegistryTest {
     verify(executable1).activate(mockContext);
     verifyNoMoreInteractions(executable1);
 
-    var results = registry.query(new ActiveExecutableQuery(null, null, null, null));
+    var results = registry.query(f -> {});
     assertThat(results.size()).isEqualTo(2);
     // One should be healthy (activated), one should be down (not registered)
     assertThat(results.stream().filter(r -> r.health().getStatus() == Status.UP).count())
@@ -276,7 +276,7 @@ public class InboundExecutableRegistryTest {
     registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
 
     // then
-    var result = registry.query(new ActiveExecutableQuery(null, elementId, null, null));
+    var result = registry.query(f -> f.elementId(elementId));
     assertThat(result.getFirst().health().getStatus()).isEqualTo(Status.DOWN);
     assertThat(result.getFirst().health().getError().message())
         .contains("Connector unknown-type not registered");
@@ -549,7 +549,9 @@ public class InboundExecutableRegistryTest {
     registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
 
     // then
-    var result = registry.query(new ActiveExecutableQuery("id", elementId, "type1", "tenant"));
+    var result =
+        registry.query(
+            f -> f.bpmnProcessId("id").elementId(elementId).type("type1").tenantId("tenant"));
     assertThat(result.getFirst().logs())
         .hasSize(1)
         .first()
@@ -581,7 +583,7 @@ public class InboundExecutableRegistryTest {
     registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
 
     // then
-    var result = registry.query(new ActiveExecutableQuery(null, elementId, null, null));
+    var result = registry.query(f -> f.elementId(elementId));
     assertThat(result.getFirst().logs()).isEmpty();
   }
 
@@ -604,11 +606,7 @@ public class InboundExecutableRegistryTest {
     when(factory.getInstance(any())).thenReturn(executable);
 
     registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
-    var executableId =
-        registry
-            .query(new ActiveExecutableQuery(null, elementId, null, null))
-            .getFirst()
-            .executableId();
+    var executableId = registry.query(f -> f.elementId(elementId)).getFirst().executableId();
 
     // when - send empty process state to trigger deactivation of all connectors in this process
     registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of()));
@@ -669,7 +667,7 @@ public class InboundExecutableRegistryTest {
     registry.handleEvent(new ProcessStateChanged("id", "tenant", Map.of(0L, List.of(element))));
 
     // then
-    var result = registry.query(new ActiveExecutableQuery(null, elementId, null, null));
+    var result = registry.query(f -> f.elementId(elementId));
     var logs = result.getFirst().logs();
     assertThat(logs).hasSize(2);
     assertThat(logs)

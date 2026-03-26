@@ -176,16 +176,9 @@ public class BatchExecutableProcessor {
                   "Webhook connectors are not supported in this environment")));
       return new ConnectorNotRegistered(validData, id);
     }
+    final Activated activated;
     try {
-      if (executable instanceof WebhookConnectorExecutable) {
-        LOG.debug("Registering webhook: {}", data.type());
-        if (webhookConnectorRegistry.register(
-            new RegisteredExecutable.Activated(executable, context, id))) {
-          executable.activate(context);
-        }
-      } else {
-        executable.activate(context);
-      }
+      activated = doActivate(executable, context, id);
     } catch (Exception e) {
       LOG.error("Failed to activate connector", e);
       connectorsInboundMetrics.increaseActivationFailure(data.connectorElements().getFirst());
@@ -201,7 +194,28 @@ public class BatchExecutableProcessor {
                     "Activated inbound connector %s with deduplication ID '%s'",
                     data.type(), data.deduplicationId())));
     connectorsInboundMetrics.increaseActivation(data.connectorElements().getFirst());
-    return new Activated(executable, context, id);
+    return activated;
+  }
+
+  /**
+   * Handles the webhook registration (if applicable) and activates the executable. Throws on
+   * failure so callers can apply their own error-handling strategy.
+   */
+  private Activated doActivate(
+      InboundConnectorExecutable<InboundConnectorContext> executable,
+      InboundConnectorManagementContext context,
+      ExecutableId id)
+      throws Exception {
+    var activated = new Activated(executable, context, id);
+    if (executable instanceof WebhookConnectorExecutable) {
+      LOG.debug("Registering webhook: {}", context.getDefinition().type());
+      if (webhookConnectorRegistry.register(activated)) {
+        executable.activate(context);
+      }
+    } else {
+      executable.activate(context);
+    }
+    return activated;
   }
 
   /** Deactivates a single inbound connector. */
@@ -254,7 +268,7 @@ public class BatchExecutableProcessor {
             LOG.info(
                 "Resetting activated inbound connector of type '{}'",
                 activated.context().getDefinition().type());
-            deactivateBatch(List.of(activated));
+            deactivateSingle(activated);
             yield new RegisteredExecutable.Cancelled(
                 activated.executable(), activated.context(), null, activated.id());
           }
@@ -271,21 +285,24 @@ public class BatchExecutableProcessor {
                       + ". Only Activated or Cancelled executables can be reset.");
         };
 
-    var noRetry =
-        ConnectorRetryException.builder().retries(0).backoffDuration(Duration.ZERO).build();
-    return restartFromContext(cancelled, noRetry);
+    return doRestartFromContext(cancelled, 0, Duration.ZERO);
   }
 
   public CompletableFuture<Activated> restartFromContext(
       RegisteredExecutable.Cancelled cancelled, ConnectorRetryException retryException) {
+    return doRestartFromContext(
+        cancelled, retryException.getRetries(), retryException.getBackoffDuration());
+  }
 
+  private CompletableFuture<Activated> doRestartFromContext(
+      RegisteredExecutable.Cancelled cancelled, int maxRetries, Duration backoff) {
     InboundConnectorExecutable<InboundConnectorContext> newExecutable =
         connectorFactory.getInstance(cancelled.context().getDefinition().type());
     LOG.warn("Inbound connector executable has requested its reactivation");
     try {
       RetryPolicy<Object> retryPolicy =
           RetryPolicy.builder()
-              .withDelay(retryException.getBackoffDuration())
+              .withDelay(backoff)
               .onFailedAttempt(
                   event ->
                       LOG.error(
@@ -298,7 +315,7 @@ public class BatchExecutableProcessor {
                           "Failure #{} to reactivate connector: {}. Retrying.",
                           event.getAttemptCount(),
                           cancelled.context().getDefinition().type()))
-              .withMaxRetries(retryException.getRetries())
+              .withMaxRetries(maxRetries)
               .build();
       return Failsafe.with(retryPolicy)
           .getAsync(() -> tryRestart(newExecutable, cancelled.context()));
@@ -313,9 +330,9 @@ public class BatchExecutableProcessor {
     try {
       var executableId =
           ExecutableId.fromDeduplicationId(context.getDefinition().deduplicationId());
-      executable.activate(context);
+      var activated = doActivate(executable, context, executableId);
       LOG.info("Activation successful for {}", context.getDefinition().type());
-      return new Activated(executable, context, executableId);
+      return activated;
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

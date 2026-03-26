@@ -16,9 +16,11 @@
  */
 package io.camunda.connector.runtime.inbound.controller;
 
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -29,4 +31,5 @@ public record ActiveInboundConnectorResponse(
     List<ProcessElementWithRuntimeData> elements,
     Map<String, String> data,
     Health health,
-    Long activationTimestamp) {}
+    Long activationTimestamp,
+    Collection<Activity> logs) {}

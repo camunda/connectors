@@ -52,7 +52,8 @@ public class ConnectorInstancesListResponseHelper {
         List.of(),
         Map.of("dataKey", "dataValue"),
         health,
-        activationTimestamp);
+        activationTimestamp,
+        List.of());
   }
 
   public static Stream<Arguments> getConnectorInstancesListsWithExpectedResult() {

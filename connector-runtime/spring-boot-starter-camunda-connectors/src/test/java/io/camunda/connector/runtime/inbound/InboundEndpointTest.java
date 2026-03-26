@@ -87,7 +87,7 @@ public class InboundEndpointTest {
 
     var response = statusController.getActiveInboundConnectors(null, null, null);
     assertEquals(1, response.size());
-    assertEquals("myPath", response.getFirst().data().get("path"));
+    assertEquals("myPath", response.getFirst().data().get("inbound.context"));
   }
 
   @Test

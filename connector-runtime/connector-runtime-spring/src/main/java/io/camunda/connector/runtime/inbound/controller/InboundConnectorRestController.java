@@ -83,7 +83,7 @@ public class InboundConnectorRestController {
       String tenantId, String bpmnProcessId, String elementId, String hostname) {
     var result =
         executableRegistry.query(
-            new ActiveExecutableQuery(bpmnProcessId, elementId, null, tenantId));
+            f -> f.bpmnProcessId(bpmnProcessId).elementId(elementId).tenantId(tenantId));
     return result.stream()
         .map(ActiveExecutableResponse::logs)
         .filter(Predicate.not(Collection::isEmpty))
@@ -106,12 +106,10 @@ public class InboundConnectorRestController {
   private List<ActiveInboundConnectorResponse> getActiveInboundConnectors(
       String bpmnProcessId, String elementId, String type, String tenantId) {
     return executableRegistry
-        .query(new ActiveExecutableQuery(bpmnProcessId, elementId, type, tenantId))
+        .query(
+            f -> f.bpmnProcessId(bpmnProcessId).elementId(elementId).type(type).tenantId(tenantId))
         .stream()
-        .map(
-            response ->
-                connectorDataMapper.createActiveInboundConnectorResponse(
-                    response, ConnectorDataMapper.WEBHOOK_MAPPER))
+        .map(connectorDataMapper::createActiveInboundConnectorResponse)
         .collect(Collectors.toList());
   }
 }

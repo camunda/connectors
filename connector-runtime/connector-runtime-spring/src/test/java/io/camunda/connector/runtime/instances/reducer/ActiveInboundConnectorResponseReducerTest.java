@@ -87,7 +87,8 @@ public class ActiveInboundConnectorResponseReducerTest {
             List.of(),
             Map.of("dataKey", "dataValue"),
             health1,
-            activationTime1);
+            activationTime1,
+            List.of());
     ActiveInboundConnectorResponse response2 =
         new ActiveInboundConnectorResponse(
             ExecutableId.fromDeduplicationId("executableId"),
@@ -96,7 +97,8 @@ public class ActiveInboundConnectorResponseReducerTest {
             List.of(),
             Map.of("dataKey", "dataValue"),
             health2,
-            activationTime2);
+            activationTime2,
+            List.of());
 
     // when
     ActiveInboundConnectorResponse reducedResponse = reducer.reduce(response1, response2);

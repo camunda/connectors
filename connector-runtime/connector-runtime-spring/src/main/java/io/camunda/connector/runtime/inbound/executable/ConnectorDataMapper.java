@@ -16,44 +16,20 @@
  */
 package io.camunda.connector.runtime.inbound.executable;
 
-import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
 import java.util.Map;
-import java.util.function.Function;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ConnectorDataMapper {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ConnectorDataMapper.class);
-
-  public static final Function<ActiveExecutableResponse, Map<String, String>> WEBHOOK_MAPPER =
-      (ActiveExecutableResponse response) -> {
-        Map<String, String> data = Map.of();
-        var executableClass = response.executableClass();
-
-        if (executableClass != null
-            && WebhookConnectorExecutable.class.isAssignableFrom(executableClass)) {
-          try {
-            var properties = response.elements().getFirst().connectorLevelProperties();
-            var contextPath = properties.get("inbound.context");
-            data = Map.of("path", contextPath);
-          } catch (Exception e) {
-            LOG.error("ERROR: webhook connector doesn't have context path property", e);
-          }
-        }
-        return data;
-      };
-
-  private Map<String, String> allPropertiesMapper(ActiveExecutableResponse response) {
+  private static Map<String, String> allPropertiesMapper(ActiveExecutableResponse response) {
     return response.elements().getFirst().connectorLevelProperties();
   }
 
   public ActiveInboundConnectorResponse createActiveInboundConnectorResponse(
-      ActiveExecutableResponse connector,
-      Function<ActiveExecutableResponse, Map<String, String>> dataMapper) {
+      ActiveExecutableResponse connector) {
     var elements = connector.elements();
+    var logs = connector.logs();
     var type = elements.getFirst().type();
     var tenantId = elements.getFirst().element().tenantId();
     return new ActiveInboundConnectorResponse(
@@ -61,13 +37,9 @@ public class ConnectorDataMapper {
         type,
         tenantId,
         elements.stream().map(InboundConnectorElement::element).toList(),
-        dataMapper.apply(connector),
+        allPropertiesMapper(connector),
         connector.health(),
-        connector.activationTimestamp());
-  }
-
-  public ActiveInboundConnectorResponse createActiveInboundConnectorResponse(
-      ActiveExecutableResponse connector) {
-    return createActiveInboundConnectorResponse(connector, this::allPropertiesMapper);
+        connector.activationTimestamp(),
+        logs);
   }
 }

@@ -16,9 +16,7 @@
  */
 package io.camunda.connector.runtime.instances.service;
 
-import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.runtime.core.inbound.ProcessElementWithRuntimeData;
 import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
 import io.camunda.connector.runtime.inbound.controller.exception.DataNotFoundException;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
@@ -27,6 +25,7 @@ import io.camunda.connector.runtime.inbound.executable.ConnectorInstances;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.instances.InstanceAwareModel;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class InboundInstancesService {
@@ -39,8 +38,8 @@ public class InboundInstancesService {
   }
 
   public List<InstanceAwareModel.InstanceAwareHealth> findInstanceAwareHealth(
-      String type, String executableId, String hostname) {
-    var executable = findExecutable(type, executableId);
+      String executableId, String hostname) {
+    var executable = findExecutable(executableId);
     Health health = executable.health();
     return List.of(
         new InstanceAwareModel.InstanceAwareHealth(
@@ -48,32 +47,9 @@ public class InboundInstancesService {
   }
 
   public List<InstanceAwareModel.InstanceAwareActivity> findInstanceAwareActivityLogs(
-      String type, String executableId, String hostname) {
-    var executable = findExecutable(type, executableId);
-    var processIds =
-        executable.elements().stream()
-            .map(ProcessElementWithRuntimeData::bpmnProcessId)
-            .distinct()
-            .toList();
-    if (processIds.size() > 1) {
-      throw new RuntimeException(
-          "Multiple process ids found for the id: "
-              + executableId
-              + ". This is not supported yet.");
-    }
-    var processId = processIds.getFirst();
-    var result =
-        executableRegistry
-            .query(new ActiveExecutableQuery(processId, null, type, executable.tenantId()))
-            .stream()
-            .filter(
-                activeExecutableResponse ->
-                    activeExecutableResponse.executableId().getId().equals(executableId))
-            .findFirst();
-    if (result.isEmpty()) {
-      throw new DataNotFoundException(Activity.class, executableId);
-    }
-    return result.get().logs().stream()
+      String executableId, String hostname) {
+    var executable = findExecutable(executableId);
+    return executable.logs().stream()
         .map(
             activity ->
                 new InstanceAwareModel.InstanceAwareActivity(
@@ -85,14 +61,8 @@ public class InboundInstancesService {
         .toList();
   }
 
-  public ActiveInboundConnectorResponse findExecutable(String type, String executableId) {
-    var instance = findConnectorInstancesOfType(type);
-    var executables =
-        instance.instances().stream()
-            .filter(
-                activeInboundConnectorResponse ->
-                    activeInboundConnectorResponse.executableId().getId().equals(executableId))
-            .toList();
+  public ActiveInboundConnectorResponse findExecutable(String executableId) {
+    var executables = getActiveInboundConnectors(f -> f.executableId(executableId));
     if (executables.isEmpty()) {
       throw new DataNotFoundException(ActiveInboundConnectorResponse.class, executableId);
     }
@@ -100,7 +70,7 @@ public class InboundInstancesService {
   }
 
   public ConnectorInstances findConnectorInstancesOfType(String type) {
-    var connectorInstances = getConnectorsInstances(type);
+    var connectorInstances = getConnectorsInstances(f -> f.type(type));
     if (connectorInstances.isEmpty()) {
       throw new DataNotFoundException(ConnectorInstances.class, type);
     }
@@ -112,17 +82,18 @@ public class InboundInstancesService {
   }
 
   /**
-   * Resets the connector executable identified by the given type and executable ID. The executable
-   * is deactivated and re-activated with a fresh instance while keeping its current context.
+   * Resets the connector executable identified by the given executable ID. The executable is
+   * deactivated and re-activated with a fresh instance while keeping its current context. Blocks
+   * until the restart completes.
    *
-   * @param type the connector type
    * @param executableId the executable ID
-   * @return the updated {@link ActiveInboundConnectorResponse} after reset
+   * @return the {@link ActiveInboundConnectorResponse} of the newly activated executable
+   * @throws RuntimeException if the restart fails
    */
-  public ActiveInboundConnectorResponse resetExecutable(String type, String executableId) {
-    var executable = findExecutable(type, executableId);
+  public ActiveInboundConnectorResponse resetExecutable(String executableId) {
+    var executable = findExecutable(executableId);
     executableRegistry.reset(executable.executableId());
-    return findExecutable(type, executableId);
+    return findExecutable(executableId);
   }
 
   /**
@@ -130,10 +101,12 @@ public class InboundInstancesService {
    * connector type. Changing the response format will break the c4-connectors, so make sure to
    * update the c4-connectors as well.
    *
-   * @param type the connectorId to filter by (also called 'connectorId')
+   * @param filter the filter to apply when querying the active executables. If null, no filter is
+   *     applied and all active executables are returned.
+   * @return a list of {@link ConnectorInstances} grouped by connector type
    */
-  private List<ConnectorInstances> getConnectorsInstances(String type) {
-    var activeInboundConnectors = getActiveInboundConnectors(type);
+  private List<ConnectorInstances> getConnectorsInstances(Consumer<ActiveExecutableQuery> filter) {
+    var activeInboundConnectors = getActiveInboundConnectors(filter);
     return activeInboundConnectors.stream()
         .collect(Collectors.groupingBy(ActiveInboundConnectorResponse::type, Collectors.toList()))
         .entrySet()
@@ -145,8 +118,9 @@ public class InboundInstancesService {
         .toList();
   }
 
-  private List<ActiveInboundConnectorResponse> getActiveInboundConnectors(String type) {
-    return executableRegistry.query(new ActiveExecutableQuery(null, null, type, null)).stream()
+  private List<ActiveInboundConnectorResponse> getActiveInboundConnectors(
+      Consumer<ActiveExecutableQuery> filter) {
+    return executableRegistry.query(filter).stream()
         .map(connectorDataMapper::createActiveInboundConnectorResponse)
         .collect(Collectors.toList());
   }
