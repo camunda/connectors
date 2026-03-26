@@ -15,6 +15,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.net.URI;
+import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeClient;
 
@@ -47,16 +48,15 @@ public class BedrockKnowledgeBaseConnectorFunction implements OutboundConnectorF
   @Override
   public Object execute(OutboundConnectorContext context) {
     var request = context.bindVariables(BedrockKnowledgeBaseRequest.class);
-    try (var client = buildClient(request)) {
+    try (var client = createClient(request, BedrockAgentRuntimeClient.builder())) {
       return new BedrockKnowledgeBaseExecutor(client, ConnectorsObjectMapperSupplier.getCopy())
           .execute(request, context::create);
     }
   }
 
-  private BedrockAgentRuntimeClient buildClient(BedrockKnowledgeBaseRequest request) {
-    var builder =
-        BedrockAgentRuntimeClient.builder()
-            .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(request));
+  private <B extends AwsClientBuilder<B, C>, C extends AutoCloseable> C createClient(
+      BedrockKnowledgeBaseRequest request, B builder) {
+    builder.credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(request));
     var config = request.getConfiguration();
     if (config != null && config.region() != null) {
       builder.region(Region.of(config.region()));

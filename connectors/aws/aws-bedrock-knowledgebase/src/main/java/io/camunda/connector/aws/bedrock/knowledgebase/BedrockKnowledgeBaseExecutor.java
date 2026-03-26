@@ -31,6 +31,10 @@ import software.amazon.awssdk.services.bedrockagentruntime.model.ThrottlingExcep
 
 public class BedrockKnowledgeBaseExecutor {
 
+  private static final String ERROR_THROTTLED = "THROTTLED";
+  private static final String ERROR_KB_RETRIEVAL_FAILED = "KB_RETRIEVAL_FAILED";
+  private static final String ERROR_SERIALIZATION = "SERIALIZATION_ERROR";
+
   private final BedrockAgentRuntimeClient client;
   private final ObjectMapper objectMapper;
 
@@ -83,18 +87,20 @@ public class BedrockKnowledgeBaseExecutor {
 
     } catch (ThrottlingException e) {
       throw ConnectorRetryException.builder()
-          .errorCode("THROTTLED")
+          .errorCode(ERROR_THROTTLED)
           .message("Bedrock Knowledge Base request was throttled: " + e.getMessage())
+          .retries(3)
+          .backoffDuration(java.time.Duration.ofSeconds(5))
           .cause(e)
           .build();
     } catch (BedrockAgentRuntimeException e) {
       var errorMsg =
           e.awsErrorDetails() != null ? e.awsErrorDetails().errorMessage() : e.getMessage();
       throw new ConnectorException(
-          "KB_RETRIEVAL_FAILED", "Bedrock Knowledge Base error: " + errorMsg, e);
+          ERROR_KB_RETRIEVAL_FAILED, "Bedrock Knowledge Base error: " + errorMsg, e);
     } catch (JsonProcessingException e) {
       throw new ConnectorException(
-          "SERIALIZATION_ERROR", "Failed to serialize retrieval results to JSON", e);
+          ERROR_SERIALIZATION, "Failed to serialize retrieval results to JSON", e);
     }
   }
 

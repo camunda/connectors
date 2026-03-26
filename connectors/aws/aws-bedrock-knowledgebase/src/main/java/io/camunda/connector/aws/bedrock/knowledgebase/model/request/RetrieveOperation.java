@@ -8,7 +8,6 @@ package io.camunda.connector.aws.bedrock.knowledgebase.model.request;
 
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -21,8 +20,7 @@ public record RetrieveOperation(
         @TemplateProperty(
             group = "retrieve",
             label = "Query",
-            description = "Natural language query to search the knowledge base.",
-            constraints = @PropertyConstraints(notEmpty = true))
+            description = "Natural language query to search the knowledge base.")
         String query,
     @TemplateProperty(
             group = "retrieve",

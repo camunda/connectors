@@ -9,7 +9,6 @@ package io.camunda.connector.aws.bedrock.knowledgebase.model.request;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -21,8 +20,7 @@ public class BedrockKnowledgeBaseRequest extends AwsBaseRequest {
   @TemplateProperty(
       group = "configuration",
       label = "Knowledge Base ID",
-      description = "The ID of the Bedrock Knowledge Base to query.",
-      constraints = @PropertyConstraints(notEmpty = true))
+      description = "The ID of the Bedrock Knowledge Base to query.")
   private String knowledgeBaseId;
 
   @Valid @NotNull private KnowledgeBaseOperation operation;

@@ -18,7 +18,6 @@ public abstract class BaseTest {
   protected interface ActualValue {
     String ACCESS_KEY = "test-access-key";
     String SECRET_KEY = "test-secret-key";
-    String REGION = "us-east-1";
     String KNOWLEDGE_BASE_ID = "KB12345TEST";
     String QUERY = "What does the insurance policy cover?";
   }
