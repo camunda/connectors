@@ -98,20 +98,16 @@ public class ConnectorsAutoConfiguration {
   }
 
   /**
-   * Provides a {@link FeelExpressionEvaluator} unless already present in the Spring Context. When a
-   * {@link CamundaClient} is available, uses cluster-based evaluation (enabling access to cluster
-   * variables like {@code camunda.vars.env.*}). Otherwise, falls back to local FEEL engine.
+   * Provides a {@link FeelExpressionEvaluator} unless already present in the Spring Context. Uses
+   * cluster-based evaluation (enabling access to cluster variables like {@code
+   * camunda.vars.env.*}).
    */
   @Bean
   @Primary
   @ConditionalOnMissingBean(FeelExpressionEvaluator.class)
-  public FeelExpressionEvaluator feelExpressionEvaluator(Optional<CamundaClient> camundaClient) {
-    return camundaClient
-        .<FeelExpressionEvaluator>map(
-            client ->
-                new CamundaClientFeelExpressionEvaluator(
-                    client, ConnectorsObjectMapperSupplier.getCopy()))
-        .orElseGet(LocalFeelExpressionEvaluator::new);
+  public FeelExpressionEvaluator camundaClientFeelExpressionEvaluator(CamundaClient camundaClient) {
+    return new CamundaClientFeelExpressionEvaluator(
+        camundaClient, ConnectorsObjectMapperSupplier.getCopy());
   }
 
   /**
