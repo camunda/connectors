@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.outbound.job;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.client.api.command.CompleteJobCommandStep1;
 import io.camunda.client.api.command.FinalCommandStep;
 import io.camunda.client.api.command.ThrowErrorCommandStep1;
 import io.camunda.client.api.response.ActivatedJob;
@@ -30,6 +31,10 @@ import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.client.metrics.MetricsRecorder.CounterMetricsContext;
 import io.camunda.client.metrics.MetricsRecorder.TimerMetricsContext;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.outbound.ConnectorResponse;
+import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse;
+import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
+import io.camunda.connector.api.outbound.ConnectorResponse.StandardConnectorResponse;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -41,9 +46,6 @@ import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.error.IgnoreError;
 import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
 import io.camunda.connector.runtime.core.error.JobError;
-import io.camunda.connector.runtime.core.outbound.ConnectorJobCompletion;
-import io.camunda.connector.runtime.core.outbound.ConnectorResponse;
-import io.camunda.connector.runtime.core.outbound.ConnectorResponse.DefaultConnectorResponse;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
 import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
@@ -94,11 +96,6 @@ public class SpringConnectorJobHandler implements JobHandler {
     this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
     this.connectorsOutboundMetrics = outboundMetrics;
-  }
-
-  protected static FinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(
-      JobClient client, ActivatedJob job, ConnectorResult.SuccessResult result) {
-    return client.newCompleteCommand(job).variables(result.variables());
   }
 
   protected static FinalCommandStep<FailJobResponse> prepareFailJobCommand(
@@ -211,7 +208,7 @@ public class SpringConnectorJobHandler implements JobHandler {
       return connectorResponse;
     }
 
-    return DefaultConnectorResponse.of(responseValue);
+    return StandardConnectorResponse.of(responseValue);
   }
 
   private void processFinalResult(
@@ -284,9 +281,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       }
       case IgnoreError ignoreError -> {
         if (finalResult instanceof ConnectorResult.SuccessResult successResult
-            && successResult.connectorResponse() instanceof ConnectorJobCompletion completion
-            && completion.rejectIgnoreError()) {
-          LOGGER.debug("IgnoreError rejected by ConnectorJobCompletion for job {}", job.getKey());
+            && successResult.connectorResponse().rejectIgnoreError()) {
+          LOGGER.debug("IgnoreError rejected by ConnectorResponse for job {}", job.getKey());
           failJob(
               client,
               job,
@@ -303,7 +299,7 @@ public class SpringConnectorJobHandler implements JobHandler {
               client,
               job,
               new ConnectorResult.SuccessResult(
-                  DefaultConnectorResponse.of(null), ignoreError.variables()),
+                  StandardConnectorResponse.of(null), ignoreError.variables()),
               counterMetricsContext);
         }
       }
@@ -365,12 +361,14 @@ public class SpringConnectorJobHandler implements JobHandler {
       CounterMetricsContext counterMetricsContext) {
     ConnectorResponse connectorResponse = result.connectorResponse();
 
-    FinalCommandStep<?> commandStep;
-    if (connectorResponse instanceof ConnectorJobCompletion completion) {
-      commandStep = completion.prepareCompleteCommand(client, job, result.variables());
-    } else {
-      commandStep = prepareCompleteJobCommand(client, job, result);
-    }
+    FinalCommandStep<CompleteJobResponse> commandStep =
+        switch (connectorResponse) {
+          case StandardConnectorResponse response ->
+              prepareCompleteJobCommand(client, job, result, response);
+
+          case AdHocSubProcessConnectorResponse ahspResponse ->
+              prepareAdHocSubProcessCompleteJobCommand(client, job, result, ahspResponse);
+        };
 
     new CommandWrapper(
             commandStep,
@@ -380,5 +378,41 @@ public class SpringConnectorJobHandler implements JobHandler {
             counterMetricsContext,
             MAX_ZEEBE_COMMAND_RETRIES)
         .executeAsync();
+  }
+
+  private CompleteJobCommandStep1 prepareCompleteJobCommand(
+      JobClient client,
+      ActivatedJob job,
+      ConnectorResult.SuccessResult result,
+      ConnectorResponse connectorResponse) {
+    return client
+        .newCompleteCommand(job)
+        .variables(connectorResponse.getVariables(result.variables()));
+  }
+
+  private CompleteJobCommandStep1 prepareAdHocSubProcessCompleteJobCommand(
+      JobClient client,
+      ActivatedJob job,
+      ConnectorResult.SuccessResult result,
+      AdHocSubProcessConnectorResponse connectorResponse) {
+    return prepareCompleteJobCommand(client, job, result, connectorResponse)
+        .withResult(
+            resultStep -> {
+              var adHocSubProcess =
+                  resultStep
+                      .forAdHocSubProcess()
+                      .completionConditionFulfilled(
+                          connectorResponse.completionConditionFulfilled())
+                      .cancelRemainingInstances(connectorResponse.cancelRemainingInstances());
+
+              for (ElementActivation activation : connectorResponse.elementActivations()) {
+                adHocSubProcess =
+                    adHocSubProcess
+                        .activateElement(activation.elementId())
+                        .variables(activation.variables());
+              }
+
+              return adHocSubProcess;
+            });
   }
 }

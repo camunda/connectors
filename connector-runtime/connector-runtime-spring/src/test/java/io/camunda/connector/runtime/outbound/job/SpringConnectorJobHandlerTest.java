@@ -33,8 +33,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.client.api.command.FailJobCommandStep1;
-import io.camunda.client.api.command.FinalCommandStep;
-import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.BackoffSupplier;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.jobhandling.DefaultCommandExceptionHandlingStrategy;
@@ -44,13 +42,15 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
+import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse;
+import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
+import io.camunda.connector.api.outbound.ConnectorResponse.StandardConnectorResponse;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.runtime.JobBuilder;
 import io.camunda.connector.runtime.TestObjectMapperSupplier;
 import io.camunda.connector.runtime.TestValidation;
 import io.camunda.connector.runtime.core.Keywords;
-import io.camunda.connector.runtime.core.outbound.ConnectorJobCompletion;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.secret.FooBarSecretProvider;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -62,6 +62,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -73,6 +74,23 @@ import org.mockito.ArgumentCaptor;
 class SpringConnectorJobHandlerTest {
 
   private record TestConnectorResponsePojo(String value) {}
+
+  private record TestAdHocSubProcessResponse(
+      Object responseValue,
+      List<ElementActivation> elementActivations,
+      boolean completionConditionFulfilled,
+      boolean cancelRemainingInstances,
+      UnaryOperator<Map<String, Object>> variableMapper)
+      implements AdHocSubProcessConnectorResponse {
+
+    @Override
+    public Map<String, Object> getVariables(Map<String, Object> resultVariables) {
+      return variableMapper != null ? variableMapper.apply(resultVariables) : resultVariables;
+    }
+
+    private record TestElementActivation(String elementId, Map<String, Object> variables)
+        implements ElementActivation {}
+  }
 
   private static class NonSerializable {
     private final UUID field = UUID.randomUUID();
@@ -1530,22 +1548,83 @@ class SpringConnectorJobHandlerTest {
   }
 
   @Nested
-  class ConnectorJobCompletionTests {
+  class ConnectorResponseTests {
 
     @Test
-    void delegatesToPrepareCompleteCommandForConnectorJobCompletion() throws Exception {
-      var stubCompletion = new StubConnectorJobCompletion(null, false);
-      var handler = newConnectorJobHandler(context -> stubCompletion);
+    void defaultGetVariablesPassesThroughResultExpressionVariables() throws Exception {
+      var response = StandardConnectorResponse.of(Map.of("key", "value"));
+      var handler = newConnectorJobHandler(context -> response);
+
+      var result =
+          JobBuilder.create()
+              .withResultExpressionHeader("={mapped: response.key}")
+              .executeAndCaptureResult(handler);
+
+      assertThat(result.getVariables()).isEqualTo(Map.of("mapped", "value"));
+    }
+
+    @Test
+    void getVariablesCanReplaceResultExpressionVariables() throws Exception {
+      var customResponse =
+          new StandardConnectorResponse() {
+            @Override
+            public Object responseValue() {
+              return null;
+            }
+
+            @Override
+            public Map<String, Object> getVariables(Map<String, Object> resultVariables) {
+              return Map.of("custom-variable", true);
+            }
+          };
+      var handler = newConnectorJobHandler(context -> customResponse);
 
       var result = JobBuilder.create().executeAndCaptureResult(handler);
 
-      assertThat(result.getVariables()).containsEntry("delegated-to-job-completion", true);
+      assertThat(result.getVariables()).isEqualTo(Map.of("custom-variable", true));
+    }
+
+    @Test
+    void getVariablesCanMergeWithResultExpressionVariables() throws Exception {
+      var customResponse =
+          new StandardConnectorResponse() {
+            @Override
+            public Object responseValue() {
+              return Map.of("key", "value");
+            }
+
+            @Override
+            public Map<String, Object> getVariables(Map<String, Object> resultVariables) {
+              var merged = new HashMap<>(resultVariables);
+              merged.put("extra", "added");
+              return merged;
+            }
+          };
+      var handler = newConnectorJobHandler(context -> customResponse);
+
+      var result =
+          JobBuilder.create()
+              .withResultExpressionHeader("={mapped: response.key}")
+              .executeAndCaptureResult(handler);
+
+      assertThat(result.getVariables()).isEqualTo(Map.of("mapped", "value", "extra", "added"));
     }
 
     @Test
     void rejectsIgnoreErrorWhenRejectIgnoreErrorIsTrue() throws Exception {
-      var stubCompletion = new StubConnectorJobCompletion(Map.of("status", "trigger ignore"), true);
-      var handler = newConnectorJobHandler(context -> stubCompletion);
+      var customResponse =
+          new StandardConnectorResponse() {
+            @Override
+            public Object responseValue() {
+              return Map.of("status", "trigger ignore");
+            }
+
+            @Override
+            public boolean rejectIgnoreError() {
+              return true;
+            }
+          };
+      var handler = newConnectorJobHandler(context -> customResponse);
 
       var result =
           JobBuilder.create()
@@ -1559,9 +1638,14 @@ class SpringConnectorJobHandlerTest {
 
     @Test
     void allowsIgnoreErrorWhenRejectIgnoreErrorIsFalse() throws Exception {
-      var stubCompletion =
-          new StubConnectorJobCompletion(Map.of("status", "trigger ignore"), false);
-      var handler = newConnectorJobHandler(context -> stubCompletion);
+      var customResponse =
+          new StandardConnectorResponse() {
+            @Override
+            public Object responseValue() {
+              return Map.of("status", "trigger ignore");
+            }
+          };
+      var handler = newConnectorJobHandler(context -> customResponse);
 
       var result =
           JobBuilder.create()
@@ -1569,36 +1653,62 @@ class SpringConnectorJobHandlerTest {
                   "=if response.status = \"trigger ignore\" then ignoreError({\"recovered\": true}) else null")
               .executeAndCaptureResult(handler);
 
-      assertThat(result.getVariables()).containsEntry("recovered", true);
+      assertThat(result.getVariables()).isEqualTo(Map.of("recovered", true));
     }
 
-    static class StubConnectorJobCompletion implements ConnectorJobCompletion {
+    @Test
+    void completesAdHocSubProcessWithElementActivations() throws Exception {
+      var response =
+          new TestAdHocSubProcessResponse(
+              null,
+              List.of(
+                  new TestAdHocSubProcessResponse.TestElementActivation(
+                      "task1", Map.of("input", "value1")),
+                  new TestAdHocSubProcessResponse.TestElementActivation(
+                      "task2", Map.of("input", "value2"))),
+              false,
+              true,
+              resultVariables -> Map.of("agentContext", "some-context"));
+      var handler = newConnectorJobHandler(context -> response);
 
-      private final Object responseValue;
-      private final boolean rejectIgnoreError;
+      var result = JobBuilder.create().executeAndCaptureAdHocSubProcessResult(handler);
 
-      StubConnectorJobCompletion(Object responseValue, boolean rejectIgnoreError) {
-        this.responseValue = responseValue;
-        this.rejectIgnoreError = rejectIgnoreError;
-      }
+      assertThat(result.variables()).isEqualTo(Map.of("agentContext", "some-context"));
+      assertThat(result.completionConditionFulfilled()).isFalse();
+      assertThat(result.cancelRemainingInstances()).isTrue();
+      assertThat(result.elementActivations()).hasSize(2);
+      assertThat(result.elementActivations().get(0).elementId()).isEqualTo("task1");
+      assertThat(result.elementActivations().get(0).variables())
+          .isEqualTo(Map.of("input", "value1"));
+      assertThat(result.elementActivations().get(1).elementId()).isEqualTo("task2");
+      assertThat(result.elementActivations().get(1).variables())
+          .isEqualTo(Map.of("input", "value2"));
+    }
 
-      @Override
-      public Object responseValue() {
-        return responseValue;
-      }
+    @Test
+    void adHocSubProcessResponseMergesVariables() throws Exception {
+      var response =
+          new TestAdHocSubProcessResponse(
+              Map.of("key", "value"),
+              List.of(),
+              true,
+              false,
+              resultVariables -> {
+                var merged = new HashMap<>(resultVariables);
+                merged.put("extra", "added");
+                return merged;
+              });
+      var handler = newConnectorJobHandler(context -> response);
 
-      @Override
-      public boolean rejectIgnoreError() {
-        return rejectIgnoreError;
-      }
+      var result =
+          JobBuilder.create()
+              .withResultExpressionHeader("={mapped: response.key}")
+              .executeAndCaptureAdHocSubProcessResult(handler);
 
-      @Override
-      public FinalCommandStep<?> prepareCompleteCommand(
-          JobClient client, ActivatedJob job, Map<String, Object> variables) {
-        return client
-            .newCompleteCommand(job)
-            .variables(Map.of("delegated-to-job-completion", true));
-      }
+      assertThat(result.variables()).isEqualTo(Map.of("mapped", "value", "extra", "added"));
+      assertThat(result.completionConditionFulfilled()).isTrue();
+      assertThat(result.cancelRemainingInstances()).isFalse();
+      assertThat(result.elementActivations()).isEmpty();
     }
   }
 }

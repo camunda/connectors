@@ -22,16 +22,24 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.client.api.command.CompleteAdHocSubProcessResultStep1;
+import io.camunda.client.api.command.CompleteAdHocSubProcessResultStep1.CompleteAdHocSubProcessResultStep2;
 import io.camunda.client.api.command.CompleteJobCommandStep1;
+import io.camunda.client.api.command.CompleteJobCommandStep1.CompleteJobCommandJobResultStep;
 import io.camunda.client.api.command.FailJobCommandStep1;
 import io.camunda.client.api.command.ThrowErrorCommandStep1;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.worker.JobClient;
+import io.camunda.connector.runtime.JobBuilder.AdHocSubProcessJobResult.CapturedElementActivation;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.outbound.job.SpringConnectorJobHandler;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 public class JobBuilder {
 
@@ -166,6 +174,68 @@ public class JobBuilder {
       }
     }
 
+    @SuppressWarnings("unchecked")
+    public AdHocSubProcessJobResult executeAndCaptureAdHocSubProcessResult(
+        SpringConnectorJobHandler handler) throws Exception {
+
+      // wire the complete command to return itself for variables(), so withResult() is reachable
+      when(completeCommand.variables(anyMap())).thenReturn(completeCommand);
+
+      // wire the AHSP builder chain
+      var resultStep = mock(CompleteJobCommandJobResultStep.class);
+      var ahspStep1 = mock(CompleteAdHocSubProcessResultStep1.class);
+      var ahspStep2 = mock(CompleteAdHocSubProcessResultStep2.class);
+
+      when(resultStep.forAdHocSubProcess()).thenReturn(ahspStep1);
+      when(ahspStep1.completionConditionFulfilled(anyBoolean())).thenReturn(ahspStep1);
+      when(ahspStep1.cancelRemainingInstances(anyBoolean())).thenReturn(ahspStep1);
+      when(ahspStep1.activateElement(any())).thenReturn(ahspStep2);
+      when(ahspStep2.variables(anyMap())).thenReturn(ahspStep1);
+
+      var functionCaptor = ArgumentCaptor.forClass(Function.class);
+      when(completeCommand.withResult(functionCaptor.capture())).thenReturn(completeCommand);
+
+      handler.handle(jobClient, job);
+
+      // invoke the captured withResult function
+      functionCaptor.getValue().apply(resultStep);
+
+      // capture job-level variables
+      var jobVarsCaptor = ArgumentCaptor.forClass(Map.class);
+      verify(completeCommand).variables(jobVarsCaptor.capture());
+
+      // capture completion flags
+      var conditionCaptor = ArgumentCaptor.forClass(Boolean.class);
+      verify(ahspStep1).completionConditionFulfilled(conditionCaptor.capture());
+      var cancelCaptor = ArgumentCaptor.forClass(Boolean.class);
+      verify(ahspStep1).cancelRemainingInstances(cancelCaptor.capture());
+
+      // capture element activations (may be empty)
+      var activations = new ArrayList<CapturedElementActivation>();
+      var ahspInvocations =
+          Mockito.mockingDetails(ahspStep1).getInvocations().stream()
+              .filter(inv -> inv.getMethod().getName().equals("activateElement"))
+              .toList();
+      if (!ahspInvocations.isEmpty()) {
+        var elementIdCaptor = ArgumentCaptor.forClass(String.class);
+        verify(ahspStep1, Mockito.atLeastOnce()).activateElement(elementIdCaptor.capture());
+        var elemVarsCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(ahspStep2, Mockito.atLeastOnce()).variables(elemVarsCaptor.capture());
+
+        var elementIds = elementIdCaptor.getAllValues();
+        var elementVars = elemVarsCaptor.getAllValues();
+        for (int i = 0; i < elementIds.size(); i++) {
+          activations.add(new CapturedElementActivation(elementIds.get(i), elementVars.get(i)));
+        }
+      }
+
+      return new AdHocSubProcessJobResult(
+          jobVarsCaptor.getValue(),
+          conditionCaptor.getValue(),
+          cancelCaptor.getValue(),
+          activations);
+    }
+
     public void execute(SpringConnectorJobHandler SpringConnectorJobHandler) throws Exception {
       SpringConnectorJobHandler.handle(jobClient, job);
     }
@@ -213,5 +283,14 @@ public class JobBuilder {
     public int getRetries() {
       return retries;
     }
+  }
+
+  public record AdHocSubProcessJobResult(
+      Map<String, Object> variables,
+      boolean completionConditionFulfilled,
+      boolean cancelRemainingInstances,
+      List<CapturedElementActivation> elementActivations) {
+
+    public record CapturedElementActivation(String elementId, Map<String, Object> variables) {}
   }
 }

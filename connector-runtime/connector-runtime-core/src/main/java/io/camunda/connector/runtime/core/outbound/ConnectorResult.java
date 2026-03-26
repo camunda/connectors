@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
+import io.camunda.connector.api.outbound.ConnectorResponse;
 import java.time.Duration;
 import java.util.Map;
 
