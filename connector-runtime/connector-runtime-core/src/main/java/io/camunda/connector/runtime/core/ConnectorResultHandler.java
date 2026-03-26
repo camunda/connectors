@@ -42,17 +42,12 @@ public class ConnectorResultHandler {
   private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse '%s' as '%s'.";
   public static List<String> FORBIDDEN_LITERALS = List.of(IntrinsicFunctionModel.DISCRIMINATOR_KEY);
 
-  private final FeelExpressionEvaluator feelExpressionEvaluator;
+  private final FeelExpressionEvaluator feelExpressionEvaluator =
+      new LocalFeelExpressionEvaluator();
   private final ObjectMapper objectMapper;
 
   public ConnectorResultHandler(ObjectMapper objectMapper) {
-    this(objectMapper, new LocalFeelExpressionEvaluator());
-  }
-
-  public ConnectorResultHandler(
-      ObjectMapper objectMapper, FeelExpressionEvaluator feelExpressionEvaluator) {
     this.objectMapper = objectMapper;
-    this.feelExpressionEvaluator = feelExpressionEvaluator;
   }
 
   /**
