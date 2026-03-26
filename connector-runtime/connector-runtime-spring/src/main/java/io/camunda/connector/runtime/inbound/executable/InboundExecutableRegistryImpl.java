@@ -22,6 +22,7 @@ import io.camunda.connector.runtime.core.inbound.ExecutableId;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorManagementContext;
+import io.camunda.connector.runtime.core.inbound.activitylog.ActivityLogRegistry;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableStateTransitionService.ActionType;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableStateTransitionService.StateTransitionPlan;
@@ -53,7 +54,9 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   private final BlockingQueue<InboundExecutableEvent> eventQueue = new LinkedBlockingQueue<>();
 
   public InboundExecutableRegistryImpl(
-      InboundConnectorFactory connectorFactory, BatchExecutableProcessor batchExecutableProcessor) {
+      InboundConnectorFactory connectorFactory,
+      BatchExecutableProcessor batchExecutableProcessor,
+      ActivityLogRegistry activityLogRegistry) {
 
     this.stateStore = new InMemoryInboundExecutableStateStore();
     var deduplicationScopesByType =
@@ -65,7 +68,8 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                     (a, b) -> a));
     this.stateTransitionService =
         new InboundExecutableStateTransitionService(deduplicationScopesByType, stateStore);
-    this.queryService = new InboundExecutableQueryService(stateStore, connectorFactory);
+    this.queryService =
+        new InboundExecutableQueryService(stateStore, connectorFactory, activityLogRegistry);
     this.batchExecutableProcessor = batchExecutableProcessor;
   }
 
