@@ -21,7 +21,7 @@ import java.util.Map;
 public interface JobContext {
 
   /** The unique key of the job. */
-  long getKey();
+  long getJobKey();
 
   /**
    * Custom headers found under zeebe:taskHeaders.

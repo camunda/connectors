@@ -43,11 +43,11 @@ public class TestJobContext implements JobContext {
   }
 
   @Override
-  public long getKey() {
+  public long getJobKey() {
     return key;
   }
 
-  public void setKey(long key) {
+  public void setJobKey(long key) {
     this.key = key;
   }
 

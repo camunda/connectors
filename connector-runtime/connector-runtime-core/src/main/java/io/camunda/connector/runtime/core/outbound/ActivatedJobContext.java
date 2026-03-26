@@ -32,7 +32,7 @@ public class ActivatedJobContext implements JobContext {
   }
 
   @Override
-  public long getKey() {
+  public long getJobKey() {
     return activatedJob.getKey();
   }
 
