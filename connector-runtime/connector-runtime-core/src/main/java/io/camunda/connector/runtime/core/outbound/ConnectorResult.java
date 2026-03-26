@@ -38,8 +38,12 @@ public sealed interface ConnectorResult {
   record SuccessResult(ConnectorResponse connectorResponse, Map<String, Object> variables)
       implements ConnectorResult {
 
+    public SuccessResult {
+      variables = variables != null ? variables : Map.of();
+    }
+
     public Object responseValue() {
-      if (variables == null || variables.isEmpty()) {
+      if (variables.isEmpty()) {
         return connectorResponse.responseValue();
       } else {
         return variables;

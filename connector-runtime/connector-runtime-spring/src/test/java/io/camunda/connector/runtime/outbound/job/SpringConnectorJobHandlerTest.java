@@ -1385,7 +1385,7 @@ class SpringConnectorJobHandlerTest {
       // then
       assertThat(result.getErrorCode()).isNull();
       assertThat(result.getErrorMessage()).isNull();
-      assertThat(result.getVariables()).isNull();
+      assertThat(result.getVariables()).isEmpty();
     }
   }
 
@@ -1708,6 +1708,41 @@ class SpringConnectorJobHandlerTest {
       assertThat(result.variables()).isEqualTo(Map.of("mapped", "value", "extra", "added"));
       assertThat(result.completionConditionFulfilled()).isTrue();
       assertThat(result.cancelRemainingInstances()).isFalse();
+      assertThat(result.elementActivations()).isEmpty();
+    }
+
+    @Test
+    void nullGetVariablesTreatedAsEmptyMap() throws Exception {
+      var customResponse =
+          new StandardConnectorResponse() {
+            @Override
+            public Object responseValue() {
+              return null;
+            }
+
+            @Override
+            public Map<String, Object> getVariables(Map<String, Object> resultVariables) {
+              return null;
+            }
+          };
+      var handler = newConnectorJobHandler(context -> customResponse);
+
+      var result = JobBuilder.create().executeAndCaptureResult(handler);
+
+      assertThat(result.getVariables()).isEmpty();
+    }
+
+    @Test
+    void nullElementActivationsTreatedAsEmptyList() throws Exception {
+      var response =
+          new TestAdHocSubProcessResponse(
+              null, null, true, false, resultVariables -> Map.of("key", "value"));
+      var handler = newConnectorJobHandler(context -> response);
+
+      var result = JobBuilder.create().executeAndCaptureAdHocSubProcessResult(handler);
+
+      assertThat(result.variables()).isEqualTo(Map.of("key", "value"));
+      assertThat(result.completionConditionFulfilled()).isTrue();
       assertThat(result.elementActivations()).isEmpty();
     }
   }

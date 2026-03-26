@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.runtime.outbound.job;
 
+import static java.util.Objects.requireNonNullElse;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.CompleteJobCommandStep1;
 import io.camunda.client.api.command.FinalCommandStep;
@@ -54,6 +56,8 @@ import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -385,9 +389,9 @@ public class SpringConnectorJobHandler implements JobHandler {
       ActivatedJob job,
       ConnectorResult.SuccessResult result,
       ConnectorResponse connectorResponse) {
-    return client
-        .newCompleteCommand(job)
-        .variables(connectorResponse.getVariables(result.variables()));
+    Map<String, Object> variables =
+        requireNonNullElse(connectorResponse.getVariables(result.variables()), Map.of());
+    return client.newCompleteCommand(job).variables(variables);
   }
 
   private CompleteJobCommandStep1 prepareAdHocSubProcessCompleteJobCommand(
@@ -405,11 +409,13 @@ public class SpringConnectorJobHandler implements JobHandler {
                           connectorResponse.completionConditionFulfilled())
                       .cancelRemainingInstances(connectorResponse.cancelRemainingInstances());
 
-              for (ElementActivation activation : connectorResponse.elementActivations()) {
+              List<ElementActivation> elementActivations =
+                  requireNonNullElse(connectorResponse.elementActivations(), List.of());
+              for (ElementActivation activation : elementActivations) {
                 adHocSubProcess =
                     adHocSubProcess
                         .activateElement(activation.elementId())
-                        .variables(activation.variables());
+                        .variables(requireNonNullElse(activation.variables(), Map.of()));
               }
 
               return adHocSubProcess;
