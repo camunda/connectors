@@ -125,6 +125,7 @@ public record ChatPostMessageData(
     }
     if (MessageType.plainText.equals(messageType)) {
       requestBuilder.text(text);
+      requestBuilder.linkNames(true);
       if (documents != null && !documents.isEmpty()) {
         requestBuilder.blocks(
             BlockBuilder.create(new FileUploader(methodsClient))
