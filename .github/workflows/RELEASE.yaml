@@ -72,8 +72,26 @@ jobs:
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
-      - name: Install asdf & tools
-        uses: asdf-vm/actions/install@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21.0.9'
+
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: 3.9.14
+
+      - name: Restore cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
       - name: Install bc calculator
         run: sudo apt-get update && sudo apt-get install -y bc
       - name: Identify previous release version
@@ -98,19 +116,6 @@ jobs:
           ref: ${{ github.ref }}
           fetch-depth: 0
 
-      - name: Prepare Java and Maven settings
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: '21.0.9'
-
-      - name: Restore cache
-        uses: actions/cache@v5
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
 
       - name: Install element templates CLI
         run: npm install --global element-templates-cli@$(jq -r '.devDependencies["element-templates-cli"]' .github/workflows/package.json)
@@ -246,7 +251,7 @@ jobs:
         with:
           name: repository
 
-      - name: Prepare Java and Maven settings
+      - name: Set up JDK
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
