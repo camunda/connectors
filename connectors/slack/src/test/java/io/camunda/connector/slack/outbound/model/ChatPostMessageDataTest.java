@@ -121,6 +121,7 @@ class ChatPostMessageDataTest {
     // Then
     ChatPostMessageRequest value = chatPostMessageRequest.getValue();
     assertThat(value.getChannel()).isEqualTo(USERID);
+    assertThat(value.isLinkNames()).isTrue();
   }
 
   @Test
@@ -167,6 +168,7 @@ class ChatPostMessageDataTest {
       // Then
       ChatPostMessageRequest value = chatPostMessageRequest.getValue();
       assertThat(value.getChannel()).isEqualTo(USERID);
+      assertThat(value.isLinkNames()).isTrue();
     }
   }
 
@@ -240,6 +242,7 @@ class ChatPostMessageDataTest {
     // Then
     ChatPostMessageRequest value = chatPostMessageRequest.getValue();
     assertThat(value.getChannel()).isEqualTo(USERID);
+    assertThat(value.isLinkNames()).isFalse();
   }
 
   @Test
