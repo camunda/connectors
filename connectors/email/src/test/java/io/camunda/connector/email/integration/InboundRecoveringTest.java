@@ -96,7 +96,7 @@ public class InboundRecoveringTest extends BaseEmailTest {
       IllegalStateException("Can not handle IMAP connection") as uncaught exceptions.
       Despite an UncaughtExceptionHandler installed to suppress these, Maven Surefire still
       intermittently captures and reports them as test failures.
-      Tracked in: https://github.com/camunda/connectors/issues/5561
+      TODO: link to tracking issue once created.
       """)
   @Test
   public void pollingManagerBreaksAndRecoverAfterServerNotResponding() throws Exception {
