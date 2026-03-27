@@ -78,6 +78,11 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
+    "binding" : {
+      "name" : "agent",
+      "type" : "zeebe:input"
+    }
+  }, {
     "id" : "taskDefinitionType",
     "value" : "io.camunda.agenticai:aiagent-job-worker:1",
     "group" : "taskDefinitionType",

@@ -100,6 +100,14 @@ def skipProperties = [
 ]
 def updatedProperties = []
 
+// empty input mapping for local agent variable
+updatedProperties.add([
+    binding: [
+        name: "agent",
+        type: "zeebe:input"
+    ]
+])
+
 ((List) json.get('properties')).each { property ->
     if (property.id in skipProperties) {
         return
