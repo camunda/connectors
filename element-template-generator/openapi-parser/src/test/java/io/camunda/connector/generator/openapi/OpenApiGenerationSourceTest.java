@@ -335,7 +335,7 @@ public class OpenApiGenerationSourceTest {
    */
   @Test
   void shouldStillParseInlineSchemasFromComponents() {
-    var source = new OpenApiGenerationSource(List.of(SPEC_WITH_INTERNAL_REF));
+    var source = new OpenApiGenerationSource(List.of(SPEC_WITH_INTERNAL_REF, "--no-resolve-refs"));
 
     assertThat(source.openAPI()).isNotNull();
     assertThat(source.openAPI().getComponents().getSchemas()).containsKey("User");
