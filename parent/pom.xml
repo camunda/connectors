@@ -94,7 +94,7 @@ limitations under the License.</license.inlineheader>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
 
-    <version.spring-boot>4.0.3</version.spring-boot>
+    <version.spring-boot>4.0.5</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>8.0.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.32</version.logback>
 
