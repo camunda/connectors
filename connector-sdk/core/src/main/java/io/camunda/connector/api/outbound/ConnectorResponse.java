@@ -23,8 +23,8 @@ import java.util.Map;
  * Base interface for connector responses returned from {@link OutboundConnectorFunction#execute}.
  * The runtime uses {@link #responseValue()} as input for result expression evaluation.
  *
- * <p>Implementations can override {@link #getVariables(Map)} to control which variables are sent
- * with the job completion command.
+ * <p>Implementations can override {@link #resolveCompletionVariables(Map)} to control which
+ * variables are sent with the job completion command.
  */
 public sealed interface ConnectorResponse {
 
@@ -45,7 +45,7 @@ public sealed interface ConnectorResponse {
    * @param resultVariables variables computed from result expression evaluation
    * @return the variables to use for job completion
    */
-  default Map<String, Object> getVariables(Map<String, Object> resultVariables) {
+  default Map<String, Object> resolveCompletionVariables(Map<String, Object> resultVariables) {
     return resultVariables;
   }
 

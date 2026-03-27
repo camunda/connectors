@@ -390,7 +390,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       ConnectorResult.SuccessResult result,
       ConnectorResponse connectorResponse) {
     Map<String, Object> variables =
-        requireNonNullElse(connectorResponse.getVariables(result.variables()), Map.of());
+        requireNonNullElse(
+            connectorResponse.resolveCompletionVariables(result.variables()), Map.of());
     return client.newCompleteCommand(job).variables(variables);
   }
 

@@ -84,7 +84,7 @@ class SpringConnectorJobHandlerTest {
       implements AdHocSubProcessConnectorResponse {
 
     @Override
-    public Map<String, Object> getVariables(Map<String, Object> resultVariables) {
+    public Map<String, Object> resolveCompletionVariables(Map<String, Object> resultVariables) {
       return variableMapper != null ? variableMapper.apply(resultVariables) : resultVariables;
     }
 
@@ -1564,7 +1564,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void getVariablesCanReplaceResultExpressionVariables() throws Exception {
+    void resolveCompletionVariablesCanReplaceResultExpressionVariables() throws Exception {
       var customResponse =
           new StandardConnectorResponse() {
             @Override
@@ -1573,7 +1573,8 @@ class SpringConnectorJobHandlerTest {
             }
 
             @Override
-            public Map<String, Object> getVariables(Map<String, Object> resultVariables) {
+            public Map<String, Object> resolveCompletionVariables(
+                Map<String, Object> resultVariables) {
               return Map.of("custom-variable", true);
             }
           };
@@ -1585,7 +1586,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void getVariablesCanMergeWithResultExpressionVariables() throws Exception {
+    void resolveCompletionVariablesCanMergeWithResultExpressionVariables() throws Exception {
       var customResponse =
           new StandardConnectorResponse() {
             @Override
@@ -1594,7 +1595,8 @@ class SpringConnectorJobHandlerTest {
             }
 
             @Override
-            public Map<String, Object> getVariables(Map<String, Object> resultVariables) {
+            public Map<String, Object> resolveCompletionVariables(
+                Map<String, Object> resultVariables) {
               var merged = new HashMap<>(resultVariables);
               merged.put("extra", "added");
               return merged;
@@ -1721,7 +1723,8 @@ class SpringConnectorJobHandlerTest {
             }
 
             @Override
-            public Map<String, Object> getVariables(Map<String, Object> resultVariables) {
+            public Map<String, Object> resolveCompletionVariables(
+                Map<String, Object> resultVariables) {
               return null;
             }
           };
