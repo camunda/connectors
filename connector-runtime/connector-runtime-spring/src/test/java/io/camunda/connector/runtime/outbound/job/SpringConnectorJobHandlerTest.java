@@ -1613,7 +1613,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void rejectsIgnoreErrorWhenRejectIgnoreErrorIsTrue() throws Exception {
+    void failsJobWhenIgnoreErrorNotSupported() throws Exception {
       var customResponse =
           new StandardConnectorResponse() {
             @Override
@@ -1622,8 +1622,8 @@ class SpringConnectorJobHandlerTest {
             }
 
             @Override
-            public boolean rejectIgnoreError() {
-              return true;
+            public boolean supportsIgnoreError() {
+              return false;
             }
           };
       var handler = newConnectorJobHandler(context -> customResponse);
@@ -1639,7 +1639,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void allowsIgnoreErrorWhenRejectIgnoreErrorIsFalse() throws Exception {
+    void allowsIgnoreErrorWhenSupported() throws Exception {
       var customResponse =
           new StandardConnectorResponse() {
             @Override

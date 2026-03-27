@@ -50,15 +50,16 @@ public sealed interface ConnectorResponse {
   }
 
   /**
-   * Indicates whether an {@code IgnoreError} from error expression evaluation should be rejected.
-   * When {@code true}, the job will be failed instead of completed.
+   * Indicates whether this connector supports the {@code IgnoreError} error expression strategy.
+   * When {@code false}, an {@code IgnoreError} from error expression evaluation will be rejected
+   * and the job will be failed instead of completed.
    *
-   * <p>The default implementation returns {@code false}.
+   * <p>The default implementation returns {@code true}.
    *
-   * @return {@code true} to reject {@code IgnoreError} and fail the job
+   * @return {@code true} if {@code IgnoreError} is supported, {@code false} to reject it
    */
-  default boolean rejectIgnoreError() {
-    return false;
+  default boolean supportsIgnoreError() {
+    return true;
   }
 
   /** Standard connector response for completing a job with the result expression variables. */

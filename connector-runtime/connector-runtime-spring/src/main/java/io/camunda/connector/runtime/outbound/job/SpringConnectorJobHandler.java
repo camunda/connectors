@@ -285,8 +285,8 @@ public class SpringConnectorJobHandler implements JobHandler {
       }
       case IgnoreError ignoreError -> {
         if (finalResult instanceof ConnectorResult.SuccessResult successResult
-            && successResult.connectorResponse().rejectIgnoreError()) {
-          LOGGER.debug("IgnoreError rejected by ConnectorResponse for job {}", job.getKey());
+            && !successResult.connectorResponse().supportsIgnoreError()) {
+          LOGGER.debug("IgnoreError not supported by ConnectorResponse for job {}", job.getKey());
           failJob(
               client,
               job,
