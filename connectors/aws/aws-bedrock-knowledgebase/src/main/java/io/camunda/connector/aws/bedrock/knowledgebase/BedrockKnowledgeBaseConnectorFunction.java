@@ -42,7 +42,7 @@ import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeCl
       @PropertyGroup(id = "operation", label = "Operation"),
       @PropertyGroup(id = "retrieve", label = "Retrieve from Knowledge Base"),
     },
-    icon = "icon.png")
+    icon = "icon.svg")
 public class BedrockKnowledgeBaseConnectorFunction implements OutboundConnectorFunction {
 
   @Override
