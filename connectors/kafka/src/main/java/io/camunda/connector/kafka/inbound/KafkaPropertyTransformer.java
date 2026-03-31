@@ -86,7 +86,7 @@ public class KafkaPropertyTransformer {
     return kafkaProps;
   }
 
-  private static String resolveGroupId(
+  static String resolveGroupId(
       KafkaConnectorProperties kafkaConnectorProperties, InboundConnectorContext context) {
     var clientId = kafkaConnectorProperties.groupId();
     if (kafkaConnectorProperties.groupId() == null) {
@@ -96,6 +96,8 @@ public class KafkaPropertyTransformer {
   }
 
   private static String computeGroupId(InboundConnectorContext context) {
+    // TODO: In 8.10, remove auto-generation and make groupId mandatory (see
+    // https://github.com/camunda/connectors/issues/6767)
     return DEFAULT_GROUP_ID_PREFIX + "-" + context.getDefinition().deduplicationId();
   }
 

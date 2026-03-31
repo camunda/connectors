@@ -102,6 +102,30 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
 
       KafkaConnectorProperties elementProps =
           context.bindProperties(KafkaConnectorProperties.class);
+
+      // TODO: In 8.10, make groupId mandatory and remove auto-generation (see
+      // https://github.com/camunda/connectors/issues/6767)
+      if (elementProps.groupId() == null) {
+        context.log(
+            activity ->
+                activity
+                    .withSeverity(Severity.WARNING)
+                    .withTag(ActivityLogTag.CONSUMER)
+                    .withMessage(
+                        "No consumer group ID configured — an auto-generated ID will be used. "
+                            + "This is not recommended: the generated ID may change across connector upgrades, "
+                            + "causing the connector to be treated as a new consumer group and potentially replay messages. "
+                            + "Set an explicit Consumer Group ID in the connector configuration."));
+      }
+
+      var effectiveGroupId = KafkaPropertyTransformer.resolveGroupId(elementProps, context);
+      context.log(
+          activity ->
+              activity
+                  .withSeverity(Severity.INFO)
+                  .withTag(ActivityLogTag.CONSUMER)
+                  .withMessage("Using consumer group ID: " + effectiveGroupId));
+
       this.kafkaConnectorConsumer =
           new KafkaConnectorConsumer(consumerCreatorFunction, context, elementProps, retryPolicy);
       this.kafkaConnectorConsumer.startConsumer();
