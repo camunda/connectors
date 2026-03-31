@@ -86,7 +86,7 @@ public class KafkaPropertyTransformer {
     return kafkaProps;
   }
 
-  static String resolveGroupId(
+  private static String resolveGroupId(
       KafkaConnectorProperties kafkaConnectorProperties, InboundConnectorContext context) {
     var clientId = kafkaConnectorProperties.groupId();
     if (kafkaConnectorProperties.groupId() == null) {

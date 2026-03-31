@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.Properties;
 import java.util.function.Function;
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,7 +106,15 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
 
       // TODO: In 8.10, make groupId mandatory and remove auto-generation (see
       // https://github.com/camunda/connectors/issues/6767)
-      if (elementProps.groupId() == null) {
+      var kafkaProps = KafkaPropertyTransformer.getKafkaProperties(elementProps, context);
+      var effectiveGroupId = kafkaProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG);
+      boolean groupIdExplicitlySet =
+          elementProps.groupId() != null
+              || (elementProps.additionalProperties() != null
+                  && elementProps
+                      .additionalProperties()
+                      .containsKey(ConsumerConfig.GROUP_ID_CONFIG));
+      if (!groupIdExplicitlySet) {
         context.log(
             activity ->
                 activity
@@ -117,8 +126,6 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
                             + "causing the connector to be treated as a new consumer group and potentially replay messages. "
                             + "Set an explicit Consumer Group ID in the connector configuration."));
       }
-
-      var effectiveGroupId = KafkaPropertyTransformer.resolveGroupId(elementProps, context);
       context.log(
           activity ->
               activity
