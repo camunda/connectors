@@ -170,7 +170,7 @@ jobs:
 
   e2e-tests:
     needs: setup
-    name: Run e2e tests
+    name: Run E2E tests
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -195,22 +195,53 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - name: Run e2e tests
-        run: mvn -B test -pl connectors-e2e-test
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_LDAP_USER;
+            secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_LDAP_PASSWORD;
+
+      - name: 'Create settings.xml'
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.CI_LDAP_USER }}",
+               "password": "${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}"
+             }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+
+      - name: Install artifacts
+        run: mvn -B install -DskipTests -DskipChecks -Pe2eExcluded
+
+      - name: Run E2E tests
+        run: mvn -B verify -f connectors-e2e-test/pom.xml
 
       - name: Publish Test Report
         if: always()
         uses: scacap/action-surefire-report@v1
+        with:
+          report_paths: 'connectors-e2e-test/**/target/surefire-reports/*.xml'
 
       - name: Upload detailed surefire reports
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: surefire-reports-e2e
-          path: '**/target/surefire-reports/*.xml'
+          name: e2e-surefire-reports
+          path: 'connectors-e2e-test/**/target/surefire-reports/*.xml'
+
 
   version-bump-docs-links:
-    needs: setup
+    needs: [setup, e2e-tests]
     name: Version bump documentation links, if this is the first minor release
     runs-on: ubuntu-latest
     permissions:
@@ -271,7 +302,7 @@ jobs:
             This bumps docs version of latest's element templates of a connector to latest minor version.
 
   maven-release:
-    needs: setup
+    needs: [setup, e2e-tests]
     name: Create a maven release
     runs-on: ubuntu-latest
     if: ${{ !inputs.skip-maven-release }}
@@ -372,7 +403,7 @@ jobs:
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
   docker-release:
-    needs: setup
+    needs: [setup, e2e-tests]
     runs-on: ubuntu-latest
     name: Perform the docker release
     if: ${{ !inputs.skip-docker-release }}
@@ -521,7 +552,7 @@ jobs:
           short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
 
   bundle-and-build-changelog:
-    needs: setup
+    needs: [setup, e2e-tests]
     name: Bundle and generate changelogs
     runs-on: ubuntu-latest
     permissions:
@@ -563,7 +594,7 @@ jobs:
             connectors-bundle-templates-${{ inputs.version }}.zip
 
   helm-deploy:
-    needs: [ setup, docker-release ]
+    needs: [ setup, e2e-tests, docker-release ]
     if: ${{ !inputs.skip-docker-release }}
     name: Run Helm Integration Tests
     uses: ./.github/workflows/INTEGRATION_TEST.yml
@@ -580,6 +611,7 @@ jobs:
     name: Create FOSSA releases and generate attribution/SBOM reports
     needs:
       - setup
+      - e2e-tests
       - maven-release
       - docker-release
       - bundle-and-build-changelog
@@ -590,6 +622,7 @@ jobs:
 
     if: |
       needs.setup.result == 'success' &&
+      needs.e2e-tests.result == 'success' &&
       (needs.maven-release.result == 'success' || needs.maven-release.result == 'skipped') &&
       (needs.docker-release.result == 'success' || needs.docker-release.result == 'skipped') &&
       needs.bundle-and-build-changelog.result == 'success' &&
@@ -637,6 +670,7 @@ jobs:
     name: Notify PRs that they have been released
     needs:
       - setup
+      - e2e-tests
       - maven-release
       - docker-release
       - bundle-and-build-changelog
@@ -650,6 +684,7 @@ jobs:
     if: |
       !contains(inputs.version, 'rc') &&
       needs.setup.result == 'success' &&
+      needs.e2e-tests.result == 'success' &&
       needs.maven-release.result == 'success' &&
       needs.docker-release.result == 'success' &&
       needs.bundle-and-build-changelog.result == 'success'
