@@ -1,20 +1,21 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Slack Webhook Receive Task Connector",
-  "id" : "io.camunda.connectors.inbound.Slack.ReceiveTask.v1",
+  "name" : "Slack Webhook Message Start Event Connector",
+  "id" : "io.camunda.connectors.inbound.Slack.MessageStartEvent.v1",
   "description" : "Receive events from Slack",
   "metadata" : {
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=inbound",
-  "version" : 8,
+  "version" : 7,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:ReceiveTask" ],
+  "appliesTo" : [ "bpmn:StartEvent" ],
   "elementType" : {
-    "value" : "bpmn:ReceiveTask"
+    "value" : "bpmn:StartEvent",
+    "eventDefinition" : "bpmn:MessageEventDefinition"
   },
   "engines" : {
     "camunda" : "^8.3"
@@ -107,6 +108,24 @@
     "tooltip" : "Unmatched events are rejected by default, allowing the upstream service to handle the error. Check this box to consume unmatched events and return a success response",
     "type" : "Boolean"
   }, {
+    "id" : "correlationRequired",
+    "label" : "Subprocess correlation required",
+    "description" : "Indicates whether correlation is required. This is needed for event-based subprocess message start events",
+    "value" : "notRequired",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "correlationRequired",
+      "type" : "zeebe:property"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Correlation not required",
+      "value" : "notRequired"
+    }, {
+      "name" : "Correlation required",
+      "value" : "required"
+    } ]
+  }, {
     "id" : "correlationKeyProcess",
     "label" : "Correlation key (process)",
     "description" : "Sets up the correlation key from process variables",
@@ -118,6 +137,11 @@
     "binding" : {
       "name" : "correlationKey",
       "type" : "bpmn:Message#zeebe:subscription#property"
+    },
+    "condition" : {
+      "property" : "correlationRequired",
+      "equals" : "required",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -133,17 +157,10 @@
       "name" : "correlationKeyExpression",
       "type" : "zeebe:property"
     },
-    "type" : "String"
-  }, {
-    "id" : "messageIdExpression",
-    "label" : "Message ID expression",
-    "description" : "Expression to extract unique identifier of a message",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "correlation",
-    "binding" : {
-      "name" : "messageIdExpression",
-      "type" : "zeebe:property"
+    "condition" : {
+      "property" : "correlationRequired",
+      "equals" : "required",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -162,6 +179,18 @@
     "group" : "correlation",
     "binding" : {
       "name" : "messageTtl",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "messageIdExpression",
+    "label" : "Message ID expression",
+    "description" : "Expression to extract unique identifier of a message",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "messageIdExpression",
       "type" : "zeebe:property"
     },
     "type" : "String"
@@ -250,7 +279,6 @@
     "id" : "resultExpression",
     "label" : "Result expression",
     "description" : "Expression to map the response into process variables",
-    "value" : "{\n  myRequestBody: request.body\n  // Use FEEL to extract values, e.g.,:\n  // myUserId: request.body.event.user\n}",
     "feel" : "required",
     "group" : "output",
     "binding" : {
