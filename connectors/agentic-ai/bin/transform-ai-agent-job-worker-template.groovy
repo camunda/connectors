@@ -105,7 +105,8 @@ updatedProperties.add([
     binding: [
         name: "agent",
         type: "zeebe:input"
-    ]
+    ],
+    type: "Hidden"
 ])
 
 ((List) json.get('properties')).each { property ->

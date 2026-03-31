@@ -81,7 +81,8 @@
     "binding" : {
       "name" : "agent",
       "type" : "zeebe:input"
-    }
+    },
+    "type" : "Hidden"
   }, {
     "id" : "taskDefinitionType",
     "value" : "io.camunda.agenticai:aiagent-job-worker:1",
