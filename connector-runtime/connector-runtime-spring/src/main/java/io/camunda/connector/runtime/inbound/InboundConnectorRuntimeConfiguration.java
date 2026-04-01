@@ -21,7 +21,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorFactory;
@@ -86,11 +85,10 @@ public class InboundConnectorRuntimeConfiguration {
   @Bean
   public InboundCorrelationHandler inboundCorrelationHandler(
       final CamundaClient camundaClient,
-      final FeelEngineWrapper feelEngine,
       @ConnectorsObjectMapper final ObjectMapper objectMapper,
       final ConnectorsInboundMetrics connectorsInboundMetrics) {
     return new MeteredInboundCorrelationHandler(
-        camundaClient, feelEngine, objectMapper, messageTtl, connectorsInboundMetrics);
+        camundaClient, objectMapper, messageTtl, connectorsInboundMetrics);
   }
 
   @Bean
@@ -144,8 +142,10 @@ public class InboundConnectorRuntimeConfiguration {
   @ConditionalOnMissingBean
   public InboundExecutableRegistry inboundExecutableRegistry(
       InboundConnectorFactory inboundConnectorFactory,
-      BatchExecutableProcessor batchExecutableProcessor) {
-    return new InboundExecutableRegistryImpl(inboundConnectorFactory, batchExecutableProcessor);
+      BatchExecutableProcessor batchExecutableProcessor,
+      ActivityLogRegistry activityLogRegistry) {
+    return new InboundExecutableRegistryImpl(
+        inboundConnectorFactory, batchExecutableProcessor, activityLogRegistry);
   }
 
   @Bean

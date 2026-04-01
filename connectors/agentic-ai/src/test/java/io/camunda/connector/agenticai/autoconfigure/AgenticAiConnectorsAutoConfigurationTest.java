@@ -28,6 +28,7 @@ import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatMessageConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.Langchain4JAiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
@@ -41,6 +42,8 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSt
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
+import io.camunda.connector.agenticai.common.AgenticAiHttpProxySupport;
+import io.camunda.connector.http.client.proxy.EnvironmentProxyConfiguration;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -54,6 +57,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
   private static final List<Class<?>> AGENTIC_AI_BEANS =
       List.of(
+          AgenticAiHttpProxySupport.class,
           AdHocToolElementParameterExtractor.class,
           AdHocToolSchemaGenerator.class,
           AdHocToolsSchemaResolver.class,
@@ -78,6 +82,7 @@ class AgenticAiConnectorsAutoConfigurationTest {
 
   private static final List<Class<?>> LANGCHAIN4J_BEANS =
       List.of(
+          ChatModelHttpProxySupport.class,
           ChatModelFactory.class,
           DocumentToContentConverter.class,
           ContentConverter.class,
@@ -222,6 +227,36 @@ class AgenticAiConnectorsAutoConfigurationTest {
                                   -10L,
                                   "must be greater than or equal to 0");
                         }));
+  }
+
+  @Test
+  void whenProxySupportEnabled_thenAgenticAiHttpProxySupportUsesEnvironmentProxyConfiguration() {
+    contextRunner.run(
+        context -> {
+          assertThat(context).hasSingleBean(AgenticAiHttpProxySupport.class);
+          var httpProxySupport = context.getBean(AgenticAiHttpProxySupport.class);
+          assertThat(httpProxySupport.getProxyConfiguration())
+              .isInstanceOf(EnvironmentProxyConfiguration.class);
+        });
+  }
+
+  @Test
+  void whenProxySupportDisabled_thenAgenticAiHttpProxySupportUsesNoProxyConfiguration() {
+    contextRunner
+        .withPropertyValues("camunda.connector.agenticai.http.proxy-support.enabled=false")
+        .run(
+            context -> {
+              assertThat(context).hasSingleBean(AgenticAiHttpProxySupport.class);
+              var httpProxySupport = context.getBean(AgenticAiHttpProxySupport.class);
+
+              final var proxyConfiguration = httpProxySupport.getProxyConfiguration();
+              assertThat(proxyConfiguration).isNotInstanceOf(EnvironmentProxyConfiguration.class);
+
+              assertThat(httpProxySupport.getProxyConfiguration().getProxyDetails("http"))
+                  .isEmpty();
+              assertThat(httpProxySupport.getProxyConfiguration().getProxyDetails("https"))
+                  .isEmpty();
+            });
   }
 
   private Predicate<Class<?>> notAnyOf(Class<?>... classes) {

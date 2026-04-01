@@ -157,7 +157,7 @@ public record PropertyGroup(
                 .build(),
             messageIdExpression.build(),
             messageTtl.build(),
-            CommonProperties.messageNameUuidHidden().build())
+            CommonProperties.messageNameUuid().build())
         .build();
   }
 
@@ -182,7 +182,7 @@ public record PropertyGroup(
             CommonProperties.correlationKeyPayload().build(),
             messageIdExpression.build(),
             messageTtl.build(),
-            CommonProperties.messageNameUuidHidden().build())
+            CommonProperties.messageNameUuid().build())
         .build();
   }
 

@@ -10,10 +10,12 @@ import static io.camunda.connector.agenticai.a2a.client.common.A2aErrorCodes.ERR
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 import io.a2a.A2A;
+import io.a2a.client.http.A2AHttpClient;
 import io.a2a.spec.A2AClientError;
 import io.a2a.spec.AgentCard;
 import io.camunda.connector.agenticai.a2a.client.common.model.A2aConnectionConfiguration;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aAgentCard;
+import io.camunda.connector.agenticai.a2a.client.common.sdk.http.A2aHttpClientFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import java.util.Collections;
 import org.apache.commons.collections4.CollectionUtils;
@@ -24,6 +26,12 @@ public class A2aAgentCardFetcherImpl implements A2aAgentCardFetcher {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(A2aAgentCardFetcherImpl.class);
   private static final String DEFAULT_AGENT_CARD_PATH = ".well-known/agent-card.json";
+
+  private final A2AHttpClient httpClient;
+
+  public A2aAgentCardFetcherImpl(A2aHttpClientFactory httpClientFactory) {
+    this.httpClient = httpClientFactory.createHttpClient();
+  }
 
   @Override
   public A2aAgentCard fetchAgentCard(A2aConnectionConfiguration connection) {
@@ -39,7 +47,8 @@ public class A2aAgentCardFetcherImpl implements A2aAgentCardFetcher {
             ? connection.agentCardLocation()
             : DEFAULT_AGENT_CARD_PATH;
     try {
-      return A2A.getAgentCard(connection.url(), relativeCardPath, Collections.emptyMap());
+      return A2A.getAgentCard(
+          httpClient, connection.url(), relativeCardPath, Collections.emptyMap());
     } catch (A2AClientError e) {
       throw new ConnectorException(
           ERROR_CODE_A2A_CLIENT_AGENT_CARD_RETRIEVAL_FAILED,

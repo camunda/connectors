@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime;
 
+import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /** Configuration properties for Camunda Connectors. */
@@ -25,7 +26,8 @@ public record ConnectorProperties(
     Webhook webhook,
     SecretProvider secretProvider,
     VirtualThreads virtualThreads,
-    Inbound inbound) {
+    Inbound inbound,
+    OAuth oauth) {
   // NOTE: this class is not used in directly in the code, but is used by Spring Boot
   // configuration annotation processor to generate the configuration properties metadata
 
@@ -72,4 +74,15 @@ public record ConnectorProperties(
       this(DEFAULT_MAX_SIZE);
     }
   }
+
+  /** Configuration for OAuth token caching. */
+  public record OAuth(OAuthCache cache) {}
+
+  /**
+   * Configuration for the OAuth token cache.
+   *
+   * @param skewBuffer Buffer subtracted from the token-derived TTL to account for clock skew.
+   *     Default is 10 seconds.
+   */
+  public record OAuthCache(Duration skewBuffer) {}
 }

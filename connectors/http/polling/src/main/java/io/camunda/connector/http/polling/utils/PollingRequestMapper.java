@@ -29,6 +29,7 @@ public class PollingRequestMapper {
         pollingRuntimeProperties.getConnectionTimeoutInSeconds());
     httpCommonRequest.setReadTimeoutInSeconds(pollingRuntimeProperties.getReadTimeoutInSeconds());
     httpCommonRequest.setSkipEncoding(pollingRuntimeProperties.getSkipEncoding());
+    httpCommonRequest.setFollowRedirects(pollingRuntimeProperties.isFollowRedirects());
     return httpCommonRequest;
   }
 }

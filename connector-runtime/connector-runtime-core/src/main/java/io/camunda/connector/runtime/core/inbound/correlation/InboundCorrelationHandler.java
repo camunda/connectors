@@ -32,7 +32,8 @@ import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationCond
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessageAlreadyCorrelated;
 import io.camunda.connector.api.inbound.ProcessElement;
-import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.FeelExpressionEvaluator;
+import io.camunda.connector.feel.LocalFeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.grpc.Status;
@@ -49,7 +50,8 @@ public class InboundCorrelationHandler {
   private static final Logger LOG = LoggerFactory.getLogger(InboundCorrelationHandler.class);
 
   private final CamundaClient camundaClient;
-  private final FeelEngineWrapper feelEngine;
+  private final FeelExpressionEvaluator feelExpressionEvaluator =
+      new LocalFeelExpressionEvaluator();
   private final ActivationConditionEvaluator activationConditionEvaluator;
 
   private final Duration defaultMessageTtl;
@@ -57,13 +59,9 @@ public class InboundCorrelationHandler {
   private final ConnectorResultHandler connectorResultHandler;
 
   public InboundCorrelationHandler(
-      CamundaClient camundaClient,
-      FeelEngineWrapper feelEngine,
-      ObjectMapper objectMapper,
-      Duration defaultMessageTtl) {
+      CamundaClient camundaClient, ObjectMapper objectMapper, Duration defaultMessageTtl) {
     this.camundaClient = camundaClient;
-    this.feelEngine = feelEngine;
-    this.activationConditionEvaluator = new ActivationConditionEvaluator(feelEngine);
+    this.activationConditionEvaluator = new ActivationConditionEvaluator(feelExpressionEvaluator);
     this.defaultMessageTtl = defaultMessageTtl;
     this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
   }
@@ -350,7 +348,7 @@ public class InboundCorrelationHandler {
       try {
         correlationKey =
             Optional.ofNullable(
-                feelEngine.evaluate(correlationKeyExpression, String.class, context));
+                feelExpressionEvaluator.evaluate(correlationKeyExpression, String.class, context));
       } catch (Exception e) {
         correlationKey = Optional.empty();
       }
@@ -368,10 +366,10 @@ public class InboundCorrelationHandler {
   private String resolveMessageId(String messageIdExpression, String messageId, Object context) {
     if (!Objects.isNull(messageIdExpression) && !messageIdExpression.isBlank()) {
       try {
-        return feelEngine.evaluate(messageIdExpression, String.class, context);
+        return feelExpressionEvaluator.evaluate(messageIdExpression, String.class, context);
       } catch (Exception e) {
         throw new ConnectorInputException(
-            "Message expression could not be evaluated" + messageIdExpression, e);
+            "Message expression could not be evaluated: " + messageIdExpression, e);
       }
     } else if (!Objects.isNull(messageId)) {
       return messageId;
