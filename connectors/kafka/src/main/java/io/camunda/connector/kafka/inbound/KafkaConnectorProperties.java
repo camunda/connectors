@@ -41,7 +41,12 @@ public record KafkaConnectorProperties(
             group = "kafka",
             label = "Consumer group ID",
             description =
-                "Provide the consumer group ID used by the connector. Leave empty for an automatically generated one")
+                "Provide the consumer group ID used by the connector. Leave empty for an automatically generated one",
+            tooltip =
+                "It is strongly recommended to provide an explicit consumer group ID. "
+                    + "Use a stable, application-specific identifier that represents the logical consumer group in your application "
+                    + "(for example, <code>my-app-order-processor</code>). "
+                    + "Leaving this empty auto-generates an ID that may change across connector upgrades, causing message replay.")
         String groupId,
     @FEEL
         @TemplateProperty(
