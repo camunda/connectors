@@ -10,11 +10,14 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorRetryException;
+import io.camunda.connector.aws.bedrock.codeinterpreter.model.request.CodeInterpreterInput;
 import io.camunda.connector.aws.bedrock.codeinterpreter.model.request.CodeInterpreterRequest;
 import io.camunda.connector.aws.bedrock.codeinterpreter.model.response.CodeInterpreterResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import org.slf4j.Logger;
@@ -43,8 +46,8 @@ public class CodeInterpreterExecutor {
   private static final String DEFAULT_MIME_TYPE = "application/octet-stream";
   private static final int RETRY_COUNT = 3;
   private static final Duration RETRY_BACKOFF = Duration.ofSeconds(5);
-  private static final int MAX_FILES_TO_RETRIEVE = 10;
-  private static final long MAX_TOTAL_BYTES = 10 * 1024 * 1024; // 10 MB
+  private static final int DEFAULT_MAX_FILES = 10;
+  private static final long DEFAULT_MAX_TOTAL_BYTES = 10L * 1024 * 1024;
 
   private final BedrockAgentCoreClient syncClient;
   private final BedrockAgentCoreAsyncClient asyncClient;
@@ -60,8 +63,12 @@ public class CodeInterpreterExecutor {
   }
 
   public CodeInterpreterResponse execute(CodeInterpreterRequest request, long jobKey) {
-    try (var session = startSession(request, jobKey)) {
-      return invokeCode(session, request.getInput().getCode());
+    var input = request.getInput();
+    if (input == null || input.getCode() == null || input.getCode().isBlank()) {
+      throw new ConnectorException(ERROR_CODE_INTERPRETER_FAILED, "Code must not be empty");
+    }
+    try (var session = startSession(input, jobKey)) {
+      return invokeCode(session, input);
     } catch (ThrottlingException e) {
       throw ConnectorRetryException.builder()
           .errorCode(ERROR_THROTTLED)
@@ -82,8 +89,7 @@ public class CodeInterpreterExecutor {
     }
   }
 
-  private CodeInterpreterSession startSession(CodeInterpreterRequest request, long jobKey) {
-    var input = request.getInput();
+  private CodeInterpreterSession startSession(CodeInterpreterInput input, long jobKey) {
     var builder =
         StartCodeInterpreterSessionRequest.builder()
             .codeInterpreterIdentifier(CODE_INTERPRETER_ID)
@@ -95,15 +101,15 @@ public class CodeInterpreterExecutor {
     return new CodeInterpreterSession(sessionId);
   }
 
-  private CodeInterpreterResponse invokeCode(CodeInterpreterSession session, String code) {
-    // List pre-existing files before execution
+  private CodeInterpreterResponse invokeCode(
+      CodeInterpreterSession session, CodeInterpreterInput input) {
     var existingFiles = listGeneratedFiles(session.id());
 
     var execResult =
         invokeTool(
             session.id(),
             ToolName.EXECUTE_CODE,
-            ToolArguments.builder().language("python").code(code).build());
+            ToolArguments.builder().language("python").code(input.getCode()).build());
 
     var stdoutBuilder = new StringBuilder();
     var stderrBuilder = new StringBuilder();
@@ -120,36 +126,48 @@ public class CodeInterpreterExecutor {
       }
     }
 
-    var files = retrieveNewFiles(session.id(), existingFiles);
+    int maxFiles = input.getMaxFiles() != null ? input.getMaxFiles() : DEFAULT_MAX_FILES;
+    long maxBytes =
+        input.getMaxTotalBytes() != null ? input.getMaxTotalBytes() : DEFAULT_MAX_TOTAL_BYTES;
+    var files = retrieveNewFiles(session.id(), existingFiles, maxFiles, maxBytes);
 
     return new CodeInterpreterResponse(
         stdoutBuilder.toString(), stderrBuilder.toString(), exitCode, executionTime, files);
   }
 
-  private List<Document> retrieveNewFiles(String sessionId, List<String> existingFiles) {
-    var allFiles = listGeneratedFiles(sessionId);
-    var newFiles = new ArrayList<>(allFiles);
-    newFiles.removeAll(existingFiles);
-    newFiles.removeIf(f -> f.startsWith("."));
+  private List<Document> retrieveNewFiles(
+      String sessionId, List<String> existingFiles, int maxFiles, long maxBytes) {
+    var newFiles = filterNewFiles(listGeneratedFiles(sessionId), existingFiles, maxFiles);
     if (newFiles.isEmpty()) {
       return List.of();
     }
     LOG.debug("New files generated: {}", newFiles);
-    if (newFiles.size() > MAX_FILES_TO_RETRIEVE) {
-      LOG.warn(
-          "Found {} new files, limiting retrieval to {}", newFiles.size(), MAX_FILES_TO_RETRIEVE);
-      newFiles = new ArrayList<>(newFiles.subList(0, MAX_FILES_TO_RETRIEVE));
+    return readFilesAndCheckSizeLimit(sessionId, newFiles, maxBytes);
+  }
+
+  private List<String> filterNewFiles(
+      List<String> allFiles, List<String> existingFiles, int maxFiles) {
+    var newFiles = new ArrayList<>(allFiles);
+    newFiles.removeAll(existingFiles);
+    newFiles.removeIf(f -> f.startsWith("."));
+    if (newFiles.size() > maxFiles) {
+      LOG.warn("Found {} new files, limiting retrieval to {}", newFiles.size(), maxFiles);
+      return new ArrayList<>(newFiles.subList(0, maxFiles));
     }
+    return newFiles;
+  }
+
+  private List<Document> readFilesAndCheckSizeLimit(
+      String sessionId, List<String> files, long maxBytes) {
     var documents = new ArrayList<Document>();
     long totalBytes = 0;
-    for (var file : newFiles) {
+    for (var file : files) {
       try {
         var blocks = readFiles(sessionId, List.of(file));
-        var docs = convertToDocuments(blocks, file);
-        for (var doc : docs) {
+        for (var doc : convertToDocuments(blocks, file)) {
           totalBytes += doc.metadata().getSize();
-          if (totalBytes > MAX_TOTAL_BYTES) {
-            LOG.warn("Total file size exceeds {} bytes, stopping retrieval", MAX_TOTAL_BYTES);
+          if (totalBytes > maxBytes) {
+            LOG.warn("Total file size exceeds {} bytes, stopping retrieval", maxBytes);
             return documents;
           }
           documents.add(doc);
@@ -166,60 +184,69 @@ public class CodeInterpreterExecutor {
         invokeTool(
             sessionId, ToolName.LIST_FILES, ToolArguments.builder().directoryPath("").build());
 
-    var paths = new ArrayList<String>();
-    for (var result : listResult) {
-      if (result.hasContent()) {
-        for (var block : result.content()) {
-          if (block.name() != null) {
-            paths.add(block.name());
-          } else if (block.text() != null && !block.text().isBlank()) {
-            paths.add(block.text().trim());
-          }
-        }
-      }
-    }
-    LOG.debug("Files found in sandbox: {}", paths);
-    return paths;
+    return listResult.stream()
+        .filter(CodeInterpreterResult::hasContent)
+        .flatMap(r -> r.content().stream())
+        .map(this::extractFileName)
+        .filter(Objects::nonNull)
+        .toList();
+  }
+
+  private String extractFileName(ContentBlock block) {
+    if (block.name() != null) return block.name();
+    if (block.text() != null && !block.text().isBlank()) return block.text().trim();
+    return null;
   }
 
   private List<ContentBlock> readFiles(String sessionId, List<String> paths) {
-    LOG.debug("Reading files: {}", paths);
     var readResult =
         invokeTool(sessionId, ToolName.READ_FILES, ToolArguments.builder().paths(paths).build());
 
-    var blocks = new ArrayList<ContentBlock>();
-    for (var result : readResult) {
-      if (result.hasContent()) {
-        blocks.addAll(result.content());
-      }
-    }
-    return blocks;
+    return readResult.stream()
+        .filter(CodeInterpreterResult::hasContent)
+        .flatMap(r -> r.content().stream())
+        .toList();
   }
 
   private List<Document> convertToDocuments(List<ContentBlock> blocks, String fileName) {
     var documents = new ArrayList<Document>();
     for (var block : blocks) {
-      byte[] bytes = null;
-      String mimeType = DEFAULT_MIME_TYPE;
-      if (block.data() != null) {
-        bytes = block.data().asByteArray();
-        if (block.mimeType() != null) mimeType = block.mimeType();
-      } else if (block.resource() != null && block.resource().blob() != null) {
-        bytes = block.resource().blob().asByteArray();
-        if (block.resource().mimeType() != null) mimeType = block.resource().mimeType();
-      } else if (block.resource() != null && block.resource().text() != null) {
-        bytes = block.resource().text().getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        if (block.resource().mimeType() != null) mimeType = block.resource().mimeType();
-        else mimeType = "text/plain";
-      }
-      if (bytes != null) {
+      var data = extractData(block);
+      if (data != null) {
+        var mimeType = extractMimeType(block);
         var name = block.name() != null ? block.name() : fileName;
         documents.add(
             createDocument.apply(
-                DocumentCreationRequest.from(bytes).contentType(mimeType).fileName(name).build()));
+                DocumentCreationRequest.from(data).contentType(mimeType).fileName(name).build()));
       }
     }
     return documents;
+  }
+
+  private byte[] extractData(ContentBlock block) {
+    if (block.data() != null) {
+      return block.data().asByteArray();
+    }
+    if (block.resource() != null) {
+      if (block.resource().blob() != null) {
+        return block.resource().blob().asByteArray();
+      }
+      if (block.resource().text() != null) {
+        return block.resource().text().getBytes(StandardCharsets.UTF_8);
+      }
+    }
+    return null;
+  }
+
+  private String extractMimeType(ContentBlock block) {
+    if (block.mimeType() != null) return block.mimeType();
+    if (block.resource() != null && block.resource().mimeType() != null) {
+      return block.resource().mimeType();
+    }
+    if (block.resource() != null && block.resource().text() != null) {
+      return "text/plain";
+    }
+    return DEFAULT_MIME_TYPE;
   }
 
   private List<CodeInterpreterResult> invokeTool(

@@ -138,6 +138,22 @@ class CodeInterpreterExecutorTest extends BaseTest {
         .hasMessageContaining("Code Interpreter error");
   }
 
+  @Test
+  void shouldRejectBlankCode() {
+    var request = buildRequest("  ", null);
+    assertThatThrownBy(() -> executor.execute(request, 12345L))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("Code must not be empty");
+  }
+
+  @Test
+  void shouldRejectNullInput() {
+    var request = new CodeInterpreterRequest();
+    assertThatThrownBy(() -> executor.execute(request, 12345L))
+        .isInstanceOf(ConnectorException.class)
+        .hasMessageContaining("Code must not be empty");
+  }
+
   private CodeInterpreterRequest buildRequest(String code, Integer timeout) {
     var input = new CodeInterpreterInput();
     input.setCode(code);

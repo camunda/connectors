@@ -165,6 +165,32 @@
     },
     "type" : "Number"
   }, {
+    "id" : "input.maxFiles",
+    "label" : "Max files to retrieve",
+    "description" : "Maximum number of generated files to retrieve. Defaults to 10.",
+    "optional" : true,
+    "value" : 10,
+    "feel" : "static",
+    "group" : "codeExecution",
+    "binding" : {
+      "name" : "input.maxFiles",
+      "type" : "zeebe:input"
+    },
+    "type" : "Number"
+  }, {
+    "id" : "input.maxTotalBytes",
+    "label" : "Max total file size (bytes)",
+    "description" : "Maximum total size of retrieved files in bytes. Defaults to 10 MB.",
+    "optional" : true,
+    "value" : 10485760,
+    "feel" : "static",
+    "group" : "codeExecution",
+    "binding" : {
+      "name" : "input.maxTotalBytes",
+      "type" : "zeebe:input"
+    },
+    "type" : "Number"
+  }, {
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
