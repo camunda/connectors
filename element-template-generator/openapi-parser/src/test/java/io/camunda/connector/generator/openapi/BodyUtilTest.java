@@ -17,6 +17,7 @@
 package io.camunda.connector.generator.openapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty;
 import io.camunda.connector.generator.openapi.util.BodyUtil;
@@ -131,5 +132,47 @@ public class BodyUtilTest {
         """,
         ((Raw) result).rawBody(),
         true);
+  }
+
+  // -------------------------------------------------------------------------
+  // External $ref guards
+  // -------------------------------------------------------------------------
+
+  @Test
+  void parseBody_requestBodyWithExternalRef_throwsIllegalArgumentException() {
+    // given – requestBody carries an unresolved external $ref (e.g. --no-resolve-refs was used)
+    var requestBody = new RequestBody();
+    requestBody.set$ref("./external-bodies.json#/components/requestBodies/CreateUser");
+
+    var components = new Components();
+    var options = new OpenApiGenerationSource.Options(false);
+
+    // when / then
+    assertThatThrownBy(() -> BodyUtil.parseBody(requestBody, components, options))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("./external-bodies.json#/components/requestBodies/CreateUser")
+        .hasMessageContaining("External $ref");
+  }
+
+  @Test
+  void parseBody_mediaTypeSchemaWithExternalRef_throwsIllegalArgumentException() {
+    // given – the schema inside the media type carries an unresolved external $ref
+    var externalRefSchema = new Schema<>();
+    externalRefSchema.set$ref("./user-schema.json#/components/schemas/User");
+
+    var requestBody =
+        new RequestBody()
+            .content(
+                new Content()
+                    .addMediaType("application/json", new MediaType().schema(externalRefSchema)));
+
+    var components = new Components();
+    var options = new OpenApiGenerationSource.Options(false);
+
+    // when / then
+    assertThatThrownBy(() -> BodyUtil.parseBody(requestBody, components, options))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("./user-schema.json#/components/schemas/User")
+        .hasMessageContaining("External $ref");
   }
 }
