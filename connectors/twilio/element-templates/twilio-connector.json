@@ -353,11 +353,11 @@
     },
     {
       "label": "Whatsapp template parameters",
-      "description": "Parameter values to substitute in the template provided as a FEEL context with numbered keys; make sure all keys and values are strings!",
+      "description": "Parameter values to substitute in the template provided as a FEEL context with numbered keys; make sure all keys and values are strings or are converted to strings!",
       "group": "input",
       "type": "Text",
       "feel": "required",
-      "value": "{\n  \"1\": \"Hallo\",\n  \"2\": \"Welt\"\n}",
+      "value": "{\n  \"1\": \"Test\",\n  \"2\": \"Message\"\n  // Add more parameters as needed\n}",
       "binding": {
         "type": "zeebe:input",
         "name": "ContentVariables"
@@ -381,7 +381,7 @@
     },
     {
       "label": "From Whatsapp number",
-      "description": "The originating Twilio Whatsapp phone number used for sending the message",
+      "description": "The originating Twilio Whatsapp phone number in the format <code>whatsapp:+1234567890</code> used for sending the message",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -400,7 +400,7 @@
     },
     {
       "label": "To Whatsapp number",
-      "description": "The recipient's Whatsapp phone number",
+      "description": "The recipient's Whatsapp phone number in the format <code>whatsapp:+1234567890</code>",
       "group": "input",
       "type": "String",
       "feel": "optional",
