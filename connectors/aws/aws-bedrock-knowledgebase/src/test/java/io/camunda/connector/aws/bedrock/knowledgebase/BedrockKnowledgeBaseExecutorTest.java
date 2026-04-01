@@ -52,6 +52,7 @@ class BedrockKnowledgeBaseExecutorTest extends BaseTest {
                         RetrievalResultContent.builder().text("Policy covers fire damage").build())
                     .score(0.95)
                     .build())
+            .nextToken("next-page-token")
             .build();
     when(client.retrieve(any(RetrieveRequest.class))).thenReturn(sdkResponse);
 
@@ -61,6 +62,18 @@ class BedrockKnowledgeBaseExecutorTest extends BaseTest {
     assertThat(result).isNotNull();
     assertThat(result.resultCount()).isEqualTo(1);
     assertThat(result.resultsDocument()).isEqualTo(mockDocument);
+    assertThat(result.paginationToken()).isEqualTo("next-page-token");
+  }
+
+  @Test
+  void shouldReturnNullPaginationTokenWhenNoMoreResults() {
+    var sdkResponse = RetrieveResponse.builder().retrievalResults(List.of()).build();
+    when(client.retrieve(any(RetrieveRequest.class))).thenReturn(sdkResponse);
+
+    var request = buildRequest(ActualValue.KNOWLEDGE_BASE_ID, ActualValue.QUERY, null);
+    var result = executor.execute(request, documentFactory);
+
+    assertThat(result.paginationToken()).isNull();
   }
 
   @Test
