@@ -46,10 +46,18 @@ public class BodyUtil {
       return new Raw("");
     }
     if (requestBody.get$ref() != null) {
+      var ref = requestBody.get$ref();
+      if (!ref.startsWith("#/")) {
+        throw new IllegalArgumentException(
+            "External $ref '"
+                + ref
+                + "' cannot be resolved: the spec contains a reference to an external file or URL "
+                + "that was not inlined during parsing. Either remove '--no-resolve-refs' so the "
+                + "parser can follow the reference, or replace the external $ref with an inline "
+                + "schema definition.");
+      }
       requestBody =
-          components
-              .getRequestBodies()
-              .get(requestBody.get$ref().replace("#/components/requestBodies/", ""));
+          components.getRequestBodies().get(ref.replace("#/components/requestBodies/", ""));
     }
     Schema<?> schema = null;
     var content = requestBody.getContent();
