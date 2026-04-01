@@ -92,12 +92,6 @@ jobs:
         env:
           RELEASE_VERSION: ${{ inputs.version }}
 
-      - uses: actions/checkout@v6
-        with:
-          token: ${{ secrets.PROTECTED_BRANCH_PAT }}
-          ref: ${{ github.ref }}
-          fetch-depth: 0
-
       - name: Prepare Java and Maven settings
         uses: actions/setup-java@v5
         with:
