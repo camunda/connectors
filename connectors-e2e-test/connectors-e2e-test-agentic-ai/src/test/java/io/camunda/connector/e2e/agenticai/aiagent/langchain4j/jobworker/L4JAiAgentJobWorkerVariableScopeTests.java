@@ -17,19 +17,24 @@
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PATH;
+import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
+import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.process.test.impl.assertions.CamundaDataSource;
 import java.io.File;
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -59,6 +64,68 @@ public class L4JAiAgentJobWorkerVariableScopeTests extends BaseL4JAiAgentJobWork
                 .build(),
             userSatisfiedFeedback()));
 
+    var zeebeTest =
+        runAgentWithCustomResultVariable(
+            elementTemplatePath, Map.of("userPrompt", "Write a haiku about the sea"));
+
+    assertCustomResultVariable(zeebeTest, HAIKU_TEXT);
+    assertAgentVariableNotInGlobalScope(zeebeTest);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PATH, LAST_8_8_ELEMENT_TEMPLATE_PATH})
+  void agentVariableDoesNotLeakAfterToolCallingAndFeedbackLoop(String elementTemplatePath)
+      throws Exception {
+    mockChatInteractions(
+        ChatInteraction.of(
+            ChatResponse.builder()
+                .metadata(
+                    ChatResponseMetadata.builder()
+                        .finishReason(FinishReason.TOOL_EXECUTION)
+                        .tokenUsage(new TokenUsage(10, 20))
+                        .build())
+                .aiMessage(
+                    new AiMessage(
+                        "Let me call some tools.",
+                        List.of(
+                            ToolExecutionRequest.builder()
+                                .id("aaa111")
+                                .name("SuperfluxProduct")
+                                .arguments("{\"a\": 5, \"b\": 3}")
+                                .build())))
+                .build()),
+        ChatInteraction.of(
+            ChatResponse.builder()
+                .metadata(
+                    ChatResponseMetadata.builder()
+                        .finishReason(FinishReason.STOP)
+                        .tokenUsage(new TokenUsage(100, 200))
+                        .build())
+                .aiMessage(new AiMessage("The superflux of 5 and 3 is 24."))
+                .build(),
+            userFollowUpFeedback("So what is a superflux calculation anyway?")),
+        ChatInteraction.of(
+            ChatResponse.builder()
+                .metadata(
+                    ChatResponseMetadata.builder()
+                        .finishReason(FinishReason.STOP)
+                        .tokenUsage(new TokenUsage(11, 22))
+                        .build())
+                .aiMessage(new AiMessage(FEEDBACK_LOOP_RESPONSE_TEXT))
+                .build(),
+            userSatisfiedFeedback()));
+
+    var zeebeTest =
+        runAgentWithCustomResultVariable(
+            elementTemplatePath, Map.of("userPrompt", "Explore some of your tools!"));
+
+    assertCustomResultVariable(zeebeTest, FEEDBACK_LOOP_RESPONSE_TEXT);
+    assertAgentVariableNotInGlobalScope(zeebeTest);
+  }
+
+  private ZeebeTest runAgentWithCustomResultVariable(
+      String elementTemplatePath, Map<String, Object> processVariables) throws IOException {
     final var updatedElementTemplate =
         elementTemplateWithModifications(
             elementTemplatePath,
@@ -68,11 +135,10 @@ public class L4JAiAgentJobWorkerVariableScopeTests extends BaseL4JAiAgentJobWork
     final var updatedModel =
         modelWithModifications(testProcess.getFile(), updatedElementTemplateFile);
 
-    final var zeebeTest =
-        deployModel(updatedModel)
-            .createInstance(Map.of("userPrompt", "Write a haiku about the sea"))
-            .waitForProcessCompletion();
+    return deployModel(updatedModel).createInstance(processVariables).waitForProcessCompletion();
+  }
 
+  private void assertCustomResultVariable(ZeebeTest zeebeTest, String expectedText) {
     CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
         .hasVariableSatisfies(
             CUSTOM_RESULT_VARIABLE,
@@ -80,9 +146,11 @@ public class L4JAiAgentJobWorkerVariableScopeTests extends BaseL4JAiAgentJobWork
             agentResponseMap -> {
               final var agentResponse =
                   objectMapper.convertValue(agentResponseMap, JobWorkerAgentResponse.class);
-              assertThat(agentResponse.responseText()).isEqualTo(HAIKU_TEXT);
+              assertThat(agentResponse.responseText()).isEqualTo(expectedText);
             });
+  }
 
+  private void assertAgentVariableNotInGlobalScope(ZeebeTest zeebeTest) {
     var globalVars =
         new CamundaDataSource(camundaClient)
             .findGlobalVariablesByProcessInstanceKey(
