@@ -17,11 +17,14 @@
 package io.camunda.connector.generator.openapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.camunda.connector.generator.openapi.util.ParameterUtil;
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import java.util.List;
+import java.util.Map;
 import org.json.JSONException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -129,6 +132,56 @@ public class ParameterUtilTest {
 
       // then
       assertThat(property.example()).isEqualTo("foo");
+    }
+  }
+
+  @Nested
+  class ExternalRefs {
+
+    @Test
+    void getSchemaOrFromComponents_externalRef_throwsIllegalArgumentException() {
+      // given – a schema whose $ref points to an external file (not yet resolved)
+      var schema = new Schema<>();
+      schema.set$ref("./specification/paths/foo.json#/components/schemas/User");
+
+      var components = new Components();
+
+      // when / then
+      assertThatThrownBy(() -> ParameterUtil.getSchemaOrFromComponents(schema, components))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("./specification/paths/foo.json#/components/schemas/User")
+          .hasMessageContaining("External $ref");
+    }
+
+    @Test
+    void getSchemaOrFromComponents_internalRef_resolvesFromComponents() {
+      // given – an internal $ref that lives in #/components/schemas
+      var userSchema = new Schema<>().type("object");
+
+      var schema = new Schema<>();
+      schema.set$ref("#/components/schemas/User");
+
+      var components = new Components();
+      components.setSchemas(Map.of("User", userSchema));
+
+      // when
+      var resolved = ParameterUtil.getSchemaOrFromComponents(schema, components);
+
+      // then
+      assertThat(resolved).isSameAs(userSchema);
+    }
+
+    @Test
+    void getSchemaOrFromComponents_noRef_returnsSchemaAsIs() {
+      // given – schema with no $ref at all
+      var schema = new Schema<>().type("string");
+      var components = new Components();
+
+      // when
+      var resolved = ParameterUtil.getSchemaOrFromComponents(schema, components);
+
+      // then
+      assertThat(resolved).isSameAs(schema);
     }
   }
 }
