@@ -136,6 +136,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
               feel = FeelMode.optional,
               defaultValue = "",
               defaultValueType = TemplateProperty.DefaultValueType.String,
+              placeholder = "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String model,
       @Valid BedrockModel.BedrockModelParameters parameters) {
