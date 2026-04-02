@@ -195,7 +195,7 @@ public class TemplatePropertiesUtil {
     var variableAnnotation = declaredProperty.getAnnotation(Variable.class);
     var headerAnnotation = declaredProperty.getAnnotation(Header.class);
 
-    String name, label, tooltip = null, exampleValue = null;
+    String name, label, tooltip = null, exampleValue = null, placeholder = null;
     String bindingName = declaredName;
     if (templatePropertyAnnotation != null) {
       if (templatePropertyAnnotation.ignore()) {
@@ -219,6 +219,9 @@ public class TemplatePropertiesUtil {
       }
       if (!templatePropertyAnnotation.exampleValue().isBlank()) {
         exampleValue = templatePropertyAnnotation.exampleValue();
+      }
+      if (!templatePropertyAnnotation.placeholder().isBlank()) {
+        placeholder = templatePropertyAnnotation.placeholder();
       }
     } else {
       name = declaredName;
@@ -247,6 +250,7 @@ public class TemplatePropertiesUtil {
             .id(name)
             .label(label)
             .tooltip(tooltip)
+            .placeholder(placeholder)
             .exampleValue(exampleValue)
             .binding(createBinding(bindingName, context));
 

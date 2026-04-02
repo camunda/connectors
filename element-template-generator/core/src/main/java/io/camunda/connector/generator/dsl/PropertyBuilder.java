@@ -33,6 +33,7 @@ public abstract class PropertyBuilder {
   protected String type;
   protected PropertyCondition condition;
   protected String tooltip;
+  protected String placeholder;
   protected Object exampleValue;
 
   protected PropertyBuilder() {}
@@ -116,6 +117,11 @@ public abstract class PropertyBuilder {
 
   public PropertyBuilder tooltip(String tooltip) {
     this.tooltip = tooltip;
+    return this;
+  }
+
+  public PropertyBuilder placeholder(String placeholder) {
+    this.placeholder = placeholder;
     return this;
   }
 
