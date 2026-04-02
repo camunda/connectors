@@ -1613,20 +1613,15 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void failsJobWhenIgnoreErrorNotSupported() throws Exception {
-      var customResponse =
-          new StandardConnectorResponse() {
-            @Override
-            public Object responseValue() {
-              return Map.of("status", "trigger ignore");
-            }
-
-            @Override
-            public boolean supportsIgnoreError() {
-              return false;
-            }
-          };
-      var handler = newConnectorJobHandler(context -> customResponse);
+    void rejectsIgnoreErrorForAdHocSubProcessResponse() throws Exception {
+      var ahspResponse =
+          new TestAdHocSubProcessResponse(
+              Map.of("status", "trigger ignore"),
+              List.of(),
+              false,
+              false,
+              resultVariables -> resultVariables);
+      var handler = newConnectorJobHandler(context -> ahspResponse);
 
       var result =
           JobBuilder.create()
@@ -1639,7 +1634,7 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void allowsIgnoreErrorWhenSupported() throws Exception {
+    void allowsIgnoreErrorForStandardResponse() throws Exception {
       var customResponse =
           new StandardConnectorResponse() {
             @Override
