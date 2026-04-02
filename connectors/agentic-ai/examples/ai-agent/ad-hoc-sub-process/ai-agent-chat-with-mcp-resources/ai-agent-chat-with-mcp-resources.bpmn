@@ -6,7 +6,6 @@
         <zeebe:adHoc outputCollection="toolCallResults" outputElement="={&#10;  id: toolCall._meta.id,&#10;  name: toolCall._meta.name,&#10;  content: toolCallResult&#10;}" />
         <zeebe:taskDefinition type="io.camunda.agenticai:aiagent-job-worker:1" retries="3" />
         <zeebe:ioMapping>
-          <zeebe:input target="agent" />
           <zeebe:input source="bedrock" target="provider.type" />
           <zeebe:input source="eu-central-1" target="provider.bedrock.region" />
           <zeebe:input source="apiKey" target="provider.bedrock.authentication.type" />
@@ -25,6 +24,7 @@
           <zeebe:input source="=false" target="data.response.format.parseJson" />
           <zeebe:input source="=false" target="data.response.includeAssistantMessage" />
           <zeebe:input source="=true" target="data.response.includeAgentContext" />
+          <zeebe:input target="agent" />
           <zeebe:output source="=agent" target="agent" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>

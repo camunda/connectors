@@ -10,7 +10,6 @@
         <zeebe:adHoc outputCollection="toolCallResults" outputElement="={&#10;  id: toolCall._meta.id,&#10;  name: toolCall._meta.name,&#10;  content: toolCallResult&#10;}" />
         <zeebe:taskDefinition type="io.camunda.agenticai:aiagent-job-worker:1" retries="3" />
         <zeebe:ioMapping>
-          <zeebe:input target="agent" />
           <zeebe:input source="openai" target="provider.type" />
           <zeebe:input source="DUMMY_API_KEY" target="provider.openai.authentication.apiKey" />
           <zeebe:input source="PT30S" target="provider.openai.timeouts.timeout" />
@@ -27,6 +26,7 @@
           <zeebe:input source="=false" target="data.response.format.parseJson" />
           <zeebe:input source="=false" target="data.response.includeAssistantMessage" />
           <zeebe:input source="=true" target="data.response.includeAgentContext" />
+          <zeebe:input target="agent" />
           <zeebe:output source="=agent" target="agent" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
