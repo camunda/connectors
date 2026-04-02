@@ -19,12 +19,11 @@ package io.camunda.connector.runtime.outbound.job;
 import static java.util.Objects.requireNonNullElse;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.command.CompleteJobCommandStep1;
 import io.camunda.client.api.command.FinalCommandStep;
-import io.camunda.client.api.command.ThrowErrorCommandStep1;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.response.CompleteJobResponse;
 import io.camunda.client.api.response.FailJobResponse;
+import io.camunda.client.api.response.ThrowErrorResponse;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.api.worker.JobHandler;
 import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
@@ -72,15 +71,15 @@ public class SpringConnectorJobHandler implements JobHandler {
   static final int MAX_ERROR_MESSAGE_LENGTH = 6000;
   private static final Logger LOGGER = LoggerFactory.getLogger(SpringConnectorJobHandler.class);
   private static final int MAX_ZEEBE_COMMAND_RETRIES = 3;
-  protected final OutboundConnectorFunction call;
+  private final OutboundConnectorFunction call;
   private final CommandExceptionHandlingStrategy commandExceptionHandlingStrategy;
   private final MetricsRecorder connectorsOutboundMetrics;
   private final OutboundConnectorExceptionHandler outboundConnectorExceptionHandler;
   private final ConnectorResultHandler connectorResultHandler;
-  protected SecretProvider secretProvider;
-  protected ValidationProvider validationProvider;
-  protected DocumentFactory documentFactory;
-  protected ObjectMapper objectMapper;
+  private final SecretProvider secretProvider;
+  private final ValidationProvider validationProvider;
+  private final DocumentFactory documentFactory;
+  private final ObjectMapper objectMapper;
 
   public SpringConnectorJobHandler(
       MetricsRecorder outboundMetrics,
@@ -100,43 +99,6 @@ public class SpringConnectorJobHandler implements JobHandler {
     this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
     this.connectorsOutboundMetrics = outboundMetrics;
-  }
-
-  protected static FinalCommandStep<FailJobResponse> prepareFailJobCommand(
-      JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
-    var retries = result.retries();
-    var baseMessage = result.exception().getMessage();
-    var errorMessage =
-        truncateErrorMessage(
-            baseMessage
-                + (result.responseValue() != null
-                    ? " | Error variables: " + result.responseValue()
-                    : ""));
-    Duration backoff = result.retryBackoff();
-    var command =
-        client.newFailCommand(job).retries(Math.max(retries, 0)).errorMessage(errorMessage);
-    if (backoff != null) {
-      command = command.retryBackoff(backoff);
-    }
-    if (result.responseValue() != null) {
-      command = command.variables(result.responseValue());
-    }
-    return command;
-  }
-
-  protected static ThrowErrorCommandStep1.ThrowErrorCommandStep2 prepareThrowBpmnErrorCommand(
-      JobClient client, ActivatedJob job, BpmnError error) {
-    return client
-        .newThrowErrorCommand(job)
-        .errorCode(error.errorCode())
-        .variables(error.variables())
-        .errorMessage(truncateErrorMessage(error.errorMessage()));
-  }
-
-  private static String truncateErrorMessage(String message) {
-    return message != null
-        ? message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH))
-        : null;
   }
 
   private SecretProvider getSecretProvider() {
@@ -334,12 +296,12 @@ public class SpringConnectorJobHandler implements JobHandler {
     }
   }
 
-  protected void failJob(
+  private void failJob(
       JobClient client,
       ActivatedJob job,
       ConnectorResult.ErrorResult result,
       CounterMetricsContext counterMetricsContext) {
-    FinalCommandStep<?> commandStep = prepareFailJobCommand(client, job, result);
+    FinalCommandStep<FailJobResponse> commandStep = prepareFailJobCommand(client, job, result);
     new CommandWrapper(
             commandStep,
             job,
@@ -350,12 +312,35 @@ public class SpringConnectorJobHandler implements JobHandler {
         .executeAsync();
   }
 
-  protected void throwBpmnError(
+  private static FinalCommandStep<FailJobResponse> prepareFailJobCommand(
+      JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
+    var retries = result.retries();
+    var baseMessage = result.exception().getMessage();
+    var errorMessage =
+        truncateErrorMessage(
+            baseMessage
+                + (result.responseValue() != null
+                    ? " | Error variables: " + result.responseValue()
+                    : ""));
+    Duration backoff = result.retryBackoff();
+    var command =
+        client.newFailCommand(job).retries(Math.max(retries, 0)).errorMessage(errorMessage);
+    if (backoff != null) {
+      command = command.retryBackoff(backoff);
+    }
+    if (result.responseValue() != null) {
+      command = command.variables(result.responseValue());
+    }
+    return command;
+  }
+
+  private void throwBpmnError(
       JobClient client,
       ActivatedJob job,
       BpmnError value,
       CounterMetricsContext counterMetricsContext) {
-    FinalCommandStep<?> commandStep = prepareThrowBpmnErrorCommand(client, job, value);
+    FinalCommandStep<ThrowErrorResponse> commandStep =
+        prepareThrowBpmnErrorCommand(client, job, value);
     new CommandWrapper(
             commandStep,
             job,
@@ -366,7 +351,16 @@ public class SpringConnectorJobHandler implements JobHandler {
         .executeAsync();
   }
 
-  protected void completeJob(
+  private static FinalCommandStep<ThrowErrorResponse> prepareThrowBpmnErrorCommand(
+      JobClient client, ActivatedJob job, BpmnError error) {
+    return client
+        .newThrowErrorCommand(job)
+        .errorCode(error.errorCode())
+        .variables(error.variables())
+        .errorMessage(truncateErrorMessage(error.errorMessage()));
+  }
+
+  private void completeJob(
       JobClient client,
       ActivatedJob job,
       ConnectorResult.SuccessResult result,
@@ -390,12 +384,12 @@ public class SpringConnectorJobHandler implements JobHandler {
         .executeAsync();
   }
 
-  private CompleteJobCommandStep1 prepareCompleteJobCommand(
+  private static FinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(
       JobClient client, ActivatedJob job, ConnectorResult.SuccessResult result) {
     return client.newCompleteCommand(job).variables(result.variables());
   }
 
-  private CompleteJobCommandStep1 prepareAdHocSubProcessCompleteJobCommand(
+  private static FinalCommandStep<CompleteJobResponse> prepareAdHocSubProcessCompleteJobCommand(
       JobClient client, ActivatedJob job, AdHocSubProcessConnectorResponse connectorResponse) {
     Map<String, Object> variables = requireNonNullElse(connectorResponse.variables(), Map.of());
     return client
@@ -421,5 +415,11 @@ public class SpringConnectorJobHandler implements JobHandler {
 
               return adHocSubProcess;
             });
+  }
+
+  private static String truncateErrorMessage(String message) {
+    return message != null
+        ? message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH))
+        : null;
   }
 }
