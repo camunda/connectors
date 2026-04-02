@@ -16,18 +16,13 @@
  */
 package io.camunda.connector.e2e.agenticai.assertj;
 
-import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
-
-import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
-import io.camunda.connector.agenticai.aiagent.model.AgentState;
+import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
-import org.assertj.core.api.AbstractAssert;
-import org.assertj.core.api.Assertions;
-import org.assertj.core.api.ThrowingConsumer;
 
 public class JobWorkerAgentResponseAssert
-    extends AbstractAssert<JobWorkerAgentResponseAssert, JobWorkerAgentResponse> {
+    extends AbstractAgentResponseAssert<JobWorkerAgentResponseAssert, JobWorkerAgentResponse> {
+
   public JobWorkerAgentResponseAssert(JobWorkerAgentResponse actual) {
     super(actual, JobWorkerAgentResponseAssert.class);
   }
@@ -36,79 +31,23 @@ public class JobWorkerAgentResponseAssert
     return new JobWorkerAgentResponseAssert(actual);
   }
 
-  public JobWorkerAgentResponseAssert isReady() {
-    return hasState(AgentState.READY);
+  @Override
+  protected AgentContext context(JobWorkerAgentResponse actual) {
+    return actual.context();
   }
 
-  public JobWorkerAgentResponseAssert hasState(AgentState expectedState) {
-    isNotNull();
-    Assertions.assertThat(actual.context().state()).isEqualTo(expectedState);
-    return this;
+  @Override
+  protected AssistantMessage responseMessage(JobWorkerAgentResponse actual) {
+    return actual.responseMessage();
   }
 
-  public JobWorkerAgentResponseAssert hasMetrics(AgentMetrics expectedMetrics) {
-    isNotNull();
-    Assertions.assertThat(actual.context().metrics()).isEqualTo(expectedMetrics);
-    return this;
+  @Override
+  protected String responseText(JobWorkerAgentResponse actual) {
+    return actual.responseText();
   }
 
-  public JobWorkerAgentResponseAssert hasNoResponseMessage() {
-    isNotNull();
-    Assertions.assertThat(actual.responseMessage()).isNull();
-    return this;
-  }
-
-  public JobWorkerAgentResponseAssert hasResponseMessageSatisfying(
-      ThrowingConsumer<AssistantMessage> assertions) {
-    isNotNull();
-    Assertions.assertThat(actual.responseMessage()).isNotNull().satisfies(assertions);
-    return this;
-  }
-
-  public JobWorkerAgentResponseAssert hasResponseMessageText(String expectedResponseText) {
-    isNotNull();
-    Assertions.assertThat(actual.responseMessage()).isNotNull();
-    Assertions.assertThat(actual.responseMessage().content())
-        .hasSize(1)
-        .containsExactly(textContent(expectedResponseText));
-    return this;
-  }
-
-  public JobWorkerAgentResponseAssert hasNoResponseText() {
-    isNotNull();
-    Assertions.assertThat(actual.responseText()).isNull();
-    return this;
-  }
-
-  public JobWorkerAgentResponseAssert hasResponseText(String expectedResponseText) {
-    isNotNull();
-    Assertions.assertThat(actual.responseText()).isEqualTo(expectedResponseText);
-    return this;
-  }
-
-  public JobWorkerAgentResponseAssert hasResponseTestSatisfying(
-      ThrowingConsumer<String> assertions) {
-    isNotNull();
-    Assertions.assertThat(actual.responseText()).isNotNull().satisfies(assertions);
-    return this;
-  }
-
-  public JobWorkerAgentResponseAssert hasNoResponseJson() {
-    isNotNull();
-    Assertions.assertThat(actual.responseJson()).isNull();
-    return this;
-  }
-
-  public JobWorkerAgentResponseAssert hasResponseJson(Object expectedResponseJson) {
-    isNotNull();
-    Assertions.assertThat(actual.responseJson()).isNotNull().isEqualTo(expectedResponseJson);
-    return this;
-  }
-
-  public JobWorkerAgentResponseAssert hasResponseJsonSatisfying(
-      ThrowingConsumer<Object> assertions) {
-    isNotNull();
-    Assertions.assertThat(actual.responseJson()).isNotNull().satisfies(assertions);
-    return this;
+  @Override
+  protected Object responseJson(JobWorkerAgentResponse actual) {
+    return actual.responseJson();
   }
 }
