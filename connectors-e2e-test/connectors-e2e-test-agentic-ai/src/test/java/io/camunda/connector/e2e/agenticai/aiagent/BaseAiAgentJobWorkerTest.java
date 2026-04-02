@@ -16,19 +16,15 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AGENT_RESPONSE_VARIABLE;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PATH;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PROPERTIES;
 
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
-import io.camunda.connector.e2e.ZeebeTest;
-import io.camunda.process.test.api.CamundaAssert;
 import java.util.Map;
-import org.assertj.core.api.ThrowingConsumer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 
-public abstract class BaseAiAgentJobWorkerTest extends BaseAiAgentTest {
+public abstract class BaseAiAgentJobWorkerTest extends BaseAiAgentTest<JobWorkerAgentResponse> {
   @Value("classpath:agentic-ai-ahsp-connectors.bpmn")
   protected Resource testProcess;
 
@@ -47,17 +43,8 @@ public abstract class BaseAiAgentJobWorkerTest extends BaseAiAgentTest {
     return AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PROPERTIES;
   }
 
-  protected void assertAgentResponse(
-      ZeebeTest zeebeTest, ThrowingConsumer<JobWorkerAgentResponse> assertions) {
-    CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
-        .hasVariableSatisfies(
-            AGENT_RESPONSE_VARIABLE,
-            Map.class,
-            agentResponseMap -> {
-              // read with the connectors OM to include document deserialization support
-              final var agentResponse =
-                  objectMapper.convertValue(agentResponseMap, JobWorkerAgentResponse.class);
-              assertions.accept(agentResponse);
-            });
+  @Override
+  protected Class<JobWorkerAgentResponse> responseType() {
+    return JobWorkerAgentResponse.class;
   }
 }

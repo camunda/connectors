@@ -20,6 +20,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AGENT_RESPONSE_VARIABLE;
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_TASK_ID;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -30,6 +31,7 @@ import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.BaseAgenticAiTest;
 import io.camunda.connector.e2e.agenticai.CamundaDocumentTestConfiguration;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import io.camunda.process.test.api.CamundaAssert;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.io.IOException;
@@ -38,6 +40,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.context.annotation.Import;
@@ -45,7 +48,7 @@ import org.springframework.core.io.Resource;
 
 @WireMockTest
 @Import(CamundaDocumentTestConfiguration.class)
-public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
+public abstract class BaseAiAgentTest<R> extends BaseAgenticAiTest {
 
   private JobWorker userFeedbackJobWorker;
   protected final AtomicInteger userFeedbackJobWorkerCounter = new AtomicInteger(0);
@@ -101,6 +104,20 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
   protected abstract String elementTemplatePath();
 
   protected abstract Map<String, String> elementTemplateProperties();
+
+  protected abstract Class<R> responseType();
+
+  protected void assertAgentResponse(ZeebeTest zeebeTest, ThrowingConsumer<R> assertions) {
+    CamundaAssert.assertThat(zeebeTest.getProcessInstanceEvent())
+        .hasVariableSatisfies(
+            AGENT_RESPONSE_VARIABLE,
+            Map.class,
+            agentResponseMap -> {
+              // read with the connectors OM to include document deserialization support
+              final var agentResponse = objectMapper.convertValue(agentResponseMap, responseType());
+              assertions.accept(agentResponse);
+            });
+  }
 
   protected ZeebeTest createProcessInstance(Map<String, Object> variables) throws IOException {
     return createProcessInstance(e -> e, variables);

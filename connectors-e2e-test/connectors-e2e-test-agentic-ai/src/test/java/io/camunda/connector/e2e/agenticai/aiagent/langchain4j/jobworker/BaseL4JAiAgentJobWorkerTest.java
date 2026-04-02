@@ -16,330 +16,44 @@
  */
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
-import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_TOOL_SPECIFICATIONS;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.when;
+import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PATH;
+import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PROPERTIES;
 
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-import dev.langchain4j.model.output.FinishReason;
-import dev.langchain4j.model.output.TokenUsage;
-import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentResponseModel;
-import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
-import io.camunda.connector.e2e.ElementTemplate;
-import io.camunda.connector.e2e.ZeebeTest;
-import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentJobWorkerTest;
+import io.camunda.connector.e2e.agenticai.aiagent.langchain4j.BaseL4JAiAgentTest;
+import io.camunda.connector.e2e.agenticai.assertj.AbstractAgentResponseAssert;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
-import io.camunda.connector.e2e.agenticai.assertj.ToolExecutionRequestEqualsPredicate;
-import io.camunda.connector.test.utils.annotation.SlowTest;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import org.apache.commons.lang3.tuple.Pair;
-import org.assertj.core.api.ThrowingConsumer;
-import org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
-@SlowTest
-@ExtendWith(MockitoExtension.class)
-abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
-  @MockitoBean private ChatModelFactory chatModelFactory;
-  @Mock protected ChatModel chatModel;
-  @Captor protected ArgumentCaptor<ChatRequest> chatRequestCaptor;
-  @MockitoSpyBean protected AdHocToolsSchemaResolver toolsSchemaResolver;
+abstract class BaseL4JAiAgentJobWorkerTest extends BaseL4JAiAgentTest<JobWorkerAgentResponse> {
+  @Value("classpath:agentic-ai-ahsp-connectors.bpmn")
+  protected Resource testProcess;
 
-  @BeforeEach
-  void setUp() {
-    when(chatModelFactory.createChatModel(any())).thenReturn(chatModel);
+  @Override
+  protected Resource testProcess() {
+    return testProcess;
   }
 
-  protected ZeebeTest testBasicExecutionWithoutFeedbackLoop(
-      Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
-      String responseText,
-      boolean assertToolSpecifications,
-      ThrowingConsumer<JobWorkerAgentResponse> agentResponseAssertions)
-      throws Exception {
-    return testBasicExecutionWithoutFeedbackLoop(
-        testProcess,
-        elementTemplateModifier,
-        responseText,
-        Map.of(),
-        assertToolSpecifications,
-        agentResponseAssertions);
+  @Override
+  protected String elementTemplatePath() {
+    return AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PATH;
   }
 
-  protected ZeebeTest testBasicExecutionWithoutFeedbackLoop(
-      Resource process,
-      Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
-      String responseText,
-      Map<String, Object> extraProcessVariables,
-      boolean assertToolSpecifications,
-      ThrowingConsumer<JobWorkerAgentResponse> agentResponseAssertions)
-      throws Exception {
-    final var testSetup =
-        setupBasicTestWithoutFeedbackLoop(
-            process, elementTemplateModifier, responseText, extraProcessVariables);
-
-    final var zeebeTest = testSetup.getRight();
-    zeebeTest.waitForProcessCompletion();
-
-    assertLastChatRequest(testSetup.getLeft(), assertToolSpecifications);
-
-    assertAgentResponse(
-        testSetup.getRight(),
-        agentResponse ->
-            JobWorkerAgentResponseAssert.assertThat(agentResponse)
-                .isReady()
-                .hasMetrics(new AgentMetrics(1, new AgentMetrics.TokenUsage(10, 20)))
-                .satisfies(agentResponseAssertions));
-
-    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(1);
-
-    return zeebeTest;
+  @Override
+  protected Map<String, String> elementTemplateProperties() {
+    return AI_AGENT_JOB_WORKER_ELEMENT_TEMPLATE_PROPERTIES;
   }
 
-  protected Pair<List<ChatMessage>, ZeebeTest> setupBasicTestWithoutFeedbackLoop(
-      Resource process,
-      Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
-      String responseText,
-      Map<String, Object> extraProcessVariables)
-      throws Exception {
-    final var initialUserPrompt = "Write a haiku about the sea";
-    final var expectedConversation =
-        List.of(
-            new SystemMessage(
-                "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
-            new UserMessage(initialUserPrompt),
-            new AiMessage(responseText));
-
-    mockChatInteractions(
-        ChatInteraction.of(
-            ChatResponse.builder()
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.STOP)
-                        .tokenUsage(new TokenUsage(10, 20))
-                        .build())
-                .aiMessage(new AiMessage(responseText))
-                .build(),
-            userSatisfiedFeedback()));
-
-    final Map<String, Object> processVariables = new HashMap<>();
-    processVariables.put("userPrompt", initialUserPrompt);
-    processVariables.putAll(extraProcessVariables);
-
-    final var zeebeTest = createProcessInstance(process, elementTemplateModifier, processVariables);
-
-    return Pair.of(expectedConversation, zeebeTest);
+  @Override
+  protected Class<JobWorkerAgentResponse> responseType() {
+    return JobWorkerAgentResponse.class;
   }
 
-  protected ZeebeTest testInteractionWithToolsAndUserFeedbackLoops(
-      Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
-      String responseText,
-      boolean assertToolSpecifications,
-      ThrowingConsumer<JobWorkerAgentResponse> agentResponseAssertions)
-      throws Exception {
-    return testInteractionWithToolsAndUserFeedbackLoops(
-        testProcess,
-        elementTemplateModifier,
-        responseText,
-        assertToolSpecifications,
-        agentResponseAssertions);
+  @Override
+  protected AbstractAgentResponseAssert<?, JobWorkerAgentResponse> createAssert(
+      JobWorkerAgentResponse response) {
+    return JobWorkerAgentResponseAssert.assertThat(response);
   }
-
-  protected ZeebeTest testInteractionWithToolsAndUserFeedbackLoops(
-      Resource process,
-      Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
-      String responseText,
-      boolean assertToolSpecifications,
-      ThrowingConsumer<JobWorkerAgentResponse> agentResponseAssertions)
-      throws Exception {
-    final var testSetup =
-        setupInteractionWithToolsAndUserFeedbackLoops(
-            process, elementTemplateModifier, responseText);
-
-    final var zeebeTest = testSetup.getRight();
-    zeebeTest.waitForProcessCompletion();
-
-    assertLastChatRequest(testSetup.getLeft(), assertToolSpecifications);
-
-    assertAgentResponse(
-        testSetup.getRight(),
-        agentResponse ->
-            JobWorkerAgentResponseAssert.assertThat(agentResponse)
-                .isReady()
-                .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
-                .satisfies(agentResponseAssertions));
-
-    assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
-
-    return zeebeTest;
-  }
-
-  protected Pair<List<ChatMessage>, ZeebeTest> setupInteractionWithToolsAndUserFeedbackLoops(
-      Resource process,
-      Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
-      String responseText)
-      throws Exception {
-    final var initialUserPrompt = "Explore some of your tools!";
-    final var expectedConversation =
-        List.of(
-            new SystemMessage(
-                "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
-            new UserMessage(initialUserPrompt),
-            new AiMessage(
-                "The user asked me to call some of my tools. I will call the superflux calculation and the task with a text input schema as they look interesting to me.",
-                List.of(
-                    ToolExecutionRequest.builder()
-                        .id("aaa111")
-                        .name("SuperfluxProduct")
-                        .arguments("{\"a\": 5, \"b\": 3}")
-                        .build(),
-                    ToolExecutionRequest.builder()
-                        .id("bbb222")
-                        .name("Search_The_Web")
-                        .arguments("{\"searchQuery\": \"Where does this data come from?\"}")
-                        .build(),
-                    ToolExecutionRequest.builder()
-                        .id("ccc333")
-                        .name("SuperfluxProduct")
-                        .arguments("{\"a\": 6, \"b\": 4}")
-                        .build())),
-            new ToolExecutionResultMessage("aaa111", "SuperfluxProduct", "24"),
-            new ToolExecutionResultMessage(
-                "bbb222", "Search_The_Web", "No results for 'Where does this data come from?'"),
-            new ToolExecutionResultMessage("ccc333", "SuperfluxProduct", "30"),
-            new AiMessage(
-                "I played with the tools and learned that the data comes from the follow-up task and that a superflux calculation of 5 and 3 results in 24 and 6 and 4 in 30."),
-            new UserMessage("So what is a superflux calculation anyway?"),
-            new AiMessage(responseText));
-
-    mockChatInteractions(
-        ChatInteraction.of(
-            ChatResponse.builder()
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.TOOL_EXECUTION)
-                        .tokenUsage(new TokenUsage(10, 20))
-                        .build())
-                .aiMessage((AiMessage) expectedConversation.get(2))
-                .build()),
-        ChatInteraction.of(
-            ChatResponse.builder()
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.STOP)
-                        .tokenUsage(new TokenUsage(100, 200))
-                        .build())
-                .aiMessage((AiMessage) expectedConversation.get(6))
-                .build(),
-            userFollowUpFeedback("So what is a superflux calculation anyway?")),
-        ChatInteraction.of(
-            ChatResponse.builder()
-                .metadata(
-                    ChatResponseMetadata.builder()
-                        .finishReason(FinishReason.STOP)
-                        .tokenUsage(new TokenUsage(11, 22))
-                        .build())
-                .aiMessage(new AiMessage(responseText))
-                .build(),
-            userSatisfiedFeedback()));
-
-    final var zeebeTest =
-        createProcessInstance(
-            process, elementTemplateModifier, Map.of("userPrompt", initialUserPrompt));
-
-    return Pair.of(expectedConversation, zeebeTest);
-  }
-
-  protected void mockChatInteractions(ChatInteraction... chatInteractions) {
-    final var queue = new ArrayList<>(Arrays.asList(chatInteractions));
-    doAnswer(
-            invocationOnMock -> {
-              final var interaction = queue.removeFirst();
-              userFeedbackVariables.set(interaction.userFeedback());
-              return interaction.chatResponse();
-            })
-        .when(chatModel)
-        .chat(chatRequestCaptor.capture());
-  }
-
-  protected void assertLastChatRequest(List<ChatMessage> expectedConversation) {
-    assertLastChatRequest(expectedConversation, true);
-  }
-
-  protected void assertLastChatRequest(
-      List<ChatMessage> expectedConversation, boolean assertToolSpecifications) {
-    await()
-        .alias("Chat request with expected conversation")
-        .untilAsserted(
-            () -> {
-              assertThat(chatRequestCaptor.getValue().messages())
-                  .hasSize(expectedConversation.size() - 1);
-            });
-
-    final var lastChatRequest = chatRequestCaptor.getValue();
-
-    if (assertToolSpecifications) {
-      assertToolSpecifications(lastChatRequest);
-    }
-
-    assertThat(lastChatRequest.messages())
-        .as("The last chat request should contain all messages except the last response")
-        .usingRecursiveFieldByFieldElementComparator(
-            RecursiveComparisonConfiguration.builder()
-                .withEqualsForType(
-                    new ToolExecutionRequestEqualsPredicate(), ToolExecutionRequest.class)
-                .build())
-        .containsExactlyElementsOf(
-            expectedConversation.subList(0, expectedConversation.size() - 1));
-  }
-
-  protected List<ToolSpecification> expectedToolSpecifications() {
-    return EXPECTED_TOOL_SPECIFICATIONS;
-  }
-
-  protected void assertToolSpecifications(ChatRequest chatRequest) {
-    assertThat(chatRequest.toolSpecifications())
-        .containsExactlyInAnyOrderElementsOf(expectedToolSpecifications());
-  }
-
-  protected record ChatInteraction(ChatResponse chatResponse, Map<String, Object> userFeedback) {
-    protected static ChatInteraction of(ChatResponse chatResponse) {
-      return new ChatInteraction(chatResponse, null);
-    }
-
-    protected static ChatInteraction of(
-        ChatResponse chatResponse, Map<String, Object> userFeedback) {
-      return new ChatInteraction(chatResponse, userFeedback);
-    }
-  }
-
-  protected record DownloadFileToolResult(int status, DocumentToContentResponseModel document) {}
 }

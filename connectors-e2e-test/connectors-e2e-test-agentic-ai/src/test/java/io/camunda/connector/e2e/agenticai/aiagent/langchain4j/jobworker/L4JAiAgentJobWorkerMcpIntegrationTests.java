@@ -150,8 +150,8 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
         testBasicExecutionWithoutFeedbackLoop(
             testProcessWithMcp,
             e -> e,
-            HAIKU_TEXT,
             Map.of(),
+            HAIKU_TEXT,
             true,
             (agentResponse) ->
                 JobWorkerAgentResponseAssert.assertThat(agentResponse)

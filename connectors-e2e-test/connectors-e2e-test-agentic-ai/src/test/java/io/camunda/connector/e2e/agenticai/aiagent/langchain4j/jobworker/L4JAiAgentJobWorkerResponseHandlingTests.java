@@ -233,8 +233,8 @@ public class L4JAiAgentJobWorkerResponseHandlingTests extends BaseL4JAiAgentJobW
           setupBasicTestWithoutFeedbackLoop(
               testProcess,
               elementTemplate -> elementTemplate.property("data.response.format.type", "json"),
-              HAIKU_TEXT,
-              Map.of());
+              Map.of(),
+              HAIKU_TEXT);
       setup.getRight().waitForActiveIncidents();
 
       assertIncident(

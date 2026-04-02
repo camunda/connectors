@@ -98,12 +98,12 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
   protected Pair<List<ChatMessage>, ZeebeTest> setupBasicTestWithoutFeedbackLoop(
       Resource process,
       Function<ElementTemplate, ElementTemplate> elementTemplateModifier,
-      String responseText,
-      Map<String, Object> extraProcessVariables)
+      Map<String, Object> extraProcessVariables,
+      String responseText)
       throws Exception {
     Pair<List<ChatMessage>, ZeebeTest> conversationAndTest =
         super.setupBasicTestWithoutFeedbackLoop(
-            process, elementTemplateModifier, responseText, extraProcessVariables);
+            process, elementTemplateModifier, extraProcessVariables, responseText);
     List<ChatMessage> conversation =
         conversationAndTest.getLeft().stream()
             .map(
@@ -124,8 +124,8 @@ public class L4JAiAgentJobWorkerA2aIntegrationTests extends BaseL4JAiAgentJobWor
         testBasicExecutionWithoutFeedbackLoop(
             testProcessWithA2a,
             e -> e,
-            HAIKU_TEXT,
             Map.of("a2aServerUrl", wireMock.getHttpBaseUrl(), "webhookUrl", webhookUrl),
+            HAIKU_TEXT,
             true,
             (agentResponse) ->
                 JobWorkerAgentResponseAssert.assertThat(agentResponse)
