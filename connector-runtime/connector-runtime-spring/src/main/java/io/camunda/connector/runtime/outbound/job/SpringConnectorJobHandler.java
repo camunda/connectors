@@ -193,6 +193,12 @@ public class SpringConnectorJobHandler implements JobHandler {
               job, getSecretProvider(), validationProvider, documentFactory, objectMapper);
 
       var connectorResponse = getConnectorResponse(context);
+
+      if (connectorResponse instanceof AdHocSubProcessConnectorResponse) {
+        // AHSP responses provide their own variables; skip result expression evaluation
+        return new ConnectorResult.SuccessResult(connectorResponse, Map.of());
+      }
+
       var responseVariables =
           connectorResultHandler.createOutputVariables(
               connectorResponse.responseValue(),
@@ -369,11 +375,9 @@ public class SpringConnectorJobHandler implements JobHandler {
 
     FinalCommandStep<CompleteJobResponse> commandStep =
         switch (connectorResponse) {
-          case StandardConnectorResponse response ->
-              prepareCompleteJobCommand(client, job, result, response);
-
-          case AdHocSubProcessConnectorResponse ahspResponse ->
-              prepareAdHocSubProcessCompleteJobCommand(client, job, result, ahspResponse);
+          case StandardConnectorResponse ignored -> prepareCompleteJobCommand(client, job, result);
+          case AdHocSubProcessConnectorResponse ahsp ->
+              prepareAdHocSubProcessCompleteJobCommand(client, job, ahsp);
         };
 
     new CommandWrapper(
@@ -387,22 +391,16 @@ public class SpringConnectorJobHandler implements JobHandler {
   }
 
   private CompleteJobCommandStep1 prepareCompleteJobCommand(
-      JobClient client,
-      ActivatedJob job,
-      ConnectorResult.SuccessResult result,
-      ConnectorResponse connectorResponse) {
-    Map<String, Object> variables =
-        requireNonNullElse(
-            connectorResponse.resolveCompletionVariables(result.variables()), Map.of());
-    return client.newCompleteCommand(job).variables(variables);
+      JobClient client, ActivatedJob job, ConnectorResult.SuccessResult result) {
+    return client.newCompleteCommand(job).variables(result.variables());
   }
 
   private CompleteJobCommandStep1 prepareAdHocSubProcessCompleteJobCommand(
-      JobClient client,
-      ActivatedJob job,
-      ConnectorResult.SuccessResult result,
-      AdHocSubProcessConnectorResponse connectorResponse) {
-    return prepareCompleteJobCommand(client, job, result, connectorResponse)
+      JobClient client, ActivatedJob job, AdHocSubProcessConnectorResponse connectorResponse) {
+    Map<String, Object> variables = requireNonNullElse(connectorResponse.variables(), Map.of());
+    return client
+        .newCompleteCommand(job)
+        .variables(variables)
         .withResult(
             resultStep -> {
               var adHocSubProcess =

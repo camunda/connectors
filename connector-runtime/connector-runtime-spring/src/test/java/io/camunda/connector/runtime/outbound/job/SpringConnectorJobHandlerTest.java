@@ -62,7 +62,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -77,16 +76,11 @@ class SpringConnectorJobHandlerTest {
 
   private record TestAdHocSubProcessResponse(
       Object responseValue,
+      Map<String, Object> variables,
       List<ElementActivation> elementActivations,
       boolean completionConditionFulfilled,
-      boolean cancelRemainingInstances,
-      UnaryOperator<Map<String, Object>> variableMapper)
+      boolean cancelRemainingInstances)
       implements AdHocSubProcessConnectorResponse {
-
-    @Override
-    public Map<String, Object> resolveCompletionVariables(Map<String, Object> resultVariables) {
-      return variableMapper != null ? variableMapper.apply(resultVariables) : resultVariables;
-    }
 
     private record TestElementActivation(String elementId, Map<String, Object> variables)
         implements ElementActivation {}
@@ -1564,63 +1558,10 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void resolveCompletionVariablesCanReplaceResultExpressionVariables() throws Exception {
-      var customResponse =
-          new StandardConnectorResponse() {
-            @Override
-            public Object responseValue() {
-              return null;
-            }
-
-            @Override
-            public Map<String, Object> resolveCompletionVariables(
-                Map<String, Object> resultVariables) {
-              return Map.of("custom-variable", true);
-            }
-          };
-      var handler = newConnectorJobHandler(context -> customResponse);
-
-      var result = JobBuilder.create().executeAndCaptureResult(handler);
-
-      assertThat(result.getVariables()).isEqualTo(Map.of("custom-variable", true));
-    }
-
-    @Test
-    void resolveCompletionVariablesCanMergeWithResultExpressionVariables() throws Exception {
-      var customResponse =
-          new StandardConnectorResponse() {
-            @Override
-            public Object responseValue() {
-              return Map.of("key", "value");
-            }
-
-            @Override
-            public Map<String, Object> resolveCompletionVariables(
-                Map<String, Object> resultVariables) {
-              var merged = new HashMap<>(resultVariables);
-              merged.put("extra", "added");
-              return merged;
-            }
-          };
-      var handler = newConnectorJobHandler(context -> customResponse);
-
-      var result =
-          JobBuilder.create()
-              .withResultExpressionHeader("={mapped: response.key}")
-              .executeAndCaptureResult(handler);
-
-      assertThat(result.getVariables()).isEqualTo(Map.of("mapped", "value", "extra", "added"));
-    }
-
-    @Test
     void rejectsIgnoreErrorForAdHocSubProcessResponse() throws Exception {
       var ahspResponse =
           new TestAdHocSubProcessResponse(
-              Map.of("status", "trigger ignore"),
-              List.of(),
-              false,
-              false,
-              resultVariables -> resultVariables);
+              Map.of("status", "trigger ignore"), Map.of(), List.of(), false, false);
       var handler = newConnectorJobHandler(context -> ahspResponse);
 
       var result =
@@ -1658,14 +1599,14 @@ class SpringConnectorJobHandlerTest {
       var response =
           new TestAdHocSubProcessResponse(
               null,
+              Map.of("agentContext", "some-context"),
               List.of(
                   new TestAdHocSubProcessResponse.TestElementActivation(
                       "task1", Map.of("input", "value1")),
                   new TestAdHocSubProcessResponse.TestElementActivation(
                       "task2", Map.of("input", "value2"))),
               false,
-              true,
-              resultVariables -> Map.of("agentContext", "some-context"));
+              true);
       var handler = newConnectorJobHandler(context -> response);
 
       var result = JobBuilder.create().executeAndCaptureAdHocSubProcessResult(handler);
@@ -1683,58 +1624,40 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
-    void adHocSubProcessResponseMergesVariables() throws Exception {
+    void adHocSubProcessResponseSkipsResultExpression() throws Exception {
       var response =
           new TestAdHocSubProcessResponse(
-              Map.of("key", "value"),
-              List.of(),
-              true,
-              false,
-              resultVariables -> {
-                var merged = new HashMap<>(resultVariables);
-                merged.put("extra", "added");
-                return merged;
-              });
+              Map.of("key", "value"), Map.of("ownVar", "ownValue"), List.of(), true, false);
       var handler = newConnectorJobHandler(context -> response);
 
+      // result expression is configured but should be ignored for AHSP
       var result =
           JobBuilder.create()
               .withResultExpressionHeader("={mapped: response.key}")
               .executeAndCaptureAdHocSubProcessResult(handler);
 
-      assertThat(result.variables()).isEqualTo(Map.of("mapped", "value", "extra", "added"));
+      assertThat(result.variables()).isEqualTo(Map.of("ownVar", "ownValue"));
       assertThat(result.completionConditionFulfilled()).isTrue();
       assertThat(result.cancelRemainingInstances()).isFalse();
       assertThat(result.elementActivations()).isEmpty();
     }
 
     @Test
-    void nullGetVariablesTreatedAsEmptyMap() throws Exception {
-      var customResponse =
-          new StandardConnectorResponse() {
-            @Override
-            public Object responseValue() {
-              return null;
-            }
+    void nullVariablesTreatedAsEmptyMap() throws Exception {
+      var response = new TestAdHocSubProcessResponse(null, null, List.of(), true, false);
+      var handler = newConnectorJobHandler(context -> response);
 
-            @Override
-            public Map<String, Object> resolveCompletionVariables(
-                Map<String, Object> resultVariables) {
-              return null;
-            }
-          };
-      var handler = newConnectorJobHandler(context -> customResponse);
+      var result = JobBuilder.create().executeAndCaptureAdHocSubProcessResult(handler);
 
-      var result = JobBuilder.create().executeAndCaptureResult(handler);
-
-      assertThat(result.getVariables()).isEmpty();
+      assertThat(result.variables()).isEmpty();
+      assertThat(result.completionConditionFulfilled()).isTrue();
+      assertThat(result.elementActivations()).isEmpty();
     }
 
     @Test
     void nullElementActivationsTreatedAsEmptyList() throws Exception {
       var response =
-          new TestAdHocSubProcessResponse(
-              null, null, true, false, resultVariables -> Map.of("key", "value"));
+          new TestAdHocSubProcessResponse(null, Map.of("key", "value"), null, true, false);
       var handler = newConnectorJobHandler(context -> response);
 
       var result = JobBuilder.create().executeAndCaptureAdHocSubProcessResult(handler);

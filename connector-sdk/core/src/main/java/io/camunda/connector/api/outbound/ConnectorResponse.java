@@ -22,9 +22,6 @@ import java.util.Map;
 /**
  * Base interface for connector responses returned from {@link OutboundConnectorFunction#execute}.
  * The runtime uses {@link #responseValue()} as input for result expression evaluation.
- *
- * <p>Implementations can override {@link #resolveCompletionVariables(Map)} to control which
- * variables are sent with the job completion command.
  */
 public sealed interface ConnectorResponse {
 
@@ -35,19 +32,6 @@ public sealed interface ConnectorResponse {
    * @return the response value, or {@code null}
    */
   Object responseValue();
-
-  /**
-   * Returns the variables to send with the job completion command. The runtime passes the variables
-   * computed from result expression evaluation; implementations may use, replace, or merge them.
-   *
-   * <p>The default implementation returns the result expression variables unchanged.
-   *
-   * @param resultVariables variables computed from result expression evaluation
-   * @return the variables to use for job completion
-   */
-  default Map<String, Object> resolveCompletionVariables(Map<String, Object> resultVariables) {
-    return resultVariables;
-  }
 
   /** Standard connector response for completing a job with the result expression variables. */
   non-sealed interface StandardConnectorResponse extends ConnectorResponse {
@@ -67,10 +51,19 @@ public sealed interface ConnectorResponse {
    * Connector response for completing a job within an ad-hoc sub-process. The runtime translates
    * this into a Zeebe complete command with ad-hoc sub-process result configuration.
    *
-   * <p>Implementations provide the elements to activate, completion condition, and cancellation
-   * flags. The runtime builds the complete command accordingly.
+   * <p>Implementations provide the completion variables, elements to activate, completion
+   * condition, and cancellation flags. The runtime builds the complete command accordingly. Result
+   * expression evaluation is skipped for this response type.
    */
   non-sealed interface AdHocSubProcessConnectorResponse extends ConnectorResponse {
+
+    /**
+     * Returns the variables to send with the job completion command. Unlike {@link
+     * StandardConnectorResponse}, these are not derived from result expression evaluation.
+     *
+     * @return the completion variables
+     */
+    Map<String, Object> variables();
 
     /**
      * Returns the elements to activate in the ad-hoc sub-process.
