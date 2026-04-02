@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.OpenAPIV3Parser;
+import io.swagger.v3.parser.core.models.ParseOptions;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
@@ -37,27 +38,45 @@ public record OpenApiGenerationSource(
    * @param rawBody If true, the generated template will contain a JSON property "body" that
    *     contains the raw request body example. If false, the body will be parsed and transformed
    *     into individual properties when possible. Default: false.
+   * @param resolveExternalRefs If false, the parser will not follow external {@code $ref}
+   *     references (remote URLs or local files). Disable this to prevent unintended network or
+   *     filesystem access when processing untrusted specs. Default: true (backward-compatible).
    */
-  public record Options(boolean rawBody) {}
+  public record Options(boolean rawBody, boolean resolveExternalRefs) {
 
-  static final String USAGE = "[operation-id] openapi-outbound [openapi-file]... [--raw-body]";
-
-  public OpenApiGenerationSource(List<String> cliParams) {
-    this(fetchOpenApi(cliParams), extractOperationIds(cliParams), extractOptions(cliParams));
+    /** Backward-compatible constructor: {@code resolveExternalRefs} defaults to {@code true}. */
+    public Options(boolean rawBody) {
+      this(rawBody, true);
+    }
   }
 
-  private static OpenAPI fetchOpenApi(List<String> cliParams) {
+  static final String USAGE =
+      "[operation-id] openapi-outbound [openapi-file]... [--raw-body] [--no-resolve-refs]";
+
+  public OpenApiGenerationSource(List<String> cliParams) {
+    this(cliParams, extractOptions(cliParams));
+  }
+
+  private OpenApiGenerationSource(List<String> cliParams, Options options) {
+    this(fetchOpenApi(cliParams, options), extractOperationIds(cliParams), options);
+  }
+
+  private static OpenAPI fetchOpenApi(List<String> cliParams, Options options) {
     if (cliParams.isEmpty()) {
       throw new IllegalArgumentException(
           "OpenAPI file path or URL must be provided as first parameter");
     }
     var openApiPathOrContent = cliParams.get(0);
     var openApiParser = new OpenAPIV3Parser();
+
+    ParseOptions parseOptions = new ParseOptions();
+    parseOptions.setResolve(options.resolveExternalRefs());
+
     try {
       if (isValidJSON(openApiPathOrContent) || isValidYAML(openApiPathOrContent)) {
-        return openApiParser.readContents(openApiPathOrContent).getOpenAPI();
+        return openApiParser.readContents(openApiPathOrContent, null, parseOptions).getOpenAPI();
       }
-      return openApiParser.read(openApiPathOrContent);
+      return openApiParser.read(openApiPathOrContent, null, parseOptions);
     } catch (Exception e) {
       throw new IllegalArgumentException(
           "Failed to parse OpenAPI file from "
@@ -97,6 +116,8 @@ public record OpenApiGenerationSource(
   }
 
   private static Options extractOptions(List<String> cliParams) {
-    return new Options(cliParams.stream().anyMatch(param -> param.equals("--raw-body")));
+    boolean rawBody = cliParams.stream().anyMatch(param -> param.equals("--raw-body"));
+    boolean resolveExternalRefs = !cliParams.contains("--no-resolve-refs");
+    return new Options(rawBody, resolveExternalRefs);
   }
 }
