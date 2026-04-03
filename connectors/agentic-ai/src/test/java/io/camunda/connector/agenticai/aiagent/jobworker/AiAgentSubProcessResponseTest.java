@@ -34,7 +34,7 @@ class AiAgentSubProcessResponseTest {
     assertThat(response.completionConditionFulfilled()).isFalse();
     assertThat(response.cancelRemainingInstances()).isFalse();
     assertThat(response.elementActivations()).isEmpty();
-    assertThat(response.resolveCompletionVariables(Map.of("ignored", true))).isEmpty();
+    assertThat(response.variables()).isEmpty();
   }
 
   @ParameterizedTest
@@ -53,7 +53,7 @@ class AiAgentSubProcessResponseTest {
     assertThat(response.completionConditionFulfilled()).isTrue();
     assertThat(response.cancelRemainingInstances()).isEqualTo(cancelRemainingInstances);
     assertThat(response.elementActivations()).isEmpty();
-    assertThat(response.resolveCompletionVariables(Map.of())).isEqualTo(variables);
+    assertThat(response.variables()).isEqualTo(variables);
   }
 
   @Test
@@ -72,23 +72,7 @@ class AiAgentSubProcessResponseTest {
 
     assertThat(response.completionConditionFulfilled()).isTrue();
     assertThat(response.elementActivations()).isEmpty();
-    assertThat(response.resolveCompletionVariables(Map.of())).isEqualTo(variables);
-  }
-
-  @Test
-  void usesRecordVariablesNotResultExpressionVariables() {
-    var recordVariables = Map.<String, Object>of("fromRecord", true);
-    var resultExpressionVariables = Map.<String, Object>of("fromExpression", true);
-
-    var response =
-        AiAgentSubProcessResponse.builder()
-            .completionConditionFulfilled(true)
-            .cancelRemainingInstances(false)
-            .variables(recordVariables)
-            .build();
-
-    assertThat(response.resolveCompletionVariables(resultExpressionVariables))
-        .isEqualTo(recordVariables);
+    assertThat(response.variables()).isEqualTo(variables);
   }
 
   @ParameterizedTest
@@ -118,11 +102,6 @@ class AiAgentSubProcessResponseTest {
               assertThat(vars).containsKey(AiAgentJobWorker.TOOL_CALL_VARIABLE);
               assertThat(vars).containsEntry(AiAgentJobWorker.TOOL_CALL_RESULT_VARIABLE, "");
             });
-  }
-
-  @Test
-  void doesNotSupportIgnoreError() {
-    assertThat(AiAgentSubProcessResponse.builder().build().supportsIgnoreError()).isFalse();
   }
 
   @Test

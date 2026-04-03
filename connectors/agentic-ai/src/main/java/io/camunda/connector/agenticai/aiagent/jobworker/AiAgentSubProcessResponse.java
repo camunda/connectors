@@ -36,16 +36,6 @@ public record AiAgentSubProcessResponse(
   }
 
   @Override
-  public boolean supportsIgnoreError() {
-    return false;
-  }
-
-  @Override
-  public Map<String, Object> resolveCompletionVariables(Map<String, Object> resultVariables) {
-    return variables;
-  }
-
-  @Override
   public List<ElementActivation> elementActivations() {
     if (agentResponse == null) {
       return List.of();
