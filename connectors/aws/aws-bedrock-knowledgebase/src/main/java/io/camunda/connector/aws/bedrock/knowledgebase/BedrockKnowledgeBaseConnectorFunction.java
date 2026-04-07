@@ -13,7 +13,6 @@ import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.bedrock.knowledgebase.model.request.BedrockKnowledgeBaseRequest;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.net.URI;
 import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import software.amazon.awssdk.regions.Region;
@@ -43,8 +42,7 @@ public class BedrockKnowledgeBaseConnectorFunction implements OutboundConnectorF
   public Object execute(OutboundConnectorContext context) {
     var request = context.bindVariables(BedrockKnowledgeBaseRequest.class);
     try (var client = createClient(request, BedrockAgentRuntimeClient.builder())) {
-      return new BedrockKnowledgeBaseExecutor(client, ConnectorsObjectMapperSupplier.getCopy())
-          .execute(request, context::create);
+      return new BedrockKnowledgeBaseExecutor(client).execute(request, context);
     }
   }
 

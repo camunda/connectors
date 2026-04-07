@@ -6,14 +6,10 @@
  */
 package io.camunda.connector.aws.bedrock.knowledgebase;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 
 public abstract class BaseTest {
-
-  protected static final ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
 
   protected interface ActualValue {
     String ACCESS_KEY = "test-access-key";

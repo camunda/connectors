@@ -6,55 +6,41 @@
  */
 package io.camunda.connector.aws.bedrock.knowledgebase;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.aws.bedrock.knowledgebase.model.request.BedrockKnowledgeBaseRequest;
 import io.camunda.connector.aws.bedrock.knowledgebase.model.request.RetrieveOperation;
-import io.camunda.connector.aws.bedrock.knowledgebase.model.response.BedrockKnowledgeBaseResponse;
 import io.camunda.connector.aws.bedrock.knowledgebase.model.response.KnowledgeBaseRetrievalResult;
 import io.camunda.connector.aws.bedrock.knowledgebase.model.response.RetrievalResultEntry;
-import java.time.Instant;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeClient;
 import software.amazon.awssdk.services.bedrockagentruntime.model.BedrockAgentRuntimeException;
 import software.amazon.awssdk.services.bedrockagentruntime.model.KnowledgeBaseRetrievalConfiguration;
 import software.amazon.awssdk.services.bedrockagentruntime.model.KnowledgeBaseVectorSearchConfiguration;
 import software.amazon.awssdk.services.bedrockagentruntime.model.RetrieveRequest;
-import software.amazon.awssdk.services.bedrockagentruntime.model.RetrieveResponse;
-import software.amazon.awssdk.services.bedrockagentruntime.model.ThrottlingException;
 
 public class BedrockKnowledgeBaseExecutor {
 
-  private static final String ERROR_THROTTLED = "THROTTLED";
   private static final String ERROR_KB_RETRIEVAL_FAILED = "KB_RETRIEVAL_FAILED";
-  private static final String ERROR_SERIALIZATION = "SERIALIZATION_ERROR";
 
   private final BedrockAgentRuntimeClient client;
-  private final ObjectMapper objectMapper;
 
-  public BedrockKnowledgeBaseExecutor(BedrockAgentRuntimeClient client, ObjectMapper objectMapper) {
+  public BedrockKnowledgeBaseExecutor(BedrockAgentRuntimeClient client) {
     this.client = client;
-    this.objectMapper = objectMapper;
   }
 
   public KnowledgeBaseRetrievalResult execute(
-      BedrockKnowledgeBaseRequest request,
-      Function<DocumentCreationRequest, Document> documentFactory) {
+      BedrockKnowledgeBaseRequest request, DocumentFactory documentFactory) {
     return switch (request.getOperation()) {
       case RetrieveOperation op -> retrieve(op, request, documentFactory);
     };
   }
 
   private KnowledgeBaseRetrievalResult retrieve(
-      RetrieveOperation op,
-      BedrockKnowledgeBaseRequest request,
-      Function<DocumentCreationRequest, Document> documentFactory) {
+      RetrieveOperation op, BedrockKnowledgeBaseRequest request, DocumentFactory documentFactory) {
     try {
       var sdkRequestBuilder =
           RetrieveRequest.builder()
@@ -71,46 +57,21 @@ public class BedrockKnowledgeBaseExecutor {
                 .build());
       }
 
-      RetrieveResponse sdkResponse = client.retrieve(sdkRequestBuilder.build());
+      var sdkResponse = client.retrieve(sdkRequestBuilder.build());
 
-      var response = mapSdkResponse(sdkResponse);
-      byte[] json = objectMapper.writeValueAsBytes(response);
-
-      Document doc =
-          documentFactory.apply(
-              DocumentCreationRequest.from(json)
-                  .contentType("application/json")
-                  .fileName("kb-retrieval-" + Instant.now().toEpochMilli() + ".json")
-                  .build());
-
-      return new KnowledgeBaseRetrievalResult(doc, response.results().size(), response.nextToken());
-
-    } catch (ThrottlingException e) {
-      throw ConnectorRetryException.builder()
-          .errorCode(ERROR_THROTTLED)
-          .message("Bedrock Knowledge Base request was throttled: " + e.getMessage())
-          .retries(3)
-          .backoffDuration(java.time.Duration.ofSeconds(5))
-          .cause(e)
-          .build();
-    } catch (BedrockAgentRuntimeException e) {
-      var errorMsg =
-          e.awsErrorDetails() != null ? e.awsErrorDetails().errorMessage() : e.getMessage();
-      throw new ConnectorException(
-          ERROR_KB_RETRIEVAL_FAILED, "Bedrock Knowledge Base error: " + errorMsg, e);
-    } catch (JsonProcessingException e) {
-      throw new ConnectorException(
-          ERROR_SERIALIZATION, "Failed to serialize retrieval results to JSON", e);
-    }
-  }
-
-  private BedrockKnowledgeBaseResponse mapSdkResponse(RetrieveResponse sdkResponse) {
-    var results =
-        sdkResponse.retrievalResults().stream()
-            .map(
-                r ->
-                    new RetrievalResultEntry(
-                        r.content() != null ? r.content().text() : null,
+      var results =
+          sdkResponse.retrievalResults().stream()
+              .map(
+                  r -> {
+                    var content = r.content() != null ? r.content().text() : "";
+                    var doc =
+                        documentFactory.create(
+                            DocumentCreationRequest.from(content.getBytes(StandardCharsets.UTF_8))
+                                .contentType("text/plain")
+                                .build());
+                    return new RetrievalResultEntry(
+                        doc.reference(),
+                        content,
                         r.score(),
                         r.location() != null && r.location().s3Location() != null
                             ? r.location().s3Location().uri()
@@ -121,8 +82,17 @@ public class BedrockKnowledgeBaseExecutor {
                                     Collectors.toMap(
                                         Map.Entry::getKey,
                                         e -> e.getValue() != null ? e.getValue().toString() : ""))
-                            : Map.of()))
-            .toList();
-    return new BedrockKnowledgeBaseResponse(results, sdkResponse.nextToken());
+                            : Map.of());
+                  })
+              .toList();
+
+      return new KnowledgeBaseRetrievalResult(results, results.size(), sdkResponse.nextToken());
+
+    } catch (BedrockAgentRuntimeException e) {
+      var errorMsg =
+          e.awsErrorDetails() != null ? e.awsErrorDetails().errorMessage() : e.getMessage();
+      throw new ConnectorException(
+          ERROR_KB_RETRIEVAL_FAILED, "Bedrock Knowledge Base error: " + errorMsg, e);
+    }
   }
 }

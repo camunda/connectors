@@ -6,7 +6,12 @@
  */
 package io.camunda.connector.aws.bedrock.knowledgebase.model.response;
 
+import io.camunda.connector.api.document.DocumentReference;
 import java.util.Map;
 
 public record RetrievalResultEntry(
-    String content, Double score, String sourceUri, Map<String, String> metadata) {}
+    DocumentReference documentReference,
+    String content,
+    Double score,
+    String sourceUri,
+    Map<String, String> metadata) {}

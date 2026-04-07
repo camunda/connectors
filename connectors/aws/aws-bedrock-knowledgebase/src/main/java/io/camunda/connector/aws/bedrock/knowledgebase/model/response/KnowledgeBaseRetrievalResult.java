@@ -6,10 +6,10 @@
  */
 package io.camunda.connector.aws.bedrock.knowledgebase.model.response;
 
-import io.camunda.connector.api.document.Document;
+import java.util.List;
 
 /**
  * @param paginationToken Token for retrieving additional results in subsequent requests.
  */
 public record KnowledgeBaseRetrievalResult(
-    Document resultsDocument, int resultCount, String paginationToken) {}
+    List<RetrievalResultEntry> results, int resultCount, String paginationToken) {}
