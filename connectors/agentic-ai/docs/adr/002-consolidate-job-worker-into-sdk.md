@@ -53,14 +53,14 @@ A sealed interface hierarchy was added to the SDK (`io.camunda.connector.api.out
 
 **Positive:**
 - Error expressions, retry handling, secret masking, and metrics are now handled by the SDK for both flavors
-- The custom handler infrastructure was deleted (~500 lines), along with `AgentJobContext` and
+- The custom handler infrastructure was deleted (over 1,000 lines), along with `AgentJobContext` and
   `OutboundConnectorAgentJobContext` (replaced by SDK's `JobContext` directly)
 - Future SDK improvements automatically apply to both AI Agent flavors
 
 **Negative:**
 - Job completion callbacks (success/error notification) are not yet supported — the callback mechanism on
   `CommandWrapper` needs to be implemented in a follow-up
-- `ConversationStore.compensateFailedJobCompletion()` exists as a placeholder but is currently not invoked
+- `ConversationStore.compensateFailedJobCompletion()` is deprecated and currently not invoked — it will be removed once completion callbacks are implemented
 
 ### Future improvements
 
