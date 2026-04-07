@@ -9,12 +9,10 @@ package io.camunda.connector.aws.bedrock.codeinterpreter;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.error.ConnectorRetryException;
 import io.camunda.connector.aws.bedrock.codeinterpreter.model.request.CodeInterpreterInput;
 import io.camunda.connector.aws.bedrock.codeinterpreter.model.request.CodeInterpreterRequest;
 import io.camunda.connector.aws.bedrock.codeinterpreter.model.response.CodeInterpreterResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -31,7 +29,6 @@ import software.amazon.awssdk.services.bedrockagentcore.model.InvokeCodeInterpre
 import software.amazon.awssdk.services.bedrockagentcore.model.InvokeCodeInterpreterResponseHandler;
 import software.amazon.awssdk.services.bedrockagentcore.model.StartCodeInterpreterSessionRequest;
 import software.amazon.awssdk.services.bedrockagentcore.model.StopCodeInterpreterSessionRequest;
-import software.amazon.awssdk.services.bedrockagentcore.model.ThrottlingException;
 import software.amazon.awssdk.services.bedrockagentcore.model.ToolArguments;
 import software.amazon.awssdk.services.bedrockagentcore.model.ToolName;
 
@@ -40,12 +37,9 @@ public class CodeInterpreterExecutor {
   private static final Logger LOG = LoggerFactory.getLogger(CodeInterpreterExecutor.class);
   private static final String CODE_INTERPRETER_ID = "aws.codeinterpreter.v1";
   private static final String SESSION_NAME_PREFIX = "camunda-";
-  private static final String ERROR_THROTTLED = "THROTTLED";
   private static final String ERROR_CODE_INTERPRETER_FAILED = "CODE_INTERPRETER_FAILED";
   private static final String ERROR_STREAM = "STREAM_ERROR";
   private static final String DEFAULT_MIME_TYPE = "application/octet-stream";
-  private static final int RETRY_COUNT = 3;
-  private static final Duration RETRY_BACKOFF = Duration.ofSeconds(5);
   private static final int DEFAULT_MAX_FILES = 10;
   private static final long DEFAULT_MAX_TOTAL_BYTES = 10L * 1024 * 1024;
 
@@ -69,14 +63,6 @@ public class CodeInterpreterExecutor {
     }
     try (var session = startSession(input, jobKey)) {
       return invokeCode(session, input);
-    } catch (ThrottlingException e) {
-      throw ConnectorRetryException.builder()
-          .errorCode(ERROR_THROTTLED)
-          .message("Code Interpreter request was throttled: " + e.getMessage())
-          .retries(RETRY_COUNT)
-          .backoffDuration(RETRY_BACKOFF)
-          .cause(e)
-          .build();
     } catch (BedrockAgentCoreException e) {
       var msg = e.awsErrorDetails() != null ? e.awsErrorDetails().errorMessage() : e.getMessage();
       throw new ConnectorException(
