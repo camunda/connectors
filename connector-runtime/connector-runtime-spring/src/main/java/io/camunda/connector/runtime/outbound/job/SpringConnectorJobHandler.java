@@ -16,12 +16,14 @@
  */
 package io.camunda.connector.runtime.outbound.job;
 
+import static java.util.Objects.requireNonNullElse;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.api.command.FinalCommandStep;
-import io.camunda.client.api.command.ThrowErrorCommandStep1;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.response.CompleteJobResponse;
 import io.camunda.client.api.response.FailJobResponse;
+import io.camunda.client.api.response.ThrowErrorResponse;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.api.worker.JobHandler;
 import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
@@ -30,18 +32,31 @@ import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.client.metrics.MetricsRecorder.CounterMetricsContext;
 import io.camunda.client.metrics.MetricsRecorder.TimerMetricsContext;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.outbound.ConnectorResponse;
+import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse;
+import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
+import io.camunda.connector.api.outbound.ConnectorResponse.StandardConnectorResponse;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ConnectorResultHandler;
 import io.camunda.connector.runtime.core.Keywords;
-import io.camunda.connector.runtime.core.error.*;
-import io.camunda.connector.runtime.core.outbound.*;
+import io.camunda.connector.runtime.core.error.BpmnError;
+import io.camunda.connector.runtime.core.error.ConnectorError;
+import io.camunda.connector.runtime.core.error.IgnoreError;
+import io.camunda.connector.runtime.core.error.InvalidBackOffDurationException;
+import io.camunda.connector.runtime.core.error.JobError;
+import io.camunda.connector.runtime.core.outbound.ConnectorResult;
+import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
+import io.camunda.connector.runtime.core.outbound.JobHandlerContext;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,15 +71,15 @@ public class SpringConnectorJobHandler implements JobHandler {
   static final int MAX_ERROR_MESSAGE_LENGTH = 6000;
   private static final Logger LOGGER = LoggerFactory.getLogger(SpringConnectorJobHandler.class);
   private static final int MAX_ZEEBE_COMMAND_RETRIES = 3;
-  protected final OutboundConnectorFunction call;
+  private final OutboundConnectorFunction call;
   private final CommandExceptionHandlingStrategy commandExceptionHandlingStrategy;
   private final MetricsRecorder connectorsOutboundMetrics;
   private final OutboundConnectorExceptionHandler outboundConnectorExceptionHandler;
   private final ConnectorResultHandler connectorResultHandler;
-  protected SecretProvider secretProvider;
-  protected ValidationProvider validationProvider;
-  protected DocumentFactory documentFactory;
-  protected ObjectMapper objectMapper;
+  private final SecretProvider secretProvider;
+  private final ValidationProvider validationProvider;
+  private final DocumentFactory documentFactory;
+  private final ObjectMapper objectMapper;
 
   public SpringConnectorJobHandler(
       MetricsRecorder outboundMetrics,
@@ -84,48 +99,6 @@ public class SpringConnectorJobHandler implements JobHandler {
     this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
     this.connectorsOutboundMetrics = outboundMetrics;
-  }
-
-  protected static FinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(
-      JobClient client, ActivatedJob job, ConnectorResult.SuccessResult result) {
-    return client.newCompleteCommand(job).variables(result.variables());
-  }
-
-  protected static FinalCommandStep<FailJobResponse> prepareFailJobCommand(
-      JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
-    var retries = result.retries();
-    var baseMessage = result.exception().getMessage();
-    var errorMessage =
-        truncateErrorMessage(
-            baseMessage
-                + (result.responseValue() != null
-                    ? " | Error variables: " + result.responseValue()
-                    : ""));
-    Duration backoff = result.retryBackoff();
-    var command =
-        client.newFailCommand(job).retries(Math.max(retries, 0)).errorMessage(errorMessage);
-    if (backoff != null) {
-      command = command.retryBackoff(backoff);
-    }
-    if (result.responseValue() != null) {
-      command = command.variables(result.responseValue());
-    }
-    return command;
-  }
-
-  protected static ThrowErrorCommandStep1.ThrowErrorCommandStep2 prepareThrowBpmnErrorCommand(
-      JobClient client, ActivatedJob job, BpmnError error) {
-    return client
-        .newThrowErrorCommand(job)
-        .errorCode(error.errorCode())
-        .variables(error.variables())
-        .errorMessage(truncateErrorMessage(error.errorMessage()));
-  }
-
-  private static String truncateErrorMessage(String message) {
-    return message != null
-        ? message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH))
-        : null;
   }
 
   private SecretProvider getSecretProvider() {
@@ -180,17 +153,34 @@ public class SpringConnectorJobHandler implements JobHandler {
       var context =
           new JobHandlerContext(
               job, getSecretProvider(), validationProvider, documentFactory, objectMapper);
-      var response = call.execute(context);
+
+      var connectorResponse = getConnectorResponse(context);
+
+      if (connectorResponse instanceof AdHocSubProcessConnectorResponse) {
+        // AHSP responses provide their own variables; skip result expression evaluation
+        return new ConnectorResult.SuccessResult(connectorResponse, Map.of());
+      }
+
       var responseVariables =
           connectorResultHandler.createOutputVariables(
-              response,
+              connectorResponse.responseValue(),
               job.getCustomHeaders().get(Keywords.RESULT_VARIABLE_KEYWORD),
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
-      return new ConnectorResult.SuccessResult(response, responseVariables);
+      return new ConnectorResult.SuccessResult(connectorResponse, responseVariables);
     } catch (Exception e) {
       return outboundConnectorExceptionHandler.manageConnectorJobHandlerException(
           e, job, retryBackoff);
     }
+  }
+
+  private ConnectorResponse getConnectorResponse(OutboundConnectorContext context)
+      throws Exception {
+    final var responseValue = call.execute(context);
+    if (responseValue instanceof ConnectorResponse connectorResponse) {
+      return connectorResponse;
+    }
+
+    return StandardConnectorResponse.of(responseValue);
   }
 
   private void processFinalResult(
@@ -206,8 +196,8 @@ public class SpringConnectorJobHandler implements JobHandler {
               new ErrorExpressionJobContext(
                   new ErrorExpressionJobContext.ErrorExpressionJob(job.getRetries())));
       optionalConnectorError.ifPresentOrElse(
-          error -> handleBPMNError(client, job, error, counterMetricsContext),
-          () -> handleSuccessResult(client, job, finalResult, counterMetricsContext));
+          error -> handleBPMNError(client, job, finalResult, error, counterMetricsContext),
+          () -> handleFinalResult(client, job, finalResult, counterMetricsContext));
     } catch (Exception ex) {
       failJob(
           client,
@@ -217,7 +207,7 @@ public class SpringConnectorJobHandler implements JobHandler {
     }
   }
 
-  private void handleSuccessResult(
+  private void handleFinalResult(
       JobClient jobClient,
       ActivatedJob job,
       ConnectorResult finalResult,
@@ -240,6 +230,7 @@ public class SpringConnectorJobHandler implements JobHandler {
   private void handleBPMNError(
       JobClient client,
       ActivatedJob job,
+      ConnectorResult finalResult,
       ConnectorError error,
       CounterMetricsContext counterMetricsContext) {
     switch (error) {
@@ -261,12 +252,30 @@ public class SpringConnectorJobHandler implements JobHandler {
             counterMetricsContext);
       }
       case IgnoreError ignoreError -> {
-        LOGGER.debug("Ignoring error for job {}", job.getKey());
-        completeJob(
-            client,
-            job,
-            new ConnectorResult.SuccessResult(null, ignoreError.variables()),
-            counterMetricsContext);
+        if (finalResult instanceof ConnectorResult.SuccessResult successResult
+            && successResult.connectorResponse() instanceof AdHocSubProcessConnectorResponse) {
+          LOGGER.debug(
+              "IgnoreError not supported for AdHocSubProcessConnectorResponse, job {}",
+              job.getKey());
+          failJob(
+              client,
+              job,
+              new ConnectorResult.ErrorResult(
+                  ignoreError.variables(),
+                  new UnsupportedOperationException(
+                      "IgnoreError is not supported for this connector"),
+                  0,
+                  null),
+              counterMetricsContext);
+        } else {
+          LOGGER.debug("Ignoring error for job {}", job.getKey());
+          completeJob(
+              client,
+              job,
+              new ConnectorResult.SuccessResult(
+                  StandardConnectorResponse.of(null), ignoreError.variables()),
+              counterMetricsContext);
+        }
       }
     }
   }
@@ -287,14 +296,12 @@ public class SpringConnectorJobHandler implements JobHandler {
     }
   }
 
-  @SuppressWarnings("rawtypes")
-  protected void failJob(
+  private void failJob(
       JobClient client,
       ActivatedJob job,
       ConnectorResult.ErrorResult result,
       CounterMetricsContext counterMetricsContext) {
-
-    FinalCommandStep commandStep = prepareFailJobCommand(client, job, result);
+    FinalCommandStep<FailJobResponse> commandStep = prepareFailJobCommand(client, job, result);
     new CommandWrapper(
             commandStep,
             job,
@@ -305,13 +312,35 @@ public class SpringConnectorJobHandler implements JobHandler {
         .executeAsync();
   }
 
-  @SuppressWarnings("rawtypes")
-  protected void throwBpmnError(
+  private static FinalCommandStep<FailJobResponse> prepareFailJobCommand(
+      JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
+    var retries = result.retries();
+    var baseMessage = result.exception().getMessage();
+    var errorMessage =
+        truncateErrorMessage(
+            baseMessage
+                + (result.responseValue() != null
+                    ? " | Error variables: " + result.responseValue()
+                    : ""));
+    Duration backoff = result.retryBackoff();
+    var command =
+        client.newFailCommand(job).retries(Math.max(retries, 0)).errorMessage(errorMessage);
+    if (backoff != null) {
+      command = command.retryBackoff(backoff);
+    }
+    if (result.responseValue() != null) {
+      command = command.variables(result.responseValue());
+    }
+    return command;
+  }
+
+  private void throwBpmnError(
       JobClient client,
       ActivatedJob job,
       BpmnError value,
       CounterMetricsContext counterMetricsContext) {
-    FinalCommandStep commandStep = prepareThrowBpmnErrorCommand(client, job, value);
+    FinalCommandStep<ThrowErrorResponse> commandStep =
+        prepareThrowBpmnErrorCommand(client, job, value);
     new CommandWrapper(
             commandStep,
             job,
@@ -322,14 +351,29 @@ public class SpringConnectorJobHandler implements JobHandler {
         .executeAsync();
   }
 
-  @SuppressWarnings("rawtypes")
-  protected void completeJob(
+  private static FinalCommandStep<ThrowErrorResponse> prepareThrowBpmnErrorCommand(
+      JobClient client, ActivatedJob job, BpmnError error) {
+    return client
+        .newThrowErrorCommand(job)
+        .errorCode(error.errorCode())
+        .variables(error.variables())
+        .errorMessage(truncateErrorMessage(error.errorMessage()));
+  }
+
+  private void completeJob(
       JobClient client,
       ActivatedJob job,
       ConnectorResult.SuccessResult result,
       CounterMetricsContext counterMetricsContext) {
+    ConnectorResponse connectorResponse = result.connectorResponse();
 
-    FinalCommandStep commandStep = prepareCompleteJobCommand(client, job, result);
+    FinalCommandStep<CompleteJobResponse> commandStep =
+        switch (connectorResponse) {
+          case StandardConnectorResponse ignored -> prepareCompleteJobCommand(client, job, result);
+          case AdHocSubProcessConnectorResponse ahsp ->
+              prepareAdHocSubProcessCompleteJobCommand(client, job, ahsp);
+        };
+
     new CommandWrapper(
             commandStep,
             job,
@@ -338,5 +382,44 @@ public class SpringConnectorJobHandler implements JobHandler {
             counterMetricsContext,
             MAX_ZEEBE_COMMAND_RETRIES)
         .executeAsync();
+  }
+
+  private static FinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(
+      JobClient client, ActivatedJob job, ConnectorResult.SuccessResult result) {
+    return client.newCompleteCommand(job).variables(result.variables());
+  }
+
+  private static FinalCommandStep<CompleteJobResponse> prepareAdHocSubProcessCompleteJobCommand(
+      JobClient client, ActivatedJob job, AdHocSubProcessConnectorResponse connectorResponse) {
+    Map<String, Object> variables = requireNonNullElse(connectorResponse.variables(), Map.of());
+    return client
+        .newCompleteCommand(job)
+        .variables(variables)
+        .withResult(
+            resultStep -> {
+              var adHocSubProcess =
+                  resultStep
+                      .forAdHocSubProcess()
+                      .completionConditionFulfilled(
+                          connectorResponse.completionConditionFulfilled())
+                      .cancelRemainingInstances(connectorResponse.cancelRemainingInstances());
+
+              List<ElementActivation> elementActivations =
+                  requireNonNullElse(connectorResponse.elementActivations(), List.of());
+              for (ElementActivation activation : elementActivations) {
+                adHocSubProcess =
+                    adHocSubProcess
+                        .activateElement(activation.elementId())
+                        .variables(requireNonNullElse(activation.variables(), Map.of()));
+              }
+
+              return adHocSubProcess;
+            });
+  }
+
+  private static String truncateErrorMessage(String message) {
+    return message != null
+        ? message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH))
+        : null;
   }
 }
