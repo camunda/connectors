@@ -70,7 +70,7 @@ limitations under the License.</license.inlineheader>
     <nexus.release.repository>https://artifacts.camunda.com/artifactory/connectors/</nexus.release.repository>
 
     <!-- Camunda internal libraries -->
-    <version.camunda>8.9.0-rc1</version.camunda>
+    <version.camunda>8.9.0</version.camunda>
     <version.feel-engine>1.21.0</version.feel-engine>
     <version.camunda-xml-model>7.24.0</version.camunda-xml-model>
 
@@ -99,7 +99,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.32</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.42.20</version.aws-sdk2>
+    <version.aws-sdk2>2.42.30</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -114,11 +114,11 @@ limitations under the License.</license.inlineheader>
 
     <version.google-http-client>2.1.0</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20260305-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20260322-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.43.0</version.google-auth-library-oauth2-http>
-    <version.google-api-services-docs>v1-rev20260309-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.78.0</version.google-libraries-bom>
+    <version.google-api-services-docs>v1-rev20260323-2.0.0</version.google-api-services-docs>
+    <version.google-libraries-bom>26.79.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20260213-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <version.jsr305>3.0.2</version.jsr305>
@@ -141,7 +141,7 @@ limitations under the License.</license.inlineheader>
     <version.microsoft-graph-core>3.6.5</version.microsoft-graph-core>
     <version.azure-identity>1.18.2</version.azure-identity>
     <version.azure-core>1.57.1</version.azure-core>
-    <version.azure-cosmos>4.78.0</version.azure-cosmos>
+    <version.azure-cosmos>4.79.1</version.azure-cosmos>
 
     <version.bouncycastle>1.83</version.bouncycastle>
     <version.box-sdk>4.16.4</version.box-sdk>
@@ -171,10 +171,10 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwks>0.23.0</version.auth0.jwks>
 
     <version.langchain4j>1.12.2</version.langchain4j>
-    <version.mcp-sdk>1.1.0</version.mcp-sdk>
+    <version.mcp-sdk>1.1.1</version.mcp-sdk>
     <version.elasticsearch-java-client>8.19.13</version.elasticsearch-java-client>
 
-    <version.scala>3.8.2</version.scala>
+    <version.scala>3.8.3</version.scala>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.6.2</plugin.version.maven-enforcer-plugin>
@@ -728,7 +728,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.nimbusds</groupId>
         <artifactId>nimbus-jose-jwt</artifactId>
-        <version>10.8</version>
+        <version>10.9</version>
       </dependency>
 
       <!-- Fixes CWE-835 -->
