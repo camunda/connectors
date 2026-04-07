@@ -5,7 +5,8 @@
 
 ## Status
 
-**Implemented** in [#6606](https://github.com/camunda/connectors/pull/6606).
+**Implemented** in [#6606](https://github.com/camunda/connectors/pull/6606), building on the SDK
+`ConnectorResponse` hierarchy introduced in [#6781](https://github.com/camunda/connectors/pull/6781).
 
 ## Context and Problem Statement
 
@@ -34,20 +35,12 @@ Should we keep the custom handler or consolidate into the SDK's `OutboundConnect
 
 Chosen option: **Option 2 — Introduce a `ConnectorResponse` sealed interface hierarchy in the SDK**.
 
-A sealed interface hierarchy was added to the SDK (`io.camunda.connector.api.outbound`):
-
-- **`ConnectorResponse`** (sealed): Base interface for connector responses. Wraps return values for result expression
-  evaluation. Provides `getVariables(resultVariables)` to control which variables are sent with the complete command,
-  and `rejectIgnoreError()` for connectors where the `IgnoreError` error expression path is not applicable.
-- **`StandardConnectorResponse`** (non-sealed): Standard job completion — the default for connectors returning plain
-  objects.
-- **`AdHocSubProcessConnectorResponse`** (non-sealed): Ad-hoc sub-process completion with `elementActivations()`,
-  `completionConditionFulfilled()`, and `cancelRemainingInstances()`. The runtime translates this into the Zeebe
-  complete command with `.withResult().forAdHocSubProcess()` configuration. No Camunda client dependencies on the
-  response interface.
-
+This decision depends on the `ConnectorResponse` sealed interface hierarchy added to the SDK in
+[#6781](https://github.com/camunda/connectors/pull/6781) (`io.camunda.connector.api.outbound`). With that in place,
 `AiAgentJobWorker` becomes a standard `@OutboundConnector`-annotated function that returns `AiAgentSubProcessResponse`
-(implementing `AdHocSubProcessConnectorResponse`) from `execute()`. The SDK handles everything else.
+(implementing `AdHocSubProcessConnectorResponse`) from `execute()`. The runtime translates the response's
+`variables()`, `elementActivations()`, `completionConditionFulfilled()`, and `cancelRemainingInstances()` into the
+Zeebe complete command with `.withResult().forAdHocSubProcess()` configuration. The SDK handles everything else.
 
 ### Consequences
 

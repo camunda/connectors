@@ -63,7 +63,7 @@ The AI Agent Sub-process flavor needs custom job completion (ad-hoc sub-process 
 
 - The connector returns an `AdHocSubProcessConnectorResponse` from `execute()`
 - The runtime translates the response's `elementActivations()`, `completionConditionFulfilled()`, and `cancelRemainingInstances()` into the Zeebe complete command with `.withResult().forAdHocSubProcess()` configuration
-- `getVariables(resultVariables)` controls which variables are sent with the complete command (the AI Agent ignores result expression variables and uses its own)
+- Completion variables are provided via `variables()`, and result expression evaluation is skipped by the runtime for `AdHocSubProcessConnectorResponse`
 - The SDK continues to handle error expressions, retries, and metrics
 
 This avoids duplicating SDK concerns in the connector. See [ADR 002](../adr/002-consolidate-job-worker-into-sdk.md) for the decision rationale.
