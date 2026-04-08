@@ -76,7 +76,7 @@ public class AwsAgentCoreConversationMapper {
       case UserMessage msg -> mapUserMessage(msg);
       case AssistantMessage msg -> mapAssistantMessage(msg);
       case ToolCallResultMessage msg -> mapToolCallResultMessage(msg);
-      case SystemMessage msg ->
+      case SystemMessage ignored ->
           throw new IllegalArgumentException(
               "SystemMessage should not be stored in AgentCore - store in context instead");
       default ->
