@@ -47,7 +47,7 @@ import java.util.function.Function;
               "gcs"
             }),
     documentationRef =
-        "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/google-cloud-storage",
+        "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage",
     icon = "icon.svg")
 public class ObjectStorageConnectorFunction implements OutboundConnectorFunction {
 
