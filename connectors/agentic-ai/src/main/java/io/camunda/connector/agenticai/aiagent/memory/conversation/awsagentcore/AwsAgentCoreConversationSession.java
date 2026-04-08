@@ -209,8 +209,6 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
   }
 
   private List<Message> loadMessagesFromAgentCore(String sessionId, String branchName) {
-    final List<Message> messages = new ArrayList<>();
-
     final var requestBuilder =
         ListEventsRequest.builder()
             .memoryId(config.memoryId())
@@ -227,23 +225,17 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
 
     final var request = requestBuilder.build();
 
-    final List<Event> allEvents = new ArrayList<>();
-
     try {
+      final List<Event> allEvents = new ArrayList<>();
       client.listEventsPaginator(request).events().forEach(allEvents::add);
 
-      allEvents.stream()
+      return allEvents.stream()
           .sorted(
               Comparator.comparing(
                       Event::eventTimestamp, Comparator.nullsLast(Comparator.naturalOrder()))
                   .thenComparing(Event::eventId, Comparator.nullsLast(Comparator.naturalOrder())))
-          .forEach(
-              event -> {
-                List<Message> extractedMessages = mapper.fromEvent(event);
-                messages.addAll(extractedMessages);
-              });
-
-      return messages;
+          .flatMap(event -> mapper.fromEvent(event).stream())
+          .toList();
     } catch (BedrockAgentCoreException e) {
       // Fail fast: this is a runtime configuration/permission/service issue and continuing silently
       // can cause duplicated history or incorrect agent behavior.
