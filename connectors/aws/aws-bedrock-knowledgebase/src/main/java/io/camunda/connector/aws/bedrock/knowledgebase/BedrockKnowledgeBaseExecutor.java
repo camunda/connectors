@@ -61,9 +61,10 @@ public class BedrockKnowledgeBaseExecutor {
 
       var results =
           sdkResponse.retrievalResults().stream()
+              .filter(r -> r.content() != null && r.content().text() != null)
               .map(
                   r -> {
-                    var content = r.content() != null ? r.content().text() : "";
+                    var content = r.content().text();
                     var doc =
                         documentFactory.create(
                             DocumentCreationRequest.from(content.getBytes(StandardCharsets.UTF_8))
