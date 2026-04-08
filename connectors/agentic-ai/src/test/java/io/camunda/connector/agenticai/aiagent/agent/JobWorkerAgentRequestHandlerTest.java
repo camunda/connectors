@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
@@ -132,7 +133,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(response.variables()).containsOnlyKeys("agentContext", "toolCallResults");
     assertThat(response.completionConditionFulfilled()).isFalse();
     assertThat(response.cancelRemainingInstances()).isFalse();
-    assertThat(response.agentResponse()).isNotNull().isEqualTo(agentResponse);
+    assertThat(response.responseValue()).isNotNull().isEqualTo(agentResponse);
 
     verifyNoInteractions(
         limitsValidator, messagesHandler, gatewayToolHandlers, framework, responseHandler);
@@ -176,7 +177,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(response.completionConditionFulfilled()).isTrue();
     assertThat(response.cancelRemainingInstances()).isFalse();
 
-    final var agentResponse = response.agentResponse();
+    final var agentResponse = response.responseValue();
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.context()).isEqualTo(response.variables().get("agentContext"));
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
@@ -191,6 +192,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.responseMessage()).isEqualTo(assistantMessage);
     assertThat(agentResponse.responseText()).isEqualTo(assistantMessageText);
     assertThat(agentResponse.toolCalls()).isEmpty();
+    assertThat(response.elementActivations()).isEmpty();
 
     assertThat(runtimeMemoryCaptor.getValue().allMessages())
         .containsExactlyElementsOf(expectedMessages);
@@ -242,7 +244,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(response.completionConditionFulfilled()).isFalse();
     assertThat(response.cancelRemainingInstances()).isFalse();
 
-    final var agentResponse = response.agentResponse();
+    final var agentResponse = response.responseValue();
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
@@ -263,6 +265,24 @@ class JobWorkerAgentRequestHandlerTest {
             new ToolCallProcessVariable(
                 new ToolCallProcessVariable.ToolCallMetadata("fedcba_transformed", "getDateTime"),
                 Map.of()));
+
+    assertThat(response.elementActivations()).hasSize(2);
+    assertThat(response.elementActivations().get(0).elementId()).isEqualTo("getWeather");
+    assertThat(response.elementActivations().get(0).variables())
+        .isEqualTo(
+            Map.of(
+                AiAgentJobWorker.TOOL_CALL_VARIABLE,
+                agentResponse.toolCalls().get(0),
+                AiAgentJobWorker.TOOL_CALL_RESULT_VARIABLE,
+                ""));
+    assertThat(response.elementActivations().get(1).elementId()).isEqualTo("getDateTime");
+    assertThat(response.elementActivations().get(1).variables())
+        .isEqualTo(
+            Map.of(
+                AiAgentJobWorker.TOOL_CALL_VARIABLE,
+                agentResponse.toolCalls().get(1),
+                AiAgentJobWorker.TOOL_CALL_RESULT_VARIABLE,
+                ""));
 
     assertThat(runtimeMemoryCaptor.getValue().allMessages())
         .containsExactlyElementsOf(expectedMessages);
@@ -320,7 +340,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(response.completionConditionFulfilled()).isTrue();
     assertThat(response.cancelRemainingInstances()).isTrue();
 
-    final var agentResponse = response.agentResponse();
+    final var agentResponse = response.responseValue();
     assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.context()).isEqualTo(response.variables().get("agentContext"));
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
@@ -335,6 +355,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.responseMessage()).isEqualTo(assistantMessage);
     assertThat(agentResponse.responseText()).isNull();
     assertThat(agentResponse.toolCalls()).isEmpty();
+    assertThat(response.elementActivations()).isEmpty();
 
     assertThat(runtimeMemoryCaptor.getValue().allMessages())
         .containsExactlyElementsOf(expectedMessages);
@@ -401,6 +422,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(response.variables()).isEmpty();
     assertThat(response.completionConditionFulfilled()).isFalse();
     assertThat(response.cancelRemainingInstances()).isFalse();
+    assertThat(response.elementActivations()).isEmpty();
 
     verifyNoInteractions(framework);
   }

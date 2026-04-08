@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentSubProcessResponse;
+import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentSubProcessResponse.ToolCallElementActivation;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -18,8 +19,10 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -129,10 +132,11 @@ public class JobWorkerAgentRequestHandler
     }
 
     return AiAgentSubProcessResponse.builder()
-        .agentResponse(agentResponse)
+        .responseValue(agentResponse)
+        .variables(variables)
+        .elementActivations(buildElementActivations(agentResponse))
         .completionConditionFulfilled(completionConditionFulfilled)
         .cancelRemainingInstances(cancelRemainingInstances)
-        .variables(variables)
         .build();
   }
 
@@ -151,5 +155,28 @@ public class JobWorkerAgentRequestHandler
     }
 
     return builder.build();
+  }
+
+  private List<ElementActivation> buildElementActivations(AgentResponse agentResponse) {
+    return agentResponse.toolCalls().stream()
+        .map(
+            toolCall -> {
+              if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Activating tool {}: {}", toolCall.metadata().name(), toolCall);
+              } else {
+                LOGGER.debug("Activating tool {}", toolCall.metadata().name());
+              }
+
+              return (ElementActivation)
+                  new ToolCallElementActivation(
+                      toolCall.metadata().name(),
+                      Map.ofEntries(
+                          Map.entry(AiAgentJobWorker.TOOL_CALL_VARIABLE, toolCall),
+                          // Creating empty toolCallResult variable to avoid variable
+                          // to bubble up in the upper scopes while merging variables on
+                          // ad-hoc sub-process inner instance completion.
+                          Map.entry(AiAgentJobWorker.TOOL_CALL_RESULT_VARIABLE, "")));
+            })
+        .toList();
   }
 }
