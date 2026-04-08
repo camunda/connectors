@@ -16,7 +16,7 @@
 
   <properties>
     <version.swagger-parser>2.1.39</version.swagger-parser>
-    <version.swagger-models>2.2.45</version.swagger-models>
+    <version.swagger-models>2.2.46</version.swagger-models>
   </properties>
 
   <dependencies>
