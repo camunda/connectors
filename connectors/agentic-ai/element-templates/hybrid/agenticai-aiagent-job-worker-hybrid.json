@@ -1372,46 +1372,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.memory.storage.memoryId",
-    "label" : "Memory ID",
-    "description" : "The ID of the pre-provisioned AgentCore Memory resource.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "memory",
-    "binding" : {
-      "name" : "data.memory.storage.memoryId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "data.memory.storage.type",
-      "equals" : "aws-agentcore",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "data.memory.storage.actorId",
-    "label" : "Actor ID",
-    "description" : "Identifier of the actor associated with events (e.g., end-user or agent/user combination).",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "memory",
-    "binding" : {
-      "name" : "data.memory.storage.actorId",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "data.memory.storage.type",
-      "equals" : "aws-agentcore",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
     "id" : "data.memory.storage.region",
     "label" : "Region",
     "description" : "Specify the AWS region (example: <code>us-east-1</code>)",
@@ -1518,6 +1478,46 @@
         "equals" : "aws-agentcore",
         "type" : "simple"
       } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.memory.storage.memoryId",
+    "label" : "Memory ID",
+    "description" : "The ID of the pre-provisioned AgentCore Memory resource.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "memory",
+    "binding" : {
+      "name" : "data.memory.storage.memoryId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.memory.storage.type",
+      "equals" : "aws-agentcore",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.memory.storage.actorId",
+    "label" : "Actor ID",
+    "description" : "Identifier of the actor associated with events (e.g., end-user or agent/user combination).",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "memory",
+    "binding" : {
+      "name" : "data.memory.storage.actorId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "data.memory.storage.type",
+      "equals" : "aws-agentcore",
+      "type" : "simple"
     },
     "type" : "String"
   }, {

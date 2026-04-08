@@ -82,7 +82,7 @@ class AwsAgentCoreConversationStoreTest {
         new AwsAgentCoreMemoryStorageConfiguration.AwsAgentCoreAuthentication
             .AwsStaticCredentialsAuthentication("test-access-key", "test-secret-key");
     config =
-        new AwsAgentCoreMemoryStorageConfiguration(MEMORY_ID, ACTOR_ID, null, null, authentication);
+        new AwsAgentCoreMemoryStorageConfiguration(null, null, authentication, MEMORY_ID, ACTOR_ID);
     lenient().when(executionContext.memory()).thenReturn(new MemoryConfiguration(config, 20));
     lenient().when(clientFactory.createClient(config)).thenReturn(bedrockClient);
 
