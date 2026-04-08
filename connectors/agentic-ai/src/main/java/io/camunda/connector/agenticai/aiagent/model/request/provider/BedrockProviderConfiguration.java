@@ -91,8 +91,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
         @TemplateProperty(
                 group = "provider",
                 label = "Secret key",
-                description =
-                    "Provide a secret key of a user with permissions to invoke specified AWS Lambda function")
+                description = "Provide the secret key for the IAM access key")
             @NotBlank
             String secretKey)
         implements AwsAuthentication {
