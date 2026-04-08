@@ -103,9 +103,7 @@ class AgentInitializerTest {
 
     @BeforeEach
     void setUp() {
-      when(executionContext.jobContext()).thenReturn(jobContext);
-      when(jobContext.getProcessDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
-      when(jobContext.getProcessInstanceKey()).thenReturn(PROCESS_INSTANCE_KEY);
+      mockJobContextMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
     }
 
     @ParameterizedTest
@@ -479,11 +477,6 @@ class AgentInitializerTest {
     private static final long MIGRATED_PROCESS_DEFINITION_KEY = 222222222L;
     private static final long PROCESS_INSTANCE_KEY = 987654321L;
 
-    @BeforeEach
-    void setUp() {
-      when(executionContext.jobContext()).thenReturn(jobContext);
-    }
-
     @Test
     void triggersToolUpdateWhenMetadataIsNull() {
       final var agentContext =
@@ -566,10 +559,11 @@ class AgentInitializerTest {
 
       verifyNoInteractions(toolsResolver, gatewayToolHandlers);
     }
+  }
 
-    private void mockJobContextMetadata(long processDefinitionKey, long processInstanceKey) {
-      when(jobContext.getProcessDefinitionKey()).thenReturn(processDefinitionKey);
-      when(jobContext.getProcessInstanceKey()).thenReturn(processInstanceKey);
-    }
+  private void mockJobContextMetadata(long processDefinitionKey, long processInstanceKey) {
+    when(executionContext.jobContext()).thenReturn(jobContext);
+    when(jobContext.getProcessDefinitionKey()).thenReturn(processDefinitionKey);
+    when(jobContext.getProcessInstanceKey()).thenReturn(processInstanceKey);
   }
 }
