@@ -42,7 +42,8 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
           @FEEL
           @TemplateProperty(
               group = "provider",
-              description = "Optional custom API endpoint",
+              description =
+                  "Custom API endpoint for VPC/PrivateLink configurations, AWS GovCloud, or other non-standard deployments.",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
               optional = true)

@@ -187,7 +187,7 @@
   }, {
     "id" : "provider.bedrock.endpoint",
     "label" : "Endpoint",
-    "description" : "Optional custom API endpoint",
+    "description" : "Custom API endpoint for VPC/PrivateLink configurations, AWS GovCloud, or other non-standard deployments.",
     "optional" : true,
     "feel" : "optional",
     "group" : "provider",
@@ -1438,14 +1438,14 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.memory.storage.endpointOverride",
-    "label" : "Endpoint Override",
-    "description" : "Optional endpoint override URI for testing or custom deployments.",
+    "id" : "data.memory.storage.endpoint",
+    "label" : "Endpoint",
+    "description" : "Custom API endpoint for VPC/PrivateLink configurations, AWS GovCloud, or other non-standard deployments.",
     "optional" : true,
     "feel" : "optional",
     "group" : "memory",
     "binding" : {
-      "name" : "data.memory.storage.endpointOverride",
+      "name" : "data.memory.storage.endpoint",
       "type" : "zeebe:input"
     },
     "condition" : {

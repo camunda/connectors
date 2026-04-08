@@ -112,11 +112,15 @@ public sealed interface MemoryStorageConfiguration
                   "The AWS region where the AgentCore Memory resource is located. Falls back to the default AWS region provider chain if not specified.",
               optional = true)
           String region,
-      @TemplateProperty(
-              label = "Endpoint Override",
-              description = "Optional endpoint override URI for testing or custom deployments.",
+      @FEEL
+          @TemplateProperty(
+              label = "Endpoint",
+              description =
+                  "Custom API endpoint for VPC/PrivateLink configurations, AWS GovCloud, or other non-standard deployments.",
+              type = TemplateProperty.PropertyType.String,
+              feel = FeelMode.optional,
               optional = true)
-          String endpointOverride,
+          String endpoint,
       @Valid @NotNull AwsAgentCoreAuthentication authentication)
       implements MemoryStorageConfiguration {
     @Override

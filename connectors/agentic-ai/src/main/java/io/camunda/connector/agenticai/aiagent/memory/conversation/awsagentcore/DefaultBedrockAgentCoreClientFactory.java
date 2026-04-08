@@ -40,8 +40,8 @@ public class DefaultBedrockAgentCoreClientFactory implements BedrockAgentCoreCli
     }
 
     // Apply endpoint override if specified (useful for testing/mocking)
-    if (config.endpointOverride() != null) {
-      builder.endpointOverride(URI.create(config.endpointOverride()));
+    if (config.endpoint() != null) {
+      builder.endpointOverride(URI.create(config.endpoint()));
     }
 
     return builder.build();
