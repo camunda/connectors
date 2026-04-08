@@ -14,7 +14,11 @@ import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration;
-import io.camunda.connector.agenticai.model.message.*;
+import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.model.message.Message;
+import io.camunda.connector.agenticai.model.message.SystemMessage;
+import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.model.message.UserMessage;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -23,7 +27,14 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
-import software.amazon.awssdk.services.bedrockagentcore.model.*;
+import software.amazon.awssdk.services.bedrockagentcore.model.BedrockAgentCoreException;
+import software.amazon.awssdk.services.bedrockagentcore.model.Branch;
+import software.amazon.awssdk.services.bedrockagentcore.model.BranchFilter;
+import software.amazon.awssdk.services.bedrockagentcore.model.CreateEventRequest;
+import software.amazon.awssdk.services.bedrockagentcore.model.Event;
+import software.amazon.awssdk.services.bedrockagentcore.model.FilterInput;
+import software.amazon.awssdk.services.bedrockagentcore.model.ListEventsRequest;
+import software.amazon.awssdk.services.bedrockagentcore.model.PayloadType;
 
 /**
  * Conversation session implementation for AWS AgentCore Memory.
@@ -286,7 +297,6 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
       }
 
       final var eventTimestamp = Instant.now();
-      final var metadata = mapper.toAwsMetadata(message.metadata());
       final var requestBuilder =
           CreateEventRequest.builder()
               .memoryId(config.memoryId())
@@ -294,8 +304,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
               .sessionId(sessionId)
               .payload(payloads)
               .eventTimestamp(eventTimestamp)
-              .clientToken(branchName + ":" + offset)
-              .metadata(metadata);
+              .clientToken(branchName + ":" + offset);
 
       if (branch != null) {
         requestBuilder.branch(branch);

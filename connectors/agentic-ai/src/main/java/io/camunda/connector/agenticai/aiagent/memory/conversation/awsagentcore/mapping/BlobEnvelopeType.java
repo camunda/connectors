@@ -23,7 +23,10 @@ public enum BlobEnvelopeType {
   TOOL_CALL_RESULTS("camunda.toolCallResults"),
 
   /** Envelope for non-text Content objects (DocumentContent, BlobContent, etc.) */
-  MESSAGE_CONTENT("camunda.messageContent");
+  MESSAGE_CONTENT("camunda.messageContent"),
+
+  /** Envelope for message metadata (timestamps, framework info, custom properties) */
+  MESSAGE_METADATA("camunda.messageMetadata");
 
   private final String blobType;
 
