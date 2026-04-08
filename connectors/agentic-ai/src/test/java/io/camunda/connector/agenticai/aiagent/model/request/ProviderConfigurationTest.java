@@ -8,6 +8,8 @@ package io.camunda.connector.agenticai.aiagent.model.request;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreAuthentication;
+import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicModel;
@@ -316,6 +318,51 @@ class ProviderConfigurationTest {
           new ServiceAccountCredentialsAuthentication("{}"),
           new GoogleVertexAiModel(
               "gemini-1.5-flash", new GoogleVertexAiModelParameters(null, null, null, null)));
+    }
+  }
+
+  @Nested
+  class AgentCoreMemoryConfigurationTest {
+
+    @Test
+    void validationShouldFail_WhenSaaSAndDefaultCredentialChainUsed() {
+      simulateSaaSEnvironment();
+      final var config =
+          createConfig(new AwsAgentCoreAuthentication.AwsDefaultCredentialsChainAuthentication());
+      assertThat(validator.validate(config))
+          .hasSize(1)
+          .extracting(ConstraintViolation::getMessage)
+          .containsExactly("AWS default credentials chain is not supported on SaaS");
+    }
+
+    @Test
+    void validationShouldSucceed_WhenNotSaaSAndDefaultCredentialChainUsed() {
+      final var config =
+          createConfig(new AwsAgentCoreAuthentication.AwsDefaultCredentialsChainAuthentication());
+      assertThat(validator.validate(config)).isEmpty();
+    }
+
+    @Test
+    void validationShouldSucceed_WhenSaaSAndStaticCredentialsUsed() {
+      simulateSaaSEnvironment();
+      final var config =
+          createConfig(
+              new AwsAgentCoreAuthentication.AwsStaticCredentialsAuthentication("key", "secret"));
+      assertThat(validator.validate(config)).isEmpty();
+    }
+
+    @Test
+    void validationShouldSucceed_WhenNotSaaSAndStaticCredentialsUsed() {
+      final var config =
+          createConfig(
+              new AwsAgentCoreAuthentication.AwsStaticCredentialsAuthentication("key", "secret"));
+      assertThat(validator.validate(config)).isEmpty();
+    }
+
+    private AwsAgentCoreMemoryStorageConfiguration createConfig(
+        AwsAgentCoreAuthentication authentication) {
+      return new AwsAgentCoreMemoryStorageConfiguration(
+          "mem-123", "actor-1", "us-east-1", null, authentication);
     }
   }
 

@@ -11,12 +11,14 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
+import io.camunda.connector.agenticai.util.ConnectorUtils;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertFalse;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
@@ -107,9 +109,8 @@ public sealed interface MemoryStorageConfiguration
           @NotBlank
           String actorId,
       @TemplateProperty(
-              label = "AWS Region",
-              description =
-                  "The AWS region where the AgentCore Memory resource is located. Falls back to the default AWS region provider chain if not specified.",
+              label = "Region",
+              description = "Specify the AWS region (example: <code>us-east-1</code>)",
               optional = true)
           String region,
       @FEEL
@@ -126,6 +127,14 @@ public sealed interface MemoryStorageConfiguration
     @Override
     public String storeType() {
       return AwsAgentCoreConversationStore.TYPE;
+    }
+
+    @AssertFalse(message = "AWS default credentials chain is not supported on SaaS")
+    @SuppressWarnings("unused")
+    public boolean isDefaultCredentialsChainUsedInSaaS() {
+      return ConnectorUtils.isSaaS()
+          && authentication
+              instanceof AwsAgentCoreAuthentication.AwsDefaultCredentialsChainAuthentication;
     }
   }
 
