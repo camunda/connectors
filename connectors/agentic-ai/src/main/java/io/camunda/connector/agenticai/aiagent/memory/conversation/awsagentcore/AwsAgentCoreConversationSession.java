@@ -129,16 +129,20 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
         previousConversationContext != null ? previousConversationContext.lastEventId() : null;
 
     if (!newMessages.isEmpty()) {
-      // Each turn writes to a new branch, forking from the last event of the previous turn.
-      // This ensures that if job completion fails after storing, the orphaned branch is
-      // invisible to the retry (which loads from the previous branch stored in context).
-      newBranchName = UUID.randomUUID().toString();
+      // Branch-per-turn strategy: each turn after the first writes to a new branch, forking from
+      // the last event of the previous turn. This ensures that if job completion fails after
+      // storing, the orphaned branch is invisible to the retry (which loads from the previous
+      // branch stored in context). The first turn writes to the main timeline (no branch) since
+      // there is no prior event to fork from.
+      if (lastEventId != null) {
+        newBranchName = UUID.randomUUID().toString();
+      }
       lastEventId = storeMessagesToAgentCore(sessionId, newMessages, newBranchName, lastEventId);
       LOGGER.debug(
           "Stored {} new messages to AgentCore Memory for session '{}' on branch '{}' ({} system message preserved in context)",
           newMessages.size(),
           sessionId,
-          newBranchName,
+          newBranchName != null ? newBranchName : "<main>",
           systemMessage != null ? 1 : 0);
     }
 
