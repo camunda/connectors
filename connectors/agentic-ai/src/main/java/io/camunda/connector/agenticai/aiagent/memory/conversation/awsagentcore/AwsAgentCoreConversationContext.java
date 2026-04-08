@@ -16,8 +16,11 @@ import jakarta.annotation.Nullable;
 /**
  * Conversation context for AWS AgentCore Memory storage.
  *
- * <p>Stores minimal state needed to identify and continue the conversation in AgentCore Memory,
- * avoiding duplicate writes by tracking the stored message count.
+ * <p>Stores minimal state needed to identify and continue the conversation in AgentCore Memory.
+ * Uses a branch-per-turn strategy to avoid split-brain issues: each agent turn writes new messages
+ * to a fresh branch, and the branch name is stored in this context. If job completion fails after
+ * writing, the orphaned branch is invisible to the next retry (which loads from the previous
+ * branch).
  *
  * <p>The system message is stored separately in this context since AgentCore Memory doesn't support
  * storing SYSTEM role messages. It needs to be preserved across iterations and re-applied to
@@ -27,7 +30,10 @@ import jakarta.annotation.Nullable;
  * @param memoryId The ID of the AgentCore Memory resource.
  * @param actorId The actor ID associated with this conversation.
  * @param sessionId The session ID in AgentCore.
- * @param storedMessageCount Count of messages stored so far, used for incremental writes.
+ * @param branchName The branch name for the current conversation state. Null on the first turn
+ *     (events on main timeline).
+ * @param lastEventId The event ID of the last written event. Used as rootEventId when creating the
+ *     next branch.
  * @param systemMessage System message that cannot be stored in AgentCore but needs to persist.
  */
 @AgenticAiRecord
@@ -39,7 +45,8 @@ public record AwsAgentCoreConversationContext(
     String memoryId,
     String actorId,
     String sessionId,
-    @Nullable Integer storedMessageCount,
+    @Nullable String branchName,
+    @Nullable String lastEventId,
     @Nullable SystemMessage systemMessage)
     implements ConversationContext, AwsAgentCoreConversationContextBuilder.With {
 

@@ -71,15 +71,18 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
     }
 
     final String sessionId = resolveSessionId(agentContext);
-    final List<Message> messages = loadMessagesFromAgentCore(sessionId);
+    final String branchName =
+        previousConversationContext != null ? previousConversationContext.branchName() : null;
+    final List<Message> messages = loadMessagesFromAgentCore(sessionId, branchName);
 
     initialMessageCount = messages.size();
     memory.addMessages(messages);
 
     LOGGER.debug(
-        "Loaded {} messages from AgentCore Memory for session '{}' (plus {} system message from context)",
+        "Loaded {} messages from AgentCore Memory for session '{}' branch '{}' (plus {} system message from context)",
         messages.size(),
         sessionId,
+        branchName != null ? branchName : "<main>",
         previousConversationContext != null && previousConversationContext.systemMessage() != null
             ? 1
             : 0);
@@ -102,24 +105,27 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
     final List<Message> storableMessages =
         allMessages.stream().filter(this::isStorableMessage).toList();
 
-    // Determine new messages to store (skip those already stored)
-    final int storedCount =
-        previousConversationContext != null
-                && previousConversationContext.storedMessageCount() != null
-            ? previousConversationContext.storedMessageCount()
-            : initialMessageCount;
-
+    // New messages = everything after what was loaded from AgentCore
     final List<Message> newMessages =
-        storedCount < storableMessages.size()
-            ? storableMessages.subList(storedCount, storableMessages.size())
+        initialMessageCount < storableMessages.size()
+            ? storableMessages.subList(initialMessageCount, storableMessages.size())
             : List.of();
 
+    String newBranchName = null;
+    String lastEventId =
+        previousConversationContext != null ? previousConversationContext.lastEventId() : null;
+
     if (!newMessages.isEmpty()) {
-      storeMessagesToAgentCore(sessionId, newMessages, storedCount);
+      // Each turn writes to a new branch, forking from the last event of the previous turn.
+      // This ensures that if job completion fails after storing, the orphaned branch is
+      // invisible to the retry (which loads from the previous branch stored in context).
+      newBranchName = UUID.randomUUID().toString();
+      lastEventId = storeMessagesToAgentCore(sessionId, newMessages, newBranchName, lastEventId);
       LOGGER.debug(
-          "Stored {} new messages to AgentCore Memory for session '{}' ({} system message preserved in context)",
+          "Stored {} new messages to AgentCore Memory for session '{}' on branch '{}' ({} system message preserved in context)",
           newMessages.size(),
           sessionId,
+          newBranchName,
           systemMessage != null ? 1 : 0);
     }
 
@@ -133,7 +139,13 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
             .memoryId(config.memoryId())
             .actorId(config.actorId())
             .sessionId(sessionId)
-            .storedMessageCount(storableMessages.size())
+            .branchName(
+                newBranchName != null
+                    ? newBranchName
+                    : (previousConversationContext != null
+                        ? previousConversationContext.branchName()
+                        : null))
+            .lastEventId(lastEventId)
             .systemMessage(systemMessage)
             .build();
 
@@ -172,16 +184,24 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
     return UUID.randomUUID().toString();
   }
 
-  private List<Message> loadMessagesFromAgentCore(String sessionId) {
+  private List<Message> loadMessagesFromAgentCore(String sessionId, String branchName) {
     final List<Message> messages = new ArrayList<>();
 
-    final var request =
+    final var requestBuilder =
         ListEventsRequest.builder()
             .memoryId(config.memoryId())
             .actorId(config.actorId())
             .sessionId(sessionId)
-            .includePayloads(true)
-            .build();
+            .includePayloads(true);
+
+    if (branchName != null) {
+      requestBuilder.filter(
+          FilterInput.builder()
+              .branch(BranchFilter.builder().name(branchName).includeParentBranches(true).build())
+              .build());
+    }
+
+    final var request = requestBuilder.build();
 
     final List<Event> allEvents = new ArrayList<>();
 
@@ -225,8 +245,23 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
     }
   }
 
-  private void storeMessagesToAgentCore(
-      String sessionId, List<Message> messages, int startMessageIndex) {
+  /**
+   * Stores messages to AgentCore Memory on a new branch.
+   *
+   * @param sessionId the session ID
+   * @param messages the new messages to store
+   * @param branchName the branch name for this turn
+   * @param rootEventId the event ID to fork from (null on first turn)
+   * @return the event ID of the last written event
+   */
+  private String storeMessagesToAgentCore(
+      String sessionId, List<Message> messages, String branchName, String rootEventId) {
+    String lastEventId = rootEventId;
+    final Branch branch =
+        rootEventId != null
+            ? Branch.builder().name(branchName).rootEventId(rootEventId).build()
+            : null;
+
     for (int offset = 0; offset < messages.size(); offset++) {
       final Message message = messages.get(offset);
       final List<PayloadType> payloads = mapper.toPayloads(message);
@@ -235,29 +270,34 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
       }
 
       final var eventTimestamp = Instant.now();
-      final var messageIndex = startMessageIndex + offset;
       final var metadata = mapper.toAwsMetadata(message.metadata());
-      final var request =
+      final var requestBuilder =
           CreateEventRequest.builder()
               .memoryId(config.memoryId())
               .actorId(config.actorId())
               .sessionId(sessionId)
               .payload(payloads)
               .eventTimestamp(eventTimestamp)
-              .clientToken(sessionId + ":" + messageIndex)
-              .metadata(metadata)
-              .build();
+              .clientToken(branchName + ":" + offset)
+              .metadata(metadata);
+
+      if (branch != null) {
+        requestBuilder.branch(branch);
+      }
 
       try {
-        client.createEvent(request);
+        final var response = client.createEvent(requestBuilder.build());
+        lastEventId = response.event().eventId();
       } catch (Exception e) {
         LOGGER.error(
-            "Failed to store event to AgentCore Memory for session '{}': {}",
+            "Failed to store event to AgentCore Memory for session '{}' branch '{}': {}",
             sessionId,
+            branchName,
             e.getMessage());
         throw new IllegalStateException(
             "Failed to store conversation event to AgentCore Memory", e);
       }
     }
+    return lastEventId;
   }
 }
