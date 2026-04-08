@@ -2,5 +2,6 @@
   "io.camunda.connector.IdpExtractionOutBoundTemplate.v1",
   "io.camunda.connector.IdpClassificationOutBoundTemplate.v1",
   "io.camunda.connector.IdpStructuredExtractionOutBoundTemplate.v1",
-  "io.camunda.connector.IdpUnstructuredExtractionOutBoundTemplate.v1"
+  "io.camunda.connector.IdpUnstructuredExtractionOutBoundTemplate.v1",
+  "io.camunda.connectors.aws.bedrock.agentcore.runtime.v1"
 ]

@@ -6,13 +6,17 @@
  */
 package io.camunda.connector.aws.bedrock.agentcore.runtime;
 
-import io.camunda.connector.aws.bedrock.agentcore.runtime.model.request.AgentCoreRuntimeRequest;
+import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.aws.bedrock.agentcore.runtime.model.request.AgentCoreRuntimeInput;
 import io.camunda.connector.aws.bedrock.agentcore.runtime.model.response.AgentCoreRuntimeResponse;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
+import software.amazon.awssdk.services.bedrockagentcore.model.BedrockAgentCoreException;
 import software.amazon.awssdk.services.bedrockagentcore.model.InvokeAgentRuntimeRequest;
 
 public class AgentCoreRuntimeExecutor {
+
+  private static final String ERROR_RUNTIME_FAILED = "AGENTCORE_RUNTIME_FAILED";
 
   private final BedrockAgentCoreClient client;
 
@@ -20,26 +24,31 @@ public class AgentCoreRuntimeExecutor {
     this.client = client;
   }
 
-  public AgentCoreRuntimeResponse invoke(AgentCoreRuntimeRequest request) {
-    var builder =
-        InvokeAgentRuntimeRequest.builder()
-            .agentRuntimeArn(request.getAgentRuntimeArn())
-            .payload(
-                SdkBytes.fromUtf8String(
-                    "{\"inputText\":\"" + escapeJson(request.getPrompt()) + "\"}"))
-            .contentType("application/json")
-            .accept("application/json");
+  public AgentCoreRuntimeResponse invoke(AgentCoreRuntimeInput input) {
+    try {
+      var builder =
+          InvokeAgentRuntimeRequest.builder()
+              .agentRuntimeArn(input.getAgentRuntimeArn())
+              .payload(
+                  SdkBytes.fromUtf8String(
+                      "{\"inputText\":\"" + escapeJson(input.getPrompt()) + "\"}"))
+              .contentType("application/json")
+              .accept("application/json");
 
-    if (request.getSessionId() != null && !request.getSessionId().isBlank()) {
-      builder.runtimeSessionId(request.getSessionId());
+      if (input.getSessionId() != null && !input.getSessionId().isBlank()) {
+        builder.runtimeSessionId(input.getSessionId());
+      }
+
+      var responseBytes = client.invokeAgentRuntimeAsBytes(builder.build());
+      return new AgentCoreRuntimeResponse(
+          responseBytes.asUtf8String(),
+          responseBytes.response().runtimeSessionId(),
+          responseBytes.response().statusCode());
+
+    } catch (BedrockAgentCoreException e) {
+      var msg = e.awsErrorDetails() != null ? e.awsErrorDetails().errorMessage() : e.getMessage();
+      throw new ConnectorException(ERROR_RUNTIME_FAILED, "AgentCore Runtime error: " + msg, e);
     }
-
-    var responseBytes = client.invokeAgentRuntimeAsBytes(builder.build());
-    var responseText = responseBytes.asUtf8String();
-    var sessionId = responseBytes.response().runtimeSessionId();
-    var statusCode = responseBytes.response().statusCode();
-
-    return new AgentCoreRuntimeResponse(responseText, sessionId, statusCode);
   }
 
   private static String escapeJson(String text) {

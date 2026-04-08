@@ -7,52 +7,18 @@
 package io.camunda.connector.aws.bedrock.agentcore.runtime.model.request;
 
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
-import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 public class AgentCoreRuntimeRequest extends AwsBaseRequest {
 
-  @NotBlank
-  @TemplateProperty(
-      group = "agentConfig",
-      label = "Agent Runtime ARN",
-      description = "The ARN or agent ID of the AgentCore Runtime agent to invoke")
-  private String agentRuntimeArn;
+  @Valid @NotNull private AgentCoreRuntimeInput input;
 
-  @NotBlank
-  @TemplateProperty(
-      group = "agentConfig",
-      label = "Prompt",
-      description = "The message or task to send to the agent")
-  private String prompt;
-
-  @TemplateProperty(
-      group = "agentConfig",
-      label = "Session ID",
-      description = "Optional session ID for multi-turn conversations")
-  private String sessionId;
-
-  public String getAgentRuntimeArn() {
-    return agentRuntimeArn;
+  public AgentCoreRuntimeInput getInput() {
+    return input;
   }
 
-  public void setAgentRuntimeArn(String agentRuntimeArn) {
-    this.agentRuntimeArn = agentRuntimeArn;
-  }
-
-  public String getPrompt() {
-    return prompt;
-  }
-
-  public void setPrompt(String prompt) {
-    this.prompt = prompt;
-  }
-
-  public String getSessionId() {
-    return sessionId;
-  }
-
-  public void setSessionId(String sessionId) {
-    this.sessionId = sessionId;
+  public void setInput(AgentCoreRuntimeInput input) {
+    this.input = input;
   }
 }
