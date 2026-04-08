@@ -51,6 +51,12 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
     inputDataClass = HttpJsonRequest.class,
     outputDataClass = HttpCommonResult.class,
     version = 13,
+    defaultResultExpression =
+        "{\n"
+            + "  myResponseBody: response.body\n"
+            + "  // Use FEEL to extract values, e.g.,:\n"
+            + "  // myUserId: response.body.post.userId\n"
+            + "}",
     propertyGroups = {
       @PropertyGroup(id = "authentication", label = "Authentication"),
       @PropertyGroup(id = "endpoint", label = "HTTP endpoint"),

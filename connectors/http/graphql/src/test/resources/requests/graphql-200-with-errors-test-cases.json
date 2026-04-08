@@ -1,0 +1,13 @@
+[
+  {
+    "descriptionOfTest": "GraphQL 200 response containing top-level errors array",
+    "authentication": {
+      "type": "noAuth"
+    },
+    "graphql": {
+      "method": "post",
+      "url": "http://localhost:8085/http-endpoint",
+      "query": "{ hero { name } }"
+    }
+  }
+]

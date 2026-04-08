@@ -155,7 +155,7 @@ public class HttpOutboundElementTemplateBuilderTest {
     }
 
     @Test
-    void singleServer_noVisibleExpected() {
+    void singleServer_visibleStringExpected() {
       // given
       var servers = List.of(new HttpServerData("https://example.com", "Example server"));
 
@@ -165,7 +165,7 @@ public class HttpOutboundElementTemplateBuilderTest {
 
       // then
       var serverProperty = findByBindingName("baseUrl", properties);
-      assertThat(serverProperty.getType()).isEqualTo("Hidden");
+      assertThat(serverProperty.getType()).isEqualTo("String");
       assertThat(serverProperty.getBinding()).isInstanceOf(ZeebeInput.class);
       assertThat(serverProperty.getValue()).isEqualTo("https://example.com");
     }

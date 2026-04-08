@@ -1,6 +1,6 @@
 {
-  "main": "camunda-platform-8.9",
-  "alpha/8.9": "camunda-platform-8.9",
+  "main": "camunda-platform-8.10",
+  "stable/8.9": "camunda-platform-8.9",
   "stable/8.8": "camunda-platform-8.8",
   "stable/8.7": "camunda-platform-8.7",
   "stable/8.6": "camunda-platform-8.6"
