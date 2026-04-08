@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentSubProcessResponse;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -81,9 +80,7 @@ public class JobWorkerAgentRequestHandler
 
   @Override
   public AiAgentSubProcessResponse completeJob(
-      JobWorkerAgentExecutionContext executionContext,
-      AgentResponse agentResponse,
-      ConversationStore conversationStore) {
+      JobWorkerAgentExecutionContext executionContext, AgentResponse agentResponse) {
     if (agentResponse == null) {
       LOGGER.debug(
           "No agent response provided, completing job {} without response",
@@ -103,14 +100,12 @@ public class JobWorkerAgentRequestHandler
             agentResponse.toolCalls().stream().map(tc -> tc.metadata().name()).toList());
       }
 
-      return completeWithResponse(executionContext, agentResponse, conversationStore);
+      return completeWithResponse(executionContext, agentResponse);
     }
   }
 
   private AiAgentSubProcessResponse completeWithResponse(
-      JobWorkerAgentExecutionContext executionContext,
-      AgentResponse agentResponse,
-      ConversationStore conversationStore) {
+      JobWorkerAgentExecutionContext executionContext, AgentResponse agentResponse) {
     boolean completionConditionFulfilled = agentResponse.toolCalls().isEmpty();
     boolean cancelRemainingInstances = executionContext.cancelRemainingInstances();
 
