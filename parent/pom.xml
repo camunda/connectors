@@ -172,7 +172,7 @@ limitations under the License.</license.inlineheader>
 
     <version.langchain4j>1.12.2</version.langchain4j>
     <version.mcp-sdk>1.1.1</version.mcp-sdk>
-    <version.elasticsearch-java-client>8.19.13</version.elasticsearch-java-client>
+    <version.elasticsearch-java-client>8.19.14</version.elasticsearch-java-client>
 
     <version.scala>3.8.3</version.scala>
 
