@@ -8,6 +8,7 @@ package io.camunda.connector.aws.bedrock.knowledgebase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -172,7 +173,7 @@ class BedrockKnowledgeBaseExecutorTest extends BaseTest {
 
     var result = executor.execute(buildRequest("KB1", "query", null), documentFactory);
 
-    assertThat(result.results().get(0).metadata()).containsEntry("category", "\"auto\"");
+    assertThat(result.results().get(0).metadata()).containsEntry("category", "auto");
   }
 
   @Test
@@ -208,7 +209,7 @@ class BedrockKnowledgeBaseExecutorTest extends BaseTest {
   }
 
   @Test
-  void shouldCreateDocumentForEveryChunk() {
+  void shouldCreateDocumentForEveryChunk() throws Exception {
     when(mockDocument.reference()).thenReturn(mockReference);
     when(documentFactory.create(any(DocumentCreationRequest.class))).thenReturn(mockDocument);
     when(client.retrieve(any(RetrieveRequest.class)))
@@ -230,9 +231,12 @@ class BedrockKnowledgeBaseExecutorTest extends BaseTest {
 
     assertThat(result.resultCount()).isEqualTo(3);
     assertThat(result.results()).hasSize(3);
-    // Verify document factory was called for each chunk
     var captor = ArgumentCaptor.forClass(DocumentCreationRequest.class);
-    verify(documentFactory, org.mockito.Mockito.times(3)).create(captor.capture());
+    verify(documentFactory, times(3)).create(captor.capture());
+    var requests = captor.getAllValues();
+    assertThat(new String(requests.get(0).content().readAllBytes())).isEqualTo("chunk 1");
+    assertThat(new String(requests.get(1).content().readAllBytes())).isEqualTo("chunk 2");
+    assertThat(new String(requests.get(2).content().readAllBytes())).isEqualTo("chunk 3");
   }
 
   private BedrockKnowledgeBaseRequest buildRequest(

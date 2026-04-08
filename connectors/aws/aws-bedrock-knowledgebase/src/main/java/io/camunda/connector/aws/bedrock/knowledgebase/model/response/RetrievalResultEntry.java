@@ -14,4 +14,4 @@ public record RetrievalResultEntry(
     String content,
     Double score,
     String sourceUri,
-    Map<String, String> metadata) {}
+    Map<String, Object> metadata) {}

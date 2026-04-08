@@ -82,7 +82,7 @@ public class BedrockKnowledgeBaseExecutor {
                                 .collect(
                                     Collectors.toMap(
                                         Map.Entry::getKey,
-                                        e -> e.getValue() != null ? e.getValue().toString() : ""))
+                                        e -> e.getValue() != null ? e.getValue().unwrap() : ""))
                             : Map.of());
                   })
               .toList();
