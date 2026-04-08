@@ -362,7 +362,7 @@ class ProviderConfigurationTest {
     private AwsAgentCoreMemoryStorageConfiguration createConfig(
         AwsAgentCoreAuthentication authentication) {
       return new AwsAgentCoreMemoryStorageConfiguration(
-          "mem-123", "actor-1", "us-east-1", null, authentication);
+          "us-east-1", null, authentication, "mem-123", "actor-1");
     }
   }
 

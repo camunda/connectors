@@ -94,23 +94,6 @@ public sealed interface MemoryStorageConfiguration
   record AwsAgentCoreMemoryStorageConfiguration(
       @FEEL
           @TemplateProperty(
-              label = "Memory ID",
-              description = "The ID of the pre-provisioned AgentCore Memory resource.",
-              feel = FeelMode.optional,
-              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-          @NotBlank
-          String memoryId,
-      @FEEL
-          @TemplateProperty(
-              label = "Actor ID",
-              description =
-                  "Identifier of the actor associated with events (e.g., end-user or agent/user combination).",
-              feel = FeelMode.optional,
-              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-          @NotBlank
-          String actorId,
-      @FEEL
-          @TemplateProperty(
               label = "Region",
               description = "Specify the AWS region (example: <code>us-east-1</code>)",
               feel = FeelMode.optional,
@@ -126,7 +109,24 @@ public sealed interface MemoryStorageConfiguration
               feel = FeelMode.optional,
               optional = true)
           String endpoint,
-      @Valid @NotNull AwsAgentCoreAuthentication authentication)
+      @Valid @NotNull AwsAgentCoreAuthentication authentication,
+      @FEEL
+          @TemplateProperty(
+              label = "Memory ID",
+              description = "The ID of the pre-provisioned AgentCore Memory resource.",
+              feel = FeelMode.optional,
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+          @NotBlank
+          String memoryId,
+      @FEEL
+          @TemplateProperty(
+              label = "Actor ID",
+              description =
+                  "Identifier of the actor associated with events (e.g., end-user or agent/user combination).",
+              feel = FeelMode.optional,
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+          @NotBlank
+          String actorId)
       implements MemoryStorageConfiguration {
     @Override
     public String storeType() {
