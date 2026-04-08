@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.ProcessDefinitionAdHocToolElementsResolver;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest;
 import io.camunda.connector.agenticai.aiagent.model.request.ToolsConfiguration;
+import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +34,7 @@ class OutboundConnectorAgentExecutionContextTest {
   private static final String CONTAINER_ELEMENT_ID = "test-container-element-id";
 
   @Mock(answer = RETURNS_DEEP_STUBS)
-  private OutboundConnectorAgentJobContext jobContext;
+  private JobContext jobContext;
 
   @Mock(answer = RETURNS_DEEP_STUBS)
   private OutboundConnectorAgentRequest agentRequest;
@@ -70,7 +71,7 @@ class OutboundConnectorAgentExecutionContextTest {
   void loadsToolElementsFromProcessDefinition() {
     when(agentRequest.data().tools())
         .thenReturn(new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of()));
-    when(jobContext.processDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
+    when(jobContext.getProcessDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
 
     when(toolElementsResolver.resolveToolElements(PROCESS_DEFINITION_KEY, CONTAINER_ELEMENT_ID))
         .thenReturn(AD_HOC_TOOL_ELEMENTS);
@@ -82,7 +83,7 @@ class OutboundConnectorAgentExecutionContextTest {
   void doesNotLoadToolElementsMultipleTimes() {
     when(agentRequest.data().tools())
         .thenReturn(new ToolsConfiguration(CONTAINER_ELEMENT_ID, List.of()));
-    when(jobContext.processDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
+    when(jobContext.getProcessDefinitionKey()).thenReturn(PROCESS_DEFINITION_KEY);
 
     when(toolElementsResolver.resolveToolElements(PROCESS_DEFINITION_KEY, CONTAINER_ELEMENT_ID))
         .thenReturn(AD_HOC_TOOL_ELEMENTS);

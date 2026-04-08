@@ -137,10 +137,10 @@ public class CamundaDocumentConversationSession implements ConversationSession {
     final var documentCreationRequestBuilder =
         DocumentCreationRequest.from(
                 new ByteArrayInputStream(serialized.getBytes(StandardCharsets.UTF_8)))
-            .processDefinitionId(jobContext.bpmnProcessId())
-            .processInstanceKey(jobContext.processInstanceKey())
+            .processDefinitionId(jobContext.getBpmnProcessId())
+            .processInstanceKey(jobContext.getProcessInstanceKey())
             .contentType("application/json")
-            .fileName("%s_conversation.json".formatted(jobContext.elementId()))
+            .fileName("%s_conversation.json".formatted(jobContext.getElementId()))
             .customProperties(properties);
 
     Optional.ofNullable(config.timeToLive()).ifPresent(documentCreationRequestBuilder::timeToLive);

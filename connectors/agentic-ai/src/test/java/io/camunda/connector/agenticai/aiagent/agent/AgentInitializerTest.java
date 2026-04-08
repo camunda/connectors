@@ -23,7 +23,6 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
@@ -34,6 +33,7 @@ import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.model.tool.ToolDefinition;
+import io.camunda.connector.api.outbound.JobContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -88,7 +88,7 @@ class AgentInitializerTest {
 
   @Mock private AgentToolsResolver toolsResolver;
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
-  @Mock private AgentJobContext jobContext;
+  @Mock private JobContext jobContext;
   @InjectMocks private AgentInitializerImpl agentInitializer;
 
   @Mock private AgentExecutionContext executionContext;
@@ -103,8 +103,7 @@ class AgentInitializerTest {
 
     @BeforeEach
     void setUp() {
-      when(executionContext.jobContext()).thenReturn(jobContext);
-      when(jobContext.metadata()).thenReturn(EXECUTION_METADATA);
+      mockJobContextMetadata(PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
     }
 
     @ParameterizedTest
@@ -478,20 +477,13 @@ class AgentInitializerTest {
     private static final long MIGRATED_PROCESS_DEFINITION_KEY = 222222222L;
     private static final long PROCESS_INSTANCE_KEY = 987654321L;
 
-    @BeforeEach
-    void setUp() {
-      when(executionContext.jobContext()).thenReturn(jobContext);
-    }
-
     @Test
     void triggersToolUpdateWhenMetadataIsNull() {
       final var agentContext =
           AgentContext.empty().withState(AgentState.READY).withToolDefinitions(TOOL_DEFINITIONS);
       when(executionContext.initialAgentContext()).thenReturn(agentContext);
 
-      final var executionMetadata =
-          new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
-      when(jobContext.metadata()).thenReturn(executionMetadata);
+      mockJobContextMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
 
       final var updatedAgentContext =
           agentContext.withToolDefinitions(TOOL_DEFINITIONS).withProperty("updated", true);
@@ -500,11 +492,13 @@ class AgentInitializerTest {
 
       final var result = agentInitializer.initializeAgent(executionContext);
 
+      final var expectedMetadata =
+          new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
       assertThat(result)
           .isInstanceOfSatisfying(
               AgentContextInitializationResult.class,
               res -> {
-                assertThat(res.agentContext().metadata()).isEqualTo(executionMetadata);
+                assertThat(res.agentContext().metadata()).isEqualTo(expectedMetadata);
                 assertThat(res.agentContext().properties()).containsEntry("updated", true);
               });
     }
@@ -520,9 +514,7 @@ class AgentInitializerTest {
               .withToolDefinitions(TOOL_DEFINITIONS);
       when(executionContext.initialAgentContext()).thenReturn(agentContext);
 
-      final var executionMetadata =
-          new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
-      when(jobContext.metadata()).thenReturn(executionMetadata);
+      mockJobContextMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
 
       final var updatedAgentContext =
           agentContext.withToolDefinitions(TOOL_DEFINITIONS).withProperty("migrated", true);
@@ -531,11 +523,13 @@ class AgentInitializerTest {
 
       final var result = agentInitializer.initializeAgent(executionContext);
 
+      final var expectedMetadata =
+          new AgentMetadata(MIGRATED_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
       assertThat(result)
           .isInstanceOfSatisfying(
               AgentContextInitializationResult.class,
               res -> {
-                assertThat(res.agentContext().metadata()).isEqualTo(executionMetadata);
+                assertThat(res.agentContext().metadata()).isEqualTo(expectedMetadata);
                 assertThat(res.agentContext().properties()).containsEntry("migrated", true);
               });
     }
@@ -551,7 +545,7 @@ class AgentInitializerTest {
       when(executionContext.initialAgentContext()).thenReturn(agentContext);
       when(executionContext.initialToolCallResults()).thenReturn(TOOL_CALL_RESULTS);
 
-      when(jobContext.metadata()).thenReturn(metadata);
+      mockJobContextMetadata(ORIGINAL_PROCESS_DEFINITION_KEY, PROCESS_INSTANCE_KEY);
 
       final var result = agentInitializer.initializeAgent(executionContext);
 
@@ -565,5 +559,11 @@ class AgentInitializerTest {
 
       verifyNoInteractions(toolsResolver, gatewayToolHandlers);
     }
+  }
+
+  private void mockJobContextMetadata(long processDefinitionKey, long processInstanceKey) {
+    when(executionContext.jobContext()).thenReturn(jobContext);
+    when(jobContext.getProcessDefinitionKey()).thenReturn(processDefinitionKey);
+    when(jobContext.getProcessInstanceKey()).thenReturn(processInstanceKey);
   }
 }
