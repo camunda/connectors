@@ -45,9 +45,24 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
 
   // BPMN error
   private static final String BPMN_ERROR_FUNCTION_NAME = "bpmnError";
+  private static final List<String> BPMN_ERROR_ARGUMENTS_CODE_ONLY = List.of("errorCode");
   private static final List<String> BPMN_ERROR_ARGUMENTS = List.of("errorCode", "errorMessage");
   private static final List<String> BPMN_ERROR_ARGUMENTS_WITH_VARS =
       List.of("errorCode", "errorMessage", "variables");
+
+  private static final JavaFunction BPMN_ERROR_FUNCTION_CODE_ONLY =
+      new JavaFunction(
+          BPMN_ERROR_ARGUMENTS_CODE_ONLY,
+          args ->
+              new ValContext(
+                  new Context.StaticContext(
+                      new Map.Map2<>(
+                          ERROR_TYPE_PROPERTY,
+                          BPMN_ERROR_TYPE_VALUE,
+                          BPMN_ERROR_ARGUMENTS_CODE_ONLY.get(0),
+                          toString(args, 0)),
+                      Map$.MODULE$.empty())));
+
   private static final JavaFunction BPMN_ERROR_FUNCTION =
       new JavaFunction(
           BPMN_ERROR_ARGUMENTS,
@@ -79,6 +94,7 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
                           BPMN_ERROR_ARGUMENTS_WITH_VARS.get(2),
                           toContext(args, 2)),
                       Map$.MODULE$.empty())));
+
   private static final String JOB_ERROR_FUNCTION_NAME = "jobError";
   // Fail Job
 
@@ -157,7 +173,8 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
   private static final java.util.Map<String, List<JavaFunction>> functions =
       java.util.Map.of(
           BPMN_ERROR_FUNCTION_NAME,
-          List.of(BPMN_ERROR_FUNCTION, BPMN_ERROR_FUNCTION_WITH_VARS),
+          List.of(
+              BPMN_ERROR_FUNCTION_CODE_ONLY, BPMN_ERROR_FUNCTION, BPMN_ERROR_FUNCTION_WITH_VARS),
           JOB_ERROR_FUNCTION_NAME,
           List.of(
               JOB_ERROR_FUNCTION_1,

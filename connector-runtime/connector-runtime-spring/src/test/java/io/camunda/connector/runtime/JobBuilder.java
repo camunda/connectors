@@ -18,6 +18,7 @@ package io.camunda.connector.runtime;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -148,9 +149,13 @@ public class JobBuilder {
         var errorMessageCaptor = ArgumentCaptor.forClass(String.class);
         verify(throwCommand).errorCode(errorCodeCaptor.capture());
         verify(throwCommandStep2).variables(variablesCaptor.capture());
-        verify(throwCommandStep2_2).errorMessage(errorMessageCaptor.capture());
-        return new JobResult(
-            errorCodeCaptor.getValue(), errorMessageCaptor.getValue(), variablesCaptor.getValue());
+        verify(throwCommandStep2_2, atMost(1)).errorMessage(errorMessageCaptor.capture());
+        String errorMessage =
+            errorMessageCaptor.getAllValues().isEmpty() ? null : errorMessageCaptor.getValue();
+        if (errorMessage != null) {
+          verify(throwCommandStep2_2).errorMessage(errorMessage);
+        }
+        return new JobResult(errorCodeCaptor.getValue(), errorMessage, variablesCaptor.getValue());
       } else {
         var errorMessageCaptor = ArgumentCaptor.forClass(String.class);
         var variablesCaptor = ArgumentCaptor.forClass(Object.class);

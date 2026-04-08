@@ -115,11 +115,13 @@ public class SpringConnectorJobHandler implements JobHandler {
 
   protected static ThrowErrorCommandStep1.ThrowErrorCommandStep2 prepareThrowBpmnErrorCommand(
       JobClient client, ActivatedJob job, BpmnError error) {
-    return client
-        .newThrowErrorCommand(job)
-        .errorCode(error.errorCode())
-        .variables(error.variables())
-        .errorMessage(truncateErrorMessage(error.errorMessage()));
+    var command =
+        client.newThrowErrorCommand(job).errorCode(error.errorCode()).variables(error.variables());
+    var errorMessage = truncateErrorMessage(error.errorMessage());
+    if (errorMessage != null) {
+      command = command.errorMessage(errorMessage);
+    }
+    return command;
   }
 
   private static String truncateErrorMessage(String message) {
