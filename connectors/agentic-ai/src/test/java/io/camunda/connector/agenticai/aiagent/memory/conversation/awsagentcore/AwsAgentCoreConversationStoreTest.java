@@ -147,7 +147,8 @@ class AwsAgentCoreConversationStoreTest {
                     .memoryId(MEMORY_ID)
                     .actorId(ACTOR_ID)
                     .sessionId(SESSION_ID)
-                    .storedMessageCount(2)
+                    .branchName("prev-branch")
+                    .lastEventId("evt-2")
                     .build())
             .build();
 
@@ -192,7 +193,7 @@ class AwsAgentCoreConversationStoreTest {
     // Mock empty list events response for new conversation
     mockListEventsResponse(List.of());
     when(bedrockClient.createEvent(any(CreateEventRequest.class)))
-        .thenReturn(CreateEventResponse.builder().build());
+        .thenReturn(createEventResponse());
 
     final var result =
         store.executeInSession(
@@ -213,8 +214,11 @@ class AwsAgentCoreConversationStoreTest {
     assertThat(requests).hasSize(2);
     assertThat(requests.get(0).memoryId()).isEqualTo(MEMORY_ID);
     assertThat(requests.get(0).actorId()).isEqualTo(ACTOR_ID);
-    assertThat(requests.get(0).clientToken()).isEqualTo(SESSION_ID + ":0");
-    assertThat(requests.get(1).clientToken()).isEqualTo(SESSION_ID + ":1");
+    // clientToken is branchName:offset — branch name is a UUID so just check the offset suffix
+    assertThat(requests.get(0).clientToken()).endsWith(":0");
+    assertThat(requests.get(1).clientToken()).endsWith(":1");
+    // First turn has no previous event to branch from, so no branch field
+    assertThat(requests.get(0).branch()).isNull();
 
     // Verify conversation context was updated
     final var conversation = result.context().conversation();
@@ -222,7 +226,7 @@ class AwsAgentCoreConversationStoreTest {
     final var agentCoreContext = (AwsAgentCoreConversationContext) conversation;
     assertThat(agentCoreContext.memoryId()).isEqualTo(MEMORY_ID);
     assertThat(agentCoreContext.actorId()).isEqualTo(ACTOR_ID);
-    assertThat(agentCoreContext.storedMessageCount()).isEqualTo(2);
+    assertThat(agentCoreContext.lastEventId()).isNotNull();
   }
 
   @Test
@@ -236,7 +240,8 @@ class AwsAgentCoreConversationStoreTest {
                     .memoryId(MEMORY_ID)
                     .actorId(ACTOR_ID)
                     .sessionId(SESSION_ID)
-                    .storedMessageCount(2)
+                    .branchName("prev-branch")
+                    .lastEventId("evt-2")
                     .build())
             .build();
 
@@ -247,7 +252,7 @@ class AwsAgentCoreConversationStoreTest {
             createEvent(Role.ASSISTANT, "Hi there!", Instant.now().minusSeconds(30)));
     mockListEventsResponse(events);
     when(bedrockClient.createEvent(any(CreateEventRequest.class)))
-        .thenReturn(CreateEventResponse.builder().build());
+        .thenReturn(createEventResponse());
 
     store.executeInSession(
         executionContext,
@@ -262,7 +267,10 @@ class AwsAgentCoreConversationStoreTest {
     // Verify only 1 new message was stored (not the existing 2)
     verify(bedrockClient, times(1)).createEvent(createEventRequestCaptor.capture());
     final var request = createEventRequestCaptor.getValue();
-    assertThat(request.clientToken()).isEqualTo(SESSION_ID + ":2");
+    // New messages written to a new branch forked from the previous turn's last event
+    assertThat(request.branch()).isNotNull();
+    assertThat(request.branch().rootEventId()).isEqualTo("evt-2");
+    assertThat(request.clientToken()).endsWith(":0");
   }
 
   @Test
@@ -326,7 +334,7 @@ class AwsAgentCoreConversationStoreTest {
     // Mock empty list events response for new conversation
     mockListEventsResponse(List.of());
     when(bedrockClient.createEvent(any(CreateEventRequest.class)))
-        .thenReturn(CreateEventResponse.builder().build());
+        .thenReturn(createEventResponse());
 
     final var result =
         store.executeInSession(
@@ -347,14 +355,14 @@ class AwsAgentCoreConversationStoreTest {
     verify(bedrockClient, times(2)).createEvent(createEventRequestCaptor.capture());
     final var requests = createEventRequestCaptor.getAllValues();
     assertThat(requests).hasSize(2);
-    assertThat(requests.get(0).clientToken()).isEqualTo(SESSION_ID + ":0");
-    assertThat(requests.get(1).clientToken()).isEqualTo(SESSION_ID + ":1");
+    assertThat(requests.get(0).clientToken()).endsWith(":0");
+    assertThat(requests.get(1).clientToken()).endsWith(":1");
 
-    // Verify conversation context stored count matches storable messages (2, not 3)
+    // Verify conversation context was updated with branch info
     final var conversation = result.context().conversation();
     assertThat(conversation).isInstanceOf(AwsAgentCoreConversationContext.class);
     final var agentCoreContext = (AwsAgentCoreConversationContext) conversation;
-    assertThat(agentCoreContext.storedMessageCount()).isEqualTo(2); // Not 3!
+    assertThat(agentCoreContext.lastEventId()).isNotNull();
 
     // Verify system message is preserved in the context
     assertThat(agentCoreContext.systemMessage()).isNotNull();
@@ -371,7 +379,8 @@ class AwsAgentCoreConversationStoreTest {
             .memoryId(MEMORY_ID)
             .actorId(ACTOR_ID)
             .sessionId(SESSION_ID)
-            .storedMessageCount(2)
+            .branchName("prev-branch")
+            .lastEventId("evt-2")
             .systemMessage(systemMsg)
             .build();
 
@@ -414,7 +423,7 @@ class AwsAgentCoreConversationStoreTest {
 
     mockListEventsResponse(List.of());
     when(bedrockClient.createEvent(any(CreateEventRequest.class)))
-        .thenReturn(CreateEventResponse.builder().build());
+        .thenReturn(createEventResponse());
 
     // Create assistant message with tool calls
     final var toolCall1 =
@@ -442,8 +451,8 @@ class AwsAgentCoreConversationStoreTest {
     verify(bedrockClient, times(2)).createEvent(createEventRequestCaptor.capture());
     final var requests = createEventRequestCaptor.getAllValues();
     assertThat(requests).hasSize(2);
-    assertThat(requests.get(0).clientToken()).isEqualTo(SESSION_ID + ":0");
-    assertThat(requests.get(1).clientToken()).isEqualTo(SESSION_ID + ":1");
+    assertThat(requests.get(0).clientToken()).endsWith(":0");
+    assertThat(requests.get(1).clientToken()).endsWith(":1");
 
     // Verify assistant event stores:
     // - conversational payload with plain assistant text
@@ -479,7 +488,8 @@ class AwsAgentCoreConversationStoreTest {
             .memoryId(MEMORY_ID)
             .actorId(ACTOR_ID)
             .sessionId(SESSION_ID)
-            .storedMessageCount(2)
+            .branchName("prev-branch")
+            .lastEventId("evt-2")
             .build();
 
     final var agentContext = AgentContext.builder().conversation(previousContext).build();
@@ -553,7 +563,8 @@ class AwsAgentCoreConversationStoreTest {
             .memoryId(MEMORY_ID)
             .actorId(ACTOR_ID)
             .sessionId(SESSION_ID)
-            .storedMessageCount(1)
+            .branchName("prev-branch")
+            .lastEventId("evt-1")
             .build();
 
     final var agentContext = AgentContext.builder().conversation(previousContext).build();
@@ -610,7 +621,8 @@ class AwsAgentCoreConversationStoreTest {
             .memoryId(MEMORY_ID)
             .actorId(ACTOR_ID)
             .sessionId(SESSION_ID)
-            .storedMessageCount(1)
+            .branchName("prev-branch")
+            .lastEventId("evt-1")
             .build();
 
     final var agentContext = AgentContext.builder().conversation(previousContext).build();
@@ -661,6 +673,14 @@ class AwsAgentCoreConversationStoreTest {
     when(listEventsIterable.events()).thenReturn(eventsIterable);
     when(bedrockClient.listEventsPaginator(any(ListEventsRequest.class)))
         .thenReturn(listEventsIterable);
+  }
+
+  private static int eventCounter = 0;
+
+  private CreateEventResponse createEventResponse() {
+    return CreateEventResponse.builder()
+        .event(Event.builder().eventId("evt-" + (++eventCounter)).build())
+        .build();
   }
 
   private AgentResponse agentResponse(AgentContext agentContext) {
