@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.HttpUrl;
 import io.camunda.connector.agenticai.util.ConnectorUtils;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.FeelMode;
@@ -108,12 +109,15 @@ public sealed interface MemoryStorageConfiguration
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           @NotBlank
           String actorId,
-      @TemplateProperty(
+      @FEEL
+          @TemplateProperty(
               label = "Region",
               description = "Specify the AWS region (example: <code>us-east-1</code>)",
+              feel = FeelMode.optional,
               optional = true)
           String region,
-      @FEEL
+      @HttpUrl
+          @FEEL
           @TemplateProperty(
               label = "Endpoint",
               description =
