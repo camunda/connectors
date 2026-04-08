@@ -582,4 +582,5 @@ For detailed documentation, see the [Camunda Connectors Documentation](https://d
 - Runtime Configuration
 - Troubleshooting Guide
 
-Its important that pull requests that introduce changes to connector development patterns, runtime configuration, or testing strategies also update the official documentation to keep everything in sync.
+It's important that pull requests that introduce changes to connector development patterns, runtime configuration, or testing strategies also update the official documentation to keep everything in sync.
+You can open documentation pull request in this repository: https://github.com/camunda/camunda-docs
