@@ -90,6 +90,8 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
 
   @Override
   public AgentContext storeFromRuntimeMemory(AgentContext agentContext, RuntimeMemory memory) {
+    validateConfigurationConsistency();
+
     final String sessionId = resolveSessionId(agentContext);
     final List<Message> allMessages = memory.allMessages();
 
@@ -166,6 +168,28 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
     return message instanceof UserMessage
         || message instanceof AssistantMessage
         || message instanceof ToolCallResultMessage;
+  }
+
+  /**
+   * Validates that memoryId and actorId have not changed between iterations. Changing these would
+   * silently write to a different memory resource while the context still references the old one.
+   */
+  private void validateConfigurationConsistency() {
+    if (previousConversationContext == null) {
+      return;
+    }
+    if (previousConversationContext.memoryId() != null
+        && !previousConversationContext.memoryId().equals(config.memoryId())) {
+      throw new IllegalStateException(
+          "memoryId changed between iterations (was '%s', now '%s'). Changing the memory resource mid-conversation is not supported."
+              .formatted(previousConversationContext.memoryId(), config.memoryId()));
+    }
+    if (previousConversationContext.actorId() != null
+        && !previousConversationContext.actorId().equals(config.actorId())) {
+      throw new IllegalStateException(
+          "actorId changed between iterations (was '%s', now '%s'). Changing the actor mid-conversation is not supported."
+              .formatted(previousConversationContext.actorId(), config.actorId()));
+    }
   }
 
   private String resolveSessionId(AgentContext agentContext) {
