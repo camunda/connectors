@@ -6,7 +6,8 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

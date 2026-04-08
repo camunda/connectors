@@ -7,10 +7,15 @@
 package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping;
 
 import static io.camunda.connector.agenticai.model.message.content.TextContent.textContent;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.model.message.*;
+import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.model.message.Message;
+import io.camunda.connector.agenticai.model.message.SystemMessage;
+import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
@@ -459,65 +464,6 @@ class AwsAgentCoreConversationMapperTest {
   // ==================== Metadata Tests ====================
 
   @Test
-  void shouldConvertMetadataToAwsMetadataValue() {
-    // given
-    Map<String, Object> metadata =
-        Map.of("key1", "value1", "key2", 123, "key3", Map.of("nested", "value"));
-
-    // when
-    var awsMetadata = mapper.toAwsMetadata(metadata);
-
-    // then
-    assertThat(awsMetadata).hasSize(3);
-    assertThat(awsMetadata.get("key1").stringValue()).isEqualTo("value1");
-    assertThat(awsMetadata.get("key2").stringValue()).isEqualTo("123");
-    assertThat(awsMetadata.get("key3").stringValue()).contains("nested");
-  }
-
-  @Test
-  void shouldConvertAwsMetadataValueToMetadata() {
-    // given
-    var awsMetadata =
-        Map.of(
-            "key1",
-            software.amazon.awssdk.services.bedrockagentcore.model.MetadataValue.fromStringValue(
-                "value1"),
-            "key2",
-            software.amazon.awssdk.services.bedrockagentcore.model.MetadataValue.fromStringValue(
-                "123"));
-
-    // when
-    Map<String, Object> metadata = mapper.fromAwsMetadata(awsMetadata);
-
-    // then
-    assertThat(metadata).hasSize(2).containsEntry("key1", "value1").containsEntry("key2", "123");
-  }
-
-  @Test
-  void shouldHandleNullAndEmptyMetadata() {
-    // when/then - null metadata
-    assertThat(mapper.toAwsMetadata(null)).isEmpty();
-    assertThat(mapper.fromAwsMetadata(null)).isEmpty();
-
-    // when/then - empty metadata
-    assertThat(mapper.toAwsMetadata(Map.of())).isEmpty();
-    assertThat(mapper.fromAwsMetadata(Map.of())).isEmpty();
-  }
-
-  @Test
-  void shouldSkipNullValuesInMetadata() {
-    // given
-    Map<String, Object> metadata = Map.of("key1", "value1");
-
-    // when
-    var awsMetadata = mapper.toAwsMetadata(metadata);
-
-    // then
-    assertThat(awsMetadata).hasSize(1);
-    assertThat(awsMetadata.get("key1").stringValue()).isEqualTo("value1");
-  }
-
-  @Test
   void shouldPreserveMetadataInUserMessageRoundTrip() {
     // given
     Map<String, Object> metadata =
@@ -528,8 +474,7 @@ class AwsAgentCoreConversationMapperTest {
 
     // when
     List<PayloadType> payloads = mapper.toPayloads(original);
-    var awsMetadata = mapper.toAwsMetadata(original.metadata());
-    Event event = Event.builder().payload(payloads).metadata(awsMetadata).build();
+    Event event = Event.builder().payload(payloads).build();
     List<Message> messages = mapper.fromEvent(event);
 
     // then
@@ -555,8 +500,7 @@ class AwsAgentCoreConversationMapperTest {
 
     // when
     List<PayloadType> payloads = mapper.toPayloads(original);
-    var awsMetadata = mapper.toAwsMetadata(original.metadata());
-    Event event = Event.builder().payload(payloads).metadata(awsMetadata).build();
+    Event event = Event.builder().payload(payloads).build();
     List<Message> messages = mapper.fromEvent(event);
 
     // then
@@ -581,8 +525,7 @@ class AwsAgentCoreConversationMapperTest {
 
     // when
     List<PayloadType> payloads = mapper.toPayloads(original);
-    var awsMetadata = mapper.toAwsMetadata(original.metadata());
-    Event event = Event.builder().payload(payloads).metadata(awsMetadata).build();
+    Event event = Event.builder().payload(payloads).build();
     List<Message> messages = mapper.fromEvent(event);
 
     // then
@@ -602,8 +545,7 @@ class AwsAgentCoreConversationMapperTest {
 
     // when
     List<PayloadType> payloads = mapper.toPayloads(original);
-    var awsMetadata = mapper.toAwsMetadata(original.metadata());
-    Event event = Event.builder().payload(payloads).metadata(awsMetadata).build();
+    Event event = Event.builder().payload(payloads).build();
     List<Message> messages = mapper.fromEvent(event);
 
     // then

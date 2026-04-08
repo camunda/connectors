@@ -16,6 +16,7 @@ import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import software.amazon.awssdk.core.document.Document;
 
 /**
@@ -43,6 +44,7 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
   private static final String FIELD_TOOL_CALLS = "toolCalls";
   private static final String FIELD_RESULTS = "results";
   private static final String FIELD_CONTENT = "content";
+  private static final String FIELD_METADATA = "metadata";
 
   /**
    * Create an envelope for a ToolCall array.
@@ -98,6 +100,25 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
     envelope.set(FIELD_CONTENT, data);
     return new BlobEnvelope(
         BlobEnvelopeType.MESSAGE_CONTENT.getBlobType(), CURRENT_VERSION, envelope);
+  }
+
+  /**
+   * Create an envelope for message metadata.
+   *
+   * @param metadata the metadata map to wrap
+   * @param mapper the ObjectMapper to use for serialization
+   * @return the envelope
+   * @throws JsonProcessingException if serialization fails
+   */
+  public static BlobEnvelope forMetadata(Map<String, Object> metadata, ObjectMapper mapper)
+      throws JsonProcessingException {
+    JsonNode data = mapper.valueToTree(metadata);
+    ObjectNode envelope = mapper.createObjectNode();
+    envelope.put(FIELD_BLOB_TYPE, BlobEnvelopeType.MESSAGE_METADATA.getBlobType());
+    envelope.put(FIELD_VERSION, CURRENT_VERSION);
+    envelope.set(FIELD_METADATA, data);
+    return new BlobEnvelope(
+        BlobEnvelopeType.MESSAGE_METADATA.getBlobType(), CURRENT_VERSION, envelope);
   }
 
   /**
@@ -197,6 +218,11 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
         throw new IOException("MessageContent envelope missing 'content' field");
       }
       return data.get(FIELD_CONTENT);
+    } else if (is(BlobEnvelopeType.MESSAGE_METADATA)) {
+      if (!data.has(FIELD_METADATA)) {
+        throw new IOException("MessageMetadata envelope missing 'metadata' field");
+      }
+      return data.get(FIELD_METADATA);
     } else {
       throw new IOException("Unknown envelope type: " + blobType);
     }
