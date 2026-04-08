@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore;
 
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore.BedrockAgentCoreClientFactory;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration;
@@ -22,10 +23,16 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClientBu
  * Default implementation of {@link BedrockAgentCoreClientFactory} that creates AWS Bedrock
  * AgentCore clients based on the provided configuration.
  *
- * <p>Supports authentication via static credentials or default credentials chain, optional region
- * and endpoint override configuration.
+ * <p>Supports authentication via static credentials or default credentials chain, optional region,
+ * endpoint override, and HTTP proxy configuration.
  */
 public class DefaultBedrockAgentCoreClientFactory implements BedrockAgentCoreClientFactory {
+
+  private final ChatModelHttpProxySupport proxySupport;
+
+  public DefaultBedrockAgentCoreClientFactory(ChatModelHttpProxySupport proxySupport) {
+    this.proxySupport = proxySupport;
+  }
 
   @Override
   public BedrockAgentCoreClient createClient(AwsAgentCoreMemoryStorageConfiguration config) {
@@ -39,10 +46,15 @@ public class DefaultBedrockAgentCoreClientFactory implements BedrockAgentCoreCli
       builder.region(Region.of(config.region()));
     }
 
-    // Apply endpoint override if specified (useful for testing/mocking)
+    // Apply endpoint override if specified
+    URI endpointOverride = null;
     if (config.endpoint() != null) {
-      builder.endpointOverride(URI.create(config.endpoint()));
+      endpointOverride = URI.create(config.endpoint());
+      builder.endpointOverride(endpointOverride);
     }
+
+    // Apply HTTP proxy configuration (same as Bedrock LLM client)
+    builder.httpClient(proxySupport.createAwsHttpClient(endpointOverride));
 
     return builder.build();
   }
