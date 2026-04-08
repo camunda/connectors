@@ -87,39 +87,43 @@ This mirrors the Document store pattern where orphaned documents are harmless.
 
 1. **Optimize for long-term memory extraction**: Human-readable text goes into conversational payloads
 2. **Enable 1:1 round-trip mapping**: Structured data uses versioned blob envelopes
-3. **One Message = one Event**: Each internal message maps to one AgentCore event with multiple payloads
+3. **Preserve content ordering**: Payloads are emitted and read in the same order as the original content list, interleaving conversational and blob payloads as needed
+4. **One Message = one Event**: Each internal message maps to one AgentCore event with multiple payloads
 
 ### Mapping Table
 
 | Message Type | Conversational Payload | Blob Payload |
 |---|---|---|
-| `UserMessage` | Each `TextContent` → USER | Each non-text Content → `camunda.messageContent` blob |
-| `AssistantMessage` | Each `TextContent` → ASSISTANT | ToolCalls → `camunda.toolCalls` blob |
+| `UserMessage` | Each `TextContent` → USER (in order) | Each non-text Content → `camunda.messageContent` blob (in order) |
+| `AssistantMessage` | Each `TextContent` → ASSISTANT (in order) | Non-text Content → `camunda.messageContent` blob (in order); ToolCalls → `camunda.toolCalls` blob (appended after content) |
 | `ToolCallResultMessage` | Summary text → TOOL (for extraction) | Full structure → `camunda.toolCallResults` blob |
 | `SystemMessage` | **Not stored in AgentCore** | Preserved in `AwsAgentCoreConversationContext` |
+| *(all types)* | — | Metadata → `camunda.messageMetadata` blob (appended last) |
 
 ### Detailed Mapping Examples
 
-**UserMessage:**
+**UserMessage with mixed content (order preserved):**
 ```
-UserMessage { content: [TextContent("Hello"), DocumentContent(...)], metadata: {"userId": "u1"} }
+UserMessage { content: [TextContent("Hello"), DocumentContent(...), TextContent("more")], metadata: {"userId": "u1"} }
 
-→ Event with payloads:
+→ Event with payloads (in order):
     Conversational { role: USER, content: { text: "Hello" } }
     Blob { "blobType": "camunda.messageContent", "version": 1, "content": {"type": "document", ...} }
-  metadata: { "userId": "u1" }
+    Conversational { role: USER, content: { text: "more" } }
+    Blob { "blobType": "camunda.messageMetadata", "version": 1, "metadata": {"userId": "u1"} }
 ```
-Rules: each `TextContent` → separate Conversational USER payload. Each non-text `Content` → blob envelope. `UserMessage.name` is not stored.
+Content items are emitted in their original order — `TextContent` becomes conversational, non-text becomes blob, interleaved as they appear. Metadata is appended as a separate blob envelope. `UserMessage.name` is not stored.
 
-**AssistantMessage:**
+**AssistantMessage with tool calls:**
 ```
 AssistantMessage { content: [TextContent("Here's the result")], toolCalls: [ToolCall(id="1", name="search", ...)] }
 
 → Event with payloads:
     Conversational { role: ASSISTANT, content: { text: "Here's the result" } }
     Blob { "blobType": "camunda.toolCalls", "version": 1, "toolCalls": [{...}] }
+    Blob { "blobType": "camunda.messageMetadata", "version": 1, "metadata": {...} }
 ```
-Edge case: if AssistantMessage has only toolCalls and no text content, only the blob payload is created (no conversational payload). The deserializer detects this by finding a `camunda.toolCalls` blob without any conversational payload.
+Edge case: if AssistantMessage has only toolCalls and no text content, only the toolCalls blob is created (no conversational payload). The deserializer detects this by the `camunda.toolCalls` blob type.
 
 **ToolCallResultMessage:**
 ```
@@ -128,8 +132,9 @@ ToolCallResultMessage { results: [ToolCallResult(id="1", content="Found 3 items"
 → Event with payloads:
     Conversational { role: TOOL, content: { text: "Found 3 items\nData retrieved" } }
     Blob { "blobType": "camunda.toolCallResults", "version": 1, "results": [{...}, {...}] }
+    Blob { "blobType": "camunda.messageMetadata", "version": 1, "metadata": {...} }
 ```
-The conversational TOOL payload contains concatenated text for AWS long-term memory extraction. The blob preserves the full structured result array for exact reconstruction.
+The conversational TOOL payload contains concatenated text for AWS long-term memory extraction. The blob preserves the full structured result array for exact reconstruction. On read, the blob is authoritative; the conversational text is ignored.
 
 ### Blob Envelope Format
 
@@ -147,23 +152,21 @@ Supported types:
 - `camunda.toolCalls` (data key: `toolCalls`) — `ToolCall[]` from AssistantMessage
 - `camunda.toolCallResults` (data key: `results`) — `ToolCallResult[]` from ToolCallResultMessage
 - `camunda.messageContent` (data key: `content`) — Non-text `Content` objects (preserves native `type` discriminator)
+- `camunda.messageMetadata` (data key: `metadata`) — Message metadata map (timestamps, framework info, custom properties)
 
 The envelope design provides: unified approach for all non-text data, type discrimination via `blobType` checked first during deserialization, independent version evolution per blob type, and support for nested discriminators (e.g., Content's `@JsonTypeInfo(property="type")` is preserved inside the envelope).
 
-### Backward Compatibility
+### Fallback Handling
 
-The deserializer handles legacy formats:
-1. **Old toolCalls format**: Raw JSON array `[{...}]` without envelope wrapper — detected and upgraded automatically
-2. **Old tool results format**: Conversational TOOL with plain text, no blob — creates minimal `ToolCallResult` with text as content
-3. **Plain conversational messages**: No blob payloads — maps directly to messages with text content only
+The deserializer handles degraded formats:
+1. **ToolCallResultMessage without blob**: If only a conversational TOOL payload is present (no `camunda.toolCallResults` blob), creates a minimal `ToolCallResult` from the conversational text
+2. **Messages without metadata blob**: If no `camunda.messageMetadata` blob is present, metadata defaults to an empty map
 
 ### Metadata Handling
 
-- AWS AgentCore metadata only supports string values
-- String metadata values are preserved as-is
-- Non-string values are JSON-serialized to strings
-- Null values are skipped
-- Round-trip: all values return as strings (e.g., `42` becomes `"42"`)
+Message metadata is stored as a `camunda.messageMetadata` blob envelope appended to each event's payload list. This preserves the full metadata structure with exact round-trip fidelity, including complex types like `ZonedDateTime` objects and nested maps.
+
+The AWS event-level metadata field is **not used** because it only supports string values matching `[a-zA-Z0-9\s._:/=+@-]*`, which rejects JSON-serialized objects and timestamps.
 
 ### System Message Handling
 
@@ -176,13 +179,13 @@ AgentCore Memory doesn't support the SYSTEM role. System messages are:
 
 **Preserved (1:1 round-trip):**
 - Message role/type, text content, non-text Content objects
+- Content ordering within a message (interleaving of text and non-text preserved)
+- Message metadata (stored as blob envelope, exact round-trip including complex types)
 - Assistant toolCalls (via blob), ToolCallResult structure (via blob)
 
 **Lossy:**
-- Metadata value types (all converted to strings — AgentCore API constraint)
 - `UserMessage.name` field (not stored)
 - `ToolCallResult.properties` map — round-trip depends on `@JsonAnySetter`/`@JsonAnyGetter` through nested JSON
-- Content ordering within a message (text always reconstructed before non-text)
 
 ## Configuration
 
@@ -246,10 +249,15 @@ The default credentials chain looks for credentials in this order:
 
 The mapper **must** use the Connectors-configured `ObjectMapper` (injected via `@ConnectorsObjectMapper` in auto-configuration). Do not use `new ObjectMapper()` — the configured mapper includes polymorphic type handling for `Content` subclasses (`@JsonTypeInfo`), Java 8 date/time support, and consistent serialization settings.
 
+## HTTP Proxy Support
+
+The AgentCore client uses the same HTTP proxy configuration as the Bedrock LLM client. Proxy settings are applied via `CONNECTOR_HTTP_PLAIN_PROXY_HOST` / `CONNECTOR_HTTPS_PLAIN_PROXY_HOST` environment variables.
+
 ## Validation
 
 - `memoryId` and `actorId` are validated for consistency between iterations — changing them mid-conversation throws `IllegalStateException`
 - Configuration type is validated at session creation
+- **Default credentials chain is blocked on SaaS** — the same `@AssertFalse` validation as the Bedrock LLM provider prevents using `defaultCredentialsChain` in SaaS environments
 
 ## Limitations
 

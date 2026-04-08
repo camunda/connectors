@@ -553,4 +553,192 @@ class AwsAgentCoreConversationMapperTest {
     UserMessage reconstructed = (UserMessage) messages.get(0);
     assertThat(reconstructed.metadata()).isEmpty();
   }
+
+  // ==================== Content Order Preservation Tests ====================
+
+  @Test
+  void shouldPreserveContentOrderInUserMessage_textBlobText() {
+    // given: text, non-text, text — interleaved
+    Document doc = createTestDocument();
+    UserMessage original =
+        UserMessage.builder()
+            .content(
+                List.of(
+                    textContent("First"),
+                    DocumentContent.documentContent(doc),
+                    textContent("Third")))
+            .build();
+
+    // when
+    List<PayloadType> payloads = mapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    List<Message> messages = mapper.fromEvent(event);
+
+    // then — order must be preserved
+    assertThat(messages).hasSize(1);
+    UserMessage reconstructed = (UserMessage) messages.get(0);
+    assertThat(reconstructed.content()).hasSize(3);
+    assertThat(reconstructed.content().get(0)).isInstanceOf(TextContent.class);
+    assertThat(((TextContent) reconstructed.content().get(0)).text()).isEqualTo("First");
+    assertThat(reconstructed.content().get(1)).isInstanceOf(DocumentContent.class);
+    assertThat(reconstructed.content().get(2)).isInstanceOf(TextContent.class);
+    assertThat(((TextContent) reconstructed.content().get(2)).text()).isEqualTo("Third");
+  }
+
+  @Test
+  void shouldPreserveContentOrderInUserMessage_blobFirst() {
+    // given: non-text before text
+    Document doc = createTestDocument();
+    UserMessage original =
+        UserMessage.builder()
+            .content(List.of(DocumentContent.documentContent(doc), textContent("After")))
+            .build();
+
+    // when
+    List<PayloadType> payloads = mapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    List<Message> messages = mapper.fromEvent(event);
+
+    // then
+    assertThat(messages).hasSize(1);
+    UserMessage reconstructed = (UserMessage) messages.get(0);
+    assertThat(reconstructed.content()).hasSize(2);
+    assertThat(reconstructed.content().get(0)).isInstanceOf(DocumentContent.class);
+    assertThat(reconstructed.content().get(1)).isInstanceOf(TextContent.class);
+    assertThat(((TextContent) reconstructed.content().get(1)).text()).isEqualTo("After");
+  }
+
+  @Test
+  void shouldPreserveContentOrderInAssistantMessage_textBlobText() {
+    // given: interleaved text and non-text with toolCalls
+    Document doc = createTestDocument();
+    AssistantMessage original =
+        AssistantMessage.builder()
+            .content(
+                List.of(
+                    textContent("Before"),
+                    DocumentContent.documentContent(doc),
+                    textContent("After")))
+            .toolCalls(
+                List.of(
+                    ToolCall.builder()
+                        .id("call_1")
+                        .name("search")
+                        .arguments(Map.of("q", "test"))
+                        .build()))
+            .build();
+
+    // when
+    List<PayloadType> payloads = mapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    List<Message> messages = mapper.fromEvent(event);
+
+    // then — content order preserved, toolCalls separate
+    assertThat(messages).hasSize(1);
+    AssistantMessage reconstructed = (AssistantMessage) messages.get(0);
+    assertThat(reconstructed.content()).hasSize(3);
+    assertThat(reconstructed.content().get(0)).isInstanceOf(TextContent.class);
+    assertThat(((TextContent) reconstructed.content().get(0)).text()).isEqualTo("Before");
+    assertThat(reconstructed.content().get(1)).isInstanceOf(DocumentContent.class);
+    assertThat(reconstructed.content().get(2)).isInstanceOf(TextContent.class);
+    assertThat(((TextContent) reconstructed.content().get(2)).text()).isEqualTo("After");
+    assertThat(reconstructed.toolCalls()).hasSize(1);
+    assertThat(reconstructed.toolCalls().get(0).name()).isEqualTo("search");
+  }
+
+  @Test
+  void shouldPreservePayloadOrderOnWire_userMessageWithMixedContent() {
+    // given
+    Document doc = createTestDocument();
+    UserMessage message =
+        UserMessage.builder()
+            .content(
+                List.of(textContent("A"), DocumentContent.documentContent(doc), textContent("B")))
+            .build();
+
+    // when
+    List<PayloadType> payloads = mapper.toPayloads(message);
+
+    // then — payloads must be in content order: conv, blob, conv
+    assertThat(payloads).hasSize(3);
+    assertThat(payloads.get(0).conversational()).isNotNull();
+    assertThat(payloads.get(0).conversational().content().text()).isEqualTo("A");
+    assertThat(payloads.get(1).blob()).isNotNull(); // DocumentContent blob
+    assertThat(payloads.get(2).conversational()).isNotNull();
+    assertThat(payloads.get(2).conversational().content().text()).isEqualTo("B");
+  }
+
+  @Test
+  void shouldPreserveContentOrderWithMetadata() {
+    // given: mixed content + metadata
+    Document doc = createTestDocument();
+    UserMessage original =
+        UserMessage.builder()
+            .content(List.of(textContent("Text"), DocumentContent.documentContent(doc)))
+            .metadata(Map.of("key", "value"))
+            .build();
+
+    // when
+    List<PayloadType> payloads = mapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    List<Message> messages = mapper.fromEvent(event);
+
+    // then — content order preserved, metadata round-trips
+    assertThat(messages).hasSize(1);
+    UserMessage reconstructed = (UserMessage) messages.get(0);
+    assertThat(reconstructed.content()).hasSize(2);
+    assertThat(reconstructed.content().get(0)).isInstanceOf(TextContent.class);
+    assertThat(reconstructed.content().get(1)).isInstanceOf(DocumentContent.class);
+    assertThat(reconstructed.metadata()).containsEntry("key", "value");
+  }
+
+  @Test
+  void shouldHandleAssistantMessageWithToolCallsOnly_noContent() {
+    // given: toolCalls only, no content
+    AssistantMessage original =
+        AssistantMessage.builder()
+            .toolCalls(
+                List.of(
+                    ToolCall.builder()
+                        .id("call_1")
+                        .name("getWeather")
+                        .arguments(Map.of("city", "Berlin"))
+                        .build()))
+            .build();
+
+    // when
+    List<PayloadType> payloads = mapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    List<Message> messages = mapper.fromEvent(event);
+
+    // then
+    assertThat(messages).hasSize(1);
+    AssistantMessage reconstructed = (AssistantMessage) messages.get(0);
+    assertThat(reconstructed.content()).isEmpty();
+    assertThat(reconstructed.toolCalls()).hasSize(1);
+    assertThat(reconstructed.toolCalls().get(0).name()).isEqualTo("getWeather");
+  }
+
+  @Test
+  void shouldHandleUserMessageWithTextOnly_noBlobs() {
+    // given: simple text-only message
+    UserMessage original =
+        UserMessage.builder().content(List.of(textContent("Simple message"))).build();
+
+    // when
+    List<PayloadType> payloads = mapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    List<Message> messages = mapper.fromEvent(event);
+
+    // then
+    assertThat(messages).hasSize(1);
+    UserMessage reconstructed = (UserMessage) messages.get(0);
+    assertThat(reconstructed.content()).hasSize(1);
+    assertThat(((TextContent) reconstructed.content().get(0)).text()).isEqualTo("Simple message");
+  }
+
+  private Document createTestDocument() {
+    return new TestDocumentFactory()
+        .create(DocumentCreationRequest.from("test".getBytes(StandardCharsets.UTF_8)).build());
+  }
 }

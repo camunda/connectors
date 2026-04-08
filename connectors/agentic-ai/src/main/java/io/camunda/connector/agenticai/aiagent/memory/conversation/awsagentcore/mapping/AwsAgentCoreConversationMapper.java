@@ -126,39 +126,37 @@ public class AwsAgentCoreConversationMapper {
 
   private List<PayloadType> mapUserMessage(UserMessage message) {
     List<PayloadType> payloads = new ArrayList<>();
-
-    // Map each TextContent to conversational USER payload
-    for (TextContent text : extractTextContent(message.content())) {
-      payloads.add(createConversationalPayload(Role.USER, text.text()));
-    }
-
-    // Map each non-text Content to blob envelope
-    for (Content content : extractNonTextContent(message.content())) {
-      payloads.add(createContentBlobPayload(content));
-    }
-
+    mapContentInOrder(payloads, message.content(), Role.USER);
     return payloads;
   }
 
   private List<PayloadType> mapAssistantMessage(AssistantMessage message) {
     List<PayloadType> payloads = new ArrayList<>();
+    mapContentInOrder(payloads, message.content(), Role.ASSISTANT);
 
-    // Map text content to conversational ASSISTANT
-    for (TextContent text : extractTextContent(message.content())) {
-      payloads.add(createConversationalPayload(Role.ASSISTANT, text.text()));
-    }
-
-    // Map non-text content to blob envelope
-    for (Content content : extractNonTextContent(message.content())) {
-      payloads.add(createContentBlobPayload(content));
-    }
-
-    // Map toolCalls to blob envelope
+    // ToolCalls are appended after content (not part of the content list)
     if (message.toolCalls() != null && !message.toolCalls().isEmpty()) {
       payloads.add(createToolCallsBlobPayload(message.toolCalls()));
     }
 
     return payloads;
+  }
+
+  /**
+   * Maps content items to payloads preserving their original order. TextContent becomes
+   * conversational payloads, non-text Content becomes blob envelopes.
+   */
+  private void mapContentInOrder(List<PayloadType> payloads, List<Content> content, Role role) {
+    if (content == null) {
+      return;
+    }
+    for (Content item : content) {
+      if (item instanceof TextContent text) {
+        payloads.add(createConversationalPayload(role, text.text()));
+      } else {
+        payloads.add(createContentBlobPayload(item));
+      }
+    }
   }
 
   private List<PayloadType> mapToolCallResultMessage(ToolCallResultMessage message) {
@@ -184,176 +182,95 @@ public class AwsAgentCoreConversationMapper {
 
   // ==================== Payloads to Messages ====================
 
+  /**
+   * Extracts messages from payloads by processing them in order, preserving the original content
+   * interleaving between conversational and blob payloads.
+   *
+   * <p>Special blob types (metadata, toolCalls, toolCallResults) are extracted separately. Content
+   * payloads (conversational text and messageContent blobs) are collected in their original order.
+   */
   @SuppressWarnings("unchecked")
   private List<Message> extractMessagesFromPayloads(
       List<PayloadType> payloads, Map<String, Object> metadata) throws IOException {
-    // Separate payloads by type
-    List<Conversational> conversationals = new ArrayList<>();
-    List<Document> blobs = new ArrayList<>();
+    Role messageRole = null;
+    List<Content> content = new ArrayList<>();
+    List<ToolCall> toolCalls = List.of();
+    List<ToolCallResult> toolCallResults = null;
 
     for (PayloadType payload : payloads) {
       if (payload.conversational() != null) {
-        conversationals.add(payload.conversational());
-      }
-      if (payload.blob() != null) {
-        blobs.add(payload.blob());
-      }
-    }
-
-    // Extract metadata from blob envelope if present, remove it from the blob list
-    List<Document> messageBlobs = new ArrayList<>();
-    for (Document blob : blobs) {
-      try {
-        BlobEnvelope envelope = BlobEnvelope.fromDocument(blob, objectMapper);
-        if (envelope.is(BlobEnvelopeType.MESSAGE_METADATA)) {
-          metadata = envelope.parseData(Map.class, objectMapper);
+        Conversational conv = payload.conversational();
+        if (messageRole == null) {
+          messageRole = conv.role();
+        }
+        if (messageRole == Role.TOOL) {
+          // TOOL conversational is a summary for long-term memory extraction —
+          // skip it if we have a blob with the full structure (handled below)
           continue;
         }
-      } catch (IOException ignored) {
-        // Not a valid envelope — treat as a regular blob
-      }
-      messageBlobs.add(blob);
-    }
-    blobs = messageBlobs;
-
-    // Determine message type from conversational roles
-    if (conversationals.isEmpty() && !blobs.isEmpty()) {
-      try {
-        BlobEnvelope envelope = BlobEnvelope.fromDocument(blobs.get(0), objectMapper);
-        if (envelope.is(BlobEnvelopeType.TOOL_CALLS)) {
-          // AssistantMessage with toolCalls but no text content
-          return List.of(reconstructAssistantMessage(conversationals, blobs, metadata));
+        String text = extractTextFromConversational(conv);
+        if (text != null && !text.isBlank()) {
+          content.add(TextContent.textContent(text));
         }
-        // Blob exists but is not a recognized envelope type
-        throw new AgentCoreMapperException(
-            "Event has only blob payloads but blob is not a recognized envelope type", null);
-      } catch (IOException e) {
-        throw new AgentCoreMapperException("Failed to parse blob envelope: " + e.getMessage(), e);
+      } else if (payload.blob() != null) {
+        BlobEnvelope envelope = BlobEnvelope.fromDocument(payload.blob(), objectMapper);
+
+        if (envelope.is(BlobEnvelopeType.MESSAGE_METADATA)) {
+          metadata = envelope.parseData(Map.class, objectMapper);
+        } else if (envelope.is(BlobEnvelopeType.TOOL_CALLS)) {
+          toolCalls = parseToolCallsFromEnvelope(envelope);
+          if (messageRole == null) {
+            messageRole = Role.ASSISTANT; // toolCalls-only AssistantMessage (no text)
+          }
+        } else if (envelope.is(BlobEnvelopeType.TOOL_CALL_RESULTS)) {
+          toolCallResults = parseToolCallResultsFromEnvelope(envelope);
+        } else if (envelope.is(BlobEnvelopeType.MESSAGE_CONTENT)) {
+          content.add(parseContentFromEnvelope(envelope));
+        } else {
+          throw new AgentCoreMapperException(
+              "Unrecognized blob envelope type: " + envelope.blobType(), null);
+        }
       }
     }
 
-    Role primaryRole = conversationals.get(0).role();
-    return switch (primaryRole) {
-      case USER -> List.of(reconstructUserMessage(conversationals, blobs, metadata));
-      case ASSISTANT -> List.of(reconstructAssistantMessage(conversationals, blobs, metadata));
-      case TOOL -> List.of(reconstructToolCallResultMessage(conversationals, blobs, metadata));
+    if (messageRole == null) {
+      return List.of();
+    }
+
+    return switch (messageRole) {
+      case USER -> List.of(UserMessage.builder().content(content).metadata(metadata).build());
+      case ASSISTANT ->
+          List.of(
+              AssistantMessage.builder()
+                  .content(content)
+                  .toolCalls(toolCalls)
+                  .metadata(metadata)
+                  .build());
+      case TOOL -> {
+        // Prefer full structure from blob; fall back to conversational summary
+        if (toolCallResults == null) {
+          // Legacy: no blob, only conversational TOOL text
+          String summaryText =
+              payloads.stream()
+                  .filter(p -> p.conversational() != null)
+                  .map(p -> extractTextFromConversational(p.conversational()))
+                  .filter(t -> t != null && !t.isBlank())
+                  .collect(Collectors.joining("\n"));
+          toolCallResults =
+              summaryText.isEmpty()
+                  ? List.of()
+                  : List.of(ToolCallResult.builder().content(summaryText).build());
+        }
+        yield List.of(
+            ToolCallResultMessage.builder().results(toolCallResults).metadata(metadata).build());
+      }
       case OTHER, UNKNOWN_TO_SDK_VERSION ->
           throw new IllegalStateException(
               "OTHER/UNKNOWN_TO_SDK_VERSION role is not supported in conversational payloads");
     };
   }
 
-  private UserMessage reconstructUserMessage(
-      List<Conversational> conversationals, List<Document> blobs, Map<String, Object> metadata)
-      throws IOException {
-    List<Content> content = new ArrayList<>();
-
-    // Add text content from conversationals
-    for (Conversational conv : conversationals) {
-      String text = extractTextFromConversational(conv);
-      if (text != null && !text.isBlank()) {
-        content.add(TextContent.textContent(text));
-      }
-    }
-
-    // Add non-text content from blobs
-    content.addAll(parseContentFromBlobs(blobs));
-
-    return UserMessage.builder().content(content).metadata(metadata).build();
-  }
-
-  private AssistantMessage reconstructAssistantMessage(
-      List<Conversational> conversationals, List<Document> blobs, Map<String, Object> metadata)
-      throws IOException {
-    List<Content> content = new ArrayList<>();
-    List<ToolCall> toolCalls = List.of();
-
-    // Add text content from conversationals
-    for (Conversational conv : conversationals) {
-      String text = extractTextFromConversational(conv);
-      if (text != null && !text.isBlank()) {
-        content.add(TextContent.textContent(text));
-      }
-    }
-
-    // Parse blobs - separate Content from ToolCalls
-    for (Document blob : blobs) {
-      try {
-        BlobEnvelope envelope = BlobEnvelope.fromDocument(blob, objectMapper);
-
-        if (envelope.is(BlobEnvelopeType.TOOL_CALLS)) {
-          toolCalls = parseToolCallsFromEnvelope(envelope);
-        } else if (envelope.is(BlobEnvelopeType.MESSAGE_CONTENT)) {
-          content.add(parseContentFromEnvelope(envelope));
-        } else {
-          throw new AgentCoreMapperException(
-              "Blob envelope type not recognized for AssistantMessage: " + envelope.blobType(),
-              null);
-        }
-      } catch (IOException e) {
-        throw new AgentCoreMapperException(
-            "Failed to parse blob envelope for AssistantMessage: " + e.getMessage(), e);
-      }
-    }
-
-    return AssistantMessage.builder()
-        .content(content)
-        .toolCalls(toolCalls)
-        .metadata(metadata)
-        .build();
-  }
-
-  private ToolCallResultMessage reconstructToolCallResultMessage(
-      List<Conversational> conversationals, List<Document> blobs, Map<String, Object> metadata)
-      throws IOException {
-    List<ToolCallResult> results = List.of();
-
-    // Try to parse full structure from blob envelope
-    for (Document blob : blobs) {
-      try {
-        BlobEnvelope envelope = BlobEnvelope.fromDocument(blob, objectMapper);
-        if (envelope.is(BlobEnvelopeType.TOOL_CALL_RESULTS)) {
-          results = parseToolCallResultsFromEnvelope(envelope);
-          break;
-        } else {
-          throw new AgentCoreMapperException(
-              "Expected ToolCallResults blob envelope but found: " + envelope.blobType(), null);
-        }
-      } catch (IOException e) {
-        throw new AgentCoreMapperException(
-            "Failed to parse ToolCallResults blob envelope: " + e.getMessage(), e);
-      }
-    }
-
-    // Fallback: create minimal result from conversational text
-    if (results.isEmpty() && !conversationals.isEmpty()) {
-      String text = extractTextFromConversational(conversationals.get(0));
-      if (text != null && !text.isBlank()) {
-        results = List.of(ToolCallResult.builder().content(text).build());
-      }
-    }
-
-    return ToolCallResultMessage.builder().results(results).metadata(metadata).build();
-  }
-
   // ==================== Helper Methods ====================
-
-  private List<TextContent> extractTextContent(List<Content> content) {
-    if (content == null) {
-      return List.of();
-    }
-    return content.stream()
-        .filter(c -> c instanceof TextContent)
-        .map(c -> (TextContent) c)
-        .toList();
-  }
-
-  private List<Content> extractNonTextContent(List<Content> content) {
-    if (content == null) {
-      return List.of();
-    }
-    return content.stream().filter(c -> !(c instanceof TextContent)).toList();
-  }
 
   private PayloadType createConversationalPayload(Role role, String text) {
     Conversational conversational =
@@ -413,27 +330,6 @@ public class AwsAgentCoreConversationMapper {
       return null;
     }
     return conversational.content().text();
-  }
-
-  private List<Content> parseContentFromBlobs(List<Document> blobs) throws IOException {
-    List<Content> contentList = new ArrayList<>();
-
-    for (Document blob : blobs) {
-      try {
-        BlobEnvelope envelope = BlobEnvelope.fromDocument(blob, objectMapper);
-        if (envelope.is(BlobEnvelopeType.MESSAGE_CONTENT)) {
-          contentList.add(parseContentFromEnvelope(envelope));
-        } else {
-          throw new AgentCoreMapperException(
-              "Expected MessageContent blob envelope but found: " + envelope.blobType(), null);
-        }
-      } catch (IOException e) {
-        throw new AgentCoreMapperException(
-            "Failed to parse MessageContent blob envelope: " + e.getMessage(), e);
-      }
-    }
-
-    return contentList;
   }
 
   private Content parseContentFromEnvelope(BlobEnvelope envelope) throws IOException {
