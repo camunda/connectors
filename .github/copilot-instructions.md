@@ -574,7 +574,7 @@ For examples, see existing connectors in `connectors/` directory:
 - **Azure Blob Storage** (`connectors/microsoft/azure-blobstorage/`): Document handling example
 
 
-## Documentation 
+## Documentation
 
 For detailed documentation, see the [Camunda Connectors Documentation](https://docs.camunda.io/docs/components/connectors/overview/). This includes:
 - Getting Started Guide
