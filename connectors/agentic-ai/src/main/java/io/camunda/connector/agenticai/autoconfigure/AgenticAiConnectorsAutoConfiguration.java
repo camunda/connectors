@@ -39,6 +39,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
@@ -204,8 +205,9 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AwsAgentCoreConversationStore aiAgentAwsAgentCoreConversationStore(
-      AwsAgentCoreConversationMapper mapper) {
-    return new AwsAgentCoreConversationStore(new DefaultBedrockAgentCoreClientFactory(), mapper);
+      AwsAgentCoreConversationMapper mapper, ChatModelHttpProxySupport proxySupport) {
+    return new AwsAgentCoreConversationStore(
+        new DefaultBedrockAgentCoreClientFactory(proxySupport), mapper);
   }
 
   @Bean
