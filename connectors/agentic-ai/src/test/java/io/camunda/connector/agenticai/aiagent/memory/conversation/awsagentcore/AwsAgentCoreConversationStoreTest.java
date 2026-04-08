@@ -227,6 +227,8 @@ class AwsAgentCoreConversationStoreTest {
     assertThat(agentCoreContext.memoryId()).isEqualTo(MEMORY_ID);
     assertThat(agentCoreContext.actorId()).isEqualTo(ACTOR_ID);
     assertThat(agentCoreContext.lastEventId()).isNotNull();
+    // First turn writes to main timeline, no branch created
+    assertThat(agentCoreContext.branchName()).isNull();
   }
 
   @Test
