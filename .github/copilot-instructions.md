@@ -572,3 +572,15 @@ For examples, see existing connectors in `connectors/` directory:
 - **Webhook connector** (`connectors/webhook/`): Reference implementation for inbound connectors
 - **Kafka connector** (`connectors/kafka/`): Example of both inbound and outbound patterns
 - **Azure Blob Storage** (`connectors/microsoft/azure-blobstorage/`): Document handling example
+
+
+## Documentation
+
+For detailed documentation, see the [Camunda Connectors Documentation](https://docs.camunda.io/docs/components/connectors/overview/). This includes:
+- Getting Started Guide
+- Connector Development Best Practices
+- Runtime Configuration
+- Troubleshooting Guide
+
+It's important that pull requests that introduce changes to connector development patterns, runtime configuration, or testing strategies also update the official documentation to keep everything in sync.
+You can open documentation pull request in this repository: https://github.com/camunda/camunda-docs

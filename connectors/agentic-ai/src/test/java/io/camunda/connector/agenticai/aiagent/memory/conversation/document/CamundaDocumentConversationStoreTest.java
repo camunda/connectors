@@ -415,9 +415,9 @@ class CamundaDocumentConversationStoreTest {
   }
 
   private void mockJobContext() {
-    when(executionContext.jobContext().bpmnProcessId()).thenReturn(BPMN_PROCESS_ID);
-    when(executionContext.jobContext().processInstanceKey()).thenReturn(PROCESS_INSTANCE_KEY);
-    when(executionContext.jobContext().elementId()).thenReturn(ELEMENT_ID);
+    when(executionContext.jobContext().getBpmnProcessId()).thenReturn(BPMN_PROCESS_ID);
+    when(executionContext.jobContext().getProcessInstanceKey()).thenReturn(PROCESS_INSTANCE_KEY);
+    when(executionContext.jobContext().getElementId()).thenReturn(ELEMENT_ID);
   }
 
   private InputStream documentContentAsInputStream(DocumentContent documentContent)

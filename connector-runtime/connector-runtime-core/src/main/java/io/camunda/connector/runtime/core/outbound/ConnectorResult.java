@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
+import io.camunda.connector.api.outbound.ConnectorResponse;
 import java.time.Duration;
 import java.util.Map;
 
@@ -34,11 +35,16 @@ public sealed interface ConnectorResult {
     }
   }
 
-  record SuccessResult(Object rawResponse, Map<String, Object> variables)
+  record SuccessResult(ConnectorResponse connectorResponse, Map<String, Object> variables)
       implements ConnectorResult {
+
+    public SuccessResult {
+      variables = variables != null ? variables : Map.of();
+    }
+
     public Object responseValue() {
-      if (variables == null || variables.isEmpty()) {
-        return rawResponse;
+      if (variables.isEmpty()) {
+        return connectorResponse.responseValue();
       } else {
         return variables;
       }

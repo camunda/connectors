@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.model;
 
-import io.camunda.client.api.response.ActivatedJob;
-import io.camunda.client.api.worker.JobClient;
 import io.camunda.connector.agenticai.adhoctoolsschema.model.AdHocToolElement;
 import io.camunda.connector.agenticai.aiagent.model.request.EventHandlingConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.JobWorkerAgentRequest;
@@ -18,25 +16,22 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.UserPromptConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
 
 public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
-  private final ActivatedJob job;
-  private final JobClient jobClient;
-  private final JobWorkerAgentJobContext jobContext;
+  private final JobContext jobContext;
   private final JobWorkerAgentRequest request;
   private boolean cancelRemainingInstances;
 
   public JobWorkerAgentExecutionContext(
-      final JobClient jobClient, final ActivatedJob job, final JobWorkerAgentRequest request) {
-    this.job = job;
-    this.jobClient = jobClient;
-    this.jobContext = new JobWorkerAgentJobContext(job);
+      final JobContext jobContext, final JobWorkerAgentRequest request) {
+    this.jobContext = jobContext;
     this.request = request;
   }
 
   @Override
-  public JobWorkerAgentJobContext jobContext() {
+  public JobContext jobContext() {
     return jobContext;
   }
 
@@ -88,14 +83,6 @@ public class JobWorkerAgentExecutionContext implements AgentExecutionContext {
   @Override
   public JobWorkerResponseConfiguration response() {
     return request.data().response();
-  }
-
-  public JobClient jobClient() {
-    return jobClient;
-  }
-
-  public ActivatedJob job() {
-    return job;
   }
 
   public boolean cancelRemainingInstances() {

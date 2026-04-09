@@ -28,9 +28,13 @@ public interface ConversationStore {
   /**
    * Entry point to compensate for failed job completion.
    *
-   * <p>Note: this is not used in combination with an outbound connector, only when the agent is
-   * handled by a job worker directly.
+   * <p>Note: this method is currently not called. Completion callback support will be added in a
+   * follow-up.
+   *
+   * @deprecated Not currently invoked. Will be re-integrated with completion callbacks in a
+   *     follow-up.
    */
+  @Deprecated
   default void compensateFailedJobCompletion(
       AgentExecutionContext executionContext, AgentContext agentContext, Throwable failureReason) {}
 }

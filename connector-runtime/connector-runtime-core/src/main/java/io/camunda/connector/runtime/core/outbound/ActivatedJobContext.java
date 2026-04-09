@@ -32,6 +32,11 @@ public class ActivatedJobContext implements JobContext {
   }
 
   @Override
+  public long getJobKey() {
+    return activatedJob.getKey();
+  }
+
+  @Override
   public Map<String, String> getCustomHeaders() {
     return activatedJob.getCustomHeaders();
   }

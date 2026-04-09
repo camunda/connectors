@@ -27,7 +27,7 @@ infrastructure for tool calling, conversation memory, and event handling.
 | Agent context        | Wired via process variables by modeler | Scoped within sub-process                    |
 | Event support        | No                                   | Yes (non-interrupting only)                    |
 | Config per iteration | Yes (input mappings re-evaluated)    | No (frozen on AHSP entry)                      |
-| Job completion       | Auto (connector runtime)             | Manual (`autoComplete = false`)                |
+| Job completion       | Auto (connector runtime)             | Custom (`AdHocSubProcessConnectorResponse`)    |
 
 ### Ad-Hoc Sub-Process (AHSP)
 
@@ -84,9 +84,7 @@ memory/
     └── MessageWindowRuntimeMemory  # Sliding window filter (keeps last N messages)
 
 jobworker/
-├── AiAgentJobWorkerHandlerImpl # Job lifecycle: execute → complete/fail/throwBpmnError
-├── JobWorkerAgentExecutionContextFactoryImpl  # Binds job variables to request
-└── AiAgentJobWorkerValueCustomizer  # Environment variable overrides for type/timeout
+└── AiAgentSubProcessResponse  # AdHocSubProcessConnectorResponse for AHSP directives (element activation, completion condition)
 
 tool/
 ├── GatewayToolHandler          # Interface for gateway tools (MCP, A2A)
@@ -107,7 +105,7 @@ tool/
 
 **`ToolCallProcessVariable`** — flattened tool call for process variables: `{_meta: {id, name}, ...args}`.
 
-**`JobWorkerAgentCompletion`** — job completion directives: AHSP done/continue, cancel flags, variables, error callback.
+**`AiAgentSubProcessResponse`** — job completion directives: AHSP done/continue, cancel flags, element activations, variables. Implements `AdHocSubProcessConnectorResponse` — the runtime translates it into the Zeebe complete command with ad-hoc sub-process result configuration.
 
 For full record definitions, see [ai-agent.md §5](docs/reference/ai-agent.md#5-data-model).
 
@@ -129,7 +127,7 @@ For full record definitions, see [ai-agent.md §5](docs/reference/ai-agent.md#5-
 ## Critical Behaviors
 
 Partial tool results trigger no-op completions until all expected results arrive. Jobs may be superseded when tools
-complete — handled via `CommandWrapper` retries and `onCompletionError` callbacks. For detailed mechanics, see
+complete — handled via `CommandWrapper` retries. For detailed mechanics, see
 [ai-agent.md §9 (tool completion)](docs/reference/ai-agent.md#9-tool-completion) and
 [§10 (concurrency)](docs/reference/ai-agent.md#10-concurrency).
 

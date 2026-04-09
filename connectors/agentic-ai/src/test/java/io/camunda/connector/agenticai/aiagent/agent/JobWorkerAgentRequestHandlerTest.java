@@ -20,14 +20,13 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import io.camunda.client.api.response.ActivatedJob;
+import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentContextInitializationResult;
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
@@ -42,7 +41,6 @@ import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics.TokenUsage;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
-import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentCompletion;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
@@ -100,8 +98,6 @@ class JobWorkerAgentRequestHandlerTest {
 
   private ConversationStore conversationStore;
 
-  @Mock private ActivatedJob job;
-
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private JobWorkerAgentExecutionContext agentExecutionContext;
 
@@ -111,9 +107,6 @@ class JobWorkerAgentRequestHandlerTest {
 
   @BeforeEach
   void setUp() {
-    lenient().when(job.getKey()).thenReturn(123456L);
-    when(agentExecutionContext.job()).thenReturn(job);
-
     conversationStore = spy(new InProcessConversationStore());
     doReturn(conversationStore)
         .when(conversationStoreRegistry)
@@ -136,11 +129,11 @@ class JobWorkerAgentRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new AgentResponseInitializationResult(agentResponse));
 
-    final var completion = requestHandler.handleRequest(agentExecutionContext);
-    assertThat(completion.variables()).containsOnlyKeys("agentContext", "toolCallResults");
-    assertThat(completion.completionConditionFulfilled()).isFalse();
-    assertThat(completion.cancelRemainingInstances()).isFalse();
-    assertThat(completion.agentResponse()).isNotNull().isEqualTo(agentResponse);
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    assertThat(response.variables()).containsOnlyKeys("agentContext", "toolCallResults");
+    assertThat(response.completionConditionFulfilled()).isFalse();
+    assertThat(response.cancelRemainingInstances()).isFalse();
+    assertThat(response.responseValue()).isNotNull().isEqualTo(agentResponse);
 
     verifyNoInteractions(
         limitsValidator, messagesHandler, gatewayToolHandlers, framework, responseHandler);
@@ -179,13 +172,14 @@ class JobWorkerAgentRequestHandlerTest {
                     .toolCalls(i.getArgument(3))
                     .build());
 
-    final var completion = requestHandler.handleRequest(agentExecutionContext);
-    assertThat(completion.variables()).containsOnlyKeys("agentContext", "agent");
-    assertThat(completion.completionConditionFulfilled()).isTrue();
-    assertThat(completion.cancelRemainingInstances()).isFalse();
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    assertThat(response.variables()).containsOnlyKeys("agentContext", "agent");
+    assertThat(response.completionConditionFulfilled()).isTrue();
+    assertThat(response.cancelRemainingInstances()).isFalse();
 
-    final var agentResponse = completion.agentResponse();
-    assertThat(agentResponse.context()).isEqualTo(completion.variables().get("agentContext"));
+    final var agentResponse = response.responseValue();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.context()).isEqualTo(response.variables().get("agentContext"));
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
         .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
@@ -198,6 +192,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.responseMessage()).isEqualTo(assistantMessage);
     assertThat(agentResponse.responseText()).isEqualTo(assistantMessageText);
     assertThat(agentResponse.toolCalls()).isEmpty();
+    assertThat(response.elementActivations()).isEmpty();
 
     assertThat(runtimeMemoryCaptor.getValue().allMessages())
         .containsExactlyElementsOf(expectedMessages);
@@ -244,12 +239,13 @@ class JobWorkerAgentRequestHandlerTest {
                     .toolCalls(i.getArgument(3))
                     .build());
 
-    final var completion = requestHandler.handleRequest(agentExecutionContext);
-    assertThat(completion.variables()).containsOnlyKeys("agentContext", "toolCallResults");
-    assertThat(completion.completionConditionFulfilled()).isFalse();
-    assertThat(completion.cancelRemainingInstances()).isFalse();
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    assertThat(response.variables()).containsOnlyKeys("agentContext", "toolCallResults");
+    assertThat(response.completionConditionFulfilled()).isFalse();
+    assertThat(response.cancelRemainingInstances()).isFalse();
 
-    final var agentResponse = completion.agentResponse();
+    final var agentResponse = response.responseValue();
+    assertThat(agentResponse).isNotNull();
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
         .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
@@ -269,6 +265,24 @@ class JobWorkerAgentRequestHandlerTest {
             new ToolCallProcessVariable(
                 new ToolCallProcessVariable.ToolCallMetadata("fedcba_transformed", "getDateTime"),
                 Map.of()));
+
+    assertThat(response.elementActivations()).hasSize(2);
+    assertThat(response.elementActivations().get(0).elementId()).isEqualTo("getWeather");
+    assertThat(response.elementActivations().get(0).variables())
+        .isEqualTo(
+            Map.of(
+                AiAgentJobWorker.TOOL_CALL_VARIABLE,
+                agentResponse.toolCalls().get(0),
+                AiAgentJobWorker.TOOL_CALL_RESULT_VARIABLE,
+                ""));
+    assertThat(response.elementActivations().get(1).elementId()).isEqualTo("getDateTime");
+    assertThat(response.elementActivations().get(1).variables())
+        .isEqualTo(
+            Map.of(
+                AiAgentJobWorker.TOOL_CALL_VARIABLE,
+                agentResponse.toolCalls().get(1),
+                AiAgentJobWorker.TOOL_CALL_RESULT_VARIABLE,
+                ""));
 
     assertThat(runtimeMemoryCaptor.getValue().allMessages())
         .containsExactlyElementsOf(expectedMessages);
@@ -321,13 +335,14 @@ class JobWorkerAgentRequestHandlerTest {
                     .toolCalls(i.getArgument(3))
                     .build());
 
-    final var completion = requestHandler.handleRequest(agentExecutionContext);
-    assertThat(completion.variables()).containsOnlyKeys("agentContext", "agent");
-    assertThat(completion.completionConditionFulfilled()).isTrue();
-    assertThat(completion.cancelRemainingInstances()).isTrue();
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    assertThat(response.variables()).containsOnlyKeys("agentContext", "agent");
+    assertThat(response.completionConditionFulfilled()).isTrue();
+    assertThat(response.cancelRemainingInstances()).isTrue();
 
-    final var agentResponse = completion.agentResponse();
-    assertThat(agentResponse.context()).isEqualTo(completion.variables().get("agentContext"));
+    final var agentResponse = response.responseValue();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.context()).isEqualTo(response.variables().get("agentContext"));
     assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
     assertThat(agentResponse.context().metrics())
         .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
@@ -340,6 +355,7 @@ class JobWorkerAgentRequestHandlerTest {
     assertThat(agentResponse.responseMessage()).isEqualTo(assistantMessage);
     assertThat(agentResponse.responseText()).isNull();
     assertThat(agentResponse.toolCalls()).isEmpty();
+    assertThat(response.elementActivations()).isEmpty();
 
     assertThat(runtimeMemoryCaptor.getValue().allMessages())
         .containsExactlyElementsOf(expectedMessages);
@@ -402,49 +418,13 @@ class JobWorkerAgentRequestHandlerTest {
     when(agentInitializer.initializeAgent(agentExecutionContext))
         .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
 
-    JobWorkerAgentCompletion completion = requestHandler.handleRequest(agentExecutionContext);
-    assertThat(completion.variables()).isEmpty();
-    assertThat(completion.completionConditionFulfilled()).isFalse();
-    assertThat(completion.cancelRemainingInstances()).isFalse();
+    final var response = requestHandler.handleRequest(agentExecutionContext);
+    assertThat(response.variables()).isEmpty();
+    assertThat(response.completionConditionFulfilled()).isFalse();
+    assertThat(response.cancelRemainingInstances()).isFalse();
+    assertThat(response.elementActivations()).isEmpty();
 
     verifyNoInteractions(framework);
-  }
-
-  @Test
-  void completionErrorHandlerCompensatesStorageOnCompletionError() {
-    mockSystemPrompt(SYSTEM_PROMPT_CONFIGURATION);
-    mockUserPrompt(USER_PROMPT_CONFIGURATION_WITHOUT_TOOLS, List.of());
-
-    when(agentInitializer.initializeAgent(agentExecutionContext))
-        .thenReturn(new AgentContextInitializationResult(INITIAL_AGENT_CONTEXT, List.of()));
-
-    final var assistantMessageText =
-        "Endless waves whisper | moonlight dances on the tide | secrets drift below.";
-    final var assistantMessage = assistantMessage(assistantMessageText);
-
-    mockFrameworkExecution(assistantMessage);
-
-    when(gatewayToolHandlers.transformToolCalls(any(AgentContext.class), anyList()))
-        .thenAnswer(i -> i.getArgument(1));
-    when(responseHandler.createResponse(
-            eq(agentExecutionContext), any(AgentContext.class), eq(assistantMessage), anyList()))
-        .thenAnswer(
-            i ->
-                AgentResponse.builder()
-                    .context(i.getArgument(1, AgentContext.class))
-                    .responseMessage(i.getArgument(2, AssistantMessage.class))
-                    .responseText(assistantMessageText)
-                    .toolCalls(i.getArgument(3))
-                    .build());
-
-    final var completion = requestHandler.handleRequest(agentExecutionContext);
-
-    final var exception = new RuntimeException("This is a test");
-    completion.onCompletionError(exception);
-
-    verify(conversationStore)
-        .compensateFailedJobCompletion(
-            agentExecutionContext, completion.agentResponse().context(), exception);
   }
 
   private RuntimeMemory setupRuntimeMemorySizeTest(MemoryConfiguration memoryConfiguration) {

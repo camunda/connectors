@@ -11,7 +11,6 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -71,14 +70,14 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
         LOGGER.debug(
             "AI Agent initialization returned direct response including {} tool calls. Completing job without further processing.",
             agentResponse.toolCalls().size());
-        yield completeJob(executionContext, agentResponse, null);
+        yield completeJob(executionContext, agentResponse);
       }
 
       // discovery still in progress (not all tool call results present)
       case AgentDiscoveryInProgressInitializationResult ignored -> {
         LOGGER.debug(
             "AI Agent initialization tool discovery is still in progress. Completing job without further processing.");
-        yield completeJob(executionContext, null, null);
+        yield completeJob(executionContext, null);
       }
 
       case AgentContextInitializationResult(
@@ -108,7 +107,7 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
         "Request processing completed {} agent response, completing job",
         agentResponse == null ? "without" : "with");
 
-    return completeJob(executionContext, agentResponse, conversationStore);
+    return completeJob(executionContext, agentResponse);
   }
 
   private AgentResponse handleRequest(
@@ -194,9 +193,7 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
     // no-op by default
   }
 
-  /** Handles job completion if needed. Agent response and conversation store may be null. */
+  /** Handles job completion if needed. Agent response may be null. */
   protected abstract R completeJob(
-      final C executionContext,
-      @Nullable final AgentResponse agentResponse,
-      @Nullable final ConversationStore conversationStore);
+      final C executionContext, @Nullable final AgentResponse agentResponse);
 }
