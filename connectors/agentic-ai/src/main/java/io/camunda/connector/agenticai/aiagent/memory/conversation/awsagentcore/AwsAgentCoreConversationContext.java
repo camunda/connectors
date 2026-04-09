@@ -29,7 +29,6 @@ import jakarta.annotation.Nullable;
  * @param conversationId The conversation ID, used as sessionId in AgentCore.
  * @param memoryId The ID of the AgentCore Memory resource.
  * @param actorId The actor ID associated with this conversation.
- * @param sessionId The session ID in AgentCore.
  * @param branchName The branch name for the current conversation state. Null on the first turn
  *     (events on main timeline).
  * @param lastEventId The event ID of the last written event. Used as rootEventId when creating the
@@ -44,7 +43,6 @@ public record AwsAgentCoreConversationContext(
     String conversationId,
     String memoryId,
     String actorId,
-    String sessionId,
     @Nullable String branchName,
     @Nullable String lastEventId,
     @Nullable SystemMessage systemMessage)
@@ -55,7 +53,7 @@ public record AwsAgentCoreConversationContext(
   }
 
   public static AwsAgentCoreConversationContextBuilder builder(String conversationId) {
-    return builder().conversationId(conversationId).sessionId(conversationId);
+    return builder().conversationId(conversationId);
   }
 
   @JsonPOJOBuilder(withPrefix = "")
