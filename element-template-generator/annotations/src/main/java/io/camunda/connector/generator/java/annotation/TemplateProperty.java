@@ -116,6 +116,9 @@ public @interface TemplateProperty {
   /** Tooltip for the property */
   String tooltip() default "";
 
+  /** Placeholder text shown in the property input field when it is empty (String and Text only) */
+  String placeholder() default "";
+
   enum PropertyType {
     Boolean,
     Number,

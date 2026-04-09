@@ -42,6 +42,7 @@ public abstract sealed class Property
   protected final PropertyBinding binding;
   protected final PropertyCondition condition;
   protected final String tooltip;
+  protected final String placeholder;
   protected final Object exampleValue;
   protected final String type;
 
@@ -60,6 +61,7 @@ public abstract sealed class Property
       PropertyBinding binding,
       PropertyCondition condition,
       String tooltip,
+      String placeholder,
       Object exampleValue,
       String type) {
     this.id = id;
@@ -74,6 +76,7 @@ public abstract sealed class Property
     this.binding = binding;
     this.condition = condition;
     this.tooltip = tooltip;
+    this.placeholder = placeholder;
     this.type = type;
     this.exampleValue = exampleValue;
   }
@@ -131,6 +134,10 @@ public abstract sealed class Property
 
   public String getTooltip() {
     return tooltip;
+  }
+
+  public String getPlaceholder() {
+    return placeholder;
   }
 
   public Boolean getOptional() {
