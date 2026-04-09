@@ -79,7 +79,8 @@ This mirrors the Document store pattern where orphaned documents are harmless.
 - Multiple events can be written to the same branch by including the `branch` field on each `CreateEvent`
 - Orphaned branches are invisible when loading other branches
 - No documented limit on branches per session
-- The ListEvents API does **not** guarantee event ordering; client-side sorting by `eventTimestamp` + `eventId` is required
+- The ListEvents API does **not** guarantee event ordering; client-side sorting by `eventTimestamp` + turn-local `seq` metadata is required
+- Each event carries a `seq` metadata entry (turn-local offset) written via `CreateEvent` metadata, used as a deterministic tiebreaker for events with identical timestamps within a turn
 
 ## Message Mapping
 
@@ -258,5 +259,5 @@ The AgentCore client uses the same HTTP proxy configuration as the Bedrock LLM c
 - **System messages not stored in AgentCore**: Preserved in conversation context (Zeebe variable)
 - **Pre-provisioned memory**: Memory resources must exist before use
 - **Long-term memory extraction**: Managed by AWS (not controlled by this implementation)
-- **Event ordering**: ListEvents API does not guarantee order; client-side sorting required
+- **Event ordering**: ListEvents API does not guarantee order; client-side sorting by `eventTimestamp` + turn-local `seq` metadata required
 - **Rate limits**: 5 TPS per actor/session for conversational payloads (natural LLM latency provides spacing)
