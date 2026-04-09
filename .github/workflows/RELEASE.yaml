@@ -133,6 +133,25 @@ jobs:
         run: |
           mvn cyclonedx:makeAggregateBom -pl bundle/default-bundle
 
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+
+      - name: Generate a GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
+
       - name: Configure git user
         run: |
           # https://github.com/actions/checkout/issues/13#issuecomment-724415212
@@ -141,18 +160,25 @@ jobs:
 
       - name: Commit and tag
         run: |
+          # IMPORTANT: Use the GitHub App token (not GITHUB_TOKEN) for pushing commits and tags.
+          # GitHub Actions does not trigger downstream workflows (e.g. CHECK_LICENSES / FOSSA scan)
+          # when pushes are made with GITHUB_TOKEN. An App token (or PAT) is required so that the
+          # tag push triggers the license-check workflow for the release.
+          # See: https://docs.github.com/actions/using-workflows/triggering-a-workflow
+          git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           # check if worktree is empty
           if [ -z "$(git status --porcelain)" ]; then
               echo "No changes to commit"
-              exit 0
+          else
+              git commit -am "ci: release version ${RELEASE_VERSION}"
+              git push --force-with-lease origin ${RELEASE_BRANCH}
           fi
-          git commit -am "ci: release version ${RELEASE_VERSION}"
-          git push --force-with-lease origin ${RELEASE_BRANCH}
           git tag -fa ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
           git push --force origin ${RELEASE_VERSION}
         env:
           RELEASE_VERSION: ${{ inputs.version }}
           RELEASE_BRANCH: ${{ needs.setup.outputs.releaseBranch }}
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Upload repository
         uses: actions/upload-artifact@v7
