@@ -17,10 +17,11 @@ import io.camunda.connector.agenticai.model.message.content.ObjectContent;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.runtime.test.document.TestDocument;
-import io.camunda.connector.runtime.test.document.TestDocumentMetadata;
+import io.camunda.connector.agenticai.util.TestObjectMapperSupplier;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.runtime.test.document.TestDocumentFactory;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +34,7 @@ class BlobEnvelopeTest {
 
   @BeforeEach
   void setUp() {
-    objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+    objectMapper = TestObjectMapperSupplier.getInstance();
   }
 
   @Test
@@ -124,13 +125,7 @@ class BlobEnvelopeTest {
   @Test
   void shouldCreateMessageContentEnvelope() throws Exception {
     // given
-    io.camunda.connector.api.document.Document testDoc =
-        new TestDocument(
-            "test content".getBytes(),
-            new TestDocumentMetadata(null, null, null, null, null, null, null),
-            null,
-            "doc-1");
-    Content content = DocumentContent.documentContent(testDoc);
+    Content content = DocumentContent.documentContent(createTestDocument());
 
     // when
     BlobEnvelope envelope = BlobEnvelope.forContent(content, objectMapper);
@@ -143,10 +138,19 @@ class BlobEnvelopeTest {
 
   @Test
   void shouldRoundTripDocumentContent() throws Exception {
-    // DocumentContent contains a Document interface which can't be deserialized without
-    // a concrete implementation or custom deserializer. This test is skipped.
-    // In practice, DocumentContent is only used with real Document implementations
-    // that have proper serialization support.
+    // given
+    Content original = DocumentContent.documentContent(createTestDocument());
+
+    // when
+    BlobEnvelope envelope = BlobEnvelope.forContent(original, objectMapper);
+    Document document = envelope.toDocument(objectMapper);
+    BlobEnvelope parsed = BlobEnvelope.fromDocument(document, objectMapper);
+    Content result = parsed.parseData(Content.class, objectMapper);
+
+    // then
+    assertThat(result).isInstanceOf(DocumentContent.class);
+    DocumentContent docContent = (DocumentContent) result;
+    assertThat(docContent.document()).isNotNull();
   }
 
   @Test
@@ -240,6 +244,37 @@ class BlobEnvelopeTest {
   }
 
   @Test
+  void shouldCreateMetadataEnvelope() {
+    // given
+    Map<String, Object> metadata = Map.of("key", "value", "count", 42);
+
+    // when
+    BlobEnvelope envelope = BlobEnvelope.forMetadata(metadata, objectMapper);
+
+    // then
+    assertThat(envelope.blobType()).isEqualTo("camunda.messageMetadata");
+    assertThat(envelope.version()).isEqualTo(1);
+    assertThat(envelope.is(BlobEnvelopeType.MESSAGE_METADATA)).isTrue();
+  }
+
+  @Test
+  void shouldRoundTripMetadata() throws Exception {
+    // given
+    Map<String, Object> original = Map.of("key", "value", "count", 42);
+
+    // when
+    BlobEnvelope envelope = BlobEnvelope.forMetadata(original, objectMapper);
+    Document document = envelope.toDocument(objectMapper);
+    BlobEnvelope parsed = BlobEnvelope.fromDocument(document, objectMapper);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> result = parsed.parseData(Map.class, objectMapper);
+
+    // then
+    assertThat(result).containsEntry("key", "value");
+    assertThat(result).containsEntry("count", 42);
+  }
+
+  @Test
   void shouldIdentifyEnvelopeType() throws Exception {
     // given
     BlobEnvelope toolCallsEnv =
@@ -251,6 +286,7 @@ class BlobEnvelopeTest {
             List.of(ToolCallResult.builder().content("test").build()), objectMapper);
     BlobEnvelope contentEnv =
         BlobEnvelope.forContent(TextContent.textContent("test"), objectMapper);
+    BlobEnvelope metadataEnv = BlobEnvelope.forMetadata(Map.of("key", "value"), objectMapper);
 
     // then
     assertThat(toolCallsEnv.is(BlobEnvelopeType.TOOL_CALLS)).isTrue();
@@ -261,5 +297,14 @@ class BlobEnvelopeTest {
 
     assertThat(contentEnv.is(BlobEnvelopeType.MESSAGE_CONTENT)).isTrue();
     assertThat(contentEnv.is(BlobEnvelopeType.TOOL_CALLS)).isFalse();
+
+    assertThat(metadataEnv.is(BlobEnvelopeType.MESSAGE_METADATA)).isTrue();
+    assertThat(metadataEnv.is(BlobEnvelopeType.TOOL_CALLS)).isFalse();
+  }
+
+  private io.camunda.connector.api.document.Document createTestDocument() {
+    return new TestDocumentFactory()
+        .create(
+            DocumentCreationRequest.from("test content".getBytes(StandardCharsets.UTF_8)).build());
   }
 }
