@@ -19,7 +19,6 @@ import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -300,14 +299,12 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
         continue;
       }
 
-      final var eventTimestamp = Instant.now();
       final var requestBuilder =
           CreateEventRequest.builder()
               .memoryId(config.memoryId())
               .actorId(config.actorId())
               .sessionId(sessionId)
               .payload(payloads)
-              .eventTimestamp(eventTimestamp)
               .clientToken(branchName + ":" + offset);
 
       if (branch != null) {
