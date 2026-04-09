@@ -214,9 +214,9 @@ class AwsAgentCoreConversationStoreTest {
     assertThat(requests).hasSize(2);
     assertThat(requests.get(0).memoryId()).isEqualTo(MEMORY_ID);
     assertThat(requests.get(0).actorId()).isEqualTo(ACTOR_ID);
-    // clientToken is branchName:offset — branch name is a UUID so just check the offset suffix
-    assertThat(requests.get(0).clientToken()).endsWith(":0");
-    assertThat(requests.get(1).clientToken()).endsWith(":1");
+    // First turn uses "main" as clientToken prefix (no branch yet)
+    assertThat(requests.get(0).clientToken()).isEqualTo("main:0");
+    assertThat(requests.get(1).clientToken()).isEqualTo("main:1");
     // First turn has no previous event to branch from, so no branch field
     assertThat(requests.get(0).branch()).isNull();
 
