@@ -36,7 +36,7 @@ import software.amazon.awssdk.services.bedrockagentcore.model.Role;
  * Bidirectional mapper between Camunda internal Message types and AWS AgentCore Memory Event
  * payloads.
  *
- * <p>Implements the mapping strategy documented in README.md:
+ * <p>Mapping strategy:
  *
  * <ul>
  *   <li>TextContent → Conversational payloads (flow into long-term memory)
@@ -247,19 +247,9 @@ public class AwsAgentCoreConversationMapper {
                   .metadata(metadata)
                   .build());
       case TOOL -> {
-        // Prefer full structure from blob; fall back to conversational summary
         if (toolCallResults == null) {
-          // Legacy: no blob, only conversational TOOL text
-          String summaryText =
-              payloads.stream()
-                  .filter(p -> p.conversational() != null)
-                  .map(p -> extractTextFromConversational(p.conversational()))
-                  .filter(t -> t != null && !t.isBlank())
-                  .collect(Collectors.joining("\n"));
-          toolCallResults =
-              summaryText.isEmpty()
-                  ? List.of()
-                  : List.of(ToolCallResult.builder().content(summaryText).build());
+          throw new AgentCoreMapperException(
+              "TOOL event is missing required 'camunda.toolCallResults' blob envelope", null);
         }
         yield List.of(
             ToolCallResultMessage.builder().results(toolCallResults).metadata(metadata).build());

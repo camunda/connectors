@@ -536,9 +536,29 @@ class AwsAgentCoreConversationStoreTest {
   void restoresToolRoleMessagesOnLoad() {
     final var agentContext = AgentContext.empty();
 
-    final var events =
-        List.of(createEvent(Role.TOOL, "tool output", Instant.now().minusSeconds(10)));
-    mockListEventsResponse(events);
+    final String toolCallResultsBlobJson =
+        "{\"blobType\":\"camunda.toolCallResults\",\"version\":1,\"results\":[{\"id\":\"call_1\",\"name\":\"myTool\",\"content\":\"tool output\"}]}";
+
+    final var toolConversational =
+        Conversational.builder()
+            .role(Role.TOOL)
+            .content(
+                software.amazon.awssdk.services.bedrockagentcore.model.Content.fromText(
+                    "tool output"))
+            .build();
+
+    final var event =
+        Event.builder()
+            .eventTimestamp(Instant.now().minusSeconds(10))
+            .payload(
+                List.of(
+                    PayloadType.builder().conversational(toolConversational).build(),
+                    PayloadType.builder()
+                        .blob(Document.fromString(toolCallResultsBlobJson))
+                        .build()))
+            .build();
+
+    mockListEventsResponse(List.of(event));
 
     store.executeInSession(
         executionContext,

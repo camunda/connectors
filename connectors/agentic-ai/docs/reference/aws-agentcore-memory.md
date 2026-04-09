@@ -156,12 +156,6 @@ Supported types:
 
 The envelope design provides: unified approach for all non-text data, type discrimination via `blobType` checked first during deserialization, independent version evolution per blob type, and support for nested discriminators (e.g., Content's `@JsonTypeInfo(property="type")` is preserved inside the envelope).
 
-### Fallback Handling
-
-The deserializer handles degraded formats:
-1. **ToolCallResultMessage without blob**: If only a conversational TOOL payload is present (no `camunda.toolCallResults` blob), creates a minimal `ToolCallResult` from the conversational text
-2. **Messages without metadata blob**: If no `camunda.messageMetadata` blob is present, metadata defaults to an empty map
-
 ### Metadata Handling
 
 Message metadata is stored as a `camunda.messageMetadata` blob envelope appended to each event's payload list. This preserves the full metadata structure with exact round-trip fidelity, including complex types like `ZonedDateTime` objects and nested maps.
