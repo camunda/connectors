@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
 import software.amazon.awssdk.services.bedrockagentcore.model.Event;
 import software.amazon.awssdk.services.bedrockagentcore.model.PayloadType;
 import software.amazon.awssdk.services.bedrockagentcore.model.Role;
@@ -337,6 +338,23 @@ class AwsAgentCoreConversationMapperTest {
 
     // then
     assertThat(payloads.get(0).conversational().content().text()).isEqualTo("Result 1\nResult 2");
+  }
+
+  @Test
+  void shouldSerializeNonStringToolCallResultContentAsJson() throws Exception {
+    // given - content is a Map, not a String
+    Map<String, Object> contentMap = Map.of("items", List.of("a", "b"), "count", 2);
+    ToolCallResultMessage message =
+        ToolCallResultMessage.builder()
+            .results(List.of(ToolCallResult.builder().content(contentMap).build()))
+            .build();
+
+    // when
+    List<PayloadType> payloads = mapper.toPayloads(message);
+
+    // then - summary should be valid JSON matching the original map
+    String summary = payloads.get(0).conversational().content().text();
+    JSONAssert.assertEquals("{\"items\":[\"a\",\"b\"],\"count\":2}", summary, false);
   }
 
   @Test
