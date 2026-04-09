@@ -6,4 +6,4 @@
  */
 package io.camunda.connector.aws.bedrock.agentcore.runtime.model.response;
 
-public record AgentCoreRuntimeResponse(String response, String sessionId, Integer statusCode) {}
+public record AgentCoreRuntimeResponse(Object response, String sessionId, Integer statusCode) {}

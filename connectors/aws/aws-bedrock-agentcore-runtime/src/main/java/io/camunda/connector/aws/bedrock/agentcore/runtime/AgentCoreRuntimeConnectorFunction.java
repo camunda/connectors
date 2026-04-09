@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.aws.bedrock.agentcore.runtime;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -13,6 +14,7 @@ import io.camunda.connector.aws.CredentialsProviderSupportV2;
 import io.camunda.connector.aws.bedrock.agentcore.runtime.model.request.AgentCoreRuntimeRequest;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.net.URI;
 import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import software.amazon.awssdk.regions.Region;
@@ -37,11 +39,13 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
     icon = "icon.svg")
 public class AgentCoreRuntimeConnectorFunction implements OutboundConnectorFunction {
 
+  private static final ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
+
   @Override
   public Object execute(OutboundConnectorContext context) {
     var request = context.bindVariables(AgentCoreRuntimeRequest.class);
     try (var client = createClient(request, BedrockAgentCoreClient.builder())) {
-      return new AgentCoreRuntimeExecutor(client).invoke(request.getInput());
+      return new AgentCoreRuntimeExecutor(client, OBJECT_MAPPER).invoke(request.getInput());
     }
   }
 

@@ -13,9 +13,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.aws.bedrock.agentcore.runtime.model.request.AgentCoreRuntimeInput;
+import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -27,19 +30,21 @@ import software.amazon.awssdk.services.bedrockagentcore.model.InvokeAgentRuntime
 
 class AgentCoreRuntimeExecutorTest extends BaseTest {
 
+  private static final ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
+
   private BedrockAgentCoreClient client;
   private AgentCoreRuntimeExecutor executor;
 
   @BeforeEach
   void setUp() {
     client = mock(BedrockAgentCoreClient.class);
-    executor = new AgentCoreRuntimeExecutor(client);
+    executor = new AgentCoreRuntimeExecutor(client, OBJECT_MAPPER);
   }
 
-  private AgentCoreRuntimeInput createInput(String prompt, String sessionId) {
+  private AgentCoreRuntimeInput createInput(Object payload, String sessionId) {
     var input = new AgentCoreRuntimeInput();
     input.setAgentRuntimeArn(AGENT_RUNTIME_ARN);
-    input.setPrompt(prompt);
+    input.setPayload(payload);
     input.setSessionId(sessionId);
     return input;
   }
@@ -57,33 +62,45 @@ class AgentCoreRuntimeExecutorTest extends BaseTest {
   }
 
   @Test
-  void shouldInvokeAgentAndReturnResponse() {
-    mockResponse("Fraud risk is LOW for claim CLM-001.", SESSION_ID, 200);
-    var result = executor.invoke(createInput(PROMPT, null));
+  void shouldInvokeAgentAndReturnParsedJsonResponse() {
+    mockResponse("{\"result\": \"Fraud risk is LOW\"}", SESSION_ID, 200);
+    var result = executor.invoke(createInput(Map.of("inputText", PROMPT), null));
 
-    assertThat(result.response()).isEqualTo("Fraud risk is LOW for claim CLM-001.");
+    assertThat(result.response()).isInstanceOf(Map.class);
+    @SuppressWarnings("unchecked")
+    var responseMap = (Map<String, Object>) result.response();
+    assertThat(responseMap).containsEntry("result", "Fraud risk is LOW");
     assertThat(result.sessionId()).isEqualTo(SESSION_ID);
     assertThat(result.statusCode()).isEqualTo(200);
   }
 
   @Test
-  void shouldPassAgentRuntimeArnAndPrompt() {
-    mockResponse("ok", SESSION_ID, 200);
+  void shouldReturnStringWhenResponseIsNotJson() {
+    mockResponse("Plain text response", SESSION_ID, 200);
+    var result = executor.invoke(createInput(Map.of("inputText", PROMPT), null));
+
+    assertThat(result.response()).isEqualTo("Plain text response");
+  }
+
+  @Test
+  void shouldSerializePayloadWithObjectMapper() {
+    mockResponse("{}", SESSION_ID, 200);
     var captor = ArgumentCaptor.forClass(InvokeAgentRuntimeRequest.class);
 
-    executor.invoke(createInput(PROMPT, null));
+    executor.invoke(createInput(Map.of("inputText", "Hello \"world\""), null));
 
     verify(client).invokeAgentRuntimeAsBytes(captor.capture());
-    assertThat(captor.getValue().agentRuntimeArn()).isEqualTo(AGENT_RUNTIME_ARN);
-    assertThat(captor.getValue().payload().asUtf8String()).contains("What is the fraud risk");
+    var payloadJson = captor.getValue().payload().asUtf8String();
+    assertThat(payloadJson).contains("inputText");
+    assertThat(payloadJson).contains("Hello \\\"world\\\"");
   }
 
   @Test
   void shouldPassSessionIdWhenProvided() {
-    mockResponse("ok", SESSION_ID, 200);
+    mockResponse("{}", SESSION_ID, 200);
     var captor = ArgumentCaptor.forClass(InvokeAgentRuntimeRequest.class);
 
-    executor.invoke(createInput(PROMPT, SESSION_ID));
+    executor.invoke(createInput(Map.of("inputText", PROMPT), SESSION_ID));
 
     verify(client).invokeAgentRuntimeAsBytes(captor.capture());
     assertThat(captor.getValue().runtimeSessionId()).isEqualTo(SESSION_ID);
@@ -91,13 +108,27 @@ class AgentCoreRuntimeExecutorTest extends BaseTest {
 
   @Test
   void shouldNotSetSessionIdWhenNull() {
-    mockResponse("ok", SESSION_ID, 200);
+    mockResponse("{}", SESSION_ID, 200);
     var captor = ArgumentCaptor.forClass(InvokeAgentRuntimeRequest.class);
 
-    executor.invoke(createInput(PROMPT, null));
+    executor.invoke(createInput(Map.of("inputText", PROMPT), null));
 
     verify(client).invokeAgentRuntimeAsBytes(captor.capture());
     assertThat(captor.getValue().runtimeSessionId()).isNull();
+  }
+
+  @Test
+  void shouldUseConfiguredContentType() {
+    mockResponse("{}", SESSION_ID, 200);
+    var captor = ArgumentCaptor.forClass(InvokeAgentRuntimeRequest.class);
+
+    var input = createInput(Map.of("inputText", PROMPT), null);
+    input.setContentType("text/plain");
+    executor.invoke(input);
+
+    verify(client).invokeAgentRuntimeAsBytes(captor.capture());
+    assertThat(captor.getValue().contentType()).isEqualTo("text/plain");
+    assertThat(captor.getValue().accept()).isEqualTo("text/plain");
   }
 
   @Test
@@ -105,7 +136,7 @@ class AgentCoreRuntimeExecutorTest extends BaseTest {
     when(client.invokeAgentRuntimeAsBytes(any(InvokeAgentRuntimeRequest.class)))
         .thenThrow(BedrockAgentCoreException.builder().message("Access denied").build());
 
-    assertThatThrownBy(() -> executor.invoke(createInput(PROMPT, null)))
+    assertThatThrownBy(() -> executor.invoke(createInput(Map.of("inputText", PROMPT), null)))
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("AgentCore Runtime error");
   }

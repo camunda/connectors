@@ -152,9 +152,9 @@
     },
     "type" : "String"
   }, {
-    "id" : "input.prompt",
-    "label" : "Prompt",
-    "description" : "The message or task to send to the agent.",
+    "id" : "input.payload",
+    "label" : "Payload",
+    "description" : "The payload to send to the agent. Use a FEEL expression to define the structure, e.g. ={inputText: \"your prompt\"}.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -162,7 +162,7 @@
     "feel" : "optional",
     "group" : "agentConfig",
     "binding" : {
-      "name" : "input.prompt",
+      "name" : "input.payload",
       "type" : "zeebe:input"
     },
     "type" : "String"
@@ -175,6 +175,19 @@
     "group" : "agentConfig",
     "binding" : {
       "name" : "input.sessionId",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.contentType",
+    "label" : "Content type",
+    "description" : "Content type of the payload. Defaults to application/json.",
+    "optional" : true,
+    "value" : "application/json",
+    "feel" : "optional",
+    "group" : "agentConfig",
+    "binding" : {
+      "name" : "input.contentType",
       "type" : "zeebe:input"
     },
     "type" : "String"

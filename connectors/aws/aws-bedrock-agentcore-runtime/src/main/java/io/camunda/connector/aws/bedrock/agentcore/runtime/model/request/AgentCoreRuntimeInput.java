@@ -9,6 +9,7 @@ package io.camunda.connector.aws.bedrock.agentcore.runtime.model.request;
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public class AgentCoreRuntimeInput {
 
@@ -20,12 +21,13 @@ public class AgentCoreRuntimeInput {
   private String agentRuntimeArn;
 
   @FEEL
-  @NotBlank
+  @NotNull
   @TemplateProperty(
       group = "agentConfig",
-      label = "Prompt",
-      description = "The message or task to send to the agent.")
-  private String prompt;
+      label = "Payload",
+      description =
+          "The payload to send to the agent. Use a FEEL expression to define the structure, e.g. ={inputText: \"your prompt\"}.")
+  private Object payload;
 
   @TemplateProperty(
       group = "agentConfig",
@@ -33,6 +35,14 @@ public class AgentCoreRuntimeInput {
       description = "Optional session ID for multi-turn conversations.",
       optional = true)
   private String sessionId;
+
+  @TemplateProperty(
+      group = "agentConfig",
+      label = "Content type",
+      description = "Content type of the payload. Defaults to application/json.",
+      defaultValue = "application/json",
+      optional = true)
+  private String contentType;
 
   public String getAgentRuntimeArn() {
     return agentRuntimeArn;
@@ -42,12 +52,12 @@ public class AgentCoreRuntimeInput {
     this.agentRuntimeArn = agentRuntimeArn;
   }
 
-  public String getPrompt() {
-    return prompt;
+  public Object getPayload() {
+    return payload;
   }
 
-  public void setPrompt(String prompt) {
-    this.prompt = prompt;
+  public void setPayload(Object payload) {
+    this.payload = payload;
   }
 
   public String getSessionId() {
@@ -56,5 +66,13 @@ public class AgentCoreRuntimeInput {
 
   public void setSessionId(String sessionId) {
     this.sessionId = sessionId;
+  }
+
+  public String getContentType() {
+    return contentType;
+  }
+
+  public void setContentType(String contentType) {
+    this.contentType = contentType;
   }
 }
