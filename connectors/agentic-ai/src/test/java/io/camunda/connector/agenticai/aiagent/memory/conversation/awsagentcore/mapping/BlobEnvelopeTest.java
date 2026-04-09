@@ -249,7 +249,7 @@ class BlobEnvelopeTest {
     Map<String, Object> metadata = Map.of("key", "value", "count", 42);
 
     // when
-    BlobEnvelope envelope = BlobEnvelope.forMetadata(metadata, objectMapper);
+    BlobEnvelope envelope = BlobEnvelope.forMetadata(metadata, null, objectMapper);
 
     // then
     assertThat(envelope.blobType()).isEqualTo("camunda.messageMetadata");
@@ -263,7 +263,7 @@ class BlobEnvelopeTest {
     Map<String, Object> original = Map.of("key", "value", "count", 42);
 
     // when
-    BlobEnvelope envelope = BlobEnvelope.forMetadata(original, objectMapper);
+    BlobEnvelope envelope = BlobEnvelope.forMetadata(original, null, objectMapper);
     Document document = envelope.toDocument(objectMapper);
     BlobEnvelope parsed = BlobEnvelope.fromDocument(document, objectMapper);
     @SuppressWarnings("unchecked")
@@ -286,7 +286,7 @@ class BlobEnvelopeTest {
             List.of(ToolCallResult.builder().content("test").build()), objectMapper);
     BlobEnvelope contentEnv =
         BlobEnvelope.forContent(TextContent.textContent("test"), objectMapper);
-    BlobEnvelope metadataEnv = BlobEnvelope.forMetadata(Map.of("key", "value"), objectMapper);
+    BlobEnvelope metadataEnv = BlobEnvelope.forMetadata(Map.of("key", "value"), null, objectMapper);
 
     // then
     assertThat(toolCallsEnv.is(BlobEnvelopeType.TOOL_CALLS)).isTrue();

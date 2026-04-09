@@ -113,7 +113,7 @@ UserMessage { content: [TextContent("Hello"), DocumentContent(...), TextContent(
     Conversational { role: USER, content: { text: "more" } }
     Blob { "blobType": "camunda.messageMetadata", "version": 1, "metadata": {"userId": "u1"} }
 ```
-Content items are emitted in their original order — `TextContent` becomes conversational, non-text becomes blob, interleaved as they appear. Metadata is appended as a separate blob envelope. `UserMessage.name` is not stored.
+Content items are emitted in their original order — `TextContent` becomes conversational, non-text becomes blob, interleaved as they appear. Metadata is appended as a separate blob envelope. `UserMessage.name` is preserved in the AWS event metadata field `userName`.
 
 **AssistantMessage with tool calls:**
 ```
@@ -179,7 +179,6 @@ AgentCore Memory doesn't support the SYSTEM role. System messages are:
 - Assistant toolCalls (via blob), ToolCallResult structure (via blob)
 
 **Lossy:**
-- `UserMessage.name` field (not stored)
 - `ToolCallResult.properties` map — round-trip depends on `@JsonAnySetter`/`@JsonAnyGetter` through nested JSON
 
 ## Configuration

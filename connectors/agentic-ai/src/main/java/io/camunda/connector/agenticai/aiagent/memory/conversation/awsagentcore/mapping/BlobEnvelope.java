@@ -45,6 +45,7 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
   private static final String FIELD_RESULTS = "results";
   private static final String FIELD_CONTENT = "content";
   private static final String FIELD_METADATA = "metadata";
+  private static final String FIELD_PROPERTIES = "properties";
 
   /**
    * Create an envelope for a ToolCall array.
@@ -97,18 +98,22 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
   }
 
   /**
-   * Create an envelope for message metadata.
+   * Create an envelope for message metadata and optional internal properties.
    *
-   * @param metadata the metadata map to wrap
+   * @param metadata the user-facing metadata map
+   * @param properties optional framework-internal properties (e.g. userName), may be null or empty
    * @param mapper the ObjectMapper to use for serialization
    * @return the envelope
    */
-  public static BlobEnvelope forMetadata(Map<String, Object> metadata, ObjectMapper mapper) {
-    JsonNode data = mapper.valueToTree(metadata);
+  public static BlobEnvelope forMetadata(
+      Map<String, Object> metadata, Map<String, Object> properties, ObjectMapper mapper) {
     ObjectNode envelope = mapper.createObjectNode();
     envelope.put(FIELD_BLOB_TYPE, BlobEnvelopeType.MESSAGE_METADATA.getBlobType());
     envelope.put(FIELD_VERSION, CURRENT_VERSION);
-    envelope.set(FIELD_METADATA, data);
+    envelope.set(FIELD_METADATA, mapper.valueToTree(metadata));
+    if (properties != null && !properties.isEmpty()) {
+      envelope.set(FIELD_PROPERTIES, mapper.valueToTree(properties));
+    }
     return new BlobEnvelope(
         BlobEnvelopeType.MESSAGE_METADATA.getBlobType(), CURRENT_VERSION, envelope);
   }
@@ -174,6 +179,21 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
   public <T> T parseData(Class<T> clazz, ObjectMapper mapper) throws IOException {
     JsonNode dataNode = extractDataNode();
     return mapper.treeToValue(dataNode, clazz);
+  }
+
+  /**
+   * Parse the optional properties field from a MESSAGE_METADATA envelope.
+   *
+   * @param typeRef the type reference for deserialization
+   * @param mapper the ObjectMapper to use
+   * @return the properties map, or null if not present
+   * @throws IOException if deserialization fails
+   */
+  public <T> T parseProperties(TypeReference<T> typeRef, ObjectMapper mapper) throws IOException {
+    if (!data.has(FIELD_PROPERTIES)) {
+      return null;
+    }
+    return mapper.readerFor(typeRef).readValue(data.get(FIELD_PROPERTIES));
   }
 
   /**
