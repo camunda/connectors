@@ -322,6 +322,28 @@ class AwsAgentCoreConversationMapperTest {
   }
 
   @Test
+  void shouldRoundTripToolCallResultMessageWithNullContent() {
+    // given - all results have null content, so no conversational TOOL summary is emitted
+    ToolCallResultMessage original =
+        ToolCallResultMessage.builder()
+            .results(
+                List.of(ToolCallResult.builder().id("call-1").name("search").content(null).build()))
+            .build();
+
+    // when
+    List<PayloadType> payloads = mapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    List<Message> messages = mapper.fromEvent(event);
+
+    // then - message must not be silently dropped
+    assertThat(messages).hasSize(1);
+    ToolCallResultMessage reconstructed = (ToolCallResultMessage) messages.get(0);
+    assertThat(reconstructed.results()).hasSize(1);
+    assertThat(reconstructed.results().get(0).id()).isEqualTo("call-1");
+    assertThat(reconstructed.results().get(0).name()).isEqualTo("search");
+  }
+
+  @Test
   void shouldRoundTripToolCallResultMessage() {
     // given
     ToolCallResultMessage original =
