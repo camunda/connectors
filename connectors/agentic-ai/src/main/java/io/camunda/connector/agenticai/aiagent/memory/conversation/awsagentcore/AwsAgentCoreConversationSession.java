@@ -74,6 +74,8 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
     previousConversationContext =
         loadConversationContext(agentContext, AwsAgentCoreConversationContext.class);
 
+    validateConfigurationConsistency();
+
     // Restore system message first (it's stored in context, not in AgentCore)
     if (previousConversationContext != null
         && previousConversationContext.systemMessage() != null) {
@@ -100,8 +102,6 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
 
   @Override
   public AgentContext storeFromRuntimeMemory(AgentContext agentContext, RuntimeMemory memory) {
-    validateConfigurationConsistency();
-
     final String sessionId = resolveSessionId(agentContext);
     final List<Message> allMessages = memory.allMessages();
 
@@ -301,7 +301,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
               .actorId(config.actorId())
               .sessionId(sessionId)
               .payload(payloads)
-              .clientToken(branchName + ":" + offset);
+              .clientToken((branchName != null ? branchName : "main") + ":" + offset);
 
       if (branch != null) {
         requestBuilder.branch(branch);
