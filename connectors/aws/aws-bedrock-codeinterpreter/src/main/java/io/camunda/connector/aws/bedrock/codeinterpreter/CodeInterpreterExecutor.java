@@ -16,7 +16,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +44,7 @@ public class CodeInterpreterExecutor {
   private static final String DEFAULT_MIME_TYPE = "application/octet-stream";
   private static final int DEFAULT_MAX_FILES = 10;
   private static final long DEFAULT_MAX_TOTAL_BYTES = 10L * 1024 * 1024;
+  private static final long INVOCATION_TIMEOUT_MINUTES = 5;
 
   private final BedrockAgentCoreClient syncClient;
   private final BedrockAgentCoreAsyncClient asyncClient;
@@ -75,6 +78,8 @@ public class CodeInterpreterExecutor {
     }
   }
 
+  // --- Session management ---
+
   private CodeInterpreterSession startSession(CodeInterpreterInput input, long jobKey) {
     var builder =
         StartCodeInterpreterSessionRequest.builder()
@@ -86,6 +91,8 @@ public class CodeInterpreterExecutor {
     var sessionId = syncClient.startCodeInterpreterSession(builder.build()).sessionId();
     return new CodeInterpreterSession(sessionId);
   }
+
+  // --- Code execution ---
 
   private CodeInterpreterResponse invokeCode(
       CodeInterpreterSession session, CodeInterpreterInput input) {
@@ -105,10 +112,18 @@ public class CodeInterpreterExecutor {
     for (var result : execResult) {
       if (result.structuredContent() != null) {
         var sc = result.structuredContent();
-        if (sc.stdout() != null) stdoutBuilder.append(sc.stdout());
-        if (sc.stderr() != null) stderrBuilder.append(sc.stderr());
-        if (sc.exitCode() != null) exitCode = sc.exitCode();
-        if (sc.executionTime() != null) executionTime = sc.executionTime();
+        if (sc.stdout() != null) {
+          stdoutBuilder.append(sc.stdout());
+        }
+        if (sc.stderr() != null) {
+          stderrBuilder.append(sc.stderr());
+        }
+        if (sc.exitCode() != null) {
+          exitCode = sc.exitCode();
+        }
+        if (sc.executionTime() != null) {
+          executionTime = sc.executionTime();
+        }
       }
     }
 
@@ -121,6 +136,8 @@ public class CodeInterpreterExecutor {
         stdoutBuilder.toString(), stderrBuilder.toString(), exitCode, executionTime, files);
   }
 
+  // --- File retrieval ---
+
   private List<Document> retrieveNewFiles(
       String sessionId, List<String> existingFiles, int maxFiles, long maxBytes) {
     var newFiles = filterNewFiles(listGeneratedFiles(sessionId), existingFiles, maxFiles);
@@ -128,7 +145,7 @@ public class CodeInterpreterExecutor {
       return List.of();
     }
     LOG.debug("New files generated: {}", newFiles);
-    return readFilesAndCheckSizeLimit(sessionId, newFiles, maxBytes);
+    return readFilesWithSizeLimit(sessionId, newFiles, maxBytes);
   }
 
   private List<String> filterNewFiles(
@@ -143,13 +160,13 @@ public class CodeInterpreterExecutor {
     return newFiles;
   }
 
-  private List<Document> readFilesAndCheckSizeLimit(
+  private List<Document> readFilesWithSizeLimit(
       String sessionId, List<String> files, long maxBytes) {
     var documents = new ArrayList<Document>();
     long totalBytes = 0;
     for (var file : files) {
       try {
-        var blocks = readFiles(sessionId, List.of(file));
+        var blocks = readFileBlocks(sessionId, List.of(file));
         for (var doc : convertToDocuments(blocks, file)) {
           totalBytes += doc.metadata().getSize();
           if (totalBytes > maxBytes) {
@@ -165,6 +182,9 @@ public class CodeInterpreterExecutor {
     return documents;
   }
 
+  /**
+   * Lists files in the sandbox working directory. Uses block.name() or block.text() as filename.
+   */
   private List<String> listGeneratedFiles(String sessionId) {
     var listResult =
         invokeTool(
@@ -173,18 +193,12 @@ public class CodeInterpreterExecutor {
     return listResult.stream()
         .filter(CodeInterpreterResult::hasContent)
         .flatMap(r -> r.content().stream())
-        .map(this::extractFileName)
+        .map(this::extractFileNameFromListResult)
         .filter(Objects::nonNull)
         .toList();
   }
 
-  private String extractFileName(ContentBlock block) {
-    if (block.name() != null) return block.name();
-    if (block.text() != null && !block.text().isBlank()) return block.text().trim();
-    return null;
-  }
-
-  private List<ContentBlock> readFiles(String sessionId, List<String> paths) {
+  private List<ContentBlock> readFileBlocks(String sessionId, List<String> paths) {
     var readResult =
         invokeTool(sessionId, ToolName.READ_FILES, ToolArguments.builder().paths(paths).build());
 
@@ -200,40 +214,18 @@ public class CodeInterpreterExecutor {
       var data = extractData(block);
       if (data != null) {
         var mimeType = extractMimeType(block);
-        var name = block.name() != null ? block.name() : fileName;
         documents.add(
             createDocument.apply(
-                DocumentCreationRequest.from(data).contentType(mimeType).fileName(name).build()));
+                DocumentCreationRequest.from(data)
+                    .contentType(mimeType)
+                    .fileName(fileName)
+                    .build()));
       }
     }
     return documents;
   }
 
-  private byte[] extractData(ContentBlock block) {
-    if (block.data() != null) {
-      return block.data().asByteArray();
-    }
-    if (block.resource() != null) {
-      if (block.resource().blob() != null) {
-        return block.resource().blob().asByteArray();
-      }
-      if (block.resource().text() != null) {
-        return block.resource().text().getBytes(StandardCharsets.UTF_8);
-      }
-    }
-    return null;
-  }
-
-  private String extractMimeType(ContentBlock block) {
-    if (block.mimeType() != null) return block.mimeType();
-    if (block.resource() != null && block.resource().mimeType() != null) {
-      return block.resource().mimeType();
-    }
-    if (block.resource() != null && block.resource().text() != null) {
-      return "text/plain";
-    }
-    return DEFAULT_MIME_TYPE;
-  }
+  // --- Tool invocation ---
 
   private List<CodeInterpreterResult> invokeTool(
       String sessionId, ToolName toolName, ToolArguments arguments) {
@@ -264,10 +256,73 @@ public class CodeInterpreterExecutor {
                 })
             .build();
 
-    CompletableFuture<Void> future = asyncClient.invokeCodeInterpreter(request, handler);
-    future.join();
+    try {
+      asyncClient
+          .invokeCodeInterpreter(request, handler)
+          .get(INVOCATION_TIMEOUT_MINUTES, TimeUnit.MINUTES);
+    } catch (TimeoutException e) {
+      throw new ConnectorException(
+          ERROR_CODE_INTERPRETER_FAILED, "Code Interpreter invocation timed out", e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ConnectorException(
+          ERROR_CODE_INTERPRETER_FAILED, "Code Interpreter invocation interrupted", e);
+    } catch (ExecutionException e) {
+      throw new ConnectorException(
+          ERROR_CODE_INTERPRETER_FAILED,
+          "Code Interpreter error: " + e.getCause().getMessage(),
+          e.getCause());
+    }
     return results;
   }
+
+  // --- Content block extraction helpers ---
+
+  /**
+   * Extracts a filename from a listFiles result block. Uses block.name() if available, otherwise
+   * falls back to block.text() which contains the filename in listFiles responses.
+   */
+  private String extractFileNameFromListResult(ContentBlock block) {
+    if (block.name() != null) {
+      return block.name();
+    }
+    if (block.text() != null && !block.text().isBlank()) {
+      return block.text().trim();
+    }
+    return null;
+  }
+
+  /** Extracts binary data from a content block, checking data, resource.blob, and resource.text. */
+  private byte[] extractData(ContentBlock block) {
+    if (block.data() != null) {
+      return block.data().asByteArray();
+    }
+    if (block.resource() != null) {
+      if (block.resource().blob() != null) {
+        return block.resource().blob().asByteArray();
+      }
+      if (block.resource().text() != null) {
+        return block.resource().text().getBytes(StandardCharsets.UTF_8);
+      }
+    }
+    return null;
+  }
+
+  /** Extracts the MIME type from a content block, with fallbacks for different block structures. */
+  private String extractMimeType(ContentBlock block) {
+    if (block.mimeType() != null) {
+      return block.mimeType();
+    }
+    if (block.resource() != null && block.resource().mimeType() != null) {
+      return block.resource().mimeType();
+    }
+    if (block.resource() != null && block.resource().text() != null) {
+      return "text/plain";
+    }
+    return DEFAULT_MIME_TYPE;
+  }
+
+  // --- Session wrapper ---
 
   /** AutoCloseable wrapper for Code Interpreter sessions. */
   private class CodeInterpreterSession implements AutoCloseable {
