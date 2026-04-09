@@ -141,6 +141,7 @@ class AwsAgentCoreConversationMapperTest {
     assertThat(messages).hasSize(1);
     UserMessage reconstructed = (UserMessage) messages.get(0);
     assertThat(reconstructed.name()).isEqualTo("Alice");
+    assertThat(reconstructed.metadata()).isNullOrEmpty();
     assertThat(((TextContent) reconstructed.content().get(0)).text()).isEqualTo("Hello world");
   }
 
