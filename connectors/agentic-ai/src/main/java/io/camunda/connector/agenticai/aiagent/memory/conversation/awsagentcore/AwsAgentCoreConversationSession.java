@@ -47,6 +47,9 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(AwsAgentCoreConversationSession.class);
 
+  private static final String MAIN_TIMELINE = "main";
+  private static final String EVENT_METADATA_SEQ = "seq";
+
   private final AwsAgentCoreMemoryStorageConfiguration config;
   private final BedrockAgentCoreClient client;
   private final AwsAgentCoreConversationMapper mapper;
@@ -272,8 +275,10 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
               .actorId(config.actorId())
               .sessionId(sessionId)
               .payload(payloads)
-              .clientToken((branchName != null ? branchName : "main") + ":" + offset)
-              .metadata(Map.of("seq", MetadataValue.fromStringValue(String.valueOf(offset))));
+              .clientToken((branchName != null ? branchName : MAIN_TIMELINE) + ":" + offset)
+              .metadata(
+                  Map.of(
+                      EVENT_METADATA_SEQ, MetadataValue.fromStringValue(String.valueOf(offset))));
 
       if (branch != null) {
         requestBuilder.branch(branch);
@@ -299,7 +304,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
     if (event.metadata() == null) {
       return null;
     }
-    var seqValue = event.metadata().get("seq");
+    var seqValue = event.metadata().get(EVENT_METADATA_SEQ);
     if (seqValue == null || seqValue.stringValue() == null) {
       return null;
     }
