@@ -55,6 +55,7 @@ import software.amazon.awssdk.services.bedrockagentcore.model.CreateEventRequest
 import software.amazon.awssdk.services.bedrockagentcore.model.CreateEventResponse;
 import software.amazon.awssdk.services.bedrockagentcore.model.Event;
 import software.amazon.awssdk.services.bedrockagentcore.model.ListEventsRequest;
+import software.amazon.awssdk.services.bedrockagentcore.model.MetadataValue;
 import software.amazon.awssdk.services.bedrockagentcore.model.PayloadType;
 import software.amazon.awssdk.services.bedrockagentcore.model.Role;
 import software.amazon.awssdk.services.bedrockagentcore.paginators.ListEventsIterable;
@@ -806,6 +807,119 @@ class AwsAgentCoreConversationStoreTest {
         (AwsAgentCoreConversationContext) turn2Result.context().conversation();
     assertThat(turn2ConversationContext.branchName()).isEqualTo(allRequests.get(2).branch().name());
     assertThat(turn2ConversationContext.lastEventId()).isEqualTo("evt-4");
+  }
+
+  @Test
+  void throwsExceptionWhenMemoryIdChangedBetweenIterations() {
+    // Turn 1: establish context with original memoryId
+    final var turn1Context =
+        AgentContext.builder()
+            .conversation(
+                AwsAgentCoreConversationContext.builder()
+                    .conversationId(SESSION_ID)
+                    .memoryId(MEMORY_ID)
+                    .actorId(ACTOR_ID)
+                    .build())
+            .build();
+
+    // Change memoryId in config for turn 2
+    var changedConfig =
+        new AwsAgentCoreMemoryStorageConfiguration(
+            null, null, config.authentication(), "different-memory-id", ACTOR_ID);
+    when(executionContext.memory()).thenReturn(new MemoryConfiguration(changedConfig, 20));
+    when(clientFactory.createClient(changedConfig)).thenReturn(bedrockClient);
+
+    var changedStore =
+        new AwsAgentCoreConversationStore(
+            clientFactory, new AwsAgentCoreConversationMapper(TestObjectMapperSupplier.INSTANCE));
+
+    assertThatThrownBy(
+            () ->
+                changedStore.executeInSession(
+                    executionContext,
+                    turn1Context,
+                    session -> {
+                      session.loadIntoRuntimeMemory(turn1Context, memory);
+                      return agentResponse(session.storeFromRuntimeMemory(turn1Context, memory));
+                    }))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("memoryId changed between iterations");
+  }
+
+  @Test
+  void throwsExceptionWhenActorIdChangedBetweenIterations() {
+    // Turn 1: establish context with original actorId
+    final var turn1Context =
+        AgentContext.builder()
+            .conversation(
+                AwsAgentCoreConversationContext.builder()
+                    .conversationId(SESSION_ID)
+                    .memoryId(MEMORY_ID)
+                    .actorId(ACTOR_ID)
+                    .build())
+            .build();
+
+    // Change actorId in config for turn 2
+    var changedConfig =
+        new AwsAgentCoreMemoryStorageConfiguration(
+            null, null, config.authentication(), MEMORY_ID, "different-actor-id");
+    when(executionContext.memory()).thenReturn(new MemoryConfiguration(changedConfig, 20));
+    when(clientFactory.createClient(changedConfig)).thenReturn(bedrockClient);
+
+    var changedStore =
+        new AwsAgentCoreConversationStore(
+            clientFactory, new AwsAgentCoreConversationMapper(TestObjectMapperSupplier.INSTANCE));
+
+    assertThatThrownBy(
+            () ->
+                changedStore.executeInSession(
+                    executionContext,
+                    turn1Context,
+                    session -> {
+                      session.loadIntoRuntimeMemory(turn1Context, memory);
+                      return agentResponse(session.storeFromRuntimeMemory(turn1Context, memory));
+                    }))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("actorId changed between iterations");
+  }
+
+  @Test
+  void ordersEventsByTimestampThenBySeqMetadata() {
+    // given - events with identical timestamps but different seq values, in reverse order
+    final var timestamp = Instant.now();
+    final var events =
+        List.of(
+            createEventWithSeq(Role.ASSISTANT, "Second", timestamp, "1"),
+            createEventWithSeq(Role.USER, "First", timestamp, "0"));
+
+    final var agentContext = AgentContext.empty();
+    mockListEventsResponse(events);
+
+    // when
+    store.executeInSession(
+        executionContext,
+        agentContext,
+        session -> {
+          session.loadIntoRuntimeMemory(agentContext, memory);
+
+          // then - messages should be ordered by seq: User (0) before Assistant (1)
+          var messages = memory.allMessages();
+          assertThat(messages).hasSize(2);
+          assertThat(messages.get(0)).isInstanceOf(UserMessage.class);
+          assertThat(messages.get(1)).isInstanceOf(AssistantMessage.class);
+          return agentResponse(session.storeFromRuntimeMemory(agentContext, memory));
+        });
+  }
+
+  private Event createEventWithSeq(Role role, String text, Instant timestamp, String seq) {
+    final var conversational =
+        Conversational.builder().role(role).content(Content.fromText(text)).build();
+    final var payload = PayloadType.builder().conversational(conversational).build();
+    return Event.builder()
+        .eventTimestamp(timestamp)
+        .payload(payload)
+        .metadata(Map.of("seq", MetadataValue.fromStringValue(seq)))
+        .build();
   }
 
   private Event createEvent(Role role, String text, Instant timestamp) {
