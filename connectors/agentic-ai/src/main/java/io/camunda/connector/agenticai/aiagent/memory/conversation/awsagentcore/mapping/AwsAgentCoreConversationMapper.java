@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -53,6 +54,7 @@ public class AwsAgentCoreConversationMapper {
       new TypeReference<>() {};
   private static final TypeReference<Map<String, Object>> METADATA_TYPE = new TypeReference<>() {};
 
+  static final String PROPERTY_ROLE = "role";
   static final String PROPERTY_USER_NAME = "userName";
 
   private final ObjectMapper objectMapper;
@@ -194,7 +196,6 @@ public class AwsAgentCoreConversationMapper {
    */
   private List<Message> extractMessagesFromPayloads(
       List<PayloadType> payloads, Map<String, Object> metadata) throws IOException {
-    Role messageRole = null;
     List<Content> content = new ArrayList<>();
     List<ToolCall> toolCalls = List.of();
     List<ToolCallResult> toolCallResults = null;
@@ -203,12 +204,9 @@ public class AwsAgentCoreConversationMapper {
     for (PayloadType payload : payloads) {
       if (payload.conversational() != null) {
         Conversational conv = payload.conversational();
-        if (messageRole == null) {
-          messageRole = conv.role();
-        }
-        if (messageRole == Role.TOOL) {
+        if (conv.role() == Role.TOOL) {
           // TOOL conversational payload is a summary for long-term memory extraction —
-          // skip it if we have a blob with the full structure (handled below)
+          // skip it since the blob has the full structure (handled below)
           continue;
         }
         String text = extractTextFromConversational(conv);
@@ -223,14 +221,8 @@ public class AwsAgentCoreConversationMapper {
           properties = envelope.parseProperties(METADATA_TYPE, objectMapper);
         } else if (envelope.is(BlobEnvelopeType.TOOL_CALLS)) {
           toolCalls = parseToolCallsFromEnvelope(envelope);
-          if (messageRole == null) {
-            messageRole = Role.ASSISTANT; // toolCalls-only AssistantMessage (no text)
-          }
         } else if (envelope.is(BlobEnvelopeType.TOOL_CALL_RESULTS)) {
           toolCallResults = parseToolCallResultsFromEnvelope(envelope);
-          if (messageRole == null) {
-            messageRole = Role.TOOL; // toolCallResults-only event (no conversational summary)
-          }
         } else if (envelope.is(BlobEnvelopeType.MESSAGE_CONTENT)) {
           content.add(parseContentFromEnvelope(envelope));
         } else {
@@ -240,6 +232,8 @@ public class AwsAgentCoreConversationMapper {
       }
     }
 
+    // role is always resolved from the metadata properties blob (canonical source)
+    Role messageRole = resolveRoleFromProperties(properties);
     if (messageRole == null) {
       return List.of();
     }
@@ -349,6 +343,17 @@ public class AwsAgentCoreConversationMapper {
     return envelope.parseData(TOOL_CALL_RESULTS_TYPE, objectMapper);
   }
 
+  private static Role resolveRoleFromProperties(Map<String, Object> properties) {
+    if (properties == null) {
+      return null;
+    }
+    Object roleValue = properties.get(PROPERTY_ROLE);
+    if (roleValue instanceof String roleStr) {
+      return Role.fromValue(roleStr);
+    }
+    return null;
+  }
+
   private String contentToString(Object content) {
     if (content instanceof String s) {
       return s;
@@ -362,13 +367,27 @@ public class AwsAgentCoreConversationMapper {
 
   /**
    * Extracts internal properties from a message that need round-tripping via the metadata blob's
-   * properties section. Returns null if there are no properties to store.
+   * properties section. The role is always included as the canonical source for message
+   * reconstruction during deserialization.
    */
   private Map<String, Object> extractProperties(Message message) {
-    if (message instanceof UserMessage userMsg && userMsg.name() != null) {
-      return Map.of(PROPERTY_USER_NAME, userMsg.name());
+    // role is the canonical source for deserialization — must always be present
+    String role =
+        switch (message) {
+          case UserMessage ignored -> Role.USER.toString();
+          case AssistantMessage ignored -> Role.ASSISTANT.toString();
+          case ToolCallResultMessage ignored -> Role.TOOL.toString();
+          default -> null;
+        };
+
+    Map<String, Object> props = new HashMap<>();
+    if (role != null) {
+      props.put(PROPERTY_ROLE, role);
     }
-    return null;
+    if (message instanceof UserMessage userMsg && userMsg.name() != null) {
+      props.put(PROPERTY_USER_NAME, userMsg.name());
+    }
+    return props.isEmpty() ? null : Map.copyOf(props);
   }
 
   /**
