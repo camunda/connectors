@@ -218,6 +218,9 @@ public class AwsAgentCoreConversationMapper {
           }
         } else if (envelope.is(BlobEnvelopeType.TOOL_CALL_RESULTS)) {
           toolCallResults = parseToolCallResultsFromEnvelope(envelope);
+          if (messageRole == null) {
+            messageRole = Role.TOOL; // toolCallResults-only event (no conversational summary)
+          }
         } else if (envelope.is(BlobEnvelopeType.MESSAGE_CONTENT)) {
           content.add(parseContentFromEnvelope(envelope));
         } else {
