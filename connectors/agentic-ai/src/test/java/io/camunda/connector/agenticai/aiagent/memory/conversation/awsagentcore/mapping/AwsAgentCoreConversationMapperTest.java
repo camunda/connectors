@@ -58,11 +58,12 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = mapper.toPayloads(message);
 
-    // then
-    assertThat(payloads).hasSize(1);
+    // then — conversational payload + metadata blob (with role)
+    assertThat(payloads).hasSize(2);
     assertThat(payloads.get(0).conversational()).isNotNull();
     assertThat(payloads.get(0).conversational().role()).isEqualTo(Role.USER);
     assertThat(payloads.get(0).conversational().content().text()).isEqualTo("Hello world");
+    assertThat(payloads.get(1).blob()).isNotNull(); // metadata blob with role
   }
 
   @Test
@@ -76,8 +77,8 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = mapper.toPayloads(message);
 
-    // then
-    assertThat(payloads).hasSize(2);
+    // then — 2 conversational payloads + metadata blob
+    assertThat(payloads).hasSize(3);
     assertThat(payloads.get(0).conversational().content().text()).isEqualTo("Part 1");
     assertThat(payloads.get(1).conversational().content().text()).isEqualTo("Part 2");
   }
@@ -100,8 +101,8 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = mapper.toPayloads(message);
 
-    // then
-    assertThat(payloads).hasSize(2);
+    // then — conversational + document blob + metadata blob
+    assertThat(payloads).hasSize(3);
     assertThat(payloads.get(0).conversational()).isNotNull(); // text
     assertThat(payloads.get(1).blob()).isNotNull(); // document
   }
@@ -177,6 +178,32 @@ class AwsAgentCoreConversationMapperTest {
     assertThat(docContent.document()).isNotNull();
   }
 
+  @Test
+  void shouldRoundTripUserMessageWithOnlyDocumentContent() {
+    // given - no TextContent, only DocumentContent (blob-only event, no conversational payload)
+    Document testDocument =
+        new TestDocumentFactory()
+            .create(
+                DocumentCreationRequest.from("binary data".getBytes(StandardCharsets.UTF_8))
+                    .build());
+    UserMessage original =
+        UserMessage.builder()
+            .content(List.of(DocumentContent.documentContent(testDocument)))
+            .build();
+
+    // when
+    List<PayloadType> payloads = mapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    List<Message> messages = mapper.fromEvent(event);
+
+    // then - message must not be dropped; role recovered from metadata properties
+    assertThat(messages).hasSize(1);
+    assertThat(messages.get(0)).isInstanceOf(UserMessage.class);
+    UserMessage reconstructed = (UserMessage) messages.get(0);
+    assertThat(reconstructed.content()).hasSize(1);
+    assertThat(reconstructed.content().get(0)).isInstanceOf(DocumentContent.class);
+  }
+
   // ==================== AssistantMessage Tests ====================
 
   @Test
@@ -188,8 +215,8 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = mapper.toPayloads(message);
 
-    // then
-    assertThat(payloads).hasSize(1);
+    // then — conversational + metadata blob
+    assertThat(payloads).hasSize(2);
     assertThat(payloads.get(0).conversational().role()).isEqualTo(Role.ASSISTANT);
     assertThat(payloads.get(0).conversational().content().text()).isEqualTo("Here's the answer");
   }
@@ -212,8 +239,8 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = mapper.toPayloads(message);
 
-    // then
-    assertThat(payloads).hasSize(1);
+    // then — toolCalls blob + metadata blob
+    assertThat(payloads).hasSize(2);
     assertThat(payloads.get(0).blob()).isNotNull();
   }
 
@@ -235,8 +262,8 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = mapper.toPayloads(message);
 
-    // then
-    assertThat(payloads).hasSize(2);
+    // then — conversational + toolCalls blob + metadata blob
+    assertThat(payloads).hasSize(3);
     assertThat(payloads.get(0).conversational()).isNotNull();
     assertThat(payloads.get(1).blob()).isNotNull();
   }
@@ -314,8 +341,8 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = mapper.toPayloads(message);
 
-    // then
-    assertThat(payloads).hasSize(2);
+    // then — conversational summary + toolCallResults blob + metadata blob
+    assertThat(payloads).hasSize(3);
     // Conversational summary
     assertThat(payloads.get(0).conversational().role()).isEqualTo(Role.TOOL);
     assertThat(payloads.get(0).conversational().content().text()).isEqualTo("Found 3 items");
@@ -410,8 +437,8 @@ class AwsAgentCoreConversationMapperTest {
   }
 
   @Test
-  void shouldRejectToolEventWithoutBlobEnvelope() {
-    // given - event with only conversational TOOL payload but no toolCallResults blob
+  void shouldReturnEmptyForToolEventWithoutMetadataBlob() {
+    // given - event with only conversational TOOL payload but no metadata blob (no role source)
     Event event =
         Event.builder()
             .payload(
@@ -427,10 +454,11 @@ class AwsAgentCoreConversationMapperTest {
                     .build())
             .build();
 
-    // when/then
-    assertThatThrownBy(() -> mapper.fromEvent(event))
-        .isInstanceOf(AwsAgentCoreConversationMapper.AgentCoreMapperException.class)
-        .hasMessageContaining("camunda.toolCallResults");
+    // when — no metadata blob means role can't be resolved, so event is skipped
+    List<Message> messages = mapper.fromEvent(event);
+
+    // then
+    assertThat(messages).isEmpty();
   }
 
   // ==================== SystemMessage Tests ====================
@@ -456,8 +484,9 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = mapper.toPayloads(message);
 
-    // then
-    assertThat(payloads).isEmpty();
+    // then — only the metadata blob (with role), no content payloads
+    assertThat(payloads).hasSize(1);
+    assertThat(payloads.get(0).blob()).isNotNull();
   }
 
   @Test
@@ -491,8 +520,8 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = mapper.toPayloads(original);
 
-    // then - verify DocumentContent is serialized as blob envelope
-    assertThat(payloads).hasSize(1);
+    // then — document blob + metadata blob (with role)
+    assertThat(payloads).hasSize(2);
     assertThat(payloads.get(0).blob()).isNotNull();
   }
 
@@ -714,8 +743,8 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = mapper.toPayloads(message);
 
-    // then — payloads must be in content order: conv, blob, conv
-    assertThat(payloads).hasSize(3);
+    // then — payloads must be in content order: conv, blob, conv, metadata blob
+    assertThat(payloads).hasSize(4);
     assertThat(payloads.get(0).conversational()).isNotNull();
     assertThat(payloads.get(0).conversational().content().text()).isEqualTo("A");
     assertThat(payloads.get(1).blob()).isNotNull(); // DocumentContent blob

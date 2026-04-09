@@ -449,9 +449,10 @@ class AwsAgentCoreConversationStoreTest {
 
     // Verify assistant event stores:
     // - conversational payload with plain assistant text
-    // - additional blob payload containing tool call JSON envelope
+    // - blob payload containing tool call JSON envelope
+    // - metadata blob with role
     final var assistantEventPayloads = requests.get(1).payload();
-    assertThat(assistantEventPayloads).hasSize(2);
+    assertThat(assistantEventPayloads).hasSize(3);
 
     final var assistantConversational = assistantEventPayloads.get(0).conversational();
     assertThat(assistantConversational).isNotNull();
@@ -501,7 +502,8 @@ class AwsAgentCoreConversationStoreTest {
             .payload(
                 List.of(
                     PayloadType.builder().conversational(assistantConversational).build(),
-                    PayloadType.builder().blob(Document.fromString(toolCallsBlobJson)).build()))
+                    PayloadType.builder().blob(Document.fromString(toolCallsBlobJson)).build(),
+                    metadataBlobPayload(Role.ASSISTANT)))
             .build();
 
     mockListEventsResponse(List.of(event));
@@ -544,7 +546,8 @@ class AwsAgentCoreConversationStoreTest {
                     PayloadType.builder().conversational(toolConversational).build(),
                     PayloadType.builder()
                         .blob(Document.fromString(toolCallResultsBlobJson))
-                        .build()))
+                        .build(),
+                    metadataBlobPayload(Role.TOOL)))
             .build();
 
     mockListEventsResponse(List.of(event));
@@ -594,7 +597,8 @@ class AwsAgentCoreConversationStoreTest {
             .payload(
                 List.of(
                     PayloadType.builder().conversational(assistantConversational).build(),
-                    PayloadType.builder().blob(Document.fromString(toolCallsBlobJson)).build()))
+                    PayloadType.builder().blob(Document.fromString(toolCallsBlobJson)).build(),
+                    metadataBlobPayload(Role.ASSISTANT)))
             .build();
 
     mockListEventsResponse(List.of(event));
@@ -642,7 +646,9 @@ class AwsAgentCoreConversationStoreTest {
         Event.builder()
             .eventTimestamp(Instant.now())
             .payload(
-                List.of(PayloadType.builder().blob(Document.fromString(toolCallsBlobJson)).build()))
+                List.of(
+                    PayloadType.builder().blob(Document.fromString(toolCallsBlobJson)).build(),
+                    metadataBlobPayload(Role.ASSISTANT)))
             .build();
 
     mockListEventsResponse(List.of(event));
@@ -914,10 +920,10 @@ class AwsAgentCoreConversationStoreTest {
   private Event createEventWithSeq(Role role, String text, Instant timestamp, String seq) {
     final var conversational =
         Conversational.builder().role(role).content(Content.fromText(text)).build();
-    final var payload = PayloadType.builder().conversational(conversational).build();
     return Event.builder()
         .eventTimestamp(timestamp)
-        .payload(payload)
+        .payload(
+            PayloadType.builder().conversational(conversational).build(), metadataBlobPayload(role))
         .metadata(Map.of("seq", MetadataValue.fromStringValue(seq)))
         .build();
   }
@@ -925,8 +931,19 @@ class AwsAgentCoreConversationStoreTest {
   private Event createEvent(Role role, String text, Instant timestamp) {
     final var conversational =
         Conversational.builder().role(role).content(Content.fromText(text)).build();
-    final var payload = PayloadType.builder().conversational(conversational).build();
-    return Event.builder().eventTimestamp(timestamp).payload(payload).build();
+    return Event.builder()
+        .eventTimestamp(timestamp)
+        .payload(
+            PayloadType.builder().conversational(conversational).build(), metadataBlobPayload(role))
+        .build();
+  }
+
+  private static PayloadType metadataBlobPayload(Role role) {
+    String json =
+        "{\"blobType\":\"camunda.messageMetadata\",\"version\":1,\"metadata\":{},\"properties\":{\"role\":\""
+            + role.toString()
+            + "\"}}";
+    return PayloadType.builder().blob(Document.fromString(json)).build();
   }
 
   private void mockListEventsResponse(List<Event> events) {
