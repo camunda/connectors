@@ -45,7 +45,10 @@ import software.amazon.awssdk.services.bedrockagentcore.model.Role;
  *   <li>SystemMessage → Not mapped (stored in context separately)
  * </ul>
  *
- * <p>All failures throw exceptions - no silent swallowing of errors.
+ * <p>Mapping failures throw exceptions. The only best-effort path is {@code contentToString}, which
+ * falls back to {@code Object.toString()} when JSON serialization of a tool-call result summary
+ * fails — this affects the conversational summary for AgentCore's long-term memory extraction, not
+ * the lossless blob envelope.
  */
 public class AwsAgentCoreConversationMapper {
 
