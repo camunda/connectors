@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
@@ -51,6 +50,7 @@ public class AwsAgentCoreConversationMapper {
   private static final TypeReference<List<ToolCall>> TOOL_CALLS_TYPE = new TypeReference<>() {};
   private static final TypeReference<List<ToolCallResult>> TOOL_CALL_RESULTS_TYPE =
       new TypeReference<>() {};
+  private static final TypeReference<Map<String, Object>> METADATA_TYPE = new TypeReference<>() {};
 
   private final ObjectMapper objectMapper;
 
@@ -184,7 +184,6 @@ public class AwsAgentCoreConversationMapper {
    * <p>Special blob types (metadata, toolCalls, toolCallResults) are extracted separately. Content
    * payloads (conversational text and messageContent blobs) are collected in their original order.
    */
-  @SuppressWarnings("unchecked")
   private List<Message> extractMessagesFromPayloads(
       List<PayloadType> payloads, Map<String, Object> metadata) throws IOException {
     Role messageRole = null;
@@ -211,7 +210,7 @@ public class AwsAgentCoreConversationMapper {
         BlobEnvelope envelope = BlobEnvelope.fromDocument(payload.blob(), objectMapper);
 
         if (envelope.is(BlobEnvelopeType.MESSAGE_METADATA)) {
-          metadata = envelope.parseData(Map.class, objectMapper);
+          metadata = envelope.parseData(METADATA_TYPE, objectMapper);
         } else if (envelope.is(BlobEnvelopeType.TOOL_CALLS)) {
           toolCalls = parseToolCallsFromEnvelope(envelope);
           if (messageRole == null) {
@@ -271,7 +270,7 @@ public class AwsAgentCoreConversationMapper {
       BlobEnvelope envelope = BlobEnvelope.forContent(content, objectMapper);
       Document document = envelope.toDocument(objectMapper);
       return PayloadType.builder().blob(document).build();
-    } catch (JsonProcessingException e) {
+    } catch (Exception e) {
       throw new AgentCoreMapperException(
           "Failed to serialize Content to blob envelope: " + e.getMessage(), e);
     }
@@ -282,7 +281,7 @@ public class AwsAgentCoreConversationMapper {
       BlobEnvelope envelope = BlobEnvelope.forToolCalls(toolCalls, objectMapper);
       Document document = envelope.toDocument(objectMapper);
       return PayloadType.builder().blob(document).build();
-    } catch (JsonProcessingException e) {
+    } catch (Exception e) {
       throw new AgentCoreMapperException(
           "Failed to serialize ToolCalls to blob envelope: " + e.getMessage(), e);
     }
@@ -293,7 +292,7 @@ public class AwsAgentCoreConversationMapper {
       BlobEnvelope envelope = BlobEnvelope.forToolCallResults(results, objectMapper);
       Document document = envelope.toDocument(objectMapper);
       return PayloadType.builder().blob(document).build();
-    } catch (JsonProcessingException e) {
+    } catch (Exception e) {
       throw new AgentCoreMapperException(
           "Failed to serialize ToolCallResults to blob envelope: " + e.getMessage(), e);
     }
@@ -304,7 +303,7 @@ public class AwsAgentCoreConversationMapper {
       BlobEnvelope envelope = BlobEnvelope.forMetadata(metadata, objectMapper);
       Document document = envelope.toDocument(objectMapper);
       return PayloadType.builder().blob(document).build();
-    } catch (JsonProcessingException e) {
+    } catch (Exception e) {
       throw new AgentCoreMapperException(
           "Failed to serialize metadata to blob envelope: " + e.getMessage(), e);
     }
