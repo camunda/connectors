@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
@@ -169,7 +170,7 @@ public class AwsAgentCoreConversationMapper {
         message.results().stream()
             .map(ToolCallResult::content)
             .filter(Objects::nonNull)
-            .map(Object::toString)
+            .map(this::contentToString)
             .collect(Collectors.joining("\n"));
 
     if (!summary.isBlank()) {
@@ -346,6 +347,17 @@ public class AwsAgentCoreConversationMapper {
   private List<ToolCallResult> parseToolCallResultsFromEnvelope(BlobEnvelope envelope)
       throws IOException {
     return envelope.parseData(TOOL_CALL_RESULTS_TYPE, objectMapper);
+  }
+
+  private String contentToString(Object content) {
+    if (content instanceof String s) {
+      return s;
+    }
+    try {
+      return objectMapper.writeValueAsString(content);
+    } catch (JsonProcessingException e) {
+      return content.toString();
+    }
   }
 
   /**
