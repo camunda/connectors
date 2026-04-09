@@ -176,14 +176,12 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
     if (previousConversationContext == null) {
       return;
     }
-    if (previousConversationContext.memoryId() != null
-        && !previousConversationContext.memoryId().equals(config.memoryId())) {
+    if (!previousConversationContext.memoryId().equals(config.memoryId())) {
       throw new IllegalStateException(
           "memoryId changed between iterations (was '%s', now '%s'). Changing the memory resource mid-conversation is not supported."
               .formatted(previousConversationContext.memoryId(), config.memoryId()));
     }
-    if (previousConversationContext.actorId() != null
-        && !previousConversationContext.actorId().equals(config.actorId())) {
+    if (!previousConversationContext.actorId().equals(config.actorId())) {
       throw new IllegalStateException(
           "actorId changed between iterations (was '%s', now '%s'). Changing the actor mid-conversation is not supported."
               .formatted(previousConversationContext.actorId(), config.actorId()));
