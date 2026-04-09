@@ -20,18 +20,29 @@ import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.FEE
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
+import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationContext;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationContext;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.e2e.agenticai.AgentCoreMemoryTestConfiguration;
+import io.camunda.connector.e2e.agenticai.InMemoryBedrockAgentCoreClientFactory;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.Import;
 
 @SlowTest
+@Import(AgentCoreMemoryTestConfiguration.class)
 public class L4JAiAgentConnectorMemoryStorageTests extends BaseL4JAiAgentConnectorTest {
+
+  @BeforeEach
+  void clearAgentCoreMemoryStore() {
+    InMemoryBedrockAgentCoreClientFactory.INSTANCE.clear();
+  }
 
   @Test
   void inProcessStorage() throws Exception {
@@ -98,6 +109,41 @@ public class L4JAiAgentConnectorMemoryStorageTests extends BaseL4JAiAgentConnect
                                               "conversationId", conversation.conversationId()),
                                           Map.entry("customProperty", "customValue")));
                             });
+                  });
+        });
+  }
+
+  @Test
+  void awsAgentCoreMemoryStorage() throws Exception {
+    testInteractionWithToolsAndUserFeedbackLoops(
+        elementTemplate ->
+            elementTemplate
+                .property("data.memory.storage.type", "aws-agentcore")
+                .property("data.memory.storage.authentication.type", "credentials")
+                .property("data.memory.storage.authentication.accessKey", "test-access-key")
+                .property("data.memory.storage.authentication.secretKey", "test-secret-key")
+                .property("data.memory.storage.memoryId", "test-memory-id")
+                .property("data.memory.storage.actorId", "test-actor-id"),
+        FEEDBACK_LOOP_RESPONSE_TEXT,
+        true,
+        (agentResponse) -> {
+          AgentResponseAssert.assertThat(agentResponse)
+              .hasResponseMessageText(FEEDBACK_LOOP_RESPONSE_TEXT)
+              .hasResponseText(FEEDBACK_LOOP_RESPONSE_TEXT)
+              .hasNoResponseJson();
+
+          assertThat(agentResponse.context().conversation())
+              .isInstanceOfSatisfying(
+                  AwsAgentCoreConversationContext.class,
+                  conversation -> {
+                    assertThat(conversation.conversationId()).isNotNull();
+                    assertThat(conversation.memoryId()).isEqualTo("test-memory-id");
+                    assertThat(conversation.actorId()).isEqualTo("test-actor-id");
+                    assertThat(conversation.lastEventId()).isNotNull();
+                    // After 3 agent iterations, branch should be set (turns 2+ create branches)
+                    assertThat(conversation.branchName()).isNotNull();
+                    // System message should be preserved in context
+                    assertThat(conversation.systemMessage()).isNotNull();
                   });
         });
   }
