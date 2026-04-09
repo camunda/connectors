@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.model.message.UserMessage;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +34,7 @@ import software.amazon.awssdk.services.bedrockagentcore.model.CreateEventRequest
 import software.amazon.awssdk.services.bedrockagentcore.model.Event;
 import software.amazon.awssdk.services.bedrockagentcore.model.FilterInput;
 import software.amazon.awssdk.services.bedrockagentcore.model.ListEventsRequest;
+import software.amazon.awssdk.services.bedrockagentcore.model.MetadataValue;
 import software.amazon.awssdk.services.bedrockagentcore.model.PayloadType;
 
 /**
@@ -243,7 +245,9 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
           .sorted(
               Comparator.comparing(
                       Event::eventTimestamp, Comparator.nullsLast(Comparator.naturalOrder()))
-                  .thenComparing(Event::eventId, Comparator.nullsLast(Comparator.naturalOrder())))
+                  .thenComparing(
+                      AwsAgentCoreConversationSession::extractSeq,
+                      Comparator.nullsLast(Comparator.naturalOrder())))
           .flatMap(event -> mapper.fromEvent(event).stream())
           .toList();
     } catch (BedrockAgentCoreException e) {
@@ -301,7 +305,8 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
               .actorId(config.actorId())
               .sessionId(sessionId)
               .payload(payloads)
-              .clientToken((branchName != null ? branchName : "main") + ":" + offset);
+              .clientToken((branchName != null ? branchName : "main") + ":" + offset)
+              .metadata(Map.of("seq", MetadataValue.fromStringValue(String.valueOf(offset))));
 
       if (branch != null) {
         requestBuilder.branch(branch);
@@ -321,5 +326,20 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
       }
     }
     return lastEventId;
+  }
+
+  private static Integer extractSeq(Event event) {
+    if (event.metadata() == null) {
+      return null;
+    }
+    var seqValue = event.metadata().get("seq");
+    if (seqValue == null || seqValue.stringValue() == null) {
+      return null;
+    }
+    try {
+      return Integer.parseInt(seqValue.stringValue());
+    } catch (NumberFormatException e) {
+      return null;
+    }
   }
 }
