@@ -113,7 +113,7 @@ UserMessage { content: [TextContent("Hello"), DocumentContent(...), TextContent(
     Conversational { role: USER, content: { text: "more" } }
     Blob { "blobType": "camunda.messageMetadata", "version": 1, "metadata": {"userId": "u1"} }
 ```
-Content items are emitted in their original order — `TextContent` becomes conversational, non-text becomes blob, interleaved as they appear. Metadata is appended as a separate blob envelope. `UserMessage.name` is preserved in the AWS event metadata field `userName`.
+Content items are emitted in their original order — `TextContent` becomes conversational, non-text becomes blob, interleaved as they appear. Metadata is appended as a separate blob envelope. `UserMessage.name` is preserved in the metadata blob envelope's `properties` section.
 
 **AssistantMessage with tool calls:**
 ```
