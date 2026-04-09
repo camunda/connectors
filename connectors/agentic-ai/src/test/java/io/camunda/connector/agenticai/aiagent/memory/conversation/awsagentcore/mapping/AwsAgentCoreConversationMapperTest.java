@@ -351,8 +351,8 @@ class AwsAgentCoreConversationMapperTest {
   }
 
   @Test
-  void shouldFallbackToMinimalToolCallResultWhenNoBlobEnvelope() {
-    // given - event with only conversational TOOL payload (legacy format)
+  void shouldRejectToolEventWithoutBlobEnvelope() {
+    // given - event with only conversational TOOL payload but no toolCallResults blob
     Event event =
         Event.builder()
             .payload(
@@ -368,14 +368,10 @@ class AwsAgentCoreConversationMapperTest {
                     .build())
             .build();
 
-    // when
-    List<Message> messages = mapper.fromEvent(event);
-
-    // then
-    assertThat(messages).hasSize(1);
-    ToolCallResultMessage message = (ToolCallResultMessage) messages.get(0);
-    assertThat(message.results()).hasSize(1);
-    assertThat(message.results().get(0).content()).isEqualTo("Tool result text");
+    // when/then
+    assertThatThrownBy(() -> mapper.fromEvent(event))
+        .isInstanceOf(AwsAgentCoreConversationMapper.AgentCoreMapperException.class)
+        .hasMessageContaining("camunda.toolCallResults");
   }
 
   // ==================== SystemMessage Tests ====================
