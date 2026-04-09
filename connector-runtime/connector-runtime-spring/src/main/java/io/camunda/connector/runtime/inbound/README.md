@@ -91,6 +91,32 @@ InboundExecutableRegistryImpl
           └─ activates, deactivates, hot-swaps, or restarts executables
 ```
 
+```mermaid
+flowchart TD
+    T["Startup / Scheduled job"]
+
+    subgraph importSchedulers ["ImportSchedulers"]
+        S1["scheduleLatestVersionImport()\n→ /process-definitions/search"]
+        S2["scheduleActiveVersionImport()\n→ /process-definitions/statistics/message-subscription"]
+    end
+
+    OC["Orchestration Cluster"]
+
+    PS["ProcessStateContainerImpl\nProcess state store updated"]
+    EV["ProcessStateChanged event published"]
+
+    subgraph registry ["InboundExecutableRegistryImpl"]
+        Q["processEventQueue()\nReads queued ProcessStateChanged events"]
+        R["Computes target executable state"]
+        ACT["Activate / Deactivate\nHot-swap / Restart executables"]
+        Q --> R --> ACT
+    end
+
+    T --> importSchedulers
+    S1 & S2 --> OC --> PS
+    PS -->|versions changed| EV --> registry
+```
+
 ### When the listener receives an event, e.g. a new email in the inbox
 
 1. The already active executable receives the event because it is the one listening to that
@@ -104,4 +130,32 @@ InboundExecutableRegistryImpl
    element's `correlationPoint` to call Zeebe:
    - for a start event, it creates a new process instance
    - for an intermediate catch event, it publishes a message with the computed correlation key
+
+```mermaid
+flowchart TD
+    A["① Executable receives event\nPolls configured source (e.g. email inbox)"]
+    B["② context.correlate(...)\nCalled on InboundConnectorContextImpl"]
+
+    subgraph activation ["③ Activation check inside correlate(...)"]
+        C["canActivate(...)\nEvaluate all InboundConnectorElements"]
+        D["Deduplication\nMatches BPMN element / version"]
+        C --> D
+    end
+
+    E["One valid element selected"]
+
+    F["④ InboundCorrelationHandler\ncorrelateInternal(...) uses correlationPoint"]
+
+    G["Create process instance\nNew instance via Zeebe"]
+    H["Publish message\nWith computed correlation key"]
+
+    Z1["Orchestration Cluster"]
+    Z2["Orchestration Cluster"]
+
+    A --> B --> activation --> E --> F
+    F -->|start event| G
+    F -->|catch event| H
+    G --> Z1
+    H --> Z2
+```
 
