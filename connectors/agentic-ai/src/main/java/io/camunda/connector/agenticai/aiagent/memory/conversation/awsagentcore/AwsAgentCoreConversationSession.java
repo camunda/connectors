@@ -102,7 +102,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
   public AgentContext storeFromRuntimeMemory(AgentContext agentContext, RuntimeMemory memory) {
     final List<Message> allMessages = memory.allMessages();
 
-    // Extract system message — needs to be preserved in context since AgentCore doesn't support it
+    // extract system message — needs to be preserved in context since AgentCore doesn't support it
     final SystemMessage systemMessage =
         allMessages.stream()
             .filter(SystemMessage.class::isInstance)
@@ -113,14 +113,14 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
     final List<Message> storableMessages =
         allMessages.stream().filter(this::isStorableMessage).toList();
 
-    // New messages = everything after what was loaded from AgentCore
+    // new messages = everything after what was loaded from AgentCore
     final List<Message> newMessages =
         initialMessageCount < storableMessages.size()
             ? storableMessages.subList(initialMessageCount, storableMessages.size())
             : List.of();
 
     if (!newMessages.isEmpty()) {
-      // Branch-per-turn strategy: each turn after the first writes to a new branch, forking from
+      // branch-per-turn strategy: each turn after the first writes to a new branch, forking from
       // the last event of the previous turn. This ensures that if job completion fails after
       // storing, the orphaned branch is invisible to the retry (which loads from the previous
       // branch stored in context). The first turn writes to the main timeline (no branch) since
@@ -218,7 +218,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
           .flatMap(event -> mapper.fromEvent(event).stream())
           .toList();
     } catch (BedrockAgentCoreException e) {
-      // Fail fast: this is a runtime configuration/permission/service issue and continuing silently
+      // fail fast: this is a runtime configuration/permission/service issue and continuing silently
       // can cause duplicated history or incorrect agent behavior.
       LOGGER.error(
           "Failed to load events from AgentCore Memory for session '{}' (memoryId='{}', actorId='{}'): {}",
@@ -266,6 +266,9 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
         continue;
       }
 
+      // eventTimestamp is omitted — the server assigns it. Since events within a turn may
+      // receive identical timestamps, we attach a turn-local sequence number as metadata to
+      // ensure deterministic ordering on load.
       final var requestBuilder =
           CreateEventRequest.builder()
               .memoryId(config.memoryId())

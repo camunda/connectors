@@ -87,7 +87,7 @@ public class AwsAgentCoreConversationMapper {
                   "Unknown message type: " + message.getClass().getName());
         };
 
-    // Append metadata blob if the message carries metadata
+    // append metadata blob if the message carries metadata
     if (message.metadata() != null && !message.metadata().isEmpty()) {
       List<PayloadType> withMetadata = new ArrayList<>(payloads);
       withMetadata.add(createMetadataBlobPayload(message.metadata()));
@@ -111,7 +111,7 @@ public class AwsAgentCoreConversationMapper {
       return List.of();
     }
 
-    // Metadata is stored as a blob envelope, not in AWS event metadata
+    // metadata is stored as a blob envelope, not in AWS event metadata
     Map<String, Object> metadata = Map.of();
 
     try {
@@ -134,7 +134,7 @@ public class AwsAgentCoreConversationMapper {
     List<PayloadType> payloads = new ArrayList<>();
     mapContentInOrder(payloads, message.content(), Role.ASSISTANT);
 
-    // ToolCalls are appended after content (not part of the content list)
+    // toolCalls are appended after content (not part of the content list)
     if (message.toolCalls() != null && !message.toolCalls().isEmpty()) {
       payloads.add(createToolCallsBlobPayload(message.toolCalls()));
     }
@@ -162,7 +162,7 @@ public class AwsAgentCoreConversationMapper {
   private List<PayloadType> mapToolCallResultMessage(ToolCallResultMessage message) {
     List<PayloadType> payloads = new ArrayList<>();
 
-    // Create conversational TOOL with natural language summary
+    // create conversational TOOL with natural language summary
     String summary =
         message.results().stream()
             .map(ToolCallResult::content)
@@ -174,7 +174,7 @@ public class AwsAgentCoreConversationMapper {
       payloads.add(createConversationalPayload(Role.TOOL, summary));
     }
 
-    // Create blob envelope with full structure
+    // create blob envelope with full structure
     payloads.add(createToolCallResultsBlobPayload(message.results()));
 
     return payloads;
@@ -204,7 +204,7 @@ public class AwsAgentCoreConversationMapper {
           messageRole = conv.role();
         }
         if (messageRole == Role.TOOL) {
-          // TOOL conversational is a summary for long-term memory extraction —
+          // TOOL conversational payload is a summary for long-term memory extraction —
           // skip it if we have a blob with the full structure (handled below)
           continue;
         }

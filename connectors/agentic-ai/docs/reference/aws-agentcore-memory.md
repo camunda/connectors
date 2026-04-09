@@ -250,7 +250,7 @@ The AgentCore client uses the same HTTP proxy configuration as the Bedrock LLM c
 
 ## Validation
 
-- `memoryId` and `actorId` are validated for consistency between iterations — changing them mid-conversation throws `IllegalStateException`
+- `memoryId` and `actorId` are validated for consistency on load — changing them mid-conversation throws `IllegalStateException` before any API calls
 - Configuration type is validated at session creation
 - **Default credentials chain is blocked on SaaS** — the same `@AssertFalse` validation as the Bedrock LLM provider prevents using `defaultCredentialsChain` in SaaS environments
 
