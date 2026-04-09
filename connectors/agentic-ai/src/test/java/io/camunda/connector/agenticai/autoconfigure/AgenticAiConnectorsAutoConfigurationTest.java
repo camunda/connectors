@@ -36,6 +36,8 @@ import io.camunda.connector.agenticai.aiagent.framework.langchain4j.jsonschema.J
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolCallConverter;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.tool.ToolSpecificationConverter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
@@ -65,6 +67,8 @@ class AgenticAiConnectorsAutoConfigurationTest {
           AgentInitializer.class,
           InProcessConversationStore.class,
           CamundaDocumentConversationStore.class,
+          AwsAgentCoreConversationMapper.class,
+          AwsAgentCoreConversationStore.class,
           ConversationStoreRegistry.class,
           AgentLimitsValidator.class,
           AgentMessagesHandler.class,
