@@ -151,13 +151,13 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
     final var conversationContextBuilder =
         previousConversationContext != null
             ? previousConversationContext.with()
-            : AwsAgentCoreConversationContext.builder(sessionId);
+            : AwsAgentCoreConversationContext.builder(sessionId)
+                .memoryId(config.memoryId())
+                .actorId(config.actorId())
+                .sessionId(sessionId);
 
     final var conversationContext =
         conversationContextBuilder
-            .memoryId(config.memoryId())
-            .actorId(config.actorId())
-            .sessionId(sessionId)
             .branchName(branchName)
             .lastEventId(lastEventId)
             .systemMessage(systemMessage)
