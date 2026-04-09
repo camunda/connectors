@@ -1,14 +1,19 @@
 # Inbound Connectors
 
-Inbound connectors allow external systems to trigger or continue Camunda processes. Typical
-examples are webhook listeners, message consumers, or email inbox listeners.
+Inbound connectors allow external systems to trigger or continue Camunda processes, e.g. webhooks.
 
 ## Core Concepts
+
+### Executables
+
+An **executable** is a running instance of an inbound connector managed by the runtime. It
+implements `InboundConnectorExecutable`, is activated when the runtime decides it is needed, and
+listens for external events until it is deactivated or replaced.
 
 ### Deduplication
 
 Deduplication determines whether multiple inbound connector elements in the BPMN can share the
-same runtime executable, meaning they are handled by one shared listener to the same external
+same runtime executable, meaning they are handled by one shared client to the same external
 source.
 
 ### Correlation
@@ -16,11 +21,6 @@ source.
 Correlation is the step where an incoming external event is mapped to a running process, for
 example by matching the same `orderId` or email sender.
 
-### Executables
-
-An **executable** is a running instance of an inbound connector managed by the runtime. It
-implements `InboundConnectorExecutable`, is activated when the runtime decides it is needed, and
-listens for external events until it is deactivated or replaced.
 
 ### Context
 
@@ -67,8 +67,8 @@ Activated
 
 ### Regularly and on Startup
 
-The runtime regularly synchronizes its internal state with Zeebe. This happens on startup and then
-continuously via scheduled jobs.
+The runtime regularly synchronizes its internal state with Orchestration Cluster. This happens on startup and then
+continuously via scheduled jobs, by calling these endpoints `/process-definitions/statistics/message-subscription` and `process-definitions/search`
 
 First, the process state store is refreshed from Zeebe:
 
