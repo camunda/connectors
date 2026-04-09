@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,6 +48,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
+import software.amazon.awssdk.services.bedrockagentcore.model.BedrockAgentCoreException;
 import software.amazon.awssdk.services.bedrockagentcore.model.Content;
 import software.amazon.awssdk.services.bedrockagentcore.model.Conversational;
 import software.amazon.awssdk.services.bedrockagentcore.model.CreateEventRequest;
@@ -679,6 +681,153 @@ class AwsAgentCoreConversationStoreTest {
     assertThat(assistantMessage.hasToolCalls()).isTrue();
     assertThat(assistantMessage.toolCalls()).hasSize(1);
     assertThat(assistantMessage.toolCalls().get(0).id()).isEqualTo("call_123");
+  }
+
+  @Test
+  void propagatesExceptionOnPartialWriteFailure() {
+    final var agentContext =
+        AgentContext.builder()
+            .conversation(
+                AwsAgentCoreConversationContext.builder()
+                    .conversationId(SESSION_ID)
+                    .memoryId(MEMORY_ID)
+                    .actorId(ACTOR_ID)
+                    .sessionId(SESSION_ID)
+                    .build())
+            .build();
+
+    mockListEventsResponse(List.of());
+    // First event succeeds, second throws
+    when(bedrockClient.createEvent(any(CreateEventRequest.class)))
+        .thenReturn(createEventResponse())
+        .thenThrow(BedrockAgentCoreException.builder().message("Service unavailable").build());
+
+    assertThatThrownBy(
+            () ->
+                store.executeInSession(
+                    executionContext,
+                    agentContext,
+                    session -> {
+                      session.loadIntoRuntimeMemory(agentContext, memory);
+                      memory.addMessage(userMessage("Hello!"));
+                      memory.addMessage(assistantMessage("Hi there!"));
+                      return agentResponse(session.storeFromRuntimeMemory(agentContext, memory));
+                    }))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Failed to store conversation event to AgentCore Memory")
+        .hasCauseInstanceOf(BedrockAgentCoreException.class);
+
+    // Verify first event was written, second was attempted
+    verify(bedrockClient, times(2)).createEvent(any(CreateEventRequest.class));
+  }
+
+  @Test
+  void propagatesExceptionOnLoadFailure() {
+    final var agentContext =
+        AgentContext.builder()
+            .conversation(
+                AwsAgentCoreConversationContext.builder()
+                    .conversationId(SESSION_ID)
+                    .memoryId(MEMORY_ID)
+                    .actorId(ACTOR_ID)
+                    .sessionId(SESSION_ID)
+                    .branchName("prev-branch")
+                    .lastEventId("evt-2")
+                    .build())
+            .build();
+
+    when(bedrockClient.listEventsPaginator(any(ListEventsRequest.class)))
+        .thenThrow(BedrockAgentCoreException.builder().message("Access denied").build());
+
+    assertThatThrownBy(
+            () ->
+                store.executeInSession(
+                    executionContext,
+                    agentContext,
+                    session -> {
+                      session.loadIntoRuntimeMemory(agentContext, memory);
+                      return agentResponse(agentContext);
+                    }))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Failed to load conversation history from AgentCore Memory")
+        .hasCauseInstanceOf(BedrockAgentCoreException.class);
+
+    // Verify no events were written
+    verify(bedrockClient, never()).createEvent(any(CreateEventRequest.class));
+  }
+
+  @Test
+  void multiTurnBranchingWritesCorrectBranchStructure() {
+    // === Turn 1: write to main timeline ===
+    final var turn1Context = AgentContext.empty();
+    mockListEventsResponse(List.of());
+    when(bedrockClient.createEvent(any(CreateEventRequest.class)))
+        .thenReturn(
+            CreateEventResponse.builder().event(Event.builder().eventId("evt-1").build()).build())
+        .thenReturn(
+            CreateEventResponse.builder().event(Event.builder().eventId("evt-2").build()).build());
+
+    final var turn1Result =
+        store.executeInSession(
+            executionContext,
+            turn1Context,
+            session -> {
+              session.loadIntoRuntimeMemory(turn1Context, memory);
+              memory.addMessage(userMessage("Hello!"));
+              memory.addMessage(assistantMessage("Hi there!"));
+              return agentResponse(session.storeFromRuntimeMemory(turn1Context, memory));
+            });
+
+    final var turn1ConversationContext =
+        (AwsAgentCoreConversationContext) turn1Result.context().conversation();
+    assertThat(turn1ConversationContext.branchName()).isNull();
+    assertThat(turn1ConversationContext.lastEventId()).isEqualTo("evt-2");
+
+    // === Turn 2: fork a new branch from evt-2 ===
+    final var turn2Memory = new DefaultRuntimeMemory();
+    final var turn2Context = AgentContext.builder().conversation(turn1ConversationContext).build();
+
+    final var turn2Events =
+        List.of(
+            createEvent(Role.USER, "Hello!", Instant.now().minusSeconds(60)),
+            createEvent(Role.ASSISTANT, "Hi there!", Instant.now().minusSeconds(30)));
+    mockListEventsResponse(turn2Events);
+    when(bedrockClient.createEvent(any(CreateEventRequest.class)))
+        .thenReturn(
+            CreateEventResponse.builder().event(Event.builder().eventId("evt-3").build()).build())
+        .thenReturn(
+            CreateEventResponse.builder().event(Event.builder().eventId("evt-4").build()).build());
+
+    final var turn2Result =
+        store.executeInSession(
+            executionContext,
+            turn2Context,
+            session -> {
+              session.loadIntoRuntimeMemory(turn2Context, turn2Memory);
+              turn2Memory.addMessage(userMessage("What's the weather?"));
+              turn2Memory.addMessage(assistantMessage("It's sunny!"));
+              return agentResponse(session.storeFromRuntimeMemory(turn2Context, turn2Memory));
+            });
+
+    // Capture all createEvent calls across both turns
+    verify(bedrockClient, times(4)).createEvent(createEventRequestCaptor.capture());
+    final var allRequests = createEventRequestCaptor.getAllValues();
+
+    // Turn 1 (indices 0-1): no branch, writes to main timeline
+    assertThat(allRequests.get(0).branch()).isNull();
+    assertThat(allRequests.get(1).branch()).isNull();
+
+    // Turn 2 (indices 2-3): branch forked from evt-2
+    assertThat(allRequests.get(2).branch()).isNotNull();
+    assertThat(allRequests.get(2).branch().rootEventId()).isEqualTo("evt-2");
+    assertThat(allRequests.get(2).branch().name()).isNotBlank();
+    // Both events in turn 2 use the same branch
+    assertThat(allRequests.get(3).branch().name()).isEqualTo(allRequests.get(2).branch().name());
+
+    final var turn2ConversationContext =
+        (AwsAgentCoreConversationContext) turn2Result.context().conversation();
+    assertThat(turn2ConversationContext.branchName()).isEqualTo(allRequests.get(2).branch().name());
+    assertThat(turn2ConversationContext.lastEventId()).isEqualTo("evt-4");
   }
 
   private Event createEvent(Role role, String text, Instant timestamp) {
