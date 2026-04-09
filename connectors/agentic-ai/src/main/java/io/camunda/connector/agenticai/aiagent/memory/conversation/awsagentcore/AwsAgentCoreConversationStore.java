@@ -57,8 +57,7 @@ public class AwsAgentCoreConversationStore implements ConversationStore {
     }
 
     try (BedrockAgentCoreClient client = clientFactory.createClient(agentCoreConfig)) {
-      final var session =
-          new AwsAgentCoreConversationSession(agentCoreConfig, client, executionContext, mapper);
+      final var session = new AwsAgentCoreConversationSession(agentCoreConfig, client, mapper);
       return sessionHandler.handleSession(session);
     }
   }

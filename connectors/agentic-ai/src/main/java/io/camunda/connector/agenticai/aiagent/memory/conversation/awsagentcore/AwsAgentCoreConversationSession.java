@@ -12,7 +12,6 @@ import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSe
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
@@ -53,22 +52,18 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
   private final AwsAgentCoreConversationMapper mapper;
 
   private AwsAgentCoreConversationContext previousConversationContext;
+  private String sessionId;
+  private String branchName;
+  private String lastEventId;
   private int initialMessageCount = 0;
 
   public AwsAgentCoreConversationSession(
       AwsAgentCoreMemoryStorageConfiguration config,
       BedrockAgentCoreClient client,
-      AgentExecutionContext executionContext,
       AwsAgentCoreConversationMapper mapper) {
     this.config = config;
     this.client = client;
     this.mapper = mapper;
-
-    // executionContext currently not used by this session implementation, but kept for API symmetry
-    // with other ConversationSession implementations.
-    if (executionContext == null) {
-      throw new IllegalArgumentException("executionContext must not be null");
-    }
   }
 
   @Override
@@ -78,37 +73,33 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
 
     validateConfigurationConsistency();
 
-    // Restore system message first (it's stored in context, not in AgentCore)
-    if (previousConversationContext != null
-        && previousConversationContext.systemMessage() != null) {
-      memory.addMessage(previousConversationContext.systemMessage());
+    if (previousConversationContext != null) {
+      sessionId = previousConversationContext.sessionId();
+      branchName = previousConversationContext.branchName();
+      lastEventId = previousConversationContext.lastEventId();
+      if (previousConversationContext.systemMessage() != null) {
+        memory.addMessage(previousConversationContext.systemMessage());
+      }
+    } else {
+      sessionId = UUID.randomUUID().toString();
     }
 
-    final String sessionId = resolveSessionId(agentContext);
-    final String branchName =
-        previousConversationContext != null ? previousConversationContext.branchName() : null;
     final List<Message> messages = loadMessagesFromAgentCore(sessionId, branchName);
-
     initialMessageCount = messages.size();
     memory.addMessages(messages);
 
     LOGGER.debug(
-        "Loaded {} messages from AgentCore Memory for session '{}' branch '{}' (plus {} system message from context)",
+        "Loaded {} messages from AgentCore Memory for session '{}' branch '{}'",
         messages.size(),
         sessionId,
-        branchName != null ? branchName : "<main>",
-        previousConversationContext != null && previousConversationContext.systemMessage() != null
-            ? 1
-            : 0);
+        branchName != null ? branchName : "<main>");
   }
 
   @Override
   public AgentContext storeFromRuntimeMemory(AgentContext agentContext, RuntimeMemory memory) {
-    final String sessionId = resolveSessionId(agentContext);
     final List<Message> allMessages = memory.allMessages();
 
-    // Extract system message (only one) from storable messages
-    // System message needs to be preserved in context since AgentCore doesn't support it
+    // Extract system message — needs to be preserved in context since AgentCore doesn't support it
     final SystemMessage systemMessage =
         allMessages.stream()
             .filter(SystemMessage.class::isInstance)
@@ -125,11 +116,6 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
             ? storableMessages.subList(initialMessageCount, storableMessages.size())
             : List.of();
 
-    String branchName =
-        previousConversationContext != null ? previousConversationContext.branchName() : null;
-    String lastEventId =
-        previousConversationContext != null ? previousConversationContext.lastEventId() : null;
-
     if (!newMessages.isEmpty()) {
       // Branch-per-turn strategy: each turn after the first writes to a new branch, forking from
       // the last event of the previous turn. This ensures that if job completion fails after
@@ -141,11 +127,10 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
       }
       lastEventId = storeMessagesToAgentCore(sessionId, newMessages, branchName, lastEventId);
       LOGGER.debug(
-          "Stored {} new messages to AgentCore Memory for session '{}' on branch '{}' ({} system message preserved in context)",
+          "Stored {} new messages to AgentCore Memory for session '{}' on branch '{}'",
           newMessages.size(),
           sessionId,
-          branchName != null ? branchName : "<main>",
-          systemMessage != null ? 1 : 0);
+          branchName != null ? branchName : "<main>");
     }
 
     final var conversationContextBuilder =
@@ -156,14 +141,12 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
                 .actorId(config.actorId())
                 .sessionId(sessionId);
 
-    final var conversationContext =
+    return agentContext.withConversation(
         conversationContextBuilder
             .branchName(branchName)
             .lastEventId(lastEventId)
             .systemMessage(systemMessage)
-            .build();
-
-    return agentContext.withConversation(conversationContext);
+            .build());
   }
 
   /**
@@ -202,22 +185,6 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
           "actorId changed between iterations (was '%s', now '%s'). Changing the actor mid-conversation is not supported."
               .formatted(previousConversationContext.actorId(), config.actorId()));
     }
-  }
-
-  private String resolveSessionId(AgentContext agentContext) {
-    // Use existing session ID from context if available
-    if (previousConversationContext != null && previousConversationContext.sessionId() != null) {
-      return previousConversationContext.sessionId();
-    }
-
-    // Use conversation ID from agent context if available
-    final var existingConversation = agentContext != null ? agentContext.conversation() : null;
-    if (existingConversation != null && existingConversation.conversationId() != null) {
-      return existingConversation.conversationId();
-    }
-
-    // Generate a new session ID
-    return UUID.randomUUID().toString();
   }
 
   private List<Message> loadMessagesFromAgentCore(String sessionId, String branchName) {
