@@ -52,10 +52,8 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
    * @param toolCalls the tool calls to wrap
    * @param mapper the ObjectMapper to use for serialization
    * @return the envelope
-   * @throws JsonProcessingException if serialization fails
    */
-  public static BlobEnvelope forToolCalls(List<ToolCall> toolCalls, ObjectMapper mapper)
-      throws JsonProcessingException {
+  public static BlobEnvelope forToolCalls(List<ToolCall> toolCalls, ObjectMapper mapper) {
     JsonNode data = mapper.valueToTree(toolCalls);
     ObjectNode envelope = mapper.createObjectNode();
     envelope.put(FIELD_BLOB_TYPE, BlobEnvelopeType.TOOL_CALLS.getBlobType());
@@ -70,10 +68,8 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
    * @param results the tool call results to wrap
    * @param mapper the ObjectMapper to use for serialization
    * @return the envelope
-   * @throws JsonProcessingException if serialization fails
    */
-  public static BlobEnvelope forToolCallResults(List<ToolCallResult> results, ObjectMapper mapper)
-      throws JsonProcessingException {
+  public static BlobEnvelope forToolCallResults(List<ToolCallResult> results, ObjectMapper mapper) {
     JsonNode data = mapper.valueToTree(results);
     ObjectNode envelope = mapper.createObjectNode();
     envelope.put(FIELD_BLOB_TYPE, BlobEnvelopeType.TOOL_CALL_RESULTS.getBlobType());
@@ -89,10 +85,8 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
    * @param content the content to wrap (preserves Content's native type discriminator)
    * @param mapper the ObjectMapper to use for serialization
    * @return the envelope
-   * @throws JsonProcessingException if serialization fails
    */
-  public static BlobEnvelope forContent(Content content, ObjectMapper mapper)
-      throws JsonProcessingException {
+  public static BlobEnvelope forContent(Content content, ObjectMapper mapper) {
     JsonNode data = mapper.valueToTree(content);
     ObjectNode envelope = mapper.createObjectNode();
     envelope.put(FIELD_BLOB_TYPE, BlobEnvelopeType.MESSAGE_CONTENT.getBlobType());
@@ -108,10 +102,8 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
    * @param metadata the metadata map to wrap
    * @param mapper the ObjectMapper to use for serialization
    * @return the envelope
-   * @throws JsonProcessingException if serialization fails
    */
-  public static BlobEnvelope forMetadata(Map<String, Object> metadata, ObjectMapper mapper)
-      throws JsonProcessingException {
+  public static BlobEnvelope forMetadata(Map<String, Object> metadata, ObjectMapper mapper) {
     JsonNode data = mapper.valueToTree(metadata);
     ObjectNode envelope = mapper.createObjectNode();
     envelope.put(FIELD_BLOB_TYPE, BlobEnvelopeType.MESSAGE_METADATA.getBlobType());
@@ -167,7 +159,7 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
    */
   public <T> T parseData(TypeReference<T> typeRef, ObjectMapper mapper) throws IOException {
     JsonNode dataNode = extractDataNode();
-    return mapper.convertValue(dataNode, typeRef);
+    return mapper.readerFor(typeRef).readValue(dataNode);
   }
 
   /**
