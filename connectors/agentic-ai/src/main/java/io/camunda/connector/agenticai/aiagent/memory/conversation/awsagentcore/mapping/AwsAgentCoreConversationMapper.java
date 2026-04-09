@@ -52,6 +52,8 @@ public class AwsAgentCoreConversationMapper {
       new TypeReference<>() {};
   private static final TypeReference<Map<String, Object>> METADATA_TYPE = new TypeReference<>() {};
 
+  static final String PROPERTY_USER_NAME = "userName";
+
   private final ObjectMapper objectMapper;
 
   public AwsAgentCoreConversationMapper(ObjectMapper objectMapper) {
@@ -82,10 +84,15 @@ public class AwsAgentCoreConversationMapper {
                   "Unknown message type: " + message.getClass().getName());
         };
 
-    // append metadata blob if the message carries metadata
-    if (message.metadata() != null && !message.metadata().isEmpty()) {
+    // collect internal properties that need round-tripping via the metadata blob
+    var properties = extractProperties(message);
+    boolean hasMetadata = message.metadata() != null && !message.metadata().isEmpty();
+    boolean hasProperties = properties != null && !properties.isEmpty();
+
+    if (hasMetadata || hasProperties) {
+      var metadata = hasMetadata ? message.metadata() : Map.<String, Object>of();
       List<PayloadType> withMetadata = new ArrayList<>(payloads);
-      withMetadata.add(createMetadataBlobPayload(message.metadata()));
+      withMetadata.add(createMetadataBlobPayload(metadata, properties));
       return withMetadata;
     }
     return payloads;
@@ -190,6 +197,7 @@ public class AwsAgentCoreConversationMapper {
     List<Content> content = new ArrayList<>();
     List<ToolCall> toolCalls = List.of();
     List<ToolCallResult> toolCallResults = null;
+    Map<String, Object> properties = null;
 
     for (PayloadType payload : payloads) {
       if (payload.conversational() != null) {
@@ -211,6 +219,7 @@ public class AwsAgentCoreConversationMapper {
 
         if (envelope.is(BlobEnvelopeType.MESSAGE_METADATA)) {
           metadata = envelope.parseData(METADATA_TYPE, objectMapper);
+          properties = envelope.parseProperties(METADATA_TYPE, objectMapper);
         } else if (envelope.is(BlobEnvelopeType.TOOL_CALLS)) {
           toolCalls = parseToolCallsFromEnvelope(envelope);
           if (messageRole == null) {
@@ -235,7 +244,13 @@ public class AwsAgentCoreConversationMapper {
     }
 
     return switch (messageRole) {
-      case USER -> List.of(UserMessage.builder().content(content).metadata(metadata).build());
+      case USER -> {
+        var builder = UserMessage.builder().content(content).metadata(metadata);
+        if (properties != null && properties.get(PROPERTY_USER_NAME) instanceof String name) {
+          builder.name(name);
+        }
+        yield List.of(builder.build());
+      }
       case ASSISTANT ->
           List.of(
               AssistantMessage.builder()
@@ -301,9 +316,10 @@ public class AwsAgentCoreConversationMapper {
     }
   }
 
-  private PayloadType createMetadataBlobPayload(Map<String, Object> metadata) {
+  private PayloadType createMetadataBlobPayload(
+      Map<String, Object> metadata, Map<String, Object> properties) {
     try {
-      BlobEnvelope envelope = BlobEnvelope.forMetadata(metadata, objectMapper);
+      BlobEnvelope envelope = BlobEnvelope.forMetadata(metadata, properties, objectMapper);
       Document document = envelope.toDocument(objectMapper);
       return PayloadType.builder().blob(document).build();
     } catch (Exception e) {
@@ -330,6 +346,17 @@ public class AwsAgentCoreConversationMapper {
   private List<ToolCallResult> parseToolCallResultsFromEnvelope(BlobEnvelope envelope)
       throws IOException {
     return envelope.parseData(TOOL_CALL_RESULTS_TYPE, objectMapper);
+  }
+
+  /**
+   * Extracts internal properties from a message that need round-tripping via the metadata blob's
+   * properties section. Returns null if there are no properties to store.
+   */
+  private Map<String, Object> extractProperties(Message message) {
+    if (message instanceof UserMessage userMsg && userMsg.name() != null) {
+      return Map.of(PROPERTY_USER_NAME, userMsg.name());
+    }
+    return null;
   }
 
   /**

@@ -126,6 +126,24 @@ class AwsAgentCoreConversationMapperTest {
   }
 
   @Test
+  void shouldRoundTripUserMessageWithName() {
+    // given
+    UserMessage original =
+        UserMessage.builder().name("Alice").content(List.of(textContent("Hello world"))).build();
+
+    // when
+    List<PayloadType> payloads = mapper.toPayloads(original);
+    Event event = Event.builder().payload(payloads).build();
+    List<Message> messages = mapper.fromEvent(event);
+
+    // then
+    assertThat(messages).hasSize(1);
+    UserMessage reconstructed = (UserMessage) messages.get(0);
+    assertThat(reconstructed.name()).isEqualTo("Alice");
+    assertThat(((TextContent) reconstructed.content().get(0)).text()).isEqualTo("Hello world");
+  }
+
+  @Test
   void shouldRoundTripUserMessageWithMixedContent() {
     // given
     Document testDocument =
