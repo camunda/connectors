@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -125,10 +126,17 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
       // storing, the orphaned branch is invisible to the retry (which loads from the previous
       // branch stored in context). The first turn writes to the main timeline (no branch) since
       // there is no prior event to fork from.
+      final String previousBranchName = branchName;
+      final String previousLastEventId = lastEventId;
       if (lastEventId != null) {
         branchName = UUID.randomUUID().toString();
       }
       lastEventId = storeMessagesToAgentCore(sessionId, newMessages, branchName, lastEventId);
+      if (Objects.equals(lastEventId, previousLastEventId)) {
+        // no events were actually written (all messages produced empty payloads) —
+        // revert to the previous branch to avoid saving a phantom branch in context
+        branchName = previousBranchName;
+      }
       LOGGER.debug(
           "Stored {} new messages to AgentCore Memory for session '{}' on branch '{}'",
           newMessages.size(),
