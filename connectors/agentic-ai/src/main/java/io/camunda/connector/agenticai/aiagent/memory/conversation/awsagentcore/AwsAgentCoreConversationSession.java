@@ -300,7 +300,8 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
             "Failed to store event to AgentCore Memory for session '{}' branch '{}': {}",
             sessionId,
             branchName,
-            e.getMessage());
+            e.getMessage(),
+            e);
         throw new IllegalStateException(
             "Failed to store conversation event to AgentCore Memory", e);
       }
