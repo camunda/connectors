@@ -150,9 +150,6 @@ public class InMemoryBedrockAgentCoreClientFactory implements BedrockAgentCoreCl
                     // No branch filter: return events on the main timeline (no branch)
                     return e.branchName() == null;
                   }
-                  if (branchSet.isEmpty()) {
-                    return e.branchName() != null && e.branchName().equals(requestedBranch);
-                  }
                   // Include events on any branch in the chain, plus main timeline events
                   return branchSet.contains(e.branchName()) || e.branchName() == null;
                 })
