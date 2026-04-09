@@ -77,7 +77,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
     validateConfigurationConsistency();
 
     if (previousConversationContext != null) {
-      sessionId = previousConversationContext.sessionId();
+      sessionId = previousConversationContext.conversationId();
       branchName = previousConversationContext.branchName();
       lastEventId = previousConversationContext.lastEventId();
       if (previousConversationContext.systemMessage() != null) {
@@ -141,8 +141,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
             ? previousConversationContext.with()
             : AwsAgentCoreConversationContext.builder(sessionId)
                 .memoryId(config.memoryId())
-                .actorId(config.actorId())
-                .sessionId(sessionId);
+                .actorId(config.actorId());
 
     return agentContext.withConversation(
         conversationContextBuilder

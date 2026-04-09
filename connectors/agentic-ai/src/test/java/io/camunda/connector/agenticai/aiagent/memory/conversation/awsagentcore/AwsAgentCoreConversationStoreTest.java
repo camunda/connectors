@@ -144,11 +144,9 @@ class AwsAgentCoreConversationStoreTest {
     final var agentContext =
         AgentContext.builder()
             .conversation(
-                AwsAgentCoreConversationContext.builder()
-                    .conversationId(SESSION_ID)
+                AwsAgentCoreConversationContext.builder(SESSION_ID)
                     .memoryId(MEMORY_ID)
                     .actorId(ACTOR_ID)
-                    .sessionId(SESSION_ID)
                     .branchName("prev-branch")
                     .lastEventId("evt-2")
                     .build())
@@ -184,11 +182,9 @@ class AwsAgentCoreConversationStoreTest {
     final var agentContext =
         AgentContext.builder()
             .conversation(
-                AwsAgentCoreConversationContext.builder()
-                    .conversationId(SESSION_ID)
+                AwsAgentCoreConversationContext.builder(SESSION_ID)
                     .memoryId(MEMORY_ID)
                     .actorId(ACTOR_ID)
-                    .sessionId(SESSION_ID)
                     .build())
             .build();
 
@@ -239,11 +235,9 @@ class AwsAgentCoreConversationStoreTest {
     final var agentContext =
         AgentContext.builder()
             .conversation(
-                AwsAgentCoreConversationContext.builder()
-                    .conversationId(SESSION_ID)
+                AwsAgentCoreConversationContext.builder(SESSION_ID)
                     .memoryId(MEMORY_ID)
                     .actorId(ACTOR_ID)
-                    .sessionId(SESSION_ID)
                     .branchName("prev-branch")
                     .lastEventId("evt-2")
                     .build())
@@ -327,11 +321,9 @@ class AwsAgentCoreConversationStoreTest {
     final var agentContext =
         AgentContext.builder()
             .conversation(
-                AwsAgentCoreConversationContext.builder()
-                    .conversationId(SESSION_ID)
+                AwsAgentCoreConversationContext.builder(SESSION_ID)
                     .memoryId(MEMORY_ID)
                     .actorId(ACTOR_ID)
-                    .sessionId(SESSION_ID)
                     .build())
             .build();
 
@@ -378,11 +370,9 @@ class AwsAgentCoreConversationStoreTest {
     // Create a previous context with system message
     final var systemMsg = systemMessage("You are a helpful assistant.");
     final var previousContext =
-        AwsAgentCoreConversationContext.builder()
-            .conversationId(SESSION_ID)
+        AwsAgentCoreConversationContext.builder(SESSION_ID)
             .memoryId(MEMORY_ID)
             .actorId(ACTOR_ID)
-            .sessionId(SESSION_ID)
             .branchName("prev-branch")
             .lastEventId("evt-2")
             .systemMessage(systemMsg)
@@ -417,11 +407,9 @@ class AwsAgentCoreConversationStoreTest {
     final var agentContext =
         AgentContext.builder()
             .conversation(
-                AwsAgentCoreConversationContext.builder()
-                    .conversationId(SESSION_ID)
+                AwsAgentCoreConversationContext.builder(SESSION_ID)
                     .memoryId(MEMORY_ID)
                     .actorId(ACTOR_ID)
-                    .sessionId(SESSION_ID)
                     .build())
             .build();
 
@@ -487,11 +475,9 @@ class AwsAgentCoreConversationStoreTest {
   @Test
   void deserializesToolCallsWhenLoading_fromBlobPayload() {
     final var previousContext =
-        AwsAgentCoreConversationContext.builder()
-            .conversationId(SESSION_ID)
+        AwsAgentCoreConversationContext.builder(SESSION_ID)
             .memoryId(MEMORY_ID)
             .actorId(ACTOR_ID)
-            .sessionId(SESSION_ID)
             .branchName("prev-branch")
             .lastEventId("evt-2")
             .build();
@@ -582,11 +568,9 @@ class AwsAgentCoreConversationStoreTest {
   @Test
   void deserializesAssistantWithTextAndToolCallsInSameEvent() {
     final var previousContext =
-        AwsAgentCoreConversationContext.builder()
-            .conversationId(SESSION_ID)
+        AwsAgentCoreConversationContext.builder(SESSION_ID)
             .memoryId(MEMORY_ID)
             .actorId(ACTOR_ID)
-            .sessionId(SESSION_ID)
             .branchName("prev-branch")
             .lastEventId("evt-1")
             .build();
@@ -640,11 +624,9 @@ class AwsAgentCoreConversationStoreTest {
   @Test
   void deserializesAssistantWithToolCallsBlobOnlyWhenTextIsEmpty() {
     final var previousContext =
-        AwsAgentCoreConversationContext.builder()
-            .conversationId(SESSION_ID)
+        AwsAgentCoreConversationContext.builder(SESSION_ID)
             .memoryId(MEMORY_ID)
             .actorId(ACTOR_ID)
-            .sessionId(SESSION_ID)
             .branchName("prev-branch")
             .lastEventId("evt-1")
             .build();
@@ -688,11 +670,9 @@ class AwsAgentCoreConversationStoreTest {
     final var agentContext =
         AgentContext.builder()
             .conversation(
-                AwsAgentCoreConversationContext.builder()
-                    .conversationId(SESSION_ID)
+                AwsAgentCoreConversationContext.builder(SESSION_ID)
                     .memoryId(MEMORY_ID)
                     .actorId(ACTOR_ID)
-                    .sessionId(SESSION_ID)
                     .build())
             .build();
 
@@ -726,11 +706,9 @@ class AwsAgentCoreConversationStoreTest {
     final var agentContext =
         AgentContext.builder()
             .conversation(
-                AwsAgentCoreConversationContext.builder()
-                    .conversationId(SESSION_ID)
+                AwsAgentCoreConversationContext.builder(SESSION_ID)
                     .memoryId(MEMORY_ID)
                     .actorId(ACTOR_ID)
-                    .sessionId(SESSION_ID)
                     .branchName("prev-branch")
                     .lastEventId("evt-2")
                     .build())
