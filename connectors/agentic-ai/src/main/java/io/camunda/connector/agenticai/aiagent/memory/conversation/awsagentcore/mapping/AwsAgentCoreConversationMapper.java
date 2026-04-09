@@ -24,8 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.services.bedrockagentcore.model.Conversational;
 import software.amazon.awssdk.services.bedrockagentcore.model.Event;
@@ -49,9 +47,6 @@ import software.amazon.awssdk.services.bedrockagentcore.model.Role;
  * <p>All failures throw exceptions - no silent swallowing of errors.
  */
 public class AwsAgentCoreConversationMapper {
-
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(AwsAgentCoreConversationMapper.class);
 
   private static final TypeReference<List<ToolCall>> TOOL_CALLS_TYPE = new TypeReference<>() {};
   private static final TypeReference<List<ToolCallResult>> TOOL_CALL_RESULTS_TYPE =

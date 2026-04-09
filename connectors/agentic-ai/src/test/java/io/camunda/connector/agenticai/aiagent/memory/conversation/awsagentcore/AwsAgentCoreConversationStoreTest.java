@@ -824,7 +824,7 @@ class AwsAgentCoreConversationStoreTest {
         .thenReturn(listEventsIterable);
   }
 
-  private static int eventCounter = 0;
+  private int eventCounter = 0;
 
   private CreateEventResponse createEventResponse() {
     return CreateEventResponse.builder()
