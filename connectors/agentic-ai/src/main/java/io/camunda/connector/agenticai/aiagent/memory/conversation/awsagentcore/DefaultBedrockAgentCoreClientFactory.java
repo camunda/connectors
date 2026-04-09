@@ -38,22 +38,22 @@ public class DefaultBedrockAgentCoreClientFactory implements BedrockAgentCoreCli
   public BedrockAgentCoreClient createClient(AwsAgentCoreMemoryStorageConfiguration config) {
     BedrockAgentCoreClientBuilder builder = BedrockAgentCoreClient.builder();
 
-    // Apply authentication
+    // apply authentication
     builder.credentialsProvider(createCredentialsProvider(config.authentication()));
 
-    // Apply region if specified
+    // apply region if specified
     if (config.region() != null && !config.region().isBlank()) {
       builder.region(Region.of(config.region()));
     }
 
-    // Apply endpoint override if specified
+    // apply endpoint override if specified
     URI endpointOverride = null;
     if (config.endpoint() != null) {
       endpointOverride = URI.create(config.endpoint());
       builder.endpointOverride(endpointOverride);
     }
 
-    // Apply HTTP proxy configuration (same as Bedrock LLM client)
+    // apply HTTP proxy configuration (same as Bedrock LLM client)
     builder.httpClient(proxySupport.createAwsHttpClient(endpointOverride));
 
     return builder.build();
