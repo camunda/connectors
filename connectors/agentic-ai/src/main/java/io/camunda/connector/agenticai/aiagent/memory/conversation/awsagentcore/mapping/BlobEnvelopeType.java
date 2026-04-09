@@ -6,9 +6,6 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping;
 
-import java.util.Arrays;
-import java.util.Optional;
-
 /**
  * Enumeration of supported blob envelope types for AWS AgentCore Memory.
  *
@@ -36,15 +33,5 @@ public enum BlobEnvelopeType {
 
   public String getBlobType() {
     return blobType;
-  }
-
-  /**
-   * Find the enum constant matching the given blobType string.
-   *
-   * @param blobType the blobType string from a blob payload
-   * @return Optional containing the matching enum constant, or empty if not found
-   */
-  public static Optional<BlobEnvelopeType> fromString(String blobType) {
-    return Arrays.stream(values()).filter(type -> type.blobType.equals(blobType)).findFirst();
   }
 }
