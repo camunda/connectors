@@ -123,7 +123,8 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
             ? storableMessages.subList(initialMessageCount, storableMessages.size())
             : List.of();
 
-    String newBranchName = null;
+    String branchName =
+        previousConversationContext != null ? previousConversationContext.branchName() : null;
     String lastEventId =
         previousConversationContext != null ? previousConversationContext.lastEventId() : null;
 
@@ -134,14 +135,14 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
       // branch stored in context). The first turn writes to the main timeline (no branch) since
       // there is no prior event to fork from.
       if (lastEventId != null) {
-        newBranchName = UUID.randomUUID().toString();
+        branchName = UUID.randomUUID().toString();
       }
-      lastEventId = storeMessagesToAgentCore(sessionId, newMessages, newBranchName, lastEventId);
+      lastEventId = storeMessagesToAgentCore(sessionId, newMessages, branchName, lastEventId);
       LOGGER.debug(
           "Stored {} new messages to AgentCore Memory for session '{}' on branch '{}' ({} system message preserved in context)",
           newMessages.size(),
           sessionId,
-          newBranchName != null ? newBranchName : "<main>",
+          branchName != null ? branchName : "<main>",
           systemMessage != null ? 1 : 0);
     }
 
@@ -155,12 +156,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
             .memoryId(config.memoryId())
             .actorId(config.actorId())
             .sessionId(sessionId)
-            .branchName(
-                newBranchName != null
-                    ? newBranchName
-                    : (previousConversationContext != null
-                        ? previousConversationContext.branchName()
-                        : null))
+            .branchName(branchName)
             .lastEventId(lastEventId)
             .systemMessage(systemMessage)
             .build();
