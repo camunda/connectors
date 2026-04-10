@@ -55,7 +55,8 @@ public class UnstructuredService {
         aiResponse =
             aiClient.chat(
                 LlmModel.getExtractionSystemInstruction(),
-                LlmModel.getExtractionUserPrompt(preprocessingResult.sanitizedText(), taxonomyItems));
+                LlmModel.getExtractionUserPrompt(
+                    preprocessingResult.sanitizedText(), taxonomyItems));
       } else {
         LOGGER.info("Starting multimodal {} conversation", aiClient.getClass().getSimpleName());
         aiResponse =

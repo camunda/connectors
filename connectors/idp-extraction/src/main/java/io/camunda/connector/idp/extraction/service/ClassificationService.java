@@ -22,6 +22,7 @@ import io.camunda.connector.idp.extraction.model.ClassificationMetadata;
 import io.camunda.connector.idp.extraction.model.ClassificationResult;
 import io.camunda.connector.idp.extraction.model.LlmModel;
 import io.camunda.connector.idp.extraction.request.classification.ClassificationRequest;
+import io.camunda.connector.idp.extraction.utils.GuardrailsUtil;
 import io.camunda.connector.idp.extraction.utils.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,11 +41,23 @@ public class ClassificationService {
     ChatResponse aiResponse;
     long latencyMs;
     if (textExtractor == null) {
+      GuardrailsUtil.DocumentPreprocessingResult preprocessingResult =
+          GuardrailsUtil.preprocessDocumentForLlm(request.input().getDocument());
       long aiStartTime = System.currentTimeMillis();
-      String userPrompt = LlmModel.getClassificationUserPrompt(request.input().getDocumentTypes());
-
-      LOGGER.info("Starting multimodal {} conversation", aiClient.getClass().getSimpleName());
-      aiResponse = aiClient.chat(systemPrompt, userPrompt, request.input().getDocument());
+      if (preprocessingResult.fallbackToTextPrompt()) {
+        LOGGER.info(
+            "Guardrails detected suspicious file content. Starting sanitized text-only {} classification",
+            aiClient.getClass().getSimpleName());
+        String userPrompt =
+            LlmModel.getClassificationUserPrompt(
+                request.input().getDocumentTypes(), preprocessingResult.sanitizedText());
+        aiResponse = aiClient.chat(systemPrompt, userPrompt);
+      } else {
+        String userPrompt =
+            LlmModel.getClassificationUserPrompt(request.input().getDocumentTypes());
+        LOGGER.info("Starting multimodal {} conversation", aiClient.getClass().getSimpleName());
+        aiResponse = aiClient.chat(systemPrompt, userPrompt, request.input().getDocument());
+      }
       long aiEndTime = System.currentTimeMillis();
       latencyMs = aiEndTime - aiStartTime;
       LOGGER.info(
@@ -55,8 +68,14 @@ public class ClassificationService {
       String extractedText = textExtractor.extract(request.input().getDocument());
       long extractionEndTime = System.currentTimeMillis();
       LOGGER.info("Finished text extraction in {}ms", extractionEndTime - startTime);
+
+      String sanitizedText = GuardrailsUtil.sanitizeLlmInput(extractedText);
+      if (!sanitizedText.equals(extractedText)) {
+        LOGGER.info("Guardrails sanitized extracted text before classification LLM prompt");
+      }
+
       String userPrompt =
-          LlmModel.getClassificationUserPrompt(request.input().getDocumentTypes(), extractedText);
+          LlmModel.getClassificationUserPrompt(request.input().getDocumentTypes(), sanitizedText);
       long aiStartTime = System.currentTimeMillis();
       LOGGER.info(
           "Classifying with ai provider {} and model {}",

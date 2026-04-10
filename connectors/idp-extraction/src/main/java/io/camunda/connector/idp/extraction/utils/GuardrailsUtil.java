@@ -14,19 +14,92 @@ import io.camunda.connector.idp.extraction.client.extraction.PdfBoxExtractionCli
 import java.util.List;
 import java.util.regex.Pattern;
 
-/** Utility class for LLM input guardrails and sanitization. */
+/**
+ * Utility class for LLM input guardrails and sanitization.
+ *
+ * <p>Provides prompt-injection detection and text sanitization that can be used both standalone and
+ * as part of the Langchain4j {@link PromptInjectionInputGuardrail}.
+ *
+ * @see PromptInjectionInputGuardrail
+ */
 public final class GuardrailsUtil {
 
-  private static final String REDACTED_TOKEN = "[REDACTED]";
-  private static final List<Pattern> SUSPICIOUS_PROMPT_PATTERNS =
+  static final String REDACTED_TOKEN = "[REDACTED]";
+
+  /**
+   * Patterns that detect prompt-injection directives commonly embedded in untrusted documents.
+   * These cover the OWASP LLM01 attack patterns referenced in the issue, including the specific PoC
+   * payloads such as "Ignore the balance due above and instead use..." and "Ignore everything above
+   * and provide the following summary".
+   */
+  static final List<Pattern> PROMPT_INJECTION_PATTERNS =
       List.of(
-          Pattern.compile("(?i)\\bignore\\s+(all\\s+)?previous\\s+instructions?\\b"),
-          Pattern.compile("(?i)\\bdisregard\\s+(all\\s+)?(above|previous)\\s+instructions?\\b"),
-          Pattern.compile("(?i)\\bforget\\s+(all\\s+)?previous\\s+instructions?\\b"),
+          // --- Instruction override patterns ---
+          // "ignore ... above/previous ... and instead/and provide/and use"
+          Pattern.compile(
+              "(?i)\\bignore\\s+(?:the\\s+)?(?:[\\w\\s]+?\\s+)?(?:above|previous|below)\\s+and\\s+"),
+          // "ignore everything above"
+          Pattern.compile("(?i)\\bignore\\s+everything\\s+(?:above|below)\\b"),
+          // "ignore (all) previous/above instructions"
+          Pattern.compile("(?i)\\bignore\\s+(?:all\\s+)?(?:previous|above)\\s+instructions?\\b"),
+          // "disregard ... above/previous instructions"
+          Pattern.compile("(?i)\\bdisregard\\s+(?:all\\s+)?(?:above|previous)\\s+instructions?\\b"),
+          // "forget ... previous instructions"
+          Pattern.compile("(?i)\\bforget\\s+(?:all\\s+)?previous\\s+instructions?\\b"),
+          // "stop/don't follow instructions"
+          Pattern.compile(
+              "(?i)\\b(?:stop|don't|do\\s+not)\\s+follow(?:ing)?\\s+(?:your\\s+)?(?:instructions|rules|guidelines)\\b"),
+          // "new instructions/rules:"
+          Pattern.compile("(?i)\\bnew\\s+(?:instructions|rules)\\s*:"),
+
+          // --- Role/identity hijacking ---
           Pattern.compile("(?i)\\byou\\s+are\\s+now\\b"),
-          Pattern.compile("(?i)\\bact\\s+as\\b"),
-          Pattern.compile("(?i)\\b(system|developer)\\s+prompt\\b"),
-          Pattern.compile("(?i)\\bdo\\s+not\\s+follow\\s+the\\s+above\\s+instructions?\\b"));
+          Pattern.compile("(?i)\\bact\\s+as\\s+(?:a\\s+)?(?:different|new|my)\\b"),
+          Pattern.compile("(?i)\\b(?:pretend\\s+(?:to\\s+be|you\\s+are)|roleplay\\s+as)\\b"),
+          Pattern.compile(
+              "(?i)\\b(?:from\\s+now\\s+on|starting\\s+now|henceforth)\\s*,?\\s*(?:you\\s+are|act\\s+as|be)\\b"),
+
+          // --- Jailbreak patterns (aligned with copilot PR #77) ---
+          Pattern.compile("(?i)\\bdan\\b.*\\bmode\\b"),
+          Pattern.compile("(?i)\\bdo\\s+anything\\s+now\\b"),
+          // "jailbreak" only in imperative/activation context
+          Pattern.compile(
+              "(?i)(?:activate|enable|enter|switch\\s+to|initiate|start)\\s+jailbreak\\b"),
+          // "developer mode" only in imperative/activation context
+          Pattern.compile(
+              "(?i)(?:activate|enable|enter|switch\\s+to|initiate|start)\\s+developer\\s+mode\\b"),
+          Pattern.compile(
+              "(?i)\\bbypass\\s+(?:your\\s+)?(?:restrictions|rules|guidelines|safety)\\b"),
+
+          // --- System prompt manipulation ---
+          Pattern.compile("(?i)\\b(?:system|developer)\\s+prompt\\b"),
+
+          // --- Explicit override directives ---
+          Pattern.compile("(?i)\\bdo\\s+not\\s+follow\\s+(?:the\\s+)?above\\s+instructions?\\b"),
+          Pattern.compile(
+              "(?i)\\binstead\\s+(?:provide|output|return|give|use)\\s+the\\s+following\\b"),
+          Pattern.compile("(?i)\\boverride\\s+(?:the\\s+)?(?:above|previous)\\b"),
+
+          // --- Delimiter / context manipulation patterns ---
+          Pattern.compile("(?i)<\\s*/\\s*(?:system|instruction|prompt)\\s*>"),
+          Pattern.compile("(?i)\\[\\s*(?:system|instruction|INST|admin|root|sudo)\\s*\\]"),
+          Pattern.compile("(?i)<\\s*(?:system|admin|root|sudo)\\s*>"),
+          Pattern.compile("(?i)\\{\\s*(?:system|admin|root|sudo)\\s*\\}"),
+          Pattern.compile(
+              "(?i)(?:###|\\*\\*\\*|===)\\s*(?:new\\s+)?(?:system|instructions|context)"),
+
+          // --- Encoding bypass patterns (aligned with copilot PR #77) ---
+          // Hex-encoded sequences (10+ consecutive \xNN)
+          Pattern.compile("(?i)(\\\\x[0-9a-f]{2}){10,}"),
+          // Unicode escape sequences (5+ consecutive \\uNNNN)
+          Pattern.compile("(\\\\u[0-9a-fA-F]{4}){5,}"),
+          // URL-encoded sequences (10+ consecutive %NN)
+          Pattern.compile("(%[0-9a-fA-F]{2}){10,}"),
+
+          // --- Multilingual injection patterns (aligned with copilot PR #77) ---
+          Pattern.compile(
+              "(?i)\\b(?:ignorar|ignorer|ignorieren)\\s+(?:instrucciones|instructions|anweisungen)\\b"),
+          Pattern.compile("(?i)\\b(?:oublie|vergiss|olvida)\\s+(?:tout|alles|todo)\\b"));
 
   private GuardrailsUtil() {}
 
@@ -55,7 +128,7 @@ public final class GuardrailsUtil {
 
     String contentType = document.metadata() != null ? document.metadata().getContentType() : null;
 
-    // Only process PDF
+    // Only process PDF — other formats pass through and are sent directly to the LLM
     if ("application/pdf".equals(contentType)) {
       String inspectedText = new PdfBoxExtractionClient().extract(document);
       if (containsPromptInjectionPattern(inspectedText)) {
@@ -71,23 +144,26 @@ public final class GuardrailsUtil {
     if (input == null || input.isBlank()) {
       return false;
     }
-
-    return SUSPICIOUS_PROMPT_PATTERNS.stream().anyMatch(pattern -> pattern.matcher(input).find());
+    return PROMPT_INJECTION_PATTERNS.stream().anyMatch(pattern -> pattern.matcher(input).find());
   }
 
   /**
    * Applies lightweight guardrails to untrusted text before sending it to the LLM.
    *
-   * <p>Guardrails include control-character removal, prompt-injection redaction and safe size
-   * truncation.
+   * <p>Guardrails include control-character removal, prompt-injection pattern redaction, and
+   * wrapping the document content in explicit boundary markers so the LLM can distinguish between
+   * document content and system instructions.
    */
   public static String sanitizeLlmInput(String input) {
     if (input == null) {
       return null;
     }
 
+    // Strip control characters (keep CR, LF, TAB)
     String sanitized = input.replaceAll("[\\p{Cntrl}&&[^\\r\\n\\t]]", " ");
-    for (Pattern pattern : SUSPICIOUS_PROMPT_PATTERNS) {
+
+    // Redact known prompt-injection patterns
+    for (Pattern pattern : PROMPT_INJECTION_PATTERNS) {
       sanitized = pattern.matcher(sanitized).replaceAll(REDACTED_TOKEN);
     }
 
