@@ -585,6 +585,13 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
+    void annotatedProperty_placeholderPresent() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
+      var property = getPropertyById("annotatedStringProperty", template);
+      assertThat(property.getPlaceholder()).isEqualTo("placeholder");
+    }
+
+    @Test
     void booleanProperty() {
       var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyById("booleanProperty", template);

@@ -49,6 +49,7 @@ public final class BooleanProperty extends Property {
         binding,
         condition,
         tooltip,
+        null,
         exampleValue,
         TYPE);
   }

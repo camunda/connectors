@@ -40,15 +40,17 @@ public class JakartaEmailListener implements EmailListener {
             .withBackoff(Duration.of(5, ChronoUnit.SECONDS), Duration.of(1, ChronoUnit.HOURS))
             .withMaxAttempts(INFINITE_RETRIES)
             .onRetry(
-                event ->
-                    context.log(
-                        activity ->
-                            activity
-                                .withSeverity(Severity.WARNING)
-                                .withTag("Context creation")
-                                .withMessage(
-                                    "Retrying after attempt %s failed ..."
-                                        .formatted(event.getAttemptCount()))))
+                event -> {
+                  context.reportHealth(Health.down(event.getLastException()));
+                  context.log(
+                      activity ->
+                          activity
+                              .withSeverity(Severity.WARNING)
+                              .withTag("Context creation")
+                              .withMessage(
+                                  "Retrying after attempt %s failed ..."
+                                      .formatted(event.getAttemptCount())));
+                })
             .build();
     this.pollingManagerFuture =
         Failsafe.with(retryPolicy)

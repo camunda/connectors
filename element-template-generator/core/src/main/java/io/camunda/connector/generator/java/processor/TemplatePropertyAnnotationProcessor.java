@@ -150,6 +150,12 @@ public class TemplatePropertyAnnotationProcessor implements AnnotationProcessor 
     if (!annotation.description().isBlank()) {
       builder.description(annotation.description());
     }
+    if (!annotation.tooltip().isBlank()) {
+      builder.tooltip(annotation.tooltip());
+    }
+    if (!annotation.placeholder().isBlank()) {
+      builder.placeholder(annotation.placeholder());
+    }
     if (!annotation.defaultValue().isBlank()) {
       builder.value(getValue(annotation, type, isOutbound(context)));
     }

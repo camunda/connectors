@@ -15,11 +15,12 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.model.request.ResponseConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.outbound.JobContext;
 import java.util.List;
 
 public interface AgentExecutionContext {
   /** Job context containing job-specific metadata (such as the element key). */
-  AgentJobContext jobContext();
+  JobContext jobContext();
 
   /** Initial agent context object read from input variables, before further processing. */
   AgentContext initialAgentContext();

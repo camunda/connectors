@@ -49,7 +49,8 @@ public record MyConnectorInput(
             description = "description",
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             exampleValue = "My example value",
-            tooltip = "tooltip")
+            tooltip = "tooltip",
+            placeholder = "placeholder")
         String annotatedStringProperty,
     String notAnnotatedStringProperty,
     Object objectProperty,

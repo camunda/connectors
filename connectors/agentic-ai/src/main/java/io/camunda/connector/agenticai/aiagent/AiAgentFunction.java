@@ -10,7 +10,6 @@ import io.camunda.connector.agenticai.adhoctoolsschema.processdefinition.Process
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.OutboundConnectorAgentJobContext;
 import io.camunda.connector.agenticai.aiagent.model.request.OutboundConnectorAgentRequest;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -40,7 +39,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     documentationRef =
         "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
     engineVersion = "^8.9",
-    version = 6,
+    version = 7,
     inputDataClass = OutboundConnectorAgentRequest.class,
     outputDataClass = AgentResponse.class,
     defaultResultVariable = "agent",
@@ -97,12 +96,10 @@ public class AiAgentFunction implements OutboundConnectorFunction {
 
   @Override
   public AgentResponse execute(OutboundConnectorContext context) {
-    final OutboundConnectorAgentRequest request =
-        context.bindVariables(OutboundConnectorAgentRequest.class);
-    final OutboundConnectorAgentExecutionContext executionContext =
+    var request = context.bindVariables(OutboundConnectorAgentRequest.class);
+    var executionContext =
         new OutboundConnectorAgentExecutionContext(
-            new OutboundConnectorAgentJobContext(context), request, toolElementsResolver);
-
+            context.getJobContext(), request, toolElementsResolver);
     return agentRequestHandler.handleRequest(executionContext);
   }
 }

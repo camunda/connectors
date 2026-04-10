@@ -42,6 +42,9 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
+import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse;
+import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
+import io.camunda.connector.api.outbound.ConnectorResponse.StandardConnectorResponse;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.runtime.JobBuilder;
@@ -70,6 +73,18 @@ import org.mockito.ArgumentCaptor;
 class SpringConnectorJobHandlerTest {
 
   private record TestConnectorResponsePojo(String value) {}
+
+  private record TestAdHocSubProcessResponse(
+      Object responseValue,
+      Map<String, Object> variables,
+      List<ElementActivation> elementActivations,
+      boolean completionConditionFulfilled,
+      boolean cancelRemainingInstances)
+      implements AdHocSubProcessConnectorResponse {
+
+    private record TestElementActivation(String elementId, Map<String, Object> variables)
+        implements ElementActivation {}
+  }
 
   private static class NonSerializable {
     private final UUID field = UUID.randomUUID();
@@ -1364,7 +1379,7 @@ class SpringConnectorJobHandlerTest {
       // then
       assertThat(result.getErrorCode()).isNull();
       assertThat(result.getErrorMessage()).isNull();
-      assertThat(result.getVariables()).isNull();
+      assertThat(result.getVariables()).isEmpty();
     }
   }
 
@@ -1524,5 +1539,132 @@ class SpringConnectorJobHandlerTest {
         .contains("status=400")
         .contains("type=io.camunda.connector.api.error.ConnectorException")
         .contains("message=HTTP request failed");
+  }
+
+  @Nested
+  class ConnectorResponseTests {
+
+    @Test
+    void defaultGetVariablesPassesThroughResultExpressionVariables() throws Exception {
+      var response = StandardConnectorResponse.of(Map.of("key", "value"));
+      var handler = newConnectorJobHandler(context -> response);
+
+      var result =
+          JobBuilder.create()
+              .withResultExpressionHeader("={mapped: response.key}")
+              .executeAndCaptureResult(handler);
+
+      assertThat(result.getVariables()).isEqualTo(Map.of("mapped", "value"));
+    }
+
+    @Test
+    void rejectsIgnoreErrorForAdHocSubProcessResponse() throws Exception {
+      var ahspResponse =
+          new TestAdHocSubProcessResponse(
+              Map.of("status", "trigger ignore"), Map.of(), List.of(), false, false);
+      var handler = newConnectorJobHandler(context -> ahspResponse);
+
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(
+                  "=if response.status = \"trigger ignore\" then ignoreError({}) else null")
+              .executeAndCaptureResult(handler, false);
+
+      assertThat(result.getErrorMessage())
+          .startsWith("IgnoreError is not supported for this connector");
+    }
+
+    @Test
+    void allowsIgnoreErrorForStandardResponse() throws Exception {
+      var customResponse =
+          new StandardConnectorResponse() {
+            @Override
+            public Object responseValue() {
+              return Map.of("status", "trigger ignore");
+            }
+          };
+      var handler = newConnectorJobHandler(context -> customResponse);
+
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(
+                  "=if response.status = \"trigger ignore\" then ignoreError({\"recovered\": true}) else null")
+              .executeAndCaptureResult(handler);
+
+      assertThat(result.getVariables()).isEqualTo(Map.of("recovered", true));
+    }
+
+    @Test
+    void completesAdHocSubProcessWithElementActivations() throws Exception {
+      var response =
+          new TestAdHocSubProcessResponse(
+              null,
+              Map.of("agentContext", "some-context"),
+              List.of(
+                  new TestAdHocSubProcessResponse.TestElementActivation(
+                      "task1", Map.of("input", "value1")),
+                  new TestAdHocSubProcessResponse.TestElementActivation(
+                      "task2", Map.of("input", "value2"))),
+              false,
+              true);
+      var handler = newConnectorJobHandler(context -> response);
+
+      var result = JobBuilder.create().executeAndCaptureAdHocSubProcessResult(handler);
+
+      assertThat(result.variables()).isEqualTo(Map.of("agentContext", "some-context"));
+      assertThat(result.completionConditionFulfilled()).isFalse();
+      assertThat(result.cancelRemainingInstances()).isTrue();
+      assertThat(result.elementActivations()).hasSize(2);
+      assertThat(result.elementActivations().get(0).elementId()).isEqualTo("task1");
+      assertThat(result.elementActivations().get(0).variables())
+          .isEqualTo(Map.of("input", "value1"));
+      assertThat(result.elementActivations().get(1).elementId()).isEqualTo("task2");
+      assertThat(result.elementActivations().get(1).variables())
+          .isEqualTo(Map.of("input", "value2"));
+    }
+
+    @Test
+    void adHocSubProcessResponseSkipsResultExpression() throws Exception {
+      var response =
+          new TestAdHocSubProcessResponse(
+              Map.of("key", "value"), Map.of("ownVar", "ownValue"), List.of(), true, false);
+      var handler = newConnectorJobHandler(context -> response);
+
+      // result expression is configured but should be ignored for AHSP
+      var result =
+          JobBuilder.create()
+              .withResultExpressionHeader("={mapped: response.key}")
+              .executeAndCaptureAdHocSubProcessResult(handler);
+
+      assertThat(result.variables()).isEqualTo(Map.of("ownVar", "ownValue"));
+      assertThat(result.completionConditionFulfilled()).isTrue();
+      assertThat(result.cancelRemainingInstances()).isFalse();
+      assertThat(result.elementActivations()).isEmpty();
+    }
+
+    @Test
+    void nullVariablesTreatedAsEmptyMap() throws Exception {
+      var response = new TestAdHocSubProcessResponse(null, null, List.of(), true, false);
+      var handler = newConnectorJobHandler(context -> response);
+
+      var result = JobBuilder.create().executeAndCaptureAdHocSubProcessResult(handler);
+
+      assertThat(result.variables()).isEmpty();
+      assertThat(result.completionConditionFulfilled()).isTrue();
+      assertThat(result.elementActivations()).isEmpty();
+    }
+
+    @Test
+    void nullElementActivationsTreatedAsEmptyList() throws Exception {
+      var response =
+          new TestAdHocSubProcessResponse(null, Map.of("key", "value"), null, true, false);
+      var handler = newConnectorJobHandler(context -> response);
+
+      var result = JobBuilder.create().executeAndCaptureAdHocSubProcessResult(handler);
+
+      assertThat(result.variables()).isEqualTo(Map.of("key", "value"));
+      assertThat(result.completionConditionFulfilled()).isTrue();
+      assertThat(result.elementActivations()).isEmpty();
+    }
   }
 }

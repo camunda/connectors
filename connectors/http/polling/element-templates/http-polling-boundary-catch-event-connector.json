@@ -567,15 +567,18 @@
     "type" : "String"
   }, {
     "id" : "messageNameUuid",
+    "label" : "Message name",
     "generatedValue" : {
       "type" : "uuid"
     },
+    "feel" : "optional",
     "group" : "correlation",
     "binding" : {
       "name" : "name",
       "type" : "bpmn:Message#property"
     },
-    "type" : "Hidden"
+    "tooltip" : "By default, this is an auto-generated random UUID. We recommend using a unique message name for each connector element in the diagram. Override to set a custom message name. Learn more about <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-subscriptions\">message subscriptions</a> that power inbound connectors.",
+    "type" : "String"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
@@ -590,6 +593,7 @@
     "id" : "resultExpression",
     "label" : "Result expression",
     "description" : "Expression to map the response into process variables",
+    "value" : "{\n  myResponseBody: response.body\n  // Use FEEL to extract values, e.g.,:\n  // myUserId: response.body.post.userId\n}",
     "feel" : "required",
     "group" : "output",
     "binding" : {

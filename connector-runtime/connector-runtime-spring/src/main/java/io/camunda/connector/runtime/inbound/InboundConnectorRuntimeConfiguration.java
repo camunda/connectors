@@ -21,7 +21,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.runtime.annotation.ConnectorsObjectMapper;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorFactory;
@@ -86,11 +85,10 @@ public class InboundConnectorRuntimeConfiguration {
   @Bean
   public InboundCorrelationHandler inboundCorrelationHandler(
       final CamundaClient camundaClient,
-      final FeelExpressionEvaluator feelExpressionEvaluator,
       @ConnectorsObjectMapper final ObjectMapper objectMapper,
       final ConnectorsInboundMetrics connectorsInboundMetrics) {
     return new MeteredInboundCorrelationHandler(
-        camundaClient, feelExpressionEvaluator, objectMapper, messageTtl, connectorsInboundMetrics);
+        camundaClient, objectMapper, messageTtl, connectorsInboundMetrics);
   }
 
   @Bean

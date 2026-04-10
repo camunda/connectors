@@ -11,6 +11,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.AgentResponseInitializationResult;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
+import io.camunda.connector.agenticai.aiagent.model.AgentMetadata;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.AgentState;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolDiscoveryInitiationResult;
@@ -42,7 +43,9 @@ public class AgentInitializerImpl implements AgentInitializer {
     AgentContext agentContext =
         Optional.ofNullable(executionContext.initialAgentContext())
             .orElseGet(
-                () -> AgentContext.empty().withMetadata(executionContext.jobContext().metadata()));
+                () ->
+                    AgentContext.empty()
+                        .withMetadata(AgentMetadata.of(executionContext.jobContext())));
 
     List<ToolCallResult> toolCallResults =
         Optional.ofNullable(executionContext.initialToolCallResults()).orElseGet(List::of);
@@ -60,7 +63,7 @@ public class AgentInitializerImpl implements AgentInitializer {
       List<ToolCallResult> toolCallResults) {
 
     final var agentMetadata = agentContext.metadata();
-    final var executionMetadata = executionContext.jobContext().metadata();
+    final var executionMetadata = AgentMetadata.of(executionContext.jobContext());
     if (agentMetadata == null
         || !executionMetadata.processDefinitionKey().equals(agentMetadata.processDefinitionKey())) {
       agentContext =
