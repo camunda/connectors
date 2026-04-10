@@ -51,12 +51,12 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
    * Create an envelope for a ToolCall array.
    *
    * @param toolCalls the tool calls to wrap
-   * @param mapper the ObjectMapper to use for serialization
+   * @param objectMapper the ObjectMapper to use for serialization
    * @return the envelope
    */
-  public static BlobEnvelope forToolCalls(List<ToolCall> toolCalls, ObjectMapper mapper) {
-    JsonNode data = mapper.valueToTree(toolCalls);
-    ObjectNode envelope = mapper.createObjectNode();
+  public static BlobEnvelope forToolCalls(List<ToolCall> toolCalls, ObjectMapper objectMapper) {
+    JsonNode data = objectMapper.valueToTree(toolCalls);
+    ObjectNode envelope = objectMapper.createObjectNode();
     envelope.put(FIELD_BLOB_TYPE, BlobEnvelopeType.TOOL_CALLS.getBlobType());
     envelope.put(FIELD_VERSION, CURRENT_VERSION);
     envelope.set(FIELD_TOOL_CALLS, data);
@@ -67,12 +67,13 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
    * Create an envelope for a ToolCallResult array.
    *
    * @param results the tool call results to wrap
-   * @param mapper the ObjectMapper to use for serialization
+   * @param objectMapper the ObjectMapper to use for serialization
    * @return the envelope
    */
-  public static BlobEnvelope forToolCallResults(List<ToolCallResult> results, ObjectMapper mapper) {
-    JsonNode data = mapper.valueToTree(results);
-    ObjectNode envelope = mapper.createObjectNode();
+  public static BlobEnvelope forToolCallResults(
+      List<ToolCallResult> results, ObjectMapper objectMapper) {
+    JsonNode data = objectMapper.valueToTree(results);
+    ObjectNode envelope = objectMapper.createObjectNode();
     envelope.put(FIELD_BLOB_TYPE, BlobEnvelopeType.TOOL_CALL_RESULTS.getBlobType());
     envelope.put(FIELD_VERSION, CURRENT_VERSION);
     envelope.set(FIELD_RESULTS, data);
@@ -84,12 +85,12 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
    * Create an envelope for a Content object.
    *
    * @param content the content to wrap (preserves Content's native type discriminator)
-   * @param mapper the ObjectMapper to use for serialization
+   * @param objectMapper the ObjectMapper to use for serialization
    * @return the envelope
    */
-  public static BlobEnvelope forContent(Content content, ObjectMapper mapper) {
-    JsonNode data = mapper.valueToTree(content);
-    ObjectNode envelope = mapper.createObjectNode();
+  public static BlobEnvelope forContent(Content content, ObjectMapper objectMapper) {
+    JsonNode data = objectMapper.valueToTree(content);
+    ObjectNode envelope = objectMapper.createObjectNode();
     envelope.put(FIELD_BLOB_TYPE, BlobEnvelopeType.MESSAGE_CONTENT.getBlobType());
     envelope.put(FIELD_VERSION, CURRENT_VERSION);
     envelope.set(FIELD_CONTENT, data);
@@ -102,17 +103,17 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
    *
    * @param metadata the user-facing metadata map
    * @param properties optional framework-internal properties (e.g. userName), may be null or empty
-   * @param mapper the ObjectMapper to use for serialization
+   * @param objectMapper the ObjectMapper to use for serialization
    * @return the envelope
    */
   public static BlobEnvelope forMetadata(
-      Map<String, Object> metadata, Map<String, Object> properties, ObjectMapper mapper) {
-    ObjectNode envelope = mapper.createObjectNode();
+      Map<String, Object> metadata, Map<String, Object> properties, ObjectMapper objectMapper) {
+    ObjectNode envelope = objectMapper.createObjectNode();
     envelope.put(FIELD_BLOB_TYPE, BlobEnvelopeType.MESSAGE_METADATA.getBlobType());
     envelope.put(FIELD_VERSION, CURRENT_VERSION);
-    envelope.set(FIELD_METADATA, mapper.valueToTree(metadata));
+    envelope.set(FIELD_METADATA, objectMapper.valueToTree(metadata));
     if (properties != null && !properties.isEmpty()) {
-      envelope.set(FIELD_PROPERTIES, mapper.valueToTree(properties));
+      envelope.set(FIELD_PROPERTIES, objectMapper.valueToTree(properties));
     }
     return new BlobEnvelope(
         BlobEnvelopeType.MESSAGE_METADATA.getBlobType(), CURRENT_VERSION, envelope);
@@ -122,13 +123,14 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
    * Parse a blob Document as a BlobEnvelope.
    *
    * @param blob the AWS SDK Document from a blob payload
-   * @param mapper the ObjectMapper to use for parsing
+   * @param objectMapper the ObjectMapper to use for parsing
    * @return the parsed envelope
    * @throws IOException if parsing fails or the blob is not a valid envelope
    */
-  public static BlobEnvelope fromDocument(Document blob, ObjectMapper mapper) throws IOException {
+  public static BlobEnvelope fromDocument(Document blob, ObjectMapper objectMapper)
+      throws IOException {
     String json = blob.asString();
-    JsonNode root = mapper.readTree(json);
+    JsonNode root = objectMapper.readTree(json);
 
     if (!root.has(FIELD_BLOB_TYPE)) {
       throw new IOException("Blob does not contain 'blobType' field");
@@ -157,54 +159,55 @@ public record BlobEnvelope(String blobType, int version, JsonNode data) {
    * Parse the data field using a TypeReference.
    *
    * @param typeRef the type reference for deserialization
-   * @param mapper the ObjectMapper to use
+   * @param objectMapper the ObjectMapper to use
    * @param <T> the target type
    * @return the deserialized data
    * @throws IOException if deserialization fails
    */
-  public <T> T parseData(TypeReference<T> typeRef, ObjectMapper mapper) throws IOException {
+  public <T> T parseData(TypeReference<T> typeRef, ObjectMapper objectMapper) throws IOException {
     JsonNode dataNode = extractDataNode();
-    return mapper.readerFor(typeRef).readValue(dataNode);
+    return objectMapper.readerFor(typeRef).readValue(dataNode);
   }
 
   /**
    * Parse the data field using a Class.
    *
    * @param clazz the class for deserialization
-   * @param mapper the ObjectMapper to use
+   * @param objectMapper the ObjectMapper to use
    * @param <T> the target type
    * @return the deserialized data
    * @throws IOException if deserialization fails
    */
-  public <T> T parseData(Class<T> clazz, ObjectMapper mapper) throws IOException {
+  public <T> T parseData(Class<T> clazz, ObjectMapper objectMapper) throws IOException {
     JsonNode dataNode = extractDataNode();
-    return mapper.treeToValue(dataNode, clazz);
+    return objectMapper.treeToValue(dataNode, clazz);
   }
 
   /**
    * Parse the optional properties field from a MESSAGE_METADATA envelope.
    *
    * @param typeRef the type reference for deserialization
-   * @param mapper the ObjectMapper to use
+   * @param objectMapper the ObjectMapper to use
    * @return the properties map, or null if not present
    * @throws IOException if deserialization fails
    */
-  public <T> T parseProperties(TypeReference<T> typeRef, ObjectMapper mapper) throws IOException {
+  public <T> T parseProperties(TypeReference<T> typeRef, ObjectMapper objectMapper)
+      throws IOException {
     if (!data.has(FIELD_PROPERTIES)) {
       return null;
     }
-    return mapper.readerFor(typeRef).readValue(data.get(FIELD_PROPERTIES));
+    return objectMapper.readerFor(typeRef).readValue(data.get(FIELD_PROPERTIES));
   }
 
   /**
    * Convert this envelope to an AWS SDK Document.
    *
-   * @param mapper the ObjectMapper to use for serialization
+   * @param objectMapper the ObjectMapper to use for serialization
    * @return the Document
    * @throws JsonProcessingException if serialization fails
    */
-  public Document toDocument(ObjectMapper mapper) throws JsonProcessingException {
-    String json = mapper.writeValueAsString(data);
+  public Document toDocument(ObjectMapper objectMapper) throws JsonProcessingException {
+    String json = objectMapper.writeValueAsString(data);
     return Document.fromString(json);
   }
 

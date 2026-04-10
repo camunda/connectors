@@ -89,9 +89,9 @@ class AwsAgentCoreConversationStoreTest {
     lenient().when(executionContext.memory()).thenReturn(new MemoryConfiguration(config, 20));
     lenient().when(clientFactory.createClient(config)).thenReturn(bedrockClient);
 
-    var mapper = new AwsAgentCoreConversationMapper(TestObjectMapperSupplier.INSTANCE);
+    var conversationMapper = new AwsAgentCoreConversationMapper(TestObjectMapperSupplier.INSTANCE);
 
-    store = new AwsAgentCoreConversationStore(clientFactory, mapper);
+    store = new AwsAgentCoreConversationStore(clientFactory, conversationMapper);
     memory = new DefaultRuntimeMemory();
   }
 

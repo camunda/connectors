@@ -27,12 +27,13 @@ public class AwsAgentCoreConversationStore implements ConversationStore {
   public static final String TYPE = "aws-agentcore";
 
   private final BedrockAgentCoreClientFactory clientFactory;
-  private final AwsAgentCoreConversationMapper mapper;
+  private final AwsAgentCoreConversationMapper conversationMapper;
 
   public AwsAgentCoreConversationStore(
-      BedrockAgentCoreClientFactory clientFactory, AwsAgentCoreConversationMapper mapper) {
+      BedrockAgentCoreClientFactory clientFactory,
+      AwsAgentCoreConversationMapper conversationMapper) {
     this.clientFactory = clientFactory;
-    this.mapper = mapper;
+    this.conversationMapper = conversationMapper;
   }
 
   @Override
@@ -57,7 +58,8 @@ public class AwsAgentCoreConversationStore implements ConversationStore {
     }
 
     try (BedrockAgentCoreClient client = clientFactory.createClient(agentCoreConfig)) {
-      final var session = new AwsAgentCoreConversationSession(agentCoreConfig, client, mapper);
+      final var session =
+          new AwsAgentCoreConversationSession(agentCoreConfig, client, conversationMapper);
       return sessionHandler.handleSession(session);
     }
   }

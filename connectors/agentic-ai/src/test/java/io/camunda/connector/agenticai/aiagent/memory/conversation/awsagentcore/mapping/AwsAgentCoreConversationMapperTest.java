@@ -38,13 +38,13 @@ import software.amazon.awssdk.services.bedrockagentcore.model.Role;
 
 class AwsAgentCoreConversationMapperTest {
 
-  private AwsAgentCoreConversationMapper mapper;
+  private AwsAgentCoreConversationMapper conversationMapper;
   private ObjectMapper objectMapper;
 
   @BeforeEach
   void setUp() {
     objectMapper = TestObjectMapperSupplier.INSTANCE;
-    mapper = new AwsAgentCoreConversationMapper(objectMapper);
+    conversationMapper = new AwsAgentCoreConversationMapper(objectMapper);
   }
 
   // ==================== UserMessage Tests ====================
@@ -56,7 +56,7 @@ class AwsAgentCoreConversationMapperTest {
         UserMessage.builder().content(List.of(textContent("Hello world"))).build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(message);
+    List<PayloadType> payloads = conversationMapper.toPayloads(message);
 
     // then — conversational payload + metadata blob (with role)
     assertThat(payloads).hasSize(2);
@@ -75,7 +75,7 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(message);
+    List<PayloadType> payloads = conversationMapper.toPayloads(message);
 
     // then — 2 conversational payloads + metadata blob
     assertThat(payloads).hasSize(3);
@@ -99,7 +99,7 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(message);
+    List<PayloadType> payloads = conversationMapper.toPayloads(message);
 
     // then — conversational + document blob + metadata blob
     assertThat(payloads).hasSize(3);
@@ -114,9 +114,9 @@ class AwsAgentCoreConversationMapperTest {
         UserMessage.builder().content(List.of(textContent("Hello world"))).build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then
     assertThat(messages).hasSize(1);
@@ -134,9 +134,9 @@ class AwsAgentCoreConversationMapperTest {
         UserMessage.builder().name("Alice").content(List.of(textContent("Hello world"))).build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then
     assertThat(messages).hasSize(1);
@@ -162,9 +162,9 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then
     assertThat(messages).hasSize(1);
@@ -192,9 +192,9 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then - message must not be dropped; role recovered from metadata properties
     assertThat(messages).hasSize(1);
@@ -213,7 +213,7 @@ class AwsAgentCoreConversationMapperTest {
         AssistantMessage.builder().content(List.of(textContent("Here's the answer"))).build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(message);
+    List<PayloadType> payloads = conversationMapper.toPayloads(message);
 
     // then — conversational + metadata blob
     assertThat(payloads).hasSize(2);
@@ -237,7 +237,7 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(message);
+    List<PayloadType> payloads = conversationMapper.toPayloads(message);
 
     // then — toolCalls blob + metadata blob
     assertThat(payloads).hasSize(2);
@@ -260,7 +260,7 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(message);
+    List<PayloadType> payloads = conversationMapper.toPayloads(message);
 
     // then — conversational + toolCalls blob + metadata blob
     assertThat(payloads).hasSize(3);
@@ -284,9 +284,9 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then
     assertThat(messages).hasSize(1);
@@ -310,9 +310,9 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then
     assertThat(messages).hasSize(1);
@@ -339,7 +339,7 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(message);
+    List<PayloadType> payloads = conversationMapper.toPayloads(message);
 
     // then — conversational summary + toolCallResults blob + metadata blob
     assertThat(payloads).hasSize(3);
@@ -362,7 +362,7 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(message);
+    List<PayloadType> payloads = conversationMapper.toPayloads(message);
 
     // then
     assertThat(payloads.get(0).conversational().content().text()).isEqualTo("Result 1\nResult 2");
@@ -378,7 +378,7 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(message);
+    List<PayloadType> payloads = conversationMapper.toPayloads(message);
 
     // then - summary should be valid JSON matching the original map
     String summary = payloads.get(0).conversational().content().text();
@@ -395,9 +395,9 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then - message must not be silently dropped
     assertThat(messages).hasSize(1);
@@ -422,9 +422,9 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then
     assertThat(messages).hasSize(1);
@@ -455,7 +455,7 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when — no metadata blob means role can't be resolved, so event is skipped
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then
     assertThat(messages).isEmpty();
@@ -469,7 +469,7 @@ class AwsAgentCoreConversationMapperTest {
     SystemMessage message = SystemMessage.builder().content(List.of(textContent("System"))).build();
 
     // when/then
-    assertThatThrownBy(() -> mapper.toPayloads(message))
+    assertThatThrownBy(() -> conversationMapper.toPayloads(message))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("SystemMessage");
   }
@@ -482,7 +482,7 @@ class AwsAgentCoreConversationMapperTest {
     UserMessage message = UserMessage.builder().content(List.of()).build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(message);
+    List<PayloadType> payloads = conversationMapper.toPayloads(message);
 
     // then — only the metadata blob (with role), no content payloads
     assertThat(payloads).hasSize(1);
@@ -495,7 +495,7 @@ class AwsAgentCoreConversationMapperTest {
     Event event = Event.builder().build();
 
     // when
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then
     assertThat(messages).isEmpty();
@@ -518,7 +518,7 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
 
     // then — document blob + metadata blob (with role)
     assertThat(payloads).hasSize(2);
@@ -534,9 +534,9 @@ class AwsAgentCoreConversationMapperTest {
     UserMessage original = UserMessage.builder().content(originalContent).build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then
     UserMessage reconstructed = (UserMessage) messages.get(0);
@@ -557,9 +557,9 @@ class AwsAgentCoreConversationMapperTest {
         UserMessage.builder().content(List.of(textContent("Hello"))).metadata(metadata).build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then
     assertThat(messages).hasSize(1);
@@ -583,9 +583,9 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then
     assertThat(messages).hasSize(1);
@@ -608,9 +608,9 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then
     assertThat(messages).hasSize(1);
@@ -628,9 +628,9 @@ class AwsAgentCoreConversationMapperTest {
         UserMessage.builder().content(List.of(textContent("Hello"))).metadata(Map.of()).build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then
     assertThat(messages).hasSize(1);
@@ -654,9 +654,9 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then — order must be preserved
     assertThat(messages).hasSize(1);
@@ -679,9 +679,9 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then
     assertThat(messages).hasSize(1);
@@ -713,9 +713,9 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then — content order preserved, toolCalls separate
     assertThat(messages).hasSize(1);
@@ -741,7 +741,7 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(message);
+    List<PayloadType> payloads = conversationMapper.toPayloads(message);
 
     // then — payloads must be in content order: conv, blob, conv, metadata blob
     assertThat(payloads).hasSize(4);
@@ -763,9 +763,9 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then — content order preserved, metadata round-trips
     assertThat(messages).hasSize(1);
@@ -791,9 +791,9 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then
     assertThat(messages).hasSize(1);
@@ -810,9 +810,9 @@ class AwsAgentCoreConversationMapperTest {
         UserMessage.builder().content(List.of(textContent("Simple message"))).build();
 
     // when
-    List<PayloadType> payloads = mapper.toPayloads(original);
+    List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = mapper.fromEvent(event);
+    List<Message> messages = conversationMapper.fromEvent(event);
 
     // then
     assertThat(messages).hasSize(1);
