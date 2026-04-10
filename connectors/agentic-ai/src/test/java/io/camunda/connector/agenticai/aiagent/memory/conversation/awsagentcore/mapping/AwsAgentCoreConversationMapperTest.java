@@ -418,6 +418,7 @@ class AwsAgentCoreConversationMapperTest {
                         .id("call-1")
                         .name("search")
                         .content("Found 3 items")
+                        .properties(Map.of("interrupted", true, "custom", "value"))
                         .build()))
             .build();
 
@@ -433,7 +434,9 @@ class AwsAgentCoreConversationMapperTest {
     assertThat(reconstructed.results().get(0).id()).isEqualTo("call-1");
     assertThat(reconstructed.results().get(0).name()).isEqualTo("search");
     assertThat(reconstructed.results().get(0).content()).isEqualTo("Found 3 items");
-    // Note: properties map may not round-trip perfectly - main fields are preserved
+    assertThat(reconstructed.results().get(0).properties())
+        .containsEntry("interrupted", true)
+        .containsEntry("custom", "value");
   }
 
   @Test

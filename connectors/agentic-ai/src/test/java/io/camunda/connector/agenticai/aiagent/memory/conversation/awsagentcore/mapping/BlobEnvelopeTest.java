@@ -103,7 +103,12 @@ class BlobEnvelopeTest {
     // given
     List<ToolCallResult> original =
         List.of(
-            ToolCallResult.builder().id("call-1").name("search").content("Found 3 items").build());
+            ToolCallResult.builder()
+                .id("call-1")
+                .name("search")
+                .content("Found 3 items")
+                .properties(Map.of("interrupted", true, "custom", "value"))
+                .build());
 
     // when
     BlobEnvelope envelope = BlobEnvelope.forToolCallResults(original, objectMapper);
@@ -117,9 +122,9 @@ class BlobEnvelopeTest {
     assertThat(result.get(0).id()).isEqualTo("call-1");
     assertThat(result.get(0).name()).isEqualTo("search");
     assertThat(result.get(0).content()).isEqualTo("Found 3 items");
-    // Note: properties map with @JsonAnySetter/@JsonAnyGetter may not round-trip perfectly
-    // through nested JSON structures. In practice, the main fields (id, name, content) are
-    // preserved.
+    assertThat(result.get(0).properties())
+        .containsEntry("interrupted", true)
+        .containsEntry("custom", "value");
   }
 
   @Test
