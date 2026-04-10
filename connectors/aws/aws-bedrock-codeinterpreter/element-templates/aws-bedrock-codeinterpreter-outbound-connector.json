@@ -28,6 +28,9 @@
     "id" : "codeExecution",
     "label" : "Code Execution"
   }, {
+    "id" : "session",
+    "label" : "Session Settings"
+  }, {
     "id" : "connector",
     "label" : "Connector"
   }, {
@@ -147,18 +150,53 @@
     },
     "type" : "String"
   }, {
-    "id" : "input.sessionTimeoutSeconds",
-    "label" : "Session timeout (seconds)",
-    "description" : "Session timeout in seconds (60–28800). Defaults to 300.",
+    "id" : "input.language",
+    "label" : "Language",
+    "description" : "The programming language to use.",
     "optional" : true,
-    "value" : 300,
-    "feel" : "static",
+    "value" : "python",
     "group" : "codeExecution",
     "binding" : {
-      "name" : "input.sessionTimeoutSeconds",
+      "name" : "input.language",
       "type" : "zeebe:input"
     },
-    "type" : "Number"
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Python",
+      "value" : "python"
+    }, {
+      "name" : "JavaScript",
+      "value" : "javascript"
+    }, {
+      "name" : "TypeScript",
+      "value" : "typescript"
+    } ]
+  }, {
+    "id" : "input.codeInterpreterIdentifier",
+    "label" : "Code Interpreter ID",
+    "description" : "The Code Interpreter identifier. Defaults to the AWS managed default.",
+    "optional" : true,
+    "value" : "aws.codeinterpreter.v1",
+    "feel" : "optional",
+    "group" : "session",
+    "binding" : {
+      "name" : "input.codeInterpreterIdentifier",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.sessionTimeout",
+    "label" : "Session timeout",
+    "description" : "Session timeout as ISO 8601 duration (e.g. PT5M for 5 minutes). Defaults to PT5M.",
+    "optional" : true,
+    "value" : "PT5M",
+    "feel" : "optional",
+    "group" : "session",
+    "binding" : {
+      "name" : "input.sessionTimeout",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
   }, {
     "id" : "input.maxFiles",
     "label" : "Max files to retrieve",
@@ -166,22 +204,22 @@
     "optional" : true,
     "value" : 10,
     "feel" : "static",
-    "group" : "codeExecution",
+    "group" : "session",
     "binding" : {
       "name" : "input.maxFiles",
       "type" : "zeebe:input"
     },
     "type" : "Number"
   }, {
-    "id" : "input.maxTotalBytes",
-    "label" : "Max total file size (bytes)",
+    "id" : "input.maxTotalFileSize",
+    "label" : "Max total file size",
     "description" : "Maximum total size of retrieved files in bytes. Defaults to 10 MB.",
     "optional" : true,
     "value" : 10485760,
     "feel" : "static",
-    "group" : "codeExecution",
+    "group" : "session",
     "binding" : {
-      "name" : "input.maxTotalBytes",
+      "name" : "input.maxTotalFileSize",
       "type" : "zeebe:input"
     },
     "type" : "Number"

@@ -154,10 +154,103 @@ class CodeInterpreterExecutorTest extends BaseTest {
         .hasMessageContaining("Code must not be empty");
   }
 
-  private CodeInterpreterRequest buildRequest(String code, Integer timeout) {
+  @Test
+  void shouldUseConfiguredLanguage() {
+    mockSession("sess-lang");
+    mockInvoke();
+    mockStopSession();
+
+    var input = new CodeInterpreterInput();
+    input.setCode("console.log('hello')");
+    input.setLanguage("javascript");
+    var request = new CodeInterpreterRequest();
+    request.setInput(input);
+
+    executor.execute(request, 12345L);
+
+    var invokeCaptor = ArgumentCaptor.forClass(InvokeCodeInterpreterRequest.class);
+    verify(asyncClient, atLeast(3)).invokeCodeInterpreter(invokeCaptor.capture(), any());
+    var executeCall = invokeCaptor.getAllValues().get(1);
+    assertThat(executeCall.arguments().languageAsString()).isEqualTo("javascript");
+  }
+
+  @Test
+  void shouldUseConfiguredCodeInterpreterIdentifier() {
+    var input = new CodeInterpreterInput();
+    input.setCode(ActualValue.CODE);
+    input.setCodeInterpreterIdentifier("custom.codeinterpreter.v2");
+    var request = new CodeInterpreterRequest();
+    request.setInput(input);
+
+    when(syncClient.startCodeInterpreterSession(any(StartCodeInterpreterSessionRequest.class)))
+        .thenReturn(StartCodeInterpreterSessionResponse.builder().sessionId("sess-custom").build());
+    mockInvoke();
+    mockStopSession();
+
+    executor.execute(request, 12345L);
+
+    var startCaptor = ArgumentCaptor.forClass(StartCodeInterpreterSessionRequest.class);
+    verify(syncClient).startCodeInterpreterSession(startCaptor.capture());
+    assertThat(startCaptor.getValue().codeInterpreterIdentifier())
+        .isEqualTo("custom.codeinterpreter.v2");
+  }
+
+  @Test
+  void shouldUseSessionTimeoutFromDuration() {
+    mockSession("sess-timeout");
+    mockInvoke();
+    mockStopSession();
+
+    var input = new CodeInterpreterInput();
+    input.setCode(ActualValue.CODE);
+    input.setSessionTimeout(java.time.Duration.ofMinutes(10));
+    var request = new CodeInterpreterRequest();
+    request.setInput(input);
+
+    executor.execute(request, 12345L);
+
+    var startCaptor = ArgumentCaptor.forClass(StartCodeInterpreterSessionRequest.class);
+    verify(syncClient).startCodeInterpreterSession(startCaptor.capture());
+    assertThat(startCaptor.getValue().sessionTimeoutSeconds()).isEqualTo(600);
+  }
+
+  @Test
+  void shouldUseElementInstanceKeyInSessionName() {
+    mockSession("sess-key");
+    mockInvoke();
+    mockStopSession();
+
+    var request = buildRequest(ActualValue.CODE, null);
+    executor.execute(request, 9876543L);
+
+    var startCaptor = ArgumentCaptor.forClass(StartCodeInterpreterSessionRequest.class);
+    verify(syncClient).startCodeInterpreterSession(startCaptor.capture());
+    assertThat(startCaptor.getValue().name()).isEqualTo("camunda-9876543");
+  }
+
+  private void mockSession(String sessionId) {
+    when(syncClient.startCodeInterpreterSession(any(StartCodeInterpreterSessionRequest.class)))
+        .thenReturn(StartCodeInterpreterSessionResponse.builder().sessionId(sessionId).build());
+  }
+
+  private void mockInvoke() {
+    when(asyncClient.invokeCodeInterpreter(
+            any(InvokeCodeInterpreterRequest.class),
+            any(InvokeCodeInterpreterResponseHandler.class)))
+        .thenReturn(CompletableFuture.completedFuture(null));
+  }
+
+  private void mockStopSession() {
+    when(syncClient.stopCodeInterpreterSession(any(StopCodeInterpreterSessionRequest.class)))
+        .thenReturn(StopCodeInterpreterSessionResponse.builder().build());
+  }
+
+  private CodeInterpreterRequest buildRequest(String code, Integer timeoutSeconds) {
     var input = new CodeInterpreterInput();
     input.setCode(code);
-    input.setSessionTimeoutSeconds(timeout);
+    if (timeoutSeconds != null) {
+      input.setSessionTimeout(java.time.Duration.ofSeconds(timeoutSeconds));
+    }
     var request = new CodeInterpreterRequest();
     request.setInput(input);
     return request;

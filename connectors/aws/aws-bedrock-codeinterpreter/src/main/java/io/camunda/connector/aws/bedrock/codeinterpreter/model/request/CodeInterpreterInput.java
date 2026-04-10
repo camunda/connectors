@@ -10,6 +10,7 @@ import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import jakarta.validation.constraints.NotBlank;
+import java.time.Duration;
 
 public class CodeInterpreterInput {
 
@@ -24,15 +25,37 @@ public class CodeInterpreterInput {
 
   @TemplateProperty(
       group = "codeExecution",
-      label = "Session timeout (seconds)",
-      description = "Session timeout in seconds (60–28800). Defaults to 300.",
-      defaultValue = "300",
-      defaultValueType = TemplateProperty.DefaultValueType.Number,
+      label = "Language",
+      description = "The programming language to use.",
+      defaultValue = "python",
+      type = TemplateProperty.PropertyType.Dropdown,
+      choices = {
+        @TemplateProperty.DropdownPropertyChoice(value = "python", label = "Python"),
+        @TemplateProperty.DropdownPropertyChoice(value = "javascript", label = "JavaScript"),
+        @TemplateProperty.DropdownPropertyChoice(value = "typescript", label = "TypeScript")
+      },
       optional = true)
-  private Integer sessionTimeoutSeconds;
+  private String language;
 
   @TemplateProperty(
-      group = "codeExecution",
+      group = "session",
+      label = "Code Interpreter ID",
+      description = "The Code Interpreter identifier. Defaults to the AWS managed default.",
+      defaultValue = "aws.codeinterpreter.v1",
+      optional = true)
+  private String codeInterpreterIdentifier;
+
+  @TemplateProperty(
+      group = "session",
+      label = "Session timeout",
+      description =
+          "Session timeout as ISO 8601 duration (e.g. PT5M for 5 minutes). Defaults to PT5M.",
+      defaultValue = "PT5M",
+      optional = true)
+  private Duration sessionTimeout;
+
+  @TemplateProperty(
+      group = "session",
       label = "Max files to retrieve",
       description = "Maximum number of generated files to retrieve. Defaults to 10.",
       defaultValue = "10",
@@ -41,13 +64,13 @@ public class CodeInterpreterInput {
   private Integer maxFiles;
 
   @TemplateProperty(
-      group = "codeExecution",
-      label = "Max total file size (bytes)",
+      group = "session",
+      label = "Max total file size",
       description = "Maximum total size of retrieved files in bytes. Defaults to 10 MB.",
       defaultValue = "10485760",
       defaultValueType = TemplateProperty.DefaultValueType.Number,
       optional = true)
-  private Long maxTotalBytes;
+  private Long maxTotalFileSize;
 
   public String getCode() {
     return code;
@@ -57,12 +80,28 @@ public class CodeInterpreterInput {
     this.code = code;
   }
 
-  public Integer getSessionTimeoutSeconds() {
-    return sessionTimeoutSeconds;
+  public String getLanguage() {
+    return language;
   }
 
-  public void setSessionTimeoutSeconds(Integer sessionTimeoutSeconds) {
-    this.sessionTimeoutSeconds = sessionTimeoutSeconds;
+  public void setLanguage(String language) {
+    this.language = language;
+  }
+
+  public String getCodeInterpreterIdentifier() {
+    return codeInterpreterIdentifier;
+  }
+
+  public void setCodeInterpreterIdentifier(String codeInterpreterIdentifier) {
+    this.codeInterpreterIdentifier = codeInterpreterIdentifier;
+  }
+
+  public Duration getSessionTimeout() {
+    return sessionTimeout;
+  }
+
+  public void setSessionTimeout(Duration sessionTimeout) {
+    this.sessionTimeout = sessionTimeout;
   }
 
   public Integer getMaxFiles() {
@@ -73,11 +112,11 @@ public class CodeInterpreterInput {
     this.maxFiles = maxFiles;
   }
 
-  public Long getMaxTotalBytes() {
-    return maxTotalBytes;
+  public Long getMaxTotalFileSize() {
+    return maxTotalFileSize;
   }
 
-  public void setMaxTotalBytes(Long maxTotalBytes) {
-    this.maxTotalBytes = maxTotalBytes;
+  public void setMaxTotalFileSize(Long maxTotalFileSize) {
+    this.maxTotalFileSize = maxTotalFileSize;
   }
 }

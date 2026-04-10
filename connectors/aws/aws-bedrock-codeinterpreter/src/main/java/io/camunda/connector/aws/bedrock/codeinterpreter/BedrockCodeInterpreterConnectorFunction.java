@@ -34,6 +34,7 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
       @PropertyGroup(id = "authentication", label = "Authentication"),
       @PropertyGroup(id = "configuration", label = "Configuration"),
       @PropertyGroup(id = "codeExecution", label = "Code Execution"),
+      @PropertyGroup(id = "session", label = "Session Settings"),
     },
     icon = "icon.svg")
 public class BedrockCodeInterpreterConnectorFunction implements OutboundConnectorFunction {

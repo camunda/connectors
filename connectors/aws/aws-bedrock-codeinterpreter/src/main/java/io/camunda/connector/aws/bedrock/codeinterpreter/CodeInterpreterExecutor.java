@@ -13,6 +13,7 @@ import io.camunda.connector.aws.bedrock.codeinterpreter.model.request.CodeInterp
 import io.camunda.connector.aws.bedrock.codeinterpreter.model.request.CodeInterpreterRequest;
 import io.camunda.connector.aws.bedrock.codeinterpreter.model.response.CodeInterpreterResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -37,13 +38,15 @@ import software.amazon.awssdk.services.bedrockagentcore.model.ToolName;
 public class CodeInterpreterExecutor {
 
   private static final Logger LOG = LoggerFactory.getLogger(CodeInterpreterExecutor.class);
-  private static final String CODE_INTERPRETER_ID = "aws.codeinterpreter.v1";
+  private static final String DEFAULT_CODE_INTERPRETER_ID = "aws.codeinterpreter.v1";
+  private static final String DEFAULT_LANGUAGE = "python";
   private static final String SESSION_NAME_PREFIX = "camunda-";
   private static final String ERROR_CODE_INTERPRETER_FAILED = "CODE_INTERPRETER_FAILED";
   private static final String ERROR_STREAM = "STREAM_ERROR";
   private static final String DEFAULT_MIME_TYPE = "application/octet-stream";
   private static final int DEFAULT_MAX_FILES = 10;
-  private static final long DEFAULT_MAX_TOTAL_BYTES = 10L * 1024 * 1024;
+  private static final long DEFAULT_MAX_TOTAL_FILE_SIZE = 10L * 1024 * 1024;
+  private static final Duration DEFAULT_SESSION_TIMEOUT = Duration.ofMinutes(5);
   private static final long INVOCATION_TIMEOUT_MINUTES = 5;
 
   private final BedrockAgentCoreClient syncClient;
@@ -59,12 +62,12 @@ public class CodeInterpreterExecutor {
     this.createDocument = createDocument;
   }
 
-  public CodeInterpreterResponse execute(CodeInterpreterRequest request, long jobKey) {
+  public CodeInterpreterResponse execute(CodeInterpreterRequest request, long elementInstanceKey) {
     var input = request.getInput();
     if (input == null || input.getCode() == null || input.getCode().isBlank()) {
       throw new ConnectorException(ERROR_CODE_INTERPRETER_FAILED, "Code must not be empty");
     }
-    try (var session = startSession(input, jobKey)) {
+    try (var session = startSession(input, elementInstanceKey)) {
       return invokeCode(session, input);
     } catch (BedrockAgentCoreException e) {
       var msg = e.awsErrorDetails() != null ? e.awsErrorDetails().errorMessage() : e.getMessage();
@@ -80,29 +83,33 @@ public class CodeInterpreterExecutor {
 
   // --- Session management ---
 
-  private CodeInterpreterSession startSession(CodeInterpreterInput input, long jobKey) {
+  private CodeInterpreterSession startSession(CodeInterpreterInput input, long elementInstanceKey) {
+    var ciId = resolveCodeInterpreterIdentifier(input);
+    var timeout =
+        input.getSessionTimeout() != null ? input.getSessionTimeout() : DEFAULT_SESSION_TIMEOUT;
+
     var builder =
         StartCodeInterpreterSessionRequest.builder()
-            .codeInterpreterIdentifier(CODE_INTERPRETER_ID)
-            .name(SESSION_NAME_PREFIX + jobKey);
-    if (input.getSessionTimeoutSeconds() != null) {
-      builder.sessionTimeoutSeconds(input.getSessionTimeoutSeconds());
-    }
+            .codeInterpreterIdentifier(ciId)
+            .name(SESSION_NAME_PREFIX + elementInstanceKey)
+            .sessionTimeoutSeconds((int) timeout.getSeconds());
+
     var sessionId = syncClient.startCodeInterpreterSession(builder.build()).sessionId();
-    return new CodeInterpreterSession(sessionId);
+    return new CodeInterpreterSession(sessionId, ciId);
   }
 
   // --- Code execution ---
 
   private CodeInterpreterResponse invokeCode(
       CodeInterpreterSession session, CodeInterpreterInput input) {
-    var existingFiles = listGeneratedFiles(session.id());
+    var existingFiles = listGeneratedFiles(session);
+    var language = input.getLanguage() != null ? input.getLanguage() : DEFAULT_LANGUAGE;
 
     var execResult =
         invokeTool(
-            session.id(),
+            session,
             ToolName.EXECUTE_CODE,
-            ToolArguments.builder().language("python").code(input.getCode()).build());
+            ToolArguments.builder().language(language).code(input.getCode()).build());
 
     var stdoutBuilder = new StringBuilder();
     var stderrBuilder = new StringBuilder();
@@ -127,10 +134,15 @@ public class CodeInterpreterExecutor {
       }
     }
 
-    int maxFiles = input.getMaxFiles() != null ? input.getMaxFiles() : DEFAULT_MAX_FILES;
-    long maxBytes =
-        input.getMaxTotalBytes() != null ? input.getMaxTotalBytes() : DEFAULT_MAX_TOTAL_BYTES;
-    var files = retrieveNewFiles(session.id(), existingFiles, maxFiles, maxBytes);
+    int maxFiles =
+        Math.max(1, input.getMaxFiles() != null ? input.getMaxFiles() : DEFAULT_MAX_FILES);
+    long maxFileSize =
+        Math.max(
+            0,
+            input.getMaxTotalFileSize() != null
+                ? input.getMaxTotalFileSize()
+                : DEFAULT_MAX_TOTAL_FILE_SIZE);
+    var files = retrieveNewFiles(session, existingFiles, maxFiles, maxFileSize);
 
     return new CodeInterpreterResponse(
         stdoutBuilder.toString(), stderrBuilder.toString(), exitCode, executionTime, files);
@@ -139,13 +151,13 @@ public class CodeInterpreterExecutor {
   // --- File retrieval ---
 
   private List<Document> retrieveNewFiles(
-      String sessionId, List<String> existingFiles, int maxFiles, long maxBytes) {
-    var newFiles = filterNewFiles(listGeneratedFiles(sessionId), existingFiles, maxFiles);
+      CodeInterpreterSession session, List<String> existingFiles, int maxFiles, long maxFileSize) {
+    var newFiles = filterNewFiles(listGeneratedFiles(session), existingFiles, maxFiles);
     if (newFiles.isEmpty()) {
       return List.of();
     }
     LOG.debug("New files generated: {}", newFiles);
-    return readFilesWithSizeLimit(sessionId, newFiles, maxBytes);
+    return readFilesWithSizeLimit(session, newFiles, maxFileSize);
   }
 
   private List<String> filterNewFiles(
@@ -161,16 +173,20 @@ public class CodeInterpreterExecutor {
   }
 
   private List<Document> readFilesWithSizeLimit(
-      String sessionId, List<String> files, long maxBytes) {
+      CodeInterpreterSession session, List<String> files, long maxFileSize) {
     var documents = new ArrayList<Document>();
     long totalBytes = 0;
     for (var file : files) {
       try {
-        var blocks = readFileBlocks(sessionId, List.of(file));
+        var blocks = readFileBlocks(session, file);
         for (var doc : convertToDocuments(blocks, file)) {
-          totalBytes += doc.metadata().getSize();
-          if (totalBytes > maxBytes) {
-            LOG.warn("Total file size exceeds {} bytes, stopping retrieval", maxBytes);
+          var size =
+              doc.metadata() != null && doc.metadata().getSize() != null
+                  ? doc.metadata().getSize()
+                  : 0L;
+          totalBytes += size;
+          if (totalBytes > maxFileSize) {
+            LOG.warn("Total file size exceeds {} bytes, stopping retrieval", maxFileSize);
             return documents;
           }
           documents.add(doc);
@@ -182,13 +198,10 @@ public class CodeInterpreterExecutor {
     return documents;
   }
 
-  /**
-   * Lists files in the sandbox working directory. Uses block.name() or block.text() as filename.
-   */
-  private List<String> listGeneratedFiles(String sessionId) {
+  /** Lists files in the sandbox working directory. */
+  private List<String> listGeneratedFiles(CodeInterpreterSession session) {
     var listResult =
-        invokeTool(
-            sessionId, ToolName.LIST_FILES, ToolArguments.builder().directoryPath("").build());
+        invokeTool(session, ToolName.LIST_FILES, ToolArguments.builder().directoryPath("").build());
 
     return listResult.stream()
         .filter(CodeInterpreterResult::hasContent)
@@ -198,9 +211,10 @@ public class CodeInterpreterExecutor {
         .toList();
   }
 
-  private List<ContentBlock> readFileBlocks(String sessionId, List<String> paths) {
+  private List<ContentBlock> readFileBlocks(CodeInterpreterSession session, String path) {
     var readResult =
-        invokeTool(sessionId, ToolName.READ_FILES, ToolArguments.builder().paths(paths).build());
+        invokeTool(
+            session, ToolName.READ_FILES, ToolArguments.builder().paths(List.of(path)).build());
 
     return readResult.stream()
         .filter(CodeInterpreterResult::hasContent)
@@ -228,11 +242,11 @@ public class CodeInterpreterExecutor {
   // --- Tool invocation ---
 
   private List<CodeInterpreterResult> invokeTool(
-      String sessionId, ToolName toolName, ToolArguments arguments) {
+      CodeInterpreterSession session, ToolName toolName, ToolArguments arguments) {
     var request =
         InvokeCodeInterpreterRequest.builder()
-            .codeInterpreterIdentifier(CODE_INTERPRETER_ID)
-            .sessionId(sessionId)
+            .codeInterpreterIdentifier(session.codeInterpreterIdentifier())
+            .sessionId(session.id())
             .name(toolName)
             .arguments(arguments)
             .build();
@@ -276,6 +290,14 @@ public class CodeInterpreterExecutor {
     return results;
   }
 
+  // --- Helpers ---
+
+  private String resolveCodeInterpreterIdentifier(CodeInterpreterInput input) {
+    return input.getCodeInterpreterIdentifier() != null
+        ? input.getCodeInterpreterIdentifier()
+        : DEFAULT_CODE_INTERPRETER_ID;
+  }
+
   // --- Content block extraction helpers ---
 
   /**
@@ -292,7 +314,7 @@ public class CodeInterpreterExecutor {
     return null;
   }
 
-  /** Extracts binary data from a content block, checking data, resource.blob, and resource.text. */
+  /** Extracts binary data from a content block. */
   private byte[] extractData(ContentBlock block) {
     if (block.data() != null) {
       return block.data().asByteArray();
@@ -308,7 +330,7 @@ public class CodeInterpreterExecutor {
     return null;
   }
 
-  /** Extracts the MIME type from a content block, with fallbacks for different block structures. */
+  /** Extracts the MIME type from a content block. */
   private String extractMimeType(ContentBlock block) {
     if (block.mimeType() != null) {
       return block.mimeType();
@@ -327,13 +349,19 @@ public class CodeInterpreterExecutor {
   /** AutoCloseable wrapper for Code Interpreter sessions. */
   private class CodeInterpreterSession implements AutoCloseable {
     private final String sessionId;
+    private final String ciIdentifier;
 
-    CodeInterpreterSession(String sessionId) {
+    CodeInterpreterSession(String sessionId, String ciIdentifier) {
       this.sessionId = sessionId;
+      this.ciIdentifier = ciIdentifier;
     }
 
     String id() {
       return sessionId;
+    }
+
+    String codeInterpreterIdentifier() {
+      return ciIdentifier;
     }
 
     @Override
@@ -341,7 +369,7 @@ public class CodeInterpreterExecutor {
       try {
         syncClient.stopCodeInterpreterSession(
             StopCodeInterpreterSessionRequest.builder()
-                .codeInterpreterIdentifier(CODE_INTERPRETER_ID)
+                .codeInterpreterIdentifier(ciIdentifier)
                 .sessionId(sessionId)
                 .build());
       } catch (Exception e) {
