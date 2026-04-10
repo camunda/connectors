@@ -116,12 +116,11 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then
-    assertThat(messages).hasSize(1);
-    assertThat(messages.get(0)).isInstanceOf(UserMessage.class);
-    UserMessage reconstructed = (UserMessage) messages.get(0);
+    assertThat(message).isInstanceOf(UserMessage.class);
+    UserMessage reconstructed = (UserMessage) message;
     assertThat(reconstructed.content()).hasSize(1);
     assertThat(reconstructed.content().get(0)).isInstanceOf(TextContent.class);
     assertThat(((TextContent) reconstructed.content().get(0)).text()).isEqualTo("Hello world");
@@ -136,11 +135,10 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then
-    assertThat(messages).hasSize(1);
-    UserMessage reconstructed = (UserMessage) messages.get(0);
+    UserMessage reconstructed = (UserMessage) message;
     assertThat(reconstructed.name()).isEqualTo("Alice");
     assertThat(reconstructed.metadata()).isNullOrEmpty();
     assertThat(((TextContent) reconstructed.content().get(0)).text()).isEqualTo("Hello world");
@@ -164,11 +162,10 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then
-    assertThat(messages).hasSize(1);
-    UserMessage reconstructed = (UserMessage) messages.get(0);
+    UserMessage reconstructed = (UserMessage) message;
     assertThat(reconstructed.content()).hasSize(2);
     assertThat(reconstructed.content().get(0)).isInstanceOf(TextContent.class);
     assertThat(reconstructed.content().get(1)).isInstanceOf(DocumentContent.class);
@@ -194,12 +191,11 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then - message must not be dropped; role recovered from metadata properties
-    assertThat(messages).hasSize(1);
-    assertThat(messages.get(0)).isInstanceOf(UserMessage.class);
-    UserMessage reconstructed = (UserMessage) messages.get(0);
+    assertThat(message).isInstanceOf(UserMessage.class);
+    UserMessage reconstructed = (UserMessage) message;
     assertThat(reconstructed.content()).hasSize(1);
     assertThat(reconstructed.content().get(0)).isInstanceOf(DocumentContent.class);
   }
@@ -286,11 +282,10 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then
-    assertThat(messages).hasSize(1);
-    AssistantMessage reconstructed = (AssistantMessage) messages.get(0);
+    AssistantMessage reconstructed = (AssistantMessage) message;
     assertThat(reconstructed.content()).hasSize(1);
     assertThat(((TextContent) reconstructed.content().get(0)).text()).isEqualTo("Let me search");
     assertThat(reconstructed.toolCalls()).hasSize(1);
@@ -312,11 +307,10 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then
-    assertThat(messages).hasSize(1);
-    AssistantMessage reconstructed = (AssistantMessage) messages.get(0);
+    AssistantMessage reconstructed = (AssistantMessage) message;
     assertThat(reconstructed.content()).hasSize(2);
     assertThat(reconstructed.content().get(0)).isInstanceOf(TextContent.class);
     assertThat(reconstructed.content().get(1)).isInstanceOf(ObjectContent.class);
@@ -397,11 +391,10 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then - message must not be silently dropped
-    assertThat(messages).hasSize(1);
-    ToolCallResultMessage reconstructed = (ToolCallResultMessage) messages.get(0);
+    ToolCallResultMessage reconstructed = (ToolCallResultMessage) message;
     assertThat(reconstructed.results()).hasSize(1);
     assertThat(reconstructed.results().get(0).id()).isEqualTo("call-1");
     assertThat(reconstructed.results().get(0).name()).isEqualTo("search");
@@ -425,11 +418,10 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then
-    assertThat(messages).hasSize(1);
-    ToolCallResultMessage reconstructed = (ToolCallResultMessage) messages.get(0);
+    ToolCallResultMessage reconstructed = (ToolCallResultMessage) message;
     assertThat(reconstructed.results()).hasSize(1);
     assertThat(reconstructed.results().get(0).id()).isEqualTo("call-1");
     assertThat(reconstructed.results().get(0).name()).isEqualTo("search");
@@ -457,10 +449,8 @@ class AwsAgentCoreConversationMapperTest {
             .build();
 
     // when — no metadata blob means role can't be resolved, so event is skipped
-    List<Message> messages = conversationMapper.fromEvent(event);
-
     // then
-    assertThat(messages).isEmpty();
+    assertThat(conversationMapper.fromEvent(event)).isEmpty();
   }
 
   // ==================== SystemMessage Tests ====================
@@ -497,10 +487,8 @@ class AwsAgentCoreConversationMapperTest {
     Event event = Event.builder().build();
 
     // when
-    List<Message> messages = conversationMapper.fromEvent(event);
-
     // then
-    assertThat(messages).isEmpty();
+    assertThat(conversationMapper.fromEvent(event)).isEmpty();
   }
 
   // ==================== Content Type Tests ====================
@@ -538,10 +526,10 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then
-    UserMessage reconstructed = (UserMessage) messages.get(0);
+    UserMessage reconstructed = (UserMessage) message;
     assertThat(reconstructed.content()).hasSize(2);
     assertThat(reconstructed.content().get(0)).isInstanceOf(TextContent.class);
     assertThat(reconstructed.content().get(1)).isInstanceOf(ObjectContent.class);
@@ -561,11 +549,10 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then
-    assertThat(messages).hasSize(1);
-    UserMessage reconstructed = (UserMessage) messages.get(0);
+    UserMessage reconstructed = (UserMessage) message;
     assertThat(reconstructed.metadata())
         .isEqualTo(
             Map.of("userId", "user123", "sessionId", "session456", "timestamp", "2024-01-15"));
@@ -585,11 +572,10 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then
-    assertThat(messages).hasSize(1);
-    AssistantMessage reconstructed = (AssistantMessage) messages.get(0);
+    AssistantMessage reconstructed = (AssistantMessage) message;
     assertThat(reconstructed.metadata())
         .isEqualTo(Map.of("modelName", "gpt-4", "temperature", "0.7"));
   }
@@ -608,11 +594,10 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then
-    assertThat(messages).hasSize(1);
-    ToolCallResultMessage reconstructed = (ToolCallResultMessage) messages.get(0);
+    ToolCallResultMessage reconstructed = (ToolCallResultMessage) message;
     assertThat(reconstructed.metadata())
         .isEqualTo(Map.of("toolName", "search", "executionTime", "150ms"));
   }
@@ -626,11 +611,10 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then
-    assertThat(messages).hasSize(1);
-    UserMessage reconstructed = (UserMessage) messages.get(0);
+    UserMessage reconstructed = (UserMessage) message;
     assertThat(reconstructed.metadata()).isEmpty();
   }
 
@@ -652,11 +636,10 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then — order must be preserved
-    assertThat(messages).hasSize(1);
-    UserMessage reconstructed = (UserMessage) messages.get(0);
+    UserMessage reconstructed = (UserMessage) message;
     assertThat(reconstructed.content()).hasSize(3);
     assertThat(reconstructed.content().get(0)).isInstanceOf(TextContent.class);
     assertThat(((TextContent) reconstructed.content().get(0)).text()).isEqualTo("First");
@@ -677,11 +660,10 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then
-    assertThat(messages).hasSize(1);
-    UserMessage reconstructed = (UserMessage) messages.get(0);
+    UserMessage reconstructed = (UserMessage) message;
     assertThat(reconstructed.content()).hasSize(2);
     assertThat(reconstructed.content().get(0)).isInstanceOf(DocumentContent.class);
     assertThat(reconstructed.content().get(1)).isInstanceOf(TextContent.class);
@@ -711,11 +693,10 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then — content order preserved, toolCalls separate
-    assertThat(messages).hasSize(1);
-    AssistantMessage reconstructed = (AssistantMessage) messages.get(0);
+    AssistantMessage reconstructed = (AssistantMessage) message;
     assertThat(reconstructed.content()).hasSize(3);
     assertThat(reconstructed.content().get(0)).isInstanceOf(TextContent.class);
     assertThat(((TextContent) reconstructed.content().get(0)).text()).isEqualTo("Before");
@@ -761,11 +742,10 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then — content order preserved, metadata round-trips
-    assertThat(messages).hasSize(1);
-    UserMessage reconstructed = (UserMessage) messages.get(0);
+    UserMessage reconstructed = (UserMessage) message;
     assertThat(reconstructed.content()).hasSize(2);
     assertThat(reconstructed.content().get(0)).isInstanceOf(TextContent.class);
     assertThat(reconstructed.content().get(1)).isInstanceOf(DocumentContent.class);
@@ -789,11 +769,10 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then
-    assertThat(messages).hasSize(1);
-    AssistantMessage reconstructed = (AssistantMessage) messages.get(0);
+    AssistantMessage reconstructed = (AssistantMessage) message;
     assertThat(reconstructed.content()).isEmpty();
     assertThat(reconstructed.toolCalls()).hasSize(1);
     assertThat(reconstructed.toolCalls().get(0).name()).isEqualTo("getWeather");
@@ -808,11 +787,10 @@ class AwsAgentCoreConversationMapperTest {
     // when
     List<PayloadType> payloads = conversationMapper.toPayloads(original);
     Event event = Event.builder().payload(payloads).build();
-    List<Message> messages = conversationMapper.fromEvent(event);
+    Message message = conversationMapper.fromEvent(event).orElseThrow();
 
     // then
-    assertThat(messages).hasSize(1);
-    UserMessage reconstructed = (UserMessage) messages.get(0);
+    UserMessage reconstructed = (UserMessage) message;
     assertThat(reconstructed.content()).hasSize(1);
     assertThat(((TextContent) reconstructed.content().get(0)).text()).isEqualTo("Simple message");
   }
