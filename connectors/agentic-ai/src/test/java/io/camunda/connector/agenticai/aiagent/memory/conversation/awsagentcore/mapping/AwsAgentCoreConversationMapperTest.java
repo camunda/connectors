@@ -435,8 +435,7 @@ class AwsAgentCoreConversationMapperTest {
     assertThat(reconstructed.results().get(0).name()).isEqualTo("search");
     assertThat(reconstructed.results().get(0).content()).isEqualTo("Found 3 items");
     assertThat(reconstructed.results().get(0).properties())
-        .containsEntry("interrupted", true)
-        .containsEntry("custom", "value");
+        .isEqualTo(Map.of("interrupted", true, "custom", "value"));
   }
 
   @Test
@@ -568,10 +567,8 @@ class AwsAgentCoreConversationMapperTest {
     assertThat(messages).hasSize(1);
     UserMessage reconstructed = (UserMessage) messages.get(0);
     assertThat(reconstructed.metadata())
-        .hasSize(3)
-        .containsEntry("userId", "user123")
-        .containsEntry("sessionId", "session456")
-        .containsEntry("timestamp", "2024-01-15");
+        .isEqualTo(
+            Map.of("userId", "user123", "sessionId", "session456", "timestamp", "2024-01-15"));
   }
 
   @Test
@@ -594,9 +591,7 @@ class AwsAgentCoreConversationMapperTest {
     assertThat(messages).hasSize(1);
     AssistantMessage reconstructed = (AssistantMessage) messages.get(0);
     assertThat(reconstructed.metadata())
-        .hasSize(2)
-        .containsEntry("modelName", "gpt-4")
-        .containsEntry("temperature", "0.7");
+        .isEqualTo(Map.of("modelName", "gpt-4", "temperature", "0.7"));
   }
 
   @Test
@@ -619,9 +614,7 @@ class AwsAgentCoreConversationMapperTest {
     assertThat(messages).hasSize(1);
     ToolCallResultMessage reconstructed = (ToolCallResultMessage) messages.get(0);
     assertThat(reconstructed.metadata())
-        .hasSize(2)
-        .containsEntry("toolName", "search")
-        .containsEntry("executionTime", "150ms");
+        .isEqualTo(Map.of("toolName", "search", "executionTime", "150ms"));
   }
 
   @Test
@@ -776,7 +769,7 @@ class AwsAgentCoreConversationMapperTest {
     assertThat(reconstructed.content()).hasSize(2);
     assertThat(reconstructed.content().get(0)).isInstanceOf(TextContent.class);
     assertThat(reconstructed.content().get(1)).isInstanceOf(DocumentContent.class);
-    assertThat(reconstructed.metadata()).containsEntry("key", "value");
+    assertThat(reconstructed.metadata()).isEqualTo(Map.of("key", "value"));
   }
 
   @Test

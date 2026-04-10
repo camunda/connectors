@@ -38,6 +38,7 @@ import io.camunda.connector.agenticai.util.TestObjectMapperSupplier;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import org.json.JSONException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,6 +46,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.skyscreamer.jsonassert.JSONAssert;
 import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
@@ -405,7 +407,7 @@ class AwsAgentCoreConversationStoreTest {
   }
 
   @Test
-  void storesAssistantMessageWithToolCalls() {
+  void storesAssistantMessageWithToolCalls() throws JSONException {
     final var agentContext =
         AgentContext.builder()
             .conversation(
@@ -463,16 +465,19 @@ class AwsAgentCoreConversationStoreTest {
 
     final var blob = assistantEventPayloads.get(1).blob();
     assertThat(blob).isNotNull();
-    final var blobJson = blob.asString();
-    // New format: blob envelope with blobType discriminator
-    assertThat(blobJson).contains("\"blobType\":\"camunda.toolCalls\"");
-    assertThat(blobJson).contains("\"version\":1");
-    assertThat(blobJson).contains("\"toolCalls\"");
-    assertThat(blobJson).contains("\"id\":\"call_123\"");
-    assertThat(blobJson).contains("\"name\":\"getWeather\"");
-    assertThat(blobJson).contains("\"location\":\"Seattle\"");
-    assertThat(blobJson).contains("\"id\":\"call_456\"");
-    assertThat(blobJson).contains("\"name\":\"getTime\"");
+    JSONAssert.assertEquals(
+        """
+        {
+          "blobType": "camunda.toolCalls",
+          "version": 1,
+          "toolCalls": [
+            { "id": "call_123", "name": "getWeather", "arguments": { "location": "Seattle" } },
+            { "id": "call_456", "name": "getTime", "arguments": {} }
+          ]
+        }
+        """,
+        blob.asString(),
+        true);
   }
 
   @Test
