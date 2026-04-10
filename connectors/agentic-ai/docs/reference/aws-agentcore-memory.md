@@ -201,7 +201,7 @@ AgentCore Memory doesn't support the SYSTEM role. System messages are:
 |---|---|---|
 | `memoryId` | Yes | ID of the pre-provisioned AgentCore Memory resource |
 | `actorId` | Yes | Identifier of the actor (supports FEEL expressions) |
-| `region` | No | AWS region (falls back to default provider chain) |
+| `region` | Yes | AWS region (example: `us-east-1`) |
 | `endpoint` | No | Custom endpoint for VPC/PrivateLink, GovCloud, or non-standard deployments |
 | `authentication` | Yes | `credentials` (access key + secret key) or `defaultCredentialsChain` |
 
@@ -217,12 +217,7 @@ AgentCore Memory doesn't support the SYSTEM role. System messages are:
 { "type": "defaultCredentialsChain" }
 ```
 
-The default credentials chain looks for credentials in this order:
-1. Environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
-2. System properties
-3. Default credential profiles file (`~/.aws/credentials`)
-4. Amazon ECS container credentials
-5. EC2 instance profile credentials
+Uses the AWS SDK default credentials provider chain, which resolves credentials from multiple sources (environment variables, system properties, credential profiles, container credentials, instance profiles). Not available on SaaS.
 
 ### AWS Permissions Required
 

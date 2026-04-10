@@ -119,6 +119,7 @@ public class L4JAiAgentJobWorkerMemoryStorageTests extends BaseL4JAiAgentJobWork
         elementTemplate ->
             elementTemplate
                 .property("data.memory.storage.type", "aws-agentcore")
+                .property("data.memory.storage.region", "us-east-1")
                 .property("data.memory.storage.authentication.type", "credentials")
                 .property("data.memory.storage.authentication.accessKey", "test-access-key")
                 .property("data.memory.storage.authentication.secretKey", "test-secret-key")

@@ -85,7 +85,8 @@ class AwsAgentCoreConversationStoreTest {
         new AwsAgentCoreMemoryStorageConfiguration.AwsAgentCoreAuthentication
             .AwsStaticCredentialsAuthentication("test-access-key", "test-secret-key");
     config =
-        new AwsAgentCoreMemoryStorageConfiguration(null, null, authentication, MEMORY_ID, ACTOR_ID);
+        new AwsAgentCoreMemoryStorageConfiguration(
+            "us-east-1", null, authentication, MEMORY_ID, ACTOR_ID);
     lenient().when(executionContext.memory()).thenReturn(new MemoryConfiguration(config, 20));
     lenient().when(clientFactory.createClient(config)).thenReturn(bedrockClient);
 
@@ -831,7 +832,7 @@ class AwsAgentCoreConversationStoreTest {
     // Change memoryId in config for turn 2
     var changedConfig =
         new AwsAgentCoreMemoryStorageConfiguration(
-            null, null, config.authentication(), "different-memory-id", ACTOR_ID);
+            "us-east-1", null, config.authentication(), "different-memory-id", ACTOR_ID);
     when(executionContext.memory()).thenReturn(new MemoryConfiguration(changedConfig, 20));
     when(clientFactory.createClient(changedConfig)).thenReturn(bedrockClient);
 
@@ -868,7 +869,7 @@ class AwsAgentCoreConversationStoreTest {
     // Change actorId in config for turn 2
     var changedConfig =
         new AwsAgentCoreMemoryStorageConfiguration(
-            null, null, config.authentication(), MEMORY_ID, "different-actor-id");
+            "us-east-1", null, config.authentication(), MEMORY_ID, "different-actor-id");
     when(executionContext.memory()).thenReturn(new MemoryConfiguration(changedConfig, 20));
     when(clientFactory.createClient(changedConfig)).thenReturn(bedrockClient);
 
