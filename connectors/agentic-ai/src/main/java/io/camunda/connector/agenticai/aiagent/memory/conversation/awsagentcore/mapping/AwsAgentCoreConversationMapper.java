@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import software.amazon.awssdk.core.document.Document;
 import software.amazon.awssdk.services.bedrockagentcore.model.Conversational;
@@ -105,28 +106,29 @@ public class AwsAgentCoreConversationMapper {
   }
 
   /**
-   * Extract Messages from an AWS AgentCore Event.
+   * Extract a Message from an AWS AgentCore Event.
    *
-   * <p>Typically one Event maps to one Message, but this returns a list for flexibility.
+   * <p>Each event maps to at most one message. Returns empty if the event has no payloads or no
+   * role metadata.
    *
-   * @param event the event to extract messages from
-   * @return list of extracted messages (may be empty if event has no payloads)
+   * @param event the event to extract the message from
+   * @return the extracted message, or empty
    * @throws AgentCoreMapperException if deserialization fails
    */
-  public List<Message> fromEvent(Event event) {
+  public Optional<Message> fromEvent(Event event) {
     List<PayloadType> payloads = event.payload();
     if (payloads == null || payloads.isEmpty()) {
-      return List.of();
+      return Optional.empty();
     }
 
     // metadata is stored as a blob envelope, not in AWS event metadata
     Map<String, Object> metadata = Map.of();
 
     try {
-      return extractMessagesFromPayloads(payloads, metadata);
+      return extractMessageFromPayloads(payloads, metadata);
     } catch (IOException e) {
       throw new AgentCoreMapperException(
-          "Failed to extract messages from event: " + e.getMessage(), e);
+          "Failed to extract message from event: " + e.getMessage(), e);
     }
   }
 
@@ -197,7 +199,7 @@ public class AwsAgentCoreConversationMapper {
    * <p>Special blob types (metadata, toolCalls, toolCallResults) are extracted separately. Content
    * payloads (conversational text and messageContent blobs) are collected in their original order.
    */
-  private List<Message> extractMessagesFromPayloads(
+  private Optional<Message> extractMessageFromPayloads(
       List<PayloadType> payloads, Map<String, Object> metadata) throws IOException {
     List<Content> content = new ArrayList<>();
     List<ToolCall> toolCalls = List.of();
@@ -238,7 +240,7 @@ public class AwsAgentCoreConversationMapper {
     // role is always resolved from the metadata properties blob (canonical source)
     Role messageRole = resolveRoleFromProperties(properties);
     if (messageRole == null) {
-      return List.of();
+      return Optional.empty();
     }
 
     return switch (messageRole) {
@@ -247,10 +249,10 @@ public class AwsAgentCoreConversationMapper {
         if (properties != null && properties.get(PROPERTY_USER_NAME) instanceof String name) {
           builder.name(name);
         }
-        yield List.of(builder.build());
+        yield Optional.of(builder.build());
       }
       case ASSISTANT ->
-          List.of(
+          Optional.of(
               AssistantMessage.builder()
                   .content(content)
                   .toolCalls(toolCalls)
@@ -261,7 +263,7 @@ public class AwsAgentCoreConversationMapper {
           throw new AgentCoreMapperException(
               "TOOL event is missing required 'camunda.toolCallResults' blob envelope", null);
         }
-        yield List.of(
+        yield Optional.of(
             ToolCallResultMessage.builder().results(toolCallResults).metadata(metadata).build());
       }
       case OTHER, UNKNOWN_TO_SDK_VERSION ->

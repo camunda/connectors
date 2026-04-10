@@ -217,15 +217,18 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
       final List<Event> allEvents = new ArrayList<>();
       client.listEventsPaginator(request).events().forEach(allEvents::add);
 
-      return allEvents.stream()
-          .sorted(
-              Comparator.comparing(
-                      Event::eventTimestamp, Comparator.nullsLast(Comparator.naturalOrder()))
-                  .thenComparing(
-                      AwsAgentCoreConversationSession::extractSeq,
-                      Comparator.nullsLast(Comparator.naturalOrder())))
-          .flatMap(event -> conversationMapper.fromEvent(event).stream())
-          .toList();
+      allEvents.sort(
+          Comparator.comparing(
+                  Event::eventTimestamp, Comparator.nullsLast(Comparator.naturalOrder()))
+              .thenComparing(
+                  AwsAgentCoreConversationSession::extractSeq,
+                  Comparator.nullsLast(Comparator.naturalOrder())));
+
+      final List<Message> messages = new ArrayList<>();
+      for (Event event : allEvents) {
+        conversationMapper.fromEvent(event).ifPresent(messages::add);
+      }
+      return messages;
     } catch (BedrockAgentCoreException e) {
       // fail fast: this is a runtime configuration/permission/service issue and continuing silently
       // can cause duplicated history or incorrect agent behavior.
