@@ -1429,7 +1429,7 @@
   }, {
     "id" : "data.memory.storage.authentication.accessKey",
     "label" : "Access key",
-    "description" : "Provide an IAM access key with permissions for bedrock-agentcore:CreateEvent and bedrock-agentcore:ListEvents",
+    "description" : "Provide an IAM access key with permissions for <code>bedrock-agentcore:CreateEvent</code> and <code>bedrock-agentcore:ListEvents</code>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
