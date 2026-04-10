@@ -35,9 +35,7 @@ class ToolCallResultTest {
     assertThat(deserialized.id()).isEqualTo("call-1");
     assertThat(deserialized.name()).isEqualTo("search");
     assertThat(deserialized.content()).isEqualTo("Found 3 items");
-    assertThat(deserialized.properties())
-        .containsEntry("interrupted", true)
-        .containsEntry("custom", "value");
+    assertThat(deserialized.properties()).isEqualTo(Map.of("interrupted", true, "custom", "value"));
   }
 
   @Test
@@ -70,6 +68,7 @@ class ToolCallResultTest {
     assertThat(deserialized.id()).isEqualTo("call-1");
     assertThat(deserialized.name()).isEqualTo("search");
     assertThat(deserialized.content()).isEqualTo(ToolCallResult.CONTENT_CANCELLED);
-    assertThat(deserialized.properties()).containsEntry(ToolCallResult.PROPERTY_INTERRUPTED, true);
+    assertThat(deserialized.properties())
+        .isEqualTo(Map.of(ToolCallResult.PROPERTY_INTERRUPTED, true));
   }
 }

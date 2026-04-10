@@ -123,8 +123,7 @@ class BlobEnvelopeTest {
     assertThat(result.get(0).name()).isEqualTo("search");
     assertThat(result.get(0).content()).isEqualTo("Found 3 items");
     assertThat(result.get(0).properties())
-        .containsEntry("interrupted", true)
-        .containsEntry("custom", "value");
+        .isEqualTo(Map.of("interrupted", true, "custom", "value"));
   }
 
   @Test
@@ -174,8 +173,7 @@ class BlobEnvelopeTest {
     ObjectContent objContent = (ObjectContent) result;
     @SuppressWarnings("unchecked")
     Map<String, Object> contentMap = (Map<String, Object>) objContent.content();
-    assertThat(contentMap).containsEntry("key", "value");
-    assertThat(contentMap).containsEntry("count", 42);
+    assertThat(contentMap).isEqualTo(Map.of("key", "value", "count", 42));
   }
 
   @Test
@@ -275,8 +273,7 @@ class BlobEnvelopeTest {
     Map<String, Object> result = parsed.parseData(Map.class, objectMapper);
 
     // then
-    assertThat(result).containsEntry("key", "value");
-    assertThat(result).containsEntry("count", 42);
+    assertThat(result).isEqualTo(Map.of("key", "value", "count", 42));
   }
 
   @Test
