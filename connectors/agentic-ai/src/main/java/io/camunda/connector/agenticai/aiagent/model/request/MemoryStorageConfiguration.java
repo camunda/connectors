@@ -166,7 +166,7 @@ public sealed interface MemoryStorageConfiguration
                 group = "memory",
                 label = "Access key",
                 description =
-                    "Provide an IAM access key with permissions for bedrock-agentcore:CreateEvent and bedrock-agentcore:ListEvents")
+                    "Provide an IAM access key with permissions for <code>bedrock-agentcore:CreateEvent</code> and <code>bedrock-agentcore:ListEvents</code>")
             @NotBlank
             String accessKey,
         @TemplateProperty(
