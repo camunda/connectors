@@ -176,10 +176,7 @@ AgentCore Memory doesn't support the SYSTEM role. System messages are:
 - Message role/type, text content, non-text Content objects
 - Content ordering within a message (interleaving of text and non-text preserved)
 - Message metadata (stored as blob envelope, exact round-trip including complex types)
-- Assistant toolCalls (via blob), ToolCallResult structure (via blob)
-
-**Lossy:**
-- `ToolCallResult.properties` map — round-trip depends on `@JsonAnySetter`/`@JsonAnyGetter` through nested JSON
+- Assistant toolCalls (via blob), ToolCallResult structure including properties (via blob)
 
 ## Configuration
 
