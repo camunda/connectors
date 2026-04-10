@@ -1,0 +1,16 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+camunda:
+  process-test:
+    connectors-enabled: true
+    connectors-docker-image-name: ${CONNECTORS_IMAGE_NAME:registry.camunda.cloud/team-connectors/connectors-bundle}
+    connectors-docker-image-version: ${CONNECTORS_IMAGE_VERSION:SNAPSHOT}
+    connectors-secrets:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    judge:
+      chat-model:
+        provider: openai
+        api-key: ${OPENAI_API_KEY}
+        model: gpt-4o
+      threshold: 0.7
