@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -274,14 +275,14 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
         continue;
       }
 
-      // eventTimestamp is omitted — the server assigns it. Since events within a turn may
-      // receive identical timestamps, we attach a turn-local sequence number as metadata to
-      // ensure deterministic ordering on load.
+      // events within a turn might share the same timestamp, so we attach a turn-local
+      // sequence number as metadata to ensure deterministic ordering on load.
       final var requestBuilder =
           CreateEventRequest.builder()
               .memoryId(config.memoryId())
               .actorId(config.actorId())
               .sessionId(sessionId)
+              .eventTimestamp(Instant.now())
               .payload(payloads)
               .clientToken((branchName != null ? branchName : MAIN_TIMELINE) + ":" + offset)
               .metadata(
