@@ -198,16 +198,16 @@ public class AgenticAiConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public AwsAgentCoreConversationMapper aiAgentAwsAgentCoreConversationMapper(
-      @ConnectorsObjectMapper ObjectMapper mapper) {
-    return new AwsAgentCoreConversationMapper(mapper);
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new AwsAgentCoreConversationMapper(objectMapper);
   }
 
   @Bean
   @ConditionalOnMissingBean
   public AwsAgentCoreConversationStore aiAgentAwsAgentCoreConversationStore(
-      AwsAgentCoreConversationMapper mapper, ChatModelHttpProxySupport proxySupport) {
+      AwsAgentCoreConversationMapper conversationMapper, ChatModelHttpProxySupport proxySupport) {
     return new AwsAgentCoreConversationStore(
-        new DefaultBedrockAgentCoreClientFactory(proxySupport), mapper);
+        new DefaultBedrockAgentCoreClientFactory(proxySupport), conversationMapper);
   }
 
   @Bean

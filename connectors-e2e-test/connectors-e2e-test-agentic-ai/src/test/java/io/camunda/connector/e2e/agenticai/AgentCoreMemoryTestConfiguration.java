@@ -28,8 +28,8 @@ public class AgentCoreMemoryTestConfiguration {
   @Bean
   @Primary
   public AwsAgentCoreConversationStore aiAgentAwsAgentCoreConversationStore(
-      AwsAgentCoreConversationMapper mapper) {
+      AwsAgentCoreConversationMapper conversationMapper) {
     return new AwsAgentCoreConversationStore(
-        InMemoryBedrockAgentCoreClientFactory.INSTANCE, mapper);
+        InMemoryBedrockAgentCoreClientFactory.INSTANCE, conversationMapper);
   }
 }

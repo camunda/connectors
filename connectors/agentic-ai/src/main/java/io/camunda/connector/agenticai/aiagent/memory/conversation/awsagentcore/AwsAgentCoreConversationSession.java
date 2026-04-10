@@ -53,7 +53,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
 
   private final AwsAgentCoreMemoryStorageConfiguration config;
   private final BedrockAgentCoreClient client;
-  private final AwsAgentCoreConversationMapper mapper;
+  private final AwsAgentCoreConversationMapper conversationMapper;
 
   private AwsAgentCoreConversationContext previousConversationContext;
   private String sessionId;
@@ -64,10 +64,10 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
   public AwsAgentCoreConversationSession(
       AwsAgentCoreMemoryStorageConfiguration config,
       BedrockAgentCoreClient client,
-      AwsAgentCoreConversationMapper mapper) {
+      AwsAgentCoreConversationMapper conversationMapper) {
     this.config = config;
     this.client = client;
-    this.mapper = mapper;
+    this.conversationMapper = conversationMapper;
   }
 
   @Override
@@ -223,7 +223,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
                   .thenComparing(
                       AwsAgentCoreConversationSession::extractSeq,
                       Comparator.nullsLast(Comparator.naturalOrder())))
-          .flatMap(event -> mapper.fromEvent(event).stream())
+          .flatMap(event -> conversationMapper.fromEvent(event).stream())
           .toList();
     } catch (BedrockAgentCoreException e) {
       // fail fast: this is a runtime configuration/permission/service issue and continuing silently
@@ -269,7 +269,7 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
 
     for (int offset = 0; offset < messages.size(); offset++) {
       final Message message = messages.get(offset);
-      final List<PayloadType> payloads = mapper.toPayloads(message);
+      final List<PayloadType> payloads = conversationMapper.toPayloads(message);
       if (payloads.isEmpty()) {
         continue;
       }
