@@ -97,7 +97,8 @@ public sealed interface MemoryStorageConfiguration
               label = "Region",
               description = "Specify the AWS region (example: <code>us-east-1</code>)",
               feel = FeelMode.optional,
-              optional = true)
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+          @NotBlank
           String region,
       @HttpUrl
           @FEEL

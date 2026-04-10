@@ -23,8 +23,8 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClientBu
  * Default implementation of {@link BedrockAgentCoreClientFactory} that creates AWS Bedrock
  * AgentCore clients based on the provided configuration.
  *
- * <p>Supports authentication via static credentials or default credentials chain, optional region,
- * endpoint override, and HTTP proxy configuration.
+ * <p>Supports authentication via static credentials or default credentials chain, endpoint
+ * override, and HTTP proxy configuration.
  */
 public class DefaultBedrockAgentCoreClientFactory implements BedrockAgentCoreClientFactory {
 
@@ -36,15 +36,10 @@ public class DefaultBedrockAgentCoreClientFactory implements BedrockAgentCoreCli
 
   @Override
   public BedrockAgentCoreClient createClient(AwsAgentCoreMemoryStorageConfiguration config) {
-    BedrockAgentCoreClientBuilder builder = BedrockAgentCoreClient.builder();
-
-    // apply authentication
-    builder.credentialsProvider(createCredentialsProvider(config.authentication()));
-
-    // apply region if specified
-    if (config.region() != null && !config.region().isBlank()) {
-      builder.region(Region.of(config.region()));
-    }
+    BedrockAgentCoreClientBuilder builder =
+        BedrockAgentCoreClient.builder()
+            .credentialsProvider(createCredentialsProvider(config.authentication()))
+            .region(Region.of(config.region()));
 
     // apply endpoint override if specified
     URI endpointOverride = null;

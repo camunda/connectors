@@ -1379,7 +1379,10 @@
     "id" : "data.memory.storage.region",
     "label" : "Region",
     "description" : "Specify the AWS region (example: <code>us-east-1</code>)",
-    "optional" : true,
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "memory",
     "binding" : {
