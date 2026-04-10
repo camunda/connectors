@@ -760,7 +760,7 @@
     "label" : "Model",
     "description" : "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
     "optional" : false,
-    "placeholder" : "claude-3-5-sonnet-20240620",
+    "placeholder" : "claude-sonnet-4-6",
     "constraints" : {
       "notEmpty" : true
     },
@@ -849,7 +849,7 @@
     "label" : "Model",
     "description" : "Specify an inference profile ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html\" target=\"_blank\">documentation</a>.",
     "optional" : false,
-    "placeholder" : "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+    "placeholder" : "global.anthropic.claude-sonnet-4-6",
     "constraints" : {
       "notEmpty" : true
     },

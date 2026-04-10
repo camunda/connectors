@@ -65,7 +65,7 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
               feel = FeelMode.optional,
               defaultValue = "",
               defaultValueType = TemplateProperty.DefaultValueType.String,
-              placeholder = "claude-3-5-sonnet-20240620",
+              placeholder = "claude-sonnet-4-6",
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String model,
       @Valid AnthropicModel.AnthropicModelParameters parameters) {
