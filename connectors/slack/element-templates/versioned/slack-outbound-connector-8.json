@@ -1,13 +1,13 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Hybrid Slack Outbound Connector",
-  "id" : "io.camunda.connectors.Slack.v1-hybrid",
+  "name" : "Slack Outbound Connector",
+  "id" : "io.camunda.connectors.Slack.v1",
   "description" : "Create a channel or send a message to a channel or user",
   "metadata" : {
     "keywords" : [ ]
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=outbound",
-  "version" : 9,
+  "version" : 8,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -20,9 +20,6 @@
     "camunda" : "^8.3"
   },
   "groups" : [ {
-    "id" : "taskDefinitionType",
-    "label" : "Task definition type"
-  }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
@@ -60,14 +57,12 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
-    "id" : "taskDefinitionType",
     "value" : "io.camunda:slack:1",
-    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "String"
+    "type" : "Hidden"
   }, {
     "id" : "token",
     "label" : "OAuth token",
@@ -544,7 +539,7 @@
     "id" : "version",
     "label" : "Version",
     "description" : "Version of the element template",
-    "value" : "9",
+    "value" : "8",
     "group" : "connector",
     "binding" : {
       "key" : "elementTemplateVersion",
@@ -576,7 +571,6 @@
     "id" : "resultExpression",
     "label" : "Result expression",
     "description" : "Expression to map the response into process variables",
-    "value" : "{\n  myResponse: response\n  // Use FEEL to extract values depending on message\n  // type, e.g.,: myMessage: response.message.text\n}",
     "feel" : "required",
     "group" : "output",
     "binding" : {
