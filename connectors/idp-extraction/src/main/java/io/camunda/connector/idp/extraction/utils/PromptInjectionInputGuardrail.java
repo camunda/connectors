@@ -61,6 +61,9 @@ public class PromptInjectionInputGuardrail implements InputGuardrail {
 
     for (Content content : userMessage.contents()) {
       if (content.type() == ContentType.TEXT) {
+        if (hasTextContent) {
+          combinedText.append('\n');
+        }
         hasTextContent = true;
         combinedText.append(((TextContent) content).text());
       }

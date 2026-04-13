@@ -13,6 +13,8 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.idp.extraction.client.extraction.PdfBoxExtractionClient;
 import java.util.List;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility class for LLM input guardrails and sanitization.
@@ -23,6 +25,8 @@ import java.util.regex.Pattern;
  * @see PromptInjectionInputGuardrail
  */
 public final class GuardrailsUtil {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(GuardrailsUtil.class);
 
   static final String REDACTED_TOKEN = "[REDACTED]";
 
@@ -53,7 +57,11 @@ public final class GuardrailsUtil {
           Pattern.compile("(?i)\\bnew\\s+(?:instructions|rules)\\s*:"),
 
           // --- Role/identity hijacking ---
-          Pattern.compile("(?i)\\byou\\s+are\\s+now\\b"),
+          // "you are now" only when followed by an identity/role change target
+          Pattern.compile(
+              "(?i)\\byou\\s+are\\s+now\\s+(?:a\\s+|an\\s+)?(?:\\w+\\s+)?(?:different|new|my|evil|unrestricted)\\b"),
+          Pattern.compile(
+              "(?i)\\byou\\s+are\\s+now\\s+(?:a\\s+|an\\s+)?(?:\\w+\\s+)?(?:ai|assistant|chatbot|model|system|agent|dan|developer)\\b"),
           Pattern.compile("(?i)\\bact\\s+as\\s+(?:a\\s+)?(?:different|new|my)\\b"),
           Pattern.compile("(?i)\\b(?:pretend\\s+(?:to\\s+be|you\\s+are)|roleplay\\s+as)\\b"),
           Pattern.compile(
@@ -128,11 +136,19 @@ public final class GuardrailsUtil {
 
     String contentType = document.metadata() != null ? document.metadata().getContentType() : null;
 
-    // Only process PDF — other formats pass through and are sent directly to the LLM
-    if ("application/pdf".equals(contentType)) {
-      String inspectedText = new PdfBoxExtractionClient().extract(document);
-      if (containsPromptInjectionPattern(inspectedText)) {
-        return DocumentPreprocessingResult.useSanitizedText(sanitizeLlmInput(inspectedText));
+    // Inspect PDFs for prompt injection — treat null content type as PDF as well,
+    // since other code paths (e.g. AiClient.chat) default null to PDF handling.
+    if (contentType == null || contentType.startsWith("application/pdf")) {
+      try {
+        String inspectedText = new PdfBoxExtractionClient().extract(document);
+        if (containsPromptInjectionPattern(inspectedText)) {
+          return DocumentPreprocessingResult.useSanitizedText(sanitizeLlmInput(inspectedText));
+        }
+      } catch (Exception e) {
+        LOGGER.warn(
+            "Failed to extract text for guardrail inspection — "
+                + "proceeding with original document",
+            e);
       }
     }
 
@@ -150,9 +166,7 @@ public final class GuardrailsUtil {
   /**
    * Applies lightweight guardrails to untrusted text before sending it to the LLM.
    *
-   * <p>Guardrails include control-character removal, prompt-injection pattern redaction, and
-   * wrapping the document content in explicit boundary markers so the LLM can distinguish between
-   * document content and system instructions.
+   * <p>Guardrails include control-character removal and prompt-injection pattern redaction.
    */
   public static String sanitizeLlmInput(String input) {
     if (input == null) {
