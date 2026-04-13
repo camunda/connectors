@@ -6,10 +6,11 @@
  */
 package io.camunda.connector.idp.extraction.model.providers;
 
-import io.camunda.connector.api.annotation.FEEL;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import io.camunda.connector.idp.extraction.jackson.StringToMapDeserializer;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 
@@ -28,7 +29,7 @@ public final class OpenAiProvider implements ProviderConfig {
   @NotNull
   private String openAiEndpoint;
 
-  @FEEL
+  @JsonDeserialize(using = StringToMapDeserializer.class)
   @TemplateProperty(
       id = "openAiHeaders",
       label = "Headers",
