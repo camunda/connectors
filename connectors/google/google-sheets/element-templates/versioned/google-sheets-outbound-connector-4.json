@@ -3,8 +3,7 @@
   "name": "Google Sheets Outbound Connector",
   "id": "io.camunda.connectors.GoogleSheets.v1",
   "description": "Manage spreadsheets with Google Sheets",
-  "metadata": {
-    "keywords": [
+  "keywords": [
       "create spreadsheet",
       "add values to spreadsheet",
       "create row",
@@ -14,8 +13,7 @@
       "get row",
       "get spreadsheet details",
       "get worksheet data"
-    ]
-  },
+    ],
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/",
   "version": 4,
   "category": {

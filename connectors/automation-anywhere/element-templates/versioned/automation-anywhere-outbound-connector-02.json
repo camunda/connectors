@@ -6,13 +6,11 @@
   "deprecated": {
     "message": "This connector is replaced by the new Automation Anywhere connector (id = io.camunda.connectors.AutomationAnywhere.v1). Please use the new connector instead."
   },
-  "metadata": {
-    "keywords": [
+  "keywords": [
       "add work item to queue",
       "get work item from queue",
       "get work item result from queue by ID"
-    ]
-  },
+    ],
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/",
   "version": 2,
   "category": {

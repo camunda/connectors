@@ -3,9 +3,7 @@
   "name" : "AI Agent (alpha)",
   "id" : "io.camunda.connectors.agenticai.aiagent.v0",
   "description" : "AI Agent connector",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords": [ ],
   "version" : 0,
   "deprecated": true,
   "category" : {

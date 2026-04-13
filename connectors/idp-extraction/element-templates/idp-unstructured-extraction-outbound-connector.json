@@ -3,9 +3,7 @@
   "name" : "IDP Unstructured Extraction Outbound Connector",
   "id" : "io.camunda.connector.IdpUnstructuredExtractionOutBoundTemplate.v1",
   "description" : "Execute IDP Unstructured Extraction requests",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords": [ ],
   "documentationRef" : "https://docs.camunda.io/docs/guides/",
   "version" : 2,
   "category" : {

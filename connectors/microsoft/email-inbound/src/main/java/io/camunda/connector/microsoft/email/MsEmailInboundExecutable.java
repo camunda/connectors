@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
     description = "Poll M365 Outlook emails",
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/",
-    metadata = @ElementTemplate.Metadata(keywords = {"email", "Office365", "Outlook"}),
+    keywords = {"email", "Office365", "Outlook"},
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "pollingConfig", label = "Listener Information"),

@@ -77,6 +77,9 @@ public @interface ElementTemplate {
 
   Metadata metadata() default @Metadata;
 
+  /** Keywords for the connector. Will be used as search terms in Camunda Modeler. */
+  String[] keywords() default {};
+
   /**
    * Manual configuration for the connector property groups.
    *

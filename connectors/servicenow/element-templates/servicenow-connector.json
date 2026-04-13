@@ -5,9 +5,7 @@
   "id": "io.camunda.connectors.ServiceNow.v1",
   "version": 1,
   "description": "Execute CRUD operations on any ServiceNow table",
-  "metadata": {
-    "keywords": []
-  },
+  "keywords": [],
   "documentationRef": "https://docs.camunda.io/docs/components/camunda-integrations/servicenow/connectors/outbound-connector/",
   "category": {
     "id": "connectors",

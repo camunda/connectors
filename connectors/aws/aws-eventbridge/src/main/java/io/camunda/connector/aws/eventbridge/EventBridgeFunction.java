@@ -32,9 +32,7 @@ import software.amazon.awssdk.services.eventbridge.model.PutEventsResponse;
     id = "io.camunda.connectors.AWSEventBridge.v1",
     name = "Amazon EventBridge Outbound Connector",
     description = "Send events to AWS EventBridge",
-    metadata =
-        @ElementTemplate.Metadata(
-            keywords = {"emit event", "publish event", "send event", "trigger event"}),
+    keywords = {"emit event", "publish event", "send event", "trigger event"},
     inputDataClass = AwsEventBridgeRequest.class,
     version = 6,
     propertyGroups = {

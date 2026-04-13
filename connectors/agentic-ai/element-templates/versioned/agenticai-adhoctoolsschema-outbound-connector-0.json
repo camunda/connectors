@@ -3,9 +3,7 @@
   "name" : "Ad-hoc subprocess tools schema (alpha)",
   "id" : "io.camunda.connectors.agenticai.adhoctoolsschema.v0",
   "description" : "Connector to fetch tools schema information from an ad-hoc subprocess",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords": [ ],
   "version" : 0,
   "deprecated": true,
   "category" : {

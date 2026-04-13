@@ -10,8 +10,7 @@
     "message": "Migrate to GitHub Webhook Message Start Event Connector"
   },
   "description": "Receive events from GitHub",
-  "metadata": {
-    "keywords": [
+  "keywords": [
       "issue created",
       "issue updated",
       "issue deleted",
@@ -21,8 +20,7 @@
       "repository created",
       "repository updated",
       "repository deleted"
-    ]
-  },
+    ],
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/github/?github=inbound",
   "category": {
     "id": "connectors",

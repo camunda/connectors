@@ -7,13 +7,11 @@
     "camunda": "^8.3"
   },
   "description": "Manage Blue Prism work queues and items.",
-  "metadata": {
-    "keywords": [
+  "keywords": [
       "get item from queue by ID",
       "create work queue item",
       "work queue"
-    ]
-  },
+    ],
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/blueprism/",
   "category": {
     "id": "connectors",

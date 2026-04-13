@@ -2,8 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "HubSpot Outbound Connector",
   "description": "Manage contacts, companies, and deals in HubSpot",
-  "metadata": {
-    "keywords": [
+  "keywords": [
       "create contact",
       "update contact",
       "delete contact",
@@ -24,8 +23,7 @@
       "add element to list",
       "enroll contact to a workflow",
       "submit form"
-    ]
-  },
+    ],
   "id": "io.camunda.connectors.HubSpot.v1",
   "version": 2,
   "documentationRef": "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/hubspot/",

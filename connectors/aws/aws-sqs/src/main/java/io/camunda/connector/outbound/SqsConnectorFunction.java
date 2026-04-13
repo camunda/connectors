@@ -35,14 +35,12 @@ import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
     id = "io.camunda.connectors.AWSSQS.v1",
     name = "Amazon SQS Outbound Connector",
     description = "Send messages to Amazon SQS.",
-    metadata =
-        @ElementTemplate.Metadata(
-            keywords = {
+    keywords = {
               "send message",
               "publish message",
               "send message to queue",
               "publish message to queue"
-            }),
+            },
     inputDataClass = SqsConnectorRequest.class,
     version = 11,
     propertyGroups = {

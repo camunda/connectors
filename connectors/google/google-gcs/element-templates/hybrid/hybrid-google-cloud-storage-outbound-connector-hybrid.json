@@ -3,9 +3,7 @@
   "name" : "Hybrid Google Cloud Storage Outbound Connector",
   "id" : "io.camunda.connectors.google.gcp.v1-hybrid",
   "description" : "Upload and download files from Google Cloud Storage.",
-  "metadata" : {
-    "keywords" : [ "download file from google cloud storage", "upload file to google cloud storage", "download file from gcs", "upload file to gcs", "gcs" ]
-  },
+  "keywords": [ "download file from google cloud storage", "upload file to google cloud storage", "download file from gcs", "upload file to gcs", "gcs" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/google-cloud-storage",
   "version" : 1,
   "category" : {

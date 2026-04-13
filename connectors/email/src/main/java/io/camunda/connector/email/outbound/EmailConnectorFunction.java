@@ -25,16 +25,14 @@ import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
     id = "io.camunda.connectors.email.v1",
     name = "Email Connector",
     description = "Execute email requests",
-    metadata =
-        @ElementTemplate.Metadata(
-            keywords = {
+    keywords = {
               "send emails",
               "list emails",
               "search emails",
               "delete emails",
               "read emails",
               "move emails"
-            }),
+            },
     inputDataClass = EmailRequest.class,
     version = 4,
     propertyGroups = {

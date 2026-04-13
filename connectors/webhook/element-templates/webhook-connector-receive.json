@@ -3,9 +3,7 @@
   "name" : "Webhook Receive Task Connector",
   "id" : "io.camunda.connectors.webhook.WebhookConnectorReceive.v1",
   "description" : "Configure webhook to receive callbacks",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords": [ ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
   "version" : 14,
   "category" : {

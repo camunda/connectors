@@ -3,9 +3,7 @@
   "name": "SendGrid Outbound Connector",
   "id": "io.camunda.connectors.SendGrid.v2",
   "description": "Send an email via SendGrid",
-  "metadata": {
-    "keywords": []
-  },
+  "keywords": [],
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sendgrid/",
   "version": 4,
   "category": {

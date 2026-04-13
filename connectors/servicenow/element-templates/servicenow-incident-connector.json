@@ -4,9 +4,7 @@
   "id": "io.camunda.connectors.ServiceNowIncident.v1",
   "version": 1,
   "description": "Create and manage incidents in ServiceNow directly from a Camunda process",
-  "metadata": {
-    "keywords": []
-  },
+  "keywords": [],
   "documentationRef": "https://docs.camunda.io/docs/components/camunda-integrations/servicenow/connectors/incident-handler/",
   "category": {
     "id": "connectors",

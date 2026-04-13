@@ -3,9 +3,7 @@
   "name" : "Hybrid Box Outbound Connector",
   "id" : "io.camunda.connectors.box-hybrid",
   "description" : "Interact with the Box Document API",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords": [ ],
   "documentationRef" : "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/box/",
   "version" : 2,
   "category" : {

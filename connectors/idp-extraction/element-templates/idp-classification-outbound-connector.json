@@ -3,9 +3,7 @@
   "name" : "IDP Classification Outbound Connector",
   "id" : "io.camunda.connector.IdpClassificationOutBoundTemplate.v1",
   "description" : "Execute IDP classification requests",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords": [ ],
   "documentationRef" : "https://docs.camunda.io/docs/guides/",
   "version" : 2,
   "category" : {

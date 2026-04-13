@@ -3,9 +3,7 @@
   "name" : "Kafka Outbound Connector",
   "id" : "io.camunda.connectors.KAFKA.v1",
   "description" : "Produce Kafka message",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords": [ ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound",
   "version" : 6,
   "category" : {

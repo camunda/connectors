@@ -3,9 +3,7 @@
   "name" : "Slack Webhook Receive Task Connector",
   "id" : "io.camunda.connectors.inbound.Slack.ReceiveTask.v1",
   "description" : "Receive events from Slack",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords": [ ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=inbound",
   "version" : 7,
   "category" : {
