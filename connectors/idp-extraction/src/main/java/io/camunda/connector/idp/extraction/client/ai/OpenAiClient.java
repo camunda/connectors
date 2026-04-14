@@ -41,22 +41,28 @@ public class OpenAiClient extends AiClient {
   }
 
   /**
-   * Sanitizes header values by replacing non-ASCII whitespace characters (e.g., Line Separator
-   * U+2028, Paragraph Separator U+2029) with regular spaces, and stripping leading/trailing
-   * whitespace. This prevents JDK HttpClient from rejecting headers containing invisible Unicode
-   * characters introduced by copy-paste artifacts or secret store formatting.
+   * Sanitizes header values by replacing characters outside the RFC 7230 field-value range (e.g.,
+   * Unicode Line Separator U+2028, control characters) with regular spaces, and stripping
+   * leading/trailing whitespace. Headers with null or blank values are skipped. This prevents JDK
+   * HttpClient from rejecting headers containing invisible characters introduced by copy-paste
+   * artifacts or secret store formatting.
    */
   private static Map<String, String> sanitizeHeaderValues(Map<String, String> headers) {
     Map<String, String> sanitized = new LinkedHashMap<>(headers.size());
     for (var entry : headers.entrySet()) {
-      String value = entry.getValue();
-      sanitized.put(entry.getKey(), value != null ? sanitizeHeaderValue(value) : null);
+      String value = sanitizeHeaderValue(entry.getValue());
+      if (value != null) {
+        sanitized.put(entry.getKey(), value);
+      }
     }
     return sanitized;
   }
 
   private static String sanitizeHeaderValue(String value) {
-    // Replace non-ASCII characters (e.g. U+2028 Line Separator from copy-paste) with spaces
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    // Replace characters outside the RFC 7230 field-value range with spaces
     return value.replaceAll("[^\\x09\\x20-\\x7E\\x80-\\xFF]", " ").strip();
   }
 }

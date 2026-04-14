@@ -30,15 +30,19 @@ public class StringToMapDeserializer extends JsonDeserializer<Map<String, String
     JsonNode node = p.readValueAsTree();
 
     if (node.isObject()) {
-      return p.getCodec().readValue(node.traverse(p.getCodec()), MAP_TYPE_REF);
+      try (JsonParser nodeParser = node.traverse(p.getCodec())) {
+        return p.getCodec().readValue(nodeParser, MAP_TYPE_REF);
+      }
     }
 
     if (node.isTextual()) {
       String text = node.textValue().trim();
-      return p.getCodec().readValue(p.getCodec().getFactory().createParser(text), MAP_TYPE_REF);
+      try (JsonParser textParser = p.getCodec().getFactory().createParser(text)) {
+        return p.getCodec().readValue(textParser, MAP_TYPE_REF);
+      }
     }
 
-    throw ctxt.weirdStringException(
-        node.toString(), Map.class, "Expected a JSON object or a JSON string representing a map");
+    throw ctxt.wrongTokenException(
+        p, Map.class, node.asToken(), "Expected a JSON object or a JSON string representing a map");
   }
 }
