@@ -3,9 +3,13 @@
   "name" : "SNS HTTPS Receive Task Connector",
   "id" : "io.camunda.connectors.inbound.AWSSNS.Receive.v1",
   "description" : "Receive messages from AWS SNS via HTTPS.",
-  "metadata" : {
-    "keywords" : [ "receive event", "receive message" ]
-  },
+  "keywords" : [
+    "receive event",
+    "receive message",
+    "notification",
+    "subscribe to topic",
+    "event driven"
+  ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=inbound",
   "version" : 6,
   "category" : {

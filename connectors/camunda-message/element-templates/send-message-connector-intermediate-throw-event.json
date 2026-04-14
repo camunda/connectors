@@ -2,9 +2,14 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Send Message Connector (Intermediate Throw Event)",
   "id" : "io.camunda.connectors.message.intermediate.v1",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords" : [
+    "send message",
+    "correlate message",
+    "publish message",
+    "message event",
+    "trigger process",
+    "signal process"
+  ],
   "version" : 0,
   "category" : {
     "id" : "connectors",

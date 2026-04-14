@@ -3,9 +3,18 @@
   "name" : "GraphQL Outbound Connector",
   "id" : "io.camunda.connectors.GraphQL.v1",
   "description" : "Execute GraphQL query",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords" : [
+    "API",
+    "query",
+    "mutation",
+    "HTTP",
+    "web request",
+    "GraphQL",
+    "fetch data",
+    "data query",
+    "execute query",
+    "API call"
+  ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/graphql/",
   "version" : 9,
   "category" : {
