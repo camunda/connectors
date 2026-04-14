@@ -18,6 +18,7 @@ import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.aws.bedrock.codeinterpreter.model.request.CodeInterpreterInput;
 import io.camunda.connector.aws.bedrock.codeinterpreter.model.request.CodeInterpreterRequest;
+import io.camunda.connector.aws.bedrock.codeinterpreter.model.request.Language;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
@@ -162,7 +163,7 @@ class CodeInterpreterExecutorTest extends BaseTest {
 
     var input = new CodeInterpreterInput();
     input.setCode("console.log('hello')");
-    input.setLanguage("javascript");
+    input.setLanguage(Language.JAVASCRIPT);
     var request = new CodeInterpreterRequest();
     request.setInput(input);
 
@@ -178,6 +179,7 @@ class CodeInterpreterExecutorTest extends BaseTest {
   void shouldUseConfiguredCodeInterpreterIdentifier() {
     var input = new CodeInterpreterInput();
     input.setCode(ActualValue.CODE);
+    input.setLanguage(Language.PYTHON);
     input.setCodeInterpreterIdentifier("custom.codeinterpreter.v2");
     var request = new CodeInterpreterRequest();
     request.setInput(input);
@@ -203,6 +205,7 @@ class CodeInterpreterExecutorTest extends BaseTest {
 
     var input = new CodeInterpreterInput();
     input.setCode(ActualValue.CODE);
+    input.setLanguage(Language.PYTHON);
     input.setSessionTimeout(java.time.Duration.ofMinutes(10));
     var request = new CodeInterpreterRequest();
     request.setInput(input);
@@ -248,6 +251,7 @@ class CodeInterpreterExecutorTest extends BaseTest {
   private CodeInterpreterRequest buildRequest(String code, Integer timeoutSeconds) {
     var input = new CodeInterpreterInput();
     input.setCode(code);
+    input.setLanguage(Language.PYTHON);
     if (timeoutSeconds != null) {
       input.setSessionTimeout(java.time.Duration.ofSeconds(timeoutSeconds));
     }

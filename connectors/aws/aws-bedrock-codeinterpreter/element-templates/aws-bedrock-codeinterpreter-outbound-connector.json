@@ -135,26 +135,10 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "input.code",
-    "label" : "Code",
-    "description" : "The Python code to execute in the Code Interpreter sandbox.",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "codeExecution",
-    "binding" : {
-      "name" : "input.code",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
-  }, {
     "id" : "input.language",
     "label" : "Language",
     "description" : "The programming language to use.",
-    "optional" : true,
-    "value" : "python",
+    "optional" : false,
     "group" : "codeExecution",
     "binding" : {
       "name" : "input.language",
@@ -171,6 +155,21 @@
       "name" : "TypeScript",
       "value" : "typescript"
     } ]
+  }, {
+    "id" : "input.code",
+    "label" : "Code",
+    "description" : "The code to execute in the Code Interpreter sandbox.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "codeExecution",
+    "binding" : {
+      "name" : "input.code",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
   }, {
     "id" : "input.codeInterpreterIdentifier",
     "label" : "Code Interpreter ID",

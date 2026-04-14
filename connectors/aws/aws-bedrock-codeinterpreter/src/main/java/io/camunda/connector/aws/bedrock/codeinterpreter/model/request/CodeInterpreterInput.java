@@ -8,34 +8,31 @@ package io.camunda.connector.aws.bedrock.codeinterpreter.model.request;
 
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import java.time.Duration;
 
 public class CodeInterpreterInput {
+
+  @TemplateProperty(
+      group = "codeExecution",
+      label = "Language",
+      description = "The programming language to use.",
+      type = TemplateProperty.PropertyType.Dropdown,
+      choices = {
+        @TemplateProperty.DropdownPropertyChoice(value = "python", label = "Python"),
+        @TemplateProperty.DropdownPropertyChoice(value = "javascript", label = "JavaScript"),
+        @TemplateProperty.DropdownPropertyChoice(value = "typescript", label = "TypeScript")
+      })
+  private Language language;
 
   @FEEL
   @NotBlank
   @TemplateProperty(
       group = "codeExecution",
       label = "Code",
-      description = "The Python code to execute in the Code Interpreter sandbox.",
-      constraints = @PropertyConstraints(notEmpty = true))
+      description = "The code to execute in the Code Interpreter sandbox.")
   private String code;
-
-  @TemplateProperty(
-      group = "codeExecution",
-      label = "Language",
-      description = "The programming language to use.",
-      defaultValue = "python",
-      type = TemplateProperty.PropertyType.Dropdown,
-      choices = {
-        @TemplateProperty.DropdownPropertyChoice(value = "python", label = "Python"),
-        @TemplateProperty.DropdownPropertyChoice(value = "javascript", label = "JavaScript"),
-        @TemplateProperty.DropdownPropertyChoice(value = "typescript", label = "TypeScript")
-      },
-      optional = true)
-  private String language;
 
   @TemplateProperty(
       group = "session",
@@ -54,6 +51,7 @@ public class CodeInterpreterInput {
       optional = true)
   private Duration sessionTimeout;
 
+  @Min(1)
   @TemplateProperty(
       group = "session",
       label = "Max files to retrieve",
@@ -63,6 +61,7 @@ public class CodeInterpreterInput {
       optional = true)
   private Integer maxFiles;
 
+  @Min(1)
   @TemplateProperty(
       group = "session",
       label = "Max total file size",
@@ -72,20 +71,20 @@ public class CodeInterpreterInput {
       optional = true)
   private Long maxTotalFileSize;
 
+  public Language getLanguage() {
+    return language;
+  }
+
+  public void setLanguage(Language language) {
+    this.language = language;
+  }
+
   public String getCode() {
     return code;
   }
 
   public void setCode(String code) {
     this.code = code;
-  }
-
-  public String getLanguage() {
-    return language;
-  }
-
-  public void setLanguage(String language) {
-    this.language = language;
   }
 
   public String getCodeInterpreterIdentifier() {

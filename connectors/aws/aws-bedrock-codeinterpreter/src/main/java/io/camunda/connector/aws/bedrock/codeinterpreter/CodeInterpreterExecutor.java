@@ -39,7 +39,6 @@ public class CodeInterpreterExecutor {
 
   private static final Logger LOG = LoggerFactory.getLogger(CodeInterpreterExecutor.class);
   private static final String DEFAULT_CODE_INTERPRETER_ID = "aws.codeinterpreter.v1";
-  private static final String DEFAULT_LANGUAGE = "python";
   private static final String SESSION_NAME_PREFIX = "camunda-";
   private static final String ERROR_CODE_INTERPRETER_FAILED = "CODE_INTERPRETER_FAILED";
   private static final String ERROR_STREAM = "STREAM_ERROR";
@@ -47,7 +46,6 @@ public class CodeInterpreterExecutor {
   private static final int DEFAULT_MAX_FILES = 10;
   private static final long DEFAULT_MAX_TOTAL_FILE_SIZE = 10L * 1024 * 1024;
   private static final Duration DEFAULT_SESSION_TIMEOUT = Duration.ofMinutes(5);
-  private static final long INVOCATION_TIMEOUT_MINUTES = 5;
 
   private final BedrockAgentCoreClient syncClient;
   private final BedrockAgentCoreAsyncClient asyncClient;
@@ -95,7 +93,7 @@ public class CodeInterpreterExecutor {
             .sessionTimeoutSeconds((int) timeout.getSeconds());
 
     var sessionId = syncClient.startCodeInterpreterSession(builder.build()).sessionId();
-    return new CodeInterpreterSession(sessionId, ciId);
+    return new CodeInterpreterSession(sessionId, ciId, timeout);
   }
 
   // --- Code execution ---
@@ -103,7 +101,7 @@ public class CodeInterpreterExecutor {
   private CodeInterpreterResponse invokeCode(
       CodeInterpreterSession session, CodeInterpreterInput input) {
     var existingFiles = listGeneratedFiles(session);
-    var language = input.getLanguage() != null ? input.getLanguage() : DEFAULT_LANGUAGE;
+    var language = input.getLanguage().getValue();
 
     var execResult =
         invokeTool(
@@ -273,7 +271,7 @@ public class CodeInterpreterExecutor {
     try {
       asyncClient
           .invokeCodeInterpreter(request, handler)
-          .get(INVOCATION_TIMEOUT_MINUTES, TimeUnit.MINUTES);
+          .get(session.timeout().toMinutes(), TimeUnit.MINUTES);
     } catch (TimeoutException e) {
       throw new ConnectorException(
           ERROR_CODE_INTERPRETER_FAILED, "Code Interpreter invocation timed out", e);
@@ -350,10 +348,12 @@ public class CodeInterpreterExecutor {
   private class CodeInterpreterSession implements AutoCloseable {
     private final String sessionId;
     private final String ciIdentifier;
+    private final Duration sessionTimeout;
 
-    CodeInterpreterSession(String sessionId, String ciIdentifier) {
+    CodeInterpreterSession(String sessionId, String ciIdentifier, Duration sessionTimeout) {
       this.sessionId = sessionId;
       this.ciIdentifier = ciIdentifier;
+      this.sessionTimeout = sessionTimeout;
     }
 
     String id() {
@@ -362,6 +362,10 @@ public class CodeInterpreterExecutor {
 
     String codeInterpreterIdentifier() {
       return ciIdentifier;
+    }
+
+    Duration timeout() {
+      return sessionTimeout;
     }
 
     @Override
