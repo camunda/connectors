@@ -39,10 +39,14 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.configuration.AgenticAiLangchain4JFrameworkConfiguration;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.DefaultBedrockAgentCoreClientFactory;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.document.CamundaDocumentConversationStore;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess.InProcessConversationStore;
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
@@ -189,6 +193,21 @@ public class AgenticAiConnectorsAutoConfiguration {
       CamundaDocumentStore documentStore,
       @ConnectorsObjectMapper ObjectMapper objectMapper) {
     return new CamundaDocumentConversationStore(documentFactory, documentStore, objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AwsAgentCoreConversationMapper aiAgentAwsAgentCoreConversationMapper(
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new AwsAgentCoreConversationMapper(objectMapper);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public AwsAgentCoreConversationStore aiAgentAwsAgentCoreConversationStore(
+      AwsAgentCoreConversationMapper conversationMapper, ChatModelHttpProxySupport proxySupport) {
+    return new AwsAgentCoreConversationStore(
+        new DefaultBedrockAgentCoreClientFactory(proxySupport), conversationMapper);
   }
 
   @Bean

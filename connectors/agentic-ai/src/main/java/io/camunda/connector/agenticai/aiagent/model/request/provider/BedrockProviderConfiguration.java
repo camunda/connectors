@@ -42,7 +42,8 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
           @FEEL
           @TemplateProperty(
               group = "provider",
-              description = "Optional custom API endpoint",
+              description =
+                  "Custom API endpoint for VPC/PrivateLink configurations, AWS GovCloud, or other non-standard deployments.",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
               optional = true)
@@ -90,8 +91,7 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
         @TemplateProperty(
                 group = "provider",
                 label = "Secret key",
-                description =
-                    "Provide a secret key of a user with permissions to invoke specified AWS Lambda function")
+                description = "Provide the secret key for the IAM access key")
             @NotBlank
             String secretKey)
         implements AwsAuthentication {
