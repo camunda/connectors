@@ -6,10 +6,11 @@
  */
 package io.camunda.connector.idp.extraction.request.common.ai;
 
-import io.camunda.connector.api.annotation.FEEL;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.camunda.connector.generator.java.annotation.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import io.camunda.connector.idp.extraction.jackson.StringToMapDeserializer;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 
@@ -26,7 +27,7 @@ public record OpenAiRequest(
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         @NotNull
         String openAiEndpoint,
-    @FEEL
+    @JsonDeserialize(using = StringToMapDeserializer.class)
         @TemplateProperty(
             id = "openAiHeaders",
             label = "Headers",
