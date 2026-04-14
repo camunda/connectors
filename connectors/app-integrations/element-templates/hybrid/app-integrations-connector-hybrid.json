@@ -1,0 +1,251 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Hybrid App Integrations Connector",
+  "id" : "io.camunda.connector.AppIntegrations.v1-hybrid",
+  "description" : "Send notifications and manage channels via Microsoft Teams",
+  "metadata" : {
+    "keywords" : [ ]
+  },
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.8"
+  },
+  "groups" : [ {
+    "id" : "taskDefinitionType",
+    "label" : "Task definition type"
+  }, {
+    "id" : "operation",
+    "label" : "Operation"
+  }, {
+    "id" : "configuration",
+    "label" : "Configuration"
+  }, {
+    "id" : "message",
+    "label" : "Message"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "id" : "taskDefinitionType",
+    "value" : "io.camunda:app-integrations:1",
+    "group" : "taskDefinitionType",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation",
+    "label" : "Operation",
+    "description" : "The operation to execute",
+    "value" : "sendMessage",
+    "group" : "operation",
+    "binding" : {
+      "key" : "operation",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "sendMessage:configuration.baseUrl",
+    "label" : "Base URL",
+    "description" : "App Integrations backend URL. Use secrets.APP_INTEGRATIONS_BASE_URL.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.baseUrl",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:configuration.token",
+    "label" : "Token",
+    "description" : "Bearer token for authentication. Use secrets.APP_INTEGRATIONS_TOKEN.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.token",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:email",
+    "label" : "User Email",
+    "description" : "Email address of the recipient. Use a FEEL expression to reference a process variable, e.g. =assigneeEmail.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "message",
+    "binding" : {
+      "name" : "email",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:channelId",
+    "label" : "Channel ID",
+    "description" : "Microsoft Teams channel ID to send to directly, e.g. 19:xxx@thread.tacv2. Use when sending to a channel rather than a user.",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "message",
+    "binding" : {
+      "name" : "channelId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "sendMessage:message",
+    "label" : "Message",
+    "description" : "Text content to send.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "message",
+    "binding" : {
+      "name" : "message",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "operation",
+        "equals" : "sendMessage",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Text"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connector.AppIntegrations.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMTgiIHdpZHRoPSIxOCIgdmlld0JveD0iMCAwIDEwIDEwIiBzaGFwZS1yZW5kZXJpbmc9Imdlb21ldHJpY1ByZWNpc2lvbiI+PHRpdGxlPkFwcCBJbnRlZ3JhdGlvbnM8L3RpdGxlPjxnIGZpbGw9Im5vbmUiPjxwYXRoIGQ9Ik0wLDAgTDAsMTAgTDEwLDEwIEwxMCwwIHoiIGZpbGw9IiNlY2IxMmYiLz48L2c+PC9zdmc+"
+  }
+}
