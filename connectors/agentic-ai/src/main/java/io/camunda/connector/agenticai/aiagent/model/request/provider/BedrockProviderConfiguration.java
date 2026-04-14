@@ -131,11 +131,12 @@ public record BedrockProviderConfiguration(@Valid @NotNull BedrockConnection bed
               group = "model",
               label = "Model",
               description =
-                  "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>.",
+                  "Specify an inference profile ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html\" target=\"_blank\">documentation</a>.",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
-              defaultValue = "anthropic.claude-3-5-sonnet-20240620-v1:0",
+              defaultValue = "",
               defaultValueType = TemplateProperty.DefaultValueType.String,
+              placeholder = "global.anthropic.claude-sonnet-4-6",
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String model,
       @Valid BedrockModel.BedrockModelParameters parameters) {
