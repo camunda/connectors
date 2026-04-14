@@ -120,7 +120,7 @@ jobs:
           path: '**/target/surefire-reports/*.xml'
 
       - name: Send Slack notification on failure
-        if: failure()
+        if: failure() && (matrix.branch == 'main' || startsWith(matrix.branch, 'stable/'))
         uses: slackapi/slack-github-action@v2.1.1
         with:
           token: ${{ secrets.CONNECTORS_SLACK_BOT_TOKEN }}
@@ -128,5 +128,5 @@ jobs:
           payload: |
             {
               "channel": ${{ secrets.CONNECTORS_SUPPORT_SLACK_CHANNEL_ID }},
-              "text": ":alarm: Nightly E2E test run failed on branch `${{ matrix.branch}}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              "text": ":alarm: E2E test run failed on branch `${{ matrix.branch}}`.\nCheck details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             }
