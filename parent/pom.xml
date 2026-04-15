@@ -110,8 +110,8 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-drive>v3-rev20260405-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.46.0</version.google-auth-library-oauth2-http>
-    <version.google-api-services-docs>v1-rev20260406-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.79.0</version.google-libraries-bom>
+    <version.google-api-services-docs>v1-rev20260408-2.0.0</version.google-api-services-docs>
+    <version.google-libraries-bom>26.80.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20260213-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.67.0</version.google-cloud-storage>
     <version.gson-extras>3.3.0</version.gson-extras>
@@ -143,7 +143,7 @@ limitations under the License.</license.inlineheader>
 
     <version.snappy-java>1.1.10.8</version.snappy-java>
     <version.commons-codec>1.21.0</version.commons-codec>
-    <version.guava>33.5.0-jre</version.guava>
+    <version.guava>33.6.0-jre</version.guava>
     <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
 
     <version.wiremock>3.13.2</version.wiremock>
