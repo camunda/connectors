@@ -3,9 +3,14 @@
   "name" : "Hybrid Kafka Intermediate Catch Event Connector",
   "id" : "io.camunda.connectors.inbound.KafkaIntermediate.v1-hybrid",
   "description" : "Consume Kafka messages",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords" : [
+    "receive message",
+    "consume message",
+    "event streaming",
+    "subscribe to topic",
+    "message queue",
+    "stream data"
+  ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound",
   "version" : 7,
   "category" : {

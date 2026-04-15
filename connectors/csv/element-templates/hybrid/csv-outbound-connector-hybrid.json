@@ -2,9 +2,16 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Hybrid CSV Connector",
   "id" : "io.camunda.connectors.csv-hybrid",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords" : [
+    "read CSV",
+    "write CSV",
+    "parse CSV",
+    "export CSV",
+    "import CSV",
+    "tabular data",
+    "data export",
+    "spreadsheet"
+  ],
   "version" : 1,
   "category" : {
     "id" : "connectors",

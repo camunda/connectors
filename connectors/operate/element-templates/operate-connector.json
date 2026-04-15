@@ -10,6 +10,20 @@
     "message": "Deprecation of the Operate API and Tasklist API. Please use the REST Connector for now.",
     "documentationRef": "https://docs.camunda.io/docs/apis-tools/working-with-apis-tools/"  },
   "description": "Fetch data from Camunda Operate API",
+  "keywords": [
+    "search process instances",
+    "get process instance by key",
+    "search incidents",
+    "get incident by key",
+    "search variables",
+    "get variable by key",
+    "search process definitions",
+    "get process definition by key",
+    "search flow node instances",
+    "get flow node instance by key",
+    "process monitoring",
+    "workflow status"
+  ],
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/operate/",
   "category": {
     "id": "connectors",
