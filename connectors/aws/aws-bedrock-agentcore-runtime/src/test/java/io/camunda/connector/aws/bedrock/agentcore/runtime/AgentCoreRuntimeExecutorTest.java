@@ -15,8 +15,8 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.bedrock.agentcore.runtime.model.request.AgentCoreRuntimeInput;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +30,7 @@ import software.amazon.awssdk.services.bedrockagentcore.model.InvokeAgentRuntime
 
 class AgentCoreRuntimeExecutorTest extends BaseTest {
 
-  private static final ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
+  private static final ObjectMapper OBJECT_MAPPER = ObjectMapperSupplier.getMapperInstance();
 
   private BedrockAgentCoreClient client;
   private AgentCoreRuntimeExecutor executor;
@@ -77,7 +77,9 @@ class AgentCoreRuntimeExecutorTest extends BaseTest {
   @Test
   void shouldReturnStringWhenResponseIsNotJson() {
     mockResponse("Plain text response", SESSION_ID, 200);
-    var result = executor.invoke(createInput(Map.of("inputText", PROMPT), null));
+    var input = createInput(Map.of("inputText", PROMPT), null);
+    input.setPayloadContentType("text/plain");
+    var result = executor.invoke(input);
 
     assertThat(result.response()).isEqualTo("Plain text response");
   }
@@ -123,7 +125,7 @@ class AgentCoreRuntimeExecutorTest extends BaseTest {
     var captor = ArgumentCaptor.forClass(InvokeAgentRuntimeRequest.class);
 
     var input = createInput(Map.of("inputText", PROMPT), null);
-    input.setContentType("text/plain");
+    input.setPayloadContentType("text/plain");
     executor.invoke(input);
 
     verify(client).invokeAgentRuntimeAsBytes(captor.capture());

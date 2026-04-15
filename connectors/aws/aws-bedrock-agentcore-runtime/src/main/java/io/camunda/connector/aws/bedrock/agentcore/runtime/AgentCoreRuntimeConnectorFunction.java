@@ -11,10 +11,10 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.CredentialsProviderSupportV2;
+import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.bedrock.agentcore.runtime.model.request.AgentCoreRuntimeRequest;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
-import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import java.net.URI;
 import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import software.amazon.awssdk.regions.Region;
@@ -31,6 +31,8 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
     version = 1,
     inputDataClass = AgentCoreRuntimeRequest.class,
     description = "Invoke an external agent running in AWS Bedrock AgentCore Runtime",
+    documentationRef =
+        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock-agentcore-runtime/",
     propertyGroups = {
       @PropertyGroup(id = "authentication", label = "Authentication"),
       @PropertyGroup(id = "configuration", label = "Configuration"),
@@ -39,7 +41,7 @@ import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
     icon = "icon.svg")
 public class AgentCoreRuntimeConnectorFunction implements OutboundConnectorFunction {
 
-  private static final ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
+  private static final ObjectMapper OBJECT_MAPPER = ObjectMapperSupplier.getMapperInstance();
 
   @Override
   public Object execute(OutboundConnectorContext context) {

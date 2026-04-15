@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.aws.bedrock.agentcore.runtime.model.request.AgentCoreRuntimeInput;
 import io.camunda.connector.aws.bedrock.agentcore.runtime.model.response.AgentCoreRuntimeResponse;
-import java.util.Map;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
 import software.amazon.awssdk.services.bedrockagentcore.model.BedrockAgentCoreException;
@@ -32,9 +31,7 @@ public class AgentCoreRuntimeExecutor {
 
   public AgentCoreRuntimeResponse invoke(AgentCoreRuntimeInput input) {
     try {
-      var contentType =
-          input.getContentType() != null ? input.getContentType() : DEFAULT_CONTENT_TYPE;
-
+      var contentType = resolveContentType(input);
       var payloadBytes = objectMapper.writeValueAsBytes(input.getPayload());
 
       var builder =
@@ -53,7 +50,7 @@ public class AgentCoreRuntimeExecutor {
       var sessionId = responseBytes.response().runtimeSessionId();
       var statusCode = responseBytes.response().statusCode();
 
-      Object response = tryParseJson(responseText);
+      Object response = isJsonContentType(contentType) ? tryParseJson(responseText) : responseText;
 
       return new AgentCoreRuntimeResponse(response, sessionId, statusCode);
 
@@ -66,12 +63,22 @@ public class AgentCoreRuntimeExecutor {
     }
   }
 
-  @SuppressWarnings("unchecked")
+  private String resolveContentType(AgentCoreRuntimeInput input) {
+    var ct = input.getPayloadContentType();
+    if (ct == null || ct.isBlank()) {
+      return DEFAULT_CONTENT_TYPE;
+    }
+    return ct;
+  }
+
+  private boolean isJsonContentType(String contentType) {
+    return contentType.contains("json");
+  }
+
   private Object tryParseJson(String text) {
     try {
-      return objectMapper.readValue(text, Map.class);
+      return objectMapper.readValue(text, Object.class);
     } catch (JsonProcessingException e) {
-      // Not valid JSON — return as plain string
       return text;
     }
   }

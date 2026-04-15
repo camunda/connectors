@@ -6,6 +6,7 @@
   "metadata" : {
     "keywords" : [ ]
   },
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-bedrock-agentcore-runtime/",
   "version" : 1,
   "category" : {
     "id" : "connectors",
@@ -167,6 +168,19 @@
     },
     "type" : "String"
   }, {
+    "id" : "input.payloadContentType",
+    "label" : "Payload content type",
+    "description" : "Content type of the payload. Defaults to application/json.",
+    "optional" : true,
+    "value" : "application/json",
+    "feel" : "optional",
+    "group" : "agentConfig",
+    "binding" : {
+      "name" : "input.payloadContentType",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
     "id" : "input.sessionId",
     "label" : "Session ID",
     "description" : "Optional session ID for multi-turn conversations.",
@@ -175,19 +189,6 @@
     "group" : "agentConfig",
     "binding" : {
       "name" : "input.sessionId",
-      "type" : "zeebe:input"
-    },
-    "type" : "String"
-  }, {
-    "id" : "input.contentType",
-    "label" : "Content type",
-    "description" : "Content type of the payload. Defaults to application/json.",
-    "optional" : true,
-    "value" : "application/json",
-    "feel" : "optional",
-    "group" : "agentConfig",
-    "binding" : {
-      "name" : "input.contentType",
       "type" : "zeebe:input"
     },
     "type" : "String"

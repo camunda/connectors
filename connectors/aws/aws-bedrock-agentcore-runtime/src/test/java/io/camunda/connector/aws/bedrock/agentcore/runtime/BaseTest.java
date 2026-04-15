@@ -8,7 +8,7 @@ package io.camunda.connector.aws.bedrock.agentcore.runtime;
 
 public abstract class BaseTest {
   protected static final String AGENT_RUNTIME_ARN =
-      "arn:aws:bedrock-agentcore:us-east-1:123456789:runtime/test-agent";
+      "arn:aws:bedrock-agentcore:us-east-1:123456789012:runtime/test-agent";
   protected static final String PROMPT = "What is the fraud risk for claim CLM-001?";
   protected static final String SESSION_ID = "test-session-123";
 }
