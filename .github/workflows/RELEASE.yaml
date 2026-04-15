@@ -72,6 +72,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
+          persist-credentials: false # we will use a GitHub App token for pushing commits and tags, so we need to disable the default token
       - name: Install asdf & tools
         uses: asdf-vm/actions/install@v4
       - name: Install bc calculator
