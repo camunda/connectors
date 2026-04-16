@@ -12,7 +12,7 @@
     "object storage",
     "file storage"
   ],
-  "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/google-cloud-storage",
+  "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage",
   "version" : 1,
   "category" : {
     "id" : "connectors",
@@ -57,7 +57,7 @@
   }, {
     "id" : "authentication.jsonKey",
     "label" : "JSON key of the service account",
-    "description" : "This is the key of the service account in JSON format. See <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">documentation</a> for details.",
+    "description" : "This is the key of the service account in JSON format. See <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/google-cloud-storage/#authentication\" target=\"_blank\">documentation</a> for details.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
