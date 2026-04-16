@@ -191,12 +191,12 @@ jobs:
                       "correlation_id": "'"$CORRELATION_ID"'",
                       "source_repo": "${{ github.repository }}",
                       "source_sha": "${{ github.sha }}",
-                      "c8Version": "8.9",
-                      "zeebeVersion": "8.9-SNAPSHOT",
-                      "operateVersion": "8.9-SNAPSHOT",
-                      "tasklistVersion": "8.9-SNAPSHOT",
+                      "c8Version": "8.10",
+                      "zeebeVersion": "SNAPSHOT",
+                      "operateVersion": "SNAPSHOT",
+                      "tasklistVersion": "SNAPSHOT",
                       "connectorsVersion": "${{ needs.build-image.outputs.connectors-version }}",
-                      "optimizeVersion": "8.9-SNAPSHOT"
+                      "optimizeVersion": "8-SNAPSHOT"
                   }
                 }'
       - name: Observe build status
