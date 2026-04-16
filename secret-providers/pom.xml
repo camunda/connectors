@@ -5,14 +5,14 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
     <relativePath>../parent/pom.xml</relativePath>
-    <version>8.9.0-alpha5</version>
+    <version>8.9.0</version>
   </parent>
 
   <artifactId>secret-providers</artifactId>
   <packaging>pom</packaging>
 
   <properties>
-    <version.google-libraries-bom>26.77.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.79.0</version.google-libraries-bom>
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

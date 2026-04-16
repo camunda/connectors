@@ -25,6 +25,7 @@
           <zeebe:input source="=false" target="data.response.format.parseJson" />
           <zeebe:input source="=false" target="data.response.includeAssistantMessage" />
           <zeebe:input source="=true" target="data.response.includeAgentContext" />
+          <zeebe:input target="agent" />
           <zeebe:output source="=agent" target="agent" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>

@@ -128,21 +128,29 @@ public class HttpOutboundElementTemplateBuilder {
     if (operations == null || operations.isEmpty()) {
       throw new IllegalStateException("Could not find any supported operations");
     }
-    return builder
-        .propertyGroups(
-            List.of(
-                // Property order is important, parameters must come before their targets (URL,
-                // headers, or body)
-                // otherwise they will not be resolved correctly by the FEEL engine in Zeebe
-                PropertyUtil.serverDiscriminatorPropertyGroup(servers),
-                PropertyUtil.operationDiscriminatorPropertyGroup(operations),
-                PropertyUtil.authPropertyGroup(authentication, operations),
-                PropertyUtil.parametersPropertyGroup(operations),
-                PropertyUtil.requestBodyPropertyGroup(operations),
-                PropertyUtil.urlPropertyGroup(),
-                PropertyGroup.OUTPUT_GROUP_OUTBOUND.apply(null, null),
-                PropertyGroup.ERROR_GROUP,
-                PropertyGroup.RETRIES_GROUP))
-        .build();
+
+    var serverGroup = PropertyUtil.serverDiscriminatorPropertyGroup(servers);
+    var operationGroup = PropertyUtil.operationDiscriminatorPropertyGroup(operations);
+    var authResult = PropertyUtil.authPropertyGroup(authentication, operations);
+
+    // If all auth properties are unconditional, auth can be placed before the operation dropdown
+    // (the modeler resolves conditions top-to-bottom, so conditional auth must follow operation).
+    List<PropertyGroup> groups = new ArrayList<>();
+    groups.add(serverGroup);
+    if (authResult.unconditional()) {
+      groups.add(authResult.group());
+      groups.add(operationGroup);
+    } else {
+      groups.add(operationGroup);
+      groups.add(authResult.group());
+    }
+    groups.add(PropertyUtil.parametersPropertyGroup(operations));
+    groups.add(PropertyUtil.requestBodyPropertyGroup(operations));
+    groups.add(PropertyUtil.urlPropertyGroup());
+    groups.add(PropertyGroup.OUTPUT_GROUP_OUTBOUND.apply(null, null));
+    groups.add(PropertyGroup.ERROR_GROUP);
+    groups.add(PropertyGroup.RETRIES_GROUP);
+
+    return builder.propertyGroups(groups).build();
   }
 }

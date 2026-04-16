@@ -35,21 +35,29 @@ public class EnvironmentSecretProviderTest {
   }
 
   @Test
-  void shouldNotApplyPrefix() {
+  void shouldRejectSecretWithoutConfiguredPrefix() {
     MockEnvironment env = new MockEnvironment();
     env.setProperty("my-total-secret", "beebop");
     EnvironmentSecretProvider secretProvider =
-        new EnvironmentSecretProvider(env, null, false, false);
+        new EnvironmentSecretProvider(env, "SECRET_", false, false);
+    String myTotalSecret = secretProvider.getSecret("my-total-secret", null);
+    assertThat(myTotalSecret).isNull();
+  }
+
+  @Test
+  void shouldAllowAllSecretsInUnsafeMode() {
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty("my-total-secret", "beebop");
+    EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, "", false, false);
     String myTotalSecret = secretProvider.getSecret("my-total-secret", null);
     assertThat(myTotalSecret).isEqualTo("beebop");
   }
 
   @Test
-  void shouldApplyTenantId() {
+  void shouldApplyTenantIdInUnsafeMode() {
     MockEnvironment env = new MockEnvironment();
     env.setProperty("my-tenant_my-total-secret", "beebop");
-    EnvironmentSecretProvider secretProvider =
-        new EnvironmentSecretProvider(env, null, true, false);
+    EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, "", true, false);
     String myTotalSecret =
         secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant", "my-process"));
     assertThat(myTotalSecret).isEqualTo("beebop");
@@ -67,11 +75,10 @@ public class EnvironmentSecretProviderTest {
   }
 
   @Test
-  void shouldApplyProcessDefinitionId() {
+  void shouldApplyProcessDefinitionIdInUnsafeMode() {
     MockEnvironment env = new MockEnvironment();
     env.setProperty("my-process_my-total-secret", "beebop");
-    EnvironmentSecretProvider secretProvider =
-        new EnvironmentSecretProvider(env, null, false, true);
+    EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, "", false, true);
     String myTotalSecret =
         secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant", "my-process"));
     assertThat(myTotalSecret).isEqualTo("beebop");
@@ -89,10 +96,10 @@ public class EnvironmentSecretProviderTest {
   }
 
   @Test
-  void shouldApplyTenantIdAndProcessDefinitionId() {
+  void shouldApplyTenantIdAndProcessDefinitionIdInUnsafeMode() {
     MockEnvironment env = new MockEnvironment();
     env.setProperty("my-tenant_my-process_my-total-secret", "beebop");
-    EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, null, true, true);
+    EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, "", true, true);
     String myTotalSecret =
         secretProvider.getSecret("my-total-secret", new SecretContext("my-tenant", "my-process"));
     assertThat(myTotalSecret).isEqualTo("beebop");

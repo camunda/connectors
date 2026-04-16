@@ -7,7 +7,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-parent</artifactId>
-    <version>8.9.0-alpha5</version>
+    <version>8.9.0</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -32,7 +32,7 @@
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-storage-blob</artifactId>
-      <version>12.33.2</version>
+      <version>12.33.3</version>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>

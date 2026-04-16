@@ -12,7 +12,7 @@
 
   <groupId>io.camunda.connector</groupId>
   <artifactId>connector-parent</artifactId>
-  <version>8.9.0-alpha5</version>
+  <version>8.9.0</version>
   <packaging>pom</packaging>
 
   <name>Connectors Parent</name>
@@ -70,41 +70,41 @@ limitations under the License.</license.inlineheader>
     <nexus.release.repository>https://artifacts.camunda.com/artifactory/connectors/</nexus.release.repository>
 
     <!-- Camunda internal libraries -->
-    <version.camunda>8.9.0-SNAPSHOT</version.camunda>
+    <version.camunda>8.9.0</version.camunda>
     <version.feel-engine>1.21.0</version.feel-engine>
     <version.camunda-xml-model>7.24.0</version.camunda-xml-model>
 
     <!-- Third party dependencies -->
 
     <!-- gRPC version has to be equal or greater than the one from the Camunda client -->
-    <version.grpc>1.79.0</version.grpc>
+    <version.grpc>1.80.0</version.grpc>
 
     <!-- Protobuf version has to be equal or greater than the one from the Camunda client -->
-    <version.protobuf>4.34.0</version.protobuf>
+    <version.protobuf>4.34.1</version.protobuf>
 
     <version.jakarta-validation>3.1.1</version.jakarta-validation>
     <version.mockito>5.23.0</version.mockito>
     <version.junit-jupiter>6.0.3</version.junit-jupiter>
     <version.assertj>3.27.7</version.assertj>
-    <version.jackson-bom>2.21.1</version.jackson-bom>
-    <version.jackson-datatype-jsr310>2.21.1</version.jackson-datatype-jsr310>
+    <version.jackson-bom>2.21.2</version.jackson-bom>
+    <version.jackson-datatype-jsr310>2.21.2</version.jackson-datatype-jsr310>
     <version.hibernate-validator>9.1.0.Final</version.hibernate-validator>
     <version.jsonassert>1.5.3</version.jsonassert>
     <version.json>20250517</version.json>
     <version.failsafe>3.3.2</version.failsafe>
     <version.hamcrest>3.0</version.hamcrest>
 
-    <version.spring-boot>4.0.3</version.spring-boot>
+    <version.spring-boot>4.0.5</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>8.0.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.32</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.42.11</version.aws-sdk2>
+    <version.aws-sdk2>2.42.31</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
 
-    <version.localstack>2.0.3</version.localstack>
+    <version.localstack>2.0.4</version.localstack>
 
     <version.okhttp>4.12.0</version.okhttp>
     <!-- Langchain4j requires a version >= 2.9.0 < 3.x. Do not bump to 3.x unless Langchain4j supports it! -->
@@ -114,12 +114,12 @@ limitations under the License.</license.inlineheader>
 
     <version.google-http-client>2.1.0</version.google-http-client>
 
-    <version.google-api-services-drive>v3-rev20260220-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20260322-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.43.0</version.google-auth-library-oauth2-http>
-    <version.google-api-services-docs>v1-rev20260114-2.0.0</version.google-api-services-docs>
-    <version.google-libraries-bom>26.77.0</version.google-libraries-bom>
-    <version.google-api-services-sheets>v4-rev20251110-2.0.0</version.google-api-services-sheets>
+    <version.google-api-services-docs>v1-rev20260323-2.0.0</version.google-api-services-docs>
+    <version.google-libraries-bom>26.79.0</version.google-libraries-bom>
+    <version.google-api-services-sheets>v4-rev20260213-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
     <version.jsr305>3.0.2</version.jsr305>
     <version.gson-extras>3.3.0</version.gson-extras>
@@ -137,11 +137,11 @@ limitations under the License.</license.inlineheader>
     <version.kafka-clients>4.2.0</version.kafka-clients>
 
     <version.microsoft-graph>6.62.0</version.microsoft-graph>
-    <version.microsoft-kiota-abstraction>1.9.1</version.microsoft-kiota-abstraction>
+    <version.microsoft-kiota-abstraction>1.9.2</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.5</version.microsoft-graph-core>
     <version.azure-identity>1.18.2</version.azure-identity>
     <version.azure-core>1.57.1</version.azure-core>
-    <version.azure-cosmos>4.78.0</version.azure-cosmos>
+    <version.azure-cosmos>4.79.1</version.azure-cosmos>
 
     <version.bouncycastle>1.83</version.bouncycastle>
     <version.box-sdk>4.16.4</version.box-sdk>
@@ -152,9 +152,9 @@ limitations under the License.</license.inlineheader>
     <version.wss4j>4.0.1</version.wss4j>
     <version.xmlsec>4.0.4</version.xmlsec>
 
-    <version.slack>1.47.0</version.slack>
+    <version.slack>1.48.0</version.slack>
 
-    <version.testcontainers>2.0.3</version.testcontainers>
+    <version.testcontainers>2.0.4</version.testcontainers>
     <version.awaitility>4.3.0</version.awaitility>
     <version.json-path>3.0.0</version.json-path>
 
@@ -171,10 +171,10 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwks>0.23.0</version.auth0.jwks>
 
     <version.langchain4j>1.12.2</version.langchain4j>
-    <version.mcp-sdk>1.0.0</version.mcp-sdk>
-    <version.elasticsearch-java-client>8.19.12</version.elasticsearch-java-client>
+    <version.mcp-sdk>1.1.1</version.mcp-sdk>
+    <version.elasticsearch-java-client>8.19.14</version.elasticsearch-java-client>
 
-    <version.scala>3.8.2</version.scala>
+    <version.scala>3.8.3</version.scala>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.6.2</plugin.version.maven-enforcer-plugin>
@@ -185,7 +185,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.5.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.6.1</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.5.5</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>3.3.0</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>3.4.0</plugin.version.spotless-maven-plugin>
     <plugin.version.maven-jar-plugin>3.5.0</plugin.version.maven-jar-plugin>
 
     <plugin.version.maven-dependency-plugin>3.10.0</plugin.version.maven-dependency-plugin>
@@ -728,7 +728,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.nimbusds</groupId>
         <artifactId>nimbus-jose-jwt</artifactId>
-        <version>10.8</version>
+        <version>10.9</version>
       </dependency>
 
       <!-- Fixes CWE-835 -->

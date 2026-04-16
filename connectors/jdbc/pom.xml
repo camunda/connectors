@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-parent</artifactId>
-    <version>8.9.0-alpha5</version>
+    <version>8.9.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -14,7 +14,7 @@
   <packaging>jar</packaging>
 
   <properties>
-    <version.jdbi>3.51.0</version.jdbi>
+    <version.jdbi>3.52.0</version.jdbi>
   </properties>
 
   <licenses>
@@ -60,7 +60,7 @@
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
       <artifactId>mssql-jdbc</artifactId>
-      <version>13.2.1.jre11</version>
+      <version>13.4.0.jre11</version>
     </dependency>
 
     <dependency>
@@ -73,7 +73,7 @@
     <dependency>
       <groupId>org.mariadb.jdbc</groupId>
       <artifactId>mariadb-java-client</artifactId>
-      <version>3.5.7</version>
+      <version>3.5.8</version>
     </dependency>
 
     <dependency>

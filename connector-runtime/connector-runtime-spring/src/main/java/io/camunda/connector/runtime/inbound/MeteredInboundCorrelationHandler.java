@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.client.CamundaClient;
 import io.camunda.connector.api.inbound.CorrelationRequest;
 import io.camunda.connector.api.inbound.CorrelationResult;
-import io.camunda.connector.feel.FeelExpressionEvaluator;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.metrics.ConnectorsInboundMetrics;
@@ -33,11 +32,10 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
 
   public MeteredInboundCorrelationHandler(
       CamundaClient camundaClient,
-      FeelExpressionEvaluator feelExpressionEvaluator,
       ObjectMapper objectMapper,
       Duration messageTtl,
       ConnectorsInboundMetrics connectorsInboundMetrics) {
-    super(camundaClient, feelExpressionEvaluator, objectMapper, messageTtl);
+    super(camundaClient, objectMapper, messageTtl);
     this.connectorsInboundMetrics = connectorsInboundMetrics;
   }
 
