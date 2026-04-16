@@ -15,8 +15,11 @@ fi
 # For thread pool metrics with virtual threads
 JAVA_OPTS="${JAVA_OPTS} --add-opens=java.base/java.util.concurrent=ALL-UNNAMED"
 
+# Configure loader.path for custom libraries
+JAVA_OPTS="${JAVA_OPTS} -Dloader.path=/opt/custom/*"
+
 if [[ -n ${DEBUG_JVM_PRINT_JAVA_OPTS} ]]; then
   echo "Applied JVM options: $JAVA_OPTS"
 fi
 
-exec java ${JAVA_OPTS} -cp "/opt/app/*:/opt/custom/*" "org.springframework.boot.loader.launch.PropertiesLauncher"
+exec java ${JAVA_OPTS} -cp "/opt/app/*" "org.springframework.boot.loader.launch.PropertiesLauncher"
