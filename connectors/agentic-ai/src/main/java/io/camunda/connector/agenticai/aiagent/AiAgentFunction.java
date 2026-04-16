@@ -37,9 +37,9 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGr
     description = "Execute a single AI-powered action with tool calling capabilities",
     metadata = @ElementTemplate.Metadata(keywords = {"AI", "AI Agent", "agentic orchestration"}),
     documentationRef =
-        "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
-    engineVersion = "^8.9",
-    version = 7,
+        "https://docs.camunda.io/docs/8.10/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-task/",
+    engineVersion = "^8.10",
+    version = 10,
     inputDataClass = OutboundConnectorAgentRequest.class,
     outputDataClass = AgentResponse.class,
     defaultResultVariable = "agent",

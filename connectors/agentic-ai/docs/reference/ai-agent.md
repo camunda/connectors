@@ -347,6 +347,7 @@ ConversationStore (registered backend)
     │
     ├── InProcessConversationStore
     ├── CamundaDocumentConversationStore
+    ├── AwsAgentCoreConversationStore
     └── Custom implementations
 ```
 
@@ -377,6 +378,16 @@ ConversationStore (registered backend)
 - On store: creates a **new document** each time (immutable documents), adds the previous reference to `previousDocuments`
 - Supports configurable TTL and custom properties
 - Supports transparent migration from `InProcessConversationContext`: if the context is in-process, it reads messages directly (no document to load)
+
+**AwsAgentCoreConversationStore** (`type = "aws-agentcore"`):
+- Stores messages as events in AWS Bedrock AgentCore Memory
+- Uses a **branch-per-turn** strategy for isolation: each agent turn writes to a fresh branch, so failed job completions leave orphaned branches that are invisible on retry
+- `AgentContext.conversation` contains `AwsAgentCoreConversationContext` with branch pointer (`branchName`, `lastEventId`) and system message
+- On load: `ListEvents` with branch filter + `includeParentBranches=true` returns the full conversation chain
+- On store: new messages written to a new branch forked from the previous turn's last event
+- Conversational payloads feed AWS long-term memory extraction; structured data (tool calls, results) stored as versioned blob envelopes
+- System messages preserved in context (AgentCore has no SYSTEM role)
+- See [AWS AgentCore Memory reference](aws-agentcore-memory.md) for full details
 
 **Custom implementations**: Fully pluggable via `ConversationStoreRegistry`. Users can register custom stores by:
 1. Implementing `ConversationStore` (with `executeInSession` callback), `ConversationSession`, and `ConversationContext`

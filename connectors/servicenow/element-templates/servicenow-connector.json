@@ -5,9 +5,25 @@
   "id": "io.camunda.connectors.ServiceNow.v1",
   "version": 1,
   "description": "Execute CRUD operations on any ServiceNow table",
-  "metadata": {
-    "keywords": []
-  },
+  "keywords": [
+    "create record",
+    "read record",
+    "update record",
+    "delete record",
+    "create ticket",
+    "get ticket",
+    "update ticket",
+    "delete ticket",
+    "incident",
+    "change request",
+    "service request",
+    "ITSM",
+    "IT service management",
+    "catalog item",
+    "change management",
+    "change task",
+    "service catalog"
+  ],
   "documentationRef": "https://docs.camunda.io/docs/components/camunda-integrations/servicenow/connectors/outbound-connector/",
   "category": {
     "id": "connectors",

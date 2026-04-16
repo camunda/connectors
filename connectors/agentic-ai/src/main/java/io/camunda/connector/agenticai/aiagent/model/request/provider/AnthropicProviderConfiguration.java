@@ -63,8 +63,9 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
                   "Specify the model ID. Details in the <a href=\"https://docs.anthropic.com/en/docs/about-claude/models/all-models\" target=\"_blank\">documentation</a>.",
               type = TemplateProperty.PropertyType.String,
               feel = FeelMode.optional,
-              defaultValue = "claude-3-5-sonnet-20240620",
+              defaultValue = "",
               defaultValueType = TemplateProperty.DefaultValueType.String,
+              placeholder = "claude-sonnet-4-6",
               constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
           String model,
       @Valid AnthropicModel.AnthropicModelParameters parameters) {

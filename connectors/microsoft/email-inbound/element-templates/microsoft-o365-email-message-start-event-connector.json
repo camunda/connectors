@@ -3,9 +3,15 @@
   "name" : "Microsoft O365 Email Message Start Event Connector",
   "id" : "io.camunda.connectors.inbound.MSFT.O365.EmailMessageStart.v1",
   "description" : "Poll M365 Outlook emails",
-  "metadata" : {
-    "keywords" : [ "email", "Office365", "Outlook" ]
-  },
+  "keywords" : [
+    "email received",
+    "receive email",
+    "new email",
+    "incoming email",
+    "email notification",
+    "inbox",
+    "poll email"
+  ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/",
   "version" : 1,
   "category" : {

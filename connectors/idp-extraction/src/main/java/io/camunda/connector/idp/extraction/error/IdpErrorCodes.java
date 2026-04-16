@@ -26,4 +26,7 @@ public interface IdpErrorCodes {
 
   /** Error code when document classification fails. */
   String CLASSIFICATION_FAILED = "CLASSIFICATION_FAILED";
+
+  /** Error code when prompt injection is detected in document content. */
+  String PROMPT_INJECTION_DETECTED = "PROMPT_INJECTION_DETECTED";
 }

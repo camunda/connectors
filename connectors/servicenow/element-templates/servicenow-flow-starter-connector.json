@@ -4,9 +4,14 @@
   "id": "io.camunda.connectors.ServiceNowFlow.v1",
   "version": 1,
   "description": "Start a ServiceNow flow from a Camunda process",
-  "metadata": {
-    "keywords": []
-  },
+  "keywords" : [
+    "trigger flow",
+    "start flow",
+    "ITSM",
+    "IT service management",
+    "automation",
+    "workflow trigger"
+  ],
   "documentationRef": "https://docs.camunda.io/docs/components/camunda-integrations/servicenow/connectors/flow-starter/",
   "category": {
     "id": "connectors",

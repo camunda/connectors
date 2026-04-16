@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Camunda Operate Outbound connector",
   "id": "io.camunda.connectors.CamundaOperate.v1",
-  "version": 5,
+  "version": 6,
   "engines": {
     "camunda": "^8.3"
   },
@@ -10,6 +10,20 @@
     "message": "Deprecation of the Operate API and Tasklist API. Please use the REST Connector for now.",
     "documentationRef": "https://docs.camunda.io/docs/apis-tools/working-with-apis-tools/"  },
   "description": "Fetch data from Camunda Operate API",
+  "keywords": [
+    "search process instances",
+    "get process instance by key",
+    "search incidents",
+    "get incident by key",
+    "search variables",
+    "get variable by key",
+    "search process definitions",
+    "get process definition by key",
+    "search flow node instances",
+    "get flow node instance by key",
+    "process monitoring",
+    "workflow status"
+  ],
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/operate/",
   "category": {
     "id": "connectors",
@@ -240,6 +254,22 @@
       },
       "constraints": {
         "notEmpty": true
+      }
+    },
+    {
+      "label": "Scopes",
+      "description": "Space-separated list of OAuth 2.0 scopes to request from the token endpoint. Required by some identity providers — e.g. for Microsoft Entra ID use <code>api://&lt;client-id&gt;/.default</code>",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.scopes"
+      },
+      "optional": true,
+      "condition": {
+        "property": "authentication.internal_deployment_type",
+        "equals": "sm"
       }
     },
     {
@@ -518,7 +548,7 @@
       "id": "version",
       "label": "Version",
       "description": "Version of the element template",
-      "value": "5",
+      "value": "6",
       "group": "connector",
       "binding": {
         "key": "elementTemplateVersion",

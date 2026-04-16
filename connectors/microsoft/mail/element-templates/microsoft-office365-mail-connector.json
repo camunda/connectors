@@ -3,6 +3,18 @@
   "name": "Microsoft Office 365 Mail Connector",
   "id": "io.camunda.connectors.MSFT.O365.Mail.v1",
   "description": "Work with Office 365 Mail via your BPMN process",
+  "keywords": [
+    "get mail folders",
+    "create mail folder",
+    "list messages",
+    "get messages",
+    "send email",
+    "send on behalf of",
+    "read email",
+    "inbox",
+    "compose email",
+    "email notification"
+  ],
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail/",
   "version": 3,
   "engines": {

@@ -3,9 +3,15 @@
   "name" : "Azure Blob Storage Outbound Connector",
   "id" : "io.camunda.connectors.azure.blobstorage.v1",
   "description" : "Upload and download files from Azure Blob Storage.",
-  "metadata" : {
-    "keywords" : [ "download file from azure blob storage", "upload file to azure blob storage" ]
-  },
+  "keywords" : [
+    "download blob",
+    "upload blob",
+    "download file",
+    "upload file",
+    "blob storage",
+    "file storage",
+    "cloud storage"
+  ],
   "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/",
   "version" : 2,
   "category" : {
