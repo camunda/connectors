@@ -122,8 +122,8 @@ jobs:
           
           # Output versions for use in later steps
           echo "maven_version=${FINAL_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "minor_version=${MINOR_VERSION}" >> "$GITHUB_OUTPUT"
           echo "docker_version=${DOCKER_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "docker_version=${MINOR_VERSION}-SNAPSHOT" >> "$GITHUB_OUTPUT"
           
           echo "::notice::Maven version set to: ${FINAL_VERSION}"
           echo "::notice::Docker version will be: ${DOCKER_VERSION}"
