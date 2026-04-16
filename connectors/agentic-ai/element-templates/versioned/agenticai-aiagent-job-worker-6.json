@@ -3,9 +3,7 @@
   "name" : "AI Agent Sub-process",
   "id" : "io.camunda.connectors.agenticai.aiagent.jobworker.v1",
   "description" : "Run a multi-step AI reasoning loop with dynamic tool selection",
-  "metadata" : {
-    "keywords" : [ "AI", "AI Agent", "agentic orchestration" ]
-  },
+  "keywords" : [ "AI", "AI Agent", "agentic orchestration", "tool calling", "LLM", "agent", "reasoning loop" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent-subprocess/",
   "version" : 6,
   "category" : {

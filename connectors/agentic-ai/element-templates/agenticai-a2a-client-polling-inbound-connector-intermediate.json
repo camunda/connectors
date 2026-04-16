@@ -3,9 +3,7 @@
   "name" : "A2A Client Polling Intermediate Catch Event Connector (early access)",
   "id" : "io.camunda.connectors.agenticai.a2a.client.polling.intermediate.v0",
   "description" : "Agent-to-Agent (A2A) polling inbound connector. Supports polling asynchronous tasks, but can also directly correlate messages and synchronously completed tasks.",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords" : [ "A2A", "agent-to-agent", "agentic orchestration", "multi-agent", "polling" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.9/components/early-access/alpha/a2a-client/a2a-client-polling-connector/",
   "version" : 0,
   "category" : {

@@ -3,9 +3,7 @@
   "name" : "Hybrid MCP Remote Client",
   "id" : "io.camunda.connectors.agenticai.mcp.remoteclient.v0-hybrid",
   "description" : "MCP (Model Context Protocol) client, operating on temporary remote connections.",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords" : [ "MCP", "Model Context Protocol", "AI tools", "agentic orchestration", "remote tools" ],
   "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-remote-client-connector/",
   "version" : 2,
   "category" : {

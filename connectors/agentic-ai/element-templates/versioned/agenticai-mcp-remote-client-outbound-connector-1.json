@@ -3,9 +3,7 @@
   "name" : "MCP Remote Client (early access)",
   "id" : "io.camunda.connectors.agenticai.mcp.remoteclient.v0",
   "description" : "MCP (Model Context Protocol) client, operating on temporary remote connections.",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords" : [ "MCP", "Model Context Protocol", "AI tools", "agentic orchestration", "remote tools" ],
   "version" : 1,
   "category" : {
     "id" : "connectors",
