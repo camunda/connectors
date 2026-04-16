@@ -21,3 +21,5 @@ renovate.json
 **/docker-images.properties
 .tool-versions
 **/pom.xml
+**/package.json
+**/package-lock.json
