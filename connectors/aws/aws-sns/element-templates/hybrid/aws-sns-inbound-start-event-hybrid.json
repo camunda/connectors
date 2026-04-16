@@ -3,6 +3,13 @@
   "name" : "Hybrid SNS HTTPS Start Event Connector",
   "id" : "io.camunda.connectors.inbound.AWSSNS.StartEvent.v1-hybrid",
   "description" : "Receive events from AWS SNS",
+  "keywords" : [
+    "receive event",
+    "receive message",
+    "notification",
+    "subscribe to topic",
+    "event driven"
+  ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=inbound",
   "version" : 4,
   "category" : {

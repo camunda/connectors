@@ -208,5 +208,15 @@ def updatedProperties = []
     }
 }
 
+// empty input mapping for local agent variable — must be last so it is
+// evaluated after the agentContext input has read =agent.context
+updatedProperties.add([
+    binding: [
+        name: "agent",
+        type: "zeebe:input"
+    ],
+    type: "Hidden"
+])
+
 json.put('properties', updatedProperties)
 mapper.writeValue(outputFilePath, json)

@@ -38,7 +38,7 @@ jobs:
           fetch-depth: 0
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ inputs.version }}
           name: ${{ inputs.version }}
@@ -72,6 +72,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
           fetch-depth: 0
+          persist-credentials: false # we will use a GitHub App token for pushing commits and tags, so we need to disable the default token
       - name: Install asdf & tools
         uses: asdf-vm/actions/install@v4
       - name: Install bc calculator
@@ -91,12 +92,6 @@ jobs:
           echo "releaseBranch=$releaseBranch" >> $GITHUB_OUTPUT
         env:
           RELEASE_VERSION: ${{ inputs.version }}
-
-      - uses: actions/checkout@v6
-        with:
-          token: ${{ secrets.PROTECTED_BRANCH_PAT }}
-          ref: ${{ github.ref }}
-          fetch-depth: 0
 
       - name: Prepare Java and Maven settings
         uses: actions/setup-java@v5
@@ -122,7 +117,7 @@ jobs:
           RELEASE_VERSION: ${{ inputs.version }}
 
       - name: Compile and Test
-        run: mvn -B -U package generate-sources source:jar javadoc:jar
+        run: mvn -B -U package generate-sources source:jar javadoc:jar -Pe2eExcluded
 
       - name: Publish Test Report
         if: always()
@@ -139,6 +134,25 @@ jobs:
         run: |
           mvn cyclonedx:makeAggregateBom -pl bundle/default-bundle
 
+      - name: Import Secrets
+        id: vault-secrets
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            secret/data/products/connectors/ci/common GITHUB_APP_ID;
+            secret/data/products/connectors/ci/common GITHUB_APP_PRIVATE_KEY;
+
+      - name: Generate a GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ steps.vault-secrets.outputs.GITHUB_APP_ID }}
+          private-key: ${{ steps.vault-secrets.outputs.GITHUB_APP_PRIVATE_KEY }}
+
       - name: Configure git user
         run: |
           # https://github.com/actions/checkout/issues/13#issuecomment-724415212
@@ -147,6 +161,12 @@ jobs:
 
       - name: Commit and tag
         run: |
+          # IMPORTANT: Use the GitHub App token (not GITHUB_TOKEN) for pushing commits and tags.
+          # GitHub Actions does not trigger downstream workflows (e.g. CHECK_LICENSES / FOSSA scan)
+          # when pushes are made with GITHUB_TOKEN. An App token (or PAT) is required so that the
+          # tag push triggers the license-check workflow for the release.
+          # See: https://docs.github.com/actions/using-workflows/triggering-a-workflow
+          git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           # check if worktree is empty
           if [ -z "$(git status --porcelain)" ]; then
               echo "No changes to commit"
@@ -159,6 +179,7 @@ jobs:
         env:
           RELEASE_VERSION: ${{ inputs.version }}
           RELEASE_BRANCH: ${{ needs.setup.outputs.releaseBranch }}
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Upload repository
         uses: actions/upload-artifact@v7
@@ -168,8 +189,80 @@ jobs:
           include-hidden-files: 'true'
 
 
-  version-bump-docs-links:
+  e2e-tests:
     needs: setup
+    name: Run E2E tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+    steps:
+      - name: Download repository
+        uses: actions/download-artifact@v8
+        with:
+          name: repository
+
+      - name: Prepare Java and Maven settings
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21.0.9'
+
+      - name: Restore cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false
+          secrets: |
+            secret/data/products/connectors/ci/common ARTIFACTORY_USR | CI_LDAP_USER;
+            secret/data/products/connectors/ci/common ARTIFACTORY_PSW | CI_LDAP_PASSWORD;
+
+      - name: 'Create settings.xml'
+        uses: s4u/maven-settings-action@v4.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.CI_LDAP_USER }}",
+               "password": "${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}"
+             }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*,!confluent,!shibboleth", "name": "camunda Nexus"}]'
+
+      - name: Install artifacts
+        run: mvn -B install -DskipTests -DskipChecks -Pe2eExcluded
+
+      - name: Run E2E tests
+        run: mvn -B verify -f connectors-e2e-test/pom.xml
+
+      - name: Publish Test Report
+        if: always()
+        uses: scacap/action-surefire-report@v1
+        with:
+          report_paths: 'connectors-e2e-test/**/target/surefire-reports/*.xml'
+
+      - name: Upload detailed surefire reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-surefire-reports
+          path: 'connectors-e2e-test/**/target/surefire-reports/*.xml'
+
+
+  version-bump-docs-links:
+    needs: [setup, e2e-tests]
     name: Version bump documentation links, if this is the first minor release
     runs-on: ubuntu-latest
     permissions:
@@ -230,7 +323,7 @@ jobs:
             This bumps docs version of latest's element templates of a connector to latest minor version.
 
   maven-release:
-    needs: setup
+    needs: [setup, e2e-tests]
     name: Create a maven release
     runs-on: ubuntu-latest
     if: ${{ !inputs.skip-maven-release }}
@@ -331,7 +424,7 @@ jobs:
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
 
   docker-release:
-    needs: setup
+    needs: [setup, e2e-tests]
     runs-on: ubuntu-latest
     name: Perform the docker release
     if: ${{ !inputs.skip-docker-release }}
@@ -480,7 +573,7 @@ jobs:
           short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
 
   bundle-and-build-changelog:
-    needs: setup
+    needs: [setup, e2e-tests]
     name: Bundle and generate changelogs
     runs-on: ubuntu-latest
     permissions:
@@ -509,7 +602,7 @@ jobs:
           excludeScopes: deps
 
       - name: Update GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           prerelease: ${{ needs.setup.outputs.tagType != 'NORMAL' }}
           make_latest: ${{ (inputs.latest && needs.setup.outputs.tagType == 'NORMAL') && 'true' || 'false' }}
@@ -522,7 +615,7 @@ jobs:
             connectors-bundle-templates-${{ inputs.version }}.zip
 
   helm-deploy:
-    needs: [ setup, docker-release ]
+    needs: [ setup, e2e-tests, docker-release ]
     if: ${{ !inputs.skip-docker-release }}
     name: Run Helm Integration Tests
     uses: ./.github/workflows/INTEGRATION_TEST.yml
@@ -539,6 +632,7 @@ jobs:
     name: Create FOSSA releases and generate attribution/SBOM reports
     needs:
       - setup
+      - e2e-tests
       - maven-release
       - docker-release
       - bundle-and-build-changelog
@@ -549,6 +643,7 @@ jobs:
 
     if: |
       needs.setup.result == 'success' &&
+      needs.e2e-tests.result == 'success' &&
       (needs.maven-release.result == 'success' || needs.maven-release.result == 'skipped') &&
       (needs.docker-release.result == 'success' || needs.docker-release.result == 'skipped') &&
       needs.bundle-and-build-changelog.result == 'success' &&
@@ -571,16 +666,16 @@ jobs:
             secret/data/products/connectors/ci/common FOSSA_API_KEY;
       - name: Get FOSSA context
         id: fossa-context
-        uses: camunda/infra-global-github-actions/fossa/info@f1e3f2a996b65d79f5a3185e3c76d4653dec5f83
+        uses: camunda/infra-global-github-actions/fossa/info@b20a0e8f64ea6554900bab2d3fb3906be613aa19
       - name: Wait for FOSSA scan completion
-        uses: camunda/infra-global-github-actions/fossa/wait-for-scan@f1e3f2a996b65d79f5a3185e3c76d4653dec5f83
+        uses: camunda/infra-global-github-actions/fossa/wait-for-scan@b20a0e8f64ea6554900bab2d3fb3906be613aa19
         with:
           api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           branch: ${{ steps.fossa-context.outputs.head-ref }}
           project-id: "custom+50756/camunda/connectors"
           revision-id: ${{ steps.fossa-context.outputs.head-revision }}
       - name: Create FOSSA releases and generate reports
-        uses: camunda/infra-global-github-actions/fossa/release@f1e3f2a996b65d79f5a3185e3c76d4653dec5f83
+        uses: camunda/infra-global-github-actions/fossa/release@b20a0e8f64ea6554900bab2d3fb3906be613aa19
         with:
           api-key: ${{ steps.secrets.outputs.FOSSA_API_KEY }}
           branch: ${{ steps.fossa-context.outputs.head-ref }}
@@ -596,6 +691,7 @@ jobs:
     name: Notify PRs that they have been released
     needs:
       - setup
+      - e2e-tests
       - maven-release
       - docker-release
       - bundle-and-build-changelog
@@ -609,6 +705,7 @@ jobs:
     if: |
       !contains(inputs.version, 'rc') &&
       needs.setup.result == 'success' &&
+      needs.e2e-tests.result == 'success' &&
       needs.maven-release.result == 'success' &&
       needs.docker-release.result == 'success' &&
       needs.bundle-and-build-changelog.result == 'success'

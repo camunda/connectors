@@ -3,9 +3,13 @@
   "name" : "Hybrid AWS Lambda Outbound Connector",
   "id" : "io.camunda.connectors.AWSLAMBDA.v2-hybrid",
   "description" : "Invoke AWS Lambda functions.",
-  "metadata" : {
-    "keywords" : [ "invoke function", "run function" ]
-  },
+  "keywords" : [
+    "invoke function",
+    "execute function",
+    "run function",
+    "serverless",
+    "function as a service"
+  ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/",
   "version" : 6,
   "category" : {

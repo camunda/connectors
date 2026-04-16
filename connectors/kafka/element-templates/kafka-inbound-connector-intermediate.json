@@ -3,9 +3,14 @@
   "name" : "Kafka Intermediate Catch Event Connector",
   "id" : "io.camunda.connectors.inbound.KafkaIntermediate.v1",
   "description" : "Consume Kafka messages",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords" : [
+    "receive message",
+    "consume message",
+    "event streaming",
+    "subscribe to topic",
+    "message queue",
+    "stream data"
+  ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound",
   "version" : 7,
   "category" : {
@@ -133,6 +138,7 @@
       "name" : "groupId",
       "type" : "zeebe:property"
     },
+    "tooltip" : "It is strongly recommended to provide an explicit consumer group ID. Use a stable, application-specific identifier that represents the logical consumer group in your application (for example, <code>my-app-order-processor</code>). Leaving this empty auto-generates an ID that may change across connector upgrades, causing message replay.",
     "type" : "String"
   }, {
     "id" : "additionalProperties",

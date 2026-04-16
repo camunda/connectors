@@ -17,4 +17,6 @@ closes #
       *release has already been created*. The release branch will be merged back into stable/8.8 later, so the change
       will be included in future 8.8.x releases as well.
 - [ ] Tests/Integration tests for the changes have been added if applicable.
+- [ ] If the change requires a documentation update, it has been added to the appropriate section in the documentation.
+
 

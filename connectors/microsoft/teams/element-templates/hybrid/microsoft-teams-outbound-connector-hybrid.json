@@ -3,9 +3,26 @@
   "name" : "Hybrid Microsoft Teams Outbound Connector",
   "id" : "io.camunda.connectors.MSTeams.v1-hybrid",
   "description" : "Create, update, and send a message to your Microsoft Teams",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords" : [
+    "create chat",
+    "get chat by ID",
+    "list chats",
+    "list chat members",
+    "send message in chat",
+    "list messages in chat",
+    "create channel",
+    "get channel",
+    "list channels",
+    "send message to channel",
+    "list channel messages",
+    "list message replies",
+    "list members",
+    "chat",
+    "messaging",
+    "team",
+    "channel",
+    "notification"
+  ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/",
   "version" : 6,
   "category" : {

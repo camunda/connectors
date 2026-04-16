@@ -10,16 +10,18 @@ import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import io.camunda.connector.idp.extraction.client.ai.base.AiClient;
 import io.camunda.connector.idp.extraction.model.ConverseData;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class OpenAiClient extends AiClient {
 
   public OpenAiClient(String endpoint, Map<String, String> headers, ConverseData converseData) {
+    var sanitizedHeaders = sanitizeHeaderValues(headers);
     var builder =
         OpenAiChatModel.builder()
             .baseUrl(endpoint)
             .modelName(converseData.modelId())
-            .customHeaders(headers)
+            .customHeaders(sanitizedHeaders)
             .responseFormat(ResponseFormat.JSON);
 
     // Commenting out the max tokens assignment because it negatively impacts responses
@@ -36,5 +38,31 @@ public class OpenAiClient extends AiClient {
     }
 
     this.chatModel = builder.build();
+  }
+
+  /**
+   * Sanitizes header values by replacing characters outside the RFC 7230 field-value range (e.g.,
+   * Unicode Line Separator U+2028, control characters) with regular spaces, and stripping
+   * leading/trailing whitespace. Headers with null or blank values are skipped. This prevents JDK
+   * HttpClient from rejecting headers containing invisible characters introduced by copy-paste
+   * artifacts or secret store formatting.
+   */
+  private static Map<String, String> sanitizeHeaderValues(Map<String, String> headers) {
+    Map<String, String> sanitized = new LinkedHashMap<>(headers.size());
+    for (var entry : headers.entrySet()) {
+      String value = sanitizeHeaderValue(entry.getValue());
+      if (value != null) {
+        sanitized.put(entry.getKey(), value);
+      }
+    }
+    return sanitized;
+  }
+
+  private static String sanitizeHeaderValue(String value) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    // Replace characters outside the RFC 7230 field-value range with spaces
+    return value.replaceAll("[^\\x09\\x20-\\x7E\\x80-\\xFF]", " ").strip();
   }
 }

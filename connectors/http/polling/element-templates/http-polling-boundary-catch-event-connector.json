@@ -3,9 +3,16 @@
   "name" : "HTTP Polling Boundary Catch Event Connector",
   "id" : "io.camunda.connectors.http.Polling.Boundary",
   "description" : "Polls endpoint at regular intervals",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords" : [
+    "poll",
+    "polling",
+    "HTTP",
+    "REST",
+    "wait for response",
+    "check status",
+    "periodic request",
+    "HTTP callback"
+  ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/polling/",
   "version" : 5,
   "category" : {

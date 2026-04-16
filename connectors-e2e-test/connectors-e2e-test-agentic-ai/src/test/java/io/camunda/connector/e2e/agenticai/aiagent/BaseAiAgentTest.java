@@ -53,7 +53,7 @@ public abstract class BaseAiAgentTest extends BaseAgenticAiTest {
       new AtomicReference<>(Collections.emptyMap());
 
   @BeforeEach
-  void clearDocumentationStore() {
+  void clearDocumentStore() {
     InMemoryDocumentStore.INSTANCE.clear();
   }
 
