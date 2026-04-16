@@ -16,7 +16,7 @@ fi
 JAVA_OPTS="${JAVA_OPTS} --add-opens=java.base/java.util.concurrent=ALL-UNNAMED"
 
 # Configure loader.path for custom libraries
-JAVA_OPTS="${JAVA_OPTS} -Dloader.path=/opt/custom/*"
+JAVA_OPTS="${JAVA_OPTS} -Dloader.path=/opt/custom/"
 
 if [[ -n ${DEBUG_JVM_PRINT_JAVA_OPTS} ]]; then
   echo "Applied JVM options: $JAVA_OPTS"
