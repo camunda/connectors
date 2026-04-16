@@ -78,7 +78,6 @@
       </dependency>
       <dependency>
         <groupId>io.camunda.connector</groupId>
-<<<<<<< HEAD
         <artifactId>connector-aws-bedrock-knowledgebase</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -89,21 +88,16 @@
       </dependency>
       <dependency>
         <groupId>io.camunda.connector</groupId>
-=======
->>>>>>> tshepo-aws-bedrock-agentcore-runtime
         <artifactId>connector-aws-bedrock-agentcore-runtime</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>io.camunda.connector</groupId>
-<<<<<<< HEAD
         <artifactId>connector-aws-bedrock-agentcore-lt-memory</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>io.camunda.connector</groupId>
-=======
->>>>>>> tshepo-aws-bedrock-agentcore-runtime
         <artifactId>connector-aws-sns</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -200,6 +194,11 @@
       <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-aws-s3</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-aws-bedrock-agentcore-lt-memory</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
