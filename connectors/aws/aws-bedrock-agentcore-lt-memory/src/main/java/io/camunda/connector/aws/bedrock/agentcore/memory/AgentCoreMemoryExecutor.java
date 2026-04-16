@@ -110,7 +110,10 @@ public class AgentCoreMemoryExecutor {
                 .collect(
                     Collectors.toMap(
                         Map.Entry::getKey,
-                        e -> e.getValue() != null ? (Object) e.getValue().stringValue() : ""))
+                        e ->
+                            e.getValue() != null && e.getValue().stringValue() != null
+                                ? (Object) e.getValue().stringValue()
+                                : ""))
             : Map.of());
   }
 
