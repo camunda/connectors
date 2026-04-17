@@ -19,6 +19,7 @@ USER 1001:1001
 ENV CAMUNDA_CONNECTOR_RUNTIME_SAAS=true
 ENV CAMUNDA_CLIENT_AUTH_CREDENTIALS_CACHE_PATH=/tmp/connectors
 ENV MANAGEMENT_SERVER_PORT=9080
+ENV HEALTHCHECK_URL=http://localhost:9080/actuator/health/readiness
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=5 --start-period=30s \
   CMD java -cp /opt/app/*-with-dependencies.jar \

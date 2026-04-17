@@ -26,11 +26,12 @@ import java.net.URI;
  * <p>Checks the Spring Boot Actuator readiness endpoint and exits with code 0 on success (HTTP 200)
  * or code 1 on failure.
  *
- * <p>The server port and base path can be configured via environment variables:
+ * <p>The health check URL can be configured via environment variables:
  *
  * <ul>
- *   <li>{@code SERVER_PORT} — defaults to {@code 8080}
+ *   <li>{@code HEALTHCHECK_URL} — full URL override; if set, all other variables are ignored
  *   <li>{@code MANAGEMENT_SERVER_PORT} — if set, takes precedence over {@code SERVER_PORT}
+ *   <li>{@code SERVER_PORT} — defaults to {@code 8080}
  *   <li>{@code MANAGEMENT_SERVER_BASE_PATH} — defaults to {@code /actuator}
  * </ul>
  */
@@ -39,9 +40,7 @@ public class HealthCheckCommand {
   public static void main(String[] args) {
     HttpURLConnection connection = null;
     try {
-      String port = resolvePort();
-      String basePath = resolveBasePath();
-      String url = "http://localhost:" + port + basePath + "/health/readiness";
+      String url = resolveUrl();
 
       connection = (HttpURLConnection) URI.create(url).toURL().openConnection();
       connection.setRequestMethod("GET");
@@ -63,6 +62,14 @@ public class HealthCheckCommand {
         connection.disconnect();
       }
     }
+  }
+
+  private static String resolveUrl() {
+    String url = System.getenv("HEALTHCHECK_URL");
+    if (url != null && !url.isBlank()) {
+      return url;
+    }
+    return "http://localhost:" + resolvePort() + resolveBasePath() + "/health/readiness";
   }
 
   private static String resolvePort() {
