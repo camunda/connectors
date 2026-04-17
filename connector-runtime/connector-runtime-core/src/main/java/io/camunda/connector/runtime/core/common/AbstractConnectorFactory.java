@@ -37,7 +37,11 @@ public abstract class AbstractConnectorFactory<T, C extends ConnectorConfigurati
       new DisabledConnectorEnvVarsConfig();
 
   public record ConnectorRuntimeConfiguration<T extends ConnectorConfiguration>(
-      T config, boolean isActive) {}
+      T config, boolean isActive) {
+    public Optional<T> getActiveConfig() {
+      return isActive ? Optional.of(config) : Optional.empty();
+    }
+  }
 
   private Map<String, ConnectorRuntimeConfiguration<C>> configurations = new HashMap<>();
 
@@ -49,15 +53,13 @@ public abstract class AbstractConnectorFactory<T, C extends ConnectorConfigurati
   @Override
   public List<C> getActiveConfigurations() {
     return configurations.values().stream()
-        .filter(ConnectorRuntimeConfiguration::isActive)
-        .map(ConnectorRuntimeConfiguration::config)
+        .flatMap(configuration -> configuration.getActiveConfig().stream())
         .collect(Collectors.toList());
   }
 
   protected Optional<C> getActiveConfiguration(String type) {
     return Optional.ofNullable(configurations.get(type))
-        .filter(ConnectorRuntimeConfiguration::isActive)
-        .map(ConnectorRuntimeConfiguration::config);
+        .flatMap(ConnectorRuntimeConfiguration::getActiveConfig);
   }
 
   /**
