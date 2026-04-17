@@ -34,16 +34,22 @@ import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactor
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
+import io.camunda.connector.runtime.instances.service.OutboundConnectorsService;
+import io.camunda.connector.runtime.outbound.controller.OutboundConnectorsRestController;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import java.util.List;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 
 @Configuration
+@Import(OutboundConnectorsRestController.class)
 public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
+  @ConditionalOnMissingBean(OutboundConnectorFactory.class)
   public DefaultOutboundConnectorFactory outboundConnectorConfigurationRegistry(
       @ConnectorsObjectMapper ObjectMapper mapper,
       ValidationProvider validationProvider,
@@ -68,6 +74,12 @@ public class OutboundConnectorRuntimeConfiguration {
   @Bean
   ValidationProvider validationProvider() {
     return ValidationUtil.discoverDefaultValidationProviderImplementation();
+  }
+
+  @Bean
+  public OutboundConnectorsService outboundConnectorsService(
+      OutboundConnectorFactory outboundConnectorConfigurationRegistry) {
+    return new OutboundConnectorsService(outboundConnectorConfigurationRegistry);
   }
 
   @Bean

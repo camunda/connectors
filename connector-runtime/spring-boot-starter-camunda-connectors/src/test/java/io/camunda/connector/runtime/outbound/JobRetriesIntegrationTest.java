@@ -224,7 +224,7 @@ public class JobRetriesIntegrationTest {
     @Primary
     public OutboundConnectorFactory mockConnectorFactory() {
       var mock = Mockito.mock(OutboundConnectorFactory.class);
-      when(mock.getConfigurations())
+      when(mock.getActiveConfigurations())
           .thenReturn(
               Arrays.asList(
                   new OutboundConnectorConfiguration(

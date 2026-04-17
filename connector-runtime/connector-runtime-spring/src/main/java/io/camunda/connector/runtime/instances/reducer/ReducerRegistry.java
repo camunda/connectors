@@ -20,27 +20,40 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import io.camunda.connector.runtime.inbound.controller.ActiveInboundConnectorResponse;
 import io.camunda.connector.runtime.inbound.executable.ConnectorInstances;
 import io.camunda.connector.runtime.instances.InstanceAwareModel;
+import io.camunda.connector.runtime.outbound.controller.OutboundConnectorResponse;
 import java.lang.reflect.Type;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ReducerRegistry {
-  private final Map<Type, Reducer<?>> reducers =
-      Map.of(
-          new TypeReference<ConnectorInstances>() {}.getType(),
-          new ConnectorInstancesReducer(),
-          new TypeReference<List<ConnectorInstances>>() {}.getType(),
-          new ConnectorInstancesListReducer(),
-          new TypeReference<ActiveInboundConnectorResponse>() {}.getType(),
-          new ActiveInboundConnectorResponseReducer(),
-          new TypeReference<List<InstanceAwareModel.InstanceAwareActivity>>() {}.getType(),
-          Reducers.mergeListsReducer(),
-          new TypeReference<
-              List<Collection<InstanceAwareModel.InstanceAwareActivity>>>() {}.getType(),
-          Reducers.mergeListsReducer(),
-          new TypeReference<List<InstanceAwareModel.InstanceAwareHealth>>() {}.getType(),
-          Reducers.mergeListsReducer());
+  private final Map<Type, Reducer<?>> reducers;
+
+  public ReducerRegistry() {
+    reducers = new HashMap<>();
+    reducers.put(
+        new TypeReference<ConnectorInstances>() {}.getType(), new ConnectorInstancesReducer());
+    reducers.put(
+        new TypeReference<List<ConnectorInstances>>() {}.getType(),
+        new ConnectorInstancesListReducer());
+    reducers.put(
+        new TypeReference<ActiveInboundConnectorResponse>() {}.getType(),
+        new ActiveInboundConnectorResponseReducer());
+    reducers.put(
+        new TypeReference<List<InstanceAwareModel.InstanceAwareActivity>>() {}.getType(),
+        Reducers.mergeListsReducer());
+    reducers.put(
+        new TypeReference<
+            List<Collection<InstanceAwareModel.InstanceAwareActivity>>>() {}.getType(),
+        Reducers.mergeListsReducer());
+    reducers.put(
+        new TypeReference<List<InstanceAwareModel.InstanceAwareHealth>>() {}.getType(),
+        Reducers.mergeListsReducer());
+    reducers.put(
+        new TypeReference<List<OutboundConnectorResponse>>() {}.getType(),
+        Reducers.mergeListsReducer());
+  }
 
   @SuppressWarnings("unchecked")
   public <T> Reducer<T> getReducer(TypeReference<T> typeRef) {

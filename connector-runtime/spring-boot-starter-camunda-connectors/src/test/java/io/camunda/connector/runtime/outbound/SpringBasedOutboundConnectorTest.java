@@ -36,7 +36,7 @@ public class SpringBasedOutboundConnectorTest {
   @Test
   void springBasedConnectorPresent() throws Exception {
     var connectorConfig =
-        outboundConnectorFactory.getConfigurations().stream()
+        outboundConnectorFactory.getActiveConfigurations().stream()
             .filter(c -> c.name().equals("TEST_SPRING"))
             .findFirst()
             .get();
