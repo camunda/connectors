@@ -58,7 +58,7 @@ public class InboundExecutableRegistryTest {
   @BeforeEach
   public void prepareMocks() {
     factory = mock(InboundConnectorFactory.class);
-    when(factory.getConfigurations()).thenReturn(List.of());
+    when(factory.getActiveConfigurations()).thenReturn(List.of());
     contextFactory = mock(DefaultInboundConnectorContextFactory.class);
     var inboundMetrics = mock(ConnectorsInboundMetrics.class);
     batchProcessor =

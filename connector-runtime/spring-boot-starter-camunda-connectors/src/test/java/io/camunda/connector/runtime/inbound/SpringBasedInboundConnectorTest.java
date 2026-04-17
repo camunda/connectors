@@ -34,7 +34,7 @@ public class SpringBasedInboundConnectorTest {
   @Test
   void springBasedConnectorPresent() {
     var connectorConfig =
-        inboundConnectorFactory.getConfigurations().stream()
+        inboundConnectorFactory.getActiveConfigurations().stream()
             .filter(c -> c.name().equals("TEST_INBOUND_SPRING"))
             .findFirst()
             .get();

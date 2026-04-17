@@ -55,7 +55,7 @@ public class DefaultInboundConnectorFactory
       input = SPIConnectorDiscovery.discoverInbound();
     }
     initializeConfigurations(input);
-    var config = getConfigurations();
+    var config = getActiveConfigurations();
     if (!config.isEmpty()) {
       LOG.debug("Registered inbound connectors: {}", config);
     } else {
