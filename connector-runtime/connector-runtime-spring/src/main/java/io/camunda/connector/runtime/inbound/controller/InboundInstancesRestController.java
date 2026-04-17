@@ -27,7 +27,6 @@ import io.camunda.connector.runtime.instances.service.InstanceForwardingRouter;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
@@ -49,7 +48,7 @@ public class InboundInstancesRestController {
   private String hostname;
 
   public InboundInstancesRestController(
-      @Autowired(required = false) InstanceForwardingRouter instanceForwardingRouter,
+      InstanceForwardingRouter instanceForwardingRouter,
       InboundInstancesService inboundInstancesService) {
     this.instanceForwardingRouter = instanceForwardingRouter;
     this.inboundInstancesService = inboundInstancesService;
