@@ -19,15 +19,15 @@ package io.camunda.connector.runtime.outbound.job;
 import static java.util.Objects.requireNonNullElse;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.client.api.command.FinalCommandStep;
+import io.camunda.client.api.command.JobCallbackFinalCommandStep;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.response.CompleteJobResponse;
 import io.camunda.client.api.response.FailJobResponse;
 import io.camunda.client.api.response.ThrowErrorResponse;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.api.worker.JobHandler;
-import io.camunda.client.jobhandling.CommandExceptionHandlingStrategy;
-import io.camunda.client.jobhandling.CommandWrapper;
+import io.camunda.client.jobhandling.CommandOutcome;
+import io.camunda.client.jobhandling.JobCallbackCommandWrapperFactory;
 import io.camunda.client.metrics.MetricsRecorder;
 import io.camunda.client.metrics.MetricsRecorder.CounterMetricsContext;
 import io.camunda.client.metrics.MetricsRecorder.TimerMetricsContext;
@@ -58,6 +58,7 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +73,7 @@ public class SpringConnectorJobHandler implements JobHandler {
   private static final Logger LOGGER = LoggerFactory.getLogger(SpringConnectorJobHandler.class);
   private static final int MAX_ZEEBE_COMMAND_RETRIES = 3;
   private final OutboundConnectorFunction call;
-  private final CommandExceptionHandlingStrategy commandExceptionHandlingStrategy;
+  private final JobCallbackCommandWrapperFactory jobCallbackCommandWrapperFactory;
   private final MetricsRecorder connectorsOutboundMetrics;
   private final OutboundConnectorExceptionHandler outboundConnectorExceptionHandler;
   private final ConnectorResultHandler connectorResultHandler;
@@ -83,7 +84,7 @@ public class SpringConnectorJobHandler implements JobHandler {
 
   public SpringConnectorJobHandler(
       MetricsRecorder outboundMetrics,
-      CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
+      JobCallbackCommandWrapperFactory jobCallbackCommandWrapperFactory,
       SecretProviderAggregator secretProviderAggregator,
       ValidationProvider validationProvider,
       DocumentFactory documentFactory,
@@ -97,7 +98,7 @@ public class SpringConnectorJobHandler implements JobHandler {
     this.outboundConnectorExceptionHandler =
         new OutboundConnectorExceptionHandler(getSecretProvider());
     this.connectorResultHandler = new ConnectorResultHandler(objectMapper);
-    this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
+    this.jobCallbackCommandWrapperFactory = jobCallbackCommandWrapperFactory;
     this.connectorsOutboundMetrics = outboundMetrics;
   }
 
@@ -296,23 +297,18 @@ public class SpringConnectorJobHandler implements JobHandler {
     }
   }
 
-  private void failJob(
+  private CompletableFuture<CommandOutcome> failJob(
       JobClient client,
       ActivatedJob job,
       ConnectorResult.ErrorResult result,
       CounterMetricsContext counterMetricsContext) {
-    FinalCommandStep<FailJobResponse> commandStep = prepareFailJobCommand(client, job, result);
-    new CommandWrapper(
-            commandStep,
-            job,
-            commandExceptionHandlingStrategy,
-            connectorsOutboundMetrics,
-            counterMetricsContext,
-            MAX_ZEEBE_COMMAND_RETRIES)
+    final var command = prepareFailJobCommand(client, job, result);
+    return jobCallbackCommandWrapperFactory
+        .create(command, job.getDeadline(), counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
         .executeAsync();
   }
 
-  private static FinalCommandStep<FailJobResponse> prepareFailJobCommand(
+  private static JobCallbackFinalCommandStep<FailJobResponse> prepareFailJobCommand(
       JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
     var retries = result.retries();
     var baseMessage = result.exception().getMessage();
@@ -334,24 +330,18 @@ public class SpringConnectorJobHandler implements JobHandler {
     return command;
   }
 
-  private void throwBpmnError(
+  private CompletableFuture<CommandOutcome> throwBpmnError(
       JobClient client,
       ActivatedJob job,
       BpmnError value,
       CounterMetricsContext counterMetricsContext) {
-    FinalCommandStep<ThrowErrorResponse> commandStep =
-        prepareThrowBpmnErrorCommand(client, job, value);
-    new CommandWrapper(
-            commandStep,
-            job,
-            commandExceptionHandlingStrategy,
-            connectorsOutboundMetrics,
-            counterMetricsContext,
-            MAX_ZEEBE_COMMAND_RETRIES)
+    final var command = prepareThrowBpmnErrorCommand(client, job, value);
+    return jobCallbackCommandWrapperFactory
+        .create(command, job.getDeadline(), counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
         .executeAsync();
   }
 
-  private static FinalCommandStep<ThrowErrorResponse> prepareThrowBpmnErrorCommand(
+  private static JobCallbackFinalCommandStep<ThrowErrorResponse> prepareThrowBpmnErrorCommand(
       JobClient client, ActivatedJob job, BpmnError error) {
     var command =
         client.newThrowErrorCommand(job).errorCode(error.errorCode()).variables(error.variables());
@@ -362,37 +352,33 @@ public class SpringConnectorJobHandler implements JobHandler {
     return command;
   }
 
-  private void completeJob(
+  private CompletableFuture<CommandOutcome> completeJob(
       JobClient client,
       ActivatedJob job,
       ConnectorResult.SuccessResult result,
       CounterMetricsContext counterMetricsContext) {
     ConnectorResponse connectorResponse = result.connectorResponse();
 
-    FinalCommandStep<CompleteJobResponse> commandStep =
+    final var command =
         switch (connectorResponse) {
           case StandardConnectorResponse ignored -> prepareCompleteJobCommand(client, job, result);
           case AdHocSubProcessConnectorResponse ahsp ->
               prepareAdHocSubProcessCompleteJobCommand(client, job, ahsp);
         };
 
-    new CommandWrapper(
-            commandStep,
-            job,
-            commandExceptionHandlingStrategy,
-            connectorsOutboundMetrics,
-            counterMetricsContext,
-            MAX_ZEEBE_COMMAND_RETRIES)
+    return jobCallbackCommandWrapperFactory
+        .create(command, job.getDeadline(), counterMetricsContext, MAX_ZEEBE_COMMAND_RETRIES)
         .executeAsync();
   }
 
-  private static FinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(
+  private static JobCallbackFinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(
       JobClient client, ActivatedJob job, ConnectorResult.SuccessResult result) {
     return client.newCompleteCommand(job).variables(result.variables());
   }
 
-  private static FinalCommandStep<CompleteJobResponse> prepareAdHocSubProcessCompleteJobCommand(
-      JobClient client, ActivatedJob job, AdHocSubProcessConnectorResponse connectorResponse) {
+  private static JobCallbackFinalCommandStep<CompleteJobResponse>
+      prepareAdHocSubProcessCompleteJobCommand(
+          JobClient client, ActivatedJob job, AdHocSubProcessConnectorResponse connectorResponse) {
     Map<String, Object> variables = requireNonNullElse(connectorResponse.variables(), Map.of());
     return client
         .newCompleteCommand(job)
