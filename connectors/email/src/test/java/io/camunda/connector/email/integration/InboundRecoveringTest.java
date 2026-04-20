@@ -98,7 +98,7 @@ public class InboundRecoveringTest extends BaseEmailTest {
       intermittently captures and reports them as test failures.
       Tracked in: https://github.com/camunda/connectors/issues/6819
       """)
-  @Test
+  // @Test
   public void pollingManagerBreaksAndRecoverAfterServerNotResponding() throws Exception {
     JakartaEmailListener jakartaEmailListener = new JakartaEmailListener();
     try (ImapServerProxy proxyImap =
