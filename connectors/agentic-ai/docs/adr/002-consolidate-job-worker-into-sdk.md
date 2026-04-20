@@ -51,14 +51,13 @@ Zeebe complete command with `.withResult().forAdHocSubProcess()` configuration. 
 - Future SDK improvements automatically apply to both AI Agent flavors
 
 **Negative:**
-- Job completion callbacks (success/error notification) are not yet supported — the callback mechanism on
-  `CommandWrapper` needs to be implemented in a follow-up
-- `ConversationStore.compensateFailedJobCompletion()` is deprecated and currently not invoked — it will be removed once completion callbacks are implemented
+- ~~Job completion callbacks were not yet supported~~ — resolved: `JobCompletionListener` added to
+  the SDK, wired via `JobCallbackCommandWrapperFactory` in the runtime
+- ~~`ConversationStore.compensateFailedJobCompletion()` was deprecated~~ — resolved: removed and
+  replaced by `onJobCompleted` / `onJobCompletionFailed` hooks
 
 ### Future improvements
 
-- **Completion callbacks**: Extend `ConnectorResponse` with `onCompletionSuccess`/`onCompletionError` callbacks once
-  `CommandWrapper` supports command outcome notification
 - **`cancelRemainingInstances` flag**: The mutable flag on `JobWorkerAgentExecutionContext` (set in
   `handleAddedUserMessages()`, read in `buildConnectorResponse()`) can be simplified by moving interrupted-tool-call detection
   into `buildResponse()` via `executionContext.initialToolCallResults()`, eliminating the mutable state
