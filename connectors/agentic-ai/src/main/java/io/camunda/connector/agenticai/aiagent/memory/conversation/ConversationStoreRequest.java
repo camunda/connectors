@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation;
 import io.camunda.connector.agenticai.model.message.Message;
 import java.util.List;
 
+/** Request to store a conversation via {@link ConversationSession#storeMessages}. */
 public record ConversationStoreRequest(List<Message> messages) {
 
   public static ConversationStoreRequest of(List<Message> messages) {

@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation;
 import io.camunda.connector.agenticai.model.message.Message;
 import java.util.List;
 
+/** Result of loading a conversation from a {@link ConversationSession}. */
 public record ConversationLoadResult(List<Message> messages) {
 
   public static ConversationLoadResult of(List<Message> messages) {
