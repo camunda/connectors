@@ -9,9 +9,12 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 import static io.camunda.connector.agenticai.aiagent.TestMessagesFixture.userMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -29,7 +32,9 @@ import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
+import io.camunda.connector.api.outbound.JobCompletionFailure;
 import io.camunda.connector.jackson.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.document.store.CamundaDocumentStore;
 import java.io.ByteArrayInputStream;
@@ -355,6 +360,67 @@ class CamundaDocumentConversationStoreTest {
                       previousDocuments.get(2),
                       previousDocument);
             });
+  }
+
+  @Test
+  void onJobCompletionFailed_deletesOrphanedDocument() {
+    var documentReference = mock(CamundaDocumentReference.class);
+    var document = mock(Document.class);
+    when(document.reference()).thenReturn(documentReference);
+
+    var conversationContext =
+        CamundaDocumentConversationContext.builder("test-conversation").document(document).build();
+    var agentContext = AgentContext.empty().withConversation(conversationContext);
+
+    store.onJobCompletionFailed(
+        agentContext, new JobCompletionFailure.CommandFailed(new RuntimeException("test")));
+
+    verify(documentStore).deleteDocument(documentReference);
+  }
+
+  @Test
+  void onJobCompletionFailed_swallowsDeleteFailure() {
+    var documentReference = mock(CamundaDocumentReference.class);
+    var document = mock(Document.class);
+    when(document.reference()).thenReturn(documentReference);
+    doThrow(new RuntimeException("delete failed"))
+        .when(documentStore)
+        .deleteDocument(documentReference);
+
+    var conversationContext =
+        CamundaDocumentConversationContext.builder("test-conversation").document(document).build();
+    var agentContext = AgentContext.empty().withConversation(conversationContext);
+
+    // should not throw
+    store.onJobCompletionFailed(
+        agentContext, new JobCompletionFailure.CommandFailed(new RuntimeException("test")));
+
+    verify(documentStore).deleteDocument(documentReference);
+  }
+
+  @Test
+  void onJobCompletionFailed_noOpWithoutConversationContext() {
+    var agentContext = AgentContext.empty();
+
+    store.onJobCompletionFailed(
+        agentContext, new JobCompletionFailure.CommandFailed(new RuntimeException("test")));
+
+    verifyNoInteractions(documentStore);
+  }
+
+  @Test
+  void onJobCompletionFailed_noOpForNonCamundaDocumentReference() {
+    var document = mock(Document.class);
+    when(document.reference()).thenReturn(mock(DocumentReference.class));
+
+    var conversationContext =
+        CamundaDocumentConversationContext.builder("test-conversation").document(document).build();
+    var agentContext = AgentContext.empty().withConversation(conversationContext);
+
+    store.onJobCompletionFailed(
+        agentContext, new JobCompletionFailure.CommandFailed(new RuntimeException("test")));
+
+    verify(documentStore, never()).deleteDocument(any());
   }
 
   private void assertDocumentCreationRequest(
