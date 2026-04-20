@@ -17,6 +17,7 @@
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.HAIKU_TEXT;
+import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.extractDocumentShortId;
 import static io.camunda.connector.e2e.agenticai.aiagent.langchain4j.Langchain4JAiAgentToolSpecifications.EXPECTED_MCP_TOOL_SPECIFICATIONS;
 import static io.camunda.connector.e2e.agenticai.mcp.McpSdkToolSpecifications.MCP_TOOL_SPECIFICATIONS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -417,21 +418,33 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
               assertThat(msg.text()).contains("camunda.document.type");
             });
 
+    // Extract the document short ID from the tool result reference
+    var toolResultText = ((ToolExecutionResultMessage) lastMessages.get(3)).text();
+    var documentShortId = extractDocumentShortId(toolResultText);
+
     // Document user message: extracted document content
     assertThat(lastMessages.get(4))
         .isInstanceOfSatisfying(
             UserMessage.class,
             msg -> {
               List<Content> contents = msg.contents();
-              assertThat(contents).hasSize(2);
+              assertThat(contents).hasSize(3);
               assertThat(contents.get(0))
                   .isInstanceOfSatisfying(
                       TextContent.class,
                       tc ->
                           assertThat(tc.text())
-                              .isEqualTo(
-                                  "Tool call 'MCP_A_MCP_Client___toolA' (img111) documents:"));
+                              .isEqualTo("Documents extracted from tool call results:"));
               assertThat(contents.get(1))
+                  .isInstanceOfSatisfying(
+                      TextContent.class,
+                      tc ->
+                          assertThat(tc.text())
+                              .isEqualTo(
+                                  "<document tool=\"MCP_A_MCP_Client___toolA\" call-id=\"img111\" document-short-id=\""
+                                      + documentShortId
+                                      + "\" />"));
+              assertThat(contents.get(2))
                   .isInstanceOfSatisfying(
                       ImageContent.class,
                       img -> {
