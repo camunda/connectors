@@ -233,9 +233,8 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public ToolCallResultDocumentExtractor toolCallResultDocumentExtractor(
-      @ConnectorsObjectMapper ObjectMapper objectMapper) {
-    return new ToolCallResultDocumentExtractor(objectMapper);
+  public ToolCallResultDocumentExtractor toolCallResultDocumentExtractor() {
+    return new ToolCallResultDocumentExtractor();
   }
 
   @Bean
