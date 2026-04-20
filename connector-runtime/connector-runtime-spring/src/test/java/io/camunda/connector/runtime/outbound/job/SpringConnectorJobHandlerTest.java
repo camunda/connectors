@@ -20,13 +20,14 @@ package io.camunda.connector.runtime.outbound.job;
 import static io.camunda.connector.runtime.core.Keywords.ERROR_EXPRESSION_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.RESULT_EXPRESSION_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.RESULT_VARIABLE_KEYWORD;
-import static io.camunda.connector.runtime.outbound.job.SpringConnectorJobHandlerTest.OutputTests.ResultVariableTests.newConnectorJobHandler;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -35,6 +36,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.client.api.command.FailJobCommandStep1;
 import io.camunda.client.api.worker.BackoffSupplier;
 import io.camunda.client.api.worker.JobClient;
+import io.camunda.client.jobhandling.CommandOutcome;
 import io.camunda.client.jobhandling.JobCallbackCommandWrapperFactory;
 import io.camunda.client.metrics.MicrometerMetricsRecorder;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -45,6 +47,8 @@ import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse;
 import io.camunda.connector.api.outbound.ConnectorResponse.AdHocSubProcessConnectorResponse.ElementActivation;
 import io.camunda.connector.api.outbound.ConnectorResponse.StandardConnectorResponse;
+import io.camunda.connector.api.outbound.JobCompletionFailure;
+import io.camunda.connector.api.outbound.JobCompletionListener;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretContext;
 import io.camunda.connector.runtime.JobBuilder;
@@ -60,9 +64,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -90,33 +97,52 @@ class SpringConnectorJobHandlerTest {
     private final UUID field = UUID.randomUUID();
   }
 
+  private static final ScheduledExecutorService commandScheduler =
+      Executors.newSingleThreadScheduledExecutor();
+
+  @AfterAll
+  static void shutdownScheduler() {
+    commandScheduler.shutdownNow();
+  }
+
+  private SpringConnectorJobHandler newConnectorJobHandler(OutboundConnectorFunction call) {
+    return newConnectorJobHandler(
+        call, new SecretProviderAggregator(List.of(new FooBarSecretProvider())));
+  }
+
+  private SpringConnectorJobHandler newConnectorJobHandler(
+      OutboundConnectorFunction call, SecretProviderAggregator secretProviderAggregator) {
+    var metricsRecorder = new MicrometerMetricsRecorder(new SimpleMeterRegistry());
+    return new SpringConnectorJobHandler(
+        metricsRecorder,
+        new JobCallbackCommandWrapperFactory(
+            BackoffSupplier.newBackoffBuilder().build(), commandScheduler, metricsRecorder),
+        secretProviderAggregator,
+        new DefaultValidationProvider(),
+        mock(DocumentFactory.class),
+        TestObjectMapperSupplier.INSTANCE,
+        call);
+  }
+
+  private SpringConnectorJobHandler newConnectorJobHandler(
+      OutboundConnectorFunction call, CompletableFuture<CommandOutcome> outcome) {
+    var factory = mock(JobCallbackCommandWrapperFactory.class, RETURNS_DEEP_STUBS);
+    when(factory.create(any(), anyLong(), any(), anyInt()).executeAsync()).thenReturn(outcome);
+    return new SpringConnectorJobHandler(
+        new MicrometerMetricsRecorder(new SimpleMeterRegistry()),
+        factory,
+        new SecretProviderAggregator(List.of(new FooBarSecretProvider())),
+        new DefaultValidationProvider(),
+        mock(DocumentFactory.class),
+        TestObjectMapperSupplier.INSTANCE,
+        call);
+  }
+
   @Nested
   class OutputTests {
 
     @Nested
     class ResultVariableTests {
-
-      protected static SpringConnectorJobHandler newConnectorJobHandler(
-          OutboundConnectorFunction call, SecretProviderAggregator secretProviderAggregator) {
-        var metricsRecorder = new MicrometerMetricsRecorder(new SimpleMeterRegistry());
-        return new SpringConnectorJobHandler(
-            metricsRecorder,
-            new JobCallbackCommandWrapperFactory(
-                BackoffSupplier.newBackoffBuilder().build(),
-                Executors.newSingleThreadScheduledExecutor(),
-                metricsRecorder),
-            secretProviderAggregator,
-            new DefaultValidationProvider(),
-            mock(DocumentFactory.class),
-            TestObjectMapperSupplier.INSTANCE,
-            call);
-      }
-
-      protected static SpringConnectorJobHandler newConnectorJobHandler(
-          OutboundConnectorFunction call) {
-        return newConnectorJobHandler(
-            call, new SecretProviderAggregator(List.of(new FooBarSecretProvider())));
-      }
 
       @ParameterizedTest
       @NullSource
@@ -1687,6 +1713,294 @@ class SpringConnectorJobHandlerTest {
       assertThat(result.variables()).isEqualTo(Map.of("key", "value"));
       assertThat(result.completionConditionFulfilled()).isTrue();
       assertThat(result.elementActivations()).isEmpty();
+    }
+  }
+
+  @Nested
+  class JobCompletionListenerTests {
+
+    @Test
+    void listenerNotifiedWithBpmnErrorThrownOnBpmnErrorExpression() throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      var response = new TestListenerResponse(Map.of("status", "fail"), listener);
+      var handler = newConnectorJobHandler(context -> response);
+
+      JobBuilder.create()
+          .withErrorExpressionHeader(
+              "=if response.status = \"fail\" then bpmnError(\"ERR_001\", \"test error\") else null")
+          .executeAndCaptureResult(handler, false, true);
+
+      var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
+      verify(listener).onJobCompletionFailed(captor.capture());
+      assertThat(captor.getValue())
+          .isInstanceOfSatisfying(
+              JobCompletionFailure.BpmnErrorThrown.class,
+              failure -> {
+                assertThat(failure.errorCode()).isEqualTo("ERR_001");
+                assertThat(failure.errorMessage()).isEqualTo("test error");
+                assertThat(failure.variables()).isEmpty();
+              });
+    }
+
+    @Test
+    void listenerNotifiedWithBpmnErrorThrownWithVariables() throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      var response = new TestListenerResponse(Map.of("status", "fail"), listener);
+      var handler = newConnectorJobHandler(context -> response);
+
+      JobBuilder.create()
+          .withErrorExpressionHeader(
+              "=if response.status = \"fail\" then bpmnError(\"ERR_002\", \"with vars\", {detail: \"info\"}) else null")
+          .executeAndCaptureResult(handler, false, true);
+
+      var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
+      verify(listener).onJobCompletionFailed(captor.capture());
+      assertThat(captor.getValue())
+          .isInstanceOfSatisfying(
+              JobCompletionFailure.BpmnErrorThrown.class,
+              failure -> {
+                assertThat(failure.errorCode()).isEqualTo("ERR_002");
+                assertThat(failure.errorMessage()).isEqualTo("with vars");
+                assertThat(failure.variables())
+                    .containsExactlyInAnyOrderEntriesOf(Map.of("detail", "info"));
+              });
+    }
+
+    @Test
+    void listenerNotifiedWithJobErrorRaisedOnJobErrorExpression() throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      var response = new TestListenerResponse(Map.of("status", "fail"), listener);
+      var handler = newConnectorJobHandler(context -> response);
+
+      JobBuilder.create()
+          .withErrorExpressionHeader(
+              "=if response.status = \"fail\" then jobError(\"something went wrong\") else null")
+          .executeAndCaptureResult(handler, false, false);
+
+      var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
+      verify(listener).onJobCompletionFailed(captor.capture());
+      assertThat(captor.getValue())
+          .isInstanceOfSatisfying(
+              JobCompletionFailure.JobErrorRaised.class,
+              failure -> {
+                assertThat(failure.errorMessage()).isEqualTo("something went wrong");
+                assertThat(failure.variables())
+                    .containsExactlyInAnyOrderEntriesOf(Map.of("error", "something went wrong"));
+              });
+    }
+
+    @Test
+    void listenerNotifiedWithJobErrorRaisedWithVariables() throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      var response = new TestListenerResponse(Map.of("status", "fail"), listener);
+      var handler = newConnectorJobHandler(context -> response);
+
+      JobBuilder.create()
+          .withErrorExpressionHeader(
+              "=if response.status = \"fail\" then jobError(\"failed\", {detail: \"more info\"}) else null")
+          .executeAndCaptureResult(handler, false, false);
+
+      var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
+      verify(listener).onJobCompletionFailed(captor.capture());
+      assertThat(captor.getValue())
+          .isInstanceOfSatisfying(
+              JobCompletionFailure.JobErrorRaised.class,
+              failure -> {
+                assertThat(failure.errorMessage()).isEqualTo("failed");
+                assertThat(failure.variables())
+                    .containsExactlyInAnyOrderEntriesOf(
+                        Map.of("detail", "more info", "error", "failed"));
+              });
+    }
+
+    @Test
+    void listenerNotifiedWithJobErrorRaisedWithRetriesAndBackoff() throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      var response = new TestListenerResponse(Map.of("status", "fail"), listener);
+      var handler = newConnectorJobHandler(context -> response);
+
+      JobBuilder.create()
+          .withErrorExpressionHeader(
+              "=if response.status = \"fail\" then jobError(\"retry me\", {}, 2, @\"PT30S\") else null")
+          .executeAndCaptureResult(handler, false, false);
+
+      var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
+      verify(listener).onJobCompletionFailed(captor.capture());
+      // retries and backoff control the FailJob command, not the notification
+      assertThat(captor.getValue())
+          .isInstanceOfSatisfying(
+              JobCompletionFailure.JobErrorRaised.class,
+              failure -> {
+                assertThat(failure.errorMessage()).isEqualTo("retry me");
+                assertThat(failure.variables())
+                    .containsExactlyInAnyOrderEntriesOf(Map.of("error", "retry me"));
+              });
+    }
+
+    @Test
+    void listenerNotifiedOnSuccessfulCompletion() throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      var response = new TestListenerResponse(Map.of("key", "value"), listener);
+      var handler =
+          newConnectorJobHandler(
+              context -> response,
+              CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
+
+      JobBuilder.create().execute(handler);
+
+      verify(listener).onJobCompleted();
+    }
+
+    @Test
+    void listenerNotifiedWithCommandIgnoredOnIgnoredOutcome() throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      var response = new TestListenerResponse(Map.of("key", "value"), listener);
+      var cause = new RuntimeException("NOT_FOUND");
+      var handler =
+          newConnectorJobHandler(
+              context -> response,
+              CompletableFuture.completedFuture(new CommandOutcome.Ignored(cause, 1)));
+
+      JobBuilder.create().execute(handler);
+
+      var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
+      verify(listener).onJobCompletionFailed(captor.capture());
+      assertThat(captor.getValue())
+          .isInstanceOfSatisfying(
+              JobCompletionFailure.CommandIgnored.class,
+              failure -> assertThat(failure.cause()).isSameAs(cause));
+    }
+
+    @Test
+    void listenerNotifiedWithCommandFailedOnFailedOutcome() throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      var response = new TestListenerResponse(Map.of("key", "value"), listener);
+      var cause = new RuntimeException("command failed");
+      var handler =
+          newConnectorJobHandler(
+              context -> response,
+              CompletableFuture.completedFuture(new CommandOutcome.Failed(cause, 3)));
+
+      JobBuilder.create().execute(handler);
+
+      var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
+      verify(listener).onJobCompletionFailed(captor.capture());
+      assertThat(captor.getValue())
+          .isInstanceOfSatisfying(
+              JobCompletionFailure.CommandFailed.class,
+              failure -> assertThat(failure.cause()).isSameAs(cause));
+    }
+
+    @Test
+    void listenerNotifiedWithCommandFailedOnFutureException() throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      var response = new TestListenerResponse(Map.of("key", "value"), listener);
+      var cause = new RuntimeException("future failed");
+      var handler =
+          newConnectorJobHandler(context -> response, CompletableFuture.failedFuture(cause));
+
+      JobBuilder.create().execute(handler);
+
+      var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
+      verify(listener).onJobCompletionFailed(captor.capture());
+      assertThat(captor.getValue())
+          .isInstanceOfSatisfying(
+              JobCompletionFailure.CommandFailed.class,
+              failure -> assertThat(failure.cause()).isSameAs(cause));
+    }
+
+    @Test
+    void throwingListenerOnCompletionDoesNotPropagate() throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      doThrow(new RuntimeException("listener exploded")).when(listener).onJobCompleted();
+      var response = new TestListenerResponse(Map.of("key", "value"), listener);
+      var handler =
+          newConnectorJobHandler(
+              context -> response,
+              CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
+
+      // should not throw despite listener failure
+      JobBuilder.create().execute(handler);
+
+      verify(listener).onJobCompleted();
+    }
+
+    @Test
+    void throwingListenerOnFailureDoesNotPropagate() throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      doThrow(new RuntimeException("listener exploded"))
+          .when(listener)
+          .onJobCompletionFailed(any());
+      var response = new TestListenerResponse(Map.of("status", "fail"), listener);
+      var handler = newConnectorJobHandler(context -> response);
+
+      // should not throw despite listener failure
+      JobBuilder.create()
+          .withErrorExpressionHeader(
+              "=if response.status = \"fail\" then bpmnError(\"ERR\", \"boom\") else null")
+          .executeAndCaptureResult(handler, false, true);
+
+      verify(listener).onJobCompletionFailed(any());
+    }
+
+    @Test
+    void listenerNotifiedOnIgnoreErrorCompletion() throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      var response = new TestListenerResponse(Map.of("status", "fail"), listener);
+      var handler =
+          newConnectorJobHandler(
+              context -> response,
+              CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
+
+      JobBuilder.create()
+          .withErrorExpressionHeader(
+              "=if response.status = \"fail\" then ignoreError({\"recovered\": true}) else null")
+          .executeAndCaptureResult(handler);
+
+      verify(listener).onJobCompleted();
+    }
+
+    @Test
+    void listenerNotifiedWhenErrorExpressionEvaluationFails() throws Exception {
+      var listener = mock(JobCompletionListener.class);
+      var response = new TestListenerResponse(Map.of("key", "value"), listener);
+      var handler = newConnectorJobHandler(context -> response);
+
+      // expression returning a non-object value causes examineErrorExpression to throw
+      JobBuilder.create()
+          .withErrorExpressionHeader("=\"not an error object\"")
+          .executeAndCaptureResult(handler, false);
+
+      var captor = ArgumentCaptor.forClass(JobCompletionFailure.class);
+      verify(listener).onJobCompletionFailed(captor.capture());
+      assertThat(captor.getValue()).isInstanceOf(JobCompletionFailure.CommandFailed.class);
+    }
+
+    @Test
+    void noListenerDoesNotCrash() throws Exception {
+      // response that does NOT implement JobCompletionListener
+      var handler =
+          newConnectorJobHandler(
+              context -> StandardConnectorResponse.of(Map.of("key", "value")),
+              CompletableFuture.completedFuture(new CommandOutcome.Completed(null, 1)));
+
+      // should not throw
+      JobBuilder.create().execute(handler);
+    }
+
+    /** Response that implements both StandardConnectorResponse and JobCompletionListener. */
+    private record TestListenerResponse(Object responseValue, JobCompletionListener delegate)
+        implements StandardConnectorResponse, JobCompletionListener {
+
+      @Override
+      public void onJobCompleted() {
+        delegate.onJobCompleted();
+      }
+
+      @Override
+      public void onJobCompletionFailed(JobCompletionFailure failure) {
+        delegate.onJobCompletionFailed(failure);
+      }
     }
   }
 }
