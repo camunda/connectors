@@ -33,6 +33,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -47,6 +48,11 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AgentMessagesHandlerImpl.class);
 
+  /**
+   * Metadata key identifying a user message as containing documents extracted from tool results.
+   */
+  static final String METADATA_TOOL_CALL_DOCUMENTS = "toolCallDocuments";
+
   private static final String EVENT_CONTENT_EMPTY =
       "An event was triggered but no content was returned.";
   private static final String EVENT_CONTENT_EMPTY_INTERRUPT_TOOL_CALLS_EMPTY_MESSAGE =
@@ -57,11 +63,15 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
 
   private final GatewayToolHandlerRegistry gatewayToolHandlers;
   private final SystemPromptComposer systemPromptComposer;
+  private final ToolCallResultDocumentExtractor documentExtractor;
 
   public AgentMessagesHandlerImpl(
-      GatewayToolHandlerRegistry gatewayToolHandlers, SystemPromptComposer systemPromptComposer) {
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      SystemPromptComposer systemPromptComposer,
+      ToolCallResultDocumentExtractor documentExtractor) {
     this.gatewayToolHandlers = gatewayToolHandlers;
     this.systemPromptComposer = systemPromptComposer;
+    this.documentExtractor = documentExtractor;
   }
 
   @Override
@@ -125,6 +135,10 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
       // if message is null, we wait on further tool call results to be added
       if (toolCallResultMessage != null) {
         messages.add(toolCallResultMessage);
+        var documentMessage = createDocumentMessageForToolResults(toolCallResultMessage.results());
+        if (documentMessage != null) {
+          messages.add(documentMessage);
+        }
         messages.addAll(eventMessages);
       }
     } else {
@@ -205,6 +219,27 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
         .build();
   }
 
+  private UserMessage createDocumentMessageForToolResults(List<ToolCallResult> results) {
+    final var toolCallDocuments = documentExtractor.extractDocuments(results);
+    if (toolCallDocuments.isEmpty()) {
+      return null;
+    }
+
+    final var content = new ArrayList<Content>();
+    for (var entry : toolCallDocuments) {
+      content.add(
+          textContent(
+              "Tool call '%s' (%s) documents:"
+                  .formatted(entry.toolCallName(), entry.toolCallId())));
+      entry.documents().stream().map(DocumentContent::documentContent).forEach(content::add);
+    }
+
+    final var metadata = new HashMap<String, Object>(defaultMessageMetadata());
+    metadata.put(METADATA_TOOL_CALL_DOCUMENTS, true);
+
+    return UserMessage.builder().content(content).metadata(metadata).build();
+  }
+
   private Message createEventMessage(
       ToolCallResult eventResult, boolean interruptToolCallsOnEventResults) {
     Object eventContent = eventResult.content();
@@ -223,6 +258,11 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
             default -> objectContent(eventContent);
           });
     }
+
+    // extract documents from event content and add as document content blocks
+    documentExtractor
+        .extractDocuments(eventContent)
+        .forEach(doc -> userMessageContent.add(DocumentContent.documentContent(doc)));
 
     return UserMessage.builder()
         .content(userMessageContent)

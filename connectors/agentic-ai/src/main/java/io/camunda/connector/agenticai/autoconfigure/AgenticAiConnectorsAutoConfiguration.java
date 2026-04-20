@@ -38,6 +38,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolver;
 import io.camunda.connector.agenticai.aiagent.agent.AgentToolsResolverImpl;
 import io.camunda.connector.agenticai.aiagent.agent.JobWorkerAgentRequestHandler;
 import io.camunda.connector.agenticai.aiagent.agent.OutboundConnectorAgentRequestHandler;
+import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.agentinstance.AgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.agentinstance.CamundaAgentInstanceClient;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
@@ -245,9 +246,18 @@ public class AgenticAiConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public ToolCallResultDocumentExtractor toolCallResultDocumentExtractor() {
+    return new ToolCallResultDocumentExtractor();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public AgentMessagesHandler aiAgentMessagesHandler(
-      GatewayToolHandlerRegistry gatewayToolHandlers, SystemPromptComposer systemPromptComposer) {
-    return new AgentMessagesHandlerImpl(gatewayToolHandlers, systemPromptComposer);
+      GatewayToolHandlerRegistry gatewayToolHandlers,
+      SystemPromptComposer systemPromptComposer,
+      ToolCallResultDocumentExtractor documentExtractor) {
+    return new AgentMessagesHandlerImpl(
+        gatewayToolHandlers, systemPromptComposer, documentExtractor);
   }
 
   @Bean

@@ -37,9 +37,9 @@ import dev.langchain4j.model.output.TokenUsage;
 import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaResolver;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.CloseableChatModel;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentResponseModel;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
+import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentConnectorTest;
@@ -340,5 +340,5 @@ abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
     }
   }
 
-  protected record DownloadFileToolResult(int status, DocumentToContentResponseModel document) {}
+  protected record DownloadFileToolResult(int status, DocumentReferenceModel document) {}
 }
