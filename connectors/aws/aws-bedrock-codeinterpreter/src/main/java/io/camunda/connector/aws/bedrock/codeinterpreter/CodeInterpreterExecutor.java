@@ -195,8 +195,8 @@ public class CodeInterpreterExecutor {
     return documents;
   }
 
-  /** Gets the size of a content block. Package-private for testing. */
-  long getBlockSize(ContentBlock block) {
+  /** Gets the size of a content block. */
+  private long getBlockSize(ContentBlock block) {
     if (block.size() != null) {
       return block.size();
     }
@@ -238,8 +238,8 @@ public class CodeInterpreterExecutor {
         .toList();
   }
 
-  /** Converts content blocks to documents. Package-private for testing. */
-  List<Document> convertToDocuments(List<ContentBlock> blocks, String fileName) {
+  /** Converts content blocks to documents. */
+  private List<Document> convertToDocuments(List<ContentBlock> blocks, String fileName) {
     var documents = new ArrayList<Document>();
     for (var block : blocks) {
       var data = extractData(block);
