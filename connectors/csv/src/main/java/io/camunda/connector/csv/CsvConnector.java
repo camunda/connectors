@@ -37,6 +37,16 @@ import java.util.function.Function;
     id = "io.camunda.connectors.csv",
     version = 1,
     engineVersion = "^8.8",
+    keywords = {
+      "read CSV",
+      "write CSV",
+      "parse CSV",
+      "export CSV",
+      "import CSV",
+      "tabular data",
+      "data export",
+      "spreadsheet"
+    },
     icon = "icon.svg")
 public class CsvConnector implements OutboundConnectorProvider {
 

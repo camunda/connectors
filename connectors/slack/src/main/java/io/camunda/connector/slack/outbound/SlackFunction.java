@@ -17,6 +17,19 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     id = "io.camunda.connectors.Slack.v1",
     name = "Slack Outbound Connector",
     description = "Create a channel or send a message to a channel or user",
+    keywords = {
+      "post message",
+      "create channel",
+      "invite to channel",
+      "add reaction",
+      "pin message",
+      "unpin message",
+      "send message",
+      "channel",
+      "messaging",
+      "chat",
+      "notification"
+    },
     inputDataClass = SlackRequest.class,
     version = 9,
     defaultResultExpression =

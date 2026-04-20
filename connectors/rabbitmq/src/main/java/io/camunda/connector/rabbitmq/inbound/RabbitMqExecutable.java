@@ -38,6 +38,15 @@ import org.slf4j.LoggerFactory;
     version = 8,
     inputDataClass = RabbitMqInboundProperties.class,
     description = "Receive a message from RabbitMQ",
+    keywords = {
+      "receive message",
+      "consume message",
+      "message queue",
+      "AMQP",
+      "subscribe",
+      "message broker",
+      "queue"
+    },
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=inbound",
     propertyGroups = {

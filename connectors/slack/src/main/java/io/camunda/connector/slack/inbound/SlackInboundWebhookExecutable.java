@@ -44,6 +44,14 @@ import org.slf4j.LoggerFactory;
     version = 8,
     inputDataClass = SlackConnectorPropertiesWrapper.class,
     description = "Receive events from Slack",
+    keywords = {
+      "message received",
+      "event received",
+      "channel event",
+      "webhook",
+      "messaging",
+      "new message"
+    },
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=inbound",
     defaultResultExpression =

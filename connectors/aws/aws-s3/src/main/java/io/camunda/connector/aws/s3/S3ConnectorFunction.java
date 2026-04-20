@@ -25,6 +25,17 @@ import java.util.function.Function;
     id = "io.camunda.connectors.aws.s3.v1",
     name = "AWS S3 Outbound Connector",
     description = "Execute S3 requests",
+    keywords = {
+      "upload file",
+      "download file",
+      "delete file",
+      "upload object",
+      "download object",
+      "delete object",
+      "object storage",
+      "bucket",
+      "file storage"
+    },
     inputDataClass = S3Request.class,
     version = 2,
     propertyGroups = {

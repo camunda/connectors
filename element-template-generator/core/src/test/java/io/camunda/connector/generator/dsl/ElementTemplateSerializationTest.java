@@ -20,7 +20,6 @@ import static io.camunda.connector.generator.java.annotation.BpmnType.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
-import io.camunda.connector.generator.dsl.ElementTemplate.Metadata;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
@@ -53,7 +52,7 @@ public class ElementTemplateSerializationTest {
             .documentationRef(
                 "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/")
             .description("Describe this connector")
-            .metadata(new Metadata(new String[] {"foo", "bar"}))
+            .keywords(new String[] {"foo", "bar"})
             .propertyGroups(
                 PropertyGroup.builder()
                     .id("authentication")
