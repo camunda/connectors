@@ -59,8 +59,12 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-aws-bedrock-codeinterpreter</artifactId>
       <artifactId>connector-aws-bedrock-knowledgebase</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-aws-bedrock-codeinterpreter</artifactId>
       <scope>runtime</scope>
     </dependency>
     <dependency>
