@@ -70,8 +70,6 @@ public class MessageWindowRuntimeMemory implements RuntimeMemory {
     filteredMessages = null;
   }
 
-  static final String METADATA_TOOL_CALL_DOCUMENTS = "toolCallDocuments";
-
   // original implementation see Langchain4j
   private static List<Message> filteredMessages(List<Message> messages, int maxMessages) {
     final var filtered = new ArrayList<>(messages);
@@ -113,6 +111,7 @@ public class MessageWindowRuntimeMemory implements RuntimeMemory {
   private static boolean isToolCallDocumentMessage(Message message) {
     return message instanceof UserMessage userMessage
         && userMessage.metadata() != null
-        && Boolean.TRUE.equals(userMessage.metadata().get(METADATA_TOOL_CALL_DOCUMENTS));
+        && Boolean.TRUE.equals(
+            userMessage.metadata().get(UserMessage.METADATA_TOOL_CALL_DOCUMENTS));
   }
 }

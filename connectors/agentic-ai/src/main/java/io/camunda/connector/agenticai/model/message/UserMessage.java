@@ -23,6 +23,12 @@ public record UserMessage(
     @JsonInclude(JsonInclude.Include.NON_EMPTY) Map<String, Object> metadata)
     implements UserMessageBuilder.With, Message, ContentMessage {
 
+  /**
+   * Metadata key identifying a user message as containing documents extracted from tool call
+   * results.
+   */
+  public static final String METADATA_TOOL_CALL_DOCUMENTS = "toolCallDocuments";
+
   public static UserMessageBuilder builder() {
     return UserMessageBuilder.builder();
   }
