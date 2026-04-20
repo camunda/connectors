@@ -43,6 +43,7 @@ import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.util.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.ZonedDateTime;
@@ -88,7 +89,9 @@ class AgentMessagesHandlerTest {
     systemPromptComposer = new SystemPromptComposerImpl(List.of());
     messagesHandler =
         new AgentMessagesHandlerImpl(
-            gatewayToolHandlers, systemPromptComposer, new ToolCallResultDocumentExtractor());
+            gatewayToolHandlers,
+            systemPromptComposer,
+            new ToolCallResultDocumentExtractor(TestObjectMapperSupplier.INSTANCE));
     runtimeMemory = spy(new DefaultRuntimeMemory());
   }
 
