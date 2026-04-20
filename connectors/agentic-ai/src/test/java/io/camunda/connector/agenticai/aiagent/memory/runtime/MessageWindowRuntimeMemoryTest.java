@@ -194,7 +194,7 @@ class MessageWindowRuntimeMemoryTest {
     final var documentUserMessage =
         UserMessage.builder()
             .content(List.of(textContent("Documents extracted from tool call results:")))
-            .metadata(Map.of("toolCallDocuments", true))
+            .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
             .build();
 
     List<Message> messages = new ArrayList<>();
@@ -216,7 +216,7 @@ class MessageWindowRuntimeMemoryTest {
     final var documentUserMessage =
         UserMessage.builder()
             .content(List.of(textContent("Documents extracted from tool call results:")))
-            .metadata(Map.of("toolCallDocuments", true))
+            .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
             .build();
 
     final List<Message> messages =

@@ -875,7 +875,7 @@ class AgentMessagesHandlerTest {
                             UserMessage.class,
                             userMessage -> {
                               assertThat(userMessage.metadata())
-                                  .containsEntry("toolCallDocuments", true)
+                                  .containsEntry(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true)
                                   .containsKey("timestamp");
                               assertThat(userMessage.content())
                                   .hasSize(5)
