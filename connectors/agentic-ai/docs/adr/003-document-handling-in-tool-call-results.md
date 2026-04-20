@@ -95,6 +95,23 @@ TextContent: "Tool call 'fetch_data' (call_2) documents:"
 DocumentContent: data.csv
 ```
 
+### Gateway tool handlers must preserve raw content
+
+Gateway tool handlers (MCP, A2A) transform `ToolCallResult` objects — renaming tool calls with fully qualified
+identifiers and processing the result content. When tool call results arrive from the process engine, `Document`
+instances in the content tree have already been deserialized by the connectors `ObjectMapper` (which recognizes
+`camunda.document.type` references). The content is a raw tree of `Map`, `List`, `String`, and `Document` objects.
+
+Gateway handlers **must not** convert this raw content to typed domain objects (e.g., `McpClientCallToolResult`,
+`A2aSendMessageResult`) and put the typed object back as `ToolCallResult.content()`. The `ToolCallResultDocumentExtractor`
+walks the content tree using `instanceof` checks for `Document`, `Map`, and `Collection`. Typed records and POJOs are
+invisible to it — documents nested inside them would not be extracted.
+
+Instead, handlers should:
+1. Convert to typed objects only when needed to extract metadata (e.g., MCP tool name for the fully qualified identifier).
+2. Pass the **raw content** through to the output `ToolCallResult`, preserving the original `Map`/`List`/`Document` tree.
+3. For simple text-only results, extract the text string directly (optimization to avoid unnecessary JSON wrapping).
+
 ### Future optimization (out of scope)
 
 A follow-up optimization can promote specific document types from the user message back into the

@@ -259,10 +259,20 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
         && callToolResult.content().getFirst() instanceof McpTextContent textContent) {
       toolCallResultBuilder.content(textContent.text());
     } else {
-      toolCallResultBuilder.content(callToolResult.content());
+      // Use the raw content from the original tool call result (preserving document references
+      // as deserialized by the engine) rather than the typed McpContent list, which may lose
+      // document reference fidelity during re-serialization.
+      toolCallResultBuilder.content(getRawMcpContent(toolCallResult));
     }
 
     return toolCallResultBuilder.build();
+  }
+
+  private Object getRawMcpContent(ToolCallResult toolCallResult) {
+    if (toolCallResult.content() instanceof Map<?, ?> map) {
+      return map.get("content");
+    }
+    return toolCallResult.content();
   }
 
   private Map<String, Object> mcpClientOperationAsMap(McpClientOperation mcpClientOperation) {
