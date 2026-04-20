@@ -8,18 +8,34 @@ package io.camunda.connector.agenticai.aiagent;
 
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.api.outbound.ConnectorResponse.StandardConnectorResponse;
+import io.camunda.connector.api.outbound.JobCompletionFailure;
+import io.camunda.connector.api.outbound.JobCompletionListener;
 import org.springframework.lang.Nullable;
 
 /**
- * Response type for the AI Agent task flavor (outbound connector on a service task). Wraps the
- * {@link AgentResponse} as a {@link StandardConnectorResponse} so the runtime evaluates it via
- * result expressions.
+ * Response type for the AI Agent task flavor (outbound connector on a service task). Delegates job
+ * completion callbacks to the provided listener.
  */
-public record AiAgentTaskConnectorResponse(@Nullable AgentResponse agentResponse)
-    implements StandardConnectorResponse {
+public record AiAgentTaskConnectorResponse(
+    @Nullable AgentResponse agentResponse, @Nullable JobCompletionListener completionListener)
+    implements StandardConnectorResponse, JobCompletionListener {
 
   @Override
   public Object responseValue() {
     return agentResponse;
+  }
+
+  @Override
+  public void onJobCompleted() {
+    if (completionListener != null) {
+      completionListener.onJobCompleted();
+    }
+  }
+
+  @Override
+  public void onJobCompletionFailed(JobCompletionFailure failure) {
+    if (completionListener != null) {
+      completionListener.onJobCompletionFailed(failure);
+    }
   }
 }
