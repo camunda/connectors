@@ -35,7 +35,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.client.api.command.FailJobCommandStep1;
 import io.camunda.client.api.worker.BackoffSupplier;
 import io.camunda.client.api.worker.JobClient;
-import io.camunda.client.jobhandling.DefaultCommandExceptionHandlingStrategy;
+import io.camunda.client.jobhandling.JobCallbackCommandWrapperFactory;
 import io.camunda.client.metrics.MicrometerMetricsRecorder;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
@@ -98,11 +98,13 @@ class SpringConnectorJobHandlerTest {
 
       protected static SpringConnectorJobHandler newConnectorJobHandler(
           OutboundConnectorFunction call, SecretProviderAggregator secretProviderAggregator) {
+        var metricsRecorder = new MicrometerMetricsRecorder(new SimpleMeterRegistry());
         return new SpringConnectorJobHandler(
-            new MicrometerMetricsRecorder(new SimpleMeterRegistry()),
-            new DefaultCommandExceptionHandlingStrategy(
+            metricsRecorder,
+            new JobCallbackCommandWrapperFactory(
                 BackoffSupplier.newBackoffBuilder().build(),
-                Executors.newSingleThreadScheduledExecutor()),
+                Executors.newSingleThreadScheduledExecutor(),
+                metricsRecorder),
             secretProviderAggregator,
             new DefaultValidationProvider(),
             mock(DocumentFactory.class),
