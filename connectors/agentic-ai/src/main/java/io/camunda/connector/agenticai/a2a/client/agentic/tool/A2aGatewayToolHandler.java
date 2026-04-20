@@ -12,7 +12,6 @@ import static io.camunda.connector.agenticai.util.ObjectMapperConstants.STRING_O
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aSendMessageResult;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration;
 import io.camunda.connector.agenticai.a2a.client.outbound.model.A2aStandaloneOperationConfiguration.FetchAgentCardOperationConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -219,16 +218,17 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
   }
 
   private ToolCallResult toolCallResultFromA2aSendMessage(ToolCallResult toolCallResult) {
-    final var sendMessageResult =
-        objectMapper.convertValue(toolCallResult.content(), A2aSendMessageResult.class);
     final var identifier = new A2aToolCallIdentifier(toolCallResult.name());
 
-    final var toolCallResultBuilder =
-        ToolCallResult.builder().id(toolCallResult.id()).name(identifier.fullyQualifiedName());
-
-    toolCallResultBuilder.content(sendMessageResult);
-
-    return toolCallResultBuilder.build();
+    // Use raw content from the original tool call result (preserving document references
+    // as deserialized by the engine) rather than the typed A2aSendMessageResult, which would
+    // lose document reference fidelity during re-serialization. The ToolCallResultDocumentExtractor
+    // can only walk Map/Collection/Document — typed records are invisible to it.
+    return ToolCallResult.builder()
+        .id(toolCallResult.id())
+        .name(identifier.fullyQualifiedName())
+        .content(toolCallResult.content())
+        .build();
   }
 
   /**

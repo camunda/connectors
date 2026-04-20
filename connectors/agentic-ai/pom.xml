@@ -303,11 +303,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>jackson-datatype-feel</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <scope>test</scope>
