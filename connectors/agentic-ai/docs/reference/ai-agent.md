@@ -338,10 +338,10 @@ Memory is managed through a layered architecture:
 
 ```
 RuntimeMemory (in-process, transient)
-    ▲ loadIntoRuntimeMemory  │ storeFromRuntimeMemory
+    ▲ loadMessages           │ storeMessages
     │                        ▼
-ConversationSession (per-invocation, managed by store callback)
-    ▲ executeInSession       │ persist
+ConversationSession (per-invocation, AutoCloseable)
+    ▲ createSession          │ persist
     │                        ▼
 ConversationStore (registered backend)
     │
@@ -390,7 +390,7 @@ ConversationStore (registered backend)
 - See [AWS AgentCore Memory reference](aws-agentcore-memory.md) for full details
 
 **Custom implementations**: Fully pluggable via `ConversationStoreRegistry`. Users can register custom stores by:
-1. Implementing `ConversationStore` (with `executeInSession` callback), `ConversationSession`, and `ConversationContext`
+1. Implementing `ConversationStore` (with `createSession` factory method), `ConversationSession` (with `loadMessages`/`storeMessages`), and `ConversationContext`
 2. Annotating the custom `ConversationContext` with `@JsonTypeName("my-type")` and registering the subtype with the runtime `ObjectMapper` (e.g., via a Spring `Jackson2ObjectMapperBuilderCustomizer` calling `registerSubtypes()`)
 3. Selecting "Custom Implementation" as memory storage type in the element template and specifying the implementation type string
 4. Registering the store as a Spring component
@@ -399,24 +399,27 @@ See the [`CustomMemoryStorageConfiguration`](../../src/main/java/io/camunda/conn
 
 ### ConversationSession Lifecycle
 
-`ConversationStore.executeInSession()` wraps the agent processing in a callback that manages session lifecycle:
+`ConversationStore.createSession()` returns an `AutoCloseable` session. The handler manages it via try-with-resources:
 
 ```java
-conversationStore.executeInSession(executionContext, agentContext, session -> {
-    session.loadIntoRuntimeMemory(agentContext, runtimeMemory);   // load history
+try (var session = store.createSession(executionContext, agentContext)) {
+    var loadResult = session.loadMessages(agentContext);          // load history
+    runtimeMemory.addMessages(loadResult.messages());
     // [add messages, call LLM, etc.]
-    return session.storeFromRuntimeMemory(agentContext, runtimeMemory);  // persist
-});
+    var cursor = session.storeMessages(agentContext, request);    // persist
+    agentContext = agentContext.withConversation(cursor);          // assemble
+}
 ```
 
-1. `ConversationStore.executeInSession()` creates a session and invokes the callback
-2. `session.loadIntoRuntimeMemory(agentContext, runtimeMemory)` populates `RuntimeMemory` with stored history
+1. `ConversationStore.createSession()` creates and returns a session (the caller owns its lifecycle)
+2. `session.loadMessages(agentContext)` returns a `ConversationLoadResult` containing the stored message history
 3. Agent logic adds messages to `RuntimeMemory`, calls LLM, gets response
-4. `session.storeFromRuntimeMemory(agentContext, runtimeMemory)` persists and returns updated `AgentContext`
-5. The store manages session cleanup (resource deallocation) within the callback scope
-6. Job completion sends the updated `AgentContext` back to Zeebe
+4. `session.storeMessages(agentContext, request)` persists and returns only the `ConversationContext` (storage cursor)
+5. The caller assembles the updated `AgentContext` via `agentContext.withConversation(cursor)`
+6. `session.close()` handles resource cleanup (e.g., closing AWS clients)
+7. Job completion sends the updated `AgentContext` back to Zeebe
 
-**Critical insight**: The conversation is stored **before** job completion. If job completion fails (e.g., job was superseded), the stored conversation state may be ahead of what Zeebe knows. On retry, the agent uses the old `agentContext` (with old document reference) — safe, just re-does the work. The `compensateFailedJobCompletion()` hook on the store is available for recovery if needed (default is a no-op).
+**Critical insight**: The conversation is stored **before** job completion. If job completion fails (e.g., job was superseded), the stored conversation state may be ahead of what Zeebe knows. On retry, the agent uses the old `agentContext` (with old document reference) — safe, just re-does the work.
 
 ---
 
@@ -653,7 +656,7 @@ This is the key gate: if no user messages were added (because tool results were 
 **Mitigation**:
 - The `CommandWrapper` retries up to 3 times via `CommandExceptionHandlingStrategy`
 - The no-op completion pattern means most superseded jobs were doing nothing anyway
-- `ConversationStore.compensateFailedJobCompletion()` exists as an extension point for future completion callback support (currently a no-op, not yet invoked)
+- Completion callbacks for conversation stores are planned for a follow-up (not yet implemented)
 
 ### Challenge 2: Conversation Store Ahead of Zeebe
 
@@ -662,8 +665,8 @@ This is the key gate: if no user messages were added (because tool results were 
 - Document store: The document was already written. The `agentContext` variable in the completion command references this new document. If completion fails, the next job will use the OLD `agentContext` which references the OLD document. The new document becomes an orphan, but the agent state is consistent because it re-uses the old context.
 
 **Mitigation**:
-- The `compensateFailedJobCompletion()` hook is available for custom stores to perform recovery (default no-op)
 - The "document ahead of Zeebe" scenario is benign for correctness: the old conversation is a valid subset, the agent simply re-does the LLM call
+- Completion callback hooks for stores are planned for a follow-up to enable proactive recovery
 - Document references accumulate in `previousDocuments` but old documents are harmless
 
 ### Challenge 3: Duplicate LLM Calls on Rapid Tool Completion
@@ -1003,8 +1006,8 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 
 ### Memory
 - `ConversationStoreRegistryImpl.getConversationStore()` → Store resolution
-- `InProcessConversationSession.loadIntoRuntimeMemory()` / `storeFromRuntimeMemory()` → In-process persistence
-- `CamundaDocumentConversationSession.loadIntoRuntimeMemory()` / `storeFromRuntimeMemory()` → Document persistence
+- `InProcessConversationSession.loadMessages()` / `storeMessages()` → In-process persistence
+- `CamundaDocumentConversationSession.loadMessages()` / `storeMessages()` → Document persistence
 - `MessageWindowRuntimeMemory.filteredMessages()` → Context window sliding (used by BaseAgentRequestHandler)
 
 ### Tool Resolution

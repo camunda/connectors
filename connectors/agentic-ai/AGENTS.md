@@ -74,8 +74,8 @@ framework/
 
 memory/
 ├── conversation/
-│   ├── ConversationStore       # Pluggable storage: executeInSession() callback pattern
-│   ├── ConversationSession     # Per-invocation: loadIntoRuntimeMemory/storeFromRuntimeMemory
+│   ├── ConversationStore       # Pluggable storage: createSession() factory pattern
+│   ├── ConversationSession     # Per-invocation: loadMessages/storeMessages (AutoCloseable)
 │   ├── ConversationContext     # Persistent reference (conversationId)
 │   ├── inprocess/              # In-process store (messages in agentContext variable)
 │   └── document/               # Camunda Document Storage backend
@@ -133,14 +133,15 @@ complete — handled via `CommandWrapper` retries. For detailed mechanics, see
 
 ### Conversation Session Lifecycle
 
-`ConversationStore.executeInSession()` wraps agent processing in a callback:
+`ConversationStore.createSession()` returns an `AutoCloseable` session used via try-with-resources:
 
 ```
-executeInSession(ctx, agentContext, session -> {
-    session.loadIntoRuntimeMemory(agentContext, runtimeMemory)
-    [add messages, call LLM, etc.]
-    session.storeFromRuntimeMemory(agentContext, runtimeMemory)
-}) → completeJob
+try (var session = store.createSession(ctx, agentContext)) {
+    var loaded = session.loadMessages(agentContext)
+    [add messages to runtime memory, call LLM, etc.]
+    var cursor = session.storeMessages(agentContext, request)
+    agentContext = agentContext.withConversation(cursor)
+} → completeJob
 ```
 
 For backend-specific behavior and failure handling, see [ai-agent.md §6](docs/reference/ai-agent.md#6-conversation-memory).
