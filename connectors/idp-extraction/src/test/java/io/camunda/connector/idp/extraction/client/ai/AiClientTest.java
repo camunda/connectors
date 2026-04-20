@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
@@ -75,7 +76,8 @@ class AiClientTest {
       String userMessage = "Extract data from this document";
 
       ChatResponse chatResponse = createChatResponse("Extracted data");
-      when(mockChatModel.chat(any(), any())).thenReturn(chatResponse);
+      when(mockChatModel.chat(any(ChatMessage.class), any(ChatMessage.class)))
+          .thenReturn(chatResponse);
 
       // when
       ChatResponse response = client.chat(systemMessage, userMessage);
@@ -83,7 +85,7 @@ class AiClientTest {
       // then
       assertThat(response).isNotNull();
       assertThat(response.aiMessage().text()).isEqualTo("Extracted data");
-      verify(mockChatModel).chat(any(), any());
+      verify(mockChatModel).chat(any(ChatMessage.class), any(ChatMessage.class));
     }
 
     @Test
@@ -99,7 +101,8 @@ class AiClientTest {
       when(mockDocument.generateLink(any(DocumentLinkParameters.class))).thenReturn(documentLink);
 
       ChatResponse chatResponse = createChatResponse("Extracted data");
-      when(mockChatModel.chat(any(), any())).thenReturn(chatResponse);
+      when(mockChatModel.chat(any(ChatMessage.class), any(ChatMessage.class)))
+          .thenReturn(chatResponse);
 
       // when
       ChatResponse response = client.chat(systemMessage, userMessage, mockDocument);
@@ -108,7 +111,7 @@ class AiClientTest {
       assertThat(response).isNotNull();
       assertThat(response.aiMessage().text()).isEqualTo("Extracted data");
       verify(mockDocument).generateLink(any(DocumentLinkParameters.class));
-      verify(mockChatModel).chat(any(), any());
+      verify(mockChatModel).chat(any(ChatMessage.class), any(ChatMessage.class));
     }
 
     @Test
@@ -124,7 +127,8 @@ class AiClientTest {
       when(mockDocument.generateLink(any(DocumentLinkParameters.class))).thenReturn(documentLink);
 
       ChatResponse chatResponse = createChatResponse("Extracted data");
-      when(mockChatModel.chat(any(), any())).thenReturn(chatResponse);
+      when(mockChatModel.chat(any(ChatMessage.class), any(ChatMessage.class)))
+          .thenReturn(chatResponse);
 
       // when
       ChatResponse response = client.chat(systemMessage, userMessage, mockDocument);
@@ -133,7 +137,7 @@ class AiClientTest {
       assertThat(response).isNotNull();
       assertThat(response.aiMessage().text()).isEqualTo("Extracted data");
       verify(mockDocument).generateLink(any(DocumentLinkParameters.class));
-      verify(mockChatModel).chat(any(), any());
+      verify(mockChatModel).chat(any(ChatMessage.class), any(ChatMessage.class));
     }
 
     @Test
@@ -151,7 +155,8 @@ class AiClientTest {
       when(mockDocument.asBase64()).thenReturn(base64Content);
 
       ChatResponse chatResponse = createChatResponse("Extracted data");
-      when(mockChatModel.chat(any(), any())).thenReturn(chatResponse);
+      when(mockChatModel.chat(any(ChatMessage.class), any(ChatMessage.class)))
+          .thenReturn(chatResponse);
 
       // when
       ChatResponse response = client.chat(systemMessage, userMessage, mockDocument);
@@ -160,7 +165,7 @@ class AiClientTest {
       assertThat(response).isNotNull();
       assertThat(response.aiMessage().text()).isEqualTo("Extracted data");
       verify(mockDocument).asBase64();
-      verify(mockChatModel).chat(any(), any());
+      verify(mockChatModel).chat(any(ChatMessage.class), any(ChatMessage.class));
     }
 
     @Test
@@ -177,7 +182,8 @@ class AiClientTest {
       when(mockDocument.asBase64()).thenReturn(base64Content);
 
       ChatResponse chatResponse = createChatResponse("Extracted data");
-      when(mockChatModel.chat(any(), any())).thenReturn(chatResponse);
+      when(mockChatModel.chat(any(ChatMessage.class), any(ChatMessage.class)))
+          .thenReturn(chatResponse);
 
       // when
       ChatResponse response = client.chat(systemMessage, userMessage, mockDocument);
@@ -185,7 +191,7 @@ class AiClientTest {
       // then
       assertThat(response).isNotNull();
       verify(mockDocument).asBase64();
-      verify(mockChatModel).chat(any(), any());
+      verify(mockChatModel).chat(any(ChatMessage.class), any(ChatMessage.class));
     }
 
     @Test
@@ -203,7 +209,8 @@ class AiClientTest {
       when(mockDocument.asBase64()).thenReturn(base64Content);
 
       ChatResponse chatResponse = createChatResponse("Extracted data");
-      when(mockChatModel.chat(any(), any())).thenReturn(chatResponse);
+      when(mockChatModel.chat(any(ChatMessage.class), any(ChatMessage.class)))
+          .thenReturn(chatResponse);
 
       // when
       ChatResponse response = client.chat(systemMessage, userMessage, mockDocument);
@@ -211,7 +218,7 @@ class AiClientTest {
       // then
       assertThat(response).isNotNull();
       verify(mockDocument).asBase64();
-      verify(mockChatModel).chat(any(), any());
+      verify(mockChatModel).chat(any(ChatMessage.class), any(ChatMessage.class));
     }
   }
 

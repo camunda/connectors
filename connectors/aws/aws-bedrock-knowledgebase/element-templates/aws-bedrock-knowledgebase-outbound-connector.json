@@ -1,0 +1,285 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "AWS Bedrock Knowledge Base Outbound Connector",
+  "id" : "io.camunda.connectors.aws.bedrock.knowledgebase.v1",
+  "description" : "Retrieve relevant documents from an AWS Bedrock Knowledge Base",
+  "metadata" : {
+    "keywords" : [ ]
+  },
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "engines" : {
+    "camunda" : "^8.9"
+  },
+  "groups" : [ {
+    "id" : "authentication",
+    "label" : "Authentication"
+  }, {
+    "id" : "configuration",
+    "label" : "Configuration"
+  }, {
+    "id" : "operation",
+    "label" : "Operation"
+  }, {
+    "id" : "retrieve",
+    "label" : "Retrieve from Knowledge Base"
+  }, {
+    "id" : "connector",
+    "label" : "Connector"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "value" : "io.camunda:aws-bedrock-knowledgebase:1",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
+    "value" : "credentials",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
+      "value" : "defaultCredentialsChain"
+    }, {
+      "name" : "Credentials",
+      "value" : "credentials"
+    } ]
+  }, {
+    "id" : "authentication.accessKey",
+    "label" : "Access key",
+    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.accessKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "credentials",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.secretKey",
+    "label" : "Secret key",
+    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.secretKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "credentials",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "knowledgeBaseId",
+    "label" : "Knowledge Base ID",
+    "description" : "The ID of the Bedrock Knowledge Base to query.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "knowledgeBaseId",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "configuration.region",
+    "label" : "Region",
+    "description" : "Specify the AWS region",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.region",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "configuration.endpoint",
+    "label" : "Endpoint",
+    "description" : "Specify endpoint if need to use custom endpoint",
+    "optional" : true,
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.endpoint",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "operation.operationDiscriminator",
+    "label" : "Operation",
+    "value" : "retrieve",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.operationDiscriminator",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Retrieve from Knowledge Base",
+      "value" : "retrieve"
+    } ]
+  }, {
+    "id" : "operation.query",
+    "label" : "Query",
+    "description" : "Natural language query to search the knowledge base.",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "retrieve",
+    "binding" : {
+      "name" : "operation.query",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operation.operationDiscriminator",
+      "equals" : "retrieve",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation.numberOfResults",
+    "label" : "Number of results",
+    "description" : "Maximum number of results to return (1–100). Defaults to 5.",
+    "optional" : true,
+    "value" : 5,
+    "feel" : "static",
+    "group" : "retrieve",
+    "binding" : {
+      "name" : "operation.numberOfResults",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operation.operationDiscriminator",
+      "equals" : "retrieve",
+      "type" : "simple"
+    },
+    "type" : "Number"
+  }, {
+    "id" : "version",
+    "label" : "Version",
+    "description" : "Version of the element template",
+    "value" : "1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateVersion",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "id",
+    "label" : "ID",
+    "description" : "ID of the element template",
+    "value" : "io.camunda.connectors.aws.bedrock.knowledgebase.v1",
+    "group" : "connector",
+    "binding" : {
+      "key" : "elementTemplateId",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iNDBweCIgaGVpZ2h0PSI0MHB4IiB2aWV3Qm94PSIwIDAgNDAgNDAiIHZlcnNpb249IjEuMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8dGl0bGU+SWNvbi1BcmNoaXRlY3R1cmUvMzIvQXJjaF9BbWF6b24tQmVkcm9ja18zMjwvdGl0bGU+CiAgICA8ZyBpZD0iSWNvbi1BcmNoaXRlY3R1cmUvMzIvQXJjaF9BbWF6b24tQmVkcm9ja18zMiIgc3Ryb2tlPSJub25lIiBzdHJva2Utd2lkdGg9IjEiIGZpbGw9Im5vbmUiIGZpbGwtcnVsZT0iZXZlbm9kZCI+CiAgICAgICAgPGcgaWQ9Ikljb24tQXJjaGl0ZWN0dXJlLUJHLzMyL01hY2hpbmUtTGVhcm5pbmciIGZpbGw9IiMwMUE4OEQiPgogICAgICAgICAgICA8cmVjdCBpZD0iUmVjdGFuZ2xlIiB4PSIwIiB5PSIwIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiPjwvcmVjdD4KICAgICAgICA8L2c+CiAgICAgICAgPGcgaWQ9Ikljb24tU2VydmljZS8zMi9BbWF6b24tQmVkcm9ja18zMiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNi4wMDAwMDAsIDYuMDAwMDAwKSIgZmlsbD0iI0ZGRkZGRiI+CiAgICAgICAgICAgIDxwYXRoIGQ9Ik0xMC41MTYsMjYuOTMzMjExNiBMOC4yOTMsMjUuNjYzMjExNiBMMTEuNzI0LDIzLjk0NzIxMTYgTDExLjI3NywyMy4wNTMyMTE2IEw3LjI3NywyNS4wNTMyMTE2IEw3LjI5NywyNS4wOTQyMTE2IEw0LDIzLjIxMDIxMTYgTDQsMTkuODA5MjExNiBMNy43MjQsMTcuOTQ3MjExNiBMNy4yNzcsMTcuMDUzMjExNiBMMy41MzYsMTguOTIzMjExNiBMMSwxNy4yMzIyMTE2IEwxLDE0LjgwOTIxMTYgTDQuNzI0LDEyLjk0NzIxMTYgTDQuMjc3LDEyLjA1MzIxMTYgTDEsMTMuNjkxMjExNiBMMSwxMC43NjcyMTE2IEwzLjUyMyw5LjA4NjIxMTU4IEw3LDExLjAzODIxMTYgTDcsMTQuMTkxMjExNiBMNS4yNzcsMTUuMDUzMjExNiBMNS43MjQsMTUuOTQ3MjExNiBMNy41LDE1LjA1OTIxMTYgTDkuMjc3LDE1Ljk0NzIxMTYgTDkuNzI0LDE1LjA1MzIxMTYgTDgsMTQuMTkxMjExNiBMOCwxMC43NjcyMTE2IEwxMC43NzgsOC45MTYyMTE1OCBDMTAuOTE2LDguODIzMjExNTggMTEsOC42NjcyMTE1OCAxMSw4LjUwMDIxMTU4IEwxMSw1LjAwMDIxMTU4IEwxMCw1LjAwMDIxMTU4IEwxMCw4LjIzMjIxMTU4IEw3LjI3OCwxMC4wNDcyMTE2IEw0LDguMjA3MjExNTggTDQsNC4wMzUyMTE1OCBMNywyLjY1NzIxMTU4IEw3LDcuMDAwMjExNTggTDgsNy4wMDAyMTE1OCBMOCwyLjE5ODIxMTU4IEwxMC40OTIsMS4wNTQyMTE1OCBMMTQsMi44MDkyMTE1OCBMMTQsMTcuMTkxMjExNiBMNi4yNzcsMjEuMDUzMjExNiBMNi43MjQsMjEuOTQ3MjExNiBMMTQsMTguMzA5MjExNiBMMTQsMjUuMTkxMjExNiBMMTAuNTE2LDI2LjkzMzIxMTYgWiBNMjUuNSwxOS41MDAyMTE2IEMyNS41LDIwLjA1MTIxMTYgMjUuMDUyLDIwLjUwMDIxMTYgMjQuNSwyMC41MDAyMTE2IEMyMy45NDksMjAuNTAwMjExNiAyMy41LDIwLjA1MTIxMTYgMjMuNSwxOS41MDAyMTE2IEMyMy41LDE4Ljk0OTIxMTYgMjMuOTQ5LDE4LjUwMDIxMTYgMjQuNSwxOC41MDAyMTE2IEMyNS4wNTIsMTguNTAwMjExNiAyNS41LDE4Ljk0OTIxMTYgMjUuNSwxOS41MDAyMTE2IEwyNS41LDE5LjUwMDIxMTYgWiBNMjAuNSwyNC4wMDAyMTE2IEMyMC41LDI0LjU1MTIxMTYgMjAuMDUyLDI1LjAwMDIxMTYgMTkuNSwyNS4wMDAyMTE2IEMxOC45NDksMjUuMDAwMjExNiAxOC41LDI0LjU1MTIxMTYgMTguNSwyNC4wMDAyMTE2IEMxOC41LDIzLjQ0OTIxMTYgMTguOTQ5LDIzLjAwMDIxMTYgMTkuNSwyMy4wMDAyMTE2IEMyMC4wNTIsMjMuMDAwMjExNiAyMC41LDIzLjQ0OTIxMTYgMjAuNSwyNC4wMDAyMTE2IEwyMC41LDI0LjAwMDIxMTYgWiBNMTkuNSw0LjAwMDIxMTU4IEMxOS41LDMuNDQ5MjExNTggMTkuOTQ5LDMuMDAwMjExNTggMjAuNSwzLjAwMDIxMTU4IEMyMS4wNTIsMy4wMDAyMTE1OCAyMS41LDMuNDQ5MjExNTggMjEuNSw0LjAwMDIxMTU4IEMyMS41LDQuNTUxMjExNTggMjEuMDUyLDUuMDAwMjExNTggMjAuNSw1LjAwMDIxMTU4IEMxOS45NDksNS4wMDAyMTE1OCAxOS41LDQuNTUxMjExNTggMTkuNSw0LjAwMDIxMTU4IEwxOS41LDQuMDAwMjExNTggWiBNMjYsMTEuNTAwMjExNiBDMjYuNTUyLDExLjUwMDIxMTYgMjcsMTEuOTQ5MjExNiAyNywxMi41MDAyMTE2IEMyNywxMy4wNTEyMTE2IDI2LjU1MiwxMy41MDAyMTE2IDI2LDEzLjUwMDIxMTYgQzI1LjQ0OSwxMy41MDAyMTE2IDI1LDEzLjA1MTIxMTYgMjUsMTIuNTAwMjExNiBDMjUsMTEuOTQ5MjExNiAyNS40NDksMTEuNTAwMjExNiAyNiwxMS41MDAyMTE2IEwyNiwxMS41MDAyMTE2IFogTTI0LjA3MSwxMy4wMDAyMTE2IEMyNC4yOTUsMTMuODYwMjExNiAyNS4wNzEsMTQuNTAwMjExNiAyNiwxNC41MDAyMTE2IEMyNy4xMDMsMTQuNTAwMjExNiAyOCwxMy42MDMyMTE2IDI4LDEyLjUwMDIxMTYgQzI4LDExLjM5NzIxMTYgMjcuMTAzLDEwLjUwMDIxMTYgMjYsMTAuNTAwMjExNiBDMjUuMDcxLDEwLjUwMDIxMTYgMjQuMjk1LDExLjE0MDIxMTYgMjQuMDcxLDEyLjAwMDIxMTYgTDE1LDEyLjAwMDIxMTYgTDE1LDkuMDAwMjExNTggTDIwLjUsOS4wMDAyMTE1OCBDMjAuNzc3LDkuMDAwMjExNTggMjEsOC43NzYyMTE1OCAyMSw4LjUwMDIxMTU4IEwyMSw1LjkyOTIxMTU4IEMyMS44Niw1LjcwNTIxMTU4IDIyLjUsNC45MjkyMTE1OCAyMi41LDQuMDAwMjExNTggQzIyLjUsMi44OTcyMTE1OCAyMS42MDMsMi4wMDAyMTE1OCAyMC41LDIuMDAwMjExNTggQzE5LjM5OCwyLjAwMDIxMTU4IDE4LjUsMi44OTcyMTE1OCAxOC41LDQuMDAwMjExNTggQzE4LjUsNC45MjkyMTE1OCAxOS4xNCw1LjcwNTIxMTU4IDIwLDUuOTI5MjExNTggTDIwLDguMDAwMjExNTggTDE1LDguMDAwMjExNTggTDE1LDIuNTAwMjExNTggQzE1LDIuMzEwMjExNTggMTQuODkzLDIuMTM4MjExNTggMTQuNzI0LDIuMDUzMjExNTggTDEwLjcyNCwwLjA1MzIxMTU4NDMgQzEwLjU4OCwtMC4wMTQ3ODg0MTU3IDEwLjQzLC0wLjAxNzc4ODQxNTcgMTAuMjkxLDAuMDQ1MjExNTg0MyBMMy4yOTEsMy4yNjAyMTE1OCBDMy4xMTUsMy4zNDEyMTE1OCAzLDMuNTE5MjExNTggMywzLjcxNDIxMTU4IEwzLDguMjMyMjExNTggTDAuMjIzLDEwLjA4NDIxMTYgQzAuMDg0LDEwLjE3NzIxMTYgMCwxMC4zMzMyMTE2IDAsMTAuNTAwMjExNiBMMCwxNy41MDAyMTE2IEMwLDE3LjY2NzIxMTYgMC4wODQsMTcuODIzMjExNiAwLjIyMywxNy45MTYyMTE2IEwzLDE5Ljc2NzIxMTYgTDMsMjMuNTAwMjExNiBDMywyMy42NzkyMTE2IDMuMDk2LDIzLjg0NTIxMTYgMy4yNTIsMjMuOTM0MjExNiBMMTAuMjUyLDI3LjkzNDIxMTYgQzEwLjMyOSwyNy45NzgyMTE2IDEwLjQxNCwyOC4wMDAyMTE2IDEwLjUsMjguMDAwMjExNiBDMTAuNTc3LDI4LjAwMDIxMTYgMTAuNjU0LDI3Ljk4MjIxMTYgMTAuNzI0LDI3Ljk0NzIxMTYgTDE0LjcyNCwyNS45NDcyMTE2IEMxNC44OTMsMjUuODYyMjExNiAxNSwyNS42ODkyMTE2IDE1LDI1LjUwMDIxMTYgTDE1LDIxLjAwMDIxMTYgTDE5LDIxLjAwMDIxMTYgTDE5LDIyLjA3MTIxMTYgQzE4LjE0LDIyLjI5NTIxMTYgMTcuNSwyMy4wNzEyMTE2IDE3LjUsMjQuMDAwMjExNiBDMTcuNSwyNS4xMDMyMTE2IDE4LjM5OCwyNi4wMDAyMTE2IDE5LjUsMjYuMDAwMjExNiBDMjAuNjAzLDI2LjAwMDIxMTYgMjEuNSwyNS4xMDMyMTE2IDIxLjUsMjQuMDAwMjExNiBDMjEuNSwyMy4wNzEyMTE2IDIwLjg2LDIyLjI5NTIxMTYgMjAsMjIuMDcxMjExNiBMMjAsMjAuNTAwMjExNiBDMjAsMjAuMjI0MjExNiAxOS43NzcsMjAuMDAwMjExNiAxOS41LDIwLjAwMDIxMTYgTDE1LDIwLjAwMDIxMTYgTDE1LDE3LjAwMDIxMTYgTDIxLjI5MywxNy4wMDAyMTE2IEwyMi43ODQsMTguNDkwMjExNiBDMjIuNjA4LDE4Ljc4ODIxMTYgMjIuNSwxOS4xMzAyMTE2IDIyLjUsMTkuNTAwMjExNiBDMjIuNSwyMC42MDMyMTE2IDIzLjM5OCwyMS41MDAyMTE2IDI0LjUsMjEuNTAwMjExNiBDMjUuNjAzLDIxLjUwMDIxMTYgMjYuNSwyMC42MDMyMTE2IDI2LjUsMTkuNTAwMjExNiBDMjYuNSwxOC4zOTcyMTE2IDI1LjYwMywxNy41MDAyMTE2IDI0LjUsMTcuNTAwMjExNiBDMjQuMTMxLDE3LjUwMDIxMTYgMjMuNzg4LDE3LjYwODIxMTYgMjMuNDkxLDE3Ljc4MzIxMTYgTDIxLjg1NCwxNi4xNDYyMTE2IEMyMS43NiwxNi4wNTMyMTE2IDIxLjYzMywxNi4wMDAyMTE2IDIxLjUsMTYuMDAwMjExNiBMMTUsMTYuMDAwMjExNiBMMTUsMTMuMDAwMjExNiBMMjQuMDcxLDEzLjAwMDIxMTYgWiIgaWQ9IkZpbGwtNSI+PC9wYXRoPgogICAgICAgIDwvZz4KICAgIDwvZz4KPC9zdmc+"
+  }
+}

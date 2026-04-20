@@ -7,6 +7,15 @@
     "camunda": "^8.3"
   },
   "description": "Receive incoming message with Twilio service",
+  "keywords": [
+    "SMS received",
+    "receive SMS",
+    "incoming SMS",
+    "phone event",
+    "text message received",
+    "webhook",
+    "inbound message"
+  ],
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/twilio/?twilio=inbound",
   "category": {
     "id": "connectors",

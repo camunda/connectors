@@ -29,6 +29,7 @@
     <module>aws-textract</module>
     <module>aws-s3</module>
     <module>aws-bedrock-agentcore-runtime</module>
+    <module>aws-bedrock-knowledgebase</module>
   </modules>
 
   <properties>

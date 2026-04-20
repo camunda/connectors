@@ -3,9 +3,15 @@
   "name" : "Webhook Start Event Connector",
   "id" : "io.camunda.connectors.webhook.WebhookConnector.v1",
   "description" : "Configure webhook to receive callbacks",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords" : [
+    "receive webhook",
+    "HTTP trigger",
+    "event received",
+    "inbound event",
+    "webhook trigger",
+    "HTTP callback",
+    "listen for event"
+  ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
   "version" : 14,
   "category" : {

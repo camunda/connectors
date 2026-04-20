@@ -3,6 +3,15 @@
   "name": "RabbitMQ Start Event Connector",
   "id": "io.camunda.connectors.inbound.RabbitMQ.StartEvent.v1",
   "description": "Receive a message from RabbitMQ",
+  "keywords": [
+    "receive message",
+    "consume message",
+    "message queue",
+    "AMQP",
+    "subscribe",
+    "message broker",
+    "queue"
+  ],
   "deprecated": {
     "message": "None Start Events are deprecated in favor of Message Start Events for message based Connectors.",
     "documentationRef": "https://docs.camunda.io/docs/components/modeler/bpmn/none-events/"

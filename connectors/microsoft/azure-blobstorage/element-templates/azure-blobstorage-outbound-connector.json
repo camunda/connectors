@@ -3,10 +3,16 @@
   "name" : "Azure Blob Storage Outbound Connector",
   "id" : "io.camunda.connectors.azure.blobstorage.v1",
   "description" : "Upload and download files from Azure Blob Storage.",
-  "metadata" : {
-    "keywords" : [ "download file from azure blob storage", "upload file to azure blob storage" ]
-  },
-  "documentationRef" : "https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blob-storage/",
+  "keywords" : [
+    "download blob",
+    "upload blob",
+    "download file",
+    "upload file",
+    "blob storage",
+    "file storage",
+    "cloud storage"
+  ],
+  "documentationRef" : "https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/",
   "version" : 2,
   "category" : {
     "id" : "connectors",
@@ -69,7 +75,7 @@
   }, {
     "id" : "authentication.SASToken",
     "label" : "SAS token",
-    "description" : "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">documentation</a>.",
+    "description" : "Shared access signature (SAS) token of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -89,7 +95,7 @@
   }, {
     "id" : "authentication.SASUrl",
     "label" : "SAS URL",
-    "description" : "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.8/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">documentation</a>.",
+    "description" : "Shared access signature (SAS) URL of the container. Learn more in our <a href=\"https://docs.camunda.io/docs/8.9/components/connectors/out-of-the-box-connectors/azure-blob-storage/#prerequisites\">documentation</a>.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true

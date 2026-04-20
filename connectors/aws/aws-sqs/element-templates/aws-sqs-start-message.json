@@ -3,9 +3,14 @@
   "name" : "Amazon SQS Message Start Event Connector",
   "id" : "io.camunda.connectors.AWSSQS.startmessage.v1",
   "description" : "Receive messages from Amazon SQS.",
-  "metadata" : {
-    "keywords" : [ "receive message", "receive event", "receive message from queue", "receive event from queue" ]
-  },
+  "keywords" : [
+    "receive message",
+    "receive event",
+    "receive message from queue",
+    "event driven",
+    "queue",
+    "dequeue"
+  ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound",
   "version" : 10,
   "category" : {

@@ -2,6 +2,15 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "RPA Connector",
   "description": "Connects with the Camunda RPA Worker",
+  "keywords" : [
+    "robotic process automation",
+    "RPA",
+    "automate task",
+    "bot",
+    "automation",
+    "run bot",
+    "trigger automation"
+  ],
   "id": "camunda.connectors.rpa",
   "version": 1,
   "appliesTo": [
