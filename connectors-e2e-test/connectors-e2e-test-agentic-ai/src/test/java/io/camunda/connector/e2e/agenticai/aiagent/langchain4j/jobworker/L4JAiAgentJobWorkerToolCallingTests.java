@@ -18,18 +18,22 @@ package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.jobworker;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.Content;
+import dev.langchain4j.data.message.ImageContent;
+import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentResponseModel;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.e2e.agenticai.assertj.JobWorkerAgentResponseAssert;
 import io.camunda.connector.test.utils.annotation.SlowTest;
@@ -71,44 +75,23 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
   void supportsDocumentResponsesFromToolCalls(
       String filename, String type, String mimeType, WireMockRuntimeInfo wireMock)
       throws Exception {
-    DownloadFileToolResult expectedDownloadFileResult;
-    if (type.equals("text")) {
-      expectedDownloadFileResult =
-          new DownloadFileToolResult(
-              200,
-              new DocumentToContentResponseModel(type, mimeType, testFileContent(filename).get()));
-    } else {
-      expectedDownloadFileResult =
-          new DownloadFileToolResult(
-              200,
-              new DocumentToContentResponseModel(
-                  type, mimeType, testFileContentBase64(filename).get()));
-    }
-
     final var initialUserPrompt = "Go and download a document!";
-    final var expectedConversation =
-        List.of(
-            new SystemMessage(
-                "You are a helpful AI assistant. Answer all the questions, but always be nice. Explain your thinking."),
-            new UserMessage(initialUserPrompt),
-            new AiMessage(
-                "The user asked me to download a document. I will call the Download_A_File tool to do so.",
-                List.of(
-                    ToolExecutionRequest.builder()
-                        .id("aaa111")
-                        .name("Download_A_File")
-                        .arguments(
-                            "{\"url\": \"%s\"}"
-                                .formatted(wireMock.getHttpBaseUrl() + "/" + filename))
-                        .build())),
-            new ToolExecutionResultMessage(
-                "aaa111",
-                "Download_A_File",
-                objectMapper.writeValueAsString(expectedDownloadFileResult)),
-            new AiMessage(
-                "I loaded a document and learned that it contains interesting data. Anything specific you want to know?"),
-            new UserMessage("What is the content type?"),
-            new AiMessage("The content type is '%s'".formatted(mimeType)));
+
+    // The AI message with tool call and the subsequent responses for the conversation
+    final var aiToolCallMessage =
+        new AiMessage(
+            "The user asked me to download a document. I will call the Download_A_File tool to do so.",
+            List.of(
+                ToolExecutionRequest.builder()
+                    .id("aaa111")
+                    .name("Download_A_File")
+                    .arguments(
+                        "{\"url\": \"%s\"}".formatted(wireMock.getHttpBaseUrl() + "/" + filename))
+                    .build()));
+    final var aiResponseAfterTool =
+        new AiMessage(
+            "I loaded a document and learned that it contains interesting data. Anything specific you want to know?");
+    final var aiFinalResponse = new AiMessage("The content type is '%s'".formatted(mimeType));
 
     mockChatInteractions(
         ChatInteraction.of(
@@ -118,7 +101,7 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
                         .finishReason(FinishReason.TOOL_EXECUTION)
                         .tokenUsage(new TokenUsage(10, 20))
                         .build())
-                .aiMessage((AiMessage) expectedConversation.get(2))
+                .aiMessage(aiToolCallMessage)
                 .build()),
         ChatInteraction.of(
             ChatResponse.builder()
@@ -127,7 +110,7 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
                         .finishReason(FinishReason.STOP)
                         .tokenUsage(new TokenUsage(100, 200))
                         .build())
-                .aiMessage((AiMessage) expectedConversation.get(4))
+                .aiMessage(aiResponseAfterTool)
                 .build(),
             userFollowUpFeedback("What is the content type?")),
         ChatInteraction.of(
@@ -137,7 +120,7 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
                         .finishReason(FinishReason.STOP)
                         .tokenUsage(new TokenUsage(11, 22))
                         .build())
-                .aiMessage((AiMessage) expectedConversation.get(6))
+                .aiMessage(aiFinalResponse)
                 .build(),
             userSatisfiedFeedback()));
 
@@ -148,18 +131,90 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
                 Map.of("userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
-    assertLastChatRequest(expectedConversation);
+    // Assert the conversation structure with document extraction
+    await()
+        .alias("Chat request captured")
+        .untilAsserted(() -> assertThat(chatRequestCaptor.getValue()).isNotNull());
 
-    String expectedResponseText = ((AiMessage) expectedConversation.getLast()).text();
+    final var lastMessages = chatRequestCaptor.getValue().messages();
+
+    // Expected message order (8 messages, last AI response not included in request):
+    // 0: SystemMessage
+    // 1: UserMessage (initial prompt)
+    // 2: AiMessage (tool call)
+    // 3: ToolExecutionResultMessage (document serialized as reference)
+    // 4: UserMessage (document content extracted from tool result)
+    // 5: AiMessage (response after tool)
+    // 6: UserMessage (follow-up question)
+    assertThat(lastMessages).hasSize(7);
+
+    assertThat(lastMessages.get(0)).isInstanceOf(SystemMessage.class);
+    assertThat(lastMessages.get(1)).isInstanceOf(UserMessage.class);
+    assertThat(lastMessages.get(2)).isInstanceOf(AiMessage.class);
+
+    // Tool result: document serialized as document reference
+    assertThat(lastMessages.get(3))
+        .isInstanceOfSatisfying(
+            ToolExecutionResultMessage.class,
+            msg -> {
+              assertThat(msg.id()).isEqualTo("aaa111");
+              assertThat(msg.toolName()).isEqualTo("Download_A_File");
+              assertThat(msg.text()).contains("camunda.document.type");
+              assertThat(msg.text()).contains(mimeType);
+            });
+
+    // Document user message: extracted document content
+    assertThat(lastMessages.get(4))
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            msg -> {
+              List<Content> contents = msg.contents();
+              assertThat(contents).hasSize(2);
+              assertThat(contents.get(0))
+                  .isInstanceOfSatisfying(
+                      TextContent.class,
+                      tc ->
+                          assertThat(tc.text())
+                              .isEqualTo("Tool call 'Download_A_File' (aaa111) documents:"));
+              assertDocumentContentBlock(contents.get(1), type, mimeType);
+            });
+
+    assertThat(lastMessages.get(5)).isInstanceOf(AiMessage.class);
+
+    assertThat(lastMessages.get(6))
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            msg -> assertThat(msg.singleText()).isEqualTo("What is the content type?"));
+
     assertAgentResponse(
         zeebeTest,
         agentResponse ->
             JobWorkerAgentResponseAssert.assertThat(agentResponse)
                 .isReady()
                 .hasMetrics(new AgentMetrics(3, new AgentMetrics.TokenUsage(121, 242)))
-                .hasResponseMessageText(expectedResponseText)
-                .hasResponseText(expectedResponseText));
+                .hasResponseMessageText(aiFinalResponse.text())
+                .hasResponseText(aiFinalResponse.text()));
 
     assertThat(userFeedbackJobWorkerCounter.get()).isEqualTo(2);
+  }
+
+  private void assertDocumentContentBlock(
+      Content content, String expectedType, String expectedMimeType) {
+    if (expectedType.equals("text")) {
+      assertThat(content).isInstanceOf(TextContent.class);
+    } else if (expectedMimeType.equals("application/pdf")) {
+      assertThat(content)
+          .isInstanceOfSatisfying(
+              PdfFileContent.class, pdf -> assertThat(pdf.pdfFile().base64Data()).isNotBlank());
+    } else {
+      // image types
+      assertThat(content)
+          .isInstanceOfSatisfying(
+              ImageContent.class,
+              img -> {
+                assertThat(img.image().mimeType()).isEqualTo(expectedMimeType);
+                assertThat(img.image().base64Data()).isNotBlank();
+              });
+    }
   }
 }
