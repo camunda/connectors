@@ -6,7 +6,12 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
-@FunctionalInterface
-public interface ConversationSessionHandler<T> {
-  T handleSession(ConversationSession session);
+import io.camunda.connector.agenticai.model.message.Message;
+import java.util.List;
+
+public record ConversationStoreRequest(List<Message> messages) {
+
+  public static ConversationStoreRequest of(List<Message> messages) {
+    return new ConversationStoreRequest(List.copyOf(messages));
+  }
 }

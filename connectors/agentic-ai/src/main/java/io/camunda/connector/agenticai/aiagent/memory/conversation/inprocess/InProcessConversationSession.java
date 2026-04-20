@@ -8,8 +8,10 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.inprocess;
 
 import static io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationUtil.loadConversationContext;
 
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationLoadResult;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
-import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import java.util.UUID;
 
@@ -18,26 +20,24 @@ public class InProcessConversationSession implements ConversationSession {
   private InProcessConversationContext previousConversationContext;
 
   @Override
-  public void loadIntoRuntimeMemory(AgentContext agentContext, RuntimeMemory memory) {
+  public ConversationLoadResult loadMessages(AgentContext agentContext) {
     previousConversationContext =
         loadConversationContext(agentContext, InProcessConversationContext.class);
     if (previousConversationContext == null) {
-      return;
+      return ConversationLoadResult.empty();
     }
 
-    memory.addMessages(previousConversationContext.messages());
+    return ConversationLoadResult.of(previousConversationContext.messages());
   }
 
   @Override
-  public AgentContext storeFromRuntimeMemory(AgentContext agentContext, RuntimeMemory memory) {
+  public ConversationContext storeMessages(
+      AgentContext agentContext, ConversationStoreRequest request) {
     final var conversationContextBuilder =
         previousConversationContext != null
             ? previousConversationContext.with()
             : InProcessConversationContext.builder().conversationId(UUID.randomUUID().toString());
 
-    final var conversationContext =
-        conversationContextBuilder.messages(memory.allMessages()).build();
-
-    return agentContext.withConversation(conversationContext);
+    return conversationContextBuilder.messages(request.messages()).build();
   }
 }

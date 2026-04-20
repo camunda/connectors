@@ -6,11 +6,19 @@
  */
 package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
-import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 
-public interface ConversationSession {
-  void loadIntoRuntimeMemory(AgentContext agentContext, RuntimeMemory memory);
+public interface ConversationSession extends AutoCloseable {
 
-  AgentContext storeFromRuntimeMemory(AgentContext agentContext, RuntimeMemory memory);
+  ConversationLoadResult loadMessages(AgentContext agentContext);
+
+  /**
+   * Stores messages and returns an updated ConversationContext (storage cursor). The caller is
+   * responsible for assembling the full AgentContext via {@code
+   * agentContext.withConversation(returnedContext)}.
+   */
+  ConversationContext storeMessages(AgentContext agentContext, ConversationStoreRequest request);
+
+  @Override
+  default void close() {}
 }

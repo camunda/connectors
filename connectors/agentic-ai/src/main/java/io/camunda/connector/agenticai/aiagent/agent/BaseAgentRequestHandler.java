@@ -12,6 +12,7 @@ import io.camunda.connector.agenticai.aiagent.agent.AgentInitializationResult.Ag
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.memory.runtime.MessageWindowRuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -93,15 +94,15 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
 
   private R handleRequest(
       final C executionContext,
-      final AgentContext agentContext,
+      AgentContext agentContext,
       final List<ToolCallResult> toolCallResults) {
-    final var conversationStore =
+    final var store =
         conversationStoreRegistry.getConversationStore(executionContext, agentContext);
-    final var agentResponse =
-        conversationStore.executeInSession(
-            executionContext,
-            agentContext,
-            session -> handleRequest(executionContext, agentContext, toolCallResults, session));
+
+    AgentResponse agentResponse;
+    try (var session = store.createSession(executionContext, agentContext)) {
+      agentResponse = processConversation(executionContext, agentContext, toolCallResults, session);
+    }
 
     LOGGER.debug(
         "Request processing completed {} agent response, completing job",
@@ -110,10 +111,10 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
     return completeJob(executionContext, agentResponse);
   }
 
-  private AgentResponse handleRequest(
+  private AgentResponse processConversation(
       final C executionContext,
       AgentContext agentContext,
-      List<ToolCallResult> toolCallResults,
+      final List<ToolCallResult> toolCallResults,
       ConversationSession session) {
     // set up memory and load from context if available
     final var runtimeMemory =
@@ -123,7 +124,8 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
                 .orElse(DEFAULT_CONTEXT_WINDOW_SIZE));
 
     LOGGER.trace("Loading previous conversation (if any) into runtime memory");
-    session.loadIntoRuntimeMemory(agentContext, runtimeMemory);
+    var loadResult = session.loadMessages(agentContext);
+    runtimeMemory.addMessages(loadResult.messages());
 
     // validate configured limits
     LOGGER.trace("Validating configured limits for agent execution");
@@ -179,7 +181,10 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
 
     // store memory reference to context
     LOGGER.debug("Storing runtime memory to conversation session");
-    agentContext = session.storeFromRuntimeMemory(agentContext, runtimeMemory);
+    var updatedConversation =
+        session.storeMessages(
+            agentContext, ConversationStoreRequest.of(runtimeMemory.allMessages()));
+    agentContext = agentContext.withConversation(updatedConversation);
 
     return responseHandler.createResponse(
         executionContext, agentContext, assistantMessage, processVariableToolCalls);
