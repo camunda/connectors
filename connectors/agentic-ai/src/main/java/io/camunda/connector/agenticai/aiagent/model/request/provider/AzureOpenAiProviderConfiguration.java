@@ -29,6 +29,11 @@ public record AzureOpenAiProviderConfiguration(@Valid @NotNull AzureOpenAiConnec
   @TemplateProperty(ignore = true)
   public static final String AZURE_OPENAI_ID = "azureOpenAi";
 
+  @Override
+  public String providerId() {
+    return AZURE_OPENAI_ID;
+  }
+
   public record AzureOpenAiConnection(
       @NotBlank
           @HttpUrl

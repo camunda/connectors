@@ -19,6 +19,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.AzureOpenAi
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.AwsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockConnection;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.CustomProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiConnection;
@@ -32,6 +33,7 @@ import io.camunda.connector.agenticai.util.ConnectorUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.time.Duration;
+import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -318,6 +320,37 @@ class ProviderConfigurationTest {
           new ServiceAccountCredentialsAuthentication("{}"),
           new GoogleVertexAiModel(
               "gemini-1.5-flash", new GoogleVertexAiModelParameters(null, null, null, null)));
+    }
+  }
+
+  @Nested
+  class CustomProviderConfigurationTest {
+
+    @Test
+    void shouldAcceptValidProviderType() {
+      var config = new CustomProviderConfiguration("my-custom-provider", Map.of("key", "value"));
+      assertThat(validator.validate(config)).isEmpty();
+    }
+
+    @Test
+    void shouldAcceptNullParameters() {
+      var config = new CustomProviderConfiguration("my-custom-provider", null);
+      assertThat(validator.validate(config)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void shouldRejectBlankProviderType(String providerType) {
+      var config = new CustomProviderConfiguration(providerType, Map.of());
+      assertThat(validator.validate(config))
+          .extracting(ConstraintViolation::getMessage)
+          .contains("must not be blank");
+    }
+
+    @Test
+    void providerIdShouldReturnProviderType() {
+      var config = new CustomProviderConfiguration("my-custom-provider", null);
+      assertThat(config.providerId()).isEqualTo("my-custom-provider");
     }
   }
 

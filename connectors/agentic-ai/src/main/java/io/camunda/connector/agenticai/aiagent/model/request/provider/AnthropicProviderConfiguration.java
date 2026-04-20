@@ -25,6 +25,11 @@ public record AnthropicProviderConfiguration(@Valid @NotNull AnthropicConnection
   @TemplateProperty(ignore = true)
   public static final String ANTHROPIC_ID = "anthropic";
 
+  @Override
+  public String providerId() {
+    return ANTHROPIC_ID;
+  }
+
   public record AnthropicConnection(
       @HttpUrl
           @TemplateProperty(

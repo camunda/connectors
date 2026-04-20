@@ -37,6 +37,14 @@ import dev.langchain4j.model.openai.OpenAiChatModel.OpenAiChatModelBuilder;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel;
 import dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel.VertexAiGeminiChatModelBuilder;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AnthropicChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.AzureOpenAiChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.BedrockChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderRegistryImpl;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.GoogleVertexAiChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiChatModelProvider;
+import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.OpenAiCompatibleChatModelProvider;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.AnthropicProviderConfiguration.AnthropicConnection;
@@ -108,8 +116,19 @@ class ChatModelFactoryTest {
           new ChatModelHttpProxySupport(
               proxyConfiguration, new JdkHttpClientProxyConfigurator(proxyConfiguration)));
 
+  private final AgenticAiConnectorsConfigurationProperties configurationProperties =
+      createDefaultConfigurationProperties();
+
   private final ChatModelFactory chatModelFactory =
-      new ChatModelFactoryImpl(createDefaultConfigurationProperties(), proxySupport);
+      new ChatModelFactoryImpl(
+          new ChatModelProviderRegistryImpl(
+              List.<ChatModelProvider>of(
+                  new AnthropicChatModelProvider(configurationProperties, proxySupport),
+                  new AzureOpenAiChatModelProvider(configurationProperties, proxySupport),
+                  new BedrockChatModelProvider(configurationProperties, proxySupport),
+                  new GoogleVertexAiChatModelProvider(configurationProperties),
+                  new OpenAiChatModelProvider(configurationProperties, proxySupport),
+                  new OpenAiCompatibleChatModelProvider(configurationProperties, proxySupport))));
 
   static Stream<TimeoutConfiguration> defaultTimeoutYieldingConfigs() {
     return Stream.of(
