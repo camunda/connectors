@@ -31,15 +31,14 @@ public class AgentCoreRuntimeExecutor {
 
   public AgentCoreRuntimeResponse invoke(AgentCoreRuntimeInput input) {
     try {
-      var contentType = resolveContentType(input);
       var payloadBytes = objectMapper.writeValueAsBytes(input.getPayload());
 
       var builder =
           InvokeAgentRuntimeRequest.builder()
               .agentRuntimeArn(input.getAgentRuntimeArn())
               .payload(SdkBytes.fromByteArray(payloadBytes))
-              .contentType(contentType)
-              .accept(contentType);
+              .contentType(DEFAULT_CONTENT_TYPE)
+              .accept(DEFAULT_CONTENT_TYPE);
 
       if (input.getSessionId() != null && !input.getSessionId().isBlank()) {
         builder.runtimeSessionId(input.getSessionId());
@@ -50,7 +49,7 @@ public class AgentCoreRuntimeExecutor {
       var sessionId = responseBytes.response().runtimeSessionId();
       var statusCode = responseBytes.response().statusCode();
 
-      Object response = isJsonContentType(contentType) ? tryParseJson(responseText) : responseText;
+      Object response = parseJsonResponse(responseText);
 
       return new AgentCoreRuntimeResponse(response, sessionId, statusCode);
 
@@ -63,19 +62,7 @@ public class AgentCoreRuntimeExecutor {
     }
   }
 
-  private String resolveContentType(AgentCoreRuntimeInput input) {
-    var ct = input.getPayloadContentType();
-    if (ct == null || ct.isBlank()) {
-      return DEFAULT_CONTENT_TYPE;
-    }
-    return ct;
-  }
-
-  private boolean isJsonContentType(String contentType) {
-    return contentType.contains("json");
-  }
-
-  private Object tryParseJson(String text) {
+  private Object parseJsonResponse(String text) {
     try {
       return objectMapper.readValue(text, Object.class);
     } catch (JsonProcessingException e) {

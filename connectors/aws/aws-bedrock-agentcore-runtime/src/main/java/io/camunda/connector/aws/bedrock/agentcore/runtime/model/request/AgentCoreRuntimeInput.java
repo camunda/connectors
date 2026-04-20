@@ -29,14 +29,6 @@ public class AgentCoreRuntimeInput {
 
   @TemplateProperty(
       group = "agentConfig",
-      label = "Payload content type",
-      description = "Content type of the payload. Defaults to application/json.",
-      defaultValue = "application/json",
-      optional = true)
-  private String payloadContentType;
-
-  @TemplateProperty(
-      group = "agentConfig",
       label = "Session ID",
       description = "Optional session ID for multi-turn conversations.",
       optional = true)
@@ -56,14 +48,6 @@ public class AgentCoreRuntimeInput {
 
   public void setPayload(Object payload) {
     this.payload = payload;
-  }
-
-  public String getPayloadContentType() {
-    return payloadContentType;
-  }
-
-  public void setPayloadContentType(String payloadContentType) {
-    this.payloadContentType = payloadContentType;
   }
 
   public String getSessionId() {

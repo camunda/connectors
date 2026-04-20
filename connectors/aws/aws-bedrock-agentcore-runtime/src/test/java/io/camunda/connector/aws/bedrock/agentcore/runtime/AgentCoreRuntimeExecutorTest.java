@@ -19,9 +19,11 @@ import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.bedrock.agentcore.runtime.model.request.AgentCoreRuntimeInput;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.skyscreamer.jsonassert.JSONAssert;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
 import software.amazon.awssdk.services.bedrockagentcore.model.BedrockAgentCoreException;
@@ -66,35 +68,25 @@ class AgentCoreRuntimeExecutorTest extends BaseTest {
     mockResponse("{\"result\": \"Fraud risk is LOW\"}", SESSION_ID, 200);
     var result = executor.invoke(createInput(Map.of("inputText", PROMPT), null));
 
-    assertThat(result.response()).isInstanceOf(Map.class);
-    @SuppressWarnings("unchecked")
-    var responseMap = (Map<String, Object>) result.response();
-    assertThat(responseMap).containsEntry("result", "Fraud risk is LOW");
+    assertThat(result.response())
+        .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+        .containsEntry("result", "Fraud risk is LOW");
     assertThat(result.sessionId()).isEqualTo(SESSION_ID);
     assertThat(result.statusCode()).isEqualTo(200);
   }
 
   @Test
-  void shouldReturnStringWhenResponseIsNotJson() {
-    mockResponse("Plain text response", SESSION_ID, 200);
-    var input = createInput(Map.of("inputText", PROMPT), null);
-    input.setPayloadContentType("text/plain");
-    var result = executor.invoke(input);
-
-    assertThat(result.response()).isEqualTo("Plain text response");
-  }
-
-  @Test
-  void shouldSerializePayloadWithObjectMapper() {
+  void shouldSerializePayloadWithObjectMapper() throws Exception {
     mockResponse("{}", SESSION_ID, 200);
     var captor = ArgumentCaptor.forClass(InvokeAgentRuntimeRequest.class);
 
-    executor.invoke(createInput(Map.of("inputText", "Hello \"world\""), null));
+    var payload = Map.of("inputText", "Hello \"world\"");
+    executor.invoke(createInput(payload, null));
 
     verify(client).invokeAgentRuntimeAsBytes(captor.capture());
     var payloadJson = captor.getValue().payload().asUtf8String();
-    assertThat(payloadJson).contains("inputText");
-    assertThat(payloadJson).contains("Hello \\\"world\\\"");
+    var expected = OBJECT_MAPPER.writeValueAsString(payload);
+    JSONAssert.assertEquals(expected, payloadJson, false);
   }
 
   @Test
@@ -117,20 +109,6 @@ class AgentCoreRuntimeExecutorTest extends BaseTest {
 
     verify(client).invokeAgentRuntimeAsBytes(captor.capture());
     assertThat(captor.getValue().runtimeSessionId()).isNull();
-  }
-
-  @Test
-  void shouldUseConfiguredContentType() {
-    mockResponse("{}", SESSION_ID, 200);
-    var captor = ArgumentCaptor.forClass(InvokeAgentRuntimeRequest.class);
-
-    var input = createInput(Map.of("inputText", PROMPT), null);
-    input.setPayloadContentType("text/plain");
-    executor.invoke(input);
-
-    verify(client).invokeAgentRuntimeAsBytes(captor.capture());
-    assertThat(captor.getValue().contentType()).isEqualTo("text/plain");
-    assertThat(captor.getValue().accept()).isEqualTo("text/plain");
   }
 
   @Test
