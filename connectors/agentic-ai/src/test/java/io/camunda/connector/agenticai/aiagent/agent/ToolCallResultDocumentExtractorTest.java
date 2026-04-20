@@ -9,6 +9,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.agenticai.util.TestObjectMapperSupplier;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
@@ -27,7 +28,8 @@ class ToolCallResultDocumentExtractorTest {
 
   private final InMemoryDocumentStore documentStore = InMemoryDocumentStore.INSTANCE;
   private final DocumentFactory documentFactory = new DocumentFactoryImpl(documentStore);
-  private final ToolCallResultDocumentExtractor extractor = new ToolCallResultDocumentExtractor();
+  private final ToolCallResultDocumentExtractor extractor =
+      new ToolCallResultDocumentExtractor(TestObjectMapperSupplier.INSTANCE);
 
   @BeforeEach
   void setUp() {
@@ -77,6 +79,39 @@ class ToolCallResultDocumentExtractorTest {
 
       final var result = extractor.extractDocuments((Object) content);
       assertThat(result).containsExactly(doc1, doc2);
+    }
+
+    @Test
+    void extractsDocumentFromRecordProperty() {
+      final var doc = createDocument("hello", "text/plain", "test.txt");
+      final var wrapper = new DocumentWrapper(doc, "some text");
+      final var result = extractor.extractDocuments((Object) wrapper);
+      assertThat(result).containsExactly(doc);
+    }
+
+    @Test
+    void extractsDocumentFromNestedRecordProperty() {
+      final var doc = createDocument("hello", "text/plain", "test.txt");
+      final var inner = new DocumentWrapper(doc, "text");
+      final var outer = new NestedWrapper(inner, 42);
+      final var result = extractor.extractDocuments((Object) outer);
+      assertThat(result).containsExactly(doc);
+    }
+
+    @Test
+    void extractsDocumentsFromRecordWithListOfRecords() {
+      final var doc1 = createDocument("hello", "text/plain", "test1.txt");
+      final var doc2 = createDocument("world", "text/plain", "test2.txt");
+      final var wrappers = List.of(new DocumentWrapper(doc1, "a"), new DocumentWrapper(doc2, "b"));
+      final var result = extractor.extractDocuments((Object) wrappers);
+      assertThat(result).containsExactly(doc1, doc2);
+    }
+
+    @Test
+    void returnsEmptyForRecordWithoutDocuments() {
+      final var wrapper = new NestedWrapper(new DocumentWrapper(null, "text"), 42);
+      final var result = extractor.extractDocuments((Object) wrapper);
+      assertThat(result).isEmpty();
     }
 
     @Test
@@ -220,4 +255,8 @@ class ToolCallResultDocumentExtractorTest {
             .fileName(filename)
             .build());
   }
+
+  record DocumentWrapper(Document document, String text) {}
+
+  record NestedWrapper(DocumentWrapper inner, int value) {}
 }
