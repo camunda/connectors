@@ -490,4 +490,43 @@ class LocalFeelExpressionEvaluatorExpressionEvaluationTest {
     // then
     assertThat(result).doesNotContainKey("variables").containsEntry("errorType", "ignoreError");
   }
+
+  @Test
+  void backoffFunctionWithAttemptOnly() {
+    Duration result = objectUnderTest.evaluate("=backoff(1)", Map.of());
+    assertThat(result).isBetween(Duration.ofMillis(45), Duration.ofMillis(55));
+  }
+
+  @Test
+  void backoffFunctionShouldClampToMaxDelay() {
+    Duration result = objectUnderTest.evaluate("=backoff(100)", Map.of());
+    assertThat(result).isBetween(Duration.ofMillis(4500), Duration.ofMillis(5500));
+  }
+
+  @Test
+  void backoffFunctionUsableAsRetryBackoffInJobError() {
+    String expression =
+        "=jobError(\"fail\", {}, 2, backoff(1, duration(\"PT1S\"), 2, duration(\"PT1M\"), 0))";
+
+    Map<String, Object> result = objectUnderTest.evaluate(expression, Map.of());
+
+    assertThat(result)
+        .containsEntry("errorType", "jobError")
+        .containsEntry("retryBackoff", Duration.ofMillis(1000));
+  }
+
+  @Test
+  void backoffFunction_ShouldThrow_WhenAttemptIsZero() {
+    assertThatThrownBy(() -> objectUnderTest.evaluate("=backoff(0)", Map.of()))
+        .isInstanceOf(FeelEngineWrapperException.class)
+        .hasMessageContaining("attempt");
+  }
+
+  @Test
+  void backoffFunction_ShouldThrow_WhenFactorIsZero() {
+    assertThatThrownBy(
+            () -> objectUnderTest.evaluate("=backoff(1, duration(\"PT0.05S\"), 0)", Map.of()))
+        .isInstanceOf(FeelEngineWrapperException.class)
+        .hasMessageContaining("factor");
+  }
 }
