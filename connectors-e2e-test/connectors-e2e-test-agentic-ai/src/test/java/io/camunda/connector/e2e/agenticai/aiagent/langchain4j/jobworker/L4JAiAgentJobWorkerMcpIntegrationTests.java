@@ -33,7 +33,10 @@ import static org.mockito.Mockito.when;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.Content;
+import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -55,6 +58,7 @@ import io.camunda.process.test.api.CamundaAssert;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
 import java.io.IOException;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -342,9 +346,120 @@ public class L4JAiAgentJobWorkerMcpIntegrationTests extends BaseL4JAiAgentJobWor
     verify(chatModel, times(3)).chat(any(ChatRequest.class));
   }
 
+  @Test
+  void extractsDocumentsFromMcpImageToolCallResult() throws IOException {
+    final var imageBytes = "fake-png-image-data".getBytes();
+    final var imageBase64 = Base64.getEncoder().encodeToString(imageBytes);
+
+    when(aMcpClient.callTool(aMcpClientToolExecutionRequestCaptor.capture()))
+        .thenReturn(mcpCallToolResultWithImage(imageBase64, "image/png"));
+
+    final var initialUserPrompt = "Get me an image from MCP!";
+
+    final var aiToolCallMessage =
+        new AiMessage(
+            "I will call the MCP tool to get an image.",
+            List.of(
+                ToolExecutionRequest.builder()
+                    .id("img111")
+                    .name("MCP_A_MCP_Client___toolA")
+                    .arguments("{\"paramA1\": \"getImage\", \"paramA2\": 1}")
+                    .build()));
+    final var aiFinalResponse = new AiMessage("Here is the image I retrieved from MCP.");
+
+    mockChatInteractions(
+        ChatInteraction.of(
+            ChatResponse.builder()
+                .metadata(
+                    ChatResponseMetadata.builder()
+                        .finishReason(FinishReason.TOOL_EXECUTION)
+                        .tokenUsage(new TokenUsage(10, 20))
+                        .build())
+                .aiMessage(aiToolCallMessage)
+                .build()),
+        ChatInteraction.of(
+            ChatResponse.builder()
+                .metadata(
+                    ChatResponseMetadata.builder()
+                        .finishReason(FinishReason.STOP)
+                        .tokenUsage(new TokenUsage(100, 200))
+                        .build())
+                .aiMessage(aiFinalResponse)
+                .build(),
+            userSatisfiedFeedback()));
+
+    final var zeebeTest =
+        createProcessInstance(testProcessWithMcp, e -> e, Map.of("userPrompt", initialUserPrompt))
+            .waitForProcessCompletion();
+
+    assertThat(chatRequestCaptor.getAllValues()).hasSize(2);
+    final var lastMessages = chatRequestCaptor.getValue().messages();
+
+    // Expected message order:
+    // 0: SystemMessage
+    // 1: UserMessage (initial prompt)
+    // 2: AiMessage (tool call)
+    // 3: ToolExecutionResultMessage (MCP result with document reference)
+    // 4: UserMessage (document content extracted from MCP tool result)
+    assertThat(lastMessages).hasSize(5);
+
+    assertThat(lastMessages.get(0)).isInstanceOf(SystemMessage.class);
+    assertThat(lastMessages.get(1)).isInstanceOf(UserMessage.class);
+    assertThat(lastMessages.get(2)).isInstanceOf(AiMessage.class);
+
+    // Tool result: document serialized as document reference
+    assertThat(lastMessages.get(3))
+        .isInstanceOfSatisfying(
+            ToolExecutionResultMessage.class,
+            msg -> {
+              assertThat(msg.id()).isEqualTo("img111");
+              assertThat(msg.toolName()).isEqualTo("MCP_A_MCP_Client___toolA");
+              assertThat(msg.text()).contains("camunda.document.type");
+            });
+
+    // Document user message: extracted document content
+    assertThat(lastMessages.get(4))
+        .isInstanceOfSatisfying(
+            UserMessage.class,
+            msg -> {
+              List<Content> contents = msg.contents();
+              assertThat(contents).hasSize(2);
+              assertThat(contents.get(0))
+                  .isInstanceOfSatisfying(
+                      TextContent.class,
+                      tc ->
+                          assertThat(tc.text())
+                              .isEqualTo(
+                                  "Tool call 'MCP_A_MCP_Client___toolA' (img111) documents:"));
+              assertThat(contents.get(1))
+                  .isInstanceOfSatisfying(
+                      ImageContent.class,
+                      img -> {
+                        assertThat(img.image().mimeType()).isEqualTo("image/png");
+                        assertThat(img.image().base64Data()).isNotBlank();
+                      });
+            });
+
+    assertAgentResponse(
+        zeebeTest,
+        agentResponse ->
+            JobWorkerAgentResponseAssert.assertThat(agentResponse)
+                .isReady()
+                .hasMetrics(new AgentMetrics(2, new AgentMetrics.TokenUsage(110, 220)))
+                .hasResponseMessageText(aiFinalResponse.text())
+                .hasResponseText(aiFinalResponse.text()));
+  }
+
   protected McpSchema.CallToolResult mcpCallToolResult(String resultText) {
     return McpSchema.CallToolResult.builder()
         .addContent(new McpSchema.TextContent(resultText))
+        .build();
+  }
+
+  protected McpSchema.CallToolResult mcpCallToolResultWithImage(
+      String base64Data, String mimeType) {
+    return McpSchema.CallToolResult.builder()
+        .addContent(new McpSchema.ImageContent(null, base64Data, mimeType))
         .build();
   }
 }
