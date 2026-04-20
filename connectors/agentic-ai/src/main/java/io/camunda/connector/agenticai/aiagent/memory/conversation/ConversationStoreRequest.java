@@ -8,11 +8,17 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
 import io.camunda.connector.agenticai.model.message.Message;
 import java.util.List;
+import java.util.Objects;
 
 /** Request to store a conversation via {@link ConversationSession#storeMessages}. */
 public record ConversationStoreRequest(List<Message> messages) {
 
+  public ConversationStoreRequest {
+    Objects.requireNonNull(messages, "messages must not be null");
+    messages = List.copyOf(messages);
+  }
+
   public static ConversationStoreRequest of(List<Message> messages) {
-    return new ConversationStoreRequest(List.copyOf(messages));
+    return new ConversationStoreRequest(messages);
   }
 }

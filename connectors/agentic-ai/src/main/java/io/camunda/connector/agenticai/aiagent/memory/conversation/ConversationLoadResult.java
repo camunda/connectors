@@ -8,12 +8,18 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation;
 
 import io.camunda.connector.agenticai.model.message.Message;
 import java.util.List;
+import java.util.Objects;
 
 /** Result of loading a conversation from a {@link ConversationSession}. */
 public record ConversationLoadResult(List<Message> messages) {
 
+  public ConversationLoadResult {
+    Objects.requireNonNull(messages, "messages must not be null");
+    messages = List.copyOf(messages);
+  }
+
   public static ConversationLoadResult of(List<Message> messages) {
-    return new ConversationLoadResult(List.copyOf(messages));
+    return new ConversationLoadResult(messages);
   }
 
   public static ConversationLoadResult empty() {

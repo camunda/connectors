@@ -115,7 +115,7 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
       final C executionContext,
       AgentContext agentContext,
       final List<ToolCallResult> toolCallResults,
-      ConversationSession session) {
+      final ConversationSession session) {
     // set up memory and load from context if available
     final var runtimeMemory =
         new MessageWindowRuntimeMemory(

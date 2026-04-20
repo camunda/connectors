@@ -126,10 +126,11 @@ class CamundaDocumentConversationStoreTest {
   void supportsAgentContextWithoutPreviousConversation() {
     final var agentContext = AgentContext.empty();
 
-    var session = store.createSession(executionContext, agentContext);
-    var loadResult = session.loadMessages(agentContext);
+    try (var session = store.createSession(executionContext, agentContext)) {
+      var loadResult = session.loadMessages(agentContext);
 
-    assertThat(loadResult.messages()).isEmpty();
+      assertThat(loadResult.messages()).isEmpty();
+    }
   }
 
   @Test
@@ -143,10 +144,11 @@ class CamundaDocumentConversationStoreTest {
 
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
 
-    var session = store.createSession(executionContext, agentContext);
-    var loadResult = session.loadMessages(agentContext);
+    try (var session = store.createSession(executionContext, agentContext)) {
+      var loadResult = session.loadMessages(agentContext);
 
-    assertThat(loadResult.messages()).containsExactlyElementsOf(TEST_MESSAGES);
+      assertThat(loadResult.messages()).containsExactlyElementsOf(TEST_MESSAGES);
+    }
   }
 
   @Test
@@ -154,11 +156,11 @@ class CamundaDocumentConversationStoreTest {
     final var agentContext =
         AgentContext.empty().withConversation(new TestConversationContext("dummy"));
 
-    var session = store.createSession(executionContext, agentContext);
-
-    assertThatThrownBy(() -> session.loadMessages(agentContext))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessage("Unsupported conversation context: TestConversationContext");
+    try (var session = store.createSession(executionContext, agentContext)) {
+      assertThatThrownBy(() -> session.loadMessages(agentContext))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessage("Unsupported conversation context: TestConversationContext");
+    }
   }
 
   @Test
@@ -170,11 +172,13 @@ class CamundaDocumentConversationStoreTest {
 
     final var agentContext = AgentContext.empty();
 
-    var session = store.createSession(executionContext, agentContext);
-    session.loadMessages(agentContext);
-    var updatedConversation =
-        session.storeMessages(agentContext, ConversationStoreRequest.of(TEST_MESSAGES));
-    var updatedAgentContext = agentContext.withConversation(updatedConversation);
+    AgentContext updatedAgentContext;
+    try (var session = store.createSession(executionContext, agentContext)) {
+      session.loadMessages(agentContext);
+      var updatedConversation =
+          session.storeMessages(agentContext, ConversationStoreRequest.of(TEST_MESSAGES));
+      updatedAgentContext = agentContext.withConversation(updatedConversation);
+    }
 
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
@@ -213,15 +217,17 @@ class CamundaDocumentConversationStoreTest {
 
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
 
-    var session = store.createSession(executionContext, agentContext);
-    var loadResult = session.loadMessages(agentContext);
+    AgentContext updatedAgentContext;
+    try (var session = store.createSession(executionContext, agentContext)) {
+      var loadResult = session.loadMessages(agentContext);
 
-    final var allMessages = new ArrayList<>(loadResult.messages());
-    allMessages.add(userMessage);
+      final var allMessages = new ArrayList<>(loadResult.messages());
+      allMessages.add(userMessage);
 
-    var updatedConversation =
-        session.storeMessages(agentContext, ConversationStoreRequest.of(allMessages));
-    var updatedAgentContext = agentContext.withConversation(updatedConversation);
+      var updatedConversation =
+          session.storeMessages(agentContext, ConversationStoreRequest.of(allMessages));
+      updatedAgentContext = agentContext.withConversation(updatedConversation);
+    }
 
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
@@ -277,11 +283,13 @@ class CamundaDocumentConversationStoreTest {
 
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
 
-    var session = store.createSession(executionContext, agentContext);
-    var loadResult = session.loadMessages(agentContext);
-    var updatedConversation =
-        session.storeMessages(agentContext, ConversationStoreRequest.of(loadResult.messages()));
-    var updatedAgentContext = agentContext.withConversation(updatedConversation);
+    AgentContext updatedAgentContext;
+    try (var session = store.createSession(executionContext, agentContext)) {
+      var loadResult = session.loadMessages(agentContext);
+      var updatedConversation =
+          session.storeMessages(agentContext, ConversationStoreRequest.of(loadResult.messages()));
+      updatedAgentContext = agentContext.withConversation(updatedConversation);
+    }
 
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
@@ -327,11 +335,13 @@ class CamundaDocumentConversationStoreTest {
 
     final var agentContext = AgentContext.empty().withConversation(previousConversationContext);
 
-    var session = store.createSession(executionContext, agentContext);
-    var loadResult = session.loadMessages(agentContext);
-    var updatedConversation =
-        session.storeMessages(agentContext, ConversationStoreRequest.of(loadResult.messages()));
-    var updatedAgentContext = agentContext.withConversation(updatedConversation);
+    AgentContext updatedAgentContext;
+    try (var session = store.createSession(executionContext, agentContext)) {
+      var loadResult = session.loadMessages(agentContext);
+      var updatedConversation =
+          session.storeMessages(agentContext, ConversationStoreRequest.of(loadResult.messages()));
+      updatedAgentContext = agentContext.withConversation(updatedConversation);
+    }
 
     assertThat(updatedAgentContext.conversation())
         .asInstanceOf(InstanceOfAssertFactories.type(CamundaDocumentConversationContext.class))
