@@ -44,7 +44,12 @@ import io.camunda.connector.agenticai.model.message.UserMessage;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentCreationRequest;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
+import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
+import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -74,6 +79,9 @@ class AgentMessagesHandlerTest {
   private static final String EVENT_WAIT_FOR_TOOL_CALL_RESULTS_EMPTY_MESSAGE =
       "An event was triggered but no content was returned. Execution waited for all in-flight tool executions to complete before proceeding.";
 
+  private static final InMemoryDocumentStore documentStore = InMemoryDocumentStore.INSTANCE;
+  private static final DocumentFactoryImpl documentFactory = new DocumentFactoryImpl(documentStore);
+
   @Mock private GatewayToolHandlerRegistry gatewayToolHandlers;
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
@@ -85,11 +93,79 @@ class AgentMessagesHandlerTest {
 
   @BeforeEach
   void setUp() {
+    documentStore.clear();
     systemPromptComposer = new SystemPromptComposerImpl(List.of());
     messagesHandler =
         new AgentMessagesHandlerImpl(
             gatewayToolHandlers, systemPromptComposer, new ToolCallResultDocumentExtractor());
     runtimeMemory = spy(new DefaultRuntimeMemory());
+  }
+
+  private static Document createDocument(String content, String contentType, String filename) {
+    return documentFactory.create(
+        DocumentCreationRequest.from(content.getBytes(StandardCharsets.UTF_8))
+            .contentType(contentType)
+            .fileName(filename)
+            .build());
+  }
+
+  private static String documentShortId(Document document) {
+    if (document.reference() instanceof CamundaDocumentReference ref) {
+      var id = ref.getDocumentId();
+      int dash = id.indexOf('-');
+      return dash > 0 ? id.substring(0, dash) : id;
+    }
+    return null;
+  }
+
+  @Nested
+  class DocumentXmlTagTest {
+
+    @Test
+    void generatesFullTagWithAllAttributes() {
+      var doc = mock(Document.class);
+      var ref = mock(CamundaDocumentReference.class);
+      var metadata = mock(io.camunda.connector.api.document.DocumentMetadata.class);
+      when(doc.reference()).thenReturn(ref);
+      when(ref.getDocumentId()).thenReturn("25ece9fa-aeea-423d-98ed-67c1f08b137b");
+      when(doc.metadata()).thenReturn(metadata);
+      when(metadata.getFileName()).thenReturn("report.pdf");
+
+      assertThat(AgentMessagesHandlerImpl.documentXmlTag(doc, "search", "call_abc"))
+          .isEqualTo(
+              "<document tool=\"search\" call-id=\"call_abc\" document-short-id=\"25ece9fa\" filename=\"report.pdf\" />");
+    }
+
+    @Test
+    void generatesTagWithoutToolAndCallId() {
+      var doc = mock(Document.class);
+      var ref = mock(CamundaDocumentReference.class);
+      var metadata = mock(io.camunda.connector.api.document.DocumentMetadata.class);
+      when(doc.reference()).thenReturn(ref);
+      when(ref.getDocumentId()).thenReturn("f7b3a1d0-1234-5678-9abc-def012345678");
+      when(doc.metadata()).thenReturn(metadata);
+      when(metadata.getFileName()).thenReturn(null);
+
+      assertThat(AgentMessagesHandlerImpl.documentXmlTag(doc))
+          .isEqualTo("<document document-short-id=\"f7b3a1d0\" />");
+    }
+
+    @Test
+    void generatesMinimalTagForMockedDocument() {
+      var doc = mock(Document.class);
+      assertThat(AgentMessagesHandlerImpl.documentXmlTag(doc)).isEqualTo("<document />");
+    }
+
+    @Test
+    void handlesDocumentIdWithoutDash() {
+      var doc = mock(Document.class);
+      var ref = mock(CamundaDocumentReference.class);
+      when(doc.reference()).thenReturn(ref);
+      when(ref.getDocumentId()).thenReturn("simpledocid");
+
+      assertThat(AgentMessagesHandlerImpl.documentXmlTag(doc))
+          .isEqualTo("<document document-short-id=\"simpledocid\" />");
+    }
   }
 
   @Nested
@@ -756,8 +832,10 @@ class AgentMessagesHandlerTest {
 
       @Test
       void createsDocumentUserMessageWhenToolResultsContainDocuments() {
-        final var doc1 = mock(Document.class);
-        final var doc2 = mock(Document.class);
+        final var doc1 = createDocument("weather data", "text/plain", "weather.txt");
+        final var doc2 = createDocument("time report", "application/pdf", "report.pdf");
+        final var shortId1 = documentShortId(doc1);
+        final var shortId2 = documentShortId(doc2);
 
         final var toolCallResultsWithDocs =
             List.of(
@@ -800,13 +878,20 @@ class AgentMessagesHandlerTest {
                                   .containsEntry("toolCallDocuments", true)
                                   .containsKey("timestamp");
                               assertThat(userMessage.content())
-                                  .hasSize(4)
+                                  .hasSize(5)
                                   .satisfiesExactly(
                                       c ->
                                           assertThat(c)
                                               .isEqualTo(
                                                   textContent(
-                                                      "Tool call 'getWeather' (abcdef) documents:")),
+                                                      "Documents extracted from tool call results:")),
+                                      c ->
+                                          assertThat(c)
+                                              .isEqualTo(
+                                                  textContent(
+                                                      "<document tool=\"getWeather\" call-id=\"abcdef\" document-short-id=\""
+                                                          + shortId1
+                                                          + "\" filename=\"weather.txt\" />")),
                                       c ->
                                           assertThat(c)
                                               .isEqualTo(DocumentContent.documentContent(doc1)),
@@ -814,7 +899,9 @@ class AgentMessagesHandlerTest {
                                           assertThat(c)
                                               .isEqualTo(
                                                   textContent(
-                                                      "Tool call 'getDateTime' (fedcba) documents:")),
+                                                      "<document tool=\"getDateTime\" call-id=\"fedcba\" document-short-id=\""
+                                                          + shortId2
+                                                          + "\" filename=\"report.pdf\" />")),
                                       c ->
                                           assertThat(c)
                                               .isEqualTo(DocumentContent.documentContent(doc2)));
@@ -847,7 +934,8 @@ class AgentMessagesHandlerTest {
         when(executionContext.events())
             .thenReturn(new EventHandlingConfiguration(WAIT_FOR_TOOL_CALL_RESULTS));
 
-        final var doc = mock(Document.class);
+        final var doc = createDocument("weather data", "text/plain", "weather.txt");
+        final var shortId = documentShortId(doc);
         final var toolCallResultsWithDocsAndEvents =
             List.of(
                 ToolCallResult.builder()
@@ -884,13 +972,20 @@ class AgentMessagesHandlerTest {
                             UserMessage.class,
                             um ->
                                 assertThat(um.content())
-                                    .hasSize(2)
+                                    .hasSize(3)
                                     .satisfiesExactly(
                                         c ->
                                             assertThat(c)
                                                 .isEqualTo(
                                                     textContent(
-                                                        "Tool call 'getWeather' (abcdef) documents:")),
+                                                        "Documents extracted from tool call results:")),
+                                        c ->
+                                            assertThat(c)
+                                                .isEqualTo(
+                                                    textContent(
+                                                        "<document tool=\"getWeather\" call-id=\"abcdef\" document-short-id=\""
+                                                            + shortId
+                                                            + "\" filename=\"weather.txt\" />")),
                                         c ->
                                             assertThat(c)
                                                 .isEqualTo(DocumentContent.documentContent(doc)))),
@@ -906,7 +1001,8 @@ class AgentMessagesHandlerTest {
 
       @Test
       void appendsDocumentsToEventMessage() {
-        final var doc = mock(Document.class);
+        final var doc = createDocument("event data", "application/pdf", "event.pdf");
+        final var shortId = documentShortId(doc);
         final var eventWithDoc =
             ToolCallResult.builder().content(Map.of("text", "event", "file", doc)).build();
 
@@ -932,11 +1028,18 @@ class AgentMessagesHandlerTest {
                 UserMessage.class,
                 um ->
                     assertThat(um.content())
-                        .hasSize(2)
+                        .hasSize(3)
                         .satisfiesExactly(
                             c ->
                                 assertThat(c)
                                     .isEqualTo(objectContent(Map.of("text", "event", "file", doc))),
+                            c ->
+                                assertThat(c)
+                                    .isEqualTo(
+                                        textContent(
+                                            "<document document-short-id=\""
+                                                + shortId
+                                                + "\" filename=\"event.pdf\" />")),
                             c -> assertThat(c).isEqualTo(DocumentContent.documentContent(doc))));
       }
 
