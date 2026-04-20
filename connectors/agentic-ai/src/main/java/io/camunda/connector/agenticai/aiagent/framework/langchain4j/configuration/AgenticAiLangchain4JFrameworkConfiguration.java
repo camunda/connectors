@@ -52,8 +52,8 @@ public class AgenticAiLangchain4JFrameworkConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ToolCallConverter langchain4JToolCallConverter(
-      @ConnectorsObjectMapper ObjectMapper objectMapper, ContentConverter contentConverter) {
-    return new ToolCallConverterImpl(objectMapper, contentConverter);
+      @ConnectorsObjectMapper ObjectMapper objectMapper) {
+    return new ToolCallConverterImpl(objectMapper);
   }
 
   @Bean

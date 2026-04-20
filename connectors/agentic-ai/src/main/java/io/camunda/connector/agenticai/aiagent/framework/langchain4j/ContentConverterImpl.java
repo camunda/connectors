@@ -9,7 +9,6 @@ package io.camunda.connector.agenticai.aiagent.framework.langchain4j;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverter;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentModule;
 import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.message.content.ObjectContent;
@@ -17,13 +16,12 @@ import io.camunda.connector.agenticai.model.message.content.TextContent;
 
 public class ContentConverterImpl implements ContentConverter {
   private final DocumentToContentConverter documentToContentConverter;
-  private final ObjectMapper contentObjectMapper;
+  private final ObjectMapper objectMapper;
 
   public ContentConverterImpl(
       ObjectMapper objectMapper, DocumentToContentConverter documentToContentConverter) {
     this.documentToContentConverter = documentToContentConverter;
-    this.contentObjectMapper =
-        objectMapper.copy().registerModule(new DocumentToContentModule(documentToContentConverter));
+    this.objectMapper = objectMapper;
   }
 
   @Override
@@ -49,6 +47,6 @@ public class ContentConverterImpl implements ContentConverter {
       return stringContent;
     }
 
-    return contentObjectMapper.writeValueAsString(content);
+    return objectMapper.writeValueAsString(content);
   }
 }
