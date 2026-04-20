@@ -10,6 +10,7 @@ import io.camunda.connector.agenticai.model.message.AssistantMessage;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
+import io.camunda.connector.agenticai.model.message.UserMessage;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -69,10 +70,12 @@ public class MessageWindowRuntimeMemory implements RuntimeMemory {
     filteredMessages = null;
   }
 
+  static final String METADATA_TOOL_CALL_DOCUMENTS = "toolCallDocuments";
+
   // original implementation see Langchain4j
   private static List<Message> filteredMessages(List<Message> messages, int maxMessages) {
     final var filtered = new ArrayList<>(messages);
-    while (filtered.size() > maxMessages) {
+    while (countMessages(filtered) > maxMessages) {
       int messageToEvictIndex = 0;
 
       // don't remove the system message
@@ -92,8 +95,24 @@ public class MessageWindowRuntimeMemory implements RuntimeMemory {
           filtered.remove(messageToEvictIndex);
         }
       }
+
+      // remove follow-up document user messages attached to evicted tool call results
+      while (filtered.size() > messageToEvictIndex
+          && isToolCallDocumentMessage(filtered.get(messageToEvictIndex))) {
+        filtered.remove(messageToEvictIndex);
+      }
     }
 
     return List.copyOf(filtered);
+  }
+
+  private static int countMessages(List<Message> messages) {
+    return (int) messages.stream().filter(m -> !isToolCallDocumentMessage(m)).count();
+  }
+
+  private static boolean isToolCallDocumentMessage(Message message) {
+    return message instanceof UserMessage userMessage
+        && userMessage.metadata() != null
+        && Boolean.TRUE.equals(userMessage.metadata().get(METADATA_TOOL_CALL_DOCUMENTS));
   }
 }
