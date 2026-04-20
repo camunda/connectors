@@ -99,7 +99,7 @@ limitations under the License.</license.inlineheader>
     <version.logback>1.5.32</version.logback>
 
     <version.aws-java-sdk>1.12.797</version.aws-java-sdk>
-    <version.aws-sdk2>2.42.35</version.aws-sdk2>
+    <version.aws-sdk2>2.42.36</version.aws-sdk2>
     <version.aws-java-sdk-sts>1.12.794</version.aws-java-sdk-sts>
     <version.aws-lambda-java-events>3.16.1</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.4.0</version.aws-lambda-java-core>
@@ -117,7 +117,7 @@ limitations under the License.</license.inlineheader>
     <version.google-api-services-drive>v3-rev20260405-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.39.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.46.0</version.google-auth-library-oauth2-http>
-    <version.google-api-services-docs>v1-rev20260408-2.0.0</version.google-api-services-docs>
+    <version.google-api-services-docs>v1-rev20260415-2.0.0</version.google-api-services-docs>
     <version.google-libraries-bom>26.80.0</version.google-libraries-bom>
     <version.google-api-services-sheets>v4-rev20260213-2.0.0</version.google-api-services-sheets>
     <version.google-cloud-storage>2.60.0</version.google-cloud-storage>
@@ -126,7 +126,7 @@ limitations under the License.</license.inlineheader>
 
     <version.httpcore>4.4.16</version.httpcore>
     <version.httpcore5>5.4.2</version.httpcore5>
-    <version.httpclient5>5.6</version.httpclient5>
+    <version.httpclient5>5.6.1</version.httpclient5>
     <version.httpclient>4.5.14</version.httpclient>
     <version.pdfbox>3.0.7</version.pdfbox>
     <version.collections4>4.5.0</version.collections4>
@@ -136,7 +136,7 @@ limitations under the License.</license.inlineheader>
 
     <version.kafka-clients>4.2.0</version.kafka-clients>
 
-    <version.microsoft-graph>6.62.0</version.microsoft-graph>
+    <version.microsoft-graph>6.63.0</version.microsoft-graph>
     <version.microsoft-kiota-abstraction>1.9.2</version.microsoft-kiota-abstraction>
     <version.microsoft-graph-core>3.6.5</version.microsoft-graph-core>
     <version.azure-identity>1.18.2</version.azure-identity>
