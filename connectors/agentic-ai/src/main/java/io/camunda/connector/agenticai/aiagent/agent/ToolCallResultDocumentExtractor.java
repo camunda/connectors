@@ -69,6 +69,11 @@ public class ToolCallResultDocumentExtractor {
       case Map<?, ?> map -> map.values().forEach(value -> collectDocuments(value, documents));
       case Collection<?> collection ->
           collection.forEach(element -> collectDocuments(element, documents));
+      case Object[] array -> {
+        for (Object element : array) {
+          collectDocuments(element, documents);
+        }
+      }
       default -> {
         // scalars and other types - nothing to extract
       }
