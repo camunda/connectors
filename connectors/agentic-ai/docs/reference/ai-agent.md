@@ -397,6 +397,34 @@ ConversationStore (registered backend)
 
 See the [`CustomMemoryStorageConfiguration`](../../src/main/java/io/camunda/connector/agenticai/aiagent/model/request/MemoryStorageConfiguration.java) type for configuration, and [camunda-agentic-ai-customizations](https://github.com/maff/camunda-agentic-ai-customizations) for a working example with a JPA-backed store.
 
+### Storage Contract
+
+Every `ConversationStore` implementation must follow the **write-ahead with pointer-based visibility** pattern to guarantee correctness across retries.
+
+#### The fundamental invariant
+
+The `AgentContext` stored in Zeebe is the **sole source of truth** for which conversation data to read. The `ConversationContext` inside it acts as a pointer (storage cursor) to the data. The conversation store may write data ahead of Zeebe — but that data only becomes "committed" when Zeebe accepts the job completion containing the updated `AgentContext`.
+
+If job completion fails (e.g., the job was superseded), Zeebe retries with the **old** `AgentContext`, which contains the **old** pointer. The newly written data is invisible to the retry and becomes an orphan.
+
+#### Rules for implementations
+
+1. **`storeMessages` must always write to a new location.** Never mutate or overwrite the data that the current `ConversationContext` points to. Create a new version, snapshot, branch, or record — then return a new `ConversationContext` pointing to it. This ensures the old pointer always resolves to the old data.
+
+2. **`loadMessages` must be guided by the pointer.** Load only the data that the `ConversationContext` (from `agentContext.conversation()`) references. Do not load "latest" or "most recent" — that would break retry safety.
+
+3. **Orphaned writes are expected.** When job completion fails after `storeMessages`, the written data is never pointed to. Implementations should tolerate orphans and may clean them up via background processes or future completion callbacks.
+
+4. **`ConversationContext` must be serializable and self-contained.** It is persisted as part of the `agentContext` process variable in Zeebe. It must contain everything needed to locate the conversation data (e.g., a document reference, a version number, a branch pointer) — without relying on external state that could change between turns.
+
+#### How each built-in store satisfies this contract
+
+| Store | Write target | Pointer | Orphan on failure |
+|-------|-------------|---------|-------------------|
+| **InProcess** | `agentContext` variable itself (messages in `ConversationContext`) | The variable *is* the data | No orphan — variable update and job completion fail together |
+| **CamundaDocument** | New immutable document per turn | `document` reference in context | Orphaned document (tracked in `previousDocuments` for cleanup) |
+| **AwsAgentCore** | New branch per turn (events forked from previous turn's last event) | `branchName` + `lastEventId` | Orphaned branch (invisible without pointer, no parent-chain traversal reaches it) |
+
 ### ConversationSession Lifecycle
 
 `ConversationStore.createSession()` returns an `AutoCloseable` session. The handler manages it via try-with-resources:
@@ -419,7 +447,7 @@ try (var session = store.createSession(executionContext, agentContext)) {
 6. `session.close()` handles resource cleanup (e.g., closing AWS clients)
 7. Job completion sends the updated `AgentContext` back to Zeebe
 
-**Critical insight**: The conversation is stored **before** job completion. If job completion fails (e.g., job was superseded), the stored conversation state may be ahead of what Zeebe knows. On retry, the agent uses the old `agentContext` (with old document reference) — safe, just re-does the work.
+**Critical insight**: The conversation is stored **before** job completion. This is safe because all stores follow the write-ahead with pointer-based visibility contract — see [Storage Contract](#storage-contract) above.
 
 ---
 
@@ -660,14 +688,9 @@ This is the key gate: if no user messages were added (because tool results were 
 
 ### Challenge 2: Conversation Store Ahead of Zeebe
 
-**Problem**: The conversation is written to storage (document store or in-process context) **before** the job completion command is sent. If the job completion fails:
-- In-process store: The updated `agentContext` (including conversation) is in the completion variables that failed to send — so both fail together. Safe.
-- Document store: The document was already written. The `agentContext` variable in the completion command references this new document. If completion fails, the next job will use the OLD `agentContext` which references the OLD document. The new document becomes an orphan, but the agent state is consistent because it re-uses the old context.
+**Problem**: The conversation is written to storage **before** the job completion command is sent to Zeebe. If job completion fails, the store has data that Zeebe doesn't know about.
 
-**Mitigation**:
-- The "document ahead of Zeebe" scenario is benign for correctness: the old conversation is a valid subset, the agent simply re-does the LLM call
-- Completion callback hooks for stores are planned for a follow-up to enable proactive recovery
-- Document references accumulate in `previousDocuments` but old documents are harmless
+**Mitigation**: This is safe by design. All stores follow the [Storage Contract](#storage-contract): they write to a new location each turn, and the `ConversationContext` pointer in the old `AgentContext` still resolves to the old data. The newly written data becomes an orphan — harmless to correctness, and cleanable via future completion callbacks.
 
 ### Challenge 3: Duplicate LLM Calls on Rapid Tool Completion
 
