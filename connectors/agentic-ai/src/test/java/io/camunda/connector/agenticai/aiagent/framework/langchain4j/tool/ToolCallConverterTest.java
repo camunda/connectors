@@ -12,14 +12,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ContentConverterImpl;
-import io.camunda.connector.agenticai.aiagent.framework.langchain4j.document.DocumentToContentConverterImpl;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
@@ -38,11 +37,9 @@ import org.skyscreamer.jsonassert.JSONAssert;
 
 class ToolCallConverterTest {
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
-  private final ToolCallConverter toolCallConverter =
-      new ToolCallConverterImpl(
-          objectMapper,
-          new ContentConverterImpl(objectMapper, new DocumentToContentConverterImpl()));
+  private final ObjectMapper objectMapper =
+      new ObjectMapper().registerModule(new JacksonModuleDocumentSerializer());
+  private final ToolCallConverter toolCallConverter = new ToolCallConverterImpl(objectMapper);
 
   @Test
   void convertsToolCallToToolExecutionRequest() throws JSONException {
@@ -162,7 +159,7 @@ class ToolCallConverterTest {
     }
 
     @Test
-    void supportsResultsContainingCamundaDocuments() {
+    void serializesDocumentsAsReferencesInResults() throws JSONException {
       final var content = new LinkedHashMap<String, Object>();
       content.put("hello", "world");
       content.put("document1", createDocument("Hello, world!", "text/plain", "test.txt"));
@@ -173,15 +170,32 @@ class ToolCallConverterTest {
 
       final var resultMessage = toolCallConverter.asToolExecutionResultMessage(toolCallResult);
 
-      assertThat(resultMessage)
-          .extracting(
-              ToolExecutionResultMessage::id,
-              ToolExecutionResultMessage::toolName,
-              ToolExecutionResultMessage::text)
-          .containsExactly(
-              "toolId",
-              "toolName",
-              "{\"hello\":\"world\",\"document1\":{\"type\":\"text\",\"media_type\":\"text/plain\",\"data\":\"Hello, world!\"},\"document2\":{\"type\":\"base64\",\"media_type\":\"application/pdf\",\"data\":\"PFBERiBDT05URU5UPg==\"}}");
+      assertThat(resultMessage.id()).isEqualTo("toolId");
+      assertThat(resultMessage.toolName()).isEqualTo("toolName");
+
+      // documents are serialized as document references (lenient: ignores dynamic IDs)
+      JSONAssert.assertEquals(
+          """
+          {
+            "hello": "world",
+            "document1": {
+              "camunda.document.type": "camunda",
+              "metadata": {
+                "contentType": "text/plain",
+                "fileName": "test.txt"
+              }
+            },
+            "document2": {
+              "camunda.document.type": "camunda",
+              "metadata": {
+                "contentType": "application/pdf",
+                "fileName": "test.pdf"
+              }
+            }
+          }
+          """,
+          resultMessage.text(),
+          false);
     }
 
     @Test

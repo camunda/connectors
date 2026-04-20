@@ -18,6 +18,7 @@ import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentCreationRequest;
 import io.camunda.connector.api.document.DocumentFactory;
+import io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer;
 import io.camunda.connector.runtime.core.document.DocumentFactoryImpl;
 import io.camunda.connector.runtime.core.document.store.InMemoryDocumentStore;
 import java.nio.charset.StandardCharsets;
@@ -35,8 +36,10 @@ class ContentConverterTest {
   private final InMemoryDocumentStore documentStore = InMemoryDocumentStore.INSTANCE;
   private final DocumentFactory documentFactory = new DocumentFactoryImpl(documentStore);
 
+  private final ObjectMapper objectMapper =
+      new ObjectMapper().registerModule(new JacksonModuleDocumentSerializer());
   private final ContentConverter contentConverter =
-      new ContentConverterImpl(new ObjectMapper(), new DocumentToContentConverterImpl());
+      new ContentConverterImpl(objectMapper, new DocumentToContentConverterImpl());
 
   @BeforeEach
   void setUp() {
@@ -120,7 +123,7 @@ class ContentConverterTest {
     }
 
     @Test
-    void supportsObjectContentContainingCamundaDocuments()
+    void serializesDocumentsAsReferencesInObjectContent()
         throws JsonProcessingException, JSONException {
       final var content = new LinkedHashMap<String, Object>();
       content.put("hello", "world");
@@ -128,24 +131,30 @@ class ContentConverterTest {
       content.put("document2", createDocument("<PDF CONTENT>", "application/pdf", "test.pdf"));
 
       final var stringResult = contentConverter.convertToString(content);
+
+      // documents are serialized as document references (lenient: ignores dynamic IDs)
       JSONAssert.assertEquals(
           """
           {
             "hello": "world",
             "document1": {
-              "type": "text",
-              "media_type": "text/plain",
-              "data": "Hello, world!"
+              "camunda.document.type": "camunda",
+              "metadata": {
+                "contentType": "text/plain",
+                "fileName": "test.txt"
+              }
             },
             "document2": {
-              "type": "base64",
-              "media_type": "application/pdf",
-              "data": "PFBERiBDT05URU5UPg=="
+              "camunda.document.type": "camunda",
+              "metadata": {
+                "contentType": "application/pdf",
+                "fileName": "test.pdf"
+              }
             }
           }
           """,
           stringResult,
-          true);
+          false);
     }
   }
 
