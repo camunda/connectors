@@ -100,6 +100,21 @@ class ToolCallResultDocumentExtractorTest {
     }
 
     @Test
+    void extractsDocumentFromArray() {
+      final var doc = createDocument("hello", "text/plain", "test.txt");
+      final var result = extractor.extractDocuments((Object) new Object[] {"text", doc, 42});
+      assertThat(result).containsExactly(doc);
+    }
+
+    @Test
+    void extractsDocumentFromNestedArray() {
+      final var doc = createDocument("hello", "text/plain", "test.txt");
+      final var nested = Map.of("items", new Object[] {doc});
+      final var result = extractor.extractDocuments((Object) nested);
+      assertThat(result).containsExactly(doc);
+    }
+
+    @Test
     void handlesNullValuesInMap() {
       final var doc = createDocument("hello", "text/plain", "test.txt");
       final var content = new LinkedHashMap<String, Object>();
