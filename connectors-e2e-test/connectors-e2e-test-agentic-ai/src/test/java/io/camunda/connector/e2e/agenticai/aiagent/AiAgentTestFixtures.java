@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 
 import java.util.Map;
+import java.util.regex.Pattern;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.api.ThrowingConsumer;
 
@@ -89,4 +90,18 @@ public interface AiAgentTestFixtures {
 
   String FEEDBACK_LOOP_RESPONSE_TEXT =
       "A very complex calculation only the superflux calculation tool can do.";
+
+  Pattern DOCUMENT_ID_PATTERN = Pattern.compile("\"documentId\"\\s*:\\s*\"([^\"]+)\"");
+
+  /**
+   * Extracts the document short ID (first UUID segment) from a tool result text that contains a
+   * serialized document reference with a documentId field.
+   */
+  static String extractDocumentShortId(String toolResultText) {
+    var matcher = DOCUMENT_ID_PATTERN.matcher(toolResultText);
+    assertThat(matcher.find()).as("documentId in tool result text").isTrue();
+    var documentId = matcher.group(1);
+    int dash = documentId.indexOf('-');
+    return dash > 0 ? documentId.substring(0, dash) : documentId;
+  }
 }

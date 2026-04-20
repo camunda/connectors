@@ -17,6 +17,7 @@
 package io.camunda.connector.e2e.agenticai.aiagent.langchain4j.outboundconnector;
 
 import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.FEEDBACK_LOOP_RESPONSE_TEXT;
+import static io.camunda.connector.e2e.agenticai.aiagent.AiAgentTestFixtures.extractDocumentShortId;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -162,20 +163,33 @@ public class L4JAiAgentConnectorToolCallingTests extends BaseL4JAiAgentConnector
               assertThat(msg.text()).contains(mimeType);
             });
 
+    // Extract the document short ID from the tool result reference
+    var toolResultText = ((ToolExecutionResultMessage) lastMessages.get(3)).text();
+    var documentShortId = extractDocumentShortId(toolResultText);
+
     // Document user message: extracted document content
     assertThat(lastMessages.get(4))
         .isInstanceOfSatisfying(
             UserMessage.class,
             msg -> {
               List<Content> contents = msg.contents();
-              assertThat(contents).hasSize(2);
+              assertThat(contents).hasSize(3);
               assertThat(contents.get(0))
                   .isInstanceOfSatisfying(
                       TextContent.class,
                       tc ->
                           assertThat(tc.text())
-                              .isEqualTo("Tool call 'Download_A_File' (aaa111) documents:"));
-              assertDocumentContentBlock(contents.get(1), type, mimeType);
+                              .isEqualTo("Documents extracted from tool call results:"));
+              assertThat(contents.get(1))
+                  .isInstanceOfSatisfying(
+                      TextContent.class,
+                      tc ->
+                          assertThat(tc.text())
+                              .isEqualTo(
+                                  "<document tool=\"Download_A_File\" call-id=\"aaa111\" document-short-id=\""
+                                      + documentShortId
+                                      + "\" />"));
+              assertDocumentContentBlock(contents.get(2), type, mimeType);
             });
 
     assertThat(lastMessages.get(5)).isInstanceOf(AiMessage.class);
