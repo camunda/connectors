@@ -71,9 +71,6 @@ Chosen option: **Option 2 — Factory pattern with decoupled message types**.
 
 ### Future improvements
 
-- **Completion callbacks**: `ConversationStore.onJobCompleted` / `onJobCompletionFailed` hooks,
-  invoked after Zeebe confirms or rejects the job, enabling orphan cleanup and optimistic storage
-  strategies
 - **Execution identity**: `AgentContext.executionId` (platform-level stable identifier) to replace
   `ConversationContext.conversationId()` as the primary execution key
 - **Schema versioning**: `AgentContext.schemaVersion` for explicit data migration across SPI changes
