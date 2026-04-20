@@ -28,6 +28,8 @@ import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -226,12 +228,12 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     }
 
     final var content = new ArrayList<Content>();
+    content.add(textContent("Documents extracted from tool call results:"));
     for (var entry : toolCallDocuments) {
-      content.add(
-          textContent(
-              "Tool call '%s' (%s) documents:"
-                  .formatted(entry.toolCallName(), entry.toolCallId())));
-      entry.documents().stream().map(DocumentContent::documentContent).forEach(content::add);
+      for (var doc : entry.documents()) {
+        content.add(textContent(documentXmlTag(doc, entry.toolCallName(), entry.toolCallId())));
+        content.add(DocumentContent.documentContent(doc));
+      }
     }
 
     final var metadata = new HashMap<String, Object>(defaultMessageMetadata());
@@ -260,9 +262,13 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     }
 
     // extract documents from event content and add as document content blocks
-    documentExtractor
-        .extractDocuments(eventContent)
-        .forEach(doc -> userMessageContent.add(DocumentContent.documentContent(doc)));
+    var eventDocuments = documentExtractor.extractDocuments(eventContent);
+    if (!eventDocuments.isEmpty()) {
+      for (var doc : eventDocuments) {
+        userMessageContent.add(textContent(documentXmlTag(doc)));
+        userMessageContent.add(DocumentContent.documentContent(doc));
+      }
+    }
 
     return UserMessage.builder()
         .content(userMessageContent)
@@ -287,6 +293,41 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
             .orElse(null);
 
     return behavior == EventHandlingConfiguration.EventHandlingBehavior.INTERRUPT_TOOL_CALLS;
+  }
+
+  static String documentXmlTag(Document document, String toolName, String toolCallId) {
+    var sb = new StringBuilder("<document");
+    if (StringUtils.isNotBlank(toolName)) {
+      sb.append(" tool=\"").append(toolName).append("\"");
+    }
+    if (StringUtils.isNotBlank(toolCallId)) {
+      sb.append(" call-id=\"").append(toolCallId).append("\"");
+    }
+    var shortId = documentShortId(document);
+    if (shortId != null) {
+      sb.append(" document-short-id=\"").append(shortId).append("\"");
+    }
+    var fileName = document.metadata() != null ? document.metadata().getFileName() : null;
+    if (StringUtils.isNotBlank(fileName)) {
+      sb.append(" filename=\"").append(fileName).append("\"");
+    }
+    sb.append(" />");
+    return sb.toString();
+  }
+
+  static String documentXmlTag(Document document) {
+    return documentXmlTag(document, null, null);
+  }
+
+  private static String documentShortId(Document document) {
+    if (document.reference() instanceof CamundaDocumentReference camundaRef) {
+      var documentId = camundaRef.getDocumentId();
+      if (documentId != null) {
+        int dashIndex = documentId.indexOf('-');
+        return dashIndex > 0 ? documentId.substring(0, dashIndex) : documentId;
+      }
+    }
+    return null;
   }
 
   private Map<String, Object> defaultMessageMetadata() {
