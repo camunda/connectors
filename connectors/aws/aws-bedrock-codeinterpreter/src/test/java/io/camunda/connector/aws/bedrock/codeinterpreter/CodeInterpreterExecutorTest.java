@@ -19,6 +19,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.aws.bedrock.codeinterpreter.model.request.CodeInterpreterInput;
 import io.camunda.connector.aws.bedrock.codeinterpreter.model.request.CodeInterpreterRequest;
 import io.camunda.connector.aws.bedrock.codeinterpreter.model.request.Language;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,9 +28,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreAsyncClient;
 import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
 import software.amazon.awssdk.services.bedrockagentcore.model.BedrockAgentCoreException;
+import software.amazon.awssdk.services.bedrockagentcore.model.ContentBlock;
 import software.amazon.awssdk.services.bedrockagentcore.model.InvokeCodeInterpreterRequest;
 import software.amazon.awssdk.services.bedrockagentcore.model.InvokeCodeInterpreterResponseHandler;
 import software.amazon.awssdk.services.bedrockagentcore.model.StartCodeInterpreterSessionRequest;
@@ -229,6 +232,71 @@ class CodeInterpreterExecutorTest extends BaseTest {
     var startCaptor = ArgumentCaptor.forClass(StartCodeInterpreterSessionRequest.class);
     verify(syncClient).startCodeInterpreterSession(startCaptor.capture());
     assertThat(startCaptor.getValue().name()).isEqualTo("camunda-9876543");
+  }
+
+  // --- Tests for getBlockSize ---
+
+  @Test
+  void shouldGetBlockSizeFromSizeField() {
+    var block = ContentBlock.builder().size(1024L).build();
+    assertThat(executor.getBlockSize(block)).isEqualTo(1024L);
+  }
+
+  @Test
+  void shouldGetBlockSizeFromDataWhenSizeNull() {
+    var data = "test content".getBytes();
+    var block = ContentBlock.builder().data(SdkBytes.fromByteArray(data)).build();
+    assertThat(executor.getBlockSize(block)).isEqualTo(data.length);
+  }
+
+  @Test
+  void shouldReturnZeroForEmptyBlock() {
+    var block = ContentBlock.builder().build();
+    assertThat(executor.getBlockSize(block)).isEqualTo(0L);
+  }
+
+  // --- Tests for convertToDocuments ---
+
+  @Test
+  void shouldConvertContentBlockToDocument() {
+    var mockDoc = org.mockito.Mockito.mock(Document.class);
+    when(createDocument.apply(any(DocumentCreationRequest.class))).thenReturn(mockDoc);
+
+    var data = "file content".getBytes();
+    var block =
+        ContentBlock.builder().data(SdkBytes.fromByteArray(data)).mimeType("text/plain").build();
+
+    var docs = executor.convertToDocuments(List.of(block), "output.txt");
+
+    assertThat(docs).hasSize(1).containsExactly(mockDoc);
+
+    var captor = ArgumentCaptor.forClass(DocumentCreationRequest.class);
+    verify(createDocument).apply(captor.capture());
+    assertThat(captor.getValue().fileName()).isEqualTo("output.txt");
+    assertThat(captor.getValue().contentType()).isEqualTo("text/plain");
+  }
+
+  @Test
+  void shouldSkipBlocksWithNoData() {
+    var block = ContentBlock.builder().mimeType("text/plain").build();
+
+    var docs = executor.convertToDocuments(List.of(block), "empty.txt");
+
+    assertThat(docs).isEmpty();
+  }
+
+  @Test
+  void shouldUseDefaultMimeTypeWhenNotProvided() {
+    var mockDoc = org.mockito.Mockito.mock(Document.class);
+    when(createDocument.apply(any(DocumentCreationRequest.class))).thenReturn(mockDoc);
+
+    var block = ContentBlock.builder().data(SdkBytes.fromByteArray("data".getBytes())).build();
+
+    executor.convertToDocuments(List.of(block), "file.bin");
+
+    var captor = ArgumentCaptor.forClass(DocumentCreationRequest.class);
+    verify(createDocument).apply(captor.capture());
+    assertThat(captor.getValue().contentType()).isEqualTo("application/octet-stream");
   }
 
   private void mockSession(String sessionId) {

@@ -41,7 +41,6 @@ public class CodeInterpreterExecutor {
   private static final String DEFAULT_CODE_INTERPRETER_ID = "aws.codeinterpreter.v1";
   private static final String SESSION_NAME_PREFIX = "camunda-";
   private static final String ERROR_CODE_INTERPRETER_FAILED = "CODE_INTERPRETER_FAILED";
-  private static final String ERROR_STREAM = "STREAM_ERROR";
   private static final String DEFAULT_MIME_TYPE = "application/octet-stream";
   private static final int DEFAULT_MAX_FILES = 10;
   private static final long DEFAULT_MAX_TOTAL_FILE_SIZE = 10L * 1024 * 1024;
@@ -177,23 +176,42 @@ public class CodeInterpreterExecutor {
     for (var file : files) {
       try {
         var blocks = readFileBlocks(session, file);
-        for (var doc : convertToDocuments(blocks, file)) {
-          var size =
-              doc.metadata() != null && doc.metadata().getSize() != null
-                  ? doc.metadata().getSize()
-                  : 0L;
-          totalBytes += size;
-          if (totalBytes > maxFileSize) {
+        var blocksToConvert = new ArrayList<ContentBlock>();
+        for (var block : blocks) {
+          var blockSize = getBlockSize(block);
+          if (totalBytes + blockSize > maxFileSize) {
             LOG.warn("Total file size exceeds {} bytes, stopping retrieval", maxFileSize);
+            documents.addAll(convertToDocuments(blocksToConvert, file));
             return documents;
           }
-          documents.add(doc);
+          totalBytes += blockSize;
+          blocksToConvert.add(block);
         }
+        documents.addAll(convertToDocuments(blocksToConvert, file));
       } catch (Exception e) {
         LOG.warn("Failed to read file {}: {}", file, e.getMessage());
       }
     }
     return documents;
+  }
+
+  /** Gets the size of a content block. Package-private for testing. */
+  long getBlockSize(ContentBlock block) {
+    if (block.size() != null) {
+      return block.size();
+    }
+    if (block.data() != null) {
+      return block.data().asByteArray().length;
+    }
+    if (block.resource() != null) {
+      if (block.resource().blob() != null) {
+        return block.resource().blob().asByteArray().length;
+      }
+      if (block.resource().text() != null) {
+        return block.resource().text().getBytes(StandardCharsets.UTF_8).length;
+      }
+    }
+    return 0L;
   }
 
   /** Lists files in the sandbox working directory. */
@@ -220,7 +238,8 @@ public class CodeInterpreterExecutor {
         .toList();
   }
 
-  private List<Document> convertToDocuments(List<ContentBlock> blocks, String fileName) {
+  /** Converts content blocks to documents. Package-private for testing. */
+  List<Document> convertToDocuments(List<ContentBlock> blocks, String fileName) {
     var documents = new ArrayList<Document>();
     for (var block : blocks) {
       var data = extractData(block);
@@ -261,11 +280,6 @@ public class CodeInterpreterExecutor {
                                     .onResult(results::add)
                                     .build())))
             .onResponse(ignored -> {})
-            .onError(
-                t -> {
-                  throw new ConnectorException(
-                      ERROR_STREAM, "Error in code interpreter stream: " + t.getMessage());
-                })
             .build();
 
     try {
