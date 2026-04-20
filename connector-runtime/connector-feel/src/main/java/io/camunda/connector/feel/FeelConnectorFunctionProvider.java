@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 import org.camunda.feel.context.Context;
 import org.camunda.feel.context.Context.StaticContext;
 import org.camunda.feel.context.JavaFunction;
@@ -170,6 +171,139 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
                       new Map.Map1<>(ERROR_TYPE_PROPERTY, IGNORE_ERROR_TYPE_VALUE),
                       Map$.MODULE$.empty())));
 
+  /** Back Off Function */
+  private static final String BACKOFF_FUNCTION_NAME = "backoff";
+
+  /** Default constants - mirror ExponentialBackoffBuilderImpl */
+  private static final long BACKOFF_DEFAULT_MIN_DELAY_MS = 50L;
+
+  private static final long BACKOFF_DEFAULT_MAX_DELAY_MS = 5_000L;
+  private static final double BACKOFF_DEFAULT_FACTOR = 1.6;
+  private static final double BACKOFF_DEFAULT_JITTER_FACTOR = 0.1;
+
+  private static final ValDayTimeDuration BACKOFF_DEFAULT_MIN_DELAY =
+      new ValDayTimeDuration(Duration.ofMillis(BACKOFF_DEFAULT_MIN_DELAY_MS));
+  private static final ValDayTimeDuration BACKOFF_DEFAULT_MAX_DELAY =
+      new ValDayTimeDuration(Duration.ofMillis(BACKOFF_DEFAULT_MAX_DELAY_MS));
+  private static final ValNumber BACKOFF_DEFAULT_FACTOR_VAL =
+      new ValNumber(new BigDecimal(new java.math.BigDecimal(BACKOFF_DEFAULT_FACTOR)));
+  private static final ValNumber BACKOFF_DEFAULT_JITTER_FACTOR_VAL =
+      new ValNumber(new BigDecimal(new java.math.BigDecimal(BACKOFF_DEFAULT_JITTER_FACTOR)));
+
+  private static final List<String> BACKOFF_ARGUMENTS =
+      List.of("attempt", "minDelay", "factor", "maxDelay", "jitterFactor");
+
+  private static final JavaFunction BACKOFF_FUNCTION_5 =
+      new JavaFunction(
+          BACKOFF_ARGUMENTS,
+          args ->
+              computeBackoff(
+                  toNumber(args, 0, BACKOFF_FUNCTION_NAME, "attempt"),
+                  toDuration(args, 1, BACKOFF_FUNCTION_NAME, "minDelay"),
+                  toNumber(args, 2, BACKOFF_FUNCTION_NAME, "factor"),
+                  toDuration(args, 3, BACKOFF_FUNCTION_NAME, "maxDelay"),
+                  toNumber(args, 4, BACKOFF_FUNCTION_NAME, "jitterFactor")));
+
+  private static final JavaFunction BACKOFF_FUNCTION_4 =
+      new JavaFunction(
+          BACKOFF_ARGUMENTS.subList(0, 4),
+          args ->
+              computeBackoff(
+                  toNumber(args, 0, BACKOFF_FUNCTION_NAME, "attempt"),
+                  toDuration(args, 1, BACKOFF_FUNCTION_NAME, "minDelay"),
+                  toNumber(args, 2, BACKOFF_FUNCTION_NAME, "factor"),
+                  toDuration(args, 3, BACKOFF_FUNCTION_NAME, "maxDelay"),
+                  BACKOFF_DEFAULT_JITTER_FACTOR_VAL));
+
+  private static final JavaFunction BACKOFF_FUNCTION_3 =
+      new JavaFunction(
+          BACKOFF_ARGUMENTS.subList(0, 3),
+          args ->
+              computeBackoff(
+                  toNumber(args, 0, BACKOFF_FUNCTION_NAME, "attempt"),
+                  toDuration(args, 1, BACKOFF_FUNCTION_NAME, "minDelay"),
+                  toNumber(args, 2, BACKOFF_FUNCTION_NAME, "factor"),
+                  BACKOFF_DEFAULT_MAX_DELAY,
+                  BACKOFF_DEFAULT_JITTER_FACTOR_VAL));
+
+  private static final JavaFunction BACKOFF_FUNCTION_1 =
+      new JavaFunction(
+          BACKOFF_ARGUMENTS.subList(0, 1),
+          args ->
+              computeBackoff(
+                  toNumber(args, 0, BACKOFF_FUNCTION_NAME, "attempt"),
+                  BACKOFF_DEFAULT_MIN_DELAY,
+                  BACKOFF_DEFAULT_FACTOR_VAL,
+                  BACKOFF_DEFAULT_MAX_DELAY,
+                  BACKOFF_DEFAULT_JITTER_FACTOR_VAL));
+
+  private static ValDayTimeDuration computeBackoff(
+      ValNumber attempt,
+      ValDayTimeDuration minDelay,
+      ValNumber factor,
+      ValDayTimeDuration maxDelay,
+      ValNumber jitterFactor) {
+
+    int attemptInt = attempt.value().intValue();
+    if (attemptInt < 1) {
+      throw new IllegalArgumentException(
+          "backoff(): 'attempt' must be >= 1, but was " + attemptInt);
+    }
+
+    long minMs = minDelay.value().toMillis();
+    long maxMs = maxDelay.value().toMillis();
+    double f = factor.value().toDouble();
+    double jf = jitterFactor.value().toDouble();
+
+    if (f <= 0) {
+      throw new IllegalArgumentException("backoff(): 'factor' must be > 0, but was " + f);
+    }
+    if (minMs > maxMs) {
+      throw new IllegalArgumentException(
+          "backoff(): 'minDelay' must be <= 'maxDelay', but " + minMs + "ms > " + maxMs + "ms");
+    }
+    if (jf < 0) {
+      throw new IllegalArgumentException("backoff(): 'jitterFactor' must be >= 0, but was " + jf);
+    }
+
+    double rawMs = minMs * Math.pow(f, attemptInt - 1);
+
+    // clamp to [minMs, maxMs]
+    double clampedMs = Math.max(minMs, Math.min(maxMs, rawMs));
+
+    double jitter = 0.0;
+    if (jf > 0) {
+      double jitterMin = -jf * clampedMs;
+      double jitterMax = jf * clampedMs;
+      jitter = ThreadLocalRandom.current().nextDouble(jitterMin, jitterMax);
+    }
+
+    long resultMs = Math.round(clampedMs + jitter);
+    return new ValDayTimeDuration(Duration.ofMillis(resultMs));
+  }
+
+  private static ValNumber toNumber(
+      List<Val> args, int index, String functionName, String paramName) {
+    Val value = args.get(index);
+    if (value instanceof ValNumber number) {
+      return number;
+    }
+    throw new IllegalArgumentException(
+        String.format("Parameter '%s' of function '%s' must be a Number", paramName, functionName));
+  }
+
+  private static ValDayTimeDuration toDuration(
+      List<Val> args, int index, String functionName, String paramName) {
+    Val value = args.get(index);
+    if (value instanceof ValDayTimeDuration duration) {
+      return duration;
+    }
+    throw new IllegalArgumentException(
+        String.format(
+            "Parameter '%s' of function '%s' must be a day-time duration (e.g. duration(\"PT1S\"))",
+            paramName, functionName));
+  }
+
   private static final java.util.Map<String, List<JavaFunction>> functions =
       java.util.Map.of(
           BPMN_ERROR_FUNCTION_NAME,
@@ -182,7 +316,9 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
               JOB_ERROR_FUNCTION_3,
               JOB_ERROR_FUNCTION_4),
           IGNORE_ERROR_FUNCTION_NAME,
-          List.of(IGNORE_ERROR_FUNCTION, IGNORE_ERROR_FUNCTION_NO_ARGS));
+          List.of(IGNORE_ERROR_FUNCTION, IGNORE_ERROR_FUNCTION_NO_ARGS),
+          BACKOFF_FUNCTION_NAME,
+          List.of(BACKOFF_FUNCTION_1, BACKOFF_FUNCTION_3, BACKOFF_FUNCTION_4, BACKOFF_FUNCTION_5));
 
   private static ValContext createJobErrorContext(
       ValString message, ValContext variables, ValNumber retries, ValDayTimeDuration retryBackoff) {
