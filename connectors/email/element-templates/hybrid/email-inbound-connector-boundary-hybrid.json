@@ -3,14 +3,7 @@
   "name" : "Hybrid Email Boundary Event Connector",
   "id" : "io.camunda.connectors.inbound.EmailBoundary.v1-hybrid",
   "description" : "Consume emails",
-  "keywords" : [
-    "email received",
-    "receive email",
-    "incoming email",
-    "poll emails",
-    "new email",
-    "email notification"
-  ],
+  "keywords" : [ "email received", "receive email", "incoming email", "poll emails", "new email", "email notification" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/email",
   "version" : 2,
   "category" : {
