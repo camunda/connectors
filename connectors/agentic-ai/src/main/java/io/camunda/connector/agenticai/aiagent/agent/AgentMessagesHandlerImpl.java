@@ -50,11 +50,6 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AgentMessagesHandlerImpl.class);
 
-  /**
-   * Metadata key identifying a user message as containing documents extracted from tool results.
-   */
-  static final String METADATA_TOOL_CALL_DOCUMENTS = "toolCallDocuments";
-
   private static final String EVENT_CONTENT_EMPTY =
       "An event was triggered but no content was returned.";
   private static final String EVENT_CONTENT_EMPTY_INTERRUPT_TOOL_CALLS_EMPTY_MESSAGE =
@@ -237,7 +232,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     }
 
     final var metadata = new HashMap<String, Object>(defaultMessageMetadata());
-    metadata.put(METADATA_TOOL_CALL_DOCUMENTS, true);
+    metadata.put(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true);
 
     return UserMessage.builder().content(content).metadata(metadata).build();
   }
