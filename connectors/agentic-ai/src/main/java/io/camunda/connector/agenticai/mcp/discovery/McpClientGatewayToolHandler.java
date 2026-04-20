@@ -270,7 +270,14 @@ public class McpClientGatewayToolHandler implements GatewayToolHandler {
 
   private Object getRawMcpContent(ToolCallResult toolCallResult) {
     if (toolCallResult.content() instanceof Map<?, ?> map) {
-      return map.get("content");
+      var content = map.get("content");
+      if (content == null && !map.isEmpty()) {
+        LOGGER.warn(
+            "MCP tool call result map has no 'content' key but contains keys: {}. "
+                + "Documents may be lost if the response structure has changed.",
+            map.keySet());
+      }
+      return content;
     }
     return toolCallResult.content();
   }
