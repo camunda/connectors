@@ -6,6 +6,9 @@
  */
 package io.camunda.connector.agenticai.aiagent.agent;
 
+import com.fasterxml.jackson.databind.BeanDescription;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.api.document.Document;
 import java.util.ArrayList;
@@ -13,16 +16,28 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Extracts {@link Document} instances from tool call result content trees. Documents can appear at
- * any level: as the root content, within maps, or within lists.
+ * any level: as the root content, within maps, within lists, or as properties of arbitrary objects.
+ * Uses Jackson's bean introspection to walk object properties generically.
  */
 public class ToolCallResultDocumentExtractor {
+
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(ToolCallResultDocumentExtractor.class);
+
+  private final ObjectMapper objectMapper;
 
   /** Documents extracted from a single tool call result, grouped with the tool call identity. */
   public record ToolCallDocuments(
       String toolCallId, String toolCallName, List<Document> documents) {}
+
+  public ToolCallResultDocumentExtractor(ObjectMapper objectMapper) {
+    this.objectMapper = objectMapper;
+  }
 
   /**
    * Extracts all {@link Document} instances from the given tool call results, grouped by tool call.
@@ -69,9 +84,38 @@ public class ToolCallResultDocumentExtractor {
       case Map<?, ?> map -> map.values().forEach(value -> collectDocuments(value, documents));
       case Collection<?> collection ->
           collection.forEach(element -> collectDocuments(element, documents));
-      default -> {
-        // scalars and other types - nothing to extract
-      }
+      default -> collectDocumentsFromBeanProperties(node, documents);
     }
+  }
+
+  private void collectDocumentsFromBeanProperties(Object node, List<Document> documents) {
+    if (isScalar(node)) {
+      return;
+    }
+
+    try {
+      var type = objectMapper.constructType(node.getClass());
+      BeanDescription desc = objectMapper.getSerializationConfig().introspect(type);
+      List<BeanPropertyDefinition> properties = desc.findProperties();
+
+      for (BeanPropertyDefinition property : properties) {
+        var accessor = property.getAccessor();
+        if (accessor != null) {
+          accessor.fixAccess(true);
+          Object value = accessor.getValue(node);
+          collectDocuments(value, documents);
+        }
+      }
+    } catch (Exception e) {
+      LOGGER.debug(
+          "Failed to introspect bean properties of {}: {}", node.getClass(), e.getMessage());
+    }
+  }
+
+  private static boolean isScalar(Object node) {
+    return node instanceof String
+        || node instanceof Number
+        || node instanceof Boolean
+        || node instanceof Enum<?>;
   }
 }
