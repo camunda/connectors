@@ -3,9 +3,20 @@
   "name" : "Hybrid REST Outbound Connector",
   "id" : "io.camunda.connectors.HttpJson.v2-hybrid",
   "description" : "Invoke REST API",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords" : [
+    "HTTP",
+    "REST",
+    "API call",
+    "web request",
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "fetch data",
+    "send request",
+    "invoke API"
+  ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
   "version" : 13,
   "category" : {

@@ -290,11 +290,13 @@ class LocalFeelExpressionEvaluatorExpressionEvaluationTest {
   @Test
   void bpmnErrorFunctionWithCodeOnly() {
     // given
-    final var resultExpression = "=bpmnError(\"test\")";
+    final var resultExpression = "=bpmnError(\"testOnlyCode\")";
     final var variables = Map.of("code", "TestCode");
     // when
-    final var result = objectUnderTest.evaluate(resultExpression, variables);
-    assertNull(result);
+    Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    assertEquals("testOnlyCode", result.get("errorCode"));
+    assertNull(result.get("errorMessage"));
+    assertNull(result.get("variables"));
   }
 
   @Test
