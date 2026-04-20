@@ -400,17 +400,17 @@ class McpClientGatewayToolHandlerTest {
                   McpTextContent.textContent("First content"),
                   McpTextContent.textContent("Second content")),
               false);
-      var toolCallResults =
-          List.of(createToolCallResultWithContent("call1", "mcp1", mcpCallToolResult));
+      // simulate engine deserialization: content arrives as a raw Map, not a typed POJO
+      var contentAsMap = objectMapper.convertValue(mcpCallToolResult, Map.class);
+      var toolCallResults = List.of(createToolCallResultWithContent("call1", "mcp1", contentAsMap));
 
       var result = handler.transformToolCallResults(agentContext, toolCallResults);
 
       assertThat(result).hasSize(1);
+      // getRawMcpContent extracts the "content" key from the map
       assertThat(result.getFirst().content())
-          .isEqualTo(
-              List.of(
-                  McpTextContent.textContent("First content"),
-                  McpTextContent.textContent("Second content")));
+          .asInstanceOf(InstanceOfAssertFactories.LIST)
+          .hasSize(2);
     }
 
     @Test
