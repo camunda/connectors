@@ -1,6 +1,6 @@
 # Implementation Plan: Document Handling in Tool Call Results
 
-Reference: [ADR-003](003-document-handling-in-tool-call-results.md)
+Reference: [ADR-004](004-document-handling-in-tool-call-results.md)
 
 ## Phase 1: New document extraction utility
 
