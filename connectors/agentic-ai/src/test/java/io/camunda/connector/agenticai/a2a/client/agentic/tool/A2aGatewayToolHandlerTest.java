@@ -23,11 +23,13 @@ import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aArtifact
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aMessage;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTask;
 import io.camunda.connector.agenticai.a2a.client.common.model.result.A2aTaskStatus;
+import io.camunda.connector.agenticai.aiagent.agent.ToolCallResultDocumentExtractor;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.model.message.content.TextContent;
 import io.camunda.connector.agenticai.model.tool.GatewayToolDefinition;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.document.Document;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -456,6 +458,32 @@ class A2aGatewayToolHandlerTest {
       var result = handler.transformToolCallResults(agentContext, toolCallResults);
 
       assertThat(result).isEqualTo(toolCallResults);
+    }
+
+    @Test
+    void preservesRawContentWithDocuments_forDocumentExtraction() {
+      var agentContext = AgentContext.empty().withProperty(PROPERTY_A2A_CLIENTS, List.of("a2a1"));
+      var document = mock(Document.class);
+
+      // Simulate raw content as it arrives from the engine: a Map/List tree with Document instances
+      var rawContent =
+          Map.of(
+              "kind",
+              "message",
+              "contents",
+              List.of(Map.of("type", "document", "document", document)));
+      var toolCallResults = List.of(createToolCallResultWithContent("call1", "a2a1", rawContent));
+
+      var result = handler.transformToolCallResults(agentContext, toolCallResults);
+
+      assertThat(result).hasSize(1);
+      assertThat(result.getFirst().name()).isEqualTo("A2A_a2a1");
+
+      // Verify the document extractor can find documents in the preserved raw content
+      var extractor = new ToolCallResultDocumentExtractor();
+      var extractedDocuments = extractor.extractDocuments(result);
+      assertThat(extractedDocuments).hasSize(1);
+      assertThat(extractedDocuments.getFirst().documents()).containsExactly(document);
     }
   }
 
