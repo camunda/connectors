@@ -7,16 +7,17 @@
     "camunda": "^8.3"
   },
   "description": "Manage addresses, parcels, and shipments with Easy Post.",
-  "metadata": {
-    "keywords": [
-      "create address",
-      "create parcel",
-      "create shipment",
-      "buy shipment",
-      "verify address",
-      "retrieve tracker by ID"
-    ]
-  },
+  "keywords": [
+    "create address",
+    "verify address",
+    "create parcel",
+    "create shipment",
+    "buy shipment",
+    "retrieve tracker",
+    "shipment",
+    "logistics",
+    "parcel tracking"
+  ],
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/easy-post/",
   "category": {
     "id": "connectors",

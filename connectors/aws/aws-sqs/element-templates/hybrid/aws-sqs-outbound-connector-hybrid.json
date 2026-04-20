@@ -3,9 +3,15 @@
   "name" : "Hybrid Amazon SQS Outbound Connector",
   "id" : "io.camunda.connectors.AWSSQS.v1-hybrid",
   "description" : "Send messages to Amazon SQS.",
-  "metadata" : {
-    "keywords" : [ "send message", "publish message", "send message to queue", "publish message to queue" ]
-  },
+  "keywords" : [
+    "send message",
+    "send message to queue",
+    "enqueue",
+    "queue",
+    "publish message",
+    "FIFO",
+    "standard queue"
+  ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=outbound",
   "version" : 11,
   "category" : {

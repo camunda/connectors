@@ -3,9 +3,14 @@
   "name" : "Hybrid AWS Comprehend Outbound Connector",
   "id" : "io.camunda.connectors.AWSCOMPREHEND.v1-hybrid",
   "description" : "Execute Comprehend models",
-  "metadata" : {
-    "keywords" : [ ]
-  },
+  "keywords" : [
+    "analyze document",
+    "detect document text",
+    "text analysis",
+    "NLP",
+    "natural language processing",
+    "machine learning"
+  ],
   "documentationRef" : "https://docs.camunda.io/docs/8.7/components/connectors/out-of-the-box-connectors/amazon-comprehend/",
   "version" : 2,
   "category" : {

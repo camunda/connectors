@@ -913,6 +913,26 @@ class SpringConnectorJobHandlerTest {
     }
 
     @Test
+    void shouldCreateBpmnError_UsingCodeOnlyBpmnErrorFunction() throws Exception {
+      // given
+      var errorExpression =
+          "if contains(error.code,\"10\") then " + "bpmnError(error.code) " + "else null";
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new ConnectorException("1013", "exception message");
+              });
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .executeAndCaptureResult(jobHandler, false, true);
+      // then
+      assertThat(result.getErrorCode()).isEqualTo("1013");
+      assertThat(result.getErrorMessage()).isNull();
+    }
+
+    @Test
     void shouldHideSecretsInJobErrorMessage() throws Exception {
       // given
       var errorMessage = "Something went wrong: bar is not the correct password";

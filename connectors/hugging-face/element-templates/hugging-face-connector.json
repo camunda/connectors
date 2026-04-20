@@ -7,6 +7,18 @@
     "camunda": "^8.5"
   },
   "description": "Interact with Hugging Face inference API",
+  "keywords": [
+    "AI",
+    "machine learning",
+    "NLP",
+    "natural language processing",
+    "generate text",
+    "classify text",
+    "inference",
+    "language model",
+    "LLM",
+    "text generation"
+  ],
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/hugging-face/",
   "category": {
     "id": "connectors",

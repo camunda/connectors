@@ -7,13 +7,16 @@
     "camunda": "^8.3"
   },
   "description": "Validate addresses, retrieve postal addresses and calculate distances with Googe Maps",
-  "metadata": {
-    "keywords": [
-      "find address",
-      "check address",
-      "get distance"
-    ]
-  },
+  "keywords": [
+    "validate address",
+    "get place ID",
+    "calculate distance",
+    "geocoding",
+    "geolocation",
+    "address validation",
+    "routing",
+    "maps"
+  ],
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/",
   "category": {
     "id": "connectors",
