@@ -16,6 +16,7 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.TextContent;
 import io.camunda.connector.api.document.Document;
+import java.util.Locale;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -118,6 +119,23 @@ class DocumentToContentConverterTest {
 
     verify(document, never()).asByteArray();
     verify(document, never()).asInputStream();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"image/png", "Image/Png", "IMAGE/PNG", "ImAgE/PnG"})
+  void shouldConvertContentTypeToLowercase(String contentType) {
+    when(document.metadata().getContentType()).thenReturn(contentType);
+    when(document.asBase64()).thenReturn(DUMMY_B64_VALUE);
+
+    var content = converter.convert(document);
+
+    assertThat(content)
+        .asInstanceOf(InstanceOfAssertFactories.type(ImageContent.class))
+        .satisfies(
+            imageContent -> {
+              assertThat(imageContent.image().mimeType())
+                  .isEqualTo(contentType.toLowerCase(Locale.ROOT));
+            });
   }
 
   @Test
