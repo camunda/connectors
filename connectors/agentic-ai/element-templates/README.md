@@ -23,8 +23,6 @@ The AI Agent ships in two flavors that share the same versioning scheme.
 
 ### AI Agent Task
 
-`io.camunda.connectors.agenticai.aiagent.v1`
-
 | Connector     | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
 | AI Agent Task | 8.10 | 10 | [`agenticai-aiagent-outbound-connector.json`](./agenticai-aiagent-outbound-connector.json) |
@@ -32,8 +30,6 @@ The AI Agent ships in two flavors that share the same versioning scheme.
 | AI Agent Task | 8.8  | 5  | [`versioned/agenticai-aiagent-outbound-connector-5.json`](./versioned/agenticai-aiagent-outbound-connector-5.json) |
 
 ### AI Agent Sub-process
-
-`io.camunda.connectors.agenticai.aiagent.jobworker.v1`
 
 | Connector            | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
