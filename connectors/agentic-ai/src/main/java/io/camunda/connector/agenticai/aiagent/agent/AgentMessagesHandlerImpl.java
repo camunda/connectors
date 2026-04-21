@@ -257,7 +257,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     }
 
     // extract documents from event content and add as document content blocks
-    var eventDocuments = documentExtractor.extractDocuments(eventContent);
+    var eventDocuments = documentExtractor.extractDocumentsFromContent(eventContent);
     if (!eventDocuments.isEmpty()) {
       for (var doc : eventDocuments) {
         userMessageContent.add(textContent(documentXmlTag(doc)));
