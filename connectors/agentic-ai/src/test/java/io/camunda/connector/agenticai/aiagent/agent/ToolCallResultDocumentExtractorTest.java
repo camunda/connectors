@@ -40,21 +40,21 @@ class ToolCallResultDocumentExtractorTest {
     @Test
     void extractsRootLevelDocument() {
       final var doc = createDocument("hello", "text/plain", "test.txt");
-      final var result = extractor.extractDocuments((Object) doc);
+      final var result = extractor.extractDocumentsFromContent(doc);
       assertThat(result).containsExactly(doc);
     }
 
     @Test
     void extractsDocumentFromMapValue() {
       final var doc = createDocument("hello", "text/plain", "test.txt");
-      final var result = extractor.extractDocuments((Object) Map.of("file", doc, "key", "value"));
+      final var result = extractor.extractDocumentsFromContent(Map.of("file", doc, "key", "value"));
       assertThat(result).containsExactly(doc);
     }
 
     @Test
     void extractsDocumentFromList() {
       final var doc = createDocument("hello", "text/plain", "test.txt");
-      final var result = extractor.extractDocuments((Object) List.of("text", doc, 42));
+      final var result = extractor.extractDocumentsFromContent(List.of("text", doc, 42));
       assertThat(result).containsExactly(doc);
     }
 
@@ -62,7 +62,7 @@ class ToolCallResultDocumentExtractorTest {
     void extractsDeeplyNestedDocuments() {
       final var doc = createDocument("hello", "text/plain", "test.txt");
       final var nested = Map.of("level1", Map.of("level2", List.of(Map.of("file", doc))));
-      final var result = extractor.extractDocuments((Object) nested);
+      final var result = extractor.extractDocumentsFromContent(nested);
       assertThat(result).containsExactly(doc);
     }
 
@@ -75,34 +75,34 @@ class ToolCallResultDocumentExtractorTest {
       content.put("report", doc2);
       content.put("other", "value");
 
-      final var result = extractor.extractDocuments((Object) content);
+      final var result = extractor.extractDocumentsFromContent(content);
       assertThat(result).containsExactly(doc1, doc2);
     }
 
     @Test
     void returnsEmptyForContentWithoutDocuments() {
       final var result =
-          extractor.extractDocuments((Object) Map.of("key", "value", "list", List.of(1, 2, 3)));
+          extractor.extractDocumentsFromContent(Map.of("key", "value", "list", List.of(1, 2, 3)));
       assertThat(result).isEmpty();
     }
 
     @Test
     void returnsEmptyForNullContent() {
-      final var result = extractor.extractDocuments((Object) null);
+      final var result = extractor.extractDocumentsFromContent(null);
       assertThat(result).isEmpty();
     }
 
     @Test
     void returnsEmptyForScalarContent() {
-      assertThat(extractor.extractDocuments((Object) "text")).isEmpty();
-      assertThat(extractor.extractDocuments((Object) 42)).isEmpty();
-      assertThat(extractor.extractDocuments((Object) true)).isEmpty();
+      assertThat(extractor.extractDocumentsFromContent("text")).isEmpty();
+      assertThat(extractor.extractDocumentsFromContent(42)).isEmpty();
+      assertThat(extractor.extractDocumentsFromContent(true)).isEmpty();
     }
 
     @Test
     void extractsDocumentFromArray() {
       final var doc = createDocument("hello", "text/plain", "test.txt");
-      final var result = extractor.extractDocuments((Object) new Object[] {"text", doc, 42});
+      final var result = extractor.extractDocumentsFromContent(new Object[] {"text", doc, 42});
       assertThat(result).containsExactly(doc);
     }
 
@@ -110,7 +110,7 @@ class ToolCallResultDocumentExtractorTest {
     void extractsDocumentFromNestedArray() {
       final var doc = createDocument("hello", "text/plain", "test.txt");
       final var nested = Map.of("items", new Object[] {doc});
-      final var result = extractor.extractDocuments((Object) nested);
+      final var result = extractor.extractDocumentsFromContent(nested);
       assertThat(result).containsExactly(doc);
     }
 
@@ -121,7 +121,7 @@ class ToolCallResultDocumentExtractorTest {
       content.put("file", doc);
       content.put("missing", null);
 
-      final var result = extractor.extractDocuments((Object) content);
+      final var result = extractor.extractDocumentsFromContent(content);
       assertThat(result).containsExactly(doc);
     }
 
@@ -133,7 +133,7 @@ class ToolCallResultDocumentExtractorTest {
       content.add(null);
       content.add("text");
 
-      final var result = extractor.extractDocuments((Object) content);
+      final var result = extractor.extractDocumentsFromContent(content);
       assertThat(result).containsExactly(doc);
     }
   }

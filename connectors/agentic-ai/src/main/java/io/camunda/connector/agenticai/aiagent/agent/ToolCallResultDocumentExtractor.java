@@ -32,7 +32,7 @@ public class ToolCallResultDocumentExtractor {
     final var result = new ArrayList<ToolCallDocuments>();
 
     for (ToolCallResult toolCallResult : toolCallResults) {
-      final var documents = extractDocuments(toolCallResult.content());
+      final var documents = extractDocumentsFromContent(toolCallResult.content());
       if (!documents.isEmpty()) {
         result.add(
             new ToolCallDocuments(
@@ -49,7 +49,7 @@ public class ToolCallResultDocumentExtractor {
    * Recursively extracts all {@link Document} instances from an arbitrary object tree. Handles
    * {@link Document}, {@link Map}, {@link List}/{@link Collection}, and skips all other types.
    */
-  public List<Document> extractDocuments(Object content) {
+  public List<Document> extractDocumentsFromContent(Object content) {
     if (content == null) {
       return List.of();
     }
