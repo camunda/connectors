@@ -19,6 +19,7 @@ if you are on Camunda 8.10, use version `10`.
 
 ## AI Agent connectors
 
+See the [AI Agent connector documentation](https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/agentic-ai-aiagent/).
 The AI Agent ships in two flavors that share the same versioning scheme.
 
 ### AI Agent Task
@@ -40,6 +41,7 @@ The AI Agent ships in two flavors that share the same versioning scheme.
 ## MCP Client connectors
 
 Clients for the [Model Context Protocol](https://modelcontextprotocol.io/).
+See the [MCP Client connector documentation](https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/agentic-ai-mcp-client/).
 
 | Connector         | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
@@ -51,6 +53,7 @@ Clients for the [Model Context Protocol](https://modelcontextprotocol.io/).
 ## A2A connectors
 
 Connectors implementing the [Agent2Agent protocol](https://a2a-protocol.org/).
+See the [A2A Client connector documentation](https://docs.camunda.io/docs/next/components/early-access/alpha/a2a-client/).
 
 | Connector                                     | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
@@ -63,6 +66,7 @@ Connectors implementing the [Agent2Agent protocol](https://a2a-protocol.org/).
 ## Ad-hoc tools schema connector
 
 Resolves the tools available in an ad-hoc sub-process.
+See the [Ad-hoc tools schema resolver documentation](https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/agentic-ai-ad-hoc-tools-schema-resolver/).
 
 | Connector           | Minimum Camunda version | Template version | File |
 | --- | --- | --- | --- |
