@@ -40,7 +40,6 @@ import io.camunda.connector.agenticai.adhoctoolsschema.schema.AdHocToolsSchemaRe
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelFactory;
 import io.camunda.connector.agenticai.aiagent.model.AgentMetrics;
 import io.camunda.connector.agenticai.aiagent.model.JobWorkerAgentResponse;
-import io.camunda.connector.document.jackson.DocumentReferenceModel;
 import io.camunda.connector.e2e.ElementTemplate;
 import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentJobWorkerTest;
@@ -340,6 +339,4 @@ abstract class BaseL4JAiAgentJobWorkerTest extends BaseAiAgentJobWorkerTest {
       return new ChatInteraction(chatResponse, userFeedback);
     }
   }
-
-  protected record DownloadFileToolResult(int status, DocumentReferenceModel document) {}
 }
