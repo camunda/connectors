@@ -273,6 +273,33 @@ Tool naming: `A2A_<elementName>` — one A2A element = one tool (an entire remot
 The job worker template is auto-generated from the outbound template via
 `bin/transform-ai-agent-job-worker-template.groovy` (gmavenplus-plugin, `process-classes` phase).
 
+### Version index README
+
+[`element-templates/README.md`](element-templates/README.md) is a user-facing
+index (linked from the Camunda Marketplace) that maps each connector to the
+latest template version per Camunda minor release. It must stay in sync with the
+JSON files every time a template version is bumped or a new connector is added.
+
+When `versionHistoryEnabled` moves a superseded template into
+`element-templates/versioned/`, update the README as follows:
+
+1. **Identify the new minimum Camunda version** — check the `engines.camunda`
+   field of the new template (e.g. `^8.10`).
+2. **Same minimum as the current top row** → replace the top row: update the
+   template version and the file link (the link now points at the file in
+   `versioned/`, since the newest template in the main folder replaced it).
+3. **Higher minimum than the current top row** → insert a new row at the top
+   with the new minimum Camunda version and template version, and move the
+   previous top row's link under `versioned/`.
+4. **AI Agent has two tables** (Task + Sub-process). They share the same
+   template version numbers, so update both.
+5. **New connector** → add a new section in the same order as the existing
+   ones (AI Agent, MCP Client, A2A, Ad-hoc tools schema) with an intro
+   paragraph linking to the `docs.camunda.io` overview page for that connector.
+
+Do not list `element-templates/hybrid/` templates in the README — they are
+intentionally omitted.
+
 ## Key Entry Points
 
 | File                                          | Purpose                                      |
@@ -313,6 +340,8 @@ When making code changes to this module, update the relevant documentation to re
 
 - **This file (`AGENTS.md`)**: Update if the change affects high-level architecture, key concepts, build commands, or
   entry points.
+- **`element-templates/README.md`**: Update whenever an element template version is bumped, a template is moved into
+  `versioned/`, or a new connector is added. See [Version index README](#version-index-readme) for the update rules.
 - **`docs/reference/ai-agent.md`**: Update for changes to the core agent framework — orchestration, memory, tool
   resolution, converters, configuration, error handling.
 - **`docs/reference/mcp.md`**: Update for changes to MCP client integration — data model, client lifecycle, transport,
