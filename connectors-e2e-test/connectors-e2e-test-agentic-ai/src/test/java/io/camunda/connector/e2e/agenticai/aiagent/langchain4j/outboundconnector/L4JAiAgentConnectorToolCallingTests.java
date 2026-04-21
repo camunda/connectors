@@ -131,28 +131,19 @@ public class L4JAiAgentConnectorToolCallingTests extends BaseL4JAiAgentConnector
                 Map.of("userPrompt", initialUserPrompt))
             .waitForProcessCompletion();
 
-    // Assert the conversation structure with document extraction
     await()
         .alias("Chat request captured")
         .untilAsserted(() -> assertThat(chatRequestCaptor.getValue()).isNotNull());
 
+    assertThat(chatRequestCaptor.getAllValues()).hasSize(3);
     final var lastMessages = chatRequestCaptor.getValue().messages();
-
-    // Expected message order (8 messages, last AI response not included in request):
-    // 0: SystemMessage
-    // 1: UserMessage (initial prompt)
-    // 2: AiMessage (tool call)
-    // 3: ToolExecutionResultMessage (document serialized as reference)
-    // 4: UserMessage (document content extracted from tool result)
-    // 5: AiMessage (response after tool)
-    // 6: UserMessage (follow-up question)
     assertThat(lastMessages).hasSize(7);
 
     assertThat(lastMessages.get(0)).isInstanceOf(SystemMessage.class);
-    assertThat(lastMessages.get(1)).isInstanceOf(UserMessage.class);
-    assertThat(lastMessages.get(2)).isInstanceOf(AiMessage.class);
+    assertThat(lastMessages.get(1)).isInstanceOf(UserMessage.class); // initial prompt
+    assertThat(lastMessages.get(2)).isInstanceOf(AiMessage.class); // tool call
 
-    // Tool result: document serialized as document reference
+    // tool result: document serialized as document reference
     assertThat(lastMessages.get(3))
         .isInstanceOfSatisfying(
             ToolExecutionResultMessage.class,
@@ -163,11 +154,12 @@ public class L4JAiAgentConnectorToolCallingTests extends BaseL4JAiAgentConnector
               assertThat(msg.text()).contains(mimeType);
             });
 
-    // Extract the document short ID from the tool result reference
+    // extract the document short ID (first UUID segment) from the serialized document reference
+    // e.g. from {"documentId":"25ece9fa-...", ...} -> "25ece9fa"
     var toolResultText = ((ToolExecutionResultMessage) lastMessages.get(3)).text();
     var documentShortId = extractDocumentShortId(toolResultText);
 
-    // Document user message: extracted document content
+    // document user message: extracted document content
     assertThat(lastMessages.get(4))
         .isInstanceOfSatisfying(
             UserMessage.class,
@@ -186,13 +178,12 @@ public class L4JAiAgentConnectorToolCallingTests extends BaseL4JAiAgentConnector
                       tc ->
                           assertThat(tc.text())
                               .isEqualTo(
-                                  "<document tool=\"Download_A_File\" call-id=\"aaa111\" document-short-id=\""
-                                      + documentShortId
-                                      + "\" />"));
+                                  "<document tool=\"Download_A_File\" call-id=\"aaa111\" document-short-id=\"%s\" />"
+                                      .formatted(documentShortId)));
               assertDocumentContentBlock(contents.get(2), type, mimeType);
             });
 
-    assertThat(lastMessages.get(5)).isInstanceOf(AiMessage.class);
+    assertThat(lastMessages.get(5)).isInstanceOf(AiMessage.class); // response after tool
 
     assertThat(lastMessages.get(6))
         .isInstanceOfSatisfying(

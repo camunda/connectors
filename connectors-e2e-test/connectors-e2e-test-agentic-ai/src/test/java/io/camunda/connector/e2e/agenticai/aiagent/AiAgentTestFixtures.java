@@ -94,8 +94,15 @@ public interface AiAgentTestFixtures {
   Pattern DOCUMENT_ID_PATTERN = Pattern.compile("\"documentId\"\\s*:\\s*\"([^\"]+)\"");
 
   /**
-   * Extracts the document short ID (first UUID segment) from a tool result text that contains a
-   * serialized document reference with a documentId field.
+   * Extracts the document short ID (first UUID segment) from a tool result text containing a
+   * serialized document reference. The tool result JSON includes a document reference like:
+   *
+   * <pre>{@code
+   * {"storeId":"in-memory","documentId":"25ece9fa-aeea-423d-98ed-67c1f08b137b",...}
+   * }</pre>
+   *
+   * This method extracts the first segment of the documentId UUID ("25ece9fa"), which is used as a
+   * compact correlation key in the document XML tags.
    */
   static String extractDocumentShortId(String toolResultText) {
     var matcher = DOCUMENT_ID_PATTERN.matcher(toolResultText);
