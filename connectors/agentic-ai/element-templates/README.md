@@ -64,7 +64,7 @@ Connectors implementing the [Agent2Agent protocol](https://a2a-protocol.org/).
 | A2A Client Webhook — Intermediate Catch Event | 8.9 | 0 | [`agenticai-a2a-client-webhook-inbound-connector-intermediate.json`](./agenticai-a2a-client-webhook-inbound-connector-intermediate.json) |
 | A2A Client Webhook — Receive Task             | 8.9 | 0 | [`agenticai-a2a-client-webhook-inbound-connector-receive.json`](./agenticai-a2a-client-webhook-inbound-connector-receive.json) |
 
-## Ad-hoc tools schema connectors
+## Ad-hoc tools schema connector
 
 Resolves the tools available in an ad-hoc sub-process.
 
