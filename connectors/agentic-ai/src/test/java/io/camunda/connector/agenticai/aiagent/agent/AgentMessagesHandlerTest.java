@@ -166,6 +166,50 @@ class AgentMessagesHandlerTest {
       assertThat(AgentMessagesHandlerImpl.documentXmlTag(doc))
           .isEqualTo("<document document-short-id=\"simpledocid\" />");
     }
+
+    @Test
+    void escapesSpecialCharactersInFilename() {
+      var doc = mock(Document.class);
+      var metadata = mock(io.camunda.connector.api.document.DocumentMetadata.class);
+      when(doc.metadata()).thenReturn(metadata);
+      when(metadata.getFileName()).thenReturn("file\"with<special>&chars'.pdf");
+
+      assertThat(AgentMessagesHandlerImpl.documentXmlTag(doc))
+          .isEqualTo("<document filename=\"file&quot;with&lt;special&gt;&amp;chars&apos;.pdf\" />");
+    }
+
+    @Test
+    void escapesSpecialCharactersInToolName() {
+      var doc = mock(Document.class);
+      var ref = mock(CamundaDocumentReference.class);
+      when(doc.reference()).thenReturn(ref);
+      when(ref.getDocumentId()).thenReturn("abc12345-0000-0000-0000-000000000000");
+
+      assertThat(AgentMessagesHandlerImpl.documentXmlTag(doc, "tool<with\"quotes>", "call_1"))
+          .isEqualTo(
+              "<document tool=\"tool&lt;with&quot;quotes&gt;\" call-id=\"call_1\" document-short-id=\"abc12345\" />");
+    }
+  }
+
+  @Nested
+  class EscapeXmlAttributeTest {
+
+    @Test
+    void escapesAllSpecialCharacters() {
+      assertThat(AgentMessagesHandlerImpl.escapeXmlAttribute("a&b<c>d\"e'f"))
+          .isEqualTo("a&amp;b&lt;c&gt;d&quot;e&apos;f");
+    }
+
+    @Test
+    void returnsNullForNull() {
+      assertThat(AgentMessagesHandlerImpl.escapeXmlAttribute(null)).isNull();
+    }
+
+    @Test
+    void returnsUnchangedForSafeString() {
+      assertThat(AgentMessagesHandlerImpl.escapeXmlAttribute("safe-value_123"))
+          .isEqualTo("safe-value_123");
+    }
   }
 
   @Nested
