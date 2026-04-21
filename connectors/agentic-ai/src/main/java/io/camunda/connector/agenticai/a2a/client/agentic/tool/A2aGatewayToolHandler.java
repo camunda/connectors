@@ -220,7 +220,7 @@ public class A2aGatewayToolHandler implements GatewayToolHandler {
   private ToolCallResult toolCallResultFromA2aSendMessage(ToolCallResult toolCallResult) {
     final var identifier = new A2aToolCallIdentifier(toolCallResult.name());
 
-    // Use raw content from the original tool call result (preserving document references
+    // use raw content from the original tool call result (preserving document references
     // as deserialized by the engine) rather than the typed A2aSendMessageResult, which would
     // lose document reference fidelity during re-serialization. The ToolCallResultDocumentExtractor
     // can only walk Map/Collection/Document — typed records are invisible to it.

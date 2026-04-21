@@ -397,20 +397,13 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
 
     assertThat(chatRequestCaptor.getAllValues()).hasSize(2);
     final var lastMessages = chatRequestCaptor.getValue().messages();
-
-    // Expected message order:
-    // 0: SystemMessage
-    // 1: UserMessage (initial prompt)
-    // 2: AiMessage (tool call)
-    // 3: ToolExecutionResultMessage (MCP result with document reference)
-    // 4: UserMessage (document content extracted from MCP tool result)
     assertThat(lastMessages).hasSize(5);
 
     assertThat(lastMessages.get(0)).isInstanceOf(SystemMessage.class);
-    assertThat(lastMessages.get(1)).isInstanceOf(UserMessage.class);
-    assertThat(lastMessages.get(2)).isInstanceOf(AiMessage.class);
+    assertThat(lastMessages.get(1)).isInstanceOf(UserMessage.class); // initial prompt
+    assertThat(lastMessages.get(2)).isInstanceOf(AiMessage.class); // tool call
 
-    // Tool result: document serialized as document reference
+    // tool result: document serialized as document reference
     assertThat(lastMessages.get(3))
         .isInstanceOfSatisfying(
             ToolExecutionResultMessage.class,
@@ -420,11 +413,11 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
               assertThat(msg.text()).contains("camunda.document.type");
             });
 
-    // Extract the document short ID from the tool result reference
+    // extract the document short ID (first UUID segment) from the serialized document reference
     var toolResultText = ((ToolExecutionResultMessage) lastMessages.get(3)).text();
     var documentShortId = extractDocumentShortId(toolResultText);
 
-    // Document user message: extracted document content
+    // document user message: extracted document content
     assertThat(lastMessages.get(4))
         .isInstanceOfSatisfying(
             UserMessage.class,
@@ -443,15 +436,14 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
                       tc ->
                           assertThat(tc.text())
                               .isEqualTo(
-                                  "<document tool=\"MCP_A_MCP_Client___toolA\" call-id=\"img111\" document-short-id=\""
-                                      + documentShortId
-                                      + "\" />"));
+                                  "<document tool=\"MCP_A_MCP_Client___toolA\" call-id=\"img111\" document-short-id=\"%s\" />"
+                                      .formatted(documentShortId)));
               assertThat(contents.get(2))
                   .isInstanceOfSatisfying(
                       ImageContent.class,
                       img -> {
                         assertThat(img.image().mimeType()).isEqualTo("image/png");
-                        assertThat(img.image().base64Data()).isNotBlank();
+                        assertThat(img.image().base64Data()).isEqualTo(imageBase64);
                       });
             });
 
