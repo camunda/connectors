@@ -44,6 +44,7 @@ import io.camunda.connector.e2e.ZeebeTest;
 import io.camunda.connector.e2e.agenticai.aiagent.BaseAiAgentConnectorTest;
 import io.camunda.connector.e2e.agenticai.assertj.AgentResponseAssert;
 import io.camunda.connector.e2e.agenticai.assertj.ToolExecutionRequestEqualsPredicate;
+import io.camunda.connector.e2e.agenticai.assertj.ToolExecutionResultMessageEqualsPredicate;
 import io.camunda.connector.test.utils.annotation.SlowTest;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -313,6 +314,9 @@ abstract class BaseL4JAiAgentConnectorTest extends BaseAiAgentConnectorTest {
             RecursiveComparisonConfiguration.builder()
                 .withEqualsForType(
                     new ToolExecutionRequestEqualsPredicate(), ToolExecutionRequest.class)
+                .withEqualsForType(
+                    new ToolExecutionResultMessageEqualsPredicate(),
+                    ToolExecutionResultMessage.class)
                 .build())
         .containsExactlyElementsOf(
             expectedConversation.subList(0, expectedConversation.size() - 1));

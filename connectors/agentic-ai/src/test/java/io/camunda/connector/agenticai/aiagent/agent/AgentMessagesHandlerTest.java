@@ -933,9 +933,8 @@ class AgentMessagesHandlerTest {
                                           assertThat(c)
                                               .isEqualTo(
                                                   textContent(
-                                                      "<document tool=\"getWeather\" call-id=\"abcdef\" document-short-id=\""
-                                                          + shortId1
-                                                          + "\" filename=\"weather.txt\" />")),
+                                                      "<document tool=\"getWeather\" call-id=\"abcdef\" document-short-id=\"%s\" filename=\"weather.txt\" />"
+                                                          .formatted(shortId1))),
                                       c ->
                                           assertThat(c)
                                               .isEqualTo(DocumentContent.documentContent(doc1)),
@@ -943,9 +942,8 @@ class AgentMessagesHandlerTest {
                                           assertThat(c)
                                               .isEqualTo(
                                                   textContent(
-                                                      "<document tool=\"getDateTime\" call-id=\"fedcba\" document-short-id=\""
-                                                          + shortId2
-                                                          + "\" filename=\"report.pdf\" />")),
+                                                      "<document tool=\"getDateTime\" call-id=\"fedcba\" document-short-id=\"%s\" filename=\"report.pdf\" />"
+                                                          .formatted(shortId2))),
                                       c ->
                                           assertThat(c)
                                               .isEqualTo(DocumentContent.documentContent(doc2)));
@@ -1027,9 +1025,8 @@ class AgentMessagesHandlerTest {
                                             assertThat(c)
                                                 .isEqualTo(
                                                     textContent(
-                                                        "<document tool=\"getWeather\" call-id=\"abcdef\" document-short-id=\""
-                                                            + shortId
-                                                            + "\" filename=\"weather.txt\" />")),
+                                                        "<document tool=\"getWeather\" call-id=\"abcdef\" document-short-id=\"%s\" filename=\"weather.txt\" />"
+                                                            .formatted(shortId))),
                                         c ->
                                             assertThat(c)
                                                 .isEqualTo(DocumentContent.documentContent(doc)))),
@@ -1081,9 +1078,8 @@ class AgentMessagesHandlerTest {
                                 assertThat(c)
                                     .isEqualTo(
                                         textContent(
-                                            "<document document-short-id=\""
-                                                + shortId
-                                                + "\" filename=\"event.pdf\" />")),
+                                            "<document document-short-id=\"%s\" filename=\"event.pdf\" />"
+                                                .formatted(shortId))),
                             c -> assertThat(c).isEqualTo(DocumentContent.documentContent(doc))));
       }
 
