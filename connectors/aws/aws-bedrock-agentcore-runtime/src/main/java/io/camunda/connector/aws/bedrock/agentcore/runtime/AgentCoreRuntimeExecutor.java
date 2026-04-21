@@ -49,7 +49,12 @@ public class AgentCoreRuntimeExecutor {
       var sessionId = responseBytes.response().runtimeSessionId();
       var statusCode = responseBytes.response().statusCode();
 
-      Object response = parseJsonResponse(responseText);
+      Object response;
+      if (responseText.startsWith("data: ")) {
+        response = parseSseResponse(responseText);
+      } else {
+        response = parseJsonResponse(responseText);
+      }
 
       return new AgentCoreRuntimeResponse(response, sessionId, statusCode);
 
@@ -68,5 +73,22 @@ public class AgentCoreRuntimeExecutor {
     } catch (JsonProcessingException e) {
       return text;
     }
+  }
+
+  private String parseSseResponse(String sseText) {
+    var result = new StringBuilder();
+    for (String line : sseText.split("\n")) {
+      if (line.startsWith("data: ")) {
+        var jsonValue = line.substring(6).trim();
+        if (!jsonValue.isEmpty()) {
+          try {
+            result.append(objectMapper.readValue(jsonValue, String.class));
+          } catch (JsonProcessingException e) {
+            result.append(jsonValue);
+          }
+        }
+      }
+    }
+    return result.toString();
   }
 }

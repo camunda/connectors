@@ -120,4 +120,36 @@ class AgentCoreRuntimeExecutorTest extends BaseTest {
         .isInstanceOf(ConnectorException.class)
         .hasMessageContaining("AgentCore Runtime error");
   }
+
+  @Test
+  void shouldParseSseResponseAndConcatenateChunks() {
+    var sseResponse = "data: \"Hello\"\n\ndata: \" world\"\n\ndata: \"!\"\n\n";
+    mockResponse(sseResponse, SESSION_ID, 200);
+
+    var result = executor.invoke(createInput(Map.of("inputText", PROMPT), null));
+
+    assertThat(result.response()).isEqualTo("Hello world!");
+  }
+
+  @Test
+  void shouldParseSseResponseWithSpecialCharacters() {
+    var sseResponse =
+        "data: \"I understand\"\n\ndata: \" you need help.\\n\\nPlease tell me:\"\n\n";
+    mockResponse(sseResponse, SESSION_ID, 200);
+
+    var result = executor.invoke(createInput(Map.of("inputText", PROMPT), null));
+
+    assertThat(result.response()).isEqualTo("I understand you need help.\n\nPlease tell me:");
+  }
+
+  @Test
+  void shouldHandleJsonResponseWhenNotSse() {
+    mockResponse("{\"result\": \"success\"}", SESSION_ID, 200);
+
+    var result = executor.invoke(createInput(Map.of("inputText", PROMPT), null));
+
+    assertThat(result.response())
+        .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+        .containsEntry("result", "success");
+  }
 }
