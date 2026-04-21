@@ -465,7 +465,7 @@ class A2aGatewayToolHandlerTest {
       var agentContext = AgentContext.empty().withProperty(PROPERTY_A2A_CLIENTS, List.of("a2a1"));
       var document = mock(Document.class);
 
-      // Simulate raw content as it arrives from the engine: a Map/List tree with Document instances
+      // simulate raw content as it arrives from the engine: a Map/List tree with Document instances
       var rawContent =
           Map.of(
               "kind",
@@ -479,7 +479,7 @@ class A2aGatewayToolHandlerTest {
       assertThat(result).hasSize(1);
       assertThat(result.getFirst().name()).isEqualTo("A2A_a2a1");
 
-      // Verify the document extractor can find documents in the preserved raw content
+      // verify the document extractor can find documents in the preserved raw content
       var extractor = new ToolCallResultDocumentExtractor();
       var extractedDocuments = extractor.extractDocuments(result);
       assertThat(extractedDocuments).hasSize(1);
