@@ -31,6 +31,7 @@ import dev.langchain4j.model.anthropic.AnthropicChatModel.AnthropicChatModelBuil
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel.OpenAiChatModelBuilder;
@@ -60,6 +61,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProv
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockModel;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration.BedrockModel.BedrockModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.CustomProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ApplicationDefaultCredentialsAuthentication;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.GoogleVertexAiProviderConfiguration.GoogleVertexAiAuthentication.ServiceAccountCredentialsAuthentication;
@@ -72,6 +74,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiCompa
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiConnection;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.OpenAiProviderConfiguration.OpenAiModel.OpenAiModelParameters;
+import io.camunda.connector.agenticai.aiagent.model.request.provider.ProviderConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.shared.TimeoutConfiguration;
 import io.camunda.connector.agenticai.autoconfigure.AgenticAiConnectorsConfigurationProperties;
 import io.camunda.connector.http.client.client.jdk.proxy.JdkHttpClientProxyConfigurator;
@@ -119,6 +122,20 @@ class ChatModelFactoryTest {
   private final AgenticAiConnectorsConfigurationProperties configurationProperties =
       createDefaultConfigurationProperties();
 
+  private final ChatModel customChatModel = mock(ChatModel.class);
+  private final ChatModelProvider customChatModelProvider =
+      new ChatModelProvider() {
+        @Override
+        public String type() {
+          return "my-custom-provider";
+        }
+
+        @Override
+        public ChatModel createChatModel(ProviderConfiguration providerConfiguration) {
+          return customChatModel;
+        }
+      };
+
   private final ChatModelFactory chatModelFactory =
       new ChatModelFactoryImpl(
           new ChatModelProviderRegistryImpl(
@@ -128,7 +145,8 @@ class ChatModelFactoryTest {
                   new BedrockChatModelProvider(configurationProperties, proxySupport),
                   new GoogleVertexAiChatModelProvider(configurationProperties),
                   new OpenAiChatModelProvider(configurationProperties, proxySupport),
-                  new OpenAiCompatibleChatModelProvider(configurationProperties, proxySupport))));
+                  new OpenAiCompatibleChatModelProvider(configurationProperties, proxySupport),
+                  customChatModelProvider)));
 
   static Stream<TimeoutConfiguration> defaultTimeoutYieldingConfigs() {
     return Stream.of(
@@ -1102,6 +1120,20 @@ class ChatModelFactoryTest {
 
     static Stream<OpenAiCompatibleModelParameters> nullModelParameters() {
       return Stream.of(new OpenAiCompatibleModelParameters(null, null, null, null));
+    }
+  }
+
+  @Nested
+  class CustomChatModelFactoryTest {
+
+    @Test
+    void createsChatModelFromCustomProvider() {
+      final var providerConfig =
+          new CustomProviderConfiguration("my-custom-provider", Map.of("key", "value"));
+
+      final var chatModel = chatModelFactory.createChatModel(providerConfig);
+
+      assertThat(chatModel).isSameAs(customChatModel);
     }
   }
 

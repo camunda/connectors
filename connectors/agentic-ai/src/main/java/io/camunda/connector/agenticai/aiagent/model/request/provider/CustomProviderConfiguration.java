@@ -22,8 +22,6 @@ public record CustomProviderConfiguration(
         @TemplateProperty(
             group = "provider",
             label = "Implementation type",
-            description =
-                "Identifier of the custom ChatModelProvider implementation to use. A matching Spring bean must be registered.",
             type = TemplateProperty.PropertyType.String,
             feel = FeelMode.optional,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))

@@ -754,7 +754,6 @@
   }, {
     "id" : "provider.providerType",
     "label" : "Implementation type",
-    "description" : "Identifier of the custom ChatModelProvider implementation to use. A matching Spring bean must be registered.",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
