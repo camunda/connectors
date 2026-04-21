@@ -9,7 +9,7 @@ that are still compatible with previous Camunda minor versions are kept in
 
 ## Which template do I need?
 
-Pick the highest template version whose *minimum Camunda minor version* is less
+Pick the highest template version whose *minimum Camunda version* is less
 than or equal to the Camunda version you are running. The `engines.camunda`
 field in each JSON file captures the same information (e.g. `^8.9` means
 "requires Camunda 8.9 or later").
@@ -25,7 +25,7 @@ The AI Agent ships in two flavors that share the same versioning scheme.
 
 `io.camunda.connectors.agenticai.aiagent.v1`
 
-| Minimum Camunda minor | Template version | Connector     | File |
+| Minimum Camunda version | Template version | Connector     | File |
 | --- | --- | --- | --- |
 | 8.10 | 10 | AI Agent Task | [`agenticai-aiagent-outbound-connector.json`](./agenticai-aiagent-outbound-connector.json) |
 | 8.9  | 7  | AI Agent Task | [`versioned/agenticai-aiagent-outbound-connector-7.json`](./versioned/agenticai-aiagent-outbound-connector-7.json) |
@@ -35,7 +35,7 @@ The AI Agent ships in two flavors that share the same versioning scheme.
 
 `io.camunda.connectors.agenticai.aiagent.jobworker.v1`
 
-| Minimum Camunda minor | Template version | Connector            | File |
+| Minimum Camunda version | Template version | Connector            | File |
 | --- | --- | --- | --- |
 | 8.10 | 10 | AI Agent Sub-process | [`agenticai-aiagent-job-worker.json`](./agenticai-aiagent-job-worker.json) |
 | 8.9  | 7  | AI Agent Sub-process | [`versioned/agenticai-aiagent-job-worker-7.json`](./versioned/agenticai-aiagent-job-worker-7.json) |
@@ -45,7 +45,7 @@ The AI Agent ships in two flavors that share the same versioning scheme.
 
 Clients for the [Model Context Protocol](https://modelcontextprotocol.io/).
 
-| Minimum Camunda minor | Template version | Connector         | File |
+| Minimum Camunda version | Template version | Connector         | File |
 | --- | --- | --- | --- |
 | 8.9 | 2 | MCP Client        | [`agenticai-mcp-client-outbound-connector.json`](./agenticai-mcp-client-outbound-connector.json) |
 | 8.8 | 0 | MCP Client        | [`versioned/agenticai-mcp-client-outbound-connector-0.json`](./versioned/agenticai-mcp-client-outbound-connector-0.json) |
@@ -56,7 +56,7 @@ Clients for the [Model Context Protocol](https://modelcontextprotocol.io/).
 
 Connectors implementing the [Agent2Agent protocol](https://a2a-protocol.org/).
 
-| Minimum Camunda minor | Template version | Connector                                     | File |
+| Minimum Camunda version | Template version | Connector                                     | File |
 | --- | --- | --- | --- |
 | 8.9 | 0 | A2A Client (outbound)                         | [`agenticai-a2a-client-outbound-connector.json`](./agenticai-a2a-client-outbound-connector.json) |
 | 8.9 | 0 | A2A Client Polling — Intermediate Catch Event | [`agenticai-a2a-client-polling-inbound-connector-intermediate.json`](./agenticai-a2a-client-polling-inbound-connector-intermediate.json) |
@@ -68,6 +68,6 @@ Connectors implementing the [Agent2Agent protocol](https://a2a-protocol.org/).
 
 Resolves the tools available in an ad-hoc sub-process.
 
-| Minimum Camunda minor | Template version | Connector           | File |
+| Minimum Camunda version | Template version | Connector           | File |
 | --- | --- | --- | --- |
 | 8.8 | 2 | Ad-hoc tools schema | [`agenticai-adhoctoolsschema-outbound-connector.json`](./agenticai-adhoctoolsschema-outbound-connector.json) |
