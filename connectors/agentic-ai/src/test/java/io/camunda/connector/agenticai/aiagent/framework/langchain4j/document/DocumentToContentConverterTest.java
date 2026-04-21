@@ -122,8 +122,8 @@ class DocumentToContentConverterTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"image/png", "Image/Png", "IMAGE/PNG", "ImAgE/PnG"})
-  void shouldConvertContentTypeToLowercase(String contentType) {
+  @ValueSource(strings = {"image/png", "Image/Png  ", "IMAGE/PNG", "ImAgE/PnG"})
+  void shouldConvertContentTypeToLowercaseAndTrim(String contentType) {
     when(document.metadata().getContentType()).thenReturn(contentType);
     when(document.asBase64()).thenReturn(DUMMY_B64_VALUE);
 
@@ -134,7 +134,7 @@ class DocumentToContentConverterTest {
         .satisfies(
             imageContent -> {
               assertThat(imageContent.image().mimeType())
-                  .isEqualTo(contentType.toLowerCase(Locale.ROOT));
+                  .isEqualTo(contentType.toLowerCase(Locale.ROOT).trim());
             });
   }
 
