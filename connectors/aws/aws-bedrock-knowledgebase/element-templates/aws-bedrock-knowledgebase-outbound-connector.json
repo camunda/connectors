@@ -3,9 +3,6 @@
   "name" : "AWS Bedrock Knowledge Base Outbound Connector",
   "id" : "io.camunda.connectors.aws.bedrock.knowledgebase.v1",
   "description" : "Retrieve relevant documents from an AWS Bedrock Knowledge Base",
-  "metadata" : {
-    "keywords" : [ ]
-  },
   "version" : 1,
   "category" : {
     "id" : "connectors",

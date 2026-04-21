@@ -24,6 +24,16 @@ import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
     version = 5,
     inputDataClass = PollingRequest.class,
     description = "Polls endpoint at regular intervals",
+    keywords = {
+      "poll",
+      "polling",
+      "HTTP",
+      "REST",
+      "wait for response",
+      "check status",
+      "periodic request",
+      "HTTP callback"
+    },
     documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/polling/",
     defaultResultExpression =
         "{\n"

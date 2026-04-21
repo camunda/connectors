@@ -32,7 +32,7 @@ import java.util.Set;
   "name",
   "id",
   "description",
-  "metadata",
+  "keywords",
   "documentationRef",
   "version",
   "category",
@@ -50,7 +50,7 @@ public record ElementTemplate(
     String documentationRef,
     Engines engines,
     String description,
-    Metadata metadata,
+    String[] keywords,
     Set<String> appliesTo,
     ElementTypeWrapper elementType,
     List<PropertyGroup> groups,
@@ -121,8 +121,6 @@ public record ElementTemplate(
   public String schema() {
     return SCHEMA_URL;
   }
-
-  public record Metadata(String[] keywords) {}
 
   @JsonInclude(Include.NON_NULL)
   public record ElementTypeWrapper(

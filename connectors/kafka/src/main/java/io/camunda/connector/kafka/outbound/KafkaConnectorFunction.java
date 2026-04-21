@@ -40,6 +40,15 @@ import org.apache.kafka.clients.producer.RecordMetadata;
     id = "io.camunda.connectors.KAFKA.v1",
     name = "Kafka Outbound Connector",
     description = "Produce Kafka message",
+    keywords = {
+      "publish message",
+      "send message",
+      "message queue",
+      "event streaming",
+      "produce event",
+      "stream data",
+      "kafka topic"
+    },
     inputDataClass = KafkaConnectorRequest.class,
     version = 6,
     propertyGroups = {

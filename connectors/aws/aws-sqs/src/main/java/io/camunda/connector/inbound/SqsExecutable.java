@@ -39,14 +39,15 @@ import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
     version = 10,
     inputDataClass = SqsInboundProperties.class,
     description = "Receive messages from Amazon SQS.",
-    metadata =
-        @ElementTemplate.Metadata(
-            keywords = {
-              "receive message",
-              "receive event",
-              "receive message from queue",
-              "receive event from queue"
-            }),
+    keywords = {
+      "receive message",
+      "receive event",
+      "receive message from queue",
+      "receive event from queue",
+      "event driven",
+      "queue",
+      "dequeue"
+    },
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound",
     propertyGroups = {

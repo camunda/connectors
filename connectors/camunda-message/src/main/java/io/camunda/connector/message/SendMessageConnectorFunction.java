@@ -40,6 +40,14 @@ import org.slf4j.LoggerFactory;
     inputDataClass = SendMessageRequest.class,
     name = "Send Message Connector",
     icon = "send.svg",
+    keywords = {
+      "send message",
+      "correlate message",
+      "publish message",
+      "message event",
+      "trigger process",
+      "signal process"
+    },
     elementTypes = {
       @ConnectorElementType(
           elementType = BpmnType.INTERMEDIATE_THROW_EVENT,
