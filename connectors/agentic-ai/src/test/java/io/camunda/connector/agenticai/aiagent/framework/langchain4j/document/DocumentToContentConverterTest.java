@@ -16,7 +16,6 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.PdfFileContent;
 import dev.langchain4j.data.message.TextContent;
 import io.camunda.connector.api.document.Document;
-import java.util.Locale;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -133,8 +132,7 @@ class DocumentToContentConverterTest {
         .asInstanceOf(InstanceOfAssertFactories.type(ImageContent.class))
         .satisfies(
             imageContent -> {
-              assertThat(imageContent.image().mimeType())
-                  .isEqualTo(contentType.toLowerCase(Locale.ROOT).trim());
+              assertThat(imageContent.image().mimeType()).isEqualTo("image/png");
             });
   }
 
