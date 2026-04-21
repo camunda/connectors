@@ -290,22 +290,18 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     return behavior == EventHandlingConfiguration.EventHandlingBehavior.INTERRUPT_TOOL_CALLS;
   }
 
+  /**
+   * Builds an XML self-closing tag describing a document for model correlation. The tag includes
+   * optional attributes for tool name, call ID, the document short ID (first segment of the UUID
+   * document identifier), and filename. All attribute values are XML-escaped.
+   */
   static String documentXmlTag(Document document, String toolName, String toolCallId) {
     var sb = new StringBuilder("<document");
-    if (StringUtils.isNotBlank(toolName)) {
-      sb.append(" tool=\"").append(toolName).append("\"");
-    }
-    if (StringUtils.isNotBlank(toolCallId)) {
-      sb.append(" call-id=\"").append(toolCallId).append("\"");
-    }
-    var shortId = documentShortId(document);
-    if (shortId != null) {
-      sb.append(" document-short-id=\"").append(shortId).append("\"");
-    }
+    appendXmlAttribute(sb, "tool", toolName);
+    appendXmlAttribute(sb, "call-id", toolCallId);
+    appendXmlAttribute(sb, "document-short-id", documentShortId(document));
     var fileName = document.metadata() != null ? document.metadata().getFileName() : null;
-    if (StringUtils.isNotBlank(fileName)) {
-      sb.append(" filename=\"").append(fileName).append("\"");
-    }
+    appendXmlAttribute(sb, "filename", fileName);
     sb.append(" />");
     return sb.toString();
   }
@@ -314,6 +310,12 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     return documentXmlTag(document, null, null);
   }
 
+  /**
+   * Returns the first segment of the document's UUID identifier (e.g. "25ece9fa" from
+   * "25ece9fa-aeea-423d-98ed-67c1f08b137b"), providing a compact correlation key that is sufficient
+   * for in-conversation matching between the document reference in the tool result and the document
+   * content in the follow-up user message.
+   */
   private static String documentShortId(Document document) {
     if (document.reference() instanceof CamundaDocumentReference camundaRef) {
       var documentId = camundaRef.getDocumentId();
@@ -323,6 +325,24 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
       }
     }
     return null;
+  }
+
+  private static void appendXmlAttribute(StringBuilder sb, String name, String value) {
+    if (StringUtils.isNotBlank(value)) {
+      sb.append(" %s=\"%s\"".formatted(name, escapeXmlAttribute(value)));
+    }
+  }
+
+  static String escapeXmlAttribute(String value) {
+    if (value == null) {
+      return null;
+    }
+    return value
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;")
+        .replace("'", "&apos;");
   }
 
   private Map<String, Object> defaultMessageMetadata() {
