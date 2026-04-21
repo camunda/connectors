@@ -73,7 +73,9 @@ public class MessageWindowRuntimeMemory implements RuntimeMemory {
   // original implementation see Langchain4j
   private static List<Message> filteredMessages(List<Message> messages, int maxMessages) {
     final var filtered = new ArrayList<>(messages);
-    while (countMessages(filtered) > maxMessages) {
+    int effectiveCount = (int) filtered.stream().filter(m -> !isToolCallDocumentMessage(m)).count();
+
+    while (effectiveCount > maxMessages) {
       int messageToEvictIndex = 0;
 
       // don't remove the system message
@@ -83,6 +85,7 @@ public class MessageWindowRuntimeMemory implements RuntimeMemory {
 
       // remove the message at the current index
       Message evictedMessage = filtered.remove(messageToEvictIndex);
+      effectiveCount--;
 
       // remove follow-up tool call results if existing as some LLM providers return an error when
       // receiving tool call results without the original tool call request
@@ -91,6 +94,7 @@ public class MessageWindowRuntimeMemory implements RuntimeMemory {
         while (filtered.size() > messageToEvictIndex
             && filtered.get(messageToEvictIndex) instanceof ToolCallResultMessage) {
           filtered.remove(messageToEvictIndex);
+          effectiveCount--;
         }
       }
 
@@ -98,14 +102,11 @@ public class MessageWindowRuntimeMemory implements RuntimeMemory {
       while (filtered.size() > messageToEvictIndex
           && isToolCallDocumentMessage(filtered.get(messageToEvictIndex))) {
         filtered.remove(messageToEvictIndex);
+        // document messages are not counted, no need to decrement
       }
     }
 
     return List.copyOf(filtered);
-  }
-
-  private static int countMessages(List<Message> messages) {
-    return (int) messages.stream().filter(m -> !isToolCallDocumentMessage(m)).count();
   }
 
   private static boolean isToolCallDocumentMessage(Message message) {
