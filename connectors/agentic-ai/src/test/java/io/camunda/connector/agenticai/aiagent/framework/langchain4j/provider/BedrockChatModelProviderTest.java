@@ -20,7 +20,6 @@ import static org.mockito.Mockito.verify;
 import dev.langchain4j.model.bedrock.BedrockChatModel;
 import dev.langchain4j.model.bedrock.BedrockChatRequestParameters;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
-import dev.langchain4j.model.openai.OpenAiChatModel;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.ChatModelHttpProxySupport;
 import io.camunda.connector.agenticai.aiagent.framework.langchain4j.provider.ChatModelProviderTestSupport.ResultCaptor;
 import io.camunda.connector.agenticai.aiagent.model.request.provider.BedrockProviderConfiguration;
@@ -284,7 +283,7 @@ class BedrockChatModelProviderTest {
     doAnswer(clientResultCaptor).when(clientBuilder).build();
 
     final var chatModelBuilder = spy(BedrockChatModel.builder());
-    final var chatModelResultCaptor = new ResultCaptor<OpenAiChatModel>();
+    final var chatModelResultCaptor = new ResultCaptor<BedrockChatModel>();
     doAnswer(chatModelResultCaptor).when(chatModelBuilder).build();
 
     try (MockedStatic<BedrockRuntimeClient> clientMock =
