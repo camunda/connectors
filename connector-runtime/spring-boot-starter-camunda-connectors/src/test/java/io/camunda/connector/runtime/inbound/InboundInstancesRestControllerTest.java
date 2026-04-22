@@ -306,13 +306,7 @@ class InboundInstancesRestControllerTest {
     // re-uses the existing query mock and returns the same response
     var response =
         mockMvc
-            .perform(
-                post(
-                    "/inbound-instances/"
-                        + TYPE_1
-                        + "/executables/"
-                        + RANDOM_ID_1.getId()
-                        + "/reset"))
+            .perform(post("/inbound-instances/executables/" + RANDOM_ID_1.getId() + "/reset"))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -328,7 +322,7 @@ class InboundInstancesRestControllerTest {
   @Test
   public void shouldReturn404_whenResettingUnknownExecutableId() throws Exception {
     mockMvc
-        .perform(post("/inbound-instances/" + TYPE_1 + "/executables/UNKNOWN-ID/reset"))
+        .perform(post("/inbound-instances/executables/UNKNOWN-ID/reset"))
         .andExpect(status().isNotFound())
         .andExpect(
             content()
@@ -342,9 +336,52 @@ class InboundInstancesRestControllerTest {
     doThrow(new RuntimeException("Reset failed")).when(executableRegistry).reset(RANDOM_ID_1);
 
     mockMvc
-        .perform(
-            post("/inbound-instances/" + TYPE_1 + "/executables/" + RANDOM_ID_1.getId() + "/reset"))
+        .perform(post("/inbound-instances/executables/" + RANDOM_ID_1.getId() + "/reset"))
         .andExpect(status().isInternalServerError());
+  }
+
+  @Test
+  public void shouldReturnSingleExecutable_withoutType() throws Exception {
+    var response =
+        mockMvc
+            .perform(get("/inbound-instances/executables/" + RANDOM_ID_1.getId()))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    ActiveInboundConnectorResponse executable =
+        ConnectorsObjectMapperSupplier.getCopy()
+            .readValue(response, ActiveInboundConnectorResponse.class);
+    assertEquals(RANDOM_ID_1, executable.executableId());
+    assertEquals("ProcessA", executable.elements().getFirst().bpmnProcessId());
+  }
+
+  @Test
+  public void shouldReturnActivityLogs_withoutType() throws Exception {
+    var response =
+        mockMvc
+            .perform(get("/inbound-instances/executables/" + RANDOM_ID_3.getId() + "/logs"))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    List<Activity> logs =
+        ConnectorsObjectMapperSupplier.getCopy().readValue(response, new TypeReference<>() {});
+    assertEquals(2, logs.size());
+  }
+
+  @Test
+  public void shouldReturn404_whenUnknownExecutableId_withoutType() throws Exception {
+    mockMvc
+        .perform(get("/inbound-instances/executables/UNKNOWN-ID"))
+        .andExpect(status().isNotFound())
+        .andExpect(
+            content()
+                .string(
+                    containsString(
+                        "Data of type 'ActiveInboundConnectorResponse' with id 'UNKNOWN-ID' not found")));
   }
 
   private boolean matchesQuery(ActiveExecutableResponse response, ActiveExecutableQuery query) {

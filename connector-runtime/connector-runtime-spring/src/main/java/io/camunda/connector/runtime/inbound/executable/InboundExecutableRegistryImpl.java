@@ -116,9 +116,9 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
         event.elementsByProcessDefinitionKey().size());
     LOG.debug("Received target elements: {}", event.elementsByProcessDefinitionKey());
 
-    var processId = event.tenantId() + event.bpmnProcessId();
+    var processLockKey = processLockKey(event.tenantId(), event.bpmnProcessId());
 
-    synchronized (processId.intern()) {
+    synchronized (processLockKey.intern()) {
       try {
         List<InboundConnectorElement> allElements =
             event.elementsByProcessDefinitionKey().values().stream().flatMap(List::stream).toList();
@@ -348,7 +348,11 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
    */
   private String extractProcessLockKey(RegisteredExecutable executable) {
     var element = extractContext(executable).connectorElements().getFirst();
-    return element.tenantId() + element.element().bpmnProcessId();
+    return processLockKey(element.tenantId(), element.element().bpmnProcessId());
+  }
+
+  private String processLockKey(String tenantId, String bpmnProcessId) {
+    return tenantId + bpmnProcessId;
   }
 
   private InboundConnectorManagementContext extractContext(RegisteredExecutable executable) {

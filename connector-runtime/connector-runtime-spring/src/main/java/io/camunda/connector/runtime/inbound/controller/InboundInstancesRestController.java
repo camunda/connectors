@@ -80,7 +80,7 @@ public class InboundInstancesRestController {
         .orElseThrow(() -> new DataNotFoundException(ConnectorInstances.class, type));
   }
 
-  @GetMapping("/{type}/executables/{executableId}")
+  @GetMapping({"/{type}/executables/{executableId}", "/executables/{executableId}"})
   public ActiveInboundConnectorResponse getConnectorInstanceExecutable(
       HttpServletRequest request,
       @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
@@ -95,7 +95,7 @@ public class InboundInstancesRestController {
             () -> new DataNotFoundException(ActiveInboundConnectorResponse.class, executableId));
   }
 
-  @GetMapping("/{type}/executables/{executableId}/health")
+  @GetMapping({"/{type}/executables/{executableId}/health", "/executables/{executableId}/health"})
   public List<InstanceAwareModel.InstanceAwareHealth> getConnectorInstanceExecutableHealth(
       HttpServletRequest request,
       @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
@@ -108,7 +108,7 @@ public class InboundInstancesRestController {
         new TypeReference<>() {});
   }
 
-  @GetMapping("/{type}/executables/{executableId}/logs")
+  @GetMapping({"/{type}/executables/{executableId}/logs", "/executables/{executableId}/logs"})
   public List<InstanceAwareModel.InstanceAwareActivity> getConnectorInstanceExecutableLogs(
       HttpServletRequest request,
       @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
@@ -120,7 +120,7 @@ public class InboundInstancesRestController {
         new TypeReference<>() {});
   }
 
-  @PostMapping("/{type}/executables/{executableId}/reset")
+  @PostMapping("/executables/{executableId}/reset")
   public ActiveInboundConnectorResponse resetConnectorInstanceExecutable(
       HttpServletRequest request,
       @RequestHeader(name = X_CAMUNDA_FORWARDED_FOR, required = false) String forwardedFor,
