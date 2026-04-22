@@ -373,7 +373,9 @@ class CamundaDocumentConversationStoreTest {
     var agentContext = AgentContext.empty().withConversation(conversationContext);
 
     store.onJobCompletionFailed(
-        agentContext, new JobCompletionFailure.CommandFailed(new RuntimeException("test")));
+        executionContext,
+        agentContext,
+        new JobCompletionFailure.CommandFailed(new RuntimeException("test")));
 
     verify(documentStore).deleteDocument(documentReference);
   }
@@ -393,7 +395,9 @@ class CamundaDocumentConversationStoreTest {
 
     // should not throw
     store.onJobCompletionFailed(
-        agentContext, new JobCompletionFailure.CommandFailed(new RuntimeException("test")));
+        executionContext,
+        agentContext,
+        new JobCompletionFailure.CommandFailed(new RuntimeException("test")));
 
     verify(documentStore).deleteDocument(documentReference);
   }
@@ -403,7 +407,9 @@ class CamundaDocumentConversationStoreTest {
     var agentContext = AgentContext.empty();
 
     store.onJobCompletionFailed(
-        agentContext, new JobCompletionFailure.CommandFailed(new RuntimeException("test")));
+        executionContext,
+        agentContext,
+        new JobCompletionFailure.CommandFailed(new RuntimeException("test")));
 
     verifyNoInteractions(documentStore);
   }
@@ -418,7 +424,9 @@ class CamundaDocumentConversationStoreTest {
     var agentContext = AgentContext.empty().withConversation(conversationContext);
 
     store.onJobCompletionFailed(
-        agentContext, new JobCompletionFailure.CommandFailed(new RuntimeException("test")));
+        executionContext,
+        agentContext,
+        new JobCompletionFailure.CommandFailed(new RuntimeException("test")));
 
     verify(documentStore, never()).deleteDocument(any());
   }
