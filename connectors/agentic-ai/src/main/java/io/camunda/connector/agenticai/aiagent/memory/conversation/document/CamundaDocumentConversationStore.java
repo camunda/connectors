@@ -67,7 +67,10 @@ public class CamundaDocumentConversationStore implements ConversationStore {
   }
 
   @Override
-  public void onJobCompletionFailed(AgentContext failedContext, JobCompletionFailure failure) {
+  public void onJobCompletionFailed(
+      AgentExecutionContext executionContext,
+      AgentContext failedContext,
+      JobCompletionFailure failure) {
     var ctx = loadConversationContext(failedContext, CamundaDocumentConversationContext.class);
     if (ctx == null) {
       return;

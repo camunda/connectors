@@ -452,14 +452,14 @@ try (var session = store.createSession(executionContext, agentContext)) {
 ### Completion Callbacks
 
 After Zeebe accepts or rejects the job completion command, the runtime notifies the connector response
-via `JobCompletionListener` (from the connector SDK). Both `AiAgentTaskResponse` and
-`AiAgentSubProcessResponse` implement this interface and delegate to the conversation store's
-`onJobCompleted` / `onJobCompletionFailed` hooks.
+via `JobCompletionListener` (from the connector SDK). Both `AiAgentTaskConnectorResponse` and
+`AiAgentSubProcessConnectorResponse` implement this interface and delegate to the conversation
+store's `onJobCompleted` / `onJobCompletionFailed` hooks.
 
 ```
 storeMessages(...)  →  completeJob to Zeebe  →  Zeebe responds  →  callback fires
-                                                   ├─ accepted  →  store.onJobCompleted(context)
-                                                   └─ rejected  →  store.onJobCompletionFailed(context, failure)
+                                                   ├─ accepted  →  store.onJobCompleted(executionContext, context)
+                                                   └─ rejected  →  store.onJobCompletionFailed(executionContext, context, failure)
 ```
 
 **Callback timing:**
