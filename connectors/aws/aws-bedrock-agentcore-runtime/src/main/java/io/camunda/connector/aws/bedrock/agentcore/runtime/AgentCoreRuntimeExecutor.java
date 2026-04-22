@@ -1,0 +1,94 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
+package io.camunda.connector.aws.bedrock.agentcore.runtime;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.aws.bedrock.agentcore.runtime.model.request.AgentCoreRuntimeInput;
+import io.camunda.connector.aws.bedrock.agentcore.runtime.model.response.AgentCoreRuntimeResponse;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.bedrockagentcore.BedrockAgentCoreClient;
+import software.amazon.awssdk.services.bedrockagentcore.model.BedrockAgentCoreException;
+import software.amazon.awssdk.services.bedrockagentcore.model.InvokeAgentRuntimeRequest;
+
+public class AgentCoreRuntimeExecutor {
+
+  private static final String ERROR_RUNTIME_FAILED = "AGENTCORE_RUNTIME_FAILED";
+  private static final String DEFAULT_CONTENT_TYPE = "application/json";
+
+  private final BedrockAgentCoreClient client;
+  private final ObjectMapper objectMapper;
+
+  public AgentCoreRuntimeExecutor(BedrockAgentCoreClient client, ObjectMapper objectMapper) {
+    this.client = client;
+    this.objectMapper = objectMapper;
+  }
+
+  public AgentCoreRuntimeResponse invoke(AgentCoreRuntimeInput input) {
+    try {
+      var payloadBytes = objectMapper.writeValueAsBytes(input.getPayload());
+
+      var builder =
+          InvokeAgentRuntimeRequest.builder()
+              .agentRuntimeArn(input.getAgentRuntimeArn())
+              .payload(SdkBytes.fromByteArray(payloadBytes))
+              .contentType(DEFAULT_CONTENT_TYPE)
+              .accept(DEFAULT_CONTENT_TYPE);
+
+      if (input.getSessionId() != null && !input.getSessionId().isBlank()) {
+        builder.runtimeSessionId(input.getSessionId());
+      }
+
+      var responseBytes = client.invokeAgentRuntimeAsBytes(builder.build());
+      var responseText = responseBytes.asUtf8String();
+      var sessionId = responseBytes.response().runtimeSessionId();
+      var statusCode = responseBytes.response().statusCode();
+
+      Object response;
+      if (responseText.startsWith("data: ")) {
+        response = parseSseResponse(responseText);
+      } else {
+        response = parseJsonResponse(responseText);
+      }
+
+      return new AgentCoreRuntimeResponse(response, sessionId, statusCode);
+
+    } catch (JsonProcessingException e) {
+      throw new ConnectorException(
+          ERROR_RUNTIME_FAILED, "Failed to serialize payload: " + e.getMessage(), e);
+    } catch (BedrockAgentCoreException e) {
+      var msg = e.awsErrorDetails() != null ? e.awsErrorDetails().errorMessage() : e.getMessage();
+      throw new ConnectorException(ERROR_RUNTIME_FAILED, "AgentCore Runtime error: " + msg, e);
+    }
+  }
+
+  private Object parseJsonResponse(String text) {
+    try {
+      return objectMapper.readValue(text, Object.class);
+    } catch (JsonProcessingException e) {
+      return text;
+    }
+  }
+
+  private String parseSseResponse(String sseText) {
+    var result = new StringBuilder();
+    for (String line : sseText.split("\n")) {
+      if (line.startsWith("data: ")) {
+        var jsonValue = line.substring(6).trim();
+        if (!jsonValue.isEmpty()) {
+          try {
+            result.append(objectMapper.readValue(jsonValue, String.class));
+          } catch (JsonProcessingException e) {
+            result.append(jsonValue);
+          }
+        }
+      }
+    }
+    return result.toString();
+  }
+}
