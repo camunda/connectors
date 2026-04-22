@@ -39,7 +39,7 @@
       "placeholder": "e.g., my_process",
       "binding": {
         "type": "zeebe:property",
-        "name": "io.camunda.mcp:tool_name"
+        "name": "io.camunda.tool:name"
       },
       "constraints": {
         "notEmpty": true,
@@ -54,7 +54,7 @@
       "placeholder": "Describe the core function of this process in a clear and concise way.",
       "binding": {
         "type": "zeebe:property",
-        "name": "io.camunda.mcp:tool_purpose"
+        "name": "io.camunda.tool:purpose"
       },
       "constraints": {
         "notEmpty": true
@@ -67,7 +67,7 @@
       "placeholder": "Describe the specific situations or user intents that should trigger this process.",
       "binding": {
         "type": "zeebe:property",
-        "name": "io.camunda.mcp:tool_when_to_use"
+        "name": "io.camunda.tool:when_to_use"
       },
       "group": "tool-definition"
     },
@@ -77,7 +77,7 @@
       "placeholder": "Describe the situations or conditions where this process should not be used.",
       "binding": {
         "type": "zeebe:property",
-        "name": "io.camunda.mcp:tool_when_not_to_use"
+        "name": "io.camunda.tool:when_not_to_use"
       },
       "group": "tool-definition"
     },
@@ -88,7 +88,7 @@
       "placeholder": "Describe the expected outcome and what data is returned.",
       "binding": {
         "type": "zeebe:property",
-        "name": "io.camunda.mcp:tool_results"
+        "name": "io.camunda.tool:results"
       },
       "group": "tool-definition"
     },
