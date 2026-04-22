@@ -37,7 +37,7 @@ Chosen option: **Option 2 — Introduce a `ConnectorResponse` sealed interface h
 
 This decision depends on the `ConnectorResponse` sealed interface hierarchy added to the SDK in
 [#6781](https://github.com/camunda/connectors/pull/6781) (`io.camunda.connector.api.outbound`). With that in place,
-`AiAgentJobWorker` becomes a standard `@OutboundConnector`-annotated function that returns `AiAgentSubProcessResponse`
+`AiAgentJobWorker` becomes a standard `@OutboundConnector`-annotated function that returns `AiAgentSubProcessConnectorResponse`
 (implementing `AdHocSubProcessConnectorResponse`) from `execute()`. The runtime translates the response's
 `variables()`, `elementActivations()`, `completionConditionFulfilled()`, and `cancelRemainingInstances()` into the
 Zeebe complete command with `.withResult().forAdHocSubProcess()` configuration. The SDK handles everything else.

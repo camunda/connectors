@@ -194,7 +194,7 @@ The loop operates as a distributed state machine between the connector runtime a
    - Store updated conversation back to memory store (via `ConversationSession`)
    - Transform tool calls and create response
 
-5. **Job completion** (`AiAgentSubProcessResponse`):
+5. **Job completion** (`AiAgentSubProcessConnectorResponse`):
    - Sets `agentContext` variable with updated state
    - If tool calls present:
      - `completionConditionFulfilled = false`
@@ -303,11 +303,11 @@ record AgentResponse(
 )
 ```
 
-### AiAgentSubProcessResponse (job worker specific)
+### AiAgentSubProcessConnectorResponse (job worker specific)
 
 Implements `AdHocSubProcessConnectorResponse` with job completion control:
 ```java
-record AiAgentSubProcessResponse(
+record AiAgentSubProcessConnectorResponse(
     AgentResponse agentResponse,
     boolean completionConditionFulfilled,   // true = AHSP done
     boolean cancelRemainingInstances,        // true = cancel active tools
@@ -519,7 +519,7 @@ SpringConnectorJobHandler.handle(jobClient, job)
   ├─ AiAgentJobWorker.execute(context)
   │    ├─ Binds variables to JobWorkerAgentRequest
   │    └─ agentRequestHandler.handleRequest(executionContext)
-  │         └─ Returns AiAgentSubProcessResponse (AdHocSubProcessConnectorResponse)
+  │         └─ Returns AiAgentSubProcessConnectorResponse (AdHocSubProcessConnectorResponse)
   │
   ├─ SpringConnectorJobHandler examines error expression
   │    └─ Checks for error expressions (BPMN error handling)
@@ -570,7 +570,7 @@ jobClient.newCompleteCommand(job)
 When the agent cannot proceed (e.g., not all tool call results are present yet, or discovery is in progress):
 
 ```java
-return AiAgentSubProcessResponse.builder()
+return AiAgentSubProcessConnectorResponse.builder()
     .completionConditionFulfilled(false)
     .cancelRemainingInstances(false)
     .build();
@@ -1014,7 +1014,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 ### Entry Points
 - `AiAgentFunction.execute()` → Connector (Task) entry point
 - `AiAgentJobWorker.execute()` → Job worker (Sub-process) entry point
-- `AiAgentJobWorker.execute()` wraps into `AiAgentSubProcessResponse` → handled by `SpringConnectorJobHandler`
+- `AiAgentJobWorker.execute()` wraps into `AiAgentSubProcessConnectorResponse` → handled by `SpringConnectorJobHandler`
 
 ### Core Agent Logic
 - `BaseAgentRequestHandler.handleRequest()` → Core orchestrator: init → memory → messages → LLM → response → complete
@@ -1024,7 +1024,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 - `AgentResponseHandlerImpl.createResponse()` → Response formatting
 
 ### Job Completion
-- `AiAgentSubProcessResponse.elementActivations()` → AHSP element activations from tool calls
+- `AiAgentSubProcessConnectorResponse.elementActivations()` → AHSP element activations from tool calls
 - `JobWorkerAgentRequestHandler.completeJob()` → Job worker completion logic (no-op vs response)
 
 ### Memory

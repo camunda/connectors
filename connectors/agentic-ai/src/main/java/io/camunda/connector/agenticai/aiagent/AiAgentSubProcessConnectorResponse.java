@@ -14,16 +14,16 @@ import java.util.Map;
 import org.springframework.lang.Nullable;
 
 @AgenticAiRecord
-public record AiAgentSubProcessResponse(
+public record AiAgentSubProcessConnectorResponse(
     @Nullable AgentResponse responseValue,
     Map<String, Object> variables,
     List<ElementActivation> elementActivations,
     boolean completionConditionFulfilled,
     boolean cancelRemainingInstances)
-    implements AdHocSubProcessConnectorResponse, AiAgentSubProcessResponseBuilder.With {
+    implements AdHocSubProcessConnectorResponse, AiAgentSubProcessConnectorResponseBuilder.With {
 
-  public static AiAgentSubProcessResponseBuilder builder() {
-    return AiAgentSubProcessResponseBuilder.builder();
+  public static AiAgentSubProcessConnectorResponseBuilder builder() {
+    return AiAgentSubProcessConnectorResponseBuilder.builder();
   }
 
   public record ToolCallElementActivation(String elementId, Map<String, Object> variables)

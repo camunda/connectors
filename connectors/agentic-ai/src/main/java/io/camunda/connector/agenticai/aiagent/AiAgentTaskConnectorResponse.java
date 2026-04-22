@@ -15,7 +15,7 @@ import org.springframework.lang.Nullable;
  * {@link AgentResponse} as a {@link StandardConnectorResponse} so the runtime evaluates it via
  * result expressions.
  */
-public record AiAgentTaskResponse(@Nullable AgentResponse agentResponse)
+public record AiAgentTaskConnectorResponse(@Nullable AgentResponse agentResponse)
     implements StandardConnectorResponse {
 
   @Override

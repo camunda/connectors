@@ -8,7 +8,7 @@ package io.camunda.connector.agenticai.aiagent.agent;
 
 import static io.camunda.connector.agenticai.aiagent.agent.AgentErrorCodes.ERROR_CODE_NO_USER_MESSAGE_CONTENT;
 
-import io.camunda.connector.agenticai.aiagent.AiAgentTaskResponse;
+import io.camunda.connector.agenticai.aiagent.AiAgentTaskConnectorResponse;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
@@ -21,7 +21,8 @@ import java.util.List;
 import org.springframework.util.CollectionUtils;
 
 public class OutboundConnectorAgentRequestHandler
-    extends BaseAgentRequestHandler<OutboundConnectorAgentExecutionContext, AiAgentTaskResponse> {
+    extends BaseAgentRequestHandler<
+        OutboundConnectorAgentExecutionContext, AiAgentTaskConnectorResponse> {
 
   public OutboundConnectorAgentRequestHandler(
       AgentInitializer agentInitializer,
@@ -56,8 +57,8 @@ public class OutboundConnectorAgentRequestHandler
   }
 
   @Override
-  public AiAgentTaskResponse buildConnectorResponse(
+  public AiAgentTaskConnectorResponse buildConnectorResponse(
       OutboundConnectorAgentExecutionContext executionContext, AgentResponse agentResponse) {
-    return new AiAgentTaskResponse(agentResponse);
+    return new AiAgentTaskConnectorResponse(agentResponse);
   }
 }
