@@ -436,7 +436,7 @@ public class L4JAiAgentConnectorMcpIntegrationTests extends BaseL4JAiAgentConnec
                       tc ->
                           assertThat(tc.text())
                               .isEqualTo(
-                                  "<document tool=\"MCP_A_MCP_Client___toolA\" call-id=\"img111\" document-short-id=\"%s\" />"
+                                  "<document tool-name=\"MCP_A_MCP_Client___toolA\" tool-call-id=\"img111\" document-short-id=\"%s\" />"
                                       .formatted(documentShortId)));
               assertThat(contents.get(2))
                   .isInstanceOfSatisfying(

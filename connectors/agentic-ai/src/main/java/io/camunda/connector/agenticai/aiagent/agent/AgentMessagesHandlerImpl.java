@@ -20,6 +20,7 @@ import io.camunda.connector.agenticai.aiagent.model.request.PromptConfiguration.
 import io.camunda.connector.agenticai.aiagent.systemprompt.SystemPromptComposer;
 import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.model.message.DocumentXmlTag;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
@@ -28,8 +29,6 @@ import io.camunda.connector.agenticai.model.message.content.Content;
 import io.camunda.connector.agenticai.model.message.content.DocumentContent;
 import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
-import io.camunda.connector.api.document.Document;
-import io.camunda.connector.api.document.DocumentReference.CamundaDocumentReference;
 import io.camunda.connector.api.error.ConnectorException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -226,7 +225,9 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     content.add(textContent("Documents extracted from tool call results:"));
     for (var entry : toolCallDocuments) {
       for (var doc : entry.documents()) {
-        content.add(textContent(documentXmlTag(doc, entry.toolCallName(), entry.toolCallId())));
+        content.add(
+            textContent(
+                DocumentXmlTag.from(doc, entry.toolCallName(), entry.toolCallId()).toXml()));
         content.add(DocumentContent.documentContent(doc));
       }
     }
@@ -260,7 +261,7 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
     var eventDocuments = documentExtractor.extractDocumentsFromContent(eventContent);
     if (!eventDocuments.isEmpty()) {
       for (var doc : eventDocuments) {
-        userMessageContent.add(textContent(documentXmlTag(doc)));
+        userMessageContent.add(textContent(DocumentXmlTag.from(doc).toXml()));
         userMessageContent.add(DocumentContent.documentContent(doc));
       }
     }
@@ -288,61 +289,6 @@ public class AgentMessagesHandlerImpl implements AgentMessagesHandler {
             .orElse(null);
 
     return behavior == EventHandlingConfiguration.EventHandlingBehavior.INTERRUPT_TOOL_CALLS;
-  }
-
-  /**
-   * Builds an XML self-closing tag describing a document for model correlation. The tag includes
-   * optional attributes for tool name, call ID, the document short ID (first segment of the UUID
-   * document identifier), and filename. All attribute values are XML-escaped.
-   */
-  static String documentXmlTag(Document document, String toolName, String toolCallId) {
-    var sb = new StringBuilder("<document");
-    appendXmlAttribute(sb, "tool", toolName);
-    appendXmlAttribute(sb, "call-id", toolCallId);
-    appendXmlAttribute(sb, "document-short-id", documentShortId(document));
-    var fileName = document.metadata() != null ? document.metadata().getFileName() : null;
-    appendXmlAttribute(sb, "filename", fileName);
-    sb.append(" />");
-    return sb.toString();
-  }
-
-  static String documentXmlTag(Document document) {
-    return documentXmlTag(document, null, null);
-  }
-
-  /**
-   * Returns the first segment of the document's UUID identifier (e.g. "25ece9fa" from
-   * "25ece9fa-aeea-423d-98ed-67c1f08b137b"), providing a compact correlation key that is sufficient
-   * for in-conversation matching between the document reference in the tool result and the document
-   * content in the follow-up user message.
-   */
-  private static String documentShortId(Document document) {
-    if (document.reference() instanceof CamundaDocumentReference camundaRef) {
-      var documentId = camundaRef.getDocumentId();
-      if (documentId != null) {
-        int dashIndex = documentId.indexOf('-');
-        return dashIndex > 0 ? documentId.substring(0, dashIndex) : documentId;
-      }
-    }
-    return null;
-  }
-
-  private static void appendXmlAttribute(StringBuilder sb, String name, String value) {
-    if (StringUtils.isNotBlank(value)) {
-      sb.append(" %s=\"%s\"".formatted(name, escapeXmlAttribute(value)));
-    }
-  }
-
-  static String escapeXmlAttribute(String value) {
-    if (value == null) {
-      return null;
-    }
-    return value
-        .replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("\"", "&quot;")
-        .replace("'", "&apos;");
   }
 
   private Map<String, Object> defaultMessageMetadata() {
