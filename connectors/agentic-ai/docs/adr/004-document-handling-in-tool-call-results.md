@@ -93,11 +93,11 @@ preceded by a self-closing XML tag with correlation attributes:
 
 ```
 TextContent: "Documents extracted from tool call results:"
-TextContent: <document tool="generate_report" call-id="call_1" document-short-id="25ece9fa" filename="report.pdf" />
+TextContent: <document tool-name="generate_report" tool-call-id="call_1" document-short-id="25ece9fa" filename="report.pdf" />
 DocumentContent: [report.pdf content]
-TextContent: <document tool="generate_report" call-id="call_1" document-short-id="f7b3a1d0" />
+TextContent: <document tool-name="generate_report" tool-call-id="call_1" document-short-id="f7b3a1d0" />
 DocumentContent: [chart.png content]
-TextContent: <document tool="fetch_data" call-id="call_2" document-short-id="c44d82e1" filename="data.csv" />
+TextContent: <document tool-name="fetch_data" tool-call-id="call_2" document-short-id="c44d82e1" filename="data.csv" />
 DocumentContent: [data.csv content]
 ```
 
