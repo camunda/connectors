@@ -83,9 +83,6 @@ memory/
     ├── RuntimeMemory           # Transient working memory for single execution
     └── MessageWindowRuntimeMemory  # Sliding window filter (keeps last N messages)
 
-jobworker/
-└── AiAgentSubProcessResponse  # AdHocSubProcessConnectorResponse for AHSP directives (element activation, completion condition)
-
 tool/
 ├── GatewayToolHandler          # Interface for gateway tools (MCP, A2A)
 └── GatewayToolHandlerRegistry  # Registry of gateway tool handlers
@@ -105,7 +102,9 @@ tool/
 
 **`ToolCallProcessVariable`** — flattened tool call for process variables: `{_meta: {id, name}, ...args}`.
 
-**`AiAgentSubProcessResponse`** — job completion directives: AHSP done/continue, cancel flags, element activations, variables. Implements `AdHocSubProcessConnectorResponse` — the runtime translates it into the Zeebe complete command with ad-hoc sub-process result configuration.
+**`AiAgentSubProcessConnectorResponse`** — job completion directives: AHSP done/continue, cancel flags, element activations, variables. Implements `AdHocSubProcessConnectorResponse` — the runtime translates it into the Zeebe complete command with ad-hoc sub-process result configuration.
+
+**`AiAgentTaskConnectorResponse`** — wraps `AgentResponse` as a `StandardConnectorResponse` for the task connector flavor. The runtime evaluates result expressions against the wrapped response value.
 
 For full record definitions, see [ai-agent.md §5](docs/reference/ai-agent.md#5-data-model).
 
@@ -141,7 +140,7 @@ try (var session = store.createSession(ctx, agentContext)) {
     [add messages to runtime memory, call LLM, etc.]
     var cursor = session.storeMessages(agentContext, request)
     agentContext = agentContext.withConversation(cursor)
-} → completeJob
+} → buildConnectorResponse
 ```
 
 For backend-specific behavior and failure handling, see [ai-agent.md §6](docs/reference/ai-agent.md#6-conversation-memory).

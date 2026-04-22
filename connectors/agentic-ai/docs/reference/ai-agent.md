@@ -559,7 +559,7 @@ jobClient.newCompleteCommand(job)
 
 3. **`completionConditionFulfilled`**: Directly controls whether the AHSP terminates. When `true`, the AHSP completes and output mappings propagate results to the parent process.
 
-4. **`cancelRemainingInstances`**: Used when event handling interrupts tool calls — cancels all still-running tool instances. Currently determined via a mutable flag on `JobWorkerAgentExecutionContext`, set as a side effect in `handleAddedUserMessages()`. **Future improvement**: move detection into `completeWithResponse()` by inspecting `executionContext.initialToolCallResults()` directly for interrupted results, eliminating the mutable state.
+4. **`cancelRemainingInstances`**: Used when event handling interrupts tool calls — cancels all still-running tool instances. Currently determined via a mutable flag on `JobWorkerAgentExecutionContext`, set as a side effect in `handleAddedUserMessages()`. **Future improvement**: move detection into `buildResponse()` by inspecting `executionContext.initialToolCallResults()` directly for interrupted results, eliminating the mutable state.
 
 5. **Async execution**: The complete command is sent asynchronously via `CommandWrapper` with up to 3 retries. This is important because:
    - The job may have been superseded (NOT_FOUND)
@@ -665,7 +665,7 @@ The method checks each tool call from the last assistant message against the ava
 // BaseAgentRequestHandler.handleRequest()
 var addedUserMessages = messagesHandler.addUserMessages(...);
 if (!modelCallPrerequisitesFulfilled(addedUserMessages)) {
-    return completeJob(executionContext, null, session);
+    return buildConnectorResponse(executionContext, null);
 }
 ```
 
@@ -1025,7 +1025,7 @@ If the `processDefinitionKey` stored in the agent context doesn't match the curr
 
 ### Job Completion
 - `AiAgentSubProcessConnectorResponse.elementActivations()` → AHSP element activations from tool calls
-- `JobWorkerAgentRequestHandler.completeJob()` → Job worker completion logic (no-op vs response)
+- `JobWorkerAgentRequestHandler.buildConnectorResponse()` → Job worker response assembly (no-op vs response)
 
 ### Memory
 - `ConversationStoreRegistryImpl.getConversationStore()` → Store resolution

@@ -60,5 +60,5 @@ Zeebe complete command with `.withResult().forAdHocSubProcess()` configuration. 
 - **Completion callbacks**: Extend `ConnectorResponse` with `onCompletionSuccess`/`onCompletionError` callbacks once
   `CommandWrapper` supports command outcome notification
 - **`cancelRemainingInstances` flag**: The mutable flag on `JobWorkerAgentExecutionContext` (set in
-  `handleAddedUserMessages()`, read in `completeJob()`) can be simplified by moving interrupted-tool-call detection
-  into `completeWithResponse()` via `executionContext.initialToolCallResults()`, eliminating the mutable state
+  `handleAddedUserMessages()`, read in `buildConnectorResponse()`) can be simplified by moving interrupted-tool-call detection
+  into `buildResponse()` via `executionContext.initialToolCallResults()`, eliminating the mutable state
