@@ -16,6 +16,7 @@ import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentMetadata;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.core5.http.ContentType;
@@ -73,6 +74,7 @@ public class DocumentToContentConverterImpl implements DocumentToContentConverte
     return Optional.ofNullable(camundaDocument.metadata())
         .map(DocumentMetadata::getContentType)
         .filter(StringUtils::isNotBlank)
+        .map(s -> s.toLowerCase(Locale.ROOT))
         .map(ContentType::parse)
         .orElseThrow(
             () ->
