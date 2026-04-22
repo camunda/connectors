@@ -70,6 +70,15 @@ class ChatModelProviderRegistryImplTest {
         .hasMessageContaining("Chat model provider with type 'duplicate' is already registered.");
   }
 
+  @Test
+  void throwsWhenRegisteringDuplicateProviderViaAdditionalRegisterMethod() {
+    final var registry = new ChatModelProviderRegistryImpl(List.of(providerFor("duplicate")));
+
+    assertThatThrownBy(() -> registry.registerChatModelProvider(providerFor("duplicate")))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Chat model provider with type 'duplicate' is already registered.");
+  }
+
   private static ChatModelProvider providerFor(String type) {
     final var provider = mock(ChatModelProvider.class);
     when(provider.type()).thenReturn(type);
