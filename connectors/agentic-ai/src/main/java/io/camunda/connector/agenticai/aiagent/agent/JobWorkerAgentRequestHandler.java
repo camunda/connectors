@@ -82,7 +82,7 @@ public class JobWorkerAgentRequestHandler
   }
 
   @Override
-  public AiAgentSubProcessResponse completeJob(
+  public AiAgentSubProcessResponse buildConnectorResponse(
       JobWorkerAgentExecutionContext executionContext, AgentResponse agentResponse) {
     if (agentResponse == null) {
       LOGGER.debug(

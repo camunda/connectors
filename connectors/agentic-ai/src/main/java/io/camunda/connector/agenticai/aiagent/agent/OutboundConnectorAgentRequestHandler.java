@@ -56,7 +56,7 @@ public class OutboundConnectorAgentRequestHandler
   }
 
   @Override
-  public AiAgentTaskResponse completeJob(
+  public AiAgentTaskResponse buildConnectorResponse(
       OutboundConnectorAgentExecutionContext executionContext, AgentResponse agentResponse) {
     return new AiAgentTaskResponse(agentResponse);
   }

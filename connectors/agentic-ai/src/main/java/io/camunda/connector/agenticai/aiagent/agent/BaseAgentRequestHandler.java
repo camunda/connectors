@@ -22,6 +22,7 @@ import io.camunda.connector.agenticai.aiagent.tool.GatewayToolHandlerRegistry;
 import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.tool.ToolCallProcessVariable;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
+import io.camunda.connector.api.outbound.ConnectorResponse;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.tuple.Pair;
@@ -29,7 +30,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.Nullable;
 
-public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R>
+public abstract class BaseAgentRequestHandler<
+        C extends AgentExecutionContext, R extends ConnectorResponse>
     implements AgentRequestHandler<C, R> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(BaseAgentRequestHandler.class);
@@ -71,14 +73,14 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
         LOGGER.debug(
             "AI Agent initialization returned direct response including {} tool calls. Completing job without further processing.",
             agentResponse.toolCalls().size());
-        yield completeJob(executionContext, agentResponse);
+        yield buildConnectorResponse(executionContext, agentResponse);
       }
 
       // discovery still in progress (not all tool call results present)
       case AgentDiscoveryInProgressInitializationResult ignored -> {
         LOGGER.debug(
             "AI Agent initialization tool discovery is still in progress. Completing job without further processing.");
-        yield completeJob(executionContext, null);
+        yield buildConnectorResponse(executionContext, null);
       }
 
       case AgentContextInitializationResult(
@@ -99,16 +101,16 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
     final var store =
         conversationStoreRegistry.getConversationStore(executionContext, agentContext);
 
-    AgentResponse agentResponse;
     try (var session = store.createSession(executionContext, agentContext)) {
-      agentResponse = processConversation(executionContext, agentContext, toolCallResults, session);
+      var agentResponse =
+          processConversation(executionContext, agentContext, toolCallResults, session);
+
+      LOGGER.debug(
+          "Request processing completed {} agent response, completing job",
+          agentResponse == null ? "without" : "with");
+
+      return buildConnectorResponse(executionContext, agentResponse);
     }
-
-    LOGGER.debug(
-        "Request processing completed {} agent response, completing job",
-        agentResponse == null ? "without" : "with");
-
-    return completeJob(executionContext, agentResponse);
   }
 
   private AgentResponse processConversation(
@@ -198,7 +200,7 @@ public abstract class BaseAgentRequestHandler<C extends AgentExecutionContext, R
     // no-op by default
   }
 
-  /** Handles job completion if needed. Agent response may be null. */
-  protected abstract R completeJob(
+  /** Builds the connector response from the agent response. Agent response may be null. */
+  protected abstract R buildConnectorResponse(
       final C executionContext, @Nullable final AgentResponse agentResponse);
 }
