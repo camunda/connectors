@@ -121,6 +121,22 @@ class DocumentToContentConverterTest {
     verify(document, never()).asInputStream();
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"image/png", "Image/Png  ", "IMAGE/PNG", "ImAgE/PnG"})
+  void shouldConvertContentTypeToLowercaseAndTrim(String contentType) {
+    when(document.metadata().getContentType()).thenReturn(contentType);
+    when(document.asBase64()).thenReturn(DUMMY_B64_VALUE);
+
+    var content = converter.convert(document);
+
+    assertThat(content)
+        .asInstanceOf(InstanceOfAssertFactories.type(ImageContent.class))
+        .satisfies(
+            imageContent -> {
+              assertThat(imageContent.image().mimeType()).isEqualTo("image/png");
+            });
+  }
+
   @Test
   void throwsExceptionWhenMetadataIsMissing() {
     when(document.metadata()).thenReturn(null);
