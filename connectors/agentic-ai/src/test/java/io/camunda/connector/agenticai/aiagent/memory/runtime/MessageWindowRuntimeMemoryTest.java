@@ -250,6 +250,34 @@ class MessageWindowRuntimeMemoryTest {
   }
 
   @Test
+  void handlesOrphanedDocumentMessageDuringEviction() {
+    // edge case: a document message ends up at the eviction position without a preceding
+    // tool call result (e.g. from corrupted/migrated persisted history)
+    final var documentUserMessage =
+        UserMessage.builder()
+            .content(List.of(textContent("Documents extracted from tool call results:")))
+            .metadata(Map.of(UserMessage.METADATA_TOOL_CALL_DOCUMENTS, true))
+            .build();
+
+    List<Message> messages = new ArrayList<>();
+    messages.add(systemMessage("System"));
+    // orphaned document message right after system message
+    messages.add(documentUserMessage);
+    for (int i = 1; i <= MAX_MESSAGES + 1; i++) {
+      messages.add(userMessage("Message " + i));
+    }
+
+    memory.addMessages(messages);
+
+    // the document message should be evicted without affecting the effective count;
+    // effective count = system + 7 remaining user messages = 8 = MAX_MESSAGES
+    var filtered = memory.filteredMessages();
+    assertThat(filtered).noneMatch(m -> m == documentUserMessage);
+    assertThat(filtered).hasSize(MAX_MESSAGES);
+    assertThat(filtered.getFirst()).isEqualTo(systemMessage("System"));
+  }
+
+  @Test
   void returnsLastMessage() {
     memory.addMessages(TEST_MESSAGES);
     assertThat(memory.lastMessage()).isPresent().get().isEqualTo(TEST_MESSAGES.getLast());
