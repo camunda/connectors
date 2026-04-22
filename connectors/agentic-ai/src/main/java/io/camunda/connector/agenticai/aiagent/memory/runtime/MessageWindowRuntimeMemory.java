@@ -85,7 +85,9 @@ public class MessageWindowRuntimeMemory implements RuntimeMemory {
 
       // remove the message at the current index
       Message evictedMessage = filtered.remove(messageToEvictIndex);
-      effectiveCount--;
+      if (!isToolCallDocumentMessage(evictedMessage)) {
+        effectiveCount--;
+      }
 
       // remove follow-up tool call results if existing as some LLM providers return an error when
       // receiving tool call results without the original tool call request
