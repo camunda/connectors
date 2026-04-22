@@ -179,7 +179,7 @@ public class L4JAiAgentJobWorkerToolCallingTests extends BaseL4JAiAgentJobWorker
                       tc ->
                           assertThat(tc.text())
                               .isEqualTo(
-                                  "<document tool=\"Download_A_File\" call-id=\"aaa111\" document-short-id=\"%s\" />"
+                                  "<document tool-name=\"Download_A_File\" tool-call-id=\"aaa111\" document-short-id=\"%s\" />"
                                       .formatted(documentShortId)));
               assertDocumentContentBlock(contents.get(2), type, mimeType);
             });
