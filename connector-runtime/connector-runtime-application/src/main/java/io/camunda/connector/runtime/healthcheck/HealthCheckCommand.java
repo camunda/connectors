@@ -69,26 +69,6 @@ public class HealthCheckCommand {
     if (url != null && !url.isBlank()) {
       return url;
     }
-    return "http://localhost:" + resolvePort() + resolveBasePath() + "/health/readiness";
-  }
-
-  private static String resolvePort() {
-    String managementPort = System.getenv("MANAGEMENT_SERVER_PORT");
-    if (managementPort != null && !managementPort.isBlank()) {
-      return managementPort;
-    }
-    String serverPort = System.getenv("SERVER_PORT");
-    if (serverPort != null && !serverPort.isBlank()) {
-      return serverPort;
-    }
-    return "8080";
-  }
-
-  private static String resolveBasePath() {
-    String basePath = System.getenv("MANAGEMENT_SERVER_BASE_PATH");
-    if (basePath != null && !basePath.isBlank()) {
-      return basePath;
-    }
-    return "/actuator";
+    return "http://localhost:8080/actuator/health/readiness";
   }
 }
