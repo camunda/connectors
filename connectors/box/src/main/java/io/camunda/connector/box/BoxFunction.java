@@ -21,6 +21,17 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     id = "io.camunda.connectors.box",
     name = "Box Outbound Connector",
     description = "Interact with the Box Document API",
+    keywords = {
+      "create folder",
+      "delete folder",
+      "upload file",
+      "download file",
+      "move file",
+      "delete file",
+      "search files",
+      "file storage",
+      "document management"
+    },
     inputDataClass = BoxRequest.class,
     version = 2,
     propertyGroups = {

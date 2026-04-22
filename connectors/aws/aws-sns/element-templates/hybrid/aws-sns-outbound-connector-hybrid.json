@@ -3,14 +3,7 @@
   "name" : "Hybrid Amazon SNS Outbound connector",
   "id" : "io.camunda.connectors.AWSSNS.v1-hybrid",
   "description" : "Send messages to Amazon SNS.",
-  "keywords" : [
-    "send message",
-    "publish message",
-    "notification",
-    "publish to topic",
-    "FIFO",
-    "standard queue"
-  ],
+  "keywords" : [ "send message", "publish message", "notification", "publish to topic", "FIFO" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=outbound",
   "version" : 8,
   "category" : {

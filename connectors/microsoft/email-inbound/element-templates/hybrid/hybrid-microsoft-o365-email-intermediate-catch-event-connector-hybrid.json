@@ -3,15 +3,7 @@
   "name" : "Hybrid Microsoft O365 Email Intermediate Catch Event Connector",
   "id" : "io.camunda.connectors.inbound.MSFT.O365.EmailIntermediate.v1-hybrid",
   "description" : "Poll M365 Outlook emails",
-  "keywords" : [
-    "email received",
-    "receive email",
-    "new email",
-    "incoming email",
-    "email notification",
-    "inbox",
-    "poll email"
-  ],
+  "keywords" : [ "email", "Office365", "Outlook", "email received", "receive email", "new email", "incoming email", "email notification", "inbox", "poll email" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail-inbound/",
   "version" : 1,
   "category" : {

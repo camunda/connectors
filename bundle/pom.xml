@@ -84,6 +84,7 @@
      <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-aws-bedrock-codeinterpreter</artifactId>
+        <artifactId>connector-aws-bedrock-agentcore-runtime</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

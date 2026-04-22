@@ -3,19 +3,7 @@
   "name" : "Hybrid Slack Outbound Connector",
   "id" : "io.camunda.connectors.Slack.v1-hybrid",
   "description" : "Create a channel or send a message to a channel or user",
-  "keywords" : [
-    "post message",
-    "create channel",
-    "invite to channel",
-    "add reaction",
-    "pin message",
-    "unpin message",
-    "send message",
-    "channel",
-    "messaging",
-    "chat",
-    "notification"
-  ],
+  "keywords" : [ "post message", "create channel", "invite to channel", "add reaction", "pin message", "unpin message", "send message", "channel", "messaging", "chat", "notification" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=outbound",
   "version" : 9,
   "category" : {

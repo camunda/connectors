@@ -45,6 +45,15 @@ import org.slf4j.LoggerFactory;
     version = 14,
     inputDataClass = WebhookConnectorPropertiesWrapper.class,
     description = "Configure webhook to receive callbacks",
+    keywords = {
+      "receive webhook",
+      "HTTP trigger",
+      "event received",
+      "inbound event",
+      "webhook trigger",
+      "HTTP callback",
+      "listen for event"
+    },
     documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
     defaultResultExpression =
         "{\n"

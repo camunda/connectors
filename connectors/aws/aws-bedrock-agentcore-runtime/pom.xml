@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connector-aws-parent</artifactId>
+    <version>8.10.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>connector-aws-bedrock-agentcore-runtime</artifactId>
+  <name>connector-aws-bedrock-agentcore-runtime</name>
+  <description>Camunda Connector for AWS Bedrock AgentCore Runtime Agent Invocation</description>
+  <packaging>jar</packaging>
+
+  <licenses>
+    <license>
+      <name>Camunda Self-Managed Free Edition license</name>
+      <url>
+        https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/
+      </url>
+    </license>
+    <license>
+      <name>Camunda Self-Managed Enterprise Edition license</name>
+    </license>
+  </licenses>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-aws-base</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>bedrockagentcore</artifactId>
+      <version>${version.aws-sdk2}</version>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>auth</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>regions</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sdk-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>aws-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator-annotations</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.skyscreamer</groupId>
+      <artifactId>jsonassert</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>element-template-generator-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <connectors>
+            <connector>
+              <connectorClass>
+                io.camunda.connector.aws.bedrock.agentcore.runtime.AgentCoreRuntimeConnectorFunction
+              </connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.aws.bedrock.agentcore.runtime.v1</templateId>
+                  <templateFileName>aws-bedrock-agentcore-runtime-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+          </connectors>
+          <versionHistoryEnabled>true</versionHistoryEnabled>
+          <includeDependencies>
+            <includeDependency>io.camunda.connector:connector-aws-base</includeDependency>
+          </includeDependencies>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>

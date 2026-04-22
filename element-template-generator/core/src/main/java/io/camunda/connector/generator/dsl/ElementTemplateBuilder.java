@@ -17,7 +17,6 @@
 package io.camunda.connector.generator.dsl;
 
 import io.camunda.connector.generator.dsl.ElementTemplate.ElementTypeWrapper;
-import io.camunda.connector.generator.dsl.ElementTemplate.Metadata;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
 import io.camunda.connector.generator.java.annotation.BpmnType;
@@ -42,7 +41,7 @@ public class ElementTemplateBuilder {
   protected String documentationRef;
   protected String description;
   protected Engines engines;
-  protected Metadata metadata;
+  protected String[] keywords;
   protected Set<String> appliesTo;
   protected BpmnType elementType;
 
@@ -152,8 +151,8 @@ public class ElementTemplateBuilder {
     return this;
   }
 
-  public ElementTemplateBuilder metadata(Metadata metadata) {
-    this.metadata = metadata;
+  public ElementTemplateBuilder keywords(String[] keywords) {
+    this.keywords = keywords;
     return this;
   }
 
@@ -206,7 +205,7 @@ public class ElementTemplateBuilder {
         documentationRef,
         engines,
         description,
-        metadata,
+        keywords,
         appliesTo,
         ElementTypeWrapper.from(elementType),
         groups,

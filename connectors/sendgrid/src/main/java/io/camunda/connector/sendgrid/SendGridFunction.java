@@ -34,6 +34,16 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.SendGrid.v2",
     name = "SendGrid Outbound Connector",
     description = "Send an email via SendGrid",
+    keywords = {
+      "send email",
+      "email notification",
+      "transactional email",
+      "marketing email",
+      "email campaign",
+      "email delivery",
+      "dynamic template",
+      "email template"
+    },
     inputDataClass = SendGridRequest.class,
     version = 5,
     propertyGroups = {

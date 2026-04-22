@@ -23,6 +23,15 @@ import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
     id = "io.camunda.connectors.RabbitMQ.v1",
     name = "RabbitMQ Outbound Connector",
     description = "Send message to RabbitMQ",
+    keywords = {
+      "publish message",
+      "send message",
+      "message queue",
+      "AMQP",
+      "produce event",
+      "message broker",
+      "queue"
+    },
     inputDataClass = RabbitMqRequest.class,
     version = 6,
     propertyGroups = {

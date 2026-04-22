@@ -2,16 +2,7 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Hybrid CSV Connector",
   "id" : "io.camunda.connectors.csv-hybrid",
-  "keywords" : [
-    "read CSV",
-    "write CSV",
-    "parse CSV",
-    "export CSV",
-    "import CSV",
-    "tabular data",
-    "data export",
-    "spreadsheet"
-  ],
+  "keywords" : [ "read CSV", "write CSV", "parse CSV", "export CSV", "import CSV", "tabular data", "data export", "spreadsheet" ],
   "version" : 1,
   "category" : {
     "id" : "connectors",
@@ -192,6 +183,7 @@
       } ]
     },
     "tooltip" : "<a href=\"https://docs.camunda.io/docs/components/modeler/feel/what-is-feel/\">FEEL</a> function that allows to map each <code>record</code>. Returning <code>null</code> will exclude a record from the final results.",
+    "placeholder" : "",
     "type" : "String"
   }, {
     "id" : "writeCsv:data",
