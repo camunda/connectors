@@ -119,100 +119,6 @@ class AgentMessagesHandlerTest {
   }
 
   @Nested
-  class DocumentXmlTagTest {
-
-    @Test
-    void generatesFullTagWithAllAttributes() {
-      var doc = mock(Document.class);
-      var ref = mock(CamundaDocumentReference.class);
-      var metadata = mock(io.camunda.connector.api.document.DocumentMetadata.class);
-      when(doc.reference()).thenReturn(ref);
-      when(ref.getDocumentId()).thenReturn("25ece9fa-aeea-423d-98ed-67c1f08b137b");
-      when(doc.metadata()).thenReturn(metadata);
-      when(metadata.getFileName()).thenReturn("report.pdf");
-
-      assertThat(AgentMessagesHandlerImpl.documentXmlTag(doc, "search", "call_abc"))
-          .isEqualTo(
-              "<document tool=\"search\" call-id=\"call_abc\" document-short-id=\"25ece9fa\" filename=\"report.pdf\" />");
-    }
-
-    @Test
-    void generatesTagWithoutToolAndCallId() {
-      var doc = mock(Document.class);
-      var ref = mock(CamundaDocumentReference.class);
-      var metadata = mock(io.camunda.connector.api.document.DocumentMetadata.class);
-      when(doc.reference()).thenReturn(ref);
-      when(ref.getDocumentId()).thenReturn("f7b3a1d0-1234-5678-9abc-def012345678");
-      when(doc.metadata()).thenReturn(metadata);
-      when(metadata.getFileName()).thenReturn(null);
-
-      assertThat(AgentMessagesHandlerImpl.documentXmlTag(doc))
-          .isEqualTo("<document document-short-id=\"f7b3a1d0\" />");
-    }
-
-    @Test
-    void generatesMinimalTagForMockedDocument() {
-      var doc = mock(Document.class);
-      assertThat(AgentMessagesHandlerImpl.documentXmlTag(doc)).isEqualTo("<document />");
-    }
-
-    @Test
-    void handlesDocumentIdWithoutDash() {
-      var doc = mock(Document.class);
-      var ref = mock(CamundaDocumentReference.class);
-      when(doc.reference()).thenReturn(ref);
-      when(ref.getDocumentId()).thenReturn("simpledocid");
-
-      assertThat(AgentMessagesHandlerImpl.documentXmlTag(doc))
-          .isEqualTo("<document document-short-id=\"simpledocid\" />");
-    }
-
-    @Test
-    void escapesSpecialCharactersInFilename() {
-      var doc = mock(Document.class);
-      var metadata = mock(io.camunda.connector.api.document.DocumentMetadata.class);
-      when(doc.metadata()).thenReturn(metadata);
-      when(metadata.getFileName()).thenReturn("file\"with<special>&chars'.pdf");
-
-      assertThat(AgentMessagesHandlerImpl.documentXmlTag(doc))
-          .isEqualTo("<document filename=\"file&quot;with&lt;special&gt;&amp;chars&apos;.pdf\" />");
-    }
-
-    @Test
-    void escapesSpecialCharactersInToolName() {
-      var doc = mock(Document.class);
-      var ref = mock(CamundaDocumentReference.class);
-      when(doc.reference()).thenReturn(ref);
-      when(ref.getDocumentId()).thenReturn("abc12345-0000-0000-0000-000000000000");
-
-      assertThat(AgentMessagesHandlerImpl.documentXmlTag(doc, "tool<with\"quotes>", "call_1"))
-          .isEqualTo(
-              "<document tool=\"tool&lt;with&quot;quotes&gt;\" call-id=\"call_1\" document-short-id=\"abc12345\" />");
-    }
-  }
-
-  @Nested
-  class EscapeXmlAttributeTest {
-
-    @Test
-    void escapesAllSpecialCharacters() {
-      assertThat(AgentMessagesHandlerImpl.escapeXmlAttribute("a&b<c>d\"e'f"))
-          .isEqualTo("a&amp;b&lt;c&gt;d&quot;e&apos;f");
-    }
-
-    @Test
-    void returnsNullForNull() {
-      assertThat(AgentMessagesHandlerImpl.escapeXmlAttribute(null)).isNull();
-    }
-
-    @Test
-    void returnsUnchangedForSafeString() {
-      assertThat(AgentMessagesHandlerImpl.escapeXmlAttribute("safe-value_123"))
-          .isEqualTo("safe-value_123");
-    }
-  }
-
-  @Nested
   class SystemMessagesTest {
 
     @Test
@@ -933,7 +839,7 @@ class AgentMessagesHandlerTest {
                                           assertThat(c)
                                               .isEqualTo(
                                                   textContent(
-                                                      "<document tool=\"getWeather\" call-id=\"abcdef\" document-short-id=\"%s\" filename=\"weather.txt\" />"
+                                                      "<document tool-name=\"getWeather\" tool-call-id=\"abcdef\" document-short-id=\"%s\" filename=\"weather.txt\" />"
                                                           .formatted(shortId1))),
                                       c ->
                                           assertThat(c)
@@ -942,7 +848,7 @@ class AgentMessagesHandlerTest {
                                           assertThat(c)
                                               .isEqualTo(
                                                   textContent(
-                                                      "<document tool=\"getDateTime\" call-id=\"fedcba\" document-short-id=\"%s\" filename=\"report.pdf\" />"
+                                                      "<document tool-name=\"getDateTime\" tool-call-id=\"fedcba\" document-short-id=\"%s\" filename=\"report.pdf\" />"
                                                           .formatted(shortId2))),
                                       c ->
                                           assertThat(c)
@@ -1025,7 +931,7 @@ class AgentMessagesHandlerTest {
                                             assertThat(c)
                                                 .isEqualTo(
                                                     textContent(
-                                                        "<document tool=\"getWeather\" call-id=\"abcdef\" document-short-id=\"%s\" filename=\"weather.txt\" />"
+                                                        "<document tool-name=\"getWeather\" tool-call-id=\"abcdef\" document-short-id=\"%s\" filename=\"weather.txt\" />"
                                                             .formatted(shortId))),
                                         c ->
                                             assertThat(c)
