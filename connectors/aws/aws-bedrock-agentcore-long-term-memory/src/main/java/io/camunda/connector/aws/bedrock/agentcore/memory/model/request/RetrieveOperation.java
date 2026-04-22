@@ -43,7 +43,7 @@ public record RetrieveOperation(
     @TemplateProperty(
             id = "retrieve.nextToken",
             group = "retrieve",
-            label = "Next token",
+            label = "Pagination token",
             description = "Pagination token from a previous response to fetch the next page.",
             optional = true)
         String nextToken)

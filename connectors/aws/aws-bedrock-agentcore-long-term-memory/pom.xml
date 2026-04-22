@@ -11,7 +11,7 @@
   </parent>
 
   <artifactId>connector-aws-bedrock-agentcore-long-term-memory</artifactId>
-  <name>connector-aws-bedrock-agentcore-lt-memory</name>
+  <name>connector-aws-bedrock-agentcore-long-term-memory</name>
   <description>Camunda Connector for AWS Bedrock AgentCore Long-Term Memory</description>
   <packaging>jar</packaging>
 
