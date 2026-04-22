@@ -7,7 +7,7 @@
 package io.camunda.connector.agenticai.aiagent.memory.conversation.document;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSessionHandler;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStore;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
@@ -40,10 +40,8 @@ public class CamundaDocumentConversationStore implements ConversationStore {
   }
 
   @Override
-  public <T> T executeInSession(
-      AgentExecutionContext executionContext,
-      AgentContext agentContext,
-      ConversationSessionHandler<T> sessionHandler) {
+  public ConversationSession createSession(
+      AgentExecutionContext executionContext, AgentContext agentContext) {
     final var config =
         Optional.ofNullable(executionContext.memory())
             .map(MemoryConfiguration::storage)
@@ -55,14 +53,7 @@ public class CamundaDocumentConversationStore implements ConversationStore {
               .formatted(config != null ? config.getClass().getName() : "null"));
     }
 
-    final var session =
-        new CamundaDocumentConversationSession(
-            documentConfig,
-            documentFactory,
-            documentStore,
-            conversationSerializer,
-            executionContext);
-
-    return sessionHandler.handleSession(session);
+    return new CamundaDocumentConversationSession(
+        documentConfig, documentFactory, documentStore, conversationSerializer, executionContext);
   }
 }
