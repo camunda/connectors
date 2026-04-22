@@ -25,8 +25,8 @@ the model as native multi-modal content blocks.
 ## Decision Drivers
 
 * **Model compatibility**: Documents must be provided in a format that LLMs can actually process.
-* **Provider independence**: The solution must work across all supported providers (Anthropic, OpenAI via Bedrock),
-  not just those with native multi-content tool result support.
+* **Provider independence**: The solution must work across all supported providers, not just those with native
+  multi-content tool result support.
 * **Auditability**: Document handling must be visible in the persisted conversation history.
 * **Abstraction layer**: Changes should be made in the generic agent layer (internal message model), not deep in the
   LangChain4J framework adapter, so they are framework-agnostic and auditable.
@@ -41,8 +41,7 @@ Extract documents from tool call results and add them as separate `Content` bloc
 
 **Rejected** because:
 
-- LangChain4J provider adapters have inconsistent support for multi-content tool results across providers. The Anthropic
-  adapter may handle `ImageContent` in tool results, but Bedrock support is unclear.
+- LangChain4J provider adapters have inconsistent support for multi-content tool results across providers.
 - Changes would be invisible in the conversation history (only visible at the L4J wire format level).
 - Tightly couples the solution to LangChain4J capabilities.
 
@@ -67,11 +66,13 @@ correlate the reference with the actual content in the user message.
 
 **Generic layer** (`AgentMessagesHandlerImpl`):
 
-1. After building the `ToolCallResultMessage`, scan each `ToolCallResult.content()` tree for `Document` instances.
-2. Build a single `UserMessage` containing `TextContent` separators per tool call (for association) and `DocumentContent`
-   blocks for each extracted document.
-3. Apply the same extraction to event messages: append `DocumentContent` blocks to the event `UserMessage`.
-4. Message ordering: `ToolCallResultMessage` -> document `UserMessage` -> event `UserMessage`(s).
+1. After building the `ToolCallResultMessage`, scan each `ToolCallResult.content()` tree for `Document` instances using
+   `ToolCallResultDocumentExtractor` (handles `Map`, `Collection`, `Object[]`, and `Document`).
+2. Build a single `UserMessage` (metadata: `toolCallDocuments=true`) containing a preamble, per-document XML tags with
+   correlation attributes, and `DocumentContent` blocks.
+3. Apply the same extraction to event messages: prepend `<document>` XML tags before each `DocumentContent` block in the
+   event `UserMessage`.
+4. Message ordering: `ToolCallResultMessage` → document `UserMessage` → event `UserMessage`(s).
 
 **LangChain4J layer** (`ToolCallConverterImpl`):
 
@@ -85,15 +86,33 @@ correlate the reference with the actual content in the user message.
 references when persisted). The follow-up `UserMessage` with `DocumentContent` blocks is a regular message in the
 conversation. Both are visible and auditable.
 
-**User message format** (example with two tool calls):
+### Document user message format
+
+The document `UserMessage` contains interleaved `TextContent` tags and `DocumentContent` blocks. Each document is
+preceded by a self-closing XML tag with correlation attributes:
 
 ```
-TextContent: "Tool call 'generate_report' (call_1) documents:"
-DocumentContent: report.pdf
-DocumentContent: chart.png
-TextContent: "Tool call 'fetch_data' (call_2) documents:"
-DocumentContent: data.csv
+TextContent: "Documents extracted from tool call results:"
+TextContent: <document tool="generate_report" call-id="call_1" document-short-id="25ece9fa" filename="report.pdf" />
+DocumentContent: [report.pdf content]
+TextContent: <document tool="generate_report" call-id="call_1" document-short-id="f7b3a1d0" />
+DocumentContent: [chart.png content]
+TextContent: <document tool="fetch_data" call-id="call_2" document-short-id="c44d82e1" filename="data.csv" />
+DocumentContent: [data.csv content]
 ```
+
+The `document-short-id` is the first segment of the document's UUID identifier (e.g. `25ece9fa` from
+`25ece9fa-aeea-423d-98ed-67c1f08b137b`). It provides a compact correlation key for the model to match the reference in
+the tool result JSON with the actual content. All attribute values are XML-escaped.
+
+For event documents, the same `<document>` tag format is used, but without `tool` and `call-id` attributes since events
+are not associated with a specific tool call.
+
+### Message window memory
+
+The synthetic document `UserMessage` (identified by `UserMessage.METADATA_TOOL_CALL_DOCUMENTS`) does not count toward
+the `maxMessages` context window limit. When evicting messages, the document `UserMessage` is removed together with its
+associated `ToolCallResultMessage` — it is never orphaned.
 
 ### Gateway tool handlers must preserve raw content
 
@@ -104,7 +123,7 @@ instances in the content tree have already been deserialized by the connectors `
 
 Gateway handlers **must not** convert this raw content to typed domain objects (e.g., `McpClientCallToolResult`,
 `A2aSendMessageResult`) and put the typed object back as `ToolCallResult.content()`. The `ToolCallResultDocumentExtractor`
-walks the content tree using `instanceof` checks for `Document`, `Map`, and `Collection`. Typed records and POJOs are
+walks the content tree using `instanceof` checks for `Document`, `Map`, `Collection`, and `Object[]`. Typed records and POJOs are
 invisible to it — documents nested inside them would not be extracted.
 
 Instead, handlers should:
@@ -117,7 +136,8 @@ Instead, handlers should:
 A follow-up optimization can promote specific document types from the user message back into the
 `ToolExecutionResultMessage` for providers that support native multi-content tool results (e.g., images on Anthropic).
 This would be a post-processing step in the L4J framework adapter, transparent to the generic layer and conversation
-history.
+history. The document `UserMessage` can be rebuilt from the `ToolCallResult` content tree (by re-running extraction)
+with only the non-promoted documents remaining.
 
 ## Consequences
 
@@ -135,5 +155,5 @@ history.
 
 * Adds one extra user message to the conversation when tool results contain documents, consuming additional tokens.
 * The model must correlate document references in the tool result text with document content in the follow-up user
-  message. The text separators with tool call name and ID mitigate this.
+  message. The XML tags with tool name, call ID, and document short ID mitigate this.
 * Slight increase in conversation history size due to the additional message.
