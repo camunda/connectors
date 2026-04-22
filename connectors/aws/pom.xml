@@ -28,7 +28,7 @@
     <module>aws-comprehend</module>
     <module>aws-textract</module>
     <module>aws-s3</module>
-    <module>aws-bedrock-agentcore-lt-memory</module>
+    <module>aws-bedrock-agentcore-long-term-memory</module>
     <module>aws-bedrock-knowledgebase</module>
   </modules>
 
