@@ -37,12 +37,22 @@ public interface ConversationStore {
   /**
    * Best-effort: the job carrying the given agentContext was accepted by Zeebe. Implementations may
    * use this to clean up previous state (old documents, orphaned branches).
+   *
+   * <p>Receives the same execution context as {@link #createSession} so implementations can create
+   * a temporary session for post-commit actions if needed.
    */
-  default void onJobCompleted(AgentContext committedContext) {}
+  default void onJobCompleted(
+      AgentExecutionContext executionContext, AgentContext committedContext) {}
 
   /**
    * Best-effort: the job was not accepted. The store may have written state that Zeebe doesn't know
    * about.
+   *
+   * <p>Receives the same execution context as {@link #createSession} so implementations can create
+   * a temporary session for compensation if needed.
    */
-  default void onJobCompletionFailed(AgentContext failedContext, JobCompletionFailure failure) {}
+  default void onJobCompletionFailed(
+      AgentExecutionContext executionContext,
+      AgentContext failedContext,
+      JobCompletionFailure failure) {}
 }

@@ -112,7 +112,8 @@ public abstract class BaseAgentRequestHandler<
           "Request processing completed {} agent response, completing job",
           agentResponse == null ? "without" : "with");
 
-      var completionListener = createStoreCompletionListener(store, agentResponse);
+      var completionListener =
+          createStoreCompletionListener(executionContext, store, agentResponse);
       return buildConnectorResponse(executionContext, agentResponse, completionListener);
     }
   }
@@ -212,8 +213,9 @@ public abstract class BaseAgentRequestHandler<
       @Nullable final AgentResponse agentResponse,
       @Nullable final JobCompletionListener completionListener);
 
-  private static JobCompletionListener createStoreCompletionListener(
-      ConversationStore store, @Nullable AgentResponse agentResponse) {
+  private static <C extends AgentExecutionContext>
+      JobCompletionListener createStoreCompletionListener(
+          C executionContext, ConversationStore store, @Nullable AgentResponse agentResponse) {
     if (agentResponse == null) {
       return null;
     }
@@ -221,12 +223,12 @@ public abstract class BaseAgentRequestHandler<
     return new JobCompletionListener() {
       @Override
       public void onJobCompleted() {
-        store.onJobCompleted(context);
+        store.onJobCompleted(executionContext, context);
       }
 
       @Override
       public void onJobCompletionFailed(JobCompletionFailure failure) {
-        store.onJobCompletionFailed(context, failure);
+        store.onJobCompletionFailed(executionContext, context, failure);
       }
     };
   }

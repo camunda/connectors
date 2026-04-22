@@ -12,8 +12,11 @@ This document tracks breaking changes relevant to [AI Agent customization](https
   Use `createSession(AgentExecutionContext, AgentContext)` instead — returns a `ConversationSession`
   that should be used via try-with-resources.
 - `compensateFailedJobCompletion(AgentExecutionContext, AgentContext, Throwable)` removed (was
-  deprecated and never invoked). Replaced by `onJobCompleted(AgentContext)` and
-  `onJobCompletionFailed(AgentContext, JobCompletionFailure)` — both default no-ops.
+  deprecated and never invoked). Replaced by
+  `onJobCompleted(AgentExecutionContext, AgentContext)` and
+  `onJobCompletionFailed(AgentExecutionContext, AgentContext, JobCompletionFailure)` — both default
+  no-ops. The execution context is provided so implementations can create temporary sessions for
+  compensation if needed.
 
 ### `ConversationSession`
 
