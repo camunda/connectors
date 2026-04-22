@@ -204,7 +204,9 @@ public abstract class BaseAgentRequestHandler<
     // no-op by default
   }
 
-  /** Builds the connector response from the agent response. Agent response and listener may be null. */
+  /**
+   * Builds the connector response from the agent response. Agent response and listener may be null.
+   */
   protected abstract R buildConnectorResponse(
       final C executionContext,
       @Nullable final AgentResponse agentResponse,
