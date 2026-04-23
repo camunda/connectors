@@ -53,27 +53,28 @@ visualization, and auditability.
 
 ### Goals
 
-- **Auditability**: Every LLM call, tool invocation, and conversation state change is recorded.
-  The event stream should be shaped so it can eventually serve as the source of truth for the full
-  agent execution history.
+- **Auditability**: Every LLM call, tool invocation, and conversation state change is recorded
+  so the full agent execution history is auditable — attempts, retries, and superseded
+  activations remain visible as immutable facts.
 - **Metrics support**: Produce the data required to fuel the metrics defined in the
   [Agent Visibility Metrics Reference](metrics.md).
 - **Resilience**: Events are pushed best-effort during execution and re-pushed on job completion.
   Server-side deduplication ensures correctness without requiring exactly-once delivery.
 - **Backwards compatibility**: Agents that started on a pre-tracing version (e.g., 8.9) continue
   to work after upgrade. Tracing activates transparently on the first post-upgrade job activation.
-- **Decoupled contract**: Event payloads are properly typed DTOs that form the contract between the
-  agent runtime and the backend. The backend does not need to understand the agent's internal
-  execution model (windowing algorithm, eviction rules, etc.). Message, content, and tool types
-  used in trace events are defined in the tracing package as **standalone API contract types**
-  mirroring the agent runtime model — this isolates the API contract from agent-internal
-  evolution, anticipating that a future Camunda API will own these types long-term. The mirror
-  types use the same canonical names as the runtime (`Message`, `Content`, `ToolCall`,
-  `ToolDefinition`, etc.); separation is achieved by package, not by name prefix. The mirror is
-  a **metrics-driven subset** of the runtime shape, not a mandated 1:1 copy: the runtime may
-  carry additional fields (internal state, debug metadata, in-progress features) that are
-  intentionally not part of the API contract. Extending the contract is a deliberate action
-  driven by new metric requirements; the absence of a runtime field in the mirror is not drift.
+- **Decoupled contract**: Event payloads are properly typed DTOs that form the contract between
+  the agent runtime and the backend. The backend does not need to understand the agent's
+  internal execution model (windowing algorithm, eviction rules, etc.). The message, content,
+  and tool types referenced in trace events will be provided by the **Camunda SDK** as shared
+  API contract types, and the agent runtime maps from its internal types into those SDK types
+  at emit time — isolating the wire contract from agent-internal evolution. Within this
+  connectors repository, the PoC defines PoC-local mirror types that stand in for the eventual
+  SDK types; those mirrors are intended to be replaced by SDK-provided types before the feature
+  is productionized. The contract is a **metrics-driven subset** of the runtime shape, not a
+  mandated 1:1 copy: the runtime may carry additional fields (internal state, debug metadata,
+  in-progress features) that are intentionally not part of the API contract. Extending the
+  contract is a deliberate action driven by new metric requirements; the absence of a runtime
+  field in the contract types is not drift.
 
 ### Non-Goals
 
@@ -305,8 +306,9 @@ public enum AgentTraceEventType {
 
 All payloads implement a sealed interface. Message, content, and tool types referenced by the
 payloads (`Message`, `AssistantMessage`, `Content`, `ToolDefinition`, ...) are the API contract
-types defined in §6.5 — they live in the tracing package and mirror the agent runtime model
-without depending on it.
+types described in §6.5. The production contract types will be owned by the Camunda SDK; this
+PoC defines local stand-ins in the connectors repo that mirror the agent runtime model without
+depending on it, to be replaced by SDK types ahead of productionization.
 
 ```java
 public sealed interface AgentTraceEventPayload {
@@ -449,16 +451,17 @@ public record TokenUsageInfo(
 
 ### 6.5 API contract types (mirrored from the agent runtime)
 
-Message, content, and tool types referenced by trace event payloads are defined in the tracing
-package as **standalone API contract types**. They share canonical names with the agent runtime
-model (`Message`, `AssistantMessage`, `Content`, `TextContent`, `DocumentContent`, `ObjectContent`,
-`Document`, `DocumentReference`, `ToolCall`, `ToolDefinition`, `ToolCallResult`) — separation is
-by package, not by name prefix — so a future public Camunda agent execution API can adopt these
-types directly without renaming.
+Message, content, and tool types referenced by trace event payloads are **API contract types**
+that will be provided by the Camunda SDK once the feature is productionized. For this PoC they
+are defined locally in the connectors repo as stand-ins, sharing canonical names with the
+agent runtime model (`Message`, `AssistantMessage`, `Content`, `TextContent`, `DocumentContent`,
+`ObjectContent`, `Document`, `DocumentReference`, `ToolCall`, `ToolDefinition`, `ToolCallResult`)
+so the eventual SDK types can drop in by replacing imports. Separation from the agent runtime
+types is by package, not by name prefix.
 
-The agent runtime maps from its internal types into these API types at emit time. The mirrors
-are free to evolve independently of the runtime model (and vice versa) when that decoupling is
-valuable; schema changes to either side go through explicit mapping code.
+The agent runtime maps from its internal types into the contract types at emit time. The
+contract types evolve independently of the runtime model (and vice versa) when that decoupling
+is valuable; schema changes to either side go through explicit mapping code.
 
 #### Message hierarchy
 
