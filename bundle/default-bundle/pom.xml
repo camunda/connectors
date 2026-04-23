@@ -79,6 +79,11 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-aws-bedrock-agentcore-long-term-memory</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
       <artifactId>connector-aws-textract</artifactId>
       <scope>runtime</scope>
     </dependency>
