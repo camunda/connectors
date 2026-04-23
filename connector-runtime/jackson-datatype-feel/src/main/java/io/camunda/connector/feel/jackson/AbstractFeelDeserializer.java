@@ -44,8 +44,25 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
    * final result. For final results, use the {@link DeserializationContext} object passed to {@link
    * #doDeserialize(JsonNode, JsonNode, DeserializationContext)} instead.
    */
-  protected static final ObjectMapper BLANK_OBJECT_MAPPER =
-      ConnectorsObjectMapperSupplier.getCopy();
+  protected static final ObjectMapper BLANK_OBJECT_MAPPER = createBlankObjectMapper();
+
+  private static ObjectMapper createBlankObjectMapper() {
+    ObjectMapper mapper = ConnectorsObjectMapperSupplier.getCopy();
+    // Register document serializer to handle Document objects in FEEL context
+    // This is needed when process variables contain documents that need to be serialized
+    // to JsonNode for FEEL expression evaluation context
+    try {
+      Class<?> serializerClass =
+          Class.forName("io.camunda.connector.document.jackson.JacksonModuleDocumentSerializer");
+      mapper.registerModule(
+          (com.fasterxml.jackson.databind.Module)
+              serializerClass.getDeclaredConstructor().newInstance());
+    } catch (Exception e) {
+      // Document serializer module not available - this is expected in versions <= 8.8
+      // or when document module is not on classpath. Continue without it.
+    }
+    return mapper;
+  }
 
   /**
    * Creates a new deserializer with the given FEEL expression evaluator.
