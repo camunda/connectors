@@ -36,7 +36,7 @@ public class NonProxyHosts {
   public static final String CONNECTOR_HTTP_NON_PROXY_HOSTS_ENV_VAR =
       "CONNECTOR_HTTP_NON_PROXY_HOSTS";
 
-  private static final ConcurrentHashMap<String, String> REGEX_CACHE = new ConcurrentHashMap<>();
+  private static final ConcurrentHashMap<String, Pattern> PATTERN_CACHE = new ConcurrentHashMap<>();
 
   private NonProxyHosts() {}
 
@@ -47,7 +47,8 @@ public class NonProxyHosts {
    */
   public static boolean isNonProxyHost(String hostname) {
     return getNonProxyHostsPatterns()
-        .anyMatch(nonProxyHostsPattern -> hostname.matches(toRegex(nonProxyHostsPattern)));
+        .anyMatch(
+            nonProxyHostsPattern -> toPattern(nonProxyHostsPattern).matcher(hostname).matches());
   }
 
   /**
@@ -76,22 +77,26 @@ public class NonProxyHosts {
 
   /**
    * Converts a non-proxy hosts pattern string (pipe-separated, with {@code *} wildcards) into a
-   * regex pattern. Each token is split by {@code *}, each part is regex-escaped via {@link
+   * regex pattern string. Each token is split by {@code *}, each part is regex-escaped via {@link
    * Pattern#quote}, and parts are rejoined with {@code .*}. Tokens are then rejoined with {@code |}
    * for alternation. This ensures that regex metacharacters such as {@code .} are treated as
-   * literals rather than regex constructs. Results are cached to avoid recomputing the same pattern
-   * on every request.
+   * literals rather than regex constructs.
    */
   static String toRegex(String nonProxyHosts) {
-    return REGEX_CACHE.computeIfAbsent(
-        nonProxyHosts,
-        pattern ->
-            Arrays.stream(pattern.split("\\|", -1))
-                .map(
-                    token ->
-                        Arrays.stream(token.split("\\*", -1))
-                            .map(Pattern::quote)
-                            .collect(Collectors.joining(".*")))
-                .collect(Collectors.joining("|")));
+    return Arrays.stream(nonProxyHosts.split("\\|", -1))
+        .map(
+            token ->
+                Arrays.stream(token.split("\\*", -1))
+                    .map(Pattern::quote)
+                    .collect(Collectors.joining(".*")))
+        .collect(Collectors.joining("|"));
+  }
+
+  /**
+   * Returns a precompiled {@link Pattern} for the given non-proxy hosts pattern string. Results are
+   * cached to avoid recompiling the same pattern on every request.
+   */
+  private static Pattern toPattern(String nonProxyHosts) {
+    return PATTERN_CACHE.computeIfAbsent(nonProxyHosts, s -> Pattern.compile(toRegex(s)));
   }
 }
