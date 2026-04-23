@@ -3,7 +3,7 @@
 * Authors: Agentic AI Team
 * Date: April 23, 2026
 * Status: **Proposed** (PoC)
-* Related: [API Provider Guide](agent-execution-tracing-api.md), [Metrics Coverage](agent-execution-tracing-metrics.md), [Metrics Reference](https://github.com/camunda/camunda-hub-design-prototype/blob/main/docs/drafts/agent-visibility-metrics-reference.md), [AI Agent Reference](reference/ai-agent.md), [Conversation Storage SPI Redesign](adr/003-conversation-storage-spi-redesign.md)
+* Related: [Metrics Coverage](metrics.md), [Metrics Reference](https://github.com/camunda/camunda-hub-design-prototype/blob/main/docs/drafts/agent-visibility-metrics-reference.md), [AI Agent Reference](../reference/ai-agent.md), [Conversation Storage SPI Redesign](../adr/003-conversation-storage-spi-redesign.md)
 
 ---
 
@@ -19,10 +19,11 @@
 8. [Deduplication Strategy](#8-deduplication-strategy)
 9. [Delta Tracking & Conversation Reconstruction](#9-delta-tracking--conversation-reconstruction)
 10. [Integration Points](#10-integration-points)
-11. [Backwards Compatibility](#11-backwards-compatibility)
-12. [Metrics Coverage](#12-metrics-coverage)
-13. [Feature Gaps & Planned Work](#13-feature-gaps--planned-work)
-14. [PoC Scope](#14-poc-scope)
+11. [Event Examples](#11-event-examples)
+12. [Backwards Compatibility](#12-backwards-compatibility)
+13. [Metrics Coverage](#13-metrics-coverage)
+14. [Feature Gaps & Planned Work](#14-feature-gaps--planned-work)
+15. [PoC Scope](#15-poc-scope)
 
 ---
 
@@ -515,6 +516,30 @@ public record EmittedToolCall(
 ) {}
 ```
 
+### 7.5 Quick reference: where to find key data
+
+| What you're looking for | Event type | Field path |
+|------------------------|-----------|------------|
+| **AI response text** | `LLM_CALL_COMPLETED` | `payload.assistantMessage.content` — list of content blocks (text, images, etc.) |
+| **Tool calls the LLM requested** | `TOOL_CALLS_EMITTED` | `payload.toolCalls[]` — each has `toolCallId`, `llmToolName`, `elementId`, `arguments` |
+| **Tool call results** | `TOOL_CALL_RESULT_RECEIVED` | `payload.content` — the raw output returned by the tool |
+| **Token usage (per LLM call)** | `LLM_CALL_COMPLETED` | `payload.tokenUsage.inputTokenCount`, `.outputTokenCount` |
+| **LLM call duration** | `LLM_CALL_COMPLETED` | `payload.durationMs` |
+| **User prompt / input messages** | `LLM_CALL_STARTED` | `payload.messages[]` — delta messages added this turn (excluding tool results) |
+| **Tool call duration** | `TOOL_CALLS_EMITTED` + `TOOL_CALL_RESULT_RECEIVED` | Pair by `toolCallId`: duration = `completedAt` − `TOOL_CALLS_EMITTED.timestamp` |
+| **Available tools** | `TOOL_DEFINITIONS_CHANGED` | `payload.toolDefinitions[]` |
+| **System prompt** | `CreateAgentExecutionRequest` | `systemPrompt` field on the parent entity |
+| **Model / provider** | `CreateAgentExecutionRequest` | `provider.type`, `provider.model` |
+| **Limit violations** | `LIMIT_HIT` | `payload.limitType`, `.configuredThreshold`, `.actualValue` |
+| **Full conversation** | Replay all events (see [§9](#9-delta-tracking--conversation-reconstruction)) | Or use `CONVERSATION_SNAPSHOT.messages` as a reset point |
+
+> **AI response content vs tool calls**: The LLM's response is always in
+> `LLM_CALL_COMPLETED.assistantMessage`. This message may contain **both** text content (`content`
+> field) **and** tool call requests (`toolCalls` field). When the LLM requests tool calls, the same
+> tool calls are also emitted as a separate `TOOL_CALLS_EMITTED` event with the additional
+> `elementId` mapping. The `TOOL_CALLS_EMITTED` event is the authoritative source for tool call
+> details because it includes the BPMN element ID (which the raw assistant message does not carry).
+
 ---
 
 ## 8. Deduplication Strategy
@@ -808,7 +833,281 @@ originating tool calls and to their BPMN elements.
 
 ---
 
-## 11. Backwards Compatibility
+## 11. Event Examples
+
+A complete end-to-end example of a support agent execution. The agent uses an MCP-connected
+Jira server and a regular `getCustomerInfo` tool. The example walks through the full lifecycle:
+creation → initialization with tool discovery → first LLM call → partial tool results (no-op) →
+all results arrive → second LLM call → final response.
+
+All events below are pushed via `POST /agent-executions/42/events`.
+
+### 11.1 Turn 1: Creation and initialization with MCP tool discovery
+
+The agent enters the AHSP for the first time. `agentExecutionKey` is `null`, so the agent
+first calls `POST /agent-executions` to create the execution entity, receiving key `42`.
+
+The agent detects an MCP gateway tool element and initiates tool discovery.
+
+```json
+[
+  {
+    "dedupKey": "aaa-0001",
+    "type": "TOOL_DISCOVERY_STARTED",
+    "timestamp": "2026-04-23T14:29:55.100Z",
+    "jobKey": 2251799813685300,
+    "payload": {
+      "gatewayTypes": ["mcp"]
+    }
+  },
+  {
+    "dedupKey": "aaa-0002",
+    "type": "TURN_COMPLETED",
+    "timestamp": "2026-04-23T14:29:55.110Z",
+    "jobKey": 2251799813685300,
+    "payload": {}
+  }
+]
+```
+
+> The agent completes the job with tool discovery tool calls. No LLM call yet.
+
+### 11.2 Turn 2: Discovery results arrive → tool definitions → first LLM call → tool calls
+
+The MCP server responded with its tool list. The agent merges the discovered tools with the
+static tools, emits the full tool definition set, and proceeds to the first LLM call with the
+user's prompt.
+
+**Batch 1** (pushed before LLM call):
+
+```json
+[
+  {
+    "dedupKey": "bbb-0001",
+    "type": "TOOL_DEFINITIONS_CHANGED",
+    "timestamp": "2026-04-23T14:29:58.200Z",
+    "jobKey": 2251799813685305,
+    "payload": {
+      "toolDefinitions": [
+        {"name": "getCustomerInfo", "description": "Look up customer by ID"},
+        {"name": "MCP_Jira___getOpenTickets", "description": "List open Jira tickets"},
+        {"name": "MCP_Jira___getTicketDetails", "description": "Get Jira ticket details"}
+      ]
+    }
+  },
+  {
+    "dedupKey": "bbb-0002",
+    "type": "LLM_CALL_STARTED",
+    "timestamp": "2026-04-23T14:29:58.210Z",
+    "jobKey": 2251799813685305,
+    "payload": {
+      "messages": [
+        {
+          "role": "system",
+          "id": "019078a1-1a2b-7c3d-4e5f-6a7b8c9d0e1f",
+          "content": [{"type": "text", "text": "You are a support agent. Help the customer."}]
+        },
+        {
+          "role": "user",
+          "id": "019078a1-2b3c-7d4e-5f6a-7b8c9d0e1f2a",
+          "content": [{"type": "text", "text": "My mobile app login is broken, customer ID C-5678"}]
+        }
+      ],
+      "firstIncludedMessageId": null
+    }
+  }
+]
+```
+
+> `firstIncludedMessageId` is `null` — all messages fit in the context window (no eviction).
+
+**Batch 2** (pushed after LLM response):
+
+```json
+[
+  {
+    "dedupKey": "bbb-0003",
+    "type": "LLM_CALL_COMPLETED",
+    "timestamp": "2026-04-23T14:30:00.550Z",
+    "jobKey": 2251799813685305,
+    "payload": {
+      "assistantMessage": {
+        "role": "assistant",
+        "id": "019078a1-4b2d-7f1e-9c3a-2d8e1f9a0b3c",
+        "content": [
+          {"type": "text", "text": "Let me look up your account and check for open issues."}
+        ],
+        "toolCalls": [
+          {"id": "tc_01", "name": "getCustomerInfo", "arguments": {"customerId": "C-5678"}},
+          {"id": "tc_02", "name": "MCP_Jira___getOpenTickets", "arguments": {"customerId": "C-5678"}}
+        ]
+      },
+      "tokenUsage": {"inputTokenCount": 1250, "outputTokenCount": 89},
+      "durationMs": 2340
+    }
+  },
+  {
+    "dedupKey": "bbb-0004",
+    "type": "TOOL_CALLS_EMITTED",
+    "timestamp": "2026-04-23T14:30:00.555Z",
+    "jobKey": 2251799813685305,
+    "payload": {
+      "toolCalls": [
+        {"toolCallId": "tc_01", "llmToolName": "getCustomerInfo", "elementId": "getCustomerInfo", "arguments": {"customerId": "C-5678"}},
+        {"toolCallId": "tc_02", "llmToolName": "MCP_Jira___getOpenTickets", "elementId": "MCP_Jira", "arguments": {"customerId": "C-5678"}}
+      ]
+    }
+  },
+  {
+    "dedupKey": "bbb-0005",
+    "type": "TURN_COMPLETED",
+    "timestamp": "2026-04-23T14:30:00.560Z",
+    "jobKey": 2251799813685305,
+    "payload": {}
+  }
+]
+```
+
+> The tool calls appear in **both** `LLM_CALL_COMPLETED.assistantMessage.toolCalls` and
+> `TOOL_CALLS_EMITTED.toolCalls`. The key difference: `TOOL_CALLS_EMITTED` carries `elementId`.
+> For `MCP_Jira___getOpenTickets`, the element ID is `MCP_Jira` (one MCP server element handling
+> multiple tools). For `getCustomerInfo`, the names are identical (regular BPMN element).
+
+### 11.3 Turn 3: Partial tool results — no-op
+
+`getCustomerInfo` (tc_01) completed, but `MCP_Jira___getOpenTickets` (tc_02) is still running.
+The agent records the partial result and completes without calling the LLM.
+
+```json
+[
+  {
+    "dedupKey": "tc_01",
+    "type": "TOOL_CALL_RESULT_RECEIVED",
+    "timestamp": "2026-04-23T14:30:01.100Z",
+    "jobKey": 2251799813685310,
+    "payload": {
+      "toolCallId": "tc_01",
+      "llmToolName": "getCustomerInfo",
+      "elementId": "getCustomerInfo",
+      "content": "{\"name\": \"Alice\", \"plan\": \"Enterprise\", \"accountId\": \"A-1234\"}",
+      "completedAt": "2026-04-23T14:30:00.950Z"
+    }
+  },
+  {
+    "dedupKey": "ccc-0001",
+    "type": "TURN_COMPLETED",
+    "timestamp": "2026-04-23T14:30:01.105Z",
+    "jobKey": 2251799813685310,
+    "payload": {}
+  }
+]
+```
+
+> No `LLM_CALL_STARTED` or `LLM_CALL_COMPLETED` — the agent is waiting for tc_02. When the
+> next turn arrives with both results, `TOOL_CALL_RESULT_RECEIVED` for tc_01 will be emitted
+> again with the same `dedupKey` = `"tc_01"` — the server deduplicates it.
+
+### 11.4 Turn 4: All tool results arrive → LLM call → final response
+
+Both tool call results are now present. The agent calls the LLM, which responds with a final
+text answer (no tool calls).
+
+**Batch 1** (tool results + LLM call start):
+
+```json
+[
+  {
+    "dedupKey": "tc_01",
+    "type": "TOOL_CALL_RESULT_RECEIVED",
+    "timestamp": "2026-04-23T14:30:05.100Z",
+    "jobKey": 2251799813685315,
+    "payload": {
+      "toolCallId": "tc_01",
+      "llmToolName": "getCustomerInfo",
+      "elementId": "getCustomerInfo",
+      "content": "{\"name\": \"Alice\", \"plan\": \"Enterprise\", \"accountId\": \"A-1234\"}",
+      "completedAt": "2026-04-23T14:30:00.950Z"
+    }
+  },
+  {
+    "dedupKey": "tc_02",
+    "type": "TOOL_CALL_RESULT_RECEIVED",
+    "timestamp": "2026-04-23T14:30:05.101Z",
+    "jobKey": 2251799813685315,
+    "payload": {
+      "toolCallId": "tc_02",
+      "llmToolName": "MCP_Jira___getOpenTickets",
+      "elementId": "MCP_Jira",
+      "content": "[{\"id\": \"JIRA-456\", \"summary\": \"Login fails on mobile\"}]",
+      "completedAt": "2026-04-23T14:30:04.800Z"
+    }
+  },
+  {
+    "dedupKey": "ddd-0001",
+    "type": "LLM_CALL_STARTED",
+    "timestamp": "2026-04-23T14:30:05.110Z",
+    "jobKey": 2251799813685315,
+    "payload": {
+      "messages": [],
+      "firstIncludedMessageId": null
+    }
+  }
+]
+```
+
+> tc_01 appears again (same `dedupKey` = `"tc_01"`) — the server deduplicates it. tc_02 is new.
+> `LLM_CALL_STARTED.messages` is empty because the only new inputs are tool call results,
+> already covered by their individual events.
+
+**Batch 2** (LLM response + agent completion):
+
+```json
+[
+  {
+    "dedupKey": "ddd-0002",
+    "type": "LLM_CALL_COMPLETED",
+    "timestamp": "2026-04-23T14:30:07.450Z",
+    "jobKey": 2251799813685315,
+    "payload": {
+      "assistantMessage": {
+        "role": "assistant",
+        "id": "019078a1-5c3d-7e2f-1a0b-3c4d5e6f7a8b",
+        "content": [
+          {"type": "text", "text": "Hi Alice! I found your account (Enterprise plan) and see you have an open ticket JIRA-456 about mobile login failures. This is a known issue affecting iOS users — the team is working on a fix expected by end of day. I'll add a priority flag to your ticket."}
+        ],
+        "toolCalls": []
+      },
+      "tokenUsage": {"inputTokenCount": 2150, "outputTokenCount": 187},
+      "durationMs": 1850
+    }
+  },
+  {
+    "dedupKey": "ddd-0003",
+    "type": "AGENT_COMPLETED",
+    "timestamp": "2026-04-23T14:30:07.455Z",
+    "jobKey": 2251799813685315,
+    "payload": {}
+  },
+  {
+    "dedupKey": "ddd-0004",
+    "type": "TURN_COMPLETED",
+    "timestamp": "2026-04-23T14:30:07.460Z",
+    "jobKey": 2251799813685315,
+    "payload": {}
+  }
+]
+```
+
+> The AI's final answer is in `assistantMessage.content`. `toolCalls` is empty — the LLM decided
+> it has enough information. `AGENT_COMPLETED` signals the execution is done. The AHSP will
+> complete.
+>
+> **Total for this execution**: 2 LLM calls (turns 2 and 4), 2 tool calls, 3400 input tokens,
+> 276 output tokens, 4 turns (2 with LLM calls = 2 iterations).
+
+---
+
+## 12. Backwards Compatibility
 
 ### 11.1 Upgrade scenario
 
@@ -853,15 +1152,15 @@ processed by the connector).
 
 ---
 
-## 12. Metrics Coverage
+## 13. Metrics Coverage
 
 For the comprehensive metrics derivation reference — how the server uses events and Zeebe data to
 compute each metric from the [Agent Visibility Metrics Reference](https://github.com/camunda/camunda-hub-design-prototype/blob/main/docs/drafts/agent-visibility-metrics-reference.md)
-— see [agent-execution-tracing-metrics.md](agent-execution-tracing-metrics.md).
+— see [metrics.md](metrics.md).
 
 ---
 
-## 13. Feature Gaps & Planned Work
+## 14. Feature Gaps & Planned Work
 
 ### 13.1 Agent runtime features needed for full metrics coverage
 
@@ -884,10 +1183,7 @@ compute each metric from the [Agent Visibility Metrics Reference](https://github
 
 ---
 
-## 14. PoC Scope
-
-> For the API provider perspective (backend implementation guide), see
-> [agent-execution-tracing-api.md](agent-execution-tracing-api.md).
+## 15. PoC Scope
 
 ### What's included
 
