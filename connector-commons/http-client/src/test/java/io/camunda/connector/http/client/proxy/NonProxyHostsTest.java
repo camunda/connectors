@@ -18,6 +18,7 @@ package io.camunda.connector.http.client.proxy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -110,7 +111,12 @@ public class NonProxyHostsTest {
   void shouldReturnRegexPatternsFromSystemProperty() {
     System.setProperty("http.nonProxyHosts", "localhost|*.example.com");
     assertThat(NonProxyHosts.getNonProxyHostRegexPatterns())
-        .containsExactly("\\Qlocalhost\\E|\\Q\\E.*\\Q.example.com\\E");
+        .containsExactly(
+            Pattern.quote("localhost")
+                + "|"
+                + Pattern.quote("")
+                + ".*"
+                + Pattern.quote(".example.com"));
   }
 
   @Test
@@ -118,7 +124,8 @@ public class NonProxyHostsTest {
     System.setProperty("http.nonProxyHosts", "localhost");
     environmentVariables.set("CONNECTOR_HTTP_NON_PROXY_HOSTS", "*.example.com");
     assertThat(NonProxyHosts.getNonProxyHostRegexPatterns())
-        .containsExactlyInAnyOrder("\\Qlocalhost\\E", "\\Q\\E.*\\Q.example.com\\E");
+        .containsExactlyInAnyOrder(
+            Pattern.quote("localhost"), Pattern.quote("") + ".*" + Pattern.quote(".example.com"));
   }
 
   @Test
