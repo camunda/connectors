@@ -3,16 +3,7 @@
   "name" : "SendGrid Outbound Connector",
   "id" : "io.camunda.connectors.SendGrid.v2",
   "description" : "Send an email via SendGrid",
-  "keywords" : [
-    "send email",
-    "email notification",
-    "transactional email",
-    "marketing email",
-    "email campaign",
-    "email delivery",
-    "dynamic template",
-    "email template"
-  ],
+  "keywords" : [ "send email", "email notification", "transactional email", "marketing email", "email campaign", "email delivery", "dynamic template", "email template" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sendgrid/",
   "version" : 5,
   "category" : {

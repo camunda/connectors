@@ -115,7 +115,7 @@ class OutboundConnectorAgentRequestHandlerTest {
         .thenReturn(new AgentResponseInitializationResult(agentResponse));
 
     final var response = requestHandler.handleRequest(agentExecutionContext);
-    assertThat(response).isEqualTo(agentResponse);
+    assertThat(response.agentResponse()).isEqualTo(agentResponse);
 
     verifyNoInteractions(
         limitsValidator, messagesHandler, gatewayToolHandlers, framework, responseHandler);
@@ -159,17 +159,20 @@ class OutboundConnectorAgentRequestHandlerTest {
     assertThat(runtimeMemoryCaptor.getValue().allMessages())
         .containsExactlyElementsOf(expectedMessages);
 
-    assertThat(response.context().state()).isEqualTo(AgentState.READY);
-    assertThat(response.context().metrics()).isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
-    assertThat(response.context().conversation())
+    var agentResponse = response.agentResponse();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
+    assertThat(agentResponse.context().metrics())
+        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+    assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
             InProcessConversationContext.class,
             c -> assertThat(c.messages()).containsExactlyElementsOf(expectedMessages));
 
-    assertThat(response.responseMessage()).isEqualTo(assistantMessage);
-    assertThat(response.responseText()).isEqualTo(assistantMessageText);
-    assertThat(response.toolCalls()).isEmpty();
+    assertThat(agentResponse.responseMessage()).isEqualTo(assistantMessage);
+    assertThat(agentResponse.responseText()).isEqualTo(assistantMessageText);
+    assertThat(agentResponse.toolCalls()).isEmpty();
 
     verify(limitsValidator).validateConfiguredLimits(agentExecutionContext, INITIAL_AGENT_CONTEXT);
   }
@@ -217,17 +220,20 @@ class OutboundConnectorAgentRequestHandlerTest {
     assertThat(runtimeMemoryCaptor.getValue().allMessages())
         .containsExactlyElementsOf(expectedMessages);
 
-    assertThat(response.context().state()).isEqualTo(AgentState.READY);
-    assertThat(response.context().metrics()).isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
-    assertThat(response.context().conversation())
+    var agentResponse = response.agentResponse();
+    assertThat(agentResponse).isNotNull();
+    assertThat(agentResponse.context().state()).isEqualTo(AgentState.READY);
+    assertThat(agentResponse.context().metrics())
+        .isEqualTo(new AgentMetrics(1, new TokenUsage(10, 20)));
+    assertThat(agentResponse.context().conversation())
         .isNotNull()
         .isInstanceOfSatisfying(
             InProcessConversationContext.class,
             c -> assertThat(c.messages()).containsExactlyElementsOf(expectedMessages));
 
-    assertThat(response.responseMessage()).isEqualTo(assistantMessage);
-    assertThat(response.responseText()).isNull();
-    assertThat(response.toolCalls())
+    assertThat(agentResponse.responseMessage()).isEqualTo(assistantMessage);
+    assertThat(agentResponse.responseText()).isNull();
+    assertThat(agentResponse.toolCalls())
         .containsExactly(
             new ToolCallProcessVariable(
                 new ToolCallProcessVariable.ToolCallMetadata("abcdef_transformed", "getWeather"),

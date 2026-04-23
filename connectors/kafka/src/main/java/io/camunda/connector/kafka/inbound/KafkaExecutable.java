@@ -34,6 +34,14 @@ import org.slf4j.LoggerFactory;
     version = 7,
     inputDataClass = KafkaConnectorProperties.class,
     description = "Consume Kafka messages",
+    keywords = {
+      "receive message",
+      "consume message",
+      "event streaming",
+      "subscribe to topic",
+      "message queue",
+      "stream data"
+    },
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound",
     propertyGroups = {

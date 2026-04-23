@@ -179,7 +179,7 @@ public class ClassBasedDocsGenerator implements DocsGenerator<Class<?>> {
     model.put("id", elementTemplate.id());
     model.put("name", elementTemplate.name());
     model.put("description", elementTemplate.description());
-    model.put("keywords", elementTemplate.metadata().keywords());
+    model.put("keywords", elementTemplate.keywords());
     model.put("version", elementTemplate.version());
     model.put("type", templateGenerationContext.connectorType());
     model.put(

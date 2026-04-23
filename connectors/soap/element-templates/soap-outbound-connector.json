@@ -3,18 +3,7 @@
   "name" : "SOAP Connector",
   "id" : "io.camunda:soap",
   "description" : "A Connector to execute a SOAP request",
-  "keywords" : [
-    "web service",
-    "SOAP",
-    "XML",
-    "WSDL",
-    "API",
-    "enterprise integration",
-    "call service",
-    "web service call",
-    "SOAP 1.1",
-    "SOAP 1.2"
-  ],
+  "keywords" : [ "web service", "SOAP", "XML", "WSDL", "API", "enterprise integration", "call service", "web service call", "SOAP 1.1", "SOAP 1.2" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/soap/",
   "version" : 2,
   "category" : {

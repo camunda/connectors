@@ -45,7 +45,13 @@ import java.util.Optional;
     version = 6,
     inputDataClass = SnsWebhookConnectorPropertiesWrapper.class,
     description = "Receive messages from AWS SNS via HTTPS.",
-    metadata = @ElementTemplate.Metadata(keywords = {"receive event", "receive message"}),
+    keywords = {
+      "receive event",
+      "receive message",
+      "notification",
+      "subscribe to topic",
+      "event driven"
+    },
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=inbound",
     propertyGroups = {@PropertyGroup(id = "subscription", label = "Subscription Configuration")},

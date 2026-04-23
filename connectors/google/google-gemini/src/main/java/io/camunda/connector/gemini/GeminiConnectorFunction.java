@@ -29,6 +29,17 @@ import java.util.HashMap;
     description =
         " A large language model (LLM) created by Google AI. It's a multimodal model, meaning it can understand"
             + " and work with different types of information like text, code, audio, images, and video",
+    keywords = {
+      "generate text",
+      "AI",
+      "LLM",
+      "language model",
+      "chat",
+      "completion",
+      "generative AI",
+      "prompt",
+      "multimodal"
+    },
     inputDataClass = GeminiRequest.class,
     version = 3,
     propertyGroups = {

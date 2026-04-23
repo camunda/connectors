@@ -27,6 +27,14 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     id = "io.camunda.connectors.AWSCOMPREHEND.v1",
     name = "AWS Comprehend Outbound Connector",
     description = "Execute Comprehend models",
+    keywords = {
+      "analyze document",
+      "detect document text",
+      "text analysis",
+      "NLP",
+      "natural language processing",
+      "machine learning"
+    },
     inputDataClass = ComprehendRequest.class,
     version = 2,
     propertyGroups = {

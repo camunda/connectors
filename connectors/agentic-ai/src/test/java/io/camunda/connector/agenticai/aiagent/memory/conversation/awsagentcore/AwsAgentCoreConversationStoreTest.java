@@ -18,17 +18,16 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.AwsAgentCoreConversationStore.BedrockAgentCoreClientFactory;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
-import io.camunda.connector.agenticai.aiagent.memory.runtime.DefaultRuntimeMemory;
-import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentExecutionContext;
-import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.InProcessMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
+import io.camunda.connector.agenticai.model.message.Message;
 import io.camunda.connector.agenticai.model.message.SystemMessage;
 import io.camunda.connector.agenticai.model.message.ToolCallResultMessage;
 import io.camunda.connector.agenticai.model.message.UserMessage;
@@ -36,6 +35,7 @@ import io.camunda.connector.agenticai.model.tool.ToolCall;
 import io.camunda.connector.agenticai.model.tool.ToolCallResult;
 import io.camunda.connector.agenticai.util.TestObjectMapperSupplier;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.json.JSONException;
@@ -78,7 +78,6 @@ class AwsAgentCoreConversationStoreTest {
   @Captor private ArgumentCaptor<ListEventsRequest> listEventsRequestCaptor;
 
   private AwsAgentCoreConversationStore store;
-  private RuntimeMemory memory;
   private AwsAgentCoreMemoryStorageConfiguration config;
 
   @BeforeEach
@@ -95,7 +94,6 @@ class AwsAgentCoreConversationStoreTest {
     var conversationMapper = new AwsAgentCoreConversationMapper(TestObjectMapperSupplier.INSTANCE);
 
     store = new AwsAgentCoreConversationStore(clientFactory, conversationMapper);
-    memory = new DefaultRuntimeMemory();
   }
 
   @Test
@@ -108,15 +106,7 @@ class AwsAgentCoreConversationStoreTest {
     final var agentContext = AgentContext.empty();
     when(executionContext.memory()).thenReturn(new MemoryConfiguration(null, 20));
 
-    assertThatThrownBy(
-            () ->
-                store.executeInSession(
-                    executionContext,
-                    agentContext,
-                    session -> {
-                      session.loadIntoRuntimeMemory(agentContext, memory);
-                      return agentResponse(agentContext);
-                    }))
+    assertThatThrownBy(() -> store.createSession(executionContext, agentContext))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage(
             "Expected memory storage configuration to be of type AwsAgentCoreMemoryStorageConfiguration, but got: null");
@@ -128,15 +118,7 @@ class AwsAgentCoreConversationStoreTest {
     when(executionContext.memory())
         .thenReturn(new MemoryConfiguration(new InProcessMemoryStorageConfiguration(), 20));
 
-    assertThatThrownBy(
-            () ->
-                store.executeInSession(
-                    executionContext,
-                    agentContext,
-                    session -> {
-                      session.loadIntoRuntimeMemory(agentContext, memory);
-                      return agentResponse(agentContext);
-                    }))
+    assertThatThrownBy(() -> store.createSession(executionContext, agentContext))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageStartingWith(
             "Expected memory storage configuration to be of type AwsAgentCoreMemoryStorageConfiguration, but got:")
@@ -163,16 +145,13 @@ class AwsAgentCoreConversationStoreTest {
             createEvent(Role.ASSISTANT, "Hi there!", Instant.now().minusSeconds(30)));
     mockListEventsResponse(events);
 
-    store.executeInSession(
-        executionContext,
-        agentContext,
-        session -> {
-          session.loadIntoRuntimeMemory(agentContext, memory);
-          return agentResponse(agentContext);
-        });
+    try (var session = store.createSession(executionContext, agentContext)) {
+      var loadResult = session.loadMessages(agentContext);
 
-    // Verify messages were loaded
-    assertThat(memory.allMessages()).hasSize(2);
+      // Verify messages were loaded
+      assertThat(loadResult.messages()).hasSize(2);
+    }
+
     verify(bedrockClient).listEventsPaginator(listEventsRequestCaptor.capture());
     final var request = listEventsRequestCaptor.getValue();
     assertThat(request.memoryId()).isEqualTo(MEMORY_ID);
@@ -197,17 +176,15 @@ class AwsAgentCoreConversationStoreTest {
     when(bedrockClient.createEvent(any(CreateEventRequest.class)))
         .thenReturn(createEventResponse());
 
-    final var result =
-        store.executeInSession(
-            executionContext,
-            agentContext,
-            session -> {
-              session.loadIntoRuntimeMemory(agentContext, memory);
-              // Add messages to memory
-              memory.addMessage(userMessage("Hello!"));
-              memory.addMessage(assistantMessage("Hi there!"));
-              return agentResponse(session.storeFromRuntimeMemory(agentContext, memory));
-            });
+    AgentContext updatedAgentContext;
+    try (var session = store.createSession(executionContext, agentContext)) {
+      session.loadMessages(agentContext);
+
+      List<Message> messages = List.of(userMessage("Hello!"), assistantMessage("Hi there!"));
+      var updatedConversation =
+          session.storeMessages(agentContext, ConversationStoreRequest.of(messages));
+      updatedAgentContext = agentContext.withConversation(updatedConversation);
+    }
 
     // Verify messages were stored
     verify(bedrockClient, times(2)).createEvent(createEventRequestCaptor.capture());
@@ -223,7 +200,7 @@ class AwsAgentCoreConversationStoreTest {
     assertThat(requests.get(0).branch()).isNull();
 
     // Verify conversation context was updated
-    final var conversation = result.context().conversation();
+    final var conversation = updatedAgentContext.conversation();
     assertThat(conversation).isInstanceOf(AwsAgentCoreConversationContext.class);
     final var agentCoreContext = (AwsAgentCoreConversationContext) conversation;
     assertThat(agentCoreContext.memoryId()).isEqualTo(MEMORY_ID);
@@ -256,15 +233,15 @@ class AwsAgentCoreConversationStoreTest {
     when(bedrockClient.createEvent(any(CreateEventRequest.class)))
         .thenReturn(createEventResponse());
 
-    store.executeInSession(
-        executionContext,
-        agentContext,
-        session -> {
-          session.loadIntoRuntimeMemory(agentContext, memory);
-          // Add one new message
-          memory.addMessage(userMessage("What's the weather?"));
-          return agentResponse(session.storeFromRuntimeMemory(agentContext, memory));
-        });
+    try (var session = store.createSession(executionContext, agentContext)) {
+      var loadResult = session.loadMessages(agentContext);
+
+      // Build messages list: loaded + one new
+      var allMessages = new ArrayList<>(loadResult.messages());
+      allMessages.add(userMessage("What's the weather?"));
+
+      session.storeMessages(agentContext, ConversationStoreRequest.of(allMessages));
+    }
 
     // Verify only 1 new message was stored (not the existing 2)
     verify(bedrockClient, times(1)).createEvent(createEventRequestCaptor.capture());
@@ -282,20 +259,19 @@ class AwsAgentCoreConversationStoreTest {
     // Mock empty list events response
     mockListEventsResponse(List.of());
 
-    final var result =
-        store.executeInSession(
-            executionContext,
-            agentContext,
-            session -> {
-              session.loadIntoRuntimeMemory(agentContext, memory);
-              return agentResponse(session.storeFromRuntimeMemory(agentContext, memory));
-            });
+    AgentContext updatedAgentContext;
+    try (var session = store.createSession(executionContext, agentContext)) {
+      var loadResult = session.loadMessages(agentContext);
+      assertThat(loadResult.messages()).isEmpty();
 
-    assertThat(memory.allMessages()).isEmpty();
+      var updatedConversation =
+          session.storeMessages(agentContext, ConversationStoreRequest.of(List.of()));
+      updatedAgentContext = agentContext.withConversation(updatedConversation);
+    }
 
     // Verify conversation context was created
-    final var conversation = result.context().conversation();
-    assertThat(conversation).isInstanceOf(AwsAgentCoreConversationContext.class);
+    assertThat(updatedAgentContext.conversation())
+        .isInstanceOf(AwsAgentCoreConversationContext.class);
   }
 
   @Test
@@ -304,13 +280,9 @@ class AwsAgentCoreConversationStoreTest {
     final var agentContext = AgentContext.empty();
     mockListEventsResponse(List.of());
 
-    store.executeInSession(
-        executionContext,
-        agentContext,
-        session -> {
-          session.loadIntoRuntimeMemory(agentContext, memory);
-          return agentResponse(agentContext);
-        });
+    try (var session = store.createSession(executionContext, agentContext)) {
+      session.loadMessages(agentContext);
+    }
 
     // Verify client factory was called with config including authentication
     verify(clientFactory).createClient(config);
@@ -336,19 +308,20 @@ class AwsAgentCoreConversationStoreTest {
     when(bedrockClient.createEvent(any(CreateEventRequest.class)))
         .thenReturn(createEventResponse());
 
-    final var result =
-        store.executeInSession(
-            executionContext,
-            agentContext,
-            session -> {
-              session.loadIntoRuntimeMemory(agentContext, memory);
-              // Add system message (should be skipped from AgentCore), user message, and assistant
-              // message
-              memory.addMessage(systemMessage("You are a helpful assistant."));
-              memory.addMessage(userMessage("Hello!"));
-              memory.addMessage(assistantMessage("Hi there!"));
-              return agentResponse(session.storeFromRuntimeMemory(agentContext, memory));
-            });
+    AwsAgentCoreConversationContext agentCoreContext;
+    try (var session = store.createSession(executionContext, agentContext)) {
+      session.loadMessages(agentContext);
+
+      // Add system message (should be skipped from AgentCore), user message, and assistant message
+      List<Message> messages =
+          List.of(
+              systemMessage("You are a helpful assistant."),
+              userMessage("Hello!"),
+              assistantMessage("Hi there!"));
+      var updatedConversation =
+          session.storeMessages(agentContext, ConversationStoreRequest.of(messages));
+      agentCoreContext = (AwsAgentCoreConversationContext) updatedConversation;
+    }
 
     // Verify only 2 messages were stored to AgentCore (user and assistant), system message was
     // skipped
@@ -359,9 +332,6 @@ class AwsAgentCoreConversationStoreTest {
     assertThat(requests.get(1).clientToken()).endsWith(":1");
 
     // Verify conversation context was updated with branch info
-    final var conversation = result.context().conversation();
-    assertThat(conversation).isInstanceOf(AwsAgentCoreConversationContext.class);
-    final var agentCoreContext = (AwsAgentCoreConversationContext) conversation;
     assertThat(agentCoreContext.lastEventId()).isNotNull();
 
     // Verify system message is preserved in the context
@@ -391,19 +361,15 @@ class AwsAgentCoreConversationStoreTest {
             createEvent(Role.ASSISTANT, "Hi there!", Instant.now().minusSeconds(30)));
     mockListEventsResponse(events);
 
-    store.executeInSession(
-        executionContext,
-        agentContext,
-        session -> {
-          session.loadIntoRuntimeMemory(agentContext, memory);
-          return agentResponse(agentContext);
-        });
+    try (var session = store.createSession(executionContext, agentContext)) {
+      var loadResult = session.loadMessages(agentContext);
 
-    // Verify 3 messages in memory: 1 system (restored) + 2 from AgentCore
-    assertThat(memory.allMessages()).hasSize(3);
-    assertThat(memory.allMessages().get(0)).isInstanceOf(SystemMessage.class);
-    assertThat(memory.allMessages().get(1)).isInstanceOf(UserMessage.class);
-    assertThat(memory.allMessages().get(2)).isInstanceOf(AssistantMessage.class);
+      // Verify 3 messages: 1 system (restored) + 2 from AgentCore
+      assertThat(loadResult.messages()).hasSize(3);
+      assertThat(loadResult.messages().get(0)).isInstanceOf(SystemMessage.class);
+      assertThat(loadResult.messages().get(1)).isInstanceOf(UserMessage.class);
+      assertThat(loadResult.messages().get(2)).isInstanceOf(AssistantMessage.class);
+    }
   }
 
   @Test
@@ -431,17 +397,16 @@ class AwsAgentCoreConversationStoreTest {
     final var toolCall2 =
         ToolCall.builder().id("call_456").name("getTime").arguments(Map.of()).build();
 
-    store.executeInSession(
-        executionContext,
-        agentContext,
-        session -> {
-          session.loadIntoRuntimeMemory(agentContext, memory);
-          memory.addMessage(userMessage("What's the weather and time in Seattle?"));
-          memory.addMessage(
+    try (var session = store.createSession(executionContext, agentContext)) {
+      session.loadMessages(agentContext);
+
+      List<Message> messages =
+          List.of(
+              userMessage("What's the weather and time in Seattle?"),
               assistantMessage(
                   "Let me check the weather and time for you.", List.of(toolCall1, toolCall2)));
-          return agentResponse(session.storeFromRuntimeMemory(agentContext, memory));
-        });
+      session.storeMessages(agentContext, ConversationStoreRequest.of(messages));
+    }
 
     // Verify 2 messages were stored
     verify(bedrockClient, times(2)).createEvent(createEventRequestCaptor.capture());
@@ -514,19 +479,15 @@ class AwsAgentCoreConversationStoreTest {
 
     mockListEventsResponse(List.of(event));
 
-    store.executeInSession(
-        executionContext,
-        agentContext,
-        session -> {
-          session.loadIntoRuntimeMemory(agentContext, memory);
-          return agentResponse(agentContext);
-        });
+    try (var session = store.createSession(executionContext, agentContext)) {
+      var loadResult = session.loadMessages(agentContext);
 
-    assertThat(memory.allMessages()).hasSize(1);
-    final var assistantMessage = (AssistantMessage) memory.allMessages().get(0);
-    assertThat(assistantMessage.hasToolCalls()).isTrue();
-    assertThat(assistantMessage.toolCalls()).hasSize(1);
-    assertThat(assistantMessage.toolCalls().get(0).id()).isEqualTo("call_123");
+      assertThat(loadResult.messages()).hasSize(1);
+      final var assistantMessage = (AssistantMessage) loadResult.messages().get(0);
+      assertThat(assistantMessage.hasToolCalls()).isTrue();
+      assertThat(assistantMessage.toolCalls()).hasSize(1);
+      assertThat(assistantMessage.toolCalls().get(0).id()).isEqualTo("call_123");
+    }
   }
 
   @Test
@@ -558,21 +519,17 @@ class AwsAgentCoreConversationStoreTest {
 
     mockListEventsResponse(List.of(event));
 
-    store.executeInSession(
-        executionContext,
-        agentContext,
-        session -> {
-          session.loadIntoRuntimeMemory(agentContext, memory);
-          return agentResponse(agentContext);
-        });
+    try (var session = store.createSession(executionContext, agentContext)) {
+      var loadResult = session.loadMessages(agentContext);
 
-    assertThat(memory.allMessages()).hasSize(1);
-    assertThat(memory.allMessages().get(0)).isInstanceOf(ToolCallResultMessage.class);
+      assertThat(loadResult.messages()).hasSize(1);
+      assertThat(loadResult.messages().get(0)).isInstanceOf(ToolCallResultMessage.class);
 
-    final var msg = (ToolCallResultMessage) memory.allMessages().get(0);
-    assertThat(msg.results()).hasSize(1);
-    assertThat(msg.results().get(0)).isInstanceOf(ToolCallResult.class);
-    assertThat(msg.results().get(0).content()).isEqualTo("tool output");
+      final var msg = (ToolCallResultMessage) loadResult.messages().get(0);
+      assertThat(msg.results()).hasSize(1);
+      assertThat(msg.results().get(0)).isInstanceOf(ToolCallResult.class);
+      assertThat(msg.results().get(0).content()).isEqualTo("tool output");
+    }
   }
 
   @Test
@@ -609,27 +566,23 @@ class AwsAgentCoreConversationStoreTest {
 
     mockListEventsResponse(List.of(event));
 
-    store.executeInSession(
-        executionContext,
-        agentContext,
-        session -> {
-          session.loadIntoRuntimeMemory(agentContext, memory);
-          return agentResponse(agentContext);
-        });
+    try (var session = store.createSession(executionContext, agentContext)) {
+      var loadResult = session.loadMessages(agentContext);
 
-    assertThat(memory.allMessages()).hasSize(1);
-    final var assistantMessage = (AssistantMessage) memory.allMessages().get(0);
+      assertThat(loadResult.messages()).hasSize(1);
+      final var assistantMessage = (AssistantMessage) loadResult.messages().get(0);
 
-    assertThat(assistantMessage.content()).hasSize(1);
-    assertThat(
-            ((io.camunda.connector.agenticai.model.message.content.TextContent)
-                    assistantMessage.content().get(0))
-                .text())
-        .isEqualTo("Let me check the weather for you.");
+      assertThat(assistantMessage.content()).hasSize(1);
+      assertThat(
+              ((io.camunda.connector.agenticai.model.message.content.TextContent)
+                      assistantMessage.content().get(0))
+                  .text())
+          .isEqualTo("Let me check the weather for you.");
 
-    assertThat(assistantMessage.hasToolCalls()).isTrue();
-    assertThat(assistantMessage.toolCalls()).hasSize(1);
-    assertThat(assistantMessage.toolCalls().get(0).id()).isEqualTo("call_123");
+      assertThat(assistantMessage.hasToolCalls()).isTrue();
+      assertThat(assistantMessage.toolCalls()).hasSize(1);
+      assertThat(assistantMessage.toolCalls().get(0).id()).isEqualTo("call_123");
+    }
   }
 
   @Test
@@ -659,23 +612,19 @@ class AwsAgentCoreConversationStoreTest {
 
     mockListEventsResponse(List.of(event));
 
-    store.executeInSession(
-        executionContext,
-        agentContext,
-        session -> {
-          session.loadIntoRuntimeMemory(agentContext, memory);
-          return agentResponse(agentContext);
-        });
+    try (var session = store.createSession(executionContext, agentContext)) {
+      var loadResult = session.loadMessages(agentContext);
 
-    assertThat(memory.allMessages()).hasSize(1);
-    final var assistantMessage = (AssistantMessage) memory.allMessages().get(0);
+      assertThat(loadResult.messages()).hasSize(1);
+      final var assistantMessage = (AssistantMessage) loadResult.messages().get(0);
 
-    // No assistant text was stored => empty content list
-    assertThat(assistantMessage.content()).isEmpty();
+      // No assistant text was stored => empty content list
+      assertThat(assistantMessage.content()).isEmpty();
 
-    assertThat(assistantMessage.hasToolCalls()).isTrue();
-    assertThat(assistantMessage.toolCalls()).hasSize(1);
-    assertThat(assistantMessage.toolCalls().get(0).id()).isEqualTo("call_123");
+      assertThat(assistantMessage.hasToolCalls()).isTrue();
+      assertThat(assistantMessage.toolCalls()).hasSize(1);
+      assertThat(assistantMessage.toolCalls().get(0).id()).isEqualTo("call_123");
+    }
   }
 
   @Test
@@ -696,16 +645,15 @@ class AwsAgentCoreConversationStoreTest {
         .thenThrow(BedrockAgentCoreException.builder().message("Service unavailable").build());
 
     assertThatThrownBy(
-            () ->
-                store.executeInSession(
-                    executionContext,
-                    agentContext,
-                    session -> {
-                      session.loadIntoRuntimeMemory(agentContext, memory);
-                      memory.addMessage(userMessage("Hello!"));
-                      memory.addMessage(assistantMessage("Hi there!"));
-                      return agentResponse(session.storeFromRuntimeMemory(agentContext, memory));
-                    }))
+            () -> {
+              try (var session = store.createSession(executionContext, agentContext)) {
+                session.loadMessages(agentContext);
+
+                List<Message> messages =
+                    List.of(userMessage("Hello!"), assistantMessage("Hi there!"));
+                session.storeMessages(agentContext, ConversationStoreRequest.of(messages));
+              }
+            })
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Failed to store conversation event to AgentCore Memory")
         .hasCauseInstanceOf(BedrockAgentCoreException.class);
@@ -731,14 +679,11 @@ class AwsAgentCoreConversationStoreTest {
         .thenThrow(BedrockAgentCoreException.builder().message("Access denied").build());
 
     assertThatThrownBy(
-            () ->
-                store.executeInSession(
-                    executionContext,
-                    agentContext,
-                    session -> {
-                      session.loadIntoRuntimeMemory(agentContext, memory);
-                      return agentResponse(agentContext);
-                    }))
+            () -> {
+              try (var session = store.createSession(executionContext, agentContext)) {
+                session.loadMessages(agentContext);
+              }
+            })
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Failed to load conversation history from AgentCore Memory")
         .hasCauseInstanceOf(BedrockAgentCoreException.class);
@@ -758,24 +703,20 @@ class AwsAgentCoreConversationStoreTest {
         .thenReturn(
             CreateEventResponse.builder().event(Event.builder().eventId("evt-2").build()).build());
 
-    final var turn1Result =
-        store.executeInSession(
-            executionContext,
-            turn1Context,
-            session -> {
-              session.loadIntoRuntimeMemory(turn1Context, memory);
-              memory.addMessage(userMessage("Hello!"));
-              memory.addMessage(assistantMessage("Hi there!"));
-              return agentResponse(session.storeFromRuntimeMemory(turn1Context, memory));
-            });
+    AwsAgentCoreConversationContext turn1ConversationContext;
+    try (var session = store.createSession(executionContext, turn1Context)) {
+      session.loadMessages(turn1Context);
 
-    final var turn1ConversationContext =
-        (AwsAgentCoreConversationContext) turn1Result.context().conversation();
+      List<Message> messages = List.of(userMessage("Hello!"), assistantMessage("Hi there!"));
+      var updatedConversation =
+          session.storeMessages(turn1Context, ConversationStoreRequest.of(messages));
+      turn1ConversationContext = (AwsAgentCoreConversationContext) updatedConversation;
+    }
+
     assertThat(turn1ConversationContext.branchName()).isNull();
     assertThat(turn1ConversationContext.lastEventId()).isEqualTo("evt-2");
 
     // === Turn 2: fork a new branch from evt-2 ===
-    final var turn2Memory = new DefaultRuntimeMemory();
     final var turn2Context = AgentContext.builder().conversation(turn1ConversationContext).build();
 
     final var turn2Events =
@@ -789,16 +730,18 @@ class AwsAgentCoreConversationStoreTest {
         .thenReturn(
             CreateEventResponse.builder().event(Event.builder().eventId("evt-4").build()).build());
 
-    final var turn2Result =
-        store.executeInSession(
-            executionContext,
-            turn2Context,
-            session -> {
-              session.loadIntoRuntimeMemory(turn2Context, turn2Memory);
-              turn2Memory.addMessage(userMessage("What's the weather?"));
-              turn2Memory.addMessage(assistantMessage("It's sunny!"));
-              return agentResponse(session.storeFromRuntimeMemory(turn2Context, turn2Memory));
-            });
+    AwsAgentCoreConversationContext turn2ConversationContext;
+    try (var session = store.createSession(executionContext, turn2Context)) {
+      var loadResult = session.loadMessages(turn2Context);
+
+      var allMessages = new ArrayList<>(loadResult.messages());
+      allMessages.add(userMessage("What's the weather?"));
+      allMessages.add(assistantMessage("It's sunny!"));
+
+      var updatedConversation =
+          session.storeMessages(turn2Context, ConversationStoreRequest.of(allMessages));
+      turn2ConversationContext = (AwsAgentCoreConversationContext) updatedConversation;
+    }
 
     // Capture all createEvent calls across both turns
     verify(bedrockClient, times(4)).createEvent(createEventRequestCaptor.capture());
@@ -815,8 +758,6 @@ class AwsAgentCoreConversationStoreTest {
     // Both events in turn 2 use the same branch
     assertThat(allRequests.get(3).branch().name()).isEqualTo(allRequests.get(2).branch().name());
 
-    final var turn2ConversationContext =
-        (AwsAgentCoreConversationContext) turn2Result.context().conversation();
     assertThat(turn2ConversationContext.branchName()).isEqualTo(allRequests.get(2).branch().name());
     assertThat(turn2ConversationContext.lastEventId()).isEqualTo("evt-4");
   }
@@ -846,14 +787,11 @@ class AwsAgentCoreConversationStoreTest {
             clientFactory, new AwsAgentCoreConversationMapper(TestObjectMapperSupplier.INSTANCE));
 
     assertThatThrownBy(
-            () ->
-                changedStore.executeInSession(
-                    executionContext,
-                    turn1Context,
-                    session -> {
-                      session.loadIntoRuntimeMemory(turn1Context, memory);
-                      return agentResponse(session.storeFromRuntimeMemory(turn1Context, memory));
-                    }))
+            () -> {
+              try (var session = changedStore.createSession(executionContext, turn1Context)) {
+                session.loadMessages(turn1Context);
+              }
+            })
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("memoryId changed between iterations");
   }
@@ -883,14 +821,11 @@ class AwsAgentCoreConversationStoreTest {
             clientFactory, new AwsAgentCoreConversationMapper(TestObjectMapperSupplier.INSTANCE));
 
     assertThatThrownBy(
-            () ->
-                changedStore.executeInSession(
-                    executionContext,
-                    turn1Context,
-                    session -> {
-                      session.loadIntoRuntimeMemory(turn1Context, memory);
-                      return agentResponse(session.storeFromRuntimeMemory(turn1Context, memory));
-                    }))
+            () -> {
+              try (var session = changedStore.createSession(executionContext, turn1Context)) {
+                session.loadMessages(turn1Context);
+              }
+            })
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("actorId changed between iterations");
   }
@@ -908,19 +843,26 @@ class AwsAgentCoreConversationStoreTest {
     mockListEventsResponse(events);
 
     // when
-    store.executeInSession(
-        executionContext,
-        agentContext,
-        session -> {
-          session.loadIntoRuntimeMemory(agentContext, memory);
+    try (var session = store.createSession(executionContext, agentContext)) {
+      var loadResult = session.loadMessages(agentContext);
 
-          // then - messages should be ordered by seq: User (0) before Assistant (1)
-          var messages = memory.allMessages();
-          assertThat(messages).hasSize(2);
-          assertThat(messages.get(0)).isInstanceOf(UserMessage.class);
-          assertThat(messages.get(1)).isInstanceOf(AssistantMessage.class);
-          return agentResponse(session.storeFromRuntimeMemory(agentContext, memory));
-        });
+      // then - messages should be ordered by seq: User (0) before Assistant (1)
+      assertThat(loadResult.messages()).hasSize(2);
+      assertThat(loadResult.messages().get(0)).isInstanceOf(UserMessage.class);
+      assertThat(loadResult.messages().get(1)).isInstanceOf(AssistantMessage.class);
+    }
+  }
+
+  @Test
+  void closesClientWhenSessionIsClosed() {
+    final var agentContext = AgentContext.empty();
+    mockListEventsResponse(List.of());
+
+    var session = store.createSession(executionContext, agentContext);
+    session.loadMessages(agentContext);
+    session.close();
+
+    verify(bedrockClient).close();
   }
 
   private Event createEventWithSeq(Role role, String text, Instant timestamp, String seq) {
@@ -967,9 +909,5 @@ class AwsAgentCoreConversationStoreTest {
     return CreateEventResponse.builder()
         .event(Event.builder().eventId("evt-" + (++eventCounter)).build())
         .build();
-  }
-
-  private AgentResponse agentResponse(AgentContext agentContext) {
-    return AgentResponse.builder().context(agentContext).toolCalls(List.of()).build();
   }
 }

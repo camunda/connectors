@@ -3,15 +3,7 @@
   "name" : "Hybrid Webhook Receive Task Connector",
   "id" : "io.camunda.connectors.webhook.WebhookConnectorReceive.v1-hybrid",
   "description" : "Configure webhook to receive callbacks",
-  "keywords" : [
-    "receive webhook",
-    "HTTP trigger",
-    "event received",
-    "inbound event",
-    "webhook trigger",
-    "HTTP callback",
-    "listen for event"
-  ],
+  "keywords" : [ "receive webhook", "HTTP trigger", "event received", "inbound event", "webhook trigger", "HTTP callback", "listen for event" ],
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/",
   "version" : 14,
   "category" : {

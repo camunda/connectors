@@ -3,9 +3,6 @@
   "name" : "IDP Structured Extraction Outbound Connector",
   "id" : "io.camunda.connector.IdpStructuredExtractionOutBoundTemplate.v1",
   "description" : "Execute IDP Structured Extraction requests",
-  "metadata" : {
-    "keywords" : [ ]
-  },
   "documentationRef" : "https://docs.camunda.io/docs/guides/",
   "version" : 2,
   "category" : {

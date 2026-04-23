@@ -8,9 +8,11 @@ package io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore;
 
 import static io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationUtil.loadConversationContext;
 
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationContext;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationLoadResult;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationSession;
+import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRequest;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.awsagentcore.mapping.AwsAgentCoreConversationMapper;
-import io.camunda.connector.agenticai.aiagent.memory.runtime.RuntimeMemory;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.request.MemoryStorageConfiguration.AwsAgentCoreMemoryStorageConfiguration;
 import io.camunda.connector.agenticai.model.message.AssistantMessage;
@@ -41,8 +43,9 @@ import software.amazon.awssdk.services.bedrockagentcore.model.PayloadType;
 /**
  * Conversation session implementation for AWS AgentCore Memory.
  *
- * <p>Handles loading messages from AgentCore Memory into runtime memory and storing new messages
- * back to AgentCore Memory as conversational events.
+ * <p>Handles loading messages from AgentCore Memory and storing new messages back as conversational
+ * events. The session manages the lifecycle of the {@link BedrockAgentCoreClient} — it is closed
+ * when the session is closed.
  */
 public class AwsAgentCoreConversationSession implements ConversationSession {
 
@@ -72,18 +75,20 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
   }
 
   @Override
-  public void loadIntoRuntimeMemory(AgentContext agentContext, RuntimeMemory memory) {
+  public ConversationLoadResult loadMessages(AgentContext agentContext) {
     previousConversationContext =
         loadConversationContext(agentContext, AwsAgentCoreConversationContext.class);
 
     validateConfigurationConsistency();
+
+    final List<Message> result = new ArrayList<>();
 
     if (previousConversationContext != null) {
       sessionId = previousConversationContext.conversationId();
       branchName = previousConversationContext.branchName();
       lastEventId = previousConversationContext.lastEventId();
       if (previousConversationContext.systemMessage() != null) {
-        memory.addMessage(previousConversationContext.systemMessage());
+        result.add(previousConversationContext.systemMessage());
       }
     } else {
       sessionId = UUID.randomUUID().toString();
@@ -91,18 +96,21 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
 
     final List<Message> messages = loadMessagesFromAgentCore(sessionId, branchName);
     initialMessageCount = messages.size();
-    memory.addMessages(messages);
+    result.addAll(messages);
 
     LOGGER.debug(
         "Loaded {} messages from AgentCore Memory for session '{}' branch '{}'",
         messages.size(),
         sessionId,
         branchName != null ? branchName : "<main>");
+
+    return ConversationLoadResult.of(result);
   }
 
   @Override
-  public AgentContext storeFromRuntimeMemory(AgentContext agentContext, RuntimeMemory memory) {
-    final List<Message> allMessages = memory.allMessages();
+  public ConversationContext storeMessages(
+      AgentContext agentContext, ConversationStoreRequest request) {
+    final List<Message> allMessages = request.messages();
 
     // extract system message — needs to be preserved in context since AgentCore doesn't support it
     final SystemMessage systemMessage =
@@ -152,12 +160,16 @@ public class AwsAgentCoreConversationSession implements ConversationSession {
                 .memoryId(config.memoryId())
                 .actorId(config.actorId());
 
-    return agentContext.withConversation(
-        conversationContextBuilder
-            .branchName(branchName)
-            .lastEventId(lastEventId)
-            .systemMessage(systemMessage)
-            .build());
+    return conversationContextBuilder
+        .branchName(branchName)
+        .lastEventId(lastEventId)
+        .systemMessage(systemMessage)
+        .build();
+  }
+
+  @Override
+  public void close() {
+    client.close();
   }
 
   /**

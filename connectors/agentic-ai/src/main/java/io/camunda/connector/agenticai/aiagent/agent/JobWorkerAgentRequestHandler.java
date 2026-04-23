@@ -7,9 +7,9 @@
 package io.camunda.connector.agenticai.aiagent.agent;
 
 import io.camunda.connector.agenticai.aiagent.AiAgentJobWorker;
+import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessConnectorResponse;
+import io.camunda.connector.agenticai.aiagent.AiAgentSubProcessConnectorResponse.ToolCallElementActivation;
 import io.camunda.connector.agenticai.aiagent.framework.AiFrameworkAdapter;
-import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentSubProcessResponse;
-import io.camunda.connector.agenticai.aiagent.jobworker.AiAgentSubProcessResponse.ToolCallElementActivation;
 import io.camunda.connector.agenticai.aiagent.memory.conversation.ConversationStoreRegistry;
 import io.camunda.connector.agenticai.aiagent.model.AgentContext;
 import io.camunda.connector.agenticai.aiagent.model.AgentResponse;
@@ -28,7 +28,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 public class JobWorkerAgentRequestHandler
-    extends BaseAgentRequestHandler<JobWorkerAgentExecutionContext, AiAgentSubProcessResponse> {
+    extends BaseAgentRequestHandler<
+        JobWorkerAgentExecutionContext, AiAgentSubProcessConnectorResponse> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JobWorkerAgentRequestHandler.class);
 
@@ -82,7 +83,7 @@ public class JobWorkerAgentRequestHandler
   }
 
   @Override
-  public AiAgentSubProcessResponse completeJob(
+  public AiAgentSubProcessConnectorResponse buildConnectorResponse(
       JobWorkerAgentExecutionContext executionContext, AgentResponse agentResponse) {
     if (agentResponse == null) {
       LOGGER.debug(
@@ -91,7 +92,7 @@ public class JobWorkerAgentRequestHandler
 
       // no-op (do not activate elements, do not complete agent process) -> wait for next job to
       // proceed (e.g. by adding user messages or to complete tool call results)
-      return AiAgentSubProcessResponse.builder()
+      return AiAgentSubProcessConnectorResponse.builder()
           .completionConditionFulfilled(false)
           .cancelRemainingInstances(false)
           .build();
@@ -103,11 +104,11 @@ public class JobWorkerAgentRequestHandler
             agentResponse.toolCalls().stream().map(tc -> tc.metadata().name()).toList());
       }
 
-      return completeWithResponse(executionContext, agentResponse);
+      return buildResponse(executionContext, agentResponse);
     }
   }
 
-  private AiAgentSubProcessResponse completeWithResponse(
+  private AiAgentSubProcessConnectorResponse buildResponse(
       JobWorkerAgentExecutionContext executionContext, AgentResponse agentResponse) {
     boolean completionConditionFulfilled = agentResponse.toolCalls().isEmpty();
     boolean cancelRemainingInstances = executionContext.cancelRemainingInstances();
@@ -131,7 +132,7 @@ public class JobWorkerAgentRequestHandler
       variables.put(AiAgentJobWorker.TOOL_CALL_RESULTS_VARIABLE, List.of());
     }
 
-    return AiAgentSubProcessResponse.builder()
+    return AiAgentSubProcessConnectorResponse.builder()
         .responseValue(agentResponse)
         .variables(variables)
         .elementActivations(buildElementActivations(agentResponse))
